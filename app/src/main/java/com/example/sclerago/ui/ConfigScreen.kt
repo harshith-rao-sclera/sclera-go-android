@@ -6,6 +6,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -16,6 +17,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,26 +39,24 @@ import com.example.sclerago.ui.theme.C
 import com.example.sclerago.ui.theme.Txt
 
 /**
- * The Configuration page (side menu → Configuration): Building info (buildings, floors, locations),
- * Asset fields (which fields show / are required, photo counts) and Geofencing (map).
- * System back goes from a sub-page to the Configuration home, and from there back to the app.
+ * The Configuration page (side menu → Configuration), as three tabs: Building info (buildings, floors,
+ * locations), Asset fields (which fields show / are required, photo counts) and Geofencing (map).
+ * System back closes Configuration and returns to the app.
  */
 @Composable
 fun ConfigScreen(vm: AppViewModel) {
     val s = vm.state
-    BackHandler(onBack = vm::cfgBack)
-    val title = when (s.cfgPage) {
-        CfgPage.HOME -> "Configuration"
-        CfgPage.BUILDING -> "Building info"
-        CfgPage.FIELDS -> "Asset fields"
-        CfgPage.GEO -> "Geofencing"
-    }
+    BackHandler(onBack = vm::closeConfig)
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            PageBar(title, if (s.cfgPage == CfgPage.HOME) vm.propName else "Configuration · ${vm.propName}", vm::cfgBack)
+            PageBar("Configuration", vm.propName, vm::closeConfig)
+            Row(Modifier.fillMaxWidth().background(C.Strip).bottomBorder(C.Border)) {
+                CfgTab("Building info", Icons.Building, s.cfgPage == CfgPage.BUILDING, Modifier.weight(1f)) { vm.cfgGo(CfgPage.BUILDING) }
+                CfgTab("Asset fields", Icons.Box, s.cfgPage == CfgPage.FIELDS, Modifier.weight(1f)) { vm.cfgGo(CfgPage.FIELDS) }
+                CfgTab("Geofencing", Icons.Pin, s.cfgPage == CfgPage.GEO, Modifier.weight(1f)) { vm.cfgGo(CfgPage.GEO) }
+            }
             Box(Modifier.weight(1f).fillMaxWidth().navigationBarsPadding()) {
                 when (s.cfgPage) {
-                    CfgPage.HOME -> ConfigHome(vm)
                     CfgPage.BUILDING -> BuildingInfo(vm)
                     CfgPage.FIELDS -> AssetFields(vm)
                     CfgPage.GEO -> Geofencing(vm)
@@ -71,30 +71,27 @@ fun ConfigScreen(vm: AppViewModel) {
     }
 }
 
-// ---------------------------------------------------------------- Home
+// ---------------------------------------------------------------- Tabs
 
+/** One Configuration tab: icon + label, yellow with an underline when selected (same look as the Network tabs). */
 @Composable
-private fun ConfigHome(vm: AppViewModel) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        HomeCard(Icons.Building, C.Yellow, C.YTintBg, "Building info", "Property details, floors and site metadata") { vm.cfgGo(CfgPage.BUILDING) }
-        HomeCard(Icons.Box, C.Purple, Color(0xFF26233A), "Asset fields", "Fields and photos collected for each asset") { vm.cfgGo(CfgPage.FIELDS) }
-        HomeCard(Icons.Pin, C.Green, Color(0xFF17291F), "Geofencing", "Set the boundaries where collection is allowed") { vm.cfgGo(CfgPage.GEO) }
-    }
-}
-
-@Composable
-private fun HomeCard(icon: Ico, fg: Color, bg: Color, title: String, sub: String, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).clickable(onClick = onClick).padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Box(Modifier.size(44.dp).clip(r(11)).background(bg), contentAlignment = Alignment.Center) { LineIcon(icon, 22.dp, fg, 2.1f) }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, 16, 700)
-            Txt(sub, 13, 400, C.Muted, maxLines = 2)
+private fun CfgTab(label: String, icon: Ico, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val fg by animateColorAsState(if (on) C.Yellow else C.Muted, label = "cfgtab")
+    val bar by animateColorAsState(if (on) C.Yellow else Color.Transparent, label = "cfgbar")
+    Box(modifier.height(46.dp).clickable(onClick = onClick)) {
+        Row(
+            Modifier.align(Alignment.Center).padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            LineIcon(icon, 16.dp, fg, 2.1f)
+            Txt(label, 13, if (on) 700 else 500, fg, maxLines = 1)
         }
-        LineIcon(Icons.ChevronRight, 18.dp, C.Muted, 2.4f)
+        Box(
+            Modifier.align(Alignment.BottomCenter).padding(horizontal = 12.dp).fillMaxWidth().height(3.dp)
+                .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                .background(bar)
+        )
     }
 }
 

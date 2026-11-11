@@ -28,7 +28,7 @@ enum class Sheet { NONE, LOC, PROP }
 enum class SheetFor { FILTER, ASSET, BULK }
 enum class NetMode { WIFI, AP }
 enum class MenuItem { ASSETS, VALIDATION, CONFIGURATION, AUDIT, SURVEY, INTEGRATION }
-enum class CfgPage { HOME, BUILDING, FIELDS, GEO }
+enum class CfgPage { BUILDING, FIELDS, GEO }
 
 data class LocValue(val loc: String?, val where: String)
 
@@ -122,7 +122,7 @@ data class UiState(
     val touched: Map<Int, Long> = emptyMap(),
     // ---- Configuration page
     val cfgOpen: Boolean = false,
-    val cfgPage: CfgPage = CfgPage.HOME,
+    val cfgPage: CfgPage = CfgPage.BUILDING,
     /** Edited building → floor → location trees, per property (falls back to the seed tree). */
     val trees: Map<String, List<LocNode>> = emptyMap(),
     val nodeSeq: Int = 1,
@@ -348,6 +348,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         var o = copy(tab = t, assetId = null, newAsset = false, newDevice = null, newMedia = emptyList(), pick = emptySet())
         if (t == Tab.CAMERA) o = o.copy(camOpen = true, revCam = false)
         if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = true)
+        // Scanning tabs always open on their Scan segment, not their asset list.
+        if (t == Tab.BT) o = o.copy(btScan = true)
+        if (t == Tab.NET) o = o.copy(netScan = true)
         o
     }
 
@@ -749,11 +752,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // Side-menu pages always return to the Assets tab. It is also selected on open, so the
+    // pager slides there hidden behind the page rather than visibly on close.
     fun openValidation() = set {
-        copy(valOpen = true, menuOpen = false, assetId = null, newAsset = false, searchOpen = false, pick = emptySet())
+        copy(valOpen = true, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false, searchOpen = false, pick = emptySet())
     }
     fun closeValidation() = set {
-        copy(valOpen = false, valSheet = null, valPicker = false, valChecksFor = null, valReview = null, valEditor = null)
+        copy(
+            valOpen = false, tab = Tab.ASSETS, assetId = null, newAsset = false,
+            valSheet = null, valPicker = false, valChecksFor = null, valReview = null, valEditor = null,
+        )
     }
 
     fun openRunSheet(sourceId: String = "quick", scope: ValScope = ValScope.ALL) =
@@ -870,13 +878,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---------- Configuration ----------
 
     fun openConfig() = set {
-        copy(cfgOpen = true, cfgPage = CfgPage.HOME, menuOpen = false, assetId = null, newAsset = false, searchOpen = false, pick = emptySet())
+        copy(cfgOpen = true, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false, searchOpen = false, pick = emptySet())
     }
-    fun closeConfig() = set { copy(cfgOpen = false, cfgPage = CfgPage.HOME) }
-    fun cfgGo(page: CfgPage) = set { copy(cfgPage = page) }
+    fun closeConfig() = set { copy(cfgOpen = false, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS) }
 
-    /** Back from a Configuration sub-page goes to its home; back from the home closes Configuration. */
-    fun cfgBack() = if (state.cfgPage != CfgPage.HOME) cfgGo(CfgPage.HOME) else closeConfig()
+    /** Switches the Configuration tab (Building info / Asset fields / Geofencing). */
+    fun cfgGo(page: CfgPage) = set { copy(cfgPage = page) }
 
     // Building info: the property's building → floor → location tree (also used by the location picker).
     fun treeFor(prop: String = state.prop): List<LocNode> = state.trees[prop] ?: locationTree(prop)

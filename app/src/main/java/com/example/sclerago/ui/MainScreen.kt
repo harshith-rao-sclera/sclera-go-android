@@ -29,6 +29,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.lerp
+import kotlin.math.abs
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.*
@@ -165,7 +169,7 @@ fun ScleraApp(vm: AppViewModel = viewModel()) {
                 ) { Toast(s.toast) }
             }
             // The tabs stay visible everywhere, asset details included.
-            BottomNav(vm)
+            BottomNav(vm, pager)
         }
 
         // Validation page (side menu) covers the whole app; an asset opened from its results sits on top.
@@ -302,29 +306,38 @@ private val NAV = listOf(
     NavSpec(Tab.FILE, "File", Icons.FileUploadBadgeSolid, iconSize = 27.dp),
 )
 
+/**
+ * The bottom tabs follow the pager's live position, so while you swipe the highlight slides
+ * between icons with your finger (and with the pager's own slide after a tap).
+ */
 @Composable
-private fun BottomNav(vm: AppViewModel) {
+private fun BottomNav(vm: AppViewModel, pager: PagerState) {
+    // Continuous page position, e.g. 2.4 = 40% of the way from Assets to Camera.
+    val pos = pager.currentPage + pager.currentPageOffsetFraction
     Box(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).navigationBarsPadding().height(58.dp)) {
         Row(Modifier.fillMaxSize()) {
             NAV.forEachIndexed { i, n ->
-                NavItem(n, vm.state.tab == n.tab, first = i == 0, last = i == NAV.size - 1) { vm.goTab(n.tab) }
+                val t = (1f - abs(pos - n.tab.ordinal)).coerceIn(0f, 1f)
+                NavItem(n, t, first = i == 0, last = i == NAV.size - 1) { vm.goTab(n.tab) }
             }
         }
     }
 }
 
+/** [t] is how selected this tab is: 0 = not at all, 1 = fully (in between mid-swipe). */
 @Composable
-private fun RowScope.NavItem(n: NavSpec, on: Boolean, first: Boolean, last: Boolean, onClick: () -> Unit) {
-    val w by animateFloatAsState(if (on) 1.6f else 1f, tween(350), label = "navw")
-    val bg by animateColorAsState(if (on) C.Raised else Color.Transparent, tween(300), label = "navbg")
-    val circ by animateColorAsState(if (on) C.Yellow else Color.Transparent, tween(300), label = "circ")
-    val ic by animateColorAsState(if (on) C.OnYellow else C.Muted, tween(300), label = "navic")
-    val size by animateDpAsState(if (on) 36.dp else 30.dp, tween(350), label = "size")
-    val arrowL by animateDpAsState(if (on && !first) 17.dp else 0.dp, tween(300), label = "al")
-    val arrowR by animateDpAsState(if (on && !last) 17.dp else 0.dp, tween(300), label = "ar")
-    val labelH by animateDpAsState(if (on) 14.dp else 0.dp, tween(300), label = "lh")
-    val labelA by animateFloatAsState(if (on) 1f else 0f, tween(250), label = "la")
-    val gap by animateDpAsState(if (on) 3.dp else 0.dp, tween(300), label = "gap")
+private fun RowScope.NavItem(n: NavSpec, t: Float, first: Boolean, last: Boolean, onClick: () -> Unit) {
+    val on = t > 0.5f
+    val w = 1f + 0.6f * t
+    val bg = lerp(Color.Transparent, C.Raised, t)
+    val circ = lerp(Color.Transparent, C.Yellow, t)
+    val ic = lerp(C.Muted, C.OnYellow, t)
+    val size = lerp(30.dp, 36.dp, t)
+    val arrowL = if (!first) 17.dp * t else 0.dp
+    val arrowR = if (!last) 17.dp * t else 0.dp
+    val labelH = 14.dp * t
+    val labelA = t
+    val gap = 3.dp * t
     Box(
         Modifier.weight(w).fillMaxHeight().background(bg).then(if (!last) Modifier.endBorder(C.Border) else Modifier)
             .clickable(onClick = onClick),
