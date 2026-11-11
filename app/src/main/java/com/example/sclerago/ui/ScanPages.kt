@@ -57,11 +57,11 @@ fun BluetoothPage(vm: AppViewModel) {
         } else {
             stickyHeader(key = "seg") { seg() }
             val devs = vm.btDevices
-            val newN = devs.count { it.isNew }
+            val card = vm.btCard
             scanSection(
                 on = s.btOn,
-                title = if (s.btOn) "Scanning nearby…" else "Scan paused",
-                sub = if (s.btOn) "${devs.size} found · $newN new · tap to pause" else "Tap to scan again",
+                title = card.title,
+                sub = card.sub,
                 coreIcon = Icons.Bluetooth,
                 dots = BT_DOTS,
                 onToggle = vm::toggleBt,
@@ -93,13 +93,11 @@ fun NetworkPage(vm: AppViewModel) {
             stickyHeader(key = "head") { head() }
             val ap = s.netMode == NetMode.AP
             val devs = vm.netDevices
-            val newN = devs.count { it.isNew }
+            val card = vm.netCard
             scanSection(
                 on = s.netOn,
-                title = if (!s.netOn) "Scan paused" else if (ap) "Looking for access points…" else "Scanning Wi-Fi network…",
-                sub = if (!s.netOn) "Tap to scan again"
-                else if (ap) "${devs.size} access points · $newN new · tap to pause"
-                else "SCL-PLANT · ${devs.size} devices · $newN new · tap to pause",
+                title = card.title,
+                sub = card.sub,
                 coreIcon = if (ap) Icons.AccessPoint else Icons.Wifi,
                 dots = NET_DOTS,
                 onToggle = vm::toggleNet,
@@ -157,7 +155,7 @@ private fun LazyListScope.scanSection(
             }
         }
     }
-    items(devices, key = { "${it.device.id}-${it.device.sub}" }) { d ->
+    items(devices, key = { it.device.id }) { d ->
         Row(
             Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
                 .border(1.dp, C.Border, r(14)).clickable { onOpen(d.device) }
@@ -165,7 +163,7 @@ private fun LazyListScope.scanSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SignalBars(d.device.lvl)
+            DeviceIconTile(d.device)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(d.device.name, 14, 600)
                 Txt(d.device.sub, 12, 400, C.Muted, mono = mono)

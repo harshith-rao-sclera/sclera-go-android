@@ -52,6 +52,7 @@ import com.example.sclerago.LocFilter
 import com.example.sclerago.Sheet
 import com.example.sclerago.Tab
 import com.example.sclerago.data.Asset
+import com.example.sclerago.scan.core.ScanPermissions
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon
@@ -93,6 +94,14 @@ fun ScleraApp(vm: AppViewModel = viewModel()) {
     ShakeEffect {
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         vm.openCameraByShake()
+    }
+
+    // Bluetooth / access point scans need a runtime permission; the view model asks, this shows Android's prompt.
+    val scanPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
+        vm.onScanPermission(res.isNotEmpty() && res.values.all { it })
+    }
+    LaunchedEffect(vm.permissionAsk) {
+        vm.permissionAsk?.let { scanPermission.launch(ScanPermissions.required(it).toTypedArray()) }
     }
 
     // The File tab hands off to Android's own file manager (Storage Access Framework).

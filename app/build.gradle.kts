@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -11,7 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.sclerago"
-        minSdk = 24
+        // 26: the Bluetooth / Wi-Fi / network scanners (ported from AssetOnBoard) need Android 8.0+.
+        minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -53,6 +55,10 @@ dependencies {
     implementation(libs.camera.video)
     implementation(libs.camera.view)
     implementation(libs.exifinterface)
+    // Bluetooth / Wi-Fi / access point scanning (scan/ package)
+    implementation(libs.core.ktx)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)

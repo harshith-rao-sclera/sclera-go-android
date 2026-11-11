@@ -15,6 +15,18 @@ import com.example.sclerago.media.describeFiles
 import com.example.sclerago.media.describeVisualMedia
 import com.example.sclerago.media.formatSize
 import com.example.sclerago.media.timeLabel
+import com.example.sclerago.scan.UNKNOWN_DEVICE
+import com.example.sclerago.scan.core.BleScanner
+import com.example.sclerago.scan.core.NetworkScanner
+import com.example.sclerago.scan.core.ScanDepth
+import com.example.sclerago.scan.core.ScanPermissions
+import com.example.sclerago.scan.core.WifiAccessPointScanner
+import com.example.sclerago.scan.mentions
+import com.example.sclerago.scan.model.BleDevice
+import com.example.sclerago.scan.model.NetworkDevice
+import com.example.sclerago.scan.model.WifiAccessPoint
+import com.example.sclerago.scan.scanKey
+import com.example.sclerago.scan.toRow
 import com.example.sclerago.ui.theme.C
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -61,8 +73,10 @@ data class UiState(
     val statusFilter: Map<Tab, Status?> = emptyMap(),
     val q: String = "",
     val searchOpen: Boolean = false,
-    val btOn: Boolean = true,
-    val netOn: Boolean = true,
+    /** A Bluetooth scan is running right now. */
+    val btOn: Boolean = false,
+    /** The scan for the current network mode (Wi-Fi network / access points) is running right now. */
+    val netOn: Boolean = false,
     val added: Set<String> = emptySet(),
     val specLocs: List<String> = listOf("location1"),
     val specPath: List<String> = listOf("building 1", "floor 1", "location1"),
@@ -239,7 +253,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val cam = state.newMedia.firstOrNull()
             Asset(
                 -1, d?.let { deviceName(it) } ?: cam?.let { captureName(it) } ?: "", d?.sub ?: "", tgtLoc, tgtWhere,
-                state.newSrc, Status.DRAFT, if (d != null) typeOf(d.name) else AssetType.GENERIC, state.prop,
+                state.newSrc, Status.DRAFT, d?.type ?: AssetType.GENERIC, state.prop,
                 media = state.newMedia,
             )
         } else state.assetId?.let { id -> assets.firstOrNull { it.id == id } }
@@ -250,8 +264,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val d = state.newDevice ?: return emptyMap()
             val m = mutableMapOf("note" to "${state.newSrc.label}: ${d.name} · ${d.sub}")
             when (state.newSrc) {
-                Source.BT -> m["ble"] = d.name
-                Source.WIFI -> m["ip"] = deviceKey(d)
+                Source.BT -> m["ble"] = scanKey(d)
+                Source.WIFI -> m["ip"] = scanKey(d)
                 else -> {}
             }
             return m
@@ -286,11 +300,159 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // Scanners
-    private fun deviceName(d: Device) = if (d.name in setOf("Unknown device", "Hidden network")) "" else d.name
+    // ---------- Scanners (real Bluetooth / Wi-Fi network / access point scans, ported from AssetOnBoard) ----------
 
-    /** What identifies a device inside an asset's detail line: tag name for Bluetooth, IP/MAC for network. */
-    private fun deviceKey(d: Device) = if (d in BT_DEVICES) d.name else d.sub.substringBefore(" ·").trim()
+    private val ble = BleScanner(app, viewModelScope)
+    private val lan = NetworkScanner(app, viewModelScope)
+    private val aps = WifiAccessPointScanner(app, viewModelScope)
+
+    private var bleFound by mutableStateOf<List<BleDevice>>(emptyList())
+    private var lanFound by mutableStateOf<List<NetworkDevice>>(emptyList())
+    private var apFound by mutableStateOf<List<WifiAccessPoint>>(emptyList())
+    private var lanScanning by mutableStateOf(false)
+    private var apScanning by mutableStateOf(false)
+    private var lanSubnet by mutableStateOf<String?>(null)
+
+    /** Why a scan could not run (radio off, permission refused…); shown on the scan card until the next try. */
+    private var btIssue by mutableStateOf<String?>(null)
+    private var lanIssue by mutableStateOf<String?>(null)
+    private var apIssue by mutableStateOf<String?>(null)
+
+    /** The user paused the scan themselves (as opposed to it finishing on its own). */
+    private var btPaused by mutableStateOf(false)
+    private var lanPaused by mutableStateOf(false)
+    private var apPaused by mutableStateOf(false)
+
+    /** Runtime permission the UI should ask for; the answer comes back through [onScanPermission]. */
+    var permissionAsk by mutableStateOf<ScanPermissions.Surface?>(null)
+        private set
+
+    init {
+        viewModelScope.launch { ble.devices.collect { bleFound = it } }
+        viewModelScope.launch { ble.isScanning.collect { set { copy(btOn = it) } } }
+        viewModelScope.launch { lan.devices.collect { lanFound = it } }
+        viewModelScope.launch { lan.subnet.collect { lanSubnet = it?.toString() } }
+        viewModelScope.launch {
+            lan.phase.collect { p ->
+                lanScanning = p.isScanning
+                if (p is NetworkScanner.Phase.Failed) lanIssue = p.label
+                syncNetOn()
+            }
+        }
+        viewModelScope.launch { aps.accessPoints.collect { apFound = it } }
+        viewModelScope.launch { aps.isScanning.collect { apScanning = it; syncNetOn() } }
+    }
+
+    override fun onCleared() {
+        ble.stop()
+        aps.stop()
+        lan.stop()
+        super.onCleared()
+    }
+
+    private fun syncNetOn() = set { copy(netOn = if (netMode == NetMode.AP) apScanning else lanScanning) }
+
+    private fun startBt() {
+        if (ble.isScanning.value) return
+        btPaused = false
+        if (!ScanPermissions.granted(getApplication(), ScanPermissions.Surface.BLE)) {
+            permissionAsk = ScanPermissions.Surface.BLE
+            return
+        }
+        if (ScanPermissions.needsLocationServices(ScanPermissions.Surface.BLE) && !ScanPermissions.locationServicesEnabled(getApplication())) {
+            btIssue = "Turn on Location to scan for Bluetooth devices"
+            return
+        }
+        btIssue = null
+        ble.start()
+        // start() returns without scanning when the radio is off or missing; say why.
+        if (!ble.isScanning.value) btIssue = ble.status.value.removeSuffix(".").ifBlank { null }
+    }
+
+    private fun startNet() {
+        if (state.netMode == NetMode.AP) {
+            if (aps.isScanning.value) return
+            apPaused = false
+            if (!ScanPermissions.granted(getApplication(), ScanPermissions.Surface.WIFI)) {
+                permissionAsk = ScanPermissions.Surface.WIFI
+                return
+            }
+            if (!ScanPermissions.locationServicesEnabled(getApplication())) {
+                apIssue = "Turn on Location to see access points"
+                return
+            }
+            apIssue = null
+            aps.start()
+            if (!aps.isScanning.value) apIssue = aps.status.value.removeSuffix(".").ifBlank { null }
+        } else {
+            if (lan.isScanning) return
+            lanPaused = false
+            // On Android 17+ the sweep needs the local network permission, or every probe is silently
+            // blocked and the scan "finds" nothing. Earlier versions need no runtime permission.
+            if (!ScanPermissions.granted(getApplication(), ScanPermissions.Surface.LAN)) {
+                permissionAsk = ScanPermissions.Surface.LAN
+                return
+            }
+            lanIssue = null
+            // A missing Wi-Fi / Ethernet connection shows up as a failed phase.
+            lan.start(ScanDepth.STANDARD)
+        }
+    }
+
+    /** The answer to [permissionAsk]: start that scan, or say why it can't run. */
+    fun onScanPermission(granted: Boolean) {
+        val surface = permissionAsk ?: return
+        permissionAsk = null
+        when (surface) {
+            ScanPermissions.Surface.BLE -> {
+                if (granted) startBt() else btIssue = "Allow Nearby devices to scan for Bluetooth devices"
+            }
+            ScanPermissions.Surface.WIFI -> {
+                if (granted) startNet() else apIssue = "Allow Location to see access points"
+            }
+            ScanPermissions.Surface.LAN -> {
+                if (granted) startNet() else lanIssue = "Allow access to devices on your local network to scan it"
+            }
+        }
+    }
+
+    /** Title and detail line for a scan page's radar card. */
+    data class ScanCard(val title: String, val sub: String)
+
+    val btCard: ScanCard
+        get() {
+            val devs = btDevices
+            val newN = devs.count { it.isNew }
+            return when {
+                state.btOn -> ScanCard("Scanning nearby…", "${devs.size} found · $newN new · tap to pause")
+                btIssue != null -> ScanCard("Can't scan", "$btIssue · tap to try again")
+                btPaused -> ScanCard("Scan paused", "Tap to scan again")
+                devs.isNotEmpty() -> ScanCard("Scan complete", "${devs.size} found · $newN new · tap to scan again")
+                else -> ScanCard("Scan paused", "Tap to scan again")
+            }
+        }
+
+    val netCard: ScanCard
+        get() {
+            val ap = state.netMode == NetMode.AP
+            val devs = netDevices
+            val newN = devs.count { it.isNew }
+            val issue = if (ap) apIssue else lanIssue
+            val paused = if (ap) apPaused else lanPaused
+            val found = if (ap) "${devs.size} access points" else listOfNotNull(lanSubnet, "${devs.size} devices").joinToString(" · ")
+            return when {
+                state.netOn -> ScanCard(
+                    if (ap) "Looking for access points…" else "Scanning Wi-Fi network…",
+                    "$found · $newN new · tap to pause",
+                )
+                issue != null -> ScanCard("Can't scan", "$issue · tap to try again")
+                paused -> ScanCard("Scan paused", "Tap to scan again")
+                devs.isNotEmpty() -> ScanCard("Scan complete", "$found · $newN new · tap to scan again")
+                else -> ScanCard("Scan paused", "Tap to scan again")
+            }
+        }
+
+    private fun deviceName(d: Device) = if (d.name in setOf(UNKNOWN_DEVICE, "Hidden network")) "" else d.name
 
     /** Where a scanned tag / IP / MAC can show up on an asset: its subtitle, BLE tag, IP address or notes. */
     private fun assetKeys(a: Asset): List<String> {
@@ -305,10 +467,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             else -> Source.WIFI
         }
 
-    val btDevices: List<DeviceRow> get() = BT_DEVICES.map { DeviceRow(it, !it.known && it.id !in state.added) }
+    /** For matching scanned devices to assets: each [src] asset's id with all the text a tag / IP / MAC could appear in. */
+    private fun assetTexts(src: Source, list: List<Asset> = assets): List<Pair<Int, String>> =
+        list.filter { it.src == src }.map { it.id to assetKeys(it).joinToString("\n") }
+
+    /** The asset a scanned device already belongs to: one made from it here, or one whose fields mention it. */
+    private fun assetFor(d: Device, list: List<Asset>, texts: List<Pair<Int, String>>): Int? {
+        state.deviceAsset[d.id]?.takeIf { id -> list.any { it.id == id } }?.let { return it }
+        val key = scanKey(d)
+        return texts.firstOrNull { (_, text) -> mentions(text, key) }?.first
+    }
+
+    private fun assetFor(d: Device, src: Source): Int? {
+        val list = assets
+        return assetFor(d, list, assetTexts(src, list))
+    }
+
+    /** Scan rows, built once per refresh: a network sweep can return hundreds of hosts. */
+    private fun rows(devices: List<Device>, src: Source): List<DeviceRow> {
+        val list = assets
+        val texts = assetTexts(src, list)
+        return devices.map { DeviceRow(it, it.id !in state.added && assetFor(it, list, texts) == null) }
+    }
+
+    val btDevices: List<DeviceRow> get() = rows(bleFound.map { it.toRow() }, Source.BT)
     val netDevices: List<DeviceRow>
-        get() = (if (state.netMode == NetMode.AP) AP_DEVICES else WIFI_DEVICES)
-            .map { DeviceRow(it, !it.known && it.id !in state.added) }
+        get() = if (state.netMode == NetMode.AP) rows(apFound.map { it.toRow() }, Source.AP)
+        else rows(lanFound.sortedBy { it.ip }.map { it.toRow() }, Source.WIFI)
 
     // Camera: every selected capture becomes its own draft asset.
     private fun captureName(m: Media) = (if (m.video) "Asset from video " else "Asset from photo ") + timeLabel(m.createdAt)
@@ -344,14 +529,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------- Actions ----------
 
-    fun goTab(t: Tab) = set {
-        var o = copy(tab = t, assetId = null, newAsset = false, newDevice = null, newMedia = emptyList(), pick = emptySet())
-        if (t == Tab.CAMERA) o = o.copy(camOpen = true, revCam = false)
-        if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = true)
-        // Scanning tabs always open on their Scan segment, not their asset list.
-        if (t == Tab.BT) o = o.copy(btScan = true)
-        if (t == Tab.NET) o = o.copy(netScan = true)
-        o
+    fun goTab(t: Tab) {
+        val from = state.tab
+        set {
+            var o = copy(tab = t, assetId = null, newAsset = false, newDevice = null, newMedia = emptyList(), pick = emptySet())
+            if (t == Tab.CAMERA) o = o.copy(camOpen = true, revCam = false)
+            if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = true)
+            // Scanning tabs always open on their Scan segment, not their asset list.
+            if (t == Tab.BT) o = o.copy(btScan = true)
+            if (t == Tab.NET) o = o.copy(netScan = true)
+            o
+        }
+        // Opening a scanning tab starts its scan. Leaving one stops the radio scans (they cost battery);
+        // a network sweep already under way is left to finish.
+        when (t) {
+            Tab.BT -> startBt()
+            Tab.NET -> startNet()
+            else -> {}
+        }
+        if (from == Tab.BT && t != Tab.BT) ble.stop()
+        if (from == Tab.NET && t != Tab.NET) aps.stop()
     }
 
     fun onPageSettled(page: Int) {
@@ -427,16 +624,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun setBtScan(scan: Boolean) = set { copy(btScan = scan) }
-    fun setNetScan(scan: Boolean) = set { copy(netScan = scan) }
-    fun setNetMode(m: NetMode) = set { copy(netMode = m, netOn = true) }
-    fun toggleBt() = set { copy(btOn = !btOn) }
-    fun toggleNet() = set { copy(netOn = !netOn) }
+    fun setBtScan(scan: Boolean) {
+        set { copy(btScan = scan) }
+        if (scan) startBt()
+    }
+    fun setNetScan(scan: Boolean) {
+        set { copy(netScan = scan) }
+        if (scan) startNet()
+    }
+    fun setNetMode(m: NetMode) {
+        set { copy(netMode = m) }
+        syncNetOn()
+        if (state.netScan) startNet()
+    }
+    /** Tap on the radar card: pause a running scan, or start a new one. */
+    fun toggleBt() {
+        if (state.btOn) { btPaused = true; ble.stop() } else startBt()
+    }
+    fun toggleNet() {
+        when {
+            !state.netOn -> startNet()
+            state.netMode == NetMode.AP -> { apPaused = true; aps.stop() }
+            else -> { lanPaused = true; lan.stop() }
+        }
+    }
     /** Tap on a scanned device: open its asset if it already has one, otherwise the add form prefilled from it. */
     fun openDevice(d: Device) {
-        val key = deviceKey(d)
-        val existing = state.deviceAsset[d.id]?.takeIf { id -> assets.any { it.id == id } }
-            ?: if (d.known) assets.firstOrNull { a -> a.src == scanSource && assetKeys(a).any { it.contains(key) } }?.id else null
+        val existing = assetFor(d, scanSource)
         set {
             if (existing != null) copy(assetId = existing, newAsset = false, newDevice = null, searchOpen = false, pick = emptySet())
             else copy(newAsset = true, newDevice = d, newSrc = scanSource, newMedia = emptyList(), assetId = null, searchOpen = false, pick = emptySet())
@@ -564,7 +778,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val src = state.newSrc
             val a = Asset(
                 id, name.ifBlank { d.name }, if (detail.isBlank() || detail == "Added manually") d.sub else detail,
-                tgtLoc, tgtWhere, src, st, typeOf(name.ifBlank { d.name }), state.prop,
+                // The name typed on the form wins when it says what the asset is; otherwise keep what the scan identified.
+                tgtLoc, tgtWhere, src, st, typeOf(name).takeIf { name.isNotBlank() && it != AssetType.GENERIC } ?: d.type, state.prop,
             )
             set {
                 copy(
