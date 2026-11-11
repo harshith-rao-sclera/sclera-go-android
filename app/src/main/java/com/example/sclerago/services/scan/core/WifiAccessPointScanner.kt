@@ -51,6 +51,9 @@ class WifiAccessPointScanner(
     val supported: Boolean
         get() = context.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI)
 
+    /** How long one scan runs before it stops itself (ScleraGo: drives the progress shown on the scan card). */
+    val scanWindowMs: Long get() = SCAN_WINDOW_MS
+
     private val wifiManager: WifiManager?
         get() = context.applicationContext.getSystemService(WifiManager::class.java)
 

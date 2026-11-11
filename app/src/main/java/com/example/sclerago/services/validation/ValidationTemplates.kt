@@ -27,8 +27,14 @@ class ValidationTemplate(
     val rules: List<Rule> get() = ruleIds.mapNotNull { RULES[it] }
 }
 
-/** A user's own rule set ("Saved validations"). */
-data class SavedValidation(val id: String, val name: String, val ruleIds: List<String>, val lastRun: Long? = null) {
+/** A user's own rule set ("Saved validations"). Rules run in the order of [ruleIds]. */
+data class SavedValidation(
+    val id: String,
+    val name: String,
+    val ruleIds: List<String>,
+    val lastRun: Long? = null,
+    val description: String = "",
+) {
     val rules: List<Rule> get() = ruleIds.mapNotNull { RULES[it] }
 }
 
@@ -164,6 +170,33 @@ val RULES: Map<String, Rule> = listOf(
         }
     },
 ).associateBy { it.id }
+
+/** What each rule looks for, for the New validation check list. */
+val RULE_DESC: Map<String, String> = mapOf(
+    "mandatory" to "Flags mandatory fields left empty, and the fields set to be highlighted when empty (in Asset fields).",
+    "formats" to "Numbers are numbers, dates are dates, dropdowns use one of their options, links are links, and every value fits the checks set for its field.",
+    "placeholders" to "Catches N/A, TBD, “-”, “0000” and similar stand-ins typed instead of a real value.",
+    "dates" to "Flags dates in the future (except warranty, expiry and due dates) and dates before 1950.",
+    "ranges" to "Catches numbers that can’t be right: negative sizes, percentages over 100 and impossible ratings.",
+    "related" to "Checks fields against each other: installed after manufactured, warranty ending after install, the name matching the type.",
+    "service" to "Flags overdue services, and warranties that have ended or end in the next 60 days.",
+    "location" to "Flags assets without a building, floor or location.",
+    "photo" to "Flags assets with no photo, or fewer photos than Asset fields asks for.",
+    "spec_published" to "Looks up the model’s published specs and flags values that don’t match.",
+    "spec_twins" to "Assets with the same make and model should have the same specs.",
+    "spec_gaps" to "Finds empty spec fields that the published specs can fill.",
+    "dup_entered_twice" to "The same asset added twice, under the same name.",
+    "dup_serial" to "Flags assets that share a serial number with another asset.",
+    "dup_names" to "Flags names used by more than one asset.",
+    "make_consistent" to "The same manufacturer is always spelled the same way.",
+    "one_off" to "Specs that differ from every other asset of the same type.",
+    "outliers" to "Values far outside what the rest of the property has.",
+    "ai_read" to "AI reads the whole asset and points out anything that looks wrong.",
+    "ai_photos" to "AI checks the photos show the asset described.",
+)
+
+/** Rules that compare assets with each other (the rest look at each asset on its own). */
+val ACROSS_RULES = setOf("spec_twins", "dup_entered_twice", "dup_serial", "dup_names", "make_consistent", "one_off", "outliers")
 
 val TEMPLATES = listOf(
     ValidationTemplate(

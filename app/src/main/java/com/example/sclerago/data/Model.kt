@@ -112,6 +112,8 @@ data class LocNode(
     /** Locations only: what kind of space it is (e.g. Plant room) and its short code. */
     val type: String = "",
     val code: String = "",
+    /** Buildings only: type, address, contact and access details (Configuration → Building info). */
+    val info: BuildingInfo? = null,
 )
 
 private fun loc(id: String, name: String, count: Int = 0, type: String = "", code: String = "") =

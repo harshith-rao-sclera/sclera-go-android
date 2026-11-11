@@ -51,6 +51,9 @@ class BleScanner(
     val supported: Boolean
         get() = context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)
 
+    /** How long one scan runs before it stops itself (ScleraGo: drives the progress shown on the scan card). */
+    val scanWindowMs: Long get() = SCAN_WINDOW_MS
+
     private val found = LinkedHashMap<String, BleDevice>()
     private var job: Job? = null
     private var callback: ScanCallback? = null

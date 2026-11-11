@@ -95,6 +95,16 @@ fun AssetDetailScreen(
             "name" to asset.name, "sys" to "Generic", "typ" to "Generic", "sub" to "Generic",
         )
         details?.fields?.let { m.putAll(it) }
+        // New assets start with each field's default value (Configuration → Asset fields).
+        if (isNew) fields.filter { it.visible && it.defaultValue.isNotBlank() }.forEach { f ->
+            m[f.key] = when {
+                f.kind == FieldKind.DATE && f.defaultValue == "Today" ->
+                    java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                f.kind == FieldKind.TIME && f.defaultValue == "Now" ->
+                    java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+                else -> f.defaultValue
+            }
+        }
         if (isNew) m.putAll(prefill)
         m.toMap()
     }
@@ -166,6 +176,7 @@ fun AssetDetailScreen(
         values = saved + edits, hasLocation = asset.loc != null, status = asset.st,
         fromCamera = fromCam, photoCount = photos.size,
         required = fields.filter { it.required && it.visible }.map { it.key to it.label }, minPhotos = minPhotos,
+        fieldChecks = fields,
     )
     var checks by remember(asset.id) { mutableStateOf<List<CheckResult>?>(null) }
     var checkedInput by remember(asset.id) { mutableStateOf<CheckInput?>(null) }
@@ -431,9 +442,13 @@ fun AssetDetailScreen(
                         val k = f.key
                         val missing = req(k) && v(k).isEmpty()
                         val bg = if (missing) C.WarnRow else Color.Transparent
-                        if (f.kind == FieldKind.DROPDOWN && FIELD_OPTIONS[k] != null) {
+                        val opts = when (f.kind) {
+                            FieldKind.YESNO, FieldKind.CHECKBOX -> listOf("Yes", "No")
+                            else -> f.options.ifEmpty { FIELD_OPTIONS[k].orEmpty() }
+                        }
+                        if (f.kind in setOf(FieldKind.DROPDOWN, FieldKind.MULTI, FieldKind.YESNO, FieldKind.CHECKBOX) && opts.isNotEmpty()) {
                             SelectRow(
-                                labelOf(k), v(k), listOf("" to "Select") + FIELD_OPTIONS[k]!!.map { it to it }, dirty(k), edit(k),
+                                labelOf(k), v(k), listOf("" to "Select") + opts.map { it to it }, dirty(k), edit(k),
                                 required = missing, rowBg = bg,
                             )
                         } else {
@@ -892,7 +907,7 @@ fun ConfirmDialog(
     /** Colour of the confirm button (red for destructive actions). */
     yesBg: Color = C.Red,
 ) {
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onNo).padding(24.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onNo).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
             Modifier.widthIn(max = 320.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
                 .border(1.dp, C.Border2, r(18)).noRippleClick { }.padding(20.dp),

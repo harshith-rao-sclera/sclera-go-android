@@ -28,6 +28,8 @@ data class CheckInput(
     val required: List<Pair<String, String>> = DEFAULT_REQUIRED,
     /** Fewest photos an asset onboarded with the camera needs (sum of the photo types' minimums). */
     val minPhotos: Int = 1,
+    /** The configured fields, for their own checks (flag when empty, value rule, limits). */
+    val fieldChecks: List<FieldCfg> = emptyList(),
 )
 
 val DEFAULT_REQUIRED = listOf("name" to "Name", "sys" to "System type", "typ" to "Asset type", "jacs" to "JACS code")
@@ -48,17 +50,19 @@ fun runCheck(index: Int, input: CheckInput): CheckResult {
     fun value(k: String) = v[k].orEmpty().trim()
     val name = CHECK_NAMES[index]
     return when (index) {
-        0 -> { // Mandatory
-            val missing = input.required.filter { (k, _) ->
+        0 -> { // Mandatory, plus fields set to be flagged when they're left empty
+            val flagged = input.fieldChecks.filter { it.flagEmpty && it.visible && !it.required }.map { it.key to it.label }
+            val check = input.required + flagged.filter { f -> input.required.none { it.first == f.first } }
+            val missing = check.filter { (k, _) ->
                 val x = value(k)
                 x.isEmpty() || (k in setOf("sys", "typ", "sub") && x == "Generic")
             }.map { it.second }
             if (missing.isEmpty()) CheckResult(name, CheckState.PASSED)
             else CheckResult(
                 name, CheckState.FAILED,
-                missing.map { "$it is required." },
+                missing.map { m -> if (input.required.any { it.second == m }) "$m is required." else "$m is empty." },
                 fixLabel = "Edit " + missing.first(),
-                fix = sectionOf(input.required.first { it.second == missing.first() }.first),
+                fix = sectionOf(check.first { it.second == missing.first() }.first),
             )
         }
         1 -> { // Formats
@@ -74,6 +78,11 @@ fun runCheck(index: Int, input: CheckInput): CheckResult {
             }
             value("serial").takeIf { it.isNotEmpty() && !Regex("^[A-Za-z0-9][A-Za-z0-9-]*$").matches(it) }?.let {
                 problems += "Serial no. (“$it”) should only use letters, digits and dashes." to FixTarget.IDENT
+            }
+            // What each field is set to check in Configuration → Asset fields.
+            input.fieldChecks.filter { it.visible && (it.hasFormat || it.kind in setOf(FieldKind.URL, FieldKind.TIME)) }.forEach { f ->
+                val x = value(f.key)
+                if (x.isNotEmpty()) fieldProblem(f, x)?.let { problems += "${f.label} (“$x”) $it." to sectionOf(f.key) }
             }
             if (problems.isEmpty()) CheckResult(name, CheckState.PASSED)
             else CheckResult(
@@ -159,6 +168,62 @@ fun dataQuality(results: List<CheckResult>): Int {
     val applicable = results.filter { it.state != CheckState.NA }
     if (applicable.isEmpty()) return 100
     return (100.0 * applicable.count { it.state == CheckState.PASSED } / applicable.size).roundToInt()
+}
+
+/** Why [x] breaks [f]'s checks ("should be …"), or null if it's fine. */
+fun fieldProblem(f: FieldCfg, x: String): String? {
+    val lo = f.min.trim().toDoubleOrNull()
+    val hi = f.max.trim().toDoubleOrNull()
+    return when (f.kind) {
+        FieldKind.TEXT, FieldKind.TEXTAREA -> when {
+            f.rule == ValueRule.ALNUM && !Regex("^[A-Za-z0-9 ]+$").matches(x) -> "should only use letters and numbers"
+            f.rule == ValueRule.DIGITS && !x.all(Char::isDigit) -> "should only use digits"
+            f.rule == ValueRule.CODE && !Regex("^[A-Z0-9-]+$").matches(x) -> "should only use capitals, digits and dashes"
+            f.rule == ValueRule.NO_SPACES && x.any(Char::isWhitespace) -> "shouldn’t contain spaces"
+            f.rule == ValueRule.EMAIL && !Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$").matches(x) -> "isn’t an email address"
+            lo != null && x.length < lo -> "should be at least ${lo.toInt()} characters"
+            hi != null && x.length > hi -> "should be at most ${hi.toInt()} characters"
+            else -> null
+        }
+        FieldKind.NUMBER -> {
+            val n = Regex("^-?[0-9]+(?:\\.[0-9]+)?").find(x)?.value?.toDoubleOrNull() ?: return "isn’t a number"
+            when {
+                f.rule == ValueRule.WHOLE && n % 1.0 != 0.0 -> "should be a whole number"
+                f.rule == ValueRule.POSITIVE && n <= 0.0 -> "should be above zero"
+                lo != null && n < lo -> "should be at least ${trimNum(lo)}"
+                hi != null && n > hi -> "should be at most ${trimNum(hi)}"
+                else -> null
+            }
+        }
+        FieldKind.DATE -> {
+            val d = parseDate(x) ?: return "isn’t a date"
+            val today = java.time.LocalDate.now()
+            when {
+                f.rule == ValueRule.PAST && d.isAfter(today) -> "is in the future"
+                f.rule == ValueRule.FUTURE && !d.isAfter(today) -> "should be in the future"
+                lo != null && d.year < lo -> "is before ${lo.toInt()}"
+                hi != null && d.year > hi -> "is after ${hi.toInt()}"
+                else -> null
+            }
+        }
+        FieldKind.URL -> if (Regex("^https?://\\S+$", RegexOption.IGNORE_CASE).matches(x)) null else "isn’t a web link (https://…)"
+        FieldKind.TIME -> if (Regex("^([01]?\\d|2[0-3]):[0-5]\\d(\\s?[AaPp][Mm])?$").matches(x)) null else "isn’t a time"
+        FieldKind.DROPDOWN, FieldKind.MULTI, FieldKind.CHECKBOX, FieldKind.YESNO -> null
+    }
+}
+
+private fun trimNum(d: Double) = if (d % 1.0 == 0.0) d.toLong().toString() else d.toString()
+
+/** Reads 2024-03-31, 31/03/2024, 31-03-2024 or 31.03.2024. */
+private fun parseDate(s: String): java.time.LocalDate? {
+    val t = s.trim()
+    Regex("^(\\d{4})-(\\d{1,2})-(\\d{1,2})").find(t)?.let { m ->
+        return runCatching { java.time.LocalDate.of(m.groupValues[1].toInt(), m.groupValues[2].toInt(), m.groupValues[3].toInt()) }.getOrNull()
+    }
+    Regex("^(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{4})").find(t)?.let { m ->
+        return runCatching { java.time.LocalDate.of(m.groupValues[3].toInt(), m.groupValues[2].toInt(), m.groupValues[1].toInt()) }.getOrNull()
+    }
+    return null
 }
 
 private fun sectionOf(key: String): FixTarget = when (key) {

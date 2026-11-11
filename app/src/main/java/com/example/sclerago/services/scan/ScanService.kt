@@ -14,6 +14,8 @@ import com.example.sclerago.services.scan.model.BleDevice
 import com.example.sclerago.services.scan.model.NetworkDevice
 import com.example.sclerago.services.scan.model.WifiAccessPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -22,16 +24,21 @@ import kotlinx.coroutines.launch
  * rows, whether each scan is running, why one can't run, and the text for its radar card.
  *
  * State is Compose snapshot state, so screens reading it recompose as scans progress. Runtime
- * permissions can only be asked from the UI: when a scan needs one, [permissionRequest] is set,
- * the UI shows Android's prompt, and the answer comes back through [onPermissionResult].
+ * permissions can only be asked from the UI: when a scan needs one, [permissionAsk] / [permissionRequest]
+ * are set, the UI explains why and shows Android's prompt, and the answer comes back through
+ * [onPermissionResult]. A scan whose permission was refused is [isBlocked]: its page shows how to allow
+ * it rather than asking again every time the tab opens.
  */
 class ScanService(private val app: Application, private val scope: CoroutineScope) {
 
     /** The three scans. The Network tab's two modes are [NETWORK] and [ACCESS_POINTS]. */
     enum class Target { BLUETOOTH, NETWORK, ACCESS_POINTS }
 
-    /** Title and detail line for a scan page's radar card. */
-    data class Card(val title: String, val sub: String)
+    /**
+     * Title and detail line for a scan page's radar card, plus how far a running scan has got
+     * ([progress] 0–1, null when not scanning).
+     */
+    data class Card(val title: String, val sub: String, val progress: Float? = null)
 
     private val ble = BleScanner(app, scope)
     private val lan = NetworkScanner(app, scope)
@@ -50,12 +57,23 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
     /** Scans the user paused themselves (as opposed to finishing on their own). */
     private var paused by mutableStateOf(emptySet<Target>())
 
-    /** The scan waiting on a runtime permission prompt. */
-    private var asking by mutableStateOf<Target?>(null)
+    /** The scan waiting on a runtime permission prompt, or null; answer with [onPermissionResult]. */
+    var permissionAsk by mutableStateOf<Target?>(null)
+        private set
 
-    /** Permissions the UI should ask for now, or null; answer with [onPermissionResult]. */
+    /** The Android permissions [permissionAsk] needs. */
     val permissionRequest: List<String>?
-        get() = asking?.let { ScanPermissions.required(surface(it)) }
+        get() = permissionAsk?.let { ScanPermissions.required(surface(it)) }
+
+    /** Scans whose permission the user refused (or put off with "Not now"). */
+    private var blocked by mutableStateOf(emptySet<Target>())
+
+    /** [t] can't run until its permission is allowed; its page shows how. */
+    fun isBlocked(t: Target): Boolean = t in blocked
+
+    /** How far each running scan has got, 0–1. Declared before init: the scanners report from the start. */
+    private var progress by mutableStateOf(emptyMap<Target, Float>())
+    private val clocks = mutableMapOf<Target, Job>()
 
     init {
         scope.launch { ble.devices.collect { bleFound = it } }
@@ -70,10 +88,29 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
         }
         scope.launch { aps.accessPoints.collect { apFound = it } }
         scope.launch { aps.isScanning.collect { setScanning(Target.ACCESS_POINTS, it) } }
+        scope.launch { lan.progress.collect { setProgress(Target.NETWORK, it) } }
     }
 
     private fun setScanning(t: Target, on: Boolean) {
         scanning = if (on) scanning + t else scanning - t
+        // The radio scans run for a fixed window, so their progress is the time gone. The network
+        // sweep reports its own (see init).
+        if (t == Target.NETWORK) return
+        clocks.remove(t)?.cancel()
+        if (!on) { progress = progress - t; return }
+        val window = if (t == Target.BLUETOOTH) ble.scanWindowMs else aps.scanWindowMs
+        val started = System.currentTimeMillis()
+        clocks[t] = scope.launch {
+            while (true) {
+                // Held short of 100 % until the scan actually stops.
+                setProgress(t, ((System.currentTimeMillis() - started).toFloat() / window).coerceAtMost(0.99f))
+                delay(250)
+            }
+        }
+    }
+
+    private fun setProgress(t: Target, p: Float) {
+        progress = progress + (t to p.coerceIn(0f, 1f))
     }
 
     fun isScanning(t: Target): Boolean = t in scanning
@@ -88,14 +125,19 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
     /**
      * Starts [t] unless it is already running: asks for its permission first if needed, and records
      * why it can't run when the radio is off, location is off or there is no network.
+     *
+     * [auto] is for starts the user didn't ask for directly (opening a tab): those don't ask again for a
+     * permission that was refused, so the page can show how to allow it instead of re-prompting each visit.
      */
-    fun start(t: Target) {
+    fun start(t: Target, auto: Boolean = false) {
         if (isScanning(t)) return
         paused = paused - t
         if (!ScanPermissions.granted(app, surface(t))) {
-            asking = t
+            if (!(auto && t in blocked)) permissionAsk = t
             return
         }
+        // Allowed now (perhaps in Settings or on the Permissions page), so no longer blocked.
+        blocked = blocked - t
         // Android returns no access points (and, before Android 12, no Bluetooth results) with location off.
         if (ScanPermissions.needsLocationServices(surface(t)) && !ScanPermissions.locationServicesEnabled(app)) {
             issue(t, if (t == Target.ACCESS_POINTS) "Turn on Location to see access points" else "Turn on Location to scan for Bluetooth devices")
@@ -130,17 +172,11 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
     /** Tap on the radar card: pause [t] if it is running, otherwise start it. */
     fun toggle(t: Target) = if (isScanning(t)) stop(t, byUser = true) else start(t)
 
-    /** The answer to [permissionRequest]: start the scan that asked, or say why it can't run. */
+    /** The answer to [permissionAsk] ("Not now" counts as no): start the scan that asked, or block it. */
     fun onPermissionResult(granted: Boolean) {
-        val t = asking ?: return
-        asking = null
-        if (granted) start(t) else issue(
-            t, when (t) {
-                Target.BLUETOOTH -> "Allow Nearby devices to scan for Bluetooth devices"
-                Target.NETWORK -> "Allow access to devices on your local network to scan it"
-                Target.ACCESS_POINTS -> "Allow Location to see access points"
-            },
-        )
+        val t = permissionAsk ?: return
+        permissionAsk = null
+        if (granted) start(t) else blocked = blocked + t
     }
 
     /** The radar card for [t], given how many rows it shows and how many of those are not assets yet. */
@@ -159,6 +195,7 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
                     Target.ACCESS_POINTS -> "Looking for access points…"
                 },
                 "$what · $new new · tap to pause",
+                progress = progress[t] ?: 0f,
             )
             issue != null -> Card("Can't scan", "$issue · tap to try again")
             t in paused -> Card("Scan paused", "Tap to scan again")

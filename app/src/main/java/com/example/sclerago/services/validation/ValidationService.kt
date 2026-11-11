@@ -73,13 +73,17 @@ class ValidationService(private val scope: CoroutineScope) {
     }
 
     /** Saves a new rule set ([id] null) or updates one. Returns false when there's nothing to save. */
-    fun save(id: String?, name: String, ruleIds: Set<String>): Boolean {
-        if (name.isBlank() || ruleIds.isEmpty()) return false
-        // Keep the rules in the app's standard order.
-        val ordered = RULES.keys.filter { it in ruleIds }
-        saved = if (id == null) saved + SavedValidation("sv${System.currentTimeMillis()}", name.trim(), ordered)
-        else saved.map { if (it.id == id) it.copy(name = name.trim(), ruleIds = ordered) else it }
-        return true
+    /** Saves a validation with its steps in the order given; returns its id, or null if it isn't complete. */
+    fun save(id: String?, name: String, description: String, ruleIds: List<String>): String? {
+        if (name.isBlank() || ruleIds.isEmpty()) return null
+        val steps = ruleIds.distinct().filter { it in RULES }
+        if (id == null) {
+            val newId = "sv${System.currentTimeMillis()}"
+            saved = saved + SavedValidation(newId, name.trim(), steps, description = description.trim())
+            return newId
+        }
+        saved = saved.map { if (it.id == id) it.copy(name = name.trim(), ruleIds = steps, description = description.trim()) else it }
+        return id
     }
 
     fun delete(id: String) {

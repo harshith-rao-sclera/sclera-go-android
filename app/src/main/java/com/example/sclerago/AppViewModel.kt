@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 enum class Tab { BT, NET, ASSETS, CAMERA, FILE }
@@ -33,7 +34,7 @@ enum class Sheet { NONE, LOC, PROP }
 enum class SheetFor { FILTER, ASSET, BULK }
 enum class NetMode { WIFI, AP }
 enum class MenuItem { ASSETS, VALIDATION, CONFIGURATION, AUDIT, SURVEY, INTEGRATION }
-enum class CfgPage { BUILDING, FIELDS, GEO }
+enum class CfgPage { BUILDING, FIELDS, GEO, SETTINGS }
 
 data class LocValue(val loc: String?, val where: String)
 
@@ -41,7 +42,7 @@ data class LocValue(val loc: String?, val where: String)
 data class RunSheet(val sourceId: String = "quick", val scope: ValScope = ValScope.ALL, val chosen: Set<Int> = emptySet())
 
 /** Creating or editing a saved validation. [id] is null for a new one. */
-data class SavedEditor(val id: String?, val name: String, val ruleIds: Set<String>)
+data class SavedEditor(val id: String?, val name: String, val ruleIds: List<String>, val description: String = "")
 
 data class Preview(
     val name: String,
@@ -122,13 +123,15 @@ data class UiState(
     val touched: Map<Int, Long> = emptyMap(),
     // ---- Configuration page
     val cfgOpen: Boolean = false,
-    val cfgPage: CfgPage = CfgPage.BUILDING,
+    val cfgPage: CfgPage = CfgPage.FIELDS,
     /** Edited building → floor → location trees, per property (falls back to the seed tree). */
     val trees: Map<String, List<LocNode>> = emptyMap(),
     val nodeSeq: Int = 1,
     val fieldCfg: List<FieldCfg> = DEFAULT_FIELDS,
     val photoReqs: List<PhotoReq> = DEFAULT_PHOTO_REQS,
     val geoEnforce: Boolean = false,
+    /** Scanning tabs switched off in Property Settings, per property (Bluetooth / Network onboarding). */
+    val onboardOff: Map<String, Set<Tab>> = emptyMap(),
 )
 
 data class StatusChip(val status: Status?, val label: String, val count: Int, val selected: Boolean)
@@ -296,7 +299,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** The Network tab's current mode as a scan. */
-    private val netTarget: ScanService.Target
+    val netTarget: ScanService.Target
         get() = if (state.netMode == NetMode.AP) ScanService.Target.ACCESS_POINTS else ScanService.Target.NETWORK
 
     /** A Bluetooth scan is running right now. */
@@ -309,6 +312,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val scanPermissionRequest: List<String>? get() = scans.permissionRequest
 
     fun onScanPermission(granted: Boolean) = scans.onPermissionResult(granted)
+
+    /** The scan whose permission is about to be asked for (the UI explains it first), or null. */
+    val scanPermissionAsk: ScanService.Target? get() = scans.permissionAsk
+
+    /** [t]'s permission was refused; its page shows how to allow it. */
+    fun scanBlocked(t: ScanService.Target): Boolean = scans.isBlocked(t)
+
+    /** "Try again" on a blocked scan: asks for its permission again. */
+    fun retryScan(t: ScanService.Target) = scans.start(t)
 
     val btCard: ScanService.Card
         get() = btDevices.let { d -> scans.card(ScanService.Target.BLUETOOTH, d.size, d.count { it.isNew }) }
@@ -406,8 +418,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // Opening a scanning tab starts its scan. Leaving one stops the radio scans (they cost battery);
         // a network sweep already under way is left to finish.
         when (t) {
-            Tab.BT -> scans.start(ScanService.Target.BLUETOOTH)
-            Tab.NET -> scans.start(netTarget)
+            Tab.BT -> scans.start(ScanService.Target.BLUETOOTH, auto = true)
+            Tab.NET -> scans.start(netTarget, auto = true)
             else -> {}
         }
         if (from == Tab.BT && t != Tab.BT) scans.stop(ScanService.Target.BLUETOOTH)
@@ -415,9 +427,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun onPageSettled(page: Int) {
-        val t = Tab.entries[page]
+        val t = navTabs.getOrNull(page) ?: return
         if (t != state.tab) goTab(t)
     }
+
+    /** The bottom tabs this property shows: Bluetooth / Network are hidden when their onboarding is off. */
+    val navTabs: List<Tab> get() = Tab.entries - state.onboardOff[state.prop].orEmpty()
 
     /** Shake gesture: jump straight to the live camera from anywhere. */
     fun openCameraByShake() {
@@ -456,6 +471,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun pickProp(id: String) {
         val changed = id != state.prop
         set { copy(prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, pick = emptySet(), propQ = "") }
+        // The new property may not onboard over the tab that's open.
+        if (state.tab !in navTabs) goTab(Tab.ASSETS)
         if (changed) flash("Showing $propName")
     }
 
@@ -489,15 +506,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setBtScan(scan: Boolean) {
         set { copy(btScan = scan) }
-        if (scan) scans.start(ScanService.Target.BLUETOOTH)
+        if (scan) scans.start(ScanService.Target.BLUETOOTH, auto = true)
     }
     fun setNetScan(scan: Boolean) {
         set { copy(netScan = scan) }
-        if (scan) scans.start(netTarget)
+        if (scan) scans.start(netTarget, auto = true)
     }
     fun setNetMode(m: NetMode) {
         set { copy(netMode = m) }
-        if (state.netScan) scans.start(netTarget)
+        if (state.netScan) scans.start(netTarget, auto = true)
     }
     /** Tap on the radar card: pause a running scan, or start a new one. */
     fun toggleBt() = scans.toggle(ScanService.Target.BLUETOOTH)
@@ -796,7 +813,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val fromCam = a.src == Source.CAMERA
         return CheckInput(
             values, a.loc != null, a.st, fromCam, a.media.size + if (fromCam && a.media.isEmpty()) 3 else 0,
-            required = requiredFields, minPhotos = minPhotos,
+            required = requiredFields, minPhotos = minPhotos, fieldChecks = state.fieldCfg,
         )
     }
 
@@ -894,22 +911,31 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openChecks(id: String?) = set { copy(valChecksFor = id) }
     fun openReview(jobId: Int?) = set { copy(valReview = jobId) }
 
-    fun newSaved() = set { copy(valEditor = SavedEditor(null, "", emptySet())) }
-    fun editSaved(id: String) {
-        val sv = validation.saved.firstOrNull { it.id == id } ?: return
-        set { copy(valEditor = SavedEditor(sv.id, sv.name, sv.ruleIds.toSet())) }
-    }
+    // New validation page: name, description and its steps (checks, run in order).
+    fun newSaved() = set { copy(valEditor = SavedEditor(null, "", emptyList())) }
     fun closeEditor() = set { copy(valEditor = null) }
+    private fun editSteps(f: (List<String>) -> List<String>) = set { copy(valEditor = valEditor?.let { it.copy(ruleIds = f(it.ruleIds)) }) }
     fun setEditorName(v: String) = set { copy(valEditor = valEditor?.copy(name = v)) }
-    fun toggleEditorRule(rule: String) = set {
-        val e = valEditor ?: return@set this
-        copy(valEditor = e.copy(ruleIds = if (rule in e.ruleIds) e.ruleIds - rule else e.ruleIds + rule))
+    fun setEditorDesc(v: String) = set { copy(valEditor = valEditor?.copy(description = v)) }
+    fun addStep(rule: String) = editSteps { if (rule in it) it else it + rule }
+    fun removeStep(rule: String) = editSteps { it - rule }
+    fun clearSteps() = editSteps { emptyList() }
+    fun moveStep(rule: String, by: Int) = editSteps { l ->
+        val i = l.indexOf(rule)
+        val j = i + by
+        if (i < 0 || j !in l.indices) l else l.toMutableList().also { it.add(j, it.removeAt(i)) }
     }
-    fun saveEditor() {
+    /** "Start from": replaces the steps with a template's checks. */
+    fun stepsFrom(templateId: String) {
+        val t = TEMPLATES.firstOrNull { it.id == templateId } ?: return
+        editSteps { t.ruleIds }
+    }
+    /** Saves the validation; with [run], also runs it on all assets. */
+    fun saveEditor(run: Boolean = false) {
         val e = state.valEditor ?: return
-        if (!validation.save(e.id, e.name, e.ruleIds)) return
+        val id = validation.save(e.id, e.name, e.description, e.ruleIds) ?: return
         set { copy(valEditor = null) }
-        flash(if (e.id == null) "Validation saved" else "Validation updated")
+        if (run) runOnAll(id) else flash(if (e.id == null) "Validation saved" else "Validation updated")
     }
     fun askDeleteSaved(id: String?) = set { copy(valConfirmDelete = id) }
     fun deleteSaved() {
@@ -929,14 +955,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         startJob("quick", listOf(1), "1 chosen asset", now - 20 * h, instant = true)
     }
 
+
     // ---------- Configuration ----------
 
     fun openConfig() = set {
-        copy(cfgOpen = true, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false, searchOpen = false, pick = emptySet())
+        copy(cfgOpen = true, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false, searchOpen = false, pick = emptySet())
     }
-    fun closeConfig() = set { copy(cfgOpen = false, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS) }
+    fun closeConfig() = set { copy(cfgOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
 
-    /** Switches the Configuration tab (Building info / Asset fields / Geofencing). */
+    /** Switches the Configuration tab (Building info / Asset fields / Geofencing / Property Settings). */
     fun cfgGo(page: CfgPage) = set { copy(cfgPage = page) }
 
     // Building info: the property's building → floor → location tree (also used by the location picker).
@@ -964,6 +991,36 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return id
     }
 
+    /** Add building sheet: a new building with its details. Returns its id. */
+    fun addBuilding(name: String, info: BuildingInfo): String {
+        val id = nextNodeId("b")
+        editTree { it + LocNode(id, name.trim(), NodeKind.BUILDING, emptyList(), info = info.trimmed()) }
+        flash("Building added")
+        return id
+    }
+
+    /** Edit building sheet. */
+    fun saveBuilding(id: String, name: String, info: BuildingInfo) {
+        editTree { t -> t.mapNode(id) { it.copy(name = name.trim(), info = info.trimmed()) } }
+        flash("Building saved")
+    }
+
+    private fun BuildingInfo.trimmed() = copy(
+        address1 = address1.trim(), address2 = address2.trim(), state = state.trim(), city = city.trim(),
+        contactName = contactName.trim(), email = email.trim(), phone = phone.trim(), notes = notes.trim(), accessCode = accessCode.trim(),
+    )
+
+    /** Edit floors sheet: the building's floors in their new order, with names, types and codes; missing ones are removed. */
+    fun saveFloors(buildingId: String, floors: List<LocNode>) {
+        editTree { t ->
+            t.mapNode(buildingId) { b ->
+                val old = b.kids.orEmpty().associateBy { it.id }
+                b.copy(kids = floors.mapNotNull { f -> old[f.id]?.copy(name = f.name.trim(), type = f.type.trim(), code = f.code.trim()) })
+            }
+        }
+        flash("Floors saved")
+    }
+
     fun renameNode(id: String, name: String) {
         editTree { t -> t.mapNode(id) { it.copy(name = name.trim()) } }
         flash("Renamed")
@@ -987,6 +1044,54 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         flash(plural(made.size, "location", "locations") + " added")
     }
 
+    /**
+     * Import buildings: rows of Building, Floor, Location, Type, Code (a header row is skipped) from a
+     * CSV or Excel file. Buildings and floors are matched by name; locations already there are left alone.
+     */
+    fun importBuildings(uri: Uri) {
+        viewModelScope.launch {
+            val rows = withContext(Dispatchers.IO) { runCatching { readSheet(getApplication<Application>(), uri) }.getOrNull() }
+            if (rows == null) {
+                flash("Couldn’t read that file")
+                return@launch
+            }
+            val data = rows.map { r -> List(5) { i -> r.getOrNull(i)?.trim().orEmpty() } }
+                .filter { it[0].isNotEmpty() }
+                .let { l -> if (l.firstOrNull()?.get(0)?.equals("building", ignoreCase = true) == true) l.drop(1) else l }
+            if (data.isEmpty()) {
+                flash("No buildings found · use columns Building, Floor, Location, Type, Code")
+                return@launch
+            }
+            var added = 0
+            var seq = state.nodeSeq
+            fun id(prefix: String) = "$prefix-n${seq++}"
+            var t = treeFor()
+            data.forEach { (bName, fName, lName, type, code) ->
+                var b = t.firstOrNull { it.name.equals(bName, ignoreCase = true) }
+                if (b == null) {
+                    b = LocNode(id("b"), bName, NodeKind.BUILDING, emptyList())
+                    t = t + b
+                    added++
+                }
+                if (fName.isEmpty()) return@forEach
+                var f = b.kids.orEmpty().firstOrNull { it.name.equals(fName, ignoreCase = true) }
+                if (f == null) {
+                    val nf = LocNode(id("f"), fName, NodeKind.FLOOR, emptyList())
+                    t = t.mapNode(b.id) { it.copy(kids = it.kids.orEmpty() + nf) }
+                    f = nf
+                    added++
+                }
+                if (lName.isEmpty() || f.kids.orEmpty().any { it.name.equals(lName, ignoreCase = true) }) return@forEach
+                val l = LocNode(id("l"), lName, NodeKind.LOCATION, null, 0, type, code)
+                t = t.mapNode(f.id) { it.copy(kids = it.kids.orEmpty() + l) }
+                added++
+            }
+            val tree = t
+            set { copy(trees = trees + (prop to tree), nodeSeq = seq) }
+            flash(if (added == 0) "Everything in the file is already here" else "Imported ${data.size} rows")
+        }
+    }
+
     fun updateLocation(id: String, name: String, type: String, code: String) {
         editTree { t -> t.mapNode(id) { it.copy(name = name.trim(), type = type.trim(), code = code.trim()) } }
         flash("Location saved")
@@ -997,10 +1102,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         get() = state.fieldCfg.filter { it.required && it.visible }.map { it.key to it.label }
     val minPhotos: Int get() = state.photoReqs.sumOf { it.min }
 
-    fun toggleFieldVisible(key: String) = set {
-        copy(fieldCfg = fieldCfg.map { f ->
-            if (f.key != key || f.locked) f else f.copy(visible = !f.visible, required = if (f.visible) false else f.required)
-        })
+    fun toggleFieldVisible(key: String) {
+        val f = state.fieldCfg.firstOrNull { it.key == key } ?: return
+        if (f.locked) return
+        if (f.required && f.visible) {
+            flash("Mandatory fields are always visible")
+            return
+        }
+        set { copy(fieldCfg = fieldCfg.map { if (it.key == key) it.copy(visible = !it.visible) else it }) }
     }
     fun toggleFieldRequired(key: String) = set {
         copy(fieldCfg = fieldCfg.map { f ->
@@ -1035,4 +1144,97 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun removePhotoReq(id: String) = set { copy(photoReqs = photoReqs.filter { it.id != id }) }
 
     fun setGeoEnforce(on: Boolean) = set { copy(geoEnforce = on) }
+
+    /** How many choices a dropdown field offers ("Generic" / "Select" placeholders not counted). */
+    fun optionCount(f: FieldCfg): Int = when (f.key) {
+        "sys" -> SYSTEM_TYPES.size - 1
+        "typ" -> ASSET_TYPES.size - 1
+        "sub" -> SUB_TYPES.size - 1
+        "jacs" -> JACS_CODES.size - 1
+        else -> f.options.size
+    }
+
+    /** Field sheet: saves the whole field (mandatory makes it visible; the name field stays mandatory). */
+    fun saveField(f: FieldCfg) {
+        if (f.label.isBlank()) return
+        val clean = f.copy(
+            label = f.label.trim(), defaultValue = f.defaultValue.trim(), tooltip = f.tooltip.trim(),
+            options = f.options.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+        ).let { if (it.locked) it.copy(required = true, visible = true) else it.copy(visible = it.visible || it.required) }
+        set { copy(fieldCfg = fieldCfg.map { if (it.key == f.key) clean else it }) }
+        flash("Field saved")
+    }
+
+    /** Add field sheet: adds the fields set up there, under More details. */
+    fun addFields(list: List<FieldCfg>) {
+        val have = state.fieldCfg.map { it.label.lowercase() }.toSet()
+        val add = list.filter { it.label.isNotBlank() && it.label.trim().lowercase() !in have }
+            .map { it.copy(label = it.label.trim(), section = FieldSection.MORE, custom = true, visible = it.visible || it.required) }
+        if (add.isEmpty()) return
+        set { copy(fieldCfg = fieldCfg + add) }
+        flash(plural(add.size, "field", "fields") + " added")
+    }
+
+    /**
+     * Import from Excel: one field per column. The header row names the fields; the values below pick
+     * each field's kind (numbers, dates, yes/no, links, a short list → dropdown, else text). Columns that
+     * match a field already here are skipped. [onReady] gets the new fields to review.
+     */
+    fun importFields(uri: Uri, onReady: (List<FieldCfg>) -> Unit) {
+        viewModelScope.launch {
+            val rows = withContext(Dispatchers.IO) { runCatching { readSheet(getApplication<Application>(), uri) }.getOrNull() }
+            val header = rows?.firstOrNull()
+            if (header == null) {
+                flash("Couldn’t read that file")
+                return@launch
+            }
+            val have = state.fieldCfg.map { it.label.lowercase() }.toSet()
+            val stamp = System.currentTimeMillis()
+            val made = header.mapIndexedNotNull { c, h ->
+                val label = h.trim()
+                if (label.isEmpty() || label.lowercase() in have) return@mapIndexedNotNull null
+                val vals = rows.drop(1).mapNotNull { it.getOrNull(c)?.trim()?.takeIf(String::isNotEmpty) }
+                val distinct = vals.distinct()
+                val kind = when {
+                    vals.isEmpty() -> FieldKind.TEXT
+                    vals.all { it.toDoubleOrNull() != null } -> FieldKind.NUMBER
+                    vals.all { Regex("^\\d{1,4}[-/.]\\d{1,2}[-/.]\\d{1,4}$").matches(it) } -> FieldKind.DATE
+                    vals.all { it.lowercase() in setOf("yes", "no", "true", "false", "y", "n") } -> FieldKind.YESNO
+                    vals.all { it.startsWith("http", ignoreCase = true) } -> FieldKind.URL
+                    distinct.size <= 8 && vals.size >= distinct.size * 2 -> FieldKind.DROPDOWN
+                    else -> FieldKind.TEXT
+                }
+                FieldCfg(
+                    "cf_${stamp}_$c", label, kind, FieldSection.MORE, custom = true,
+                    options = if (kind == FieldKind.DROPDOWN) distinct else emptyList(),
+                )
+            }
+            if (made.isEmpty()) flash("No new fields in that file · every column is already a field")
+            else onReady(made)
+        }
+    }
+
+    /** Checks sheet: what validation looks for in the field. */
+    fun setFieldChecks(key: String, flagEmpty: Boolean, rule: ValueRule, min: String, max: String) {
+        set { copy(fieldCfg = fieldCfg.map { if (it.key == key) it.copy(flagEmpty = flagEmpty, rule = rule, min = min.trim(), max = max.trim()) else it }) }
+        flash("Checks saved")
+    }
+
+    fun setFieldOptions(key: String, options: List<String>) {
+        val clean = options.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        set { copy(fieldCfg = fieldCfg.map { if (it.key == key) it.copy(options = clean) else it }) }
+        flash("Options saved")
+    }
+
+    // Property Settings: which ways of adding assets the phone offers for this property.
+    fun onboardingOn(t: Tab): Boolean = t !in state.onboardOff[state.prop].orEmpty()
+
+    fun setOnboarding(t: Tab, on: Boolean) {
+        set {
+            val cur = onboardOff[prop].orEmpty()
+            copy(onboardOff = onboardOff + (prop to if (on) cur - t else cur + t))
+        }
+        flash((if (t == Tab.BT) "Bluetooth" else "Wi-Fi") + " onboarding " + if (on) "on" else "off")
+    }
 }
+

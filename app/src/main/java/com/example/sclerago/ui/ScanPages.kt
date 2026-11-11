@@ -33,6 +33,7 @@ import com.example.sclerago.DeviceRow
 import com.example.sclerago.NetMode
 import com.example.sclerago.Tab
 import com.example.sclerago.data.Device
+import com.example.sclerago.services.scan.ScanService
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon
@@ -62,12 +63,15 @@ fun BluetoothPage(vm: AppViewModel) {
                 on = vm.btOn,
                 title = card.title,
                 sub = card.sub,
+                progress = card.progress,
                 coreIcon = Icons.Bluetooth,
                 dots = BT_DOTS,
                 onToggle = vm::toggleBt,
                 devices = devs,
                 mono = false,
                 onOpen = vm::openDevice,
+                blocked = ScanService.Target.BLUETOOTH.takeIf { vm.scanBlocked(it) },
+                onRetry = { vm.retryScan(ScanService.Target.BLUETOOTH) },
             )
         }
     }
@@ -98,12 +102,15 @@ fun NetworkPage(vm: AppViewModel) {
                 on = vm.netOn,
                 title = card.title,
                 sub = card.sub,
+                progress = card.progress,
                 coreIcon = if (ap) Icons.AccessPoint else Icons.Wifi,
                 dots = NET_DOTS,
                 onToggle = vm::toggleNet,
                 devices = devs,
                 mono = true,
                 onOpen = vm::openDevice,
+                blocked = vm.netTarget.takeIf { vm.scanBlocked(it) },
+                onRetry = { vm.retryScan(vm.netTarget) },
             )
         }
     }
@@ -134,14 +141,22 @@ private fun LazyListScope.scanSection(
     on: Boolean,
     title: String,
     sub: String,
+    progress: Float?,
     coreIcon: Ico,
     dots: List<Dot>,
     onToggle: () -> Unit,
     devices: List<DeviceRow>,
     mono: Boolean,
     onOpen: (Device) -> Unit,
+    blocked: ScanService.Target? = null,
+    onRetry: () -> Unit = {},
 ) {
     item(key = "scan") {
+        // A refused permission replaces the radar with how to allow it.
+        if (blocked != null) {
+            BlockedCard(blocked, onRetry)
+            return@item
+        }
         Column(
             Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(16)).background(C.Surface)
                 .border(1.dp, C.Border, r(16)).clickable(onClick = onToggle).padding(14.dp),
@@ -151,7 +166,21 @@ private fun LazyListScope.scanSection(
             Radar(on, dots, coreIcon)
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(title, 16, 700)
-                Txt(sub, 12, 400, C.Muted)
+                Txt(sub, 12, 400, C.Muted, maxLines = 2, align = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+            // How far the scan has got, with the percentage done beside it.
+            if (on && progress != null) {
+                val pct = (progress * 100).toInt()
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.weight(1f).height(6.dp).clip(Capsule).background(C.Raised)) {
+                        Box(Modifier.fillMaxWidth(progress).fillMaxHeight().clip(Capsule).background(C.Yellow))
+                    }
+                    Txt("$pct% done", 12, 700, C.Yellow)
+                }
             }
         }
     }
