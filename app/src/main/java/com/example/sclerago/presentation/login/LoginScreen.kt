@@ -1,15 +1,11 @@
-package com.example.sclerago.ui
+package com.example.sclerago.presentation.login
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.graphics.Bitmap
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.util.Log
-import android.util.Patterns
 import android.webkit.CookieManager
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
@@ -59,7 +55,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -77,16 +72,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.sclerago.R
-import com.example.sclerago.auth.AuthConfig
-import com.example.sclerago.auth.AuthError
-import com.example.sclerago.auth.AuthManager
+import com.example.sclerago.data.remote.AuthConfig
+import com.example.sclerago.domain.model.AuthError
+import com.example.sclerago.presentation.common.UiText
+import com.example.sclerago.presentation.common.asString
+import com.example.sclerago.presentation.common.toUiText
+import com.example.sclerago.ui.CloseButton
+import com.example.sclerago.ui.r
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon
 import com.example.sclerago.ui.theme.C
 import com.example.sclerago.ui.theme.Txt
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 private const val TAG = "ScleraAuth"
@@ -101,78 +100,34 @@ internal object LoginTags {
     const val TAGLINE = "login_tagline"
 }
 
-private enum class LoginStage { Email, Web, Finishing }
-
-/** Null when [email] can be submitted, otherwise the message to show. */
-internal fun validateEmail(email: String): UiText? {
-    val trimmed = email.trim()
-    return when {
-        trimmed.isEmpty() -> UiText.Res(R.string.login_error_email_blank)
-        !Patterns.EMAIL_ADDRESS.matcher(trimmed).matches() -> UiText.Res(R.string.login_error_email_invalid)
-        else -> null
-    }
-}
-
 /**
  * Login flow: native email entry → `getRedirectUrlByEmail` in a WebView, which lands on the
  * Keycloak page (email prefilled via `login_hint`, user enters the password) → back to the
- * app domain → session id + access token → app.
+ * app domain → session id + access token → app. The flow's logic lives in [LoginViewModel].
  * [reason] is set when the user was sent here because their session ended (expired, blocked, …).
  */
 @Composable
-fun LoginScreen(reason: AuthError?) {
-    val context = LocalContext.current
+fun LoginScreen(reason: AuthError?, vm: LoginViewModel = viewModel(factory = LoginViewModel.Factory)) {
     var email by rememberSaveable { mutableStateOf("") }
-    var error by remember { mutableStateOf(reason?.toUiText()) }
-    var stage by remember { mutableStateOf(LoginStage.Email) }
-    val scope = rememberCoroutineScope()
-
-    fun fail(message: UiText) {
-        error = message
-        stage = LoginStage.Email
-    }
-
-    fun onReturned() {
-        if (stage != LoginStage.Web) return
-        stage = LoginStage.Finishing
-        scope.launch {
-            try {
-                // Switches MainActivity to the app; this screen leaves composition.
-                AuthManager.enter(AuthManager.completeLogin(email.trim()))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: AuthError) {
-                Log.e(TAG, "Login failed", e)
-                CookieManager.getInstance().removeAllCookies(null)
-                fail(e.toUiText())
-            } catch (e: Exception) {
-                Log.e(TAG, "Login failed", e)
-                fail(UiText.Res(R.string.login_error_generic))
-            }
-        }
-    }
+    // Same lifetime as the screen's former `remember` state: reset whenever it enters composition.
+    remember { vm.start(reason) }
+    val ui by vm.state.collectAsStateWithLifecycle()
+    val error = ui.error
 
     Box(Modifier.fillMaxSize().background(C.Bg)) {
-        when (stage) {
+        when (ui.stage) {
             LoginStage.Email -> EmailStep(
                 email = email,
                 error = error,
-                onEmailChange = { email = it; error = null },
-                onContinue = {
-                    val invalid = validateEmail(email)
-                    when {
-                        invalid != null -> error = invalid
-                        !isOnline(context) -> error = AuthError.Network().toUiText()
-                        else -> { error = null; stage = LoginStage.Web }
-                    }
-                },
+                onEmailChange = { email = it; vm.onEmailChanged() },
+                onContinue = { vm.onContinue(email) },
             )
             LoginStage.Web -> Box(Modifier.systemBarsPadding().imePadding()) {
                 SsoWebStep(
                     email = email.trim(),
-                    onReturned = ::onReturned,
-                    onError = ::fail,
-                    onCancel = { stage = LoginStage.Email },
+                    onReturned = { vm.onReturned(email.trim()) },
+                    onError = vm::fail,
+                    onCancel = vm::onCancelWeb,
                 )
             }
             LoginStage.Finishing -> Box(Modifier.fillMaxSize().systemBarsPadding(), contentAlignment = Alignment.Center) {
@@ -184,12 +139,6 @@ fun LoginScreen(reason: AuthError?) {
             }
         }
     }
-}
-
-private fun isOnline(context: Context): Boolean {
-    val cm = context.getSystemService(ConnectivityManager::class.java) ?: return true
-    val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
-    return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }
 
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)

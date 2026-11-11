@@ -27,8 +27,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sclerago.AccessTab
 import com.example.sclerago.AccessViewModel
 import com.example.sclerago.AppViewModel
-import com.example.sclerago.auth.AuthManager
-import com.example.sclerago.auth.AuthState
+import com.example.sclerago.presentation.session.SessionViewModel
+import com.example.sclerago.domain.model.AuthState
 import com.example.sclerago.data.Group
 import com.example.sclerago.data.Permission
 import com.example.sclerago.data.Person
@@ -50,9 +50,13 @@ private fun Group.icon() = iconOf(topPermission?.iconPath ?: VIEW_ONLY_ICON)
 
 /** People and access (side menu → Users): people, the group each is in, and what groups can do. */
 @Composable
-fun PeopleScreen(vm: AppViewModel, access: AccessViewModel = viewModel()) {
+fun PeopleScreen(
+    vm: AppViewModel,
+    access: AccessViewModel = viewModel(),
+    sessionVm: SessionViewModel = viewModel(factory = SessionViewModel.Factory),
+) {
     BackHandler(onBack = vm::closeAdmin)
-    val me = (AuthManager.state.collectAsState().value as? AuthState.SignedIn)?.session?.email
+    val me = (sessionVm.authState.collectAsState().value as? AuthState.SignedIn)?.session?.email
     val properties = vm.state.properties
     LaunchedEffect(me) { access.ensureSeeded(me, properties.map { it.id }.toSet()) }
     val s = access.state

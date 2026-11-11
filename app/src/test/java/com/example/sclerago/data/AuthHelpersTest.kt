@@ -1,4 +1,10 @@
-package com.example.sclerago.auth
+package com.example.sclerago.data
+
+import com.example.sclerago.data.local.AuthSession
+import com.example.sclerago.data.local.AuthStore
+import com.example.sclerago.data.mapper.*
+import com.example.sclerago.data.remote.*
+import com.example.sclerago.domain.model.AuthError
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.json.JSONObject

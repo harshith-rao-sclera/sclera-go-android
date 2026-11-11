@@ -1,8 +1,11 @@
-package com.example.sclerago.ui
+package com.example.sclerago.presentation.login
+
+import com.example.sclerago.presentation.common.UiText
+import com.example.sclerago.presentation.common.toUiText
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sclerago.R
-import com.example.sclerago.auth.AuthError
+import com.example.sclerago.domain.model.AuthError
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

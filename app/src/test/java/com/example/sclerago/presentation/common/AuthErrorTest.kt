@@ -1,4 +1,6 @@
-package com.example.sclerago.auth
+package com.example.sclerago.presentation.common
+
+import com.example.sclerago.domain.model.AuthError
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -15,7 +17,10 @@ import org.junit.runner.RunWith
 class AuthErrorTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
-    private fun text(e: AuthError) = context.getString(e.messageRes, *e.messageArgs.toTypedArray())
+    private fun text(e: AuthError): String {
+        val t = e.toUiText() as UiText.Res
+        return context.getString(t.id, *t.args.toTypedArray())
+    }
 
     @Test
     fun fromStatus_mapsBackendStatusCodes() {

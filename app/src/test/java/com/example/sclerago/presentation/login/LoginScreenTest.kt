@@ -1,4 +1,7 @@
-package com.example.sclerago.ui
+package com.example.sclerago.presentation.login
+
+import com.example.sclerago.presentation.common.UiText
+import com.example.sclerago.presentation.common.toUiText
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -12,7 +15,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sclerago.R
-import com.example.sclerago.auth.AuthError
+import com.example.sclerago.domain.model.AuthError
 import com.example.sclerago.ui.theme.ScleraTheme
 import org.junit.Rule
 import org.junit.Test
@@ -24,6 +27,10 @@ import org.robolectric.shadows.ShadowNetworkCapabilities
 /** Native email step and the hand-off to the WebView (the Keycloak page itself needs a device). */
 @RunWith(AndroidJUnit4::class)
 class LoginScreenTest {
+    /** MainActivity normally does this; the screen gets its ViewModel's dependencies from it. */
+    @org.junit.Before
+    fun initDi() = com.example.sclerago.di.Di.init(ApplicationProvider.getApplicationContext())
+
     @get:Rule
     val compose = createComposeRule()
 

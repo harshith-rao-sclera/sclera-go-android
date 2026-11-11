@@ -1,9 +1,20 @@
-package com.example.sclerago.auth
+package com.example.sclerago.data.repository
 
-import android.content.Context
 import android.net.Uri
 import android.util.Log
 import android.webkit.CookieManager
+import com.example.sclerago.data.local.AuthSession
+import com.example.sclerago.data.local.AuthStore
+import com.example.sclerago.data.mapper.cookieValue
+import com.example.sclerago.data.mapper.roleFromUserInfo
+import com.example.sclerago.data.mapper.signedInEmail
+import com.example.sclerago.data.mapper.toDomain
+import com.example.sclerago.data.mapper.tokenExpiry
+import com.example.sclerago.data.remote.AuthConfig
+import com.example.sclerago.data.remote.http
+import com.example.sclerago.domain.model.AuthError
+import com.example.sclerago.domain.model.AuthState
+import com.example.sclerago.domain.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -18,41 +29,49 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-sealed interface AuthState {
-    /** [reason] explains why the user landed on the login page (expired session, blocked, …). */
-    data class SignedOut(val reason: AuthError? = null) : AuthState
-    data class SignedIn(val session: AuthSession) : AuthState
-}
-
 /**
- * Owns the Sclera session: login completion, access-token generation/regeneration,
- * session validation and sign-out. Any error with [AuthError.endsSession] moves the app
- * to [AuthState.SignedOut], which MainActivity renders as the login page.
+ * Owns the Sclera session (formerly `AuthManager`): login completion, access-token
+ * generation/regeneration, session validation and sign-out. Any error with
+ * [AuthError.endsSession] moves the app to [AuthState.SignedOut], which MainActivity renders as the
+ * login page. One instance per process (created by the DI container).
  */
-object AuthManager {
-    private const val TAG = "ScleraAuth"
-    private const val FOREGROUND_CHECK_INTERVAL_MS = 60_000L
-    private const val REFRESH_RETRY_MS = 30_000L
+class AuthRepositoryImpl(private val store: AuthStore) : AuthRepository {
+    private companion object {
+        const val TAG = "ScleraAuth"
+        const val FOREGROUND_CHECK_INTERVAL_MS = 60_000L
+        const val REFRESH_RETRY_MS = 30_000L
+    }
 
-    private lateinit var store: AuthStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val tokenMutex = Mutex()
     private var refreshJob: Job? = null
     private var lastSessionCheck = 0L
 
     private val _state = MutableStateFlow<AuthState>(AuthState.SignedOut())
-    val state: StateFlow<AuthState> = _state.asStateFlow()
+    override val state: StateFlow<AuthState> = _state.asStateFlow()
 
-    private val session: AuthSession? get() = (_state.value as? AuthState.SignedIn)?.session
+    /** The persisted session behind [AuthState.SignedIn]; null when signed out. */
+    private var current: AuthSession? = null
 
-    fun init(context: Context) {
-        if (::store.isInitialized) return
-        store = AuthStore(context.applicationContext)
+    private val session: AuthSession? get() = current
+
+    private fun publishSignedIn(s: AuthSession) {
+        current = s
+        _state.value = AuthState.SignedIn(s.toDomain())
+    }
+
+    private fun publishSignedOut(reason: AuthError?) {
+        current = null
+        _state.value = AuthState.SignedOut(reason)
+    }
+
+    /** Restores the saved session (once, at app start), like the former `AuthManager.init`. */
+    fun restore() {
         val saved = store.load() ?: return
         Log.i(TAG, "Restored saved session")
         // Open straight into the app (works offline); the session is validated and the user
         // details refreshed in the background.
-        _state.value = AuthState.SignedIn(saved)
+        publishSignedIn(saved)
         scheduleRefresh(saved)
         scope.launch {
             validateSession(force = true)
@@ -62,12 +81,15 @@ object AuthManager {
 
     // ---- Login -------------------------------------------------------------------------------
 
+    override suspend fun completeLogin(enteredEmail: String) {
+        enter(completeLoginSession(enteredEmail))
+    }
+
     /**
      * Called (on the main thread) once the SSO WebView has returned to the app domain.
      * Reads the session id, generates the first access token and persists both.
-     * Call [enter] with the result to switch the app to [AuthState.SignedIn].
      */
-    suspend fun completeLogin(enteredEmail: String): AuthSession {
+    private suspend fun completeLoginSession(enteredEmail: String): AuthSession {
         val cookies = CookieManager.getInstance().run { flush(); getCookie(AuthConfig.ACCOUNTS_URL) }
             ?: throw AuthError.Server("no session cookie from ${AuthConfig.accountsHost}")
 
@@ -88,6 +110,10 @@ object AuthManager {
         val session = withUserInfo(signedIn)
         store.save(session)
         return session
+    }
+
+    override fun clearLoginCookies() {
+        CookieManager.getInstance().removeAllCookies(null)
     }
 
     // ---- User details ------------------------------------------------------------------------
@@ -124,12 +150,12 @@ object AuthManager {
         if (fresh.userInfo != current.userInfo && session?.sessionId == current.sessionId) {
             val updated = session!!.copy(userInfo = fresh.userInfo)
             store.save(updated)
-            _state.value = AuthState.SignedIn(updated)
+            publishSignedIn(updated)
         }
     }
 
-    fun enter(session: AuthSession) {
-        _state.value = AuthState.SignedIn(session)
+    private fun enter(session: AuthSession) {
+        publishSignedIn(session)
         lastSessionCheck = System.currentTimeMillis()
         scheduleRefresh(session)
     }
@@ -174,7 +200,7 @@ object AuthManager {
         requestToken(current).also { fresh ->
             if (session?.sessionId == fresh.sessionId) {
                 store.save(fresh)
-                _state.value = AuthState.SignedIn(fresh)
+                publishSignedIn(fresh)
                 scheduleRefresh(fresh)
             }
         }
@@ -217,7 +243,7 @@ object AuthManager {
     // ---- Session validation ------------------------------------------------------------------
 
     /** Call when the app comes to the foreground; mirrors the web app's visibilitychange session check. */
-    fun onForeground() {
+    override fun onForeground() {
         scope.launch { validateSession(force = false) }
     }
 
@@ -245,7 +271,7 @@ object AuthManager {
     // ---- Sign out ----------------------------------------------------------------------------
 
     /** User-initiated logout: tells accounts to end the session (best effort), then clears it locally. */
-    fun logout() {
+    override fun logout() {
         val current = session ?: return
         signOut(null)
         scope.launch(Dispatchers.IO) {
@@ -260,13 +286,13 @@ object AuthManager {
     }
 
     /** Clears the local session and sends the user to the login page with [reason]. */
-    fun signOut(reason: AuthError?) {
+    private fun signOut(reason: AuthError?) {
         if (_state.value is AuthState.SignedOut) return
         Log.i(TAG, "Signed out${reason?.let { ": ${it.message}" } ?: ""}")
         refreshJob?.cancel()
         store.clear()
         CookieManager.getInstance().apply { removeAllCookies(null); flush() }
-        _state.value = AuthState.SignedOut(reason)
+        publishSignedOut(reason)
     }
 
     // ---- Helpers -----------------------------------------------------------------------------

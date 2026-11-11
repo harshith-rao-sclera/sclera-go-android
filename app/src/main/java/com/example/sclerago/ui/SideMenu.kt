@@ -38,8 +38,9 @@ import com.example.sclerago.AdminPage
 import com.example.sclerago.AppViewModel
 import com.example.sclerago.MenuItem
 import com.example.sclerago.Tab
-import com.example.sclerago.auth.AuthManager
-import com.example.sclerago.auth.AuthState
+import com.example.sclerago.presentation.session.SessionViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sclerago.domain.model.AuthState
 import com.example.sclerago.data.plural
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
@@ -61,10 +62,10 @@ private sealed interface Trailing {
  * with the app's sections under it, and Sign out pinned to the bottom.
  */
 @Composable
-fun SideMenu(vm: AppViewModel) {
+fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = viewModel(factory = SessionViewModel.Factory)) {
     val open = vm.state.menuOpen
     BackHandler(enabled = open, onBack = vm::closeMenu)
-    val session = (AuthManager.state.collectAsState().value as? AuthState.SignedIn)?.session
+    val session = (sessionVm.authState.collectAsState().value as? AuthState.SignedIn)?.session
     val name = session?.displayName.orEmpty()
     var confirmSignOut by remember { mutableStateOf(false) }
     var sectionsOpen by rememberSaveable { mutableStateOf(true) }
@@ -84,7 +85,7 @@ fun SideMenu(vm: AppViewModel) {
                 TextButton(onClick = {
                     confirmSignOut = false
                     vm.closeMenu()
-                    AuthManager.logout()
+                    sessionVm.logout()
                 }) { Txt("Sign out", 15, 700, C.Red) }
             },
             dismissButton = {
