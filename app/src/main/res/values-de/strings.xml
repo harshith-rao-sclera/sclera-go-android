@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Anmelden</string>
+    <string name="login_signing_in">Anmeldung läuft…</string>
+    <string name="login_error_generic">Bei der Anmeldung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.</string>
+    <string name="sso_error_timeout">Das Laden der Anmeldeseite hat zu lange gedauert. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.</string>
+    <string name="sso_error_load">Die Anmeldeseite konnte nicht geladen werden (%1$s). Bitte versuchen Sie es erneut.</string>
+    <string name="sso_error_unavailable">Der Anmeldedienst ist derzeit nicht verfügbar (HTTP %1$d). Bitte versuchen Sie es später erneut.</string>
+    <string name="sso_error_ssl">Es konnte keine sichere Verbindung zur Anmeldeseite hergestellt werden. Prüfen Sie Datum und Uhrzeit des Geräts oder Ihr Netzwerk und versuchen Sie es erneut.</string>
+    <string name="sso_error_status">Anmeldung fehlgeschlagen (Status %1$d). Bitte versuchen Sie es erneut.</string>
+    <string name="auth_error_session_expired">Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.</string>
+    <string name="auth_error_multiple_session">Sie haben sich an einem anderen Ort angemeldet, daher wurde diese Sitzung beendet. Bitte melden Sie sich erneut an.</string>
+    <string name="auth_error_user_blocked">Ihr Konto wurde gesperrt. Wenden Sie sich an Ihren Administrator.</string>
+    <string name="auth_error_user_not_found">Für diese E-Mail-Adresse wurde kein Sclera-Konto gefunden.</string>
+    <string name="auth_error_network">Sclera ist nicht erreichbar. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.</string>
+    <string name="auth_error_server">Bei der Anmeldung ist ein Fehler aufgetreten (%1$s). Bitte versuchen Sie es erneut.</string>
+    <string name="login_subtitle">Verwenden Sie Ihre geschäftliche E-Mail-Adresse, um fortzufahren.</string>
+    <string name="login_email_label">E-Mail</string>
+    <string name="login_continue">Weiter</string>
+    <string name="login_sso_note">Sicheres Single Sign-on Ihrer Organisation</string>
+    <string name="login_error_email_blank">Geben Sie Ihre E-Mail-Adresse ein</string>
+    <string name="login_error_email_invalid">Geben Sie eine gültige E-Mail-Adresse ein</string>
+    <string name="login_tagline">Jedes Asset vor Ort im Blick.</string>
+</resources>

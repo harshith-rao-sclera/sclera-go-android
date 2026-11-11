@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Oturum aç</string>
+    <string name="login_signing_in">Oturum açılıyor…</string>
+    <string name="login_error_generic">Oturum açılırken bir sorun oluştu. Lütfen tekrar deneyin.</string>
+    <string name="sso_error_timeout">Oturum açma sayfasının yüklenmesi çok uzun sürdü. Bağlantınızı kontrol edip tekrar deneyin.</string>
+    <string name="sso_error_load">Oturum açma sayfası yüklenemedi (%1$s). Lütfen tekrar deneyin.</string>
+    <string name="sso_error_unavailable">Oturum açma hizmeti şu anda kullanılamıyor (HTTP %1$d). Lütfen daha sonra tekrar deneyin.</string>
+    <string name="sso_error_ssl">Oturum açma sayfasıyla güvenli bağlantı kurulamadı. Cihazın tarih ve saatini veya ağınızı kontrol edip tekrar deneyin.</string>
+    <string name="sso_error_status">Oturum açılamadı (durum %1$d). Lütfen tekrar deneyin.</string>
+    <string name="auth_error_session_expired">Oturumunuzun süresi doldu. Lütfen tekrar oturum açın.</string>
+    <string name="auth_error_multiple_session">Başka bir yerde oturum açtığınız için bu oturum kapatıldı. Lütfen tekrar oturum açın.</string>
+    <string name="auth_error_user_blocked">Hesabınız engellendi. Yöneticinize başvurun.</string>
+    <string name="auth_error_user_not_found">Bu e-posta için Sclera hesabı bulunamadı.</string>
+    <string name="auth_error_network">Sclera’ya ulaşılamıyor. İnternet bağlantınızı kontrol edip tekrar deneyin.</string>
+    <string name="auth_error_server">Oturum açılırken bir sorun oluştu (%1$s). Lütfen tekrar deneyin.</string>
+    <string name="login_subtitle">Devam etmek için iş e-posta adresinizi kullanın.</string>
+    <string name="login_email_label">E-posta</string>
+    <string name="login_continue">Devam</string>
+    <string name="login_sso_note">Kuruluşunuz üzerinden güvenli çoklu oturum açma</string>
+    <string name="login_error_email_blank">E-posta adresinizi girin</string>
+    <string name="login_error_email_invalid">Geçerli bir e-posta adresi girin</string>
+    <string name="login_tagline">Sahadaki her varlığı tanıyın.</string>
+</resources>

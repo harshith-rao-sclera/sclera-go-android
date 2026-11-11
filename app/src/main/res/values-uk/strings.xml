@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Увійти</string>
+    <string name="login_signing_in">Виконується вхід…</string>
+    <string name="login_error_generic">Під час входу сталася помилка. Спробуйте ще раз.</string>
+    <string name="sso_error_timeout">Сторінка входу завантажується занадто довго. Перевірте з’єднання та спробуйте ще раз.</string>
+    <string name="sso_error_load">Не вдалося завантажити сторінку входу (%1$s). Спробуйте ще раз.</string>
+    <string name="sso_error_unavailable">Служба входу зараз недоступна (HTTP %1$d). Спробуйте пізніше.</string>
+    <string name="sso_error_ssl">Не вдалося встановити захищене з’єднання зі сторінкою входу. Перевірте дату й час на пристрої або мережу та спробуйте ще раз.</string>
+    <string name="sso_error_status">Не вдалося увійти (статус %1$d). Спробуйте ще раз.</string>
+    <string name="auth_error_session_expired">Термін дії сеансу закінчився. Увійдіть знову.</string>
+    <string name="auth_error_multiple_session">Ви увійшли в іншому місці, тому цей сеанс закрито. Увійдіть знову.</string>
+    <string name="auth_error_user_blocked">Ваш обліковий запис заблоковано. Зверніться до адміністратора.</string>
+    <string name="auth_error_user_not_found">Обліковий запис Sclera для цієї електронної адреси не знайдено.</string>
+    <string name="auth_error_network">Не вдається підключитися до Sclera. Перевірте підключення до інтернету та спробуйте ще раз.</string>
+    <string name="auth_error_server">Під час входу сталася помилка (%1$s). Спробуйте ще раз.</string>
+    <string name="login_subtitle">Використовуйте робочу електронну адресу, щоб продовжити.</string>
+    <string name="login_email_label">Електронна пошта</string>
+    <string name="login_continue">Продовжити</string>
+    <string name="login_sso_note">Безпечний єдиний вхід через вашу організацію</string>
+    <string name="login_error_email_blank">Введіть адресу електронної пошти</string>
+    <string name="login_error_email_invalid">Введіть дійсну адресу електронної пошти</string>
+    <string name="login_tagline">Знайте кожен актив на об’єкті.</string>
+</resources>

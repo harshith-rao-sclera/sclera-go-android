@@ -27,8 +27,9 @@ enum class LocFilter { ALL, SPEC, NONE }
 enum class Sheet { NONE, LOC, PROP }
 enum class SheetFor { FILTER, ASSET, BULK }
 enum class NetMode { WIFI, AP }
-enum class MenuItem { ASSETS, VALIDATION, CONFIGURATION, AUDIT, SURVEY, INTEGRATION }
+enum class MenuItem { PROPERTY, USERS, ASSETS, VALIDATION, CONFIGURATION, AUDIT, SURVEY, INTEGRATION }
 enum class CfgPage { BUILDING, FIELDS, GEO }
+enum class AdminPage { PROPERTIES, PEOPLE }
 
 data class LocValue(val loc: String?, val where: String)
 
@@ -129,6 +130,12 @@ data class UiState(
     val fieldCfg: List<FieldCfg> = DEFAULT_FIELDS,
     val photoReqs: List<PhotoReq> = DEFAULT_PHOTO_REQS,
     val geoEnforce: Boolean = false,
+    // ---- Property list / People and access (side menu)
+    val adminPage: AdminPage? = null,
+    val properties: List<Property> = PROPERTIES,
+    val propListQ: String = "",
+    val addPropOpen: Boolean = false,
+    val importOpen: Boolean = false,
 )
 
 data class StatusChip(val status: Status?, val label: String, val count: Int, val selected: Boolean)
@@ -230,7 +237,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return AssetListData(items, chips, emptyText)
     }
 
-    val propName: String get() = (PROPERTIES.firstOrNull { it.id == state.prop } ?: PROPERTIES[0]).name
+    val propName: String get() = (state.properties.firstOrNull { it.id == state.prop } ?: state.properties[0]).name
     val specPathShown: List<String> get() = if (state.prop != "p1") listOf("Choose location") else state.specPath
 
     val detailAsset: Asset?
@@ -280,7 +287,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun propRows(): List<Pair<Property, String>> {
         val ql = state.propQ.trim().lowercase()
         val all = (state.extra + SEED_ASSETS).filter { it.id !in state.deleted }
-        return PROPERTIES.filter { ql.isEmpty() || it.name.lowercase().contains(ql) }.map { p ->
+        return state.properties.filter { ql.isEmpty() || it.name.lowercase().contains(ql) }.map { p ->
             val n = all.count { it.prop == p.id }
             p to if (n > 0) plural(n, "asset", "assets") + (if (p.gps) " · 5 buildings" else "") else "No assets yet"
         }
@@ -385,11 +392,51 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun pickMenu(item: MenuItem) {
         closeMenu()
         when (item) {
-            MenuItem.ASSETS -> goTab(Tab.ASSETS)
-            MenuItem.VALIDATION -> openValidation()
-            MenuItem.CONFIGURATION -> openConfig()
+            MenuItem.PROPERTY -> openAdmin(AdminPage.PROPERTIES)
+            MenuItem.USERS -> openAdmin(AdminPage.PEOPLE)
+            MenuItem.ASSETS -> { closeAdmin(); goTab(Tab.ASSETS) }
+            MenuItem.VALIDATION -> { closeAdmin(); openValidation() }
+            MenuItem.CONFIGURATION -> { closeAdmin(); openConfig() }
             else -> flash(item.name.lowercase().replaceFirstChar { it.uppercase() } + " is coming soon")
         }
+    }
+
+    // Property list / People and access
+    fun openAdmin(page: AdminPage) = set {
+        copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, assetId = null, newAsset = false, searchOpen = false, propListQ = "")
+    }
+    fun closeAdmin() = set { copy(adminPage = null, addPropOpen = false, importOpen = false) }
+    fun setPropListQ(v: String) = set { copy(propListQ = v) }
+    val propertyList: List<Property>
+        get() = state.propListQ.trim().lowercase().let { q -> state.properties.filter { q.isEmpty() || q in it.name.lowercase() } }
+
+    /** Opening a property from the list makes it the current one and shows its assets. */
+    fun openPropertyFromList(id: String) {
+        closeAdmin()
+        pickProp(id)
+        goTab(Tab.ASSETS)
+    }
+    fun openAddProperty() = set { copy(addPropOpen = true) }
+    fun closeAddProperty() = set { copy(addPropOpen = false) }
+
+    /** Adds [draft] as a new property; returns an error message instead when it can't be added. */
+    fun addProperty(draft: Property): String? {
+        val clean = draft.name.trim()
+        val problem = propertyProblem(clean, draft.type, state.properties)
+        if (problem != null) return problem
+        val p = draft.copy(id = "p${System.currentTimeMillis()}", name = clean, gps = false)
+        set { copy(properties = properties + p, addPropOpen = false) }
+        flash("$clean added")
+        return null
+    }
+
+    /** Assets in property [id] (any status). */
+    fun assetCount(id: String): Int = (state.extra + SEED_ASSETS).count { it.id !in state.deleted && it.prop == id }
+    fun openImport() = set { copy(importOpen = true) }
+    fun closeImport() = set { copy(importOpen = false) }
+    fun importProperties(fileName: String) {
+        closeImport()
+        flash("“$fileName” uploaded · importing isn’t connected to the server yet")
     }
     fun closeProp() = set { copy(sheet = Sheet.NONE, propQ = "") }
     fun setPropQ(v: String) = set { copy(propQ = v) }
@@ -981,4 +1028,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun removePhotoReq(id: String) = set { copy(photoReqs = photoReqs.filter { it.id != id }) }
 
     fun setGeoEnforce(on: Boolean) = set { copy(geoEnforce = on) }
+}
+
+/** Why a property called [name] of [type] can't be added, or null when it can. */
+internal fun propertyProblem(name: String, type: String, existing: List<Property>): String? = when {
+    name.isBlank() -> "Enter the property name."
+    type.isBlank() -> "Choose the property type."
+    existing.any { it.name.equals(name.trim(), ignoreCase = true) } -> "There is already a property called ${name.trim()}."
+    else -> null
 }

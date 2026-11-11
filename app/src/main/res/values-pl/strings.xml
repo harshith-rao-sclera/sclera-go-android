@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Zaloguj się</string>
+    <string name="login_signing_in">Logowanie…</string>
+    <string name="login_error_generic">Podczas logowania wystąpił błąd. Spróbuj ponownie.</string>
+    <string name="sso_error_timeout">Wczytywanie strony logowania trwało zbyt długo. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="sso_error_load">Nie udało się wczytać strony logowania (%1$s). Spróbuj ponownie.</string>
+    <string name="sso_error_unavailable">Usługa logowania jest obecnie niedostępna (HTTP %1$d). Spróbuj ponownie później.</string>
+    <string name="sso_error_ssl">Nie udało się nawiązać bezpiecznego połączenia ze stroną logowania. Sprawdź datę i godzinę na urządzeniu lub sieć i spróbuj ponownie.</string>
+    <string name="sso_error_status">Logowanie nie powiodło się (status %1$d). Spróbuj ponownie.</string>
+    <string name="auth_error_session_expired">Sesja wygasła. Zaloguj się ponownie.</string>
+    <string name="auth_error_multiple_session">Zalogowano się w innym miejscu, więc ta sesja została zamknięta. Zaloguj się ponownie.</string>
+    <string name="auth_error_user_blocked">Twoje konto zostało zablokowane. Skontaktuj się z administratorem.</string>
+    <string name="auth_error_user_not_found">Nie znaleziono konta Sclera dla tego adresu e-mail.</string>
+    <string name="auth_error_network">Nie można połączyć się z Sclera. Sprawdź połączenie z internetem i spróbuj ponownie.</string>
+    <string name="auth_error_server">Podczas logowania wystąpił błąd (%1$s). Spróbuj ponownie.</string>
+    <string name="login_subtitle">Użyj służbowego adresu e-mail, aby kontynuować.</string>
+    <string name="login_email_label">E-mail</string>
+    <string name="login_continue">Dalej</string>
+    <string name="login_sso_note">Bezpieczne logowanie jednokrotne przez Twoją organizację</string>
+    <string name="login_error_email_blank">Wpisz adres e-mail</string>
+    <string name="login_error_email_invalid">Wpisz prawidłowy adres e-mail</string>
+    <string name="login_tagline">Poznaj każdy zasób na miejscu.</string>
+</resources>

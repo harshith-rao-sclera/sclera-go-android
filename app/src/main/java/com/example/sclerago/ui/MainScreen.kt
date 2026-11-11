@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sclerago.AdminPage
 import com.example.sclerago.AppViewModel
 import com.example.sclerago.LocFilter
 import com.example.sclerago.Sheet
@@ -105,7 +106,7 @@ fun ScleraApp(vm: AppViewModel = viewModel()) {
     }
 
     val detail = vm.detailAsset
-    val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || s.valOpen || s.cfgOpen
+    val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || s.valOpen || s.cfgOpen || s.adminPage != null
     val detailView: @Composable (Asset) -> Unit = { d ->
         AssetDetailScreen(
             asset = d,
@@ -182,6 +183,13 @@ fun ScleraApp(vm: AppViewModel = viewModel()) {
 
         // Configuration page (side menu): building info, asset fields, geofencing.
         if (s.cfgOpen) ConfigScreen(vm)
+
+        // Property list / People and access (side menu).
+        when (s.adminPage) {
+            AdminPage.PROPERTIES -> PropertyListScreen(vm)
+            AdminPage.PEOPLE -> PeopleScreen(vm)
+            null -> {}
+        }
 
         when (s.sheet) {
             Sheet.PROP -> PropertySheet(vm)

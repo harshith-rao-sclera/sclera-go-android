@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Đăng nhập</string>
+    <string name="login_signing_in">Đang đăng nhập…</string>
+    <string name="login_error_generic">Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.</string>
+    <string name="sso_error_timeout">Trang đăng nhập tải quá lâu. Hãy kiểm tra kết nối và thử lại.</string>
+    <string name="sso_error_load">Không thể tải trang đăng nhập (%1$s). Vui lòng thử lại.</string>
+    <string name="sso_error_unavailable">Dịch vụ đăng nhập hiện không khả dụng (HTTP %1$d). Vui lòng thử lại sau.</string>
+    <string name="sso_error_ssl">Không thể thiết lập kết nối an toàn với trang đăng nhập. Hãy kiểm tra ngày giờ của thiết bị hoặc mạng của bạn và thử lại.</string>
+    <string name="sso_error_status">Đăng nhập không thành công (trạng thái %1$d). Vui lòng thử lại.</string>
+    <string name="auth_error_session_expired">Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.</string>
+    <string name="auth_error_multiple_session">Bạn đã đăng nhập ở nơi khác nên phiên này đã bị đóng. Vui lòng đăng nhập lại.</string>
+    <string name="auth_error_user_blocked">Tài khoản của bạn đã bị chặn. Hãy liên hệ với quản trị viên.</string>
+    <string name="auth_error_user_not_found">Không tìm thấy tài khoản Sclera nào cho email này.</string>
+    <string name="auth_error_network">Không thể kết nối với Sclera. Hãy kiểm tra kết nối Internet và thử lại.</string>
+    <string name="auth_error_server">Đã xảy ra lỗi khi đăng nhập (%1$s). Vui lòng thử lại.</string>
+    <string name="login_subtitle">Dùng email công việc của bạn để tiếp tục.</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_continue">Tiếp tục</string>
+    <string name="login_sso_note">Đăng nhập một lần an toàn qua tổ chức của bạn</string>
+    <string name="login_error_email_blank">Nhập địa chỉ email của bạn</string>
+    <string name="login_error_email_invalid">Nhập địa chỉ email hợp lệ</string>
+    <string name="login_tagline">Nắm rõ mọi tài sản tại hiện trường.</string>
+</resources>

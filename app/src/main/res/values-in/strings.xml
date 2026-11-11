@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Masuk</string>
+    <string name="login_signing_in">Sedang masuk…</string>
+    <string name="login_error_generic">Terjadi kesalahan saat masuk. Coba lagi.</string>
+    <string name="sso_error_timeout">Halaman masuk terlalu lama dimuat. Periksa koneksi Anda, lalu coba lagi.</string>
+    <string name="sso_error_load">Halaman masuk tidak dapat dimuat (%1$s). Coba lagi.</string>
+    <string name="sso_error_unavailable">Layanan masuk sedang tidak tersedia (HTTP %1$d). Coba lagi nanti.</string>
+    <string name="sso_error_ssl">Koneksi aman ke halaman masuk tidak dapat dibuat. Periksa tanggal dan waktu perangkat atau jaringan Anda, lalu coba lagi.</string>
+    <string name="sso_error_status">Gagal masuk (status %1$d). Coba lagi.</string>
+    <string name="auth_error_session_expired">Sesi Anda telah berakhir. Silakan masuk lagi.</string>
+    <string name="auth_error_multiple_session">Anda masuk di tempat lain, sehingga sesi ini ditutup. Silakan masuk lagi.</string>
+    <string name="auth_error_user_blocked">Akun Anda telah diblokir. Hubungi administrator Anda.</string>
+    <string name="auth_error_user_not_found">Tidak ada akun Sclera yang ditemukan untuk email ini.</string>
+    <string name="auth_error_network">Tidak dapat terhubung ke Sclera. Periksa koneksi internet Anda, lalu coba lagi.</string>
+    <string name="auth_error_server">Terjadi kesalahan saat masuk (%1$s). Coba lagi.</string>
+    <string name="login_subtitle">Gunakan email kantor Anda untuk melanjutkan.</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_continue">Lanjutkan</string>
+    <string name="login_sso_note">Single sign-on aman dari organisasi Anda</string>
+    <string name="login_error_email_blank">Masukkan alamat email Anda</string>
+    <string name="login_error_email_invalid">Masukkan alamat email yang valid</string>
+    <string name="login_tagline">Kenali setiap aset di lokasi.</string>
+</resources>
