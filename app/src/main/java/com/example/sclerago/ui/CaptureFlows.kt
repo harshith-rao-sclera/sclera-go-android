@@ -54,11 +54,10 @@ import com.example.sclerago.ReviewItem
 import com.example.sclerago.Sheet
 import com.example.sclerago.Tab
 import com.example.sclerago.data.plural
-import com.example.sclerago.media.Media
-import com.example.sclerago.media.MediaImage
-import com.example.sclerago.media.captureDir
-import com.example.sclerago.media.formatDuration
-import com.example.sclerago.media.stamp
+import com.example.sclerago.services.media.Media
+import com.example.sclerago.services.media.captureDir
+import com.example.sclerago.services.media.formatDuration
+import com.example.sclerago.services.media.stamp
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon

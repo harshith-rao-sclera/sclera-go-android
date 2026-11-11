@@ -1,7 +1,7 @@
 package com.example.sclerago.data
 
 import androidx.compose.ui.graphics.Color
-import com.example.sclerago.media.Media
+import com.example.sclerago.services.media.Media
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.theme.C

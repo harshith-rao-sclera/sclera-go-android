@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.sclerago.AppViewModel
 import com.example.sclerago.data.*
+import com.example.sclerago.services.validation.*
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon
@@ -95,14 +96,14 @@ fun ValidationScreen(vm: AppViewModel) {
                     }
                 }
                 item(key = "saved-title") {
-                    SectionTitle("Saved validations", s.savedVals.size) {
+                    SectionTitle("Saved validations", vm.savedVals.size) {
                         Pill("New", vm::newSaved, height = 34.dp, hPad = 12.dp, size = 12)
                     }
                 }
-                if (s.savedVals.isEmpty()) item(key = "saved-empty") {
+                if (vm.savedVals.isEmpty()) item(key = "saved-empty") {
                     EmptyNote("No saved validations yet. Pick the rules you use most and save them here.")
                 }
-                items(s.savedVals, key = { it.id }) { sv ->
+                items(vm.savedVals, key = { it.id }) { sv ->
                     SavedCard(
                         sv, vm.lastRun(sv.id),
                         onRun = { vm.runOnAll(sv.id) }, onEdit = { vm.editSaved(sv.id) }, onDelete = { vm.askDeleteSaved(sv.id) },
@@ -425,7 +426,7 @@ private fun RunSheetView(vm: AppViewModel, sh: com.example.sclerago.RunSheet) {
             Txt("WHAT TO CHECK", 11, 700, C.Muted, spacing = 0.6f)
             // (id, name, kind) where kind is "ai", "saved" or "".
             val options = TEMPLATES.map { t -> Triple(t.id, t.name, if (t.ai) "ai" else "") } +
-                s.savedVals.map { sv -> Triple(sv.id, sv.name, "saved") }
+                vm.savedVals.map { sv -> Triple(sv.id, sv.name, "saved") }
             options.chunked(2).forEach { pair ->
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     pair.forEach { (id, name, kind) ->

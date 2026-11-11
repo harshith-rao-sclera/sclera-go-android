@@ -59,7 +59,7 @@ fun BluetoothPage(vm: AppViewModel) {
             val devs = vm.btDevices
             val card = vm.btCard
             scanSection(
-                on = s.btOn,
+                on = vm.btOn,
                 title = card.title,
                 sub = card.sub,
                 coreIcon = Icons.Bluetooth,
@@ -95,7 +95,7 @@ fun NetworkPage(vm: AppViewModel) {
             val devs = vm.netDevices
             val card = vm.netCard
             scanSection(
-                on = s.netOn,
+                on = vm.netOn,
                 title = card.title,
                 sub = card.sub,
                 coreIcon = if (ap) Icons.AccessPoint else Icons.Wifi,

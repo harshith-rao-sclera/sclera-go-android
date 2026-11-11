@@ -7,10 +7,9 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.platform.LocalContext
-import com.example.sclerago.media.Media
-import com.example.sclerago.media.MediaImage
-import com.example.sclerago.media.describeAttachments
-import com.example.sclerago.media.describeVisualMedia
+import com.example.sclerago.services.media.Media
+import com.example.sclerago.services.media.describeAttachments
+import com.example.sclerago.services.media.describeVisualMedia
 import kotlinx.coroutines.delay
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -43,7 +42,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.sclerago.data.*
-import com.example.sclerago.data.CheckResult
+import com.example.sclerago.services.ai.aiAutofill
+import com.example.sclerago.services.validation.*
+import com.example.sclerago.services.validation.CheckResult
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon

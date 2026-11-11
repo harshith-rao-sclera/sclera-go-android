@@ -5,8 +5,7 @@ import android.widget.VideoView
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.sclerago.media.Media
-import com.example.sclerago.media.MediaImage
+import com.example.sclerago.services.media.Media
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background

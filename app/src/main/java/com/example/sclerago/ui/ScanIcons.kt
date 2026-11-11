@@ -10,7 +10,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.example.sclerago.data.AssetType
 import com.example.sclerago.data.Device
-import com.example.sclerago.scan.BLE_ID
+import com.example.sclerago.services.scan.BLE_ID
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon
 import com.example.sclerago.ui.theme.C
