@@ -1,5 +1,9 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.presentation.components.WideWidth
+import com.sclera.sclerago.presentation.components.gridItems
+import com.sclera.sclerago.presentation.components.listColumns
+import com.sclera.sclerago.presentation.components.pageGutter
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -82,12 +86,13 @@ fun PeopleScreen(
     val s = access.state
     val onPeople = s.tab == AccessTab.PEOPLE
 
+    val cols = listColumns()
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             SubPageBar("Users", vm.propName, vm::openMenu)
             LazyColumn(
                 Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
+                contentPadding = PaddingValues(start = 16.dp + pageGutter(WideWidth), end = 16.dp + pageGutter(WideWidth), top = 16.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
@@ -109,14 +114,14 @@ fun PeopleScreen(
                 }
                 item { SearchField(s.query, access::setQuery, if (onPeople) "Search people" else "Search groups") }
                 if (onPeople) {
-                    items(access.visiblePeople, key = { it.id }) { p ->
+                    gridItems(access.visiblePeople, cols, key = { it.id }, spacing = 16.dp) { p ->
                         PersonCard(p, access.group(p.groupId), properties, isMe = p.email.equals(me, ignoreCase = true)) { access.editPerson(p) }
                     }
                     if (access.visiblePeople.isEmpty()) item {
                         EmptyText(if (s.query.isBlank()) "No one has access yet." else "No one matches “${s.query.trim()}”.")
                     }
                 } else {
-                    items(access.visibleGroups, key = { it.id }) { g ->
+                    gridItems(access.visibleGroups, cols, key = { it.id }, spacing = 16.dp) { g ->
                         GroupCard(g, access.peopleIn(g.id), access.canDelete(g), onEdit = { access.editGroup(g) }, onDelete = { access.askDeleteGroup(g) })
                     }
                     if (access.visibleGroups.isEmpty()) item { EmptyText("No group matches “${s.query.trim()}”.") }

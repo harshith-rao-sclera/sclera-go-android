@@ -45,7 +45,7 @@ fun PropertySheet(vm: AppViewModel) {
     BackHandler(onBack = vm::closeProp)
     Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(vm::closeProp)) {
         Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().clip(SheetShape).background(C.Surface).topBorder(C.Border)
+            Modifier.align(Alignment.BottomCenter).widthIn(max = SheetMaxWidth).fillMaxWidth().clip(SheetShape).background(C.Surface).topBorder(C.Border)
                 .noRippleClick { }.navigationBarsPadding().imePadding()
                 .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 22.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

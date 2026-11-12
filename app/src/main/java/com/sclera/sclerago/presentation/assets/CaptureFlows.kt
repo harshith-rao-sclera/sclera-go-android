@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.listColumns
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.formatDuration
 import com.sclera.sclerago.presentation.common.plural
@@ -464,8 +465,9 @@ private fun FileReview(vm: AppViewModel) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SubList(vm: AppViewModel, tab: Tab, label: String, onOpen: () -> Unit, labelIcon: Ico? = null) {
+    val cols = listColumns()
     LazyColumn(Modifier.fillMaxSize()) {
-        assetList(vm.listFor(tab), vm.pickedIds, { vm.setStatusFilter(tab, it.status) }, vm::togglePick, vm::openAsset) {
+        assetList(vm.listFor(tab), vm.pickedIds, { vm.setStatusFilter(tab, it.status) }, vm::togglePick, vm::openAsset, columns = cols) {
             SegHeader(listOf("Assets", label), 0, icons = listOf(null, labelIcon)) { if (it == 1) onOpen() }
         }
     }

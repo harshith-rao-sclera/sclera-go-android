@@ -181,7 +181,7 @@ internal fun ChoiceSheet(
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
         Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.85f).wrapContentHeight(Alignment.Bottom)
+            Modifier.align(Alignment.BottomCenter).widthIn(max = SheetMaxWidth).fillMaxWidth().fillMaxHeight(0.85f).wrapContentHeight(Alignment.Bottom)
                 .clip(SheetShape).background(SheetBg).topBorder(C.Border).noRippleClick { }.navigationBarsPadding()
                 .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),

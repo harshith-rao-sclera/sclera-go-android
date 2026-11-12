@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.domain.model.FieldKind
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -101,7 +102,7 @@ internal fun SheetButtons(yes: String, enabled: Boolean, onNo: () -> Unit, no: S
 fun PropertySettingsPage(vm: AppViewModel) {
     val bt = vm.onboardingOn(Tab.BT)
     val net = vm.onboardingOn(Tab.NET)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(horizontal = 4.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Txt("Choose how people can add assets in ${vm.propName} from their phone.", 12, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = 3)
         CfgCard {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {

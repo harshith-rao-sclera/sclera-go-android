@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.presentation.components.pageGutter
 import android.annotation.SuppressLint
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -186,7 +187,7 @@ private fun BuildingInfo(vm: AppViewModel) {
 
     Column(Modifier.fillMaxSize()) {
         Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 10.dp),
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(horizontal = 4.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -714,7 +715,7 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { vm.importFields(it) { list -> drafts = list; setAdding(true) } }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 10.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(top = 10.dp)) {
         Txt(
             "Choose what’s collected for every asset in ${vm.propName}, and what validation checks in each field. Mandatory fields are always visible.",
             12, 400, C.Muted, Modifier.padding(horizontal = 16.dp), maxLines = 4,

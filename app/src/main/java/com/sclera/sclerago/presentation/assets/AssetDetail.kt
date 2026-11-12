@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pageGutter
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -303,7 +304,7 @@ fun AssetDetailScreen(
             CompositionLocalProvider(LocalReadOnly provides locked) {
             Column(
                 // Room at the end so the last card scrolls clear of the AI and mic buttons.
-                Modifier.weight(1f).verticalScroll(formScroll).padding(top = 12.dp, bottom = 160.dp),
+                Modifier.weight(1f).verticalScroll(formScroll).padding(horizontal = pageGutter()).padding(top = 12.dp, bottom = 160.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (tab == 1 && !isNew) {

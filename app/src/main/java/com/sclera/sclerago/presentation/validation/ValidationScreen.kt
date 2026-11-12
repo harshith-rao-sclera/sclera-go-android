@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.model.icon
 import com.sclera.sclerago.domain.validation.ACROSS_RULES
 import com.sclera.sclerago.domain.validation.AssetResult
@@ -125,7 +126,7 @@ fun ValidationScreen(vm: AppViewModel) {
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             PageBar("Validation", vm.propName, vm::closeValidation, property = true)
-            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 160.dp)) {
+            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 160.dp)) {
                 item(key = "top") { Spacer(Modifier.height(4.dp)) }
                 item(key = "templates") {
                     SectionTitle("Templates", null)
@@ -607,7 +608,7 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
     Column(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }.blockSwipe()) {
         PageBar(if (e.id == null) "New validation" else "Edit validation", vm.propName, vm::closeEditor, property = true)
         Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().imePadding().padding(horizontal = 6.dp, vertical = 10.dp),
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).navigationBarsPadding().imePadding().padding(horizontal = 6.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Name, description, save
@@ -820,7 +821,7 @@ private fun JobReview(j: ValJob, vm: AppViewModel) {
     var filter by remember(j.id) { mutableStateOf<RuleOutcome?>(null) }
     Column(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }) {
         PageBar(j.title, "${j.scopeLabel} · ${plural(j.checks, "check", "checks")} · ${relativeTime(j.startedAt)}", onBack = { vm.openReview(null) })
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 24.dp)) {
             item(key = "summary") {
                 Column(
                     Modifier.padding(12.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(14.dp),

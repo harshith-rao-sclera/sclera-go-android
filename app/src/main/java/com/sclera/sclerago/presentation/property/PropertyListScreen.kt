@@ -1,5 +1,9 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.components.WideWidth
+import com.sclera.sclerago.presentation.components.gridItems
+import com.sclera.sclerago.presentation.components.listColumns
+import com.sclera.sclerago.presentation.components.pageGutter
 import android.app.TimePickerDialog
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -79,12 +83,13 @@ fun PropertyListScreen(vm: AppViewModel) {
     val s = vm.state
     BackHandler(onBack = vm::closeAdmin)
     val list = vm.propertyList
+    val cols = listColumns()
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             SubPageBar("Property list", vm.propName, vm::openMenu)
             LazyColumn(
                 Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
+                contentPadding = PaddingValues(start = 16.dp + pageGutter(WideWidth), end = 16.dp + pageGutter(WideWidth), top = 16.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item { PageHeading("Property list", plural(vm.properties.size, "property", "properties")) }
@@ -96,7 +101,7 @@ fun PropertyListScreen(vm: AppViewModel) {
                 }
                 item { ImportBanner(vm::openImport) }
                 item { SearchField(s.propListQ, vm::setPropListQ, "Search") }
-                items(list, key = { it.id }) { p ->
+                gridItems(list, cols, key = { it.id }, spacing = 16.dp) { p ->
                     PropertyCard(p, vm.assetCount(p.id), current = p.id == s.prop) { vm.openPropertyFromList(p.id) }
                 }
                 if (list.isEmpty()) item {

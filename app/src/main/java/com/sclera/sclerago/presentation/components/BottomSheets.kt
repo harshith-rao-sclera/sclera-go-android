@@ -22,7 +22,7 @@ internal fun BottomSheet(onDismiss: () -> Unit, maxHeightFraction: Float = 0.92f
     BackHandler(onBack = onDismiss)
     Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onDismiss).blockSwipe().imePadding()) {
         Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(maxHeightFraction).wrapContentHeight(Alignment.Bottom)
+            Modifier.align(Alignment.BottomCenter).widthIn(max = SheetMaxWidth).fillMaxWidth().fillMaxHeight(maxHeightFraction).wrapContentHeight(Alignment.Bottom)
                 .clip(SheetTop).background(C.Surface).topBorder(C.Border).noRippleClick { }
                 .navigationBarsPadding(),
         ) {
