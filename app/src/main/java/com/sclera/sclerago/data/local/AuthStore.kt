@@ -1,8 +1,10 @@
 package com.sclera.sclerago.data.local
 
 import android.content.Context
+import com.sclera.sclerago.data.mapper.avatarFromUserInfo
 import com.sclera.sclerago.data.mapper.jwtPayload
 import com.sclera.sclerago.data.mapper.nameFromUserInfo
+import com.sclera.sclerago.data.mapper.organisationFromUserInfo
 import com.sclera.sclerago.data.mapper.roleFromClaims
 import com.sclera.sclerago.data.mapper.roleFromUserInfo
 import com.sclera.sclerago.data.remote.AuthConfig
@@ -29,6 +31,14 @@ data class AuthSession(
      */
     val role: String?
         get() = info?.let(::roleFromUserInfo) ?: jwtPayload(accessToken)?.let(::roleFromClaims)
+
+    /** The user's organisation from the user details; null until they have been fetched. */
+    val organisation: String?
+        get() = info?.let(::organisationFromUserInfo)
+
+    /** Profile photo URL from the user details; null when there is none. */
+    val avatarUrl: String?
+        get() = info?.let(::avatarFromUserInfo)
 
     /** Name from the user details, else the JWT, falling back to the email (as getUser() in the 2.0 frontend). */
     val displayName: String

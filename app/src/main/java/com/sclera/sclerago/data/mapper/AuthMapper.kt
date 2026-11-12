@@ -6,7 +6,21 @@ import com.sclera.sclerago.domain.model.UserSession
 import org.json.JSONObject
 
 /** Persisted session → what the app shows. */
-fun AuthSession.toDomain() = UserSession(email = email, displayName = displayName, role = role)
+fun AuthSession.toDomain() = UserSession(
+    email = email, displayName = displayName, role = role, organisation = organisation, avatarUrl = avatarUrl,
+)
+
+private fun JSONObject.firstText(vararg keys: String): String? =
+    keys.asSequence().map { optString(it).trim() }.firstOrNull { it.isNotEmpty() && it != "null" }
+
+/** Organisation name from the userInfo `data` object (e.g. "Optima"). */
+internal fun organisationFromUserInfo(data: JSONObject): String? =
+    data.firstText("organisation_title", "company_name", "provider_name")
+
+/** Profile photo from the userInfo `data` object; only absolute http(s) URLs are used. */
+internal fun avatarFromUserInfo(data: JSONObject): String? =
+    data.firstText("image_url")
+        ?.takeIf { it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true) }
 
 /** "admin" / "SUPER_ADMIN" / "field-engineer" → "Admin" / "Super admin" / "Field engineer". */
 internal fun prettyRole(raw: String): String =

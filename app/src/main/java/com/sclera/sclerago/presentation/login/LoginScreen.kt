@@ -235,7 +235,10 @@ private fun PhoneEmailStep(
 private val CardShape = RoundedCornerShape(28.dp)
 private val CardBorder = Color(0x14FFFFFF)
 
-/** Tablet option A ("Centered card"): photo fills the screen, brand top-left, tagline bottom-left. */
+/**
+ * Tablet sign-in ("Sign in (iPad landscape / portrait)" artboards): photo fills the screen, tagline
+ * bottom-left, and the logo with the form in a centered card.
+ */
 @Composable
 private fun TabletEmailStep(
     email: String,
@@ -249,7 +252,6 @@ private fun TabletEmailStep(
             modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop,
         )
         Box(Modifier.fillMaxSize().background(Color(0x59000000)))
-        Brand(Modifier.statusBarsPadding().padding(start = 48.dp, top = 44.dp), logoHeight = 42.dp, textSize = 24, gap = 12.dp)
         Text(
             stringResource(R.string.login_tagline),
             Modifier.align(Alignment.BottomStart).navigationBarsPadding()

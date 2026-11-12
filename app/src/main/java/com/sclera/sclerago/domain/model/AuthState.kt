@@ -7,6 +7,10 @@ data class UserSession(
     val displayName: String,
     /** Role for display (e.g. "Admin"); null when the backend gives none. */
     val role: String?,
+    /** The user's organisation (e.g. "Optima"); null when the backend gives none. */
+    val organisation: String? = null,
+    /** Profile photo URL; null when the user has none. */
+    val avatarUrl: String? = null,
 )
 
 sealed interface AuthState {

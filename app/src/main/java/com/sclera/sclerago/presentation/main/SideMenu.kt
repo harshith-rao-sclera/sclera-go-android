@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -31,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.sclera.sclerago.data.plural
@@ -47,6 +51,7 @@ import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import com.sclera.sclerago.services.media.MediaLoader
 
 private val Wash = Color(0x80272A2F)
 
@@ -95,7 +100,7 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
     }
 
     AnimatedVisibility(open, enter = fadeIn(tween(220)), exit = fadeOut(tween(200))) {
-        Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(vm::closeMenu))
+        Box(Modifier.fillMaxSize().background(Backdrop).noRippleClick(vm::closeMenu))
     }
     AnimatedVisibility(
         open,
@@ -112,18 +117,19 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
             ) {
                 // Profile
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Box(Modifier.size(46.dp).background(C.Yellow, CircleShape), contentAlignment = Alignment.Center) {
-                        Txt(initials(name), 16, 800, C.OnYellow)
-                    }
+                    Avatar(name, session?.avatarUrl)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Txt(name, 16, 700)
-                        Txt(listOfNotNull(session?.role, session?.email).joinToString(" · "), 12, 400, C.Muted)
+                        listOfNotNull(session?.role, session?.organisation).joinToString(" · ").takeIf { it.isNotEmpty() }?.let {
+                            Txt(it, 12, 600, C.Yellow)
+                        }
+                        session?.email?.let { Txt(it, 12, 400, C.Muted) }
                     }
-                    RoundButton(38.dp, C.Btn, vm::closeMenu) { LineIcon(Icons.Close, 14.dp, C.Text, 2.6f) }
+                    RoundButton(38.dp, C.Btn, vm::closeMenu) { LineIcon(Icons.Close, 16.dp, C.Text, 3f) }
                 }
 
                 // Top-level destinations
-                TopRow("Property list", Icons.Building) { vm.pickMenu(MenuItem.PROPERTY) }
+                TopRow("Property list", Icons.Buildings) { vm.pickMenu(MenuItem.PROPERTY) }
                 TopRow("Users", Icons.Users) { vm.pickMenu(MenuItem.USERS) }
 
                 // Current property and its sections
@@ -140,7 +146,7 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Box(Modifier.size(38.dp).clip(r(10)).background(C.YTintBg), contentAlignment = Alignment.Center) {
-                                LineIcon(Icons.Building, 16.dp, C.Yellow, 1.9f)
+                                LineIcon(Icons.Buildings, 20.dp, C.Yellow, 1.8f)
                             }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Txt("CURRENT PROPERTY", 10, 600, C.Muted, spacing = 0.4f)
@@ -150,7 +156,7 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
                         }
                         Pill("Switch", vm::switchPropertyFromMenu, height = 34.dp, hPad = 10.dp, size = 12)
                         Box(Modifier.width(22.dp).clickable { sectionsOpen = !sectionsOpen }, contentAlignment = Alignment.Center) {
-                            LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f, Modifier.rotate(chevron))
+                            LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 3f, Modifier.rotate(chevron))
                         }
                     }
                     AnimatedVisibility(sectionsOpen, enter = expandVertically(), exit = shrinkVertically()) {
@@ -177,11 +183,33 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    LineIcon(Icons.SignOut, 16.dp, C.Red, 2f)
+                    LineIcon(Icons.SignOut, 19.dp, C.Red, 2.2f)
                     Spacer(Modifier.width(8.dp))
                     Txt("Sign out", 15, 600, C.Red)
                 }
             }
+        }
+    }
+}
+
+/** Dims the screen behind the open menu. */
+private val Backdrop = Color(0xB808090A)
+
+private const val AVATAR_PX = 138
+
+/** Profile photo, or the user's initials on yellow when there is none (or while it loads). */
+@Composable
+private fun Avatar(name: String, url: String?) {
+    val context = LocalContext.current
+    val photo by produceState(url?.let { MediaLoader.cached(it, AVATAR_PX) }, url) {
+        if (value == null && url != null) value = MediaLoader.load(context, url, video = false, maxPx = AVATAR_PX)
+    }
+    Box(Modifier.size(46.dp).clip(CircleShape).background(C.Yellow), contentAlignment = Alignment.Center) {
+        val p = photo
+        if (p != null) {
+            Image(p, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        } else {
+            Txt(initials(name), 16, 800, C.OnYellow)
         }
     }
 }
@@ -195,7 +223,7 @@ private fun initials(name: String): String {
 @Composable
 private fun IconBox(icon: Ico) {
     Box(Modifier.size(34.dp).clip(r(9)).background(C.Raised), contentAlignment = Alignment.Center) {
-        LineIcon(icon, 16.dp, C.Yellow, 1.9f)
+        LineIcon(icon, 20.dp, C.Yellow, 1.8f)
     }
 }
 
