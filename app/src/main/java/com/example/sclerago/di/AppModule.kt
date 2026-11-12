@@ -3,6 +3,7 @@ package com.example.sclerago.di
 import android.content.Context
 import com.example.sclerago.data.local.AndroidNetworkMonitor
 import com.example.sclerago.data.local.AuthStore
+import com.example.sclerago.data.remote.AuthApi
 import com.example.sclerago.data.repository.AuthRepositoryImpl
 import com.example.sclerago.domain.repository.AuthRepository
 import com.example.sclerago.domain.repository.NetworkMonitor
@@ -21,8 +22,8 @@ object AppModule {
     /** One session per process; the saved session is restored as soon as the repository is created. */
     @Provides
     @Singleton
-    fun provideAuthRepository(@ApplicationContext context: Context): AuthRepository =
-        AuthRepositoryImpl(AuthStore(context)).also { it.restore() }
+    fun provideAuthRepository(@ApplicationContext context: Context, api: AuthApi): AuthRepository =
+        AuthRepositoryImpl(AuthStore(context), api).also { it.restore() }
 
     @Provides
     @Singleton

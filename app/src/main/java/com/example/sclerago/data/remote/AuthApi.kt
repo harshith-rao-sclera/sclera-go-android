@@ -2,10 +2,19 @@ package com.example.sclerago.data.remote
 
 import android.net.Uri
 import com.example.sclerago.domain.model.AuthError
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import org.json.JSONObject
+import retrofit2.Response
+import retrofit2.Retrofit
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Login contract shared with the Sclera web bundle / 2.0 frontend:
@@ -20,8 +29,6 @@ object AuthConfig {
     const val ACCOUNTS_URL = "https://qa-accounts.sclera.com"
     const val APP_URL = "https://qa-app.sclera.com"
     const val SCLERA_API = "$ACCOUNTS_URL/sclera/api"
-    const val SESSION_URL = "$SCLERA_API/session"
-    const val TOKEN_URL = "$SCLERA_API/token"
 
     /** Refresh the access token this long before it expires. */
     const val TOKEN_REFRESH_MARGIN_MS = 60_000L
@@ -35,12 +42,6 @@ object AuthConfig {
     fun loginUrl(email: String): String =
         "$SCLERA_API/user/${Uri.encode(email)}/getRedirectUrlByEmail?domain=${Uri.encode(APP_URL)}"
 
-    /** User details (role, organisation…), as the Sclera app's `ApiEndpoints.USER_INFO_URL`. */
-    fun userInfoUrl(email: String): String = "$SCLERA_API/userInfo?loggedInUser=${Uri.encode(email)}"
-
-    fun logoutUrl(email: String): String =
-        "$SCLERA_API/user/${Uri.encode(email)}/logoutUserByEmail?loggedInUser=${Uri.encode(email)}"
-
     /** True once SSO has sent the browser back to the app domain, i.e. login finished. */
     fun isReturnUrl(url: String?): Boolean =
         url != null && Uri.parse(url).host.equals(Uri.parse(APP_URL).host, ignoreCase = true)
@@ -52,7 +53,7 @@ object AuthConfig {
     }
 }
 
-internal class HttpResult(val code: Int, val json: JSONObject?) {
+class HttpResult(val code: Int, val json: JSONObject?) {
     val ok get() = code in 200..299
     /** The backend's own status code in the body, if any. */
     val bodyStatus get() = json?.optInt("status", -1) ?: -1
@@ -75,31 +76,74 @@ internal class HttpResult(val code: Int, val json: JSONObject?) {
     private fun message(): String? = json?.optString("message")?.takeIf { it.isNotBlank() }
 }
 
-/** Blocking HTTP call; run it off the main thread. Connection problems surface as [AuthError.Network]. */
-internal fun http(method: String, url: String, headers: Map<String, String>, body: String? = null): HttpResult {
-    val conn = try {
-        URL(url).openConnection() as HttpURLConnection
-    } catch (e: IOException) {
-        throw AuthError.Network(e)
-    }
-    try {
-        conn.requestMethod = method
-        conn.connectTimeout = 30_000
-        conn.readTimeout = 30_000
-        conn.setRequestProperty("Content-Type", "application/json")
-        conn.setRequestProperty("Accept", "application/json")
-        headers.forEach { (k, v) -> conn.setRequestProperty(k, v) }
-        if (method == "POST" || method == "PUT") {
-            conn.doOutput = true
-            conn.outputStream.use { it.write((body ?: "").toByteArray()) }
+/**
+ * Calls to the Sclera accounts API over [ScleraApiService]. Main-safe; connection problems surface
+ * as [AuthError.Network], everything else as an [HttpResult] for the caller to interpret.
+ */
+@Singleton
+class AuthApi @Inject constructor(private val service: ScleraApiService) {
+
+    suspend fun session(cookie: String): HttpResult = call { service.session(cookie) }
+
+    suspend fun token(cookie: String): HttpResult = call { service.token(cookie) }
+
+    suspend fun userInfo(email: String, accessToken: String, cookie: String): HttpResult =
+        call { service.userInfo(Uri.encode(email), bearer(accessToken), cookie) }
+
+    suspend fun logout(email: String, headers: Map<String, String>): HttpResult =
+        call { service.logout(Uri.encode(email), Uri.encode(email), headers) }
+
+    /** Authenticated [method] call to an absolute Sclera API [url] with an optional JSON [body]. */
+    suspend fun authenticated(method: String, url: String, accessToken: String, body: String? = null): HttpResult {
+        val auth = bearer(accessToken)
+        val json = (body ?: "").toByteArray().toRequestBody(JSON)
+        return call {
+            when (method.uppercase()) {
+                "GET" -> service.get(url, auth)
+                "POST" -> service.post(url, auth, json)
+                "PUT" -> service.put(url, auth, json)
+                "DELETE" -> service.delete(url, auth)
+                else -> throw IllegalArgumentException("Unsupported HTTP method $method")
+            }
         }
-        val code = conn.responseCode
-        val stream = if (code < 400) conn.inputStream else conn.errorStream
-        val text = stream?.bufferedReader()?.use { it.readText() }
-        return HttpResult(code, text?.let { runCatching { JSONObject(it) }.getOrNull() })
-    } catch (e: IOException) {
-        throw AuthError.Network(e)
-    } finally {
-        conn.disconnect()
+    }
+
+    private fun bearer(token: String) = "Bearer $token"
+
+    private suspend fun call(request: suspend () -> Response<ResponseBody>): HttpResult = withContext(Dispatchers.IO) {
+        val response = try {
+            request()
+        } catch (e: IOException) {
+            throw AuthError.Network(e)
+        }
+        val text = try {
+            (if (response.isSuccessful) response.body() else response.errorBody())?.use { it.string() }
+        } catch (e: IOException) {
+            throw AuthError.Network(e)
+        }
+        HttpResult(response.code(), text?.let { runCatching { JSONObject(it) }.getOrNull() })
+    }
+
+    companion object {
+        private val JSON = "application/json".toMediaType()
+        private const val TIMEOUT_SECONDS = 30L
+
+        /** The client every Sclera call uses: JSON headers and 30 s timeouts, as before Retrofit. */
+        fun okHttpClient(): OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "application/json")
+                        .build(),
+                )
+            }
+            .build()
+
+        /** [ScleraApiService] rooted at [baseUrl] (must end in `/`). */
+        fun service(baseUrl: String = AuthConfig.SCLERA_API + "/", client: OkHttpClient = okHttpClient()): ScleraApiService =
+            Retrofit.Builder().baseUrl(baseUrl).client(client).build().create(ScleraApiService::class.java)
     }
 }

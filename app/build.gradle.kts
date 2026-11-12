@@ -74,6 +74,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.lifecycle.viewmodel.compose)
+    // Networking
+    implementation(libs.retrofit)
+    implementation(libs.okhttp)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
@@ -90,5 +93,4 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 
-    implementation("com.squareup.okhttp3:okhttp:4.10.0")
 }

@@ -11,7 +11,7 @@ import com.example.sclerago.data.mapper.signedInEmail
 import com.example.sclerago.data.mapper.toDomain
 import com.example.sclerago.data.mapper.tokenExpiry
 import com.example.sclerago.data.remote.AuthConfig
-import com.example.sclerago.data.remote.http
+import com.example.sclerago.data.remote.AuthApi
 import com.example.sclerago.domain.model.AuthError
 import com.example.sclerago.domain.model.AuthState
 import com.example.sclerago.domain.repository.AuthRepository
@@ -26,16 +26,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
  * Owns the Sclera session (formerly `AuthManager`): login completion, access-token
  * generation/regeneration, session validation and sign-out. Any error with
  * [AuthError.endsSession] moves the app to [AuthState.SignedOut], which MainActivity renders as the
- * login page. One instance per process (created by the DI container).
+ * login page. One instance per process (provided by Hilt, see di/AppModule).
  */
-class AuthRepositoryImpl(private val store: AuthStore) : AuthRepository {
+class AuthRepositoryImpl(
+    private val store: AuthStore,
+    private val api: AuthApi,
+) : AuthRepository {
     private companion object {
         const val TAG = "ScleraAuth"
         const val FOREGROUND_CHECK_INTERVAL_MS = 60_000L
@@ -93,11 +95,9 @@ class AuthRepositoryImpl(private val store: AuthStore) : AuthRepository {
         val cookies = CookieManager.getInstance().run { flush(); getCookie(AuthConfig.ACCOUNTS_URL) }
             ?: throw AuthError.Server("no session cookie from ${AuthConfig.accountsHost}")
 
-        val sessionData = withContext(Dispatchers.IO) {
-            val res = http("GET", AuthConfig.SESSION_URL, mapOf("Cookie" to cookies))
-            res.error(authEndpoint = true)?.let { throw it }
-            res.json?.optJSONObject("data") ?: JSONObject()
-        }
+        val sessionRes = api.session(cookies)
+        sessionRes.error(authEndpoint = true)?.let { throw it }
+        val sessionData = sessionRes.json?.optJSONObject("data") ?: JSONObject()
         val sessionId = sessionData.optString("sessionId")
             .ifEmpty { cookieValue(cookies, "sessionId").orEmpty() }
             .ifEmpty { throw AuthError.Server("session response had no sessionId") }
@@ -125,9 +125,7 @@ class AuthRepositoryImpl(private val store: AuthStore) : AuthRepository {
     private suspend fun withUserInfo(s: AuthSession): AuthSession {
         val token = s.accessToken ?: return s
         return try {
-            val res = withContext(Dispatchers.IO) {
-                http("GET", AuthConfig.userInfoUrl(s.email), mapOf("Authorization" to "Bearer $token", "Cookie" to sessionCookie(s)))
-            }
+            val res = api.userInfo(s.email, token, sessionCookie(s))
             val data = res.json?.optJSONObject("data")
             if (res.error(authEndpoint = false) != null || data == null) {
                 Log.w(TAG, "userInfo: HTTP ${res.code}, status ${res.bodyStatus}, data=${data != null}")
@@ -181,9 +179,7 @@ class AuthRepositoryImpl(private val store: AuthStore) : AuthRepository {
         val email = session?.email ?: throw AuthError.SessionExpired()
         val fullUrl = Uri.parse(url).buildUpon().appendQueryParameter("loggedInUser", email).build().toString()
 
-        suspend fun call(token: String) = withContext(Dispatchers.IO) {
-            http(method, fullUrl, mapOf("Authorization" to "Bearer $token"), body?.toString())
-        }
+        suspend fun call(token: String) = api.authenticated(method, fullUrl, token, body?.toString())
 
         var token = accessToken()
         var res = call(token)
@@ -210,14 +206,14 @@ class AuthRepositoryImpl(private val store: AuthStore) : AuthRepository {
     }
 
     /** POST /sclera/api/token with the session cookie (same call the web app and native interceptor use). */
-    private suspend fun requestToken(current: AuthSession): AuthSession = withContext(Dispatchers.IO) {
-        val res = http("POST", AuthConfig.TOKEN_URL, mapOf("Cookie" to sessionCookie(current)))
+    private suspend fun requestToken(current: AuthSession): AuthSession {
+        val res = api.token(sessionCookie(current))
         res.error(authEndpoint = true)?.let { throw it }
         val data = res.json?.optJSONObject("data") ?: throw AuthError.Server("token response had no data")
         val token = data.optString("accessToken").ifEmpty { throw AuthError.Server("token response had no accessToken") }
         val expiresAt = tokenExpiry(data, token)
         Log.i(TAG, "Access token generated, expires ${if (expiresAt > 0) java.util.Date(expiresAt) else "unknown"}")
-        current.copy(accessToken = token, expiresAt = expiresAt)
+        return current.copy(accessToken = token, expiresAt = expiresAt)
     }
 
     /** Regenerate the token shortly before it expires, so API calls rarely hit a 401. */
@@ -253,9 +249,7 @@ class AuthRepositoryImpl(private val store: AuthStore) : AuthRepository {
         if (!force && now - lastSessionCheck < FOREGROUND_CHECK_INTERVAL_MS) return
         lastSessionCheck = now
         try {
-            val res = withContext(Dispatchers.IO) {
-                http("GET", AuthConfig.SESSION_URL, mapOf("Cookie" to sessionCookie(current)))
-            }
+            val res = api.session(sessionCookie(current))
             res.error(authEndpoint = true)?.let { throw it }
             if (!current.tokenValid()) accessToken()
         } catch (e: AuthError) {
@@ -274,13 +268,13 @@ class AuthRepositoryImpl(private val store: AuthStore) : AuthRepository {
     override fun logout() {
         val current = session ?: return
         signOut(null)
-        scope.launch(Dispatchers.IO) {
+        scope.launch {
             runCatching {
                 val headers = buildMap {
                     put("Cookie", sessionCookie(current))
                     current.accessToken?.let { put("Authorization", "Bearer $it") }
                 }
-                http("POST", AuthConfig.logoutUrl(current.email), headers)
+                api.logout(current.email, headers)
             }.onFailure { Log.w(TAG, "Server logout failed: ${it.message}") }
         }
     }

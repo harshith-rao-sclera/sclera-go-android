@@ -96,13 +96,6 @@ class AuthHelpersTest {
     }
 
     @Test
-    fun userInfoUrl_matchesScleraApp() =
-        assertEquals(
-            "https://qa-accounts.sclera.com/sclera/api/userInfo?loggedInUser=masteruser.brijesh%40sclera.com",
-            AuthConfig.userInfoUrl("masteruser.brijesh@sclera.com"),
-        )
-
-    @Test
     fun prettyRole_formats() {
         assertEquals("Admin", prettyRole("admin"))
         assertEquals("Super admin", prettyRole("SUPER_ADMIN"))
@@ -231,14 +224,6 @@ class AuthHelpersTest {
     fun signedInEmail_nullWhenUnknown() {
         assertNull(signedInEmail(JSONObject("{}"), null))
         assertNull(signedInEmail(JSONObject("{}"), testJwt(mapOf("preferred_username" to "rashmi"))))
-    }
-
-    @Test
-    fun logoutUrl_encodesEmail() {
-        assertEquals(
-            "${AuthConfig.SCLERA_API}/user/a%40b.com/logoutUserByEmail?loggedInUser=a%40b.com",
-            AuthConfig.logoutUrl("a@b.com"),
-        )
     }
 
     @Test
