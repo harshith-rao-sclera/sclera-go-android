@@ -2,15 +2,17 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
-    namespace = "com.example.sclerago"
-    // API 36: the newest SDK Android Studio 2025.2 / AGP 9.0 understand.
-    compileSdk = 36
+    namespace = "com.sclera.sclerago"
+    // API 37 (Android 17): matches targetSdk.
+    compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.sclerago"
+        applicationId = "com.sclera.sclerago"
         // 26: the Bluetooth / Wi-Fi / network scanners (ported from AssetOnBoard) need Android 8.0+.
         minSdk = 26
         targetSdk = 37
@@ -69,6 +71,13 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    // Dependency injection
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.lifecycle.viewmodel.compose)
+    // Networking
+    implementation(libs.retrofit)
+    implementation(libs.okhttp)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
