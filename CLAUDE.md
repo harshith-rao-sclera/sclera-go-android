@@ -51,7 +51,7 @@ Layers and where code goes (dependencies point inward: `presentation → domain 
 - Use positional format args (`%1$s`) and `<plurals>`; never build sentences by concatenation.
 - The product name "Sclera Go" is not translated (`translatable="false"`).
 - Layouts must work in RTL (Arabic, Hebrew): use `start`/`end`, never `left`/`right`.
-- **Known gap:** ~80 strings in older screens are still hard-coded. Move them to resources whenever you
+- **Known gap:** ~138 strings in older screens are still hard-coded. Move them to resources whenever you
   touch a screen; `/audit` lists what is left.
 
 ## 4. UI: phone, tablet portrait, tablet landscape
@@ -96,7 +96,8 @@ and for every new or changed class.
   `@HiltAndroidTest` where it adds value.
 - Tests are deterministic: no real network, no sleeps, injected dispatchers/clocks.
 - Measure coverage with JaCoCo (`./gradlew jacocoTestReport`).
-  **Not configured yet:** add it (and a ≥80% verification rule) as part of the next test work.
+  JaCoCo is configured (`./gradlew :app:jacocoTestReport`, `jacocoCoverageVerification` enforces the 80% rule).
+  **Status: about 20% of lines are covered; the gap is mostly Compose screens and the scan engines.** Raise it with every change.
 - Run the test suite **only when asked** (or via `/audit`); but always write the tests.
 
 ## 7. SOLID
@@ -210,14 +211,17 @@ cases for the matching MASVS category. Treat security as part of "done", not a l
 - Security findings are fixed before the feature is "done"; if one can't be, record it as a known gap here.
 
 ### Known security gaps (fix when touching these areas)
-- `AuthStore` keeps the access token, session id, email and user info in **plain** SharedPreferences
-  (`sclera_auth`); move to Keystore-backed encrypted storage.
-- `allowBackup="true"` (only `sclera_auth.xml` is excluded); no `networkSecurityConfig` or explicit
-  `usesCleartextTraffic="false"`; no certificate pinning; no `FLAG_SECURE` on access-code screens.
-- WebViews enable JavaScript and accept third-party cookies; restrict to allow-listed HTTPS hosts and
-  review each setting against the list above.
-- Property/building **access codes** and contacts are held and shown in plain form; treat as sensitive.
+Fixed on `feature/security-quality-hardening`: `AuthStore` is Keystore-encrypted (AES-GCM) and old plain values
+migrate on first read; `allowBackup="false"`, `networkSecurityConfig` with pinning, cleartext off; `FLAG_SECURE`
+on access-code screens; the map WebView loads bundled Leaflet through `WebViewAssetLoader`; the SSO WebView only
+loads allow-listed hosts; sign-out clears every repository, files and web data; imports are size-limited.
+Still open:
+- The login WebView changes (host allow-list, third-party cookies off) and sign-out → sign-in wipe have not been
+  verified end to end on a device; do this before release.
+- Property/building **access codes** and contacts live in the in-memory repositories (cleared on sign-out) and
+  are shown in plain form; they must be encrypted when they are persisted or come from the API.
 - Release logs: confirm `Log.d/i/w` are stripped or free of identifiers (R8 keep rules).
+- `./gradlew dependencyCheckAnalyze` is configured but needs an `NVD_API_KEY`; run it and record the result.
 
 ## 9. Working agreements
 
