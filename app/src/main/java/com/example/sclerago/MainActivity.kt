@@ -8,15 +8,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.sclerago.di.Di
+import dagger.hilt.android.AndroidEntryPoint
 import com.example.sclerago.domain.model.AuthState
 import com.example.sclerago.presentation.login.LoginScreen
 import com.example.sclerago.presentation.session.SessionViewModel
 import com.example.sclerago.ui.ScleraApp
 import com.example.sclerago.ui.theme.ScleraTheme
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val session: SessionViewModel by viewModels { SessionViewModel.Factory }
+    private val session: SessionViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The app is dark-only, so keep light status/nav bar icons regardless of system theme.
@@ -25,7 +26,6 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
-        Di.init(this)
         setContent {
             ScleraTheme {
                 // Any session-ending error (expired, blocked, signed in elsewhere) flips this to SignedOut.

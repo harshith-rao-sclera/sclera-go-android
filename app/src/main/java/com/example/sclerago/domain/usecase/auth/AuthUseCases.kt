@@ -4,28 +4,29 @@ import com.example.sclerago.domain.model.AuthState
 import com.example.sclerago.domain.repository.AuthRepository
 import com.example.sclerago.domain.repository.NetworkMonitor
 import kotlinx.coroutines.flow.StateFlow
+import javax.inject.Inject
 
-class ObserveAuthStateUseCase(private val repository: AuthRepository) {
+class ObserveAuthStateUseCase @Inject constructor(private val repository: AuthRepository) {
     operator fun invoke(): StateFlow<AuthState> = repository.state
 }
 
-class CompleteLoginUseCase(private val repository: AuthRepository) {
+class CompleteLoginUseCase @Inject constructor(private val repository: AuthRepository) {
     suspend operator fun invoke(enteredEmail: String) = repository.completeLogin(enteredEmail)
 }
 
-class ClearLoginCookiesUseCase(private val repository: AuthRepository) {
+class ClearLoginCookiesUseCase @Inject constructor(private val repository: AuthRepository) {
     operator fun invoke() = repository.clearLoginCookies()
 }
 
-class CheckSessionOnForegroundUseCase(private val repository: AuthRepository) {
+class CheckSessionOnForegroundUseCase @Inject constructor(private val repository: AuthRepository) {
     operator fun invoke() = repository.onForeground()
 }
 
-class LogoutUseCase(private val repository: AuthRepository) {
+class LogoutUseCase @Inject constructor(private val repository: AuthRepository) {
     operator fun invoke() = repository.logout()
 }
 
-class IsOnlineUseCase(private val monitor: NetworkMonitor) {
+class IsOnlineUseCase @Inject constructor(private val monitor: NetworkMonitor) {
     operator fun invoke(): Boolean = monitor.isOnline()
 }
 
@@ -33,7 +34,7 @@ class IsOnlineUseCase(private val monitor: NetworkMonitor) {
 enum class EmailProblem { BLANK, INVALID }
 
 /** Null when [email] can be submitted, otherwise why not. */
-class ValidateEmailUseCase {
+class ValidateEmailUseCase @Inject constructor() {
     operator fun invoke(email: String): EmailProblem? {
         val trimmed = email.trim()
         return when {

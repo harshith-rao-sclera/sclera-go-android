@@ -10,6 +10,8 @@ import com.example.sclerago.data.DEFAULT_GROUPS
 import com.example.sclerago.data.Group
 import com.example.sclerago.data.Permission
 import com.example.sclerago.data.Person
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 enum class AccessTab { PEOPLE, GROUPS }
 
@@ -28,7 +30,8 @@ data class AccessState(
 )
 
 /** People and access (mock data, in memory): who is in which group, for which properties. */
-class AccessViewModel : ViewModel() {
+@HiltViewModel
+class AccessViewModel @Inject constructor() : ViewModel() {
     var state by mutableStateOf(AccessState())
         private set
 

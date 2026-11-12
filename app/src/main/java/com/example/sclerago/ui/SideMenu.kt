@@ -39,7 +39,7 @@ import com.example.sclerago.AppViewModel
 import com.example.sclerago.MenuItem
 import com.example.sclerago.Tab
 import com.example.sclerago.presentation.session.SessionViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.sclerago.domain.model.AuthState
 import com.example.sclerago.data.plural
 import com.example.sclerago.ui.icons.Ico
@@ -62,7 +62,7 @@ private sealed interface Trailing {
  * with the app's sections under it, and Sign out pinned to the bottom.
  */
 @Composable
-fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = viewModel(factory = SessionViewModel.Factory)) {
+fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
     val open = vm.state.menuOpen
     BackHandler(enabled = open, onBack = vm::closeMenu)
     val session = (sessionVm.authState.collectAsState().value as? AuthState.SignedIn)?.session

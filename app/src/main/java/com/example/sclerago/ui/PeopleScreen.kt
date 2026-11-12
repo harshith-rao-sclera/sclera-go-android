@@ -23,7 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.sclerago.AccessTab
 import com.example.sclerago.AccessViewModel
 import com.example.sclerago.AppViewModel
@@ -52,8 +52,8 @@ private fun Group.icon() = iconOf(topPermission?.iconPath ?: VIEW_ONLY_ICON)
 @Composable
 fun PeopleScreen(
     vm: AppViewModel,
-    access: AccessViewModel = viewModel(),
-    sessionVm: SessionViewModel = viewModel(factory = SessionViewModel.Factory),
+    access: AccessViewModel = hiltViewModel(),
+    sessionVm: SessionViewModel = hiltViewModel(),
 ) {
     BackHandler(onBack = vm::closeAdmin)
     val me = (sessionVm.authState.collectAsState().value as? AuthState.SignedIn)?.session?.email

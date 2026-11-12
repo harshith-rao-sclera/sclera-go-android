@@ -46,7 +46,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.sclerago.AdminPage
 import com.example.sclerago.AppViewModel
 import com.example.sclerago.LocFilter
@@ -73,7 +73,7 @@ private val IMPORT_MIME_TYPES = arrayOf(
 )
 
 @Composable
-fun ScleraApp(vm: AppViewModel = viewModel()) {
+fun ScleraApp(vm: AppViewModel = hiltViewModel()) {
     val s = vm.state
     // Bluetooth / Network drop out when the property's onboarding for them is off (Configuration →
     // Property Settings); the pager is rebuilt then, so page numbers always match the visible tabs.

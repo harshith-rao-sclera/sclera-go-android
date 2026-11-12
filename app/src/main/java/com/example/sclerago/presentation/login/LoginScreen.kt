@@ -80,7 +80,7 @@ import com.example.sclerago.presentation.common.toUiText
 import com.example.sclerago.ui.CloseButton
 import com.example.sclerago.ui.r
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon
 import com.example.sclerago.ui.theme.C
@@ -107,7 +107,7 @@ internal object LoginTags {
  * [reason] is set when the user was sent here because their session ended (expired, blocked, …).
  */
 @Composable
-fun LoginScreen(reason: AuthError?, vm: LoginViewModel = viewModel(factory = LoginViewModel.Factory)) {
+fun LoginScreen(reason: AuthError?, vm: LoginViewModel = hiltViewModel()) {
     var email by rememberSaveable { mutableStateOf("") }
     // Same lifetime as the screen's former `remember` state: reset whenever it enters composition.
     remember { vm.start(reason) }

@@ -26,6 +26,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import java.io.File
 
 enum class Tab { BT, NET, ASSETS, CAMERA, FILE }
@@ -159,7 +161,8 @@ data class ReviewItem(
 
 data class DeviceRow(val device: Device, val isNew: Boolean)
 
-class AppViewModel(app: Application) : AndroidViewModel(app) {
+@HiltViewModel
+class AppViewModel @Inject constructor(app: Application) : AndroidViewModel(app) {
     var state by mutableStateOf(UiState())
         private set
 

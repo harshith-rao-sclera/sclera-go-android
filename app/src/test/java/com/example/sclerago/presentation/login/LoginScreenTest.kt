@@ -15,7 +15,14 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sclerago.R
+import com.example.sclerago.data.local.AndroidNetworkMonitor
+import com.example.sclerago.data.local.AuthStore
+import com.example.sclerago.data.repository.AuthRepositoryImpl
 import com.example.sclerago.domain.model.AuthError
+import com.example.sclerago.domain.usecase.auth.ClearLoginCookiesUseCase
+import com.example.sclerago.domain.usecase.auth.CompleteLoginUseCase
+import com.example.sclerago.domain.usecase.auth.IsOnlineUseCase
+import com.example.sclerago.domain.usecase.auth.ValidateEmailUseCase
 import com.example.sclerago.ui.theme.ScleraTheme
 import org.junit.Rule
 import org.junit.Test
@@ -27,16 +34,26 @@ import org.robolectric.shadows.ShadowNetworkCapabilities
 /** Native email step and the hand-off to the WebView (the Keycloak page itself needs a device). */
 @RunWith(AndroidJUnit4::class)
 class LoginScreenTest {
-    /** MainActivity normally does this; the screen gets its ViewModel's dependencies from it. */
-    @org.junit.Before
-    fun initDi() = com.example.sclerago.di.Di.init(ApplicationProvider.getApplicationContext())
-
     @get:Rule
     val compose = createComposeRule()
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
-    private fun show(reason: AuthError? = null) = compose.setContent { ScleraTheme { LoginScreen(reason) } }
+    /** What Hilt builds in the app (see di/AppModule); the test host activity isn't a Hilt entry point. */
+    private fun loginViewModel(): LoginViewModel {
+        val repository = AuthRepositoryImpl(AuthStore(context)).also { it.restore() }
+        return LoginViewModel(
+            CompleteLoginUseCase(repository),
+            ClearLoginCookiesUseCase(repository),
+            ValidateEmailUseCase(),
+            IsOnlineUseCase(AndroidNetworkMonitor(context)),
+        )
+    }
+
+    private fun show(reason: AuthError? = null) {
+        val vm = loginViewModel()
+        compose.setContent { ScleraTheme { LoginScreen(reason, vm = vm) } }
+    }
 
     @Test
     fun startsOnNativeEmailStep() {

@@ -2,12 +2,8 @@ package com.example.sclerago.presentation.login
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.sclerago.R
-import com.example.sclerago.di.Di
 import com.example.sclerago.domain.model.AuthError
 import com.example.sclerago.domain.usecase.auth.ClearLoginCookiesUseCase
 import com.example.sclerago.domain.usecase.auth.CompleteLoginUseCase
@@ -16,6 +12,7 @@ import com.example.sclerago.domain.usecase.auth.IsOnlineUseCase
 import com.example.sclerago.domain.usecase.auth.ValidateEmailUseCase
 import com.example.sclerago.presentation.common.UiText
 import com.example.sclerago.presentation.common.toUiText
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 private const val TAG = "ScleraAuth"
 
@@ -43,7 +41,8 @@ internal fun validateEmail(email: String): UiText? = ValidateEmailUseCase()(emai
  * Keycloak page (email prefilled via `login_hint`, user enters the password) → back to the
  * app domain → session id + access token → app.
  */
-class LoginViewModel(
+@HiltViewModel
+class LoginViewModel @Inject constructor(
     private val completeLogin: CompleteLoginUseCase,
     private val clearLoginCookies: ClearLoginCookiesUseCase,
     private val validateEmail: ValidateEmailUseCase,
@@ -97,15 +96,6 @@ class LoginViewModel(
             } catch (e: Exception) {
                 Log.e(TAG, "Login failed", e)
                 fail(UiText.Res(R.string.login_error_generic))
-            }
-        }
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val c = Di.container
-                LoginViewModel(c.completeLogin, c.clearLoginCookies, c.validateEmail, c.isOnline)
             }
         }
     }
