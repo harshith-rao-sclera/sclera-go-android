@@ -82,7 +82,7 @@ val DEFAULT_GROUPS = listOf(
 val PROPERTY_TYPES = listOf("Office", "Warehouse", "Hospital", "Retail", "Residential", "Industrial", "Campus", "Other")
 
 /** Countries offered in Add New Property, with their states (none for Singapore). */
-val COUNTRIES: Map<String, List<String>> = linkedMapOf(
+val PROPERTY_COUNTRIES: Map<String, List<String>> = linkedMapOf(
     "Australia" to listOf("New South Wales", "Queensland", "Victoria"),
     "Germany" to listOf("Bavaria", "Berlin", "Hesse"),
     "India" to listOf("Delhi", "Karnataka", "Maharashtra", "Tamil Nadu"),
@@ -92,4 +92,4 @@ val COUNTRIES: Map<String, List<String>> = linkedMapOf(
     "United States" to listOf("California", "New York", "Texas", "Washington"),
 )
 
-val REGIONS = listOf("North", "South", "East", "West", "Central")
+val PROPERTY_REGIONS = listOf("North", "South", "East", "West", "Central")

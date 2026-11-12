@@ -1,6 +1,6 @@
 package com.example.sclerago.data
 
-import com.example.sclerago.media.Media
+import com.example.sclerago.services.media.Media
 
 /**
  * Reference photos for the sample assets: freely licensed images from Wikimedia Commons,

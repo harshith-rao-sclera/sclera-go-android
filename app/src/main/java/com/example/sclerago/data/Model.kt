@@ -1,7 +1,7 @@
 package com.example.sclerago.data
 
 import androidx.compose.ui.graphics.Color
-import com.example.sclerago.media.Media
+import com.example.sclerago.services.media.Media
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.theme.C
@@ -136,6 +136,8 @@ data class LocNode(
     /** Locations only: what kind of space it is (e.g. Plant room) and its short code. */
     val type: String = "",
     val code: String = "",
+    /** Buildings only: type, address, contact and access details (Configuration → Building info). */
+    val info: BuildingInfo? = null,
 )
 
 private fun loc(id: String, name: String, count: Int = 0, type: String = "", code: String = "") =
@@ -160,25 +162,19 @@ fun locationTree(propId: String): List<LocNode> = when (propId) {
 /** What the location picker hands back on Confirm. */
 data class LocPick(val id: String, val label: String, val locs: List<String>, val where: String, val path: List<String>)
 
-data class Device(val id: String, val name: String, val sub: String, val lvl: Int, val known: Boolean)
-
-val BT_DEVICES = listOf(
-    Device("b1", "SCL-0431", "BLE asset tag · −52 dBm · ~1 m", 4, false),
-    Device("b2", "SCL-0418", "Chiller 2 · −61 dBm · ~3 m", 3, true),
-    Device("b3", "TH-22 sensor", "Temp & humidity · −70 dBm · ~6 m", 2, false),
-    Device("b4", "Unknown device", "−83 dBm · ~12 m", 1, false),
-)
-val WIFI_DEVICES = listOf(
-    Device("n1", "BACnet controller", "192.168.10.21 · port 47808", 4, true),
-    Device("n2", "Modbus gateway", "192.168.10.34 · port 502", 4, false),
-    Device("n3", "IP camera", "192.168.10.57 · RTSP", 3, true),
-    Device("n4", "Unknown device", "192.168.10.88", 2, false),
-)
-val AP_DEVICES = listOf(
-    Device("a1", "SCL-PLANT", "A4:2B:B0:1C:3F:10 · ch 36 · 5 GHz", 4, true),
-    Device("a2", "SCL-PLANT", "A4:2B:B0:1C:3F:22 · ch 6 · 2.4 GHz", 3, false),
-    Device("a3", "SCL-GUEST", "A4:2B:B0:1C:40:01 · ch 149 · 5 GHz", 2, false),
-    Device("a4", "Hidden network", "7C:10:C9:88:02:9A · ch 11 · 2.4 GHz", 1, false),
+/**
+ * One device found by a Bluetooth, Wi-Fi network or access point scan, as a scan page row.
+ * Built from the real scan results in scan/ScanRows.kt; [lvl] is 1–4 signal bars.
+ * [type] is the asset type the device would become (from what the scan identified); it picks the
+ * row's icon, the same icon the Assets list shows for that type.
+ */
+data class Device(
+    val id: String,
+    val name: String,
+    val sub: String,
+    val lvl: Int,
+    val known: Boolean,
+    val type: AssetType = AssetType.GENERIC,
 )
 
 /** Extra fields shown on the asset detail screen, keyed by asset id. */

@@ -13,10 +13,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.sclerago.data.CheckResult
-import com.example.sclerago.data.CheckState
-import com.example.sclerago.data.FixTarget
-import com.example.sclerago.data.dataQuality
+import com.example.sclerago.services.validation.CheckResult
+import com.example.sclerago.services.validation.CheckState
+import com.example.sclerago.services.validation.FixTarget
+import com.example.sclerago.services.validation.dataQuality
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon
 import com.example.sclerago.ui.theme.C

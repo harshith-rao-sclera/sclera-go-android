@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -69,6 +71,12 @@ fun Modifier.outline(color: Color, width: Dp = 1.5.dp, offset: Dp = 2.dp) = draw
     val o = offset.toPx() + width.toPx() / 2
     drawRect(color, Offset(-o, -o), Size(size.width + 2 * o, size.height + 2 * o), style = Stroke(width.toPx()))
 }
+
+/**
+ * Keeps sideways drags inside this element (a sheet or dialog shown over swipeable pages), so a
+ * swipe on it doesn't change the page behind. Lists inside still scroll sideways; they get the drag first.
+ */
+fun Modifier.blockSwipe() = pointerInput(Unit) { detectHorizontalDragGestures { change, _ -> change.consume() } }
 
 fun Modifier.noRippleClick(onClick: () -> Unit) = composed {
     clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick)

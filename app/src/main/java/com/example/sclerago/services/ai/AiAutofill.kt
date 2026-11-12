@@ -1,4 +1,7 @@
-package com.example.sclerago.data
+package com.example.sclerago.services.ai
+
+import com.example.sclerago.data.AssetType
+import com.example.sclerago.data.typeOf
 
 /** Typical values per asset type, used by AI autofill for fields that are still empty. */
 private val TYPICAL: Map<AssetType, Map<String, String>> = mapOf(
