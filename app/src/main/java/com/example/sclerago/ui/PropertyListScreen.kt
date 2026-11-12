@@ -34,14 +34,14 @@ import androidx.compose.ui.unit.dp
 import com.example.sclerago.AppViewModel
 import com.example.sclerago.data.Address
 import com.example.sclerago.data.Availability
-import com.example.sclerago.data.COUNTRIES
+import com.example.sclerago.data.PROPERTY_COUNTRIES
 import com.example.sclerago.data.Contact
 import com.example.sclerago.data.PROPERTY_TYPES
 import com.example.sclerago.data.Property
-import com.example.sclerago.data.REGIONS
+import com.example.sclerago.data.PROPERTY_REGIONS
 import com.example.sclerago.data.plural
 import com.example.sclerago.data.writeSamplePropertyXlsx
-import com.example.sclerago.media.formatSize
+import com.example.sclerago.services.media.formatSize
 import com.example.sclerago.propertyProblem
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
@@ -245,7 +245,7 @@ private fun AddPropertySheet(existing: List<Property>, onClose: () -> Unit, onAd
 
     val done = (if (name.isNotBlank()) 1 else 0) + (if (type.isNotEmpty()) 1 else 0)
     val valid = propertyProblem(name, type, existing) == null
-    val states = COUNTRIES[country].orEmpty()
+    val states = PROPERTY_COUNTRIES[country].orEmpty()
     val stateHint = when {
         country.isEmpty() -> "Choose a country first"
         states.isEmpty() -> "No states for this country"
@@ -311,12 +311,12 @@ private fun AddPropertySheet(existing: List<Property>, onClose: () -> Unit, onAd
         }
         when (picker) {
             "type" -> ChoiceSheet("Type", PROPERTY_TYPES.map { it to null }, type, { type = it; picker = null; error = null }, { picker = null })
-            "country" -> ChoiceSheet("Country", COUNTRIES.keys.map { it to null }, country, {
+            "country" -> ChoiceSheet("Country", PROPERTY_COUNTRIES.keys.map { it to null }, country, {
                 if (it != country) state = ""
                 country = it; picker = null
             }, { picker = null })
             "state" -> ChoiceSheet("State", states.map { it to null }, state, { state = it; picker = null }, { picker = null })
-            "region" -> ChoiceSheet("Region", REGIONS.map { it to null }, region, { region = it; picker = null }, { picker = null })
+            "region" -> ChoiceSheet("Region", PROPERTY_REGIONS.map { it to null }, region, { region = it; picker = null }, { picker = null })
         }
     }
 }

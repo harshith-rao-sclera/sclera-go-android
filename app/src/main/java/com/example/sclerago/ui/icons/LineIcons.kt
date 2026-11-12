@@ -67,7 +67,8 @@ fun LineIcon(icon: Ico, size: Dp, color: Color, stroke: Float = 2f, modifier: Mo
 
 object Icons {
     val Menu = Ico(s("M4 7h16M4 12h16M4 17h16"))
-    val Property = Ico(s("M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"))
+    /** The property (site): the same building as Configuration's header. */
+    val Property = Ico(s(rect(5f, 3f, 14f, 18f, 1f)), s("M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"))
     val Pin = Ico(s("M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"), s(circle(12f, 9.5f, 2.5f)))
     val Unmapped = Ico(
         s("M9.3 4.2A7 7 0 0 1 19 9.5c0 1.6-.6 3.3-1.5 4.8M14.8 17.6C13.3 19.6 12 21 12 21s-7-6.2-7-11.5c0-.9.2-1.8.5-2.6"),
@@ -144,13 +145,10 @@ object Icons {
         s(circle(9f, 8f, 3.5f)), s("M2.5 20v-.5A5.5 5.5 0 0 1 8 14h2a5.5 5.5 0 0 1 5.5 5.5v.5"),
         s("M15.5 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a5.5 5.5 0 0 1 3.5 5.3v.5"),
     )
-    val Table = Ico(s("M3 5h18v14H3zM3 10h18M3 15h18M9 5v14"))
     val User = Ico(s("M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-4 3.6-6 8-6s8 2 8 6"))
-    val Clock = Ico(s("M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2"))
     val Mail = Ico(s(rect(3f, 5f, 18f, 14f, 2f)), s("M4 7l8 6 8-6"))
     val ArrowRight = Ico(s("M5 12h14M13 6l6 6-6 6"))
     val Download = Ico(s("M12 4v11M7 10l5 5 5-5"), s("M5 20h14"))
-    val Lock = Ico(s(rect(5f, 11f, 14f, 10f, 2f)), s("M8 11V8a4 4 0 0 1 8 0v3"))
     val SignOut = Ico(s("M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"), s("M14 8l4 4-4 4M18 12H9"))
     val UserPlus = Ico(s(circle(9f, 8f, 4f)), s("M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1"), s("M19 8v6M16 11h6"))
     val Upload = Ico(s("M12 15V4M7 9l5-5 5 5"), s("M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"))
@@ -173,6 +171,36 @@ object Icons {
     val Clipboard = Ico(s(rect(5f, 4f, 14f, 17f, 2f)), s(rect(9f, 2.5f, 6f, 3f, 1f)), s("M9 11h6M9 15h4"))
     val Survey = Ico(s("M14 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l4 4v4"), s("M8 8h5M8 12h3"), s(circle(15.5f, 16.5f, 2.8f)), s("M17.6 18.6L20 21"))
     val Link = Ico(s("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"), s("M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"))
+    /** A tray with an arrow into it: import. */
+    val Import = Ico(s("M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"), s("M12 3v12M7.5 10.5L12 15l4.5-4.5"))
+    val Clock = Ico(s(circle(12f, 12f, 9f)), s("M12 7v5.5l-3.5 2"))
+    val PlusCircle = Ico(s(circle(12f, 12f, 9f)), s("M12 8v8M8 12h8"))
+    val CheckSquare = Ico(s(rect(4f, 4f, 16f, 16f, 3f)), s("M8.5 12.5l2.5 2.5 4.5-5"))
+    /** Ticks beside lines: multiple check boxes. */
+    val ListCheck = Ico(s("M3.5 7l1.5 1.5L8 5.5M3.5 15l1.5 1.5L8 13.5"), s("M11 7h10M11 15h10"))
+    val Globe = Ico(s(circle(12f, 12f, 9f)), s("M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9s1.2-6.4 3.7-9z"))
+    /** A spreadsheet grid. */
+    val Table = Ico(s(rect(3.5f, 4.5f, 17f, 15f, 2f)), s("M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"))
+    val Gear = Ico(
+        s(circle(12f, 12f, 3f)),
+        s("M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"),
+    )
+    val Lock = Ico(s(rect(5f, 11f, 14f, 10f, 2f)), s("M8 11V8a4 4 0 0 1 8 0v3"))
+    val Eye = Ico(s("M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"), s(circle(12f, 12f, 3f)))
+    val EyeOff = Ico(
+        s("M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.4 3.3M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6"),
+        s("M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"),
+    )
+    /** Two switches: Configuration → Property Settings. */
+    val Toggles = Ico(s(rect(3f, 4f, 18f, 7f, 3.5f)), f(circle(16.5f, 7.5f, 2f)), s(rect(3f, 13f, 18f, 7f, 3.5f)), f(circle(7.5f, 16.5f, 2f)))
+    val Refresh = Ico(s("M20 12a8 8 0 1 1-2.3-5.7"), s("M20 4v5h-5"))
+    val Hash = Ico(s("M5 9h15M4 15h15M10 3L8 21M16 3l-2 18"))
+    val Calendar = Ico(s(rect(3.5f, 5f, 17f, 15.5f, 2f)), s("M3.5 10h17M8 3v4M16 3v4"))
+    val TextLines = Ico(s("M4 6h16M4 10h16M4 14h16M4 18h10"))
+    val TextAa = Ico(s("M3 18l4.5-12L12 18M4.7 14h5.6"), s("M17.5 18v-1.2m0 1.2a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0-6V9.5a2 2 0 0 0-3.5-1.2"))
+    val ChevronCircle = Ico(s(circle(12f, 12f, 9f)), s("M8.5 10.5L12 14l3.5-3.5"))
+    val ArrowUp = Ico(s("M12 19V5M6 11l6-6 6 6"))
+    val ArrowDown = Ico(s("M12 5v14M6 13l6 6 6-6"))
 
     // Asset types
     val Motor = Ico(s(rect(2.5f, 7f, 13f, 10f, 2f)), s("M15.5 10.5H19v3h-3.5M19 12h2.5M6 7V5h6v2M5.5 10.5h7M5.5 13.5h7"))

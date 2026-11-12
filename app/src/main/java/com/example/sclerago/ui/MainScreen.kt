@@ -75,11 +75,15 @@ private val IMPORT_MIME_TYPES = arrayOf(
 @Composable
 fun ScleraApp(vm: AppViewModel = viewModel()) {
     val s = vm.state
-    val pager = rememberPagerState(initialPage = s.tab.ordinal) { Tab.entries.size }
+    // Bluetooth / Network drop out when the property's onboarding for them is off (Configuration →
+    // Property Settings); the pager is rebuilt then, so page numbers always match the visible tabs.
+    val tabs = vm.navTabs
+    val pager = key(tabs) { rememberPagerState(initialPage = tabs.indexOf(s.tab).coerceAtLeast(0)) { tabs.size } }
 
     // Tab state drives the pager; a finished swipe drives the tab state.
-    LaunchedEffect(s.tab) {
-        if (pager.currentPage != s.tab.ordinal) pager.animateScrollToPage(s.tab.ordinal, animationSpec = tween(380, easing = TrackEasing))
+    LaunchedEffect(s.tab, pager) {
+        val i = tabs.indexOf(s.tab)
+        if (i >= 0 && pager.currentPage != i) pager.animateScrollToPage(i, animationSpec = tween(380, easing = TrackEasing))
     }
     // Whenever scrolling stops (finished swipe, or a programmatic slide the user interrupted
     // with a touch), the page the pager rests on becomes the selected tab.
@@ -94,6 +98,14 @@ fun ScleraApp(vm: AppViewModel = viewModel()) {
     ShakeEffect {
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         vm.openCameraByShake()
+    }
+
+    // The scans need runtime permissions. When the scan service asks, a sheet explains why first
+    // (PermissionSheet, below); Continue shows Android's own prompt, whose answer goes back to the service.
+    var systemPromptOpen by remember { mutableStateOf(false) }
+    val scanPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
+        systemPromptOpen = false
+        vm.onScanPermission(res.isNotEmpty() && res.values.all { it })
     }
 
     // The File tab hands off to Android's own file manager (Storage Access Framework).
@@ -141,7 +153,7 @@ fun ScleraApp(vm: AppViewModel = viewModel()) {
                     beyondViewportPageCount = 1,
                     key = { it },
                 ) { page ->
-                    when (Tab.entries[page]) {
+                    when (tabs[page]) {
                         Tab.BT -> BluetoothPage(vm)
                         Tab.NET -> NetworkPage(vm)
                         Tab.ASSETS -> AssetsPage(vm)
@@ -170,7 +182,7 @@ fun ScleraApp(vm: AppViewModel = viewModel()) {
                 ) { Toast(s.toast) }
             }
             // The tabs stay visible everywhere, asset details included.
-            BottomNav(vm, pager)
+            BottomNav(vm, pager, tabs)
         }
 
         // Validation page (side menu) covers the whole app; an asset opened from its results sits on top.
@@ -198,6 +210,20 @@ fun ScleraApp(vm: AppViewModel = viewModel()) {
         }
         s.pv?.let { CapturePreview(it, vm::closePreview) }
         SideMenu(vm)
+
+        // Why a scan needs its permission, just before Android asks.
+        val ask = vm.scanPermissionAsk
+        val askFor = vm.scanPermissionRequest
+        if (ask != null && askFor != null && !systemPromptOpen) {
+            PermissionSheet(
+                ask,
+                onContinue = {
+                    systemPromptOpen = true
+                    scanPermission.launch(askFor.toTypedArray())
+                },
+                onNotNow = { vm.onScanPermission(false) },
+            )
+        }
         if (s.confirmDeleteSel) {
             val n = vm.pickedIds.size
             BackHandler(onBack = vm::cancelDeleteSel)
@@ -319,22 +345,29 @@ private val NAV = listOf(
  * between icons with your finger (and with the pager's own slide after a tap).
  */
 @Composable
-private fun BottomNav(vm: AppViewModel, pager: PagerState) {
+private fun BottomNav(vm: AppViewModel, pager: PagerState, tabs: List<Tab>) {
     // Continuous page position, e.g. 2.4 = 40% of the way from Assets to Camera.
     val pos = pager.currentPage + pager.currentPageOffsetFraction
-    Box(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).navigationBarsPadding().height(58.dp)) {
-        Row(Modifier.fillMaxSize()) {
-            NAV.forEachIndexed { i, n ->
-                val t = (1f - abs(pos - n.tab.ordinal)).coerceIn(0f, 1f)
-                NavItem(n, t, first = i == 0, last = i == NAV.size - 1) { vm.goTab(n.tab) }
-            }
+    val shown = NAV.filter { it.tab in tabs }
+    BottomTabBar {
+        shown.forEachIndexed { i, n ->
+            val t = (1f - abs(pos - i)).coerceIn(0f, 1f)
+            NavItem(n.label, n.icon, n.iconSize, t, first = i == 0, last = i == shown.size - 1) { vm.goTab(n.tab) }
         }
+    }
+}
+
+/** The bar the bottom tabs sit in (main screen and Configuration). */
+@Composable
+internal fun BottomTabBar(content: @Composable RowScope.() -> Unit) {
+    Box(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).navigationBarsPadding().height(58.dp)) {
+        Row(Modifier.fillMaxSize(), content = content)
     }
 }
 
 /** [t] is how selected this tab is: 0 = not at all, 1 = fully (in between mid-swipe). */
 @Composable
-private fun RowScope.NavItem(n: NavSpec, t: Float, first: Boolean, last: Boolean, onClick: () -> Unit) {
+internal fun RowScope.NavItem(label: String, icon: Ico, iconSize: Dp, t: Float, first: Boolean, last: Boolean, onClick: () -> Unit) {
     val on = t > 0.5f
     val w = 1f + 0.6f * t
     val bg = lerp(Color.Transparent, C.Raised, t)
@@ -361,9 +394,9 @@ private fun RowScope.NavItem(n: NavSpec, t: Float, first: Boolean, last: Boolean
                     Modifier.size(size).then(if (on) Modifier.shadow(6.dp, CircleShape, ambientColor = Color.Black, spotColor = Color.Black) else Modifier)
                         .background(circ, CircleShape),
                     contentAlignment = Alignment.Center,
-                ) { LineIcon(n.icon, n.iconSize, ic) }
+                ) { LineIcon(icon, iconSize, ic) }
                 Box(Modifier.height(labelH).alpha(labelA), contentAlignment = Alignment.Center) {
-                    Txt(n.label, 11, 700, C.Yellow)
+                    Txt(label, 11, 700, C.Yellow, maxLines = 1)
                 }
             }
             Box(Modifier.height(size), contentAlignment = Alignment.Center) {

@@ -2,7 +2,10 @@ package com.example.sclerago.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -14,6 +17,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,6 +29,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,10 +42,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.zIndex
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.example.sclerago.AppViewModel
 import com.example.sclerago.data.*
+import com.example.sclerago.services.validation.*
 import com.example.sclerago.ui.icons.Ico
 import com.example.sclerago.ui.icons.Icons
 import com.example.sclerago.ui.icons.LineIcon
@@ -75,9 +94,9 @@ fun ValidationScreen(vm: AppViewModel) {
     }
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            PageBar("Validation", vm.propName, vm::closeValidation)
-            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 32.dp)) {
-                item(key = "banner") { Banner { vm.openRunSheet() } }
+            PageBar("Validation", vm.propName, vm::closeValidation, property = true)
+            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 160.dp)) {
+                item(key = "top") { Spacer(Modifier.height(4.dp)) }
                 item(key = "templates") {
                     SectionTitle("Templates", null)
                     LazyRow(
@@ -95,17 +114,15 @@ fun ValidationScreen(vm: AppViewModel) {
                     }
                 }
                 item(key = "saved-title") {
-                    SectionTitle("Saved validations", s.savedVals.size) {
-                        Pill("New", vm::newSaved, height = 34.dp, hPad = 12.dp, size = 12)
-                    }
+                    SectionTitle("Saved validations", vm.savedVals.size)
                 }
-                if (s.savedVals.isEmpty()) item(key = "saved-empty") {
-                    EmptyNote("No saved validations yet. Pick the rules you use most and save them here.")
+                if (vm.savedVals.isEmpty()) item(key = "saved-empty") {
+                    EmptyNote("No saved validations yet. Tap + to pick the rules you use most and save them here.")
                 }
-                items(s.savedVals, key = { it.id }) { sv ->
+                items(vm.savedVals, key = { it.id }) { sv ->
                     SavedCard(
                         sv, vm.lastRun(sv.id),
-                        onRun = { vm.runOnAll(sv.id) }, onEdit = { vm.editSaved(sv.id) }, onDelete = { vm.askDeleteSaved(sv.id) },
+                        onRun = { vm.runOnAll(sv.id) }, onDelete = { vm.askDeleteSaved(sv.id) },
                     )
                 }
                 val jobs = vm.propJobs
@@ -114,13 +131,22 @@ fun ValidationScreen(vm: AppViewModel) {
                 items(jobs, key = { "job-${it.id}" }) { j -> JobRow(j) { vm.openReview(j.id) } }
             }
         }
+        // Create a validation (+, above) and run one (below), floating like the main screen's buttons.
+        if (s.valReview == null) {
+            AddFab(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(bottom = 68.dp), vm::newSaved)
+            Box(
+                Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp).size(54.dp).fabShadow()
+                    .clip(CircleShape).background(C.Btn).clickable { vm.openRunSheet() },
+                contentAlignment = Alignment.Center,
+            ) { LineIcon(Icons.Play, 20.dp, C.Text, 2.2f) }
+        }
 
         // Layers on top of the page.
         s.valReview?.let { id -> vm.propJobs.firstOrNull { it.id == id } }?.let { JobReview(it, vm) }
-        s.valChecksFor?.let { id -> ChecksSheet(vm.sourceName(id), vm.sourceRules(id), onRun = { vm.openRunSheet(id) }) { vm.openChecks(null) } }
+        s.valChecksFor?.let { id -> ChecksSheet(vm.sourceName(id), vm.sourceRules(id)) { vm.openChecks(null) } }
         s.valSheet?.let { RunSheetView(vm, it) }
         if (s.valSheet != null && s.valPicker) AssetPicker(vm, s.valSheet)
-        s.valEditor?.let { EditorSheet(vm, it) }
+        s.valEditor?.let { EditorPage(vm, it) }
         s.valConfirmDelete?.let { id ->
             ConfirmDialog(
                 icon = Icons.Trash, iconBg = Color(0xFF2A1919), iconFg = C.Red,
@@ -140,35 +166,18 @@ fun ValidationScreen(vm: AppViewModel) {
 // ---------------------------------------------------------------- Page pieces
 
 @Composable
-internal fun PageBar(title: String, sub: String?, onBack: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding().height(56.dp)
-            .padding(horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        RoundButton(44.dp, Color.Transparent, onBack) { LineIcon(Icons.ChevronLeft, 22.dp, C.Yellow, 2.4f) }
-        Column(Modifier.weight(1f)) {
+internal fun PageBar(title: String, sub: String?, onBack: () -> Unit, property: Boolean = false) {
+    Box(Modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding().height(60.dp).padding(horizontal = 10.dp)) {
+        RoundButton(42.dp, C.Btn, onBack, Modifier.align(Alignment.CenterStart)) { LineIcon(Icons.ChevronLeft, 22.dp, C.Yellow, 2.6f) }
+        Column(Modifier.align(Alignment.Center).padding(horizontal = 56.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Txt(title, 18, 700)
-            sub?.let { Txt(it, 12, 400, C.Muted) }
-        }
-    }
-}
-
-@Composable
-private fun Banner(onRun: () -> Unit) {
-    Column(
-        Modifier.padding(12.dp).fillMaxWidth().clip(r(16)).background(Color(0xFF221F14)).border(1.dp, C.YTintBd, r(16))
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(38.dp).clip(r(10)).background(C.YTintBg).border(1.dp, C.YTintBd, r(10)), contentAlignment = Alignment.Center) {
-                LineIcon(Icons.ShieldCheck, 19.dp, C.Yellow, 2.2f)
+            sub?.let {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    if (property) LineIcon(Icons.Building, 13.dp, C.Muted, 2f)
+                    Txt(it, 12, 500, C.Muted)
+                }
             }
-            Txt("Find and fix gaps and mistakes in your assets.", 14, 600, modifier = Modifier.weight(1f), maxLines = 2)
         }
-        YellowButton("Run validation", onRun, Modifier.fillMaxWidth())
     }
 }
 
@@ -249,7 +258,7 @@ private fun TemplateCard(t: ValidationTemplate, onRun: () -> Unit, onChoose: () 
 }
 
 @Composable
-private fun SavedCard(sv: SavedValidation, lastRun: Long?, onRun: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun SavedCard(sv: SavedValidation, lastRun: Long?, onRun: () -> Unit, onDelete: () -> Unit) {
     Column(
         Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
             .border(1.dp, C.Border, r(14)).padding(14.dp),
@@ -262,7 +271,6 @@ private fun SavedCard(sv: SavedValidation, lastRun: Long?, onRun: () -> Unit, on
         Txt(sv.rules.joinToString(" · ") { it.name }, 12, 400, C.Muted, maxLines = 3)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             YellowButton("Run", onRun, height = 36)
-            Pill("Edit", onEdit, height = 36.dp, hPad = 14.dp)
             Spacer(Modifier.weight(1f))
             Txt("Delete", 13, 700, C.Red, Modifier.clip(r(8)).clickable(onClick = onDelete).padding(horizontal = 8.dp, vertical = 8.dp))
         }
@@ -353,7 +361,7 @@ private fun JobRow(j: ValJob, onReview: () -> Unit) {
 @Composable
 internal fun BottomSheet(onDismiss: () -> Unit, maxHeightFraction: Float = 0.92f, content: @Composable ColumnScope.() -> Unit) {
     BackHandler(onBack = onDismiss)
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onDismiss).imePadding()) {
+    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onDismiss).blockSwipe().imePadding()) {
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(maxHeightFraction).wrapContentHeight(Alignment.Bottom)
                 .clip(SheetTop).background(C.Surface).topBorder(C.Border).noRippleClick { }
@@ -414,61 +422,95 @@ private fun RuleChip(text: String, ai: Boolean) {
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun RunSheetView(vm: AppViewModel, sh: com.example.sclerago.RunSheet) {
-    val s = vm.state
     val targets = vm.scopeAssets(sh)
+    // (id, name, tagline, ai, saved): the templates, then the user's saved validations.
+    val options = TEMPLATES.map { t -> RunOption(t.id, t.name, t.tagline, t.ai, false) } +
+        vm.savedVals.map { sv -> RunOption(sv.id, sv.name, sv.description.ifBlank { "Saved validation" }, false, true) }
+    val chosen = options.firstOrNull { it.id == sh.sourceId }
     BottomSheet(vm::closeRunSheet) {
-        SheetHeader("Run validation", "Checks run in the background, so you can keep working.", vm::closeRunSheet)
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Txt("Run validation", 17, 700, modifier = Modifier.weight(1f))
+            CloseButton(vm::closeRunSheet, size = 36.dp, iconSize = 15.dp)
+        }
         Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Txt("WHAT TO CHECK", 11, 700, C.Muted, spacing = 0.6f)
-            // (id, name, kind) where kind is "ai", "saved" or "".
-            val options = TEMPLATES.map { t -> Triple(t.id, t.name, if (t.ai) "ai" else "") } +
-                s.savedVals.map { sv -> Triple(sv.id, sv.name, "saved") }
-            options.chunked(2).forEach { pair ->
-                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    pair.forEach { (id, name, kind) ->
-                        val body = TEMPLATES.firstOrNull { it.id == id }?.description ?: "Saved validation · ${plural(vm.sourceRules(id).size, "rule", "rules")}"
-                        OptionCard(
-                            name, body, sh.sourceId == id, { vm.setRunSource(id) }, Modifier.weight(1f).fillMaxHeight(),
-                            badge = when (kind) {
-                                "ai" -> ({ AiBadge() })
-                                "saved" -> ({ Txt("saved", 11, 600, C.Muted) })
-                                else -> null
-                            },
-                        )
+            Txt("What to check", 13, 600, C.Soft, Modifier.padding(start = 2.dp, bottom = 2.dp))
+            options.forEach { o ->
+                val on = sh.sourceId == o.id
+                val rules = vm.sourceRules(o.id)
+                Column(
+                    Modifier.fillMaxWidth().clip(r(12)).background(if (on) C.YTintBg else C.Surface)
+                        .border(if (on) 1.5.dp else 1.dp, if (on) C.Yellow else C.Border, r(12))
+                        .clickable { vm.setRunSource(o.id) }.padding(10.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(Modifier.size(30.dp).clip(r(8)).background(C.Raised), contentAlignment = Alignment.Center) {
+                            LineIcon(templateIcon(o.id), 16.dp, C.Yellow, 2.2f)
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Txt(o.name, 14, 700, modifier = Modifier.weight(1f, fill = false))
+                                if (o.ai) AiBadge()
+                                if (o.saved) Txt("saved", 10, 600, C.Muted)
+                            }
+                            Txt("${o.tagline} · ${plural(rules.size, "check", "checks")}", 12, 400, C.Muted)
+                        }
+                        RadioDot(on)
                     }
-                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    // The chosen one shows what it checks.
+                    if (on && rules.isNotEmpty()) FlowRow(
+                        Modifier.padding(start = 40.dp, top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        rules.take(3).forEach { RuleChip(it.name, it.ai) }
+                        if (rules.size > 3) RuleChip("+${rules.size - 3}", false)
+                    }
                 }
             }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                vm.sourceRules(sh.sourceId).forEach { RuleChip(it.name, it.ai) }
+
+            Txt("Which assets", 13, 600, C.Soft, Modifier.padding(start = 2.dp, top = 10.dp, bottom = 2.dp))
+            ScopeTabs(
+                listOf("All · ${vm.assets.size}", "Choose", "New or changed"), ValScope.entries.indexOf(sh.scope),
+            ) { i ->
+                val sc = ValScope.entries[i]
+                if (sc == ValScope.CHOOSE && sh.scope == sc) vm.openPicker() else vm.setRunScope(sc)
             }
-            Txt("WHICH ASSETS", 11, 700, C.Muted, Modifier.padding(top = 6.dp), spacing = 0.6f)
-            ValScope.entries.forEach { sc ->
-                val sub = when (sc) {
-                    ValScope.CHOOSE -> if (sh.scope == sc) "${plural(sh.chosen.size, "asset", "assets")} ticked · tap to change" else sc.sub
-                    ValScope.CHANGED -> if (vm.lastRun(sh.sourceId) == null) "${sc.sub} Not run yet, so every asset." else sc.sub
-                    else -> sc.sub
-                }
-                OptionCard(sc.title, sub, sh.scope == sc, { if (sc == ValScope.CHOOSE && sh.scope == sc) vm.openPicker() else vm.setRunScope(sc) }, Modifier.fillMaxWidth())
-            }
+            when (sh.scope) {
+                ValScope.CHOOSE -> "${plural(sh.chosen.size, "asset", "assets")} ticked · tap Choose to change"
+                ValScope.CHANGED -> if (vm.lastRun(sh.sourceId) == null) "Not run yet, so every asset."
+                else "${plural(targets.size, "asset", "assets")} added or edited since the last run"
+                ValScope.ALL -> null
+            }?.let { Txt(it, 12, 400, C.Muted, Modifier.padding(start = 2.dp)) }
             Spacer(Modifier.height(4.dp))
         }
-        Row(
-            Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            val summary = when {
-                sh.scope == ValScope.ALL -> "Every asset in this property"
-                targets.isEmpty() -> if (sh.scope == ValScope.CHOOSE) "No assets ticked yet" else "Nothing new or changed"
-                else -> plural(targets.size, "asset", "assets")
+        Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
+            val label = when {
+                targets.isEmpty() -> if (sh.scope == ValScope.CHOOSE) "Tick some assets first" else "Nothing new or changed"
+                else -> "Run ${chosen?.name ?: "validation"} on ${plural(targets.size, "asset", "assets")}"
             }
-            Txt(summary, 12, 500, C.Muted, Modifier.weight(1f), maxLines = 2)
-            Pill("Cancel", vm::closeRunSheet, height = 40.dp, hPad = 14.dp)
-            YellowButton("Run", vm::runFromSheet, enabled = targets.isNotEmpty(), height = 40)
+            YellowButton(label, vm::runFromSheet, Modifier.fillMaxWidth(), enabled = targets.isNotEmpty(), height = 44)
+        }
+    }
+}
+
+private class RunOption(val id: String, val name: String, val tagline: String, val ai: Boolean, val saved: Boolean)
+
+/** Full-width segmented control (the asset scope in Run validation). */
+@Composable
+private fun ScopeTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(r(10)).background(C.Raised).padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        labels.forEachIndexed { i, l ->
+            val on = i == selected
+            Box(
+                Modifier.weight(1f).height(32.dp).clip(r(8)).background(if (on) C.Yellow else Color.Transparent).clickable { onSelect(i) },
+                contentAlignment = Alignment.Center,
+            ) { Txt(l, 12, if (on) 700 else 500, if (on) C.OnYellow else C.Muted, maxLines = 1) }
         }
     }
 }
@@ -524,63 +566,280 @@ private fun AssetPicker(vm: AppViewModel, sh: com.example.sclerago.RunSheet) {
 }
 
 @Composable
-private fun ChecksSheet(name: String, rules: List<Rule>, onRun: () -> Unit, onClose: () -> Unit) {
-    BottomSheet(onClose, maxHeightFraction = 0.8f) {
-        SheetHeader(name, plural(rules.size, "check", "checks"), onClose)
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-            rules.forEachIndexed { i, r ->
-                Row(
-                    Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Txt("${i + 1}", 12, 700, C.Muted, Modifier.width(18.dp))
-                    Txt(r.name, 14, 500, modifier = Modifier.weight(1f), maxLines = 2)
-                    if (r.ai) AiBadge()
+private fun ChecksSheet(name: String, rules: List<Rule>, onClose: () -> Unit) {
+    BottomSheet(onClose) {
+        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 14.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Txt(name, 24, 700, maxLines = 2)
+                Txt(plural(rules.size, "check", "checks"), 14, 400, C.Muted)
+            }
+            CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
+        }
+        Column(
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            rules.forEach { r ->
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    LineIcon(Icons.CheckCircle, 22.dp, C.Yellow, 2f, Modifier.padding(top = 1.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Txt(r.name, 16, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                            if (r.ai) AiBadge()
+                        }
+                        RULE_DESC[r.id]?.let { Txt(it, 13, 400, C.Muted, maxLines = 6) }
+                    }
                 }
             }
-        }
-        Row(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 16.dp, vertical = 12.dp)) {
-            YellowButton("Run this check", onRun, Modifier.fillMaxWidth())
         }
     }
 }
 
+/**
+ * New validation (full page): name and description, its steps (checks every asset goes through, in
+ * order: start from a template, reorder with the handle or arrows) and the checks to add to them.
+ */
 @Composable
-private fun EditorSheet(vm: AppViewModel, e: com.example.sclerago.SavedEditor) {
-    BottomSheet(vm::closeEditor) {
-        SheetHeader(if (e.id == null) "New validation" else "Edit validation", "Pick the rules to check together.", vm::closeEditor)
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-            PlainField(
-                e.name, vm::setEditorName, "Name, e.g. Handover check",
-                Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(r(10)).background(C.Bg)
-                    .border(1.5.dp, if (e.name.isBlank()) C.Border else C.Yellow, r(10)).padding(12.dp),
-                size = 15,
-            )
-            Txt("RULES · ${e.ruleIds.size} SELECTED", 11, 700, C.Muted, Modifier.padding(start = 16.dp, top = 16.dp, bottom = 6.dp), spacing = 0.6f)
-            RULES.values.forEach { r ->
-                Row(
-                    Modifier.fillMaxWidth().topBorder(C.Border).clickable { vm.toggleEditorRule(r.id) }
-                        .padding(horizontal = 16.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    CheckBox(r.id in e.ruleIds)
-                    Txt(r.name, 14, 500, modifier = Modifier.weight(1f), maxLines = 2)
-                    if (r.ai) AiBadge()
+private fun EditorPage(vm: AppViewModel, e: com.example.sclerago.SavedEditor) {
+    BackHandler(onBack = vm::closeEditor)
+    var q by remember { mutableStateOf("") }
+    var infoFor by remember { mutableStateOf<String?>(null) }
+    val ok = e.name.isNotBlank() && e.ruleIds.isNotEmpty()
+    // Drag to reorder steps: which step is held, how far it has moved, and each step's height.
+    var dragId by remember { mutableStateOf<String?>(null) }
+    // The finger's travel is applied straight away (not queued), so nothing left over can move the
+    // step after release and leave it half-way between two places.
+    var dragY by remember { mutableFloatStateOf(0f) }
+    var settle by remember { mutableStateOf<Job?>(null) }
+    val heights = remember { mutableStateMapOf<String, Int>() }
+    val scope = rememberCoroutineScope()
+    val gapPx = with(LocalDensity.current) { 8.dp.toPx() }
+    /** Release: the step goes to the nearest place (past half-way counts as the next one), then slides into it. */
+    fun drop(id: String) {
+        val steps = vm.state.valEditor?.ruleIds ?: return
+        val f = steps.indexOf(id)
+        val slot = (heights[id] ?: 0) + gapPx
+        if (f < 0 || slot <= 0f) {
+            dragId = null
+            dragY = 0f
+            return
+        }
+        val t = (f + (dragY / slot).roundToInt()).coerceIn(0, steps.lastIndex)
+        if (t != f) {
+            vm.moveStep(id, t - f)
+            dragY -= (t - f) * slot
+        }
+        settle = scope.launch {
+            animate(dragY, 0f, animationSpec = tween(200)) { v, _ -> dragY = v }
+            dragY = 0f
+            dragId = null
+        }
+    }
+    Column(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }.blockSwipe()) {
+        PageBar(if (e.id == null) "New validation" else "Edit validation", vm.propName, vm::closeEditor, property = true)
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().imePadding().padding(horizontal = 6.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Name, description, save
+            CfgCard {
+                Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LabeledInput("Name", e.name, vm::setEditorName, "e.g. Main Validation", compact = true)
+                    LabeledInput("Description (optional)", e.description, vm::setEditorDesc, "What this is for", compact = true)
+                    Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Pill("Cancel", vm::closeEditor, height = 38.dp, hPad = 14.dp, size = 13)
+                        Pill("Save", { if (ok) vm.saveEditor() }, Modifier.alpha(if (ok) 1f else 0.5f), height = 38.dp, hPad = 16.dp, size = 13)
+                        Pill(
+                            "Save and run", { if (ok) vm.saveEditor(run = true) }, Modifier.weight(1f).alpha(if (ok) 1f else 0.5f),
+                            bg = if (ok) C.Yellow else C.Btn, fg = if (ok) C.OnYellow else C.Text, height = 38.dp, size = 13, weight = 700,
+                        )
+                    }
                 }
             }
+
+            // Steps
+            CfgCard {
+                Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Txt("Steps", 15, 700)
+                        Box(Modifier.size(20.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
+                            Txt(e.ruleIds.size.toString(), 11, 700, C.Soft)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        if (e.ruleIds.isNotEmpty()) Txt("Clear all", 12, 600, C.Soft, Modifier.clip(r(8)).clickable(onClick = vm::clearSteps).padding(4.dp))
+                    }
+                    Txt("Every asset goes through these in order. Drag the handle or use the arrows to reorder.", 12, 400, C.Muted, maxLines = 3)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Txt("Start from", 12, 500, C.Muted)
+                        Spacer(Modifier.width(8.dp))
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            TEMPLATES.forEach { t ->
+                                Box(
+                                    Modifier.clip(Capsule).border(1.dp, C.Border2, Capsule).clickable { vm.stepsFrom(t.id) }
+                                        .padding(horizontal = 11.dp, vertical = 6.dp),
+                                ) { Txt(t.name.substringBefore(" and"), 12, 600) }
+                            }
+                        }
+                    }
+                    if (e.ruleIds.isEmpty()) {
+                        Txt("No steps yet. Add checks below, or start from a template.", 12, 400, C.Muted, maxLines = 2)
+                    }
+                    // Drag to reorder: the held step follows the finger (lifted, above the rest), the steps it
+                    // passes slide out of its way, and on release it settles into its new place.
+                    val from = e.ruleIds.indexOf(dragId)
+                    val slot = dragId?.let { (heights[it] ?: 0) + gapPx } ?: 0f
+                    val target = if (from < 0 || slot <= 0f) from
+                    else (from + (dragY / slot).roundToInt()).coerceIn(0, e.ruleIds.lastIndex)
+                    e.ruleIds.forEachIndexed { i, id ->
+                        key(id) {
+                            RULES[id]?.let { rule ->
+                                val held = id == dragId
+                                val shift = when {
+                                    from < 0 || held -> 0f
+                                    target > from && i in (from + 1)..target -> -slot
+                                    target < from && i in target until from -> slot
+                                    else -> 0f
+                                }
+                                // A fresh animation per order, so a step that just moved doesn't slide back.
+                                val slide = remember(e.ruleIds) { Animatable(0f) }
+                                LaunchedEffect(shift) { slide.animateTo(shift, tween(180)) }
+                                val lift by animateFloatAsState(if (held) 1f else 0f, tween(150), label = "lift")
+                                StepRow(
+                                    i, rule, first = i == 0, last = i == e.ruleIds.size - 1,
+                                    onMove = { vm.moveStep(id, it) }, onInfo = { infoFor = id }, onRemove = { vm.removeStep(id) },
+                                    modifier = Modifier
+                                        .onSizeChanged { heights[id] = it.height }
+                                        .zIndex(if (held) 1f else 0f)
+                                        .graphicsLayer {
+                                            translationY = if (held) dragY else slide.value
+                                            scaleX = 1f + 0.03f * lift
+                                            scaleY = 1f + 0.03f * lift
+                                            shadowElevation = 14.dp.toPx() * lift
+                                            shape = r(11)
+                                        },
+                                    handle = Modifier.pointerInput(id) {
+                                        detectDragGestures(
+                                            onDragStart = {
+                                                dragId = id
+                                                settle?.cancel(); dragY = 0f
+                                            },
+                                            onDragEnd = { drop(id) },
+                                            onDragCancel = { drop(id) },
+                                        ) { change, amount ->
+                                            change.consume()
+                                            dragY += amount.y
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Checks to add
+            CfgCard {
+                Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Txt("Checks", 15, 700)
+                    Txt("Press Add to put a check at the end of the steps.", 12, 400, C.Muted)
+                    SearchField(q, { q = it }, "Search checks")
+                    val query = q.trim()
+                    val all = RULES.values.filter { r ->
+                        query.isEmpty() || r.name.contains(query, true) || RULE_DESC[r.id].orEmpty().contains(query, true)
+                    }
+                    listOf("Each asset" to all.filter { it.id !in ACROSS_RULES }, "Across assets" to all.filter { it.id in ACROSS_RULES })
+                        .filter { it.second.isNotEmpty() }
+                        .forEach { (title, rules) ->
+                            Txt(title.uppercase(), 11, 600, C.Muted, Modifier.padding(top = 4.dp), spacing = 0.8f)
+                            rules.forEach { r -> CheckRow(r, r.id in e.ruleIds) { vm.addStep(r.id) } }
+                        }
+                    if (all.isEmpty()) Txt("No check matches “$query”.", 12, 400, C.Muted)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
         }
-        Row(
-            Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Pill("Cancel", vm::closeEditor, height = 44.dp, hPad = 16.dp)
-            val ok = e.name.isNotBlank() && e.ruleIds.isNotEmpty()
-            Pill(
-                "Save", { if (ok) vm.saveEditor() }, Modifier.weight(1f).alpha(if (ok) 1f else 0.4f),
-                bg = C.Yellow, fg = C.OnYellow, height = 44.dp, size = 14, weight = 700,
-            )
+    }
+    infoFor?.let { id -> RULES[id] }?.let { r ->
+        BottomSheet({ infoFor = null }) {
+            SheetHeader(r.name, if (r.id in ACROSS_RULES) "Across assets" else "Each asset", { infoFor = null })
+            Txt(RULE_DESC[r.id].orEmpty(), 15, 400, C.Soft, Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp), maxLines = 8)
+        }
+    }
+}
+
+/** One step: drag handle, number, check name and scope, then info, up, down and remove. */
+@Composable
+private fun StepRow(
+    i: Int,
+    rule: Rule,
+    first: Boolean,
+    last: Boolean,
+    onMove: (Int) -> Unit,
+    onInfo: () -> Unit,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+    handle: Modifier = Modifier,
+) {
+    Row(
+        modifier.fillMaxWidth().clip(r(11)).background(C.Bg).border(1.dp, C.Border, r(11)).padding(start = 6.dp, end = 6.dp, top = 9.dp, bottom = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // The drag handle (dragging is handled by the list, which moves the row).
+        Box(Modifier.size(30.dp, 40.dp).then(handle), contentAlignment = Alignment.Center) { LineIcon(Icons.Menu, 16.dp, C.Muted, 2.2f) }
+        Box(Modifier.size(24.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
+            Txt("${i + 1}", 12, 700, C.Yellow)
+        }
+        Column(Modifier.weight(1f).padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Txt(rule.name, 13, 600, maxLines = 2)
+            Txt(if (rule.id in ACROSS_RULES) "Across assets" else "Each asset", 11, 400, C.Muted)
+        }
+        StepIcon(Icons.Gear, true, onInfo)
+        StepIcon(Icons.ChevronDown, !first, { onMove(-1) }, flip = true)
+        StepIcon(Icons.ChevronDown, !last, { onMove(1) })
+        StepIcon(Icons.Close, true, onRemove)
+    }
+}
+
+@Composable
+private fun StepIcon(icon: Ico, enabled: Boolean, onClick: () -> Unit, flip: Boolean = false) {
+    Box(Modifier.size(30.dp).clip(CircleShape).clickable(enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
+        LineIcon(icon, 15.dp, if (enabled) C.Text else C.Raised, 2.2f, if (flip) Modifier.rotate(180f) else Modifier)
+    }
+}
+
+/** A check that can be added to the steps; greyed "Added" once it's one of them. */
+@Composable
+private fun CheckRow(rule: Rule, added: Boolean, onAdd: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(r(11)).background(C.Bg).border(1.dp, C.Border, r(11)).padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Txt(rule.name, 13, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                if (rule.ai) AiBadge()
+            }
+            Txt(RULE_DESC[rule.id].orEmpty(), 11, 400, C.Muted, maxLines = 2)
+        }
+        if (added) {
+            Row(
+                Modifier.clip(Capsule).border(1.dp, C.Border2, Capsule).padding(horizontal = 10.dp, vertical = 5.dp).alpha(0.5f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                LineIcon(Icons.Check, 12.dp, C.Muted, 2.4f)
+                Txt("Added", 12, 600, C.Muted)
+            }
+        } else {
+            Row(
+                Modifier.clip(Capsule).border(1.dp, C.Soft.copy(alpha = 0.6f), Capsule).clickable(onClick = onAdd).padding(horizontal = 11.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                LineIcon(Icons.PlusSmall, 12.dp, C.Text, 2.6f)
+                Txt("Add", 12, 700)
+            }
         }
     }
 }
@@ -591,7 +850,7 @@ private fun EditorSheet(vm: AppViewModel, e: com.example.sclerago.SavedEditor) {
 private fun JobReview(j: ValJob, vm: AppViewModel) {
     var filter by remember(j.id) { mutableStateOf<RuleOutcome?>(null) }
     Column(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }) {
-        PageBar(j.title, "${j.scopeLabel} · ${plural(j.checks, "check", "checks")} · ${relativeTime(j.startedAt)}") { vm.openReview(null) }
+        PageBar(j.title, "${j.scopeLabel} · ${plural(j.checks, "check", "checks")} · ${relativeTime(j.startedAt)}", onBack = { vm.openReview(null) })
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
             item(key = "summary") {
                 Column(
