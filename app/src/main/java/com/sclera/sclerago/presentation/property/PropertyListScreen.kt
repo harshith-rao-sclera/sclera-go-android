@@ -7,7 +7,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,9 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.domain.model.Address
@@ -45,22 +45,21 @@ import com.sclera.sclerago.presentation.components.CardWash
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.ColorChip
+import com.sclera.sclerago.presentation.components.FormGroup
 import com.sclera.sclerago.presentation.components.FormSheet
-import com.sclera.sclerago.presentation.components.PageHeading
+import com.sclera.sclerago.presentation.components.InlineField
+import com.sclera.sclerago.presentation.components.InlineInput
+import com.sclera.sclerago.presentation.components.InlineSelect
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.SearchField
-import com.sclera.sclerago.presentation.components.StatCard
 import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.TintChip
-import com.sclera.sclerago.presentation.components.TintText
 import com.sclera.sclerago.presentation.components.Toast
-import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
-import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
@@ -84,18 +83,22 @@ fun PropertyListScreen(vm: AppViewModel) {
             SubPageBar("Property list", vm.propName, vm::openMenu)
             LazyColumn(
                 Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 96.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                item { PageHeading("Property list", plural(vm.properties.size, "property", "properties")) }
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatCard(Icons.Building, C.Yellow, vm.properties.size.toString(), "Properties", Modifier.weight(1f))
-                        StatCard(Icons.Box, AssetBlue, vm.properties.sumOf { vm.assetCount(it.id) }.toString(), "Assets", Modifier.weight(1f))
+                    Column(Modifier.padding(bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val total = vm.properties.sumOf { vm.assetCount(it.id) }
+                        Txt(
+                            plural(vm.properties.size, "property", "properties") + " · " + plural(total, "asset", "assets"),
+                            12, 400, C.Muted, Modifier.padding(horizontal = 2.dp),
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SearchField(s.propListQ, vm::setPropListQ, "Search properties", Modifier.weight(1f), height = 40.dp)
+                            ImportButton(vm::openImport)
+                        }
                     }
                 }
-                item { ImportBanner(vm::openImport) }
-                item { SearchField(s.propListQ, vm::setPropListQ, "Search") }
                 items(list, key = { it.id }) { p ->
                     PropertyCard(p, vm.assetCount(p.id), current = p.id == s.prop) { vm.openPropertyFromList(p.id) }
                 }
@@ -115,43 +118,33 @@ fun PropertyListScreen(vm: AppViewModel) {
     }
 }
 
+/** Square button beside the search: import properties from a spreadsheet. */
 @Composable
-private fun ImportBanner(onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(r(16)).background(C.YTintBg).border(1.dp, C.YTintBd, r(16)).clickable(onClick = onClick).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(Modifier.size(44.dp).clip(r(12)).background(C.Yellow.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
-            LineIcon(Icons.Table, 20.dp, C.Yellow, 1.9f)
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt("Import properties", 15, 700)
-            Txt("Add many at once from an .xlsx file", 12, 400, TintText)
-        }
-        Box(Modifier.height(36.dp).clip(r(18)).background(C.Yellow).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-            Txt("Import", 13, 700, C.OnYellow)
-        }
-    }
+private fun ImportButton(onClick: () -> Unit) {
+    Box(
+        Modifier.size(40.dp).clip(r(12)).background(C.YTintBg).border(1.dp, C.YTintBd, r(12))
+            .semantics { contentDescription = "Import properties from a spreadsheet" }.clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { LineIcon(Icons.Table, 18.dp, C.Yellow, 1.9f) }
 }
 
 /** A property: round building icon, name, asset count; the current property is tinted yellow. */
 @Composable
 private fun PropertyCard(p: Property, assets: Int, current: Boolean, onClick: () -> Unit) {
-    val line = if (current) C.YTintBd else C.Border
     Row(
-        Modifier.fillMaxWidth().clip(r(18)).background(if (current) C.YTintBg else C.Surface).border(1.dp, line, r(18))
-            .clickable(onClick = onClick).padding(start = 8.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+        Modifier.fillMaxWidth().clip(r(12)).background(if (current) C.YTintBg else C.Surface)
+            .border(1.dp, if (current) C.YTintBd else C.Border, r(12))
+            .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
-            Modifier.size(56.dp).clip(CircleShape).background(if (current) C.Yellow.copy(alpha = 0.18f) else C.Raised).border(1.dp, line, CircleShape),
+            Modifier.size(40.dp).clip(CircleShape).background(if (current) C.Yellow.copy(alpha = 0.18f) else C.Raised),
             contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Building, 22.dp, if (current) C.Yellow else C.Muted, 1.9f) }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Txt(p.name, 15, 600, maxLines = 2)
-            ColorChip(plural(assets, "asset", "assets"), AssetBlue, Icons.Box)
+        ) { LineIcon(Icons.Building, 20.dp, if (current) C.Yellow else C.Muted, 1.9f) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Txt(p.name, 15, 600)
+            ColorChip(plural(assets, "asset", "assets"), AssetBlue, Icons.Box, small = true)
         }
         LineIcon(Icons.ChevronRight, 16.dp, C.Dim, 2.4f)
     }
@@ -341,61 +334,3 @@ private fun AddPropertySheet(existing: List<Property>, onClose: () -> Unit, onAd
     }
 }
 
-/** A titled group of fields (full-width band with dividers); [collapsible] ones fold under a chevron. */
-@Composable
-private fun FormGroup(
-    title: String,
-    icon: Ico,
-    collapsible: Boolean = false,
-    trailing: (@Composable () -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    var open by rememberSaveable(title) { mutableStateOf(true) }
-    val chevron by animateFloatAsState(if (open) 0f else -90f, label = "group")
-    Column(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(bottom = 6.dp)) {
-        Row(
-            Modifier.fillMaxWidth().height(52.dp).then(if (collapsible) Modifier.clickable { open = !open } else Modifier)
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Box(Modifier.size(28.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 15.dp, C.Yellow, 1.9f) }
-            Txt(title, 15, 700, modifier = Modifier.weight(1f))
-            trailing?.invoke()
-            if (collapsible) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f, Modifier.rotate(chevron))
-        }
-        AnimatedVisibility(open) { Column(content = content) }
-    }
-}
-
-/** Row: label on the left (104dp), the input on the right. */
-@Composable
-private fun InlineField(label: String, required: Boolean = false, dim: Boolean = false, input: @Composable RowScope.() -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (dim) 0.45f else 1f).padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(Modifier.width(104.dp)) {
-            Txt(label, 13, 500, C.Muted)
-            if (required) Txt("*", 13, 600, C.Yellow, Modifier.padding(start = 2.dp))
-        }
-        input()
-    }
-}
-
-@Composable
-private fun RowScope.InlineInput(value: String, onChange: (String) -> Unit, placeholder: String, enabled: Boolean = true, keyboard: KeyboardType = KeyboardType.Text) {
-    PlainField(value, onChange, placeholder, Modifier.weight(1f), size = 15, readOnly = !enabled, keyboard = keyboard)
-}
-
-@Composable
-private fun RowScope.InlineSelect(value: String, placeholder: String, enabled: Boolean = true, chevron: Boolean = true, onClick: () -> Unit) {
-    Row(
-        Modifier.weight(1f).heightIn(min = 44.dp).clickable(enabled = enabled, onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Txt(value.ifEmpty { placeholder }, 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
-        if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
-    }
-}

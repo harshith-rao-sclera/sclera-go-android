@@ -174,9 +174,9 @@ fun SegHeader(labels: List<String>, selected: Int, top: Dp = 10.dp, icons: List<
 }
 
 @Composable
-fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
+fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier, height: Dp = 44.dp) {
     Row(
-        modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12))
+        modifier.fillMaxWidth().height(height).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12))
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),

@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -33,6 +35,7 @@ import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
 import com.sclera.sclerago.domain.model.VIEW_ONLY_ICON
 import com.sclera.sclerago.domain.usecase.access.groupProblem
 import com.sclera.sclerago.domain.usecase.access.personProblem
+import com.sclera.sclerago.domain.usecase.auth.ValidateEmailUseCase
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.AdminFab
 import com.sclera.sclerago.presentation.components.CheckBox
@@ -40,14 +43,14 @@ import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.ColorChip
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.DangerBg
-import com.sclera.sclerago.presentation.components.FieldLabel
+import com.sclera.sclerago.presentation.components.FormGroup
 import com.sclera.sclerago.presentation.components.FormSheet
-import com.sclera.sclerago.presentation.components.PageHeading
-import com.sclera.sclerago.presentation.components.RadioRing
+import com.sclera.sclerago.presentation.components.InlineField
+import com.sclera.sclerago.presentation.components.InlineInput
+import com.sclera.sclerago.presentation.components.InlineSelect
+import com.sclera.sclerago.presentation.components.PillTone
 import com.sclera.sclerago.presentation.components.SearchField
-import com.sclera.sclerago.presentation.components.SheetInput
-import com.sclera.sclerago.presentation.components.SheetSelect
-import com.sclera.sclerago.presentation.components.StatCard
+import com.sclera.sclerago.presentation.components.StatusPill
 import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.TintChip
 import com.sclera.sclerago.presentation.components.TintText
@@ -87,27 +90,17 @@ fun PeopleScreen(
             SubPageBar("Users", vm.propName, vm::openMenu)
             LazyColumn(
                 Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 96.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 item {
-                    PageHeading(
-                        "People and access",
-                        "A group says what its people can do. Each person is in one group, for all properties or the ones chosen for them.",
-                    )
-                }
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatCard(Icons.Users, C.Yellow, access.people.size.toString(), "People", Modifier.weight(1f))
-                        StatCard(iconOf(Permission.MANAGE_ACCESS.iconPath), GroupsPurple, access.groups.size.toString(), "Groups", Modifier.weight(1f))
+                    Column(Modifier.padding(bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TabSwitch(listOf("People (${access.people.size})", "Groups (${access.groups.size})"), if (onPeople) 0 else 1) {
+                            access.setTab(if (it == 0) AccessTab.PEOPLE else AccessTab.GROUPS)
+                        }
+                        SearchField(s.query, access::setQuery, if (onPeople) "Search people" else "Search groups", height = 40.dp)
                     }
                 }
-                item {
-                    TabSwitch(listOf("People (${access.people.size})", "Groups (${access.groups.size})"), if (onPeople) 0 else 1) {
-                        access.setTab(if (it == 0) AccessTab.PEOPLE else AccessTab.GROUPS)
-                    }
-                }
-                item { SearchField(s.query, access::setQuery, if (onPeople) "Search people" else "Search groups") }
                 if (onPeople) {
                     items(access.visiblePeople, key = { it.id }) { p ->
                         PersonCard(p, access.group(p.groupId), properties, isMe = p.email.equals(me, ignoreCase = true)) { access.editPerson(p) }
@@ -150,69 +143,59 @@ private fun EmptyText(text: String) = Txt(text, 14, 400, C.Muted, Modifier.paddi
 @Composable
 private fun TabSwitch(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         labels.forEachIndexed { i, l ->
             val on = i == selected
             val bg by animateColorAsState(if (on) C.Raised else Color.Transparent, label = "tab")
             Box(
-                Modifier.weight(1f).height(40.dp).clip(r(10)).background(bg).clickable { onSelect(i) },
+                Modifier.weight(1f).height(34.dp).clip(r(9)).background(bg).clickable { onSelect(i) },
                 contentAlignment = Alignment.Center,
-            ) { Txt(l, 14, 600, if (on) C.Text else C.Muted) }
+            ) { Txt(l, 13, 600, if (on) C.Text else C.Muted) }
         }
     }
 }
 
+/** A list row: rounded card, 8 / 10 padding. */
 @Composable
-private fun CardShell(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+private fun RowCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier.fillMaxWidth().clip(r(18)).background(C.Surface).border(1.dp, C.Border, r(18)).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         content = content,
     )
 }
 
-@Composable
-private fun SmallLabel(text: String) = Txt(text, 11, 600, C.Muted, spacing = 0.6f)
-
-/** A person: tinted initials, name and email, then GROUP / PROPERTIES / LAST SEEN. Tap to edit. */
+/**
+ * A person on one line: initials, name (with a green dot once they've been seen) and email, then
+ * their group and which properties they can open. Tap to edit.
+ */
 @Composable
 private fun PersonCard(p: Person, group: Group?, properties: List<Property>, isMe: Boolean, onEdit: () -> Unit) {
-    CardShell(Modifier.clickable(onClick = onEdit)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    val seen = p.lastSeen ?: if (isMe) "just now" else null
+    RowCard(Modifier.clickable(onClick = onEdit)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Box(
-                Modifier.size(44.dp).clip(CircleShape).background(C.Yellow.copy(alpha = 0.18f)).border(1.dp, C.Yellow.copy(alpha = 0.5f), CircleShape),
+                Modifier.size(40.dp).clip(CircleShape).background(C.Yellow.copy(alpha = 0.18f)).border(1.dp, C.Yellow.copy(alpha = 0.5f), CircleShape),
                 contentAlignment = Alignment.Center,
-            ) { Txt(initialsOf(p.name), 15, 700, C.Yellow) }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Txt(p.name, 16, 600)
-                Txt(p.email, 13, 400, C.Muted)
+            ) { Txt(initialsOf(p.name), 13, 700, C.Yellow) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Txt(p.name, 15, 600, modifier = Modifier.weight(1f, fill = false))
+                    if (seen != null) Box(Modifier.size(7.dp).background(C.Green, CircleShape).semantics { contentDescription = "Active $seen" })
+                }
+                Txt(p.email, 12, 400, C.Muted)
             }
-            LineIcon(Icons.ChevronRight, 16.dp, C.Dim, 2.4f)
-        }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(C.Border))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SmallLabel("GROUP")
-                group?.let { ColorChip(it.name, it.tint(), it.icon()) } ?: Txt("—", 14, 500)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SmallLabel("PROPERTIES")
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                group?.let { ColorChip(it.name, it.tint(), it.icon(), small = true) }
                 Txt(
                     if (p.allProperties) "All properties"
                     else properties.filter { it.id in p.propertyIds }.let { if (it.size == 1) it[0].name else plural(it.size, "property", "properties") },
-                    14, 500, maxLines = 2,
+                    11, 400, C.Muted,
                 )
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SmallLabel("LAST SEEN")
-                val seen = p.lastSeen ?: if (isMe) "just now" else null
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (seen != null) Box(Modifier.size(7.dp).background(C.Green, CircleShape))
-                    Txt(seen ?: "Not yet", 14, 400, C.Soft)
-                }
-            }
+            LineIcon(Icons.ChevronRight, 16.dp, C.Dim, 2.4f)
         }
     }
 }
@@ -225,24 +208,24 @@ private fun initialsOf(name: String): String {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GroupCard(g: Group, people: Int, canDelete: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
-    CardShell {
-        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(44.dp).clip(r(12)).background(g.tint().copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+    RowCard {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.size(40.dp).clip(r(10)).background(g.tint().copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
                 LineIcon(g.icon(), 18.dp, g.tint(), 1.9f)
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Txt(g.name, 16, 600)
-                    Txt(plural(people, "person", "people"), 13, 400, C.Muted)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Txt(g.name, 15, 600)
+                    Txt(plural(people, "person", "people"), 12, 400, C.Muted)
                 }
-                if (g.description.isNotBlank()) Txt(g.description, 13, 400, C.Soft, maxLines = 3)
+                if (g.description.isNotBlank()) Txt(g.description, 12, 400, C.Muted)
             }
-            SquareAction(true, onEdit) { LineIcon(Icons.Pencil, 16.dp, C.Text, 1.9f) }
-            SquareAction(canDelete, onDelete) { LineIcon(Icons.Trash, 16.dp, if (canDelete) C.Red else C.RadioOff, 1.9f) }
+            SquareAction(true, onEdit) { LineIcon(Icons.Pencil, 15.dp, C.Text, 1.9f) }
+            SquareAction(canDelete, onDelete) { LineIcon(Icons.Trash, 15.dp, if (canDelete) C.Red else C.RadioOff, 1.9f) }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (g.permissions.isEmpty() && !g.locked) ColorChip("View only", VIEW_ONLY_COLOR.asColor(), iconOf(VIEW_ONLY_ICON))
-            else Permission.entries.filter { g.locked || it in g.permissions }.forEach { ColorChip(it.title, it.color.asColor(), iconOf(it.iconPath)) }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (g.permissions.isEmpty() && !g.locked) ColorChip("View only", VIEW_ONLY_COLOR.asColor(), iconOf(VIEW_ONLY_ICON), small = true)
+            else Permission.entries.filter { g.locked || it in g.permissions }.forEach { ColorChip(it.title, it.color.asColor(), iconOf(it.iconPath), small = true) }
         }
     }
 }
@@ -250,13 +233,18 @@ private fun GroupCard(g: Group, people: Int, canDelete: Boolean, onEdit: () -> U
 @Composable
 private fun SquareAction(enabled: Boolean, onClick: () -> Unit, icon: @Composable () -> Unit) {
     Box(
-        Modifier.size(44.dp).clip(r(12)).background(C.Raised).border(1.dp, C.Border2, r(12)).clickable(enabled = enabled, onClick = onClick),
+        Modifier.size(34.dp).clip(r(10)).background(C.Raised).border(1.dp, C.Border2, r(10)).clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { icon() }
 }
 
+
 // ---------------------------------------------------------------- Add / edit person
 
+private const val ALL_PROPERTIES = "All properties"
+private const val CHOSEN_PROPERTIES = "Chosen properties"
+
+/** Add a person / edit one: a Person section (email, group) and a Property access section. */
 @Composable
 private fun PersonSheet(initial: Person, access: AccessViewModel, properties: List<Property>, isMe: Boolean) {
     val isNew = initial.id.isEmpty()
@@ -264,13 +252,16 @@ private fun PersonSheet(initial: Person, access: AccessViewModel, properties: Li
     var groupId by remember { mutableStateOf(initial.groupId) }
     var all by remember { mutableStateOf(initial.allProperties) }
     var chosen by remember { mutableStateOf(initial.propertyIds) }
-    var picking by remember { mutableStateOf(false) }
+    var picking by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val group = access.group(groupId)
     val forced = group?.needsAllProperties == true
     val isAll = all || forced
     val draft = initial.copy(email = email, groupId = groupId, allProperties = isAll, propertyIds = chosen)
     val valid = personProblem(draft, access.people, group) == null
+    val emailOk = !isNew || ValidateEmailUseCase.EMAIL_ADDRESS.matches(email.trim())
+    val scopeOk = isAll || chosen.isNotEmpty()
+    val progress = if (isNew) ((if (emailOk) 1 else 0) + (if (scopeOk) 1 else 0)) / 2f else if (scopeOk) 1f else 0f
 
     Box(Modifier.fillMaxSize()) {
         FormSheet(
@@ -278,39 +269,46 @@ private fun PersonSheet(initial: Person, access: AccessViewModel, properties: Li
             if (isNew) "They get this access the first time they sign in." else initial.email,
             if (isNew) "Add" else "Save", valid, error, access::closePersonForm,
             onPrimary = { error = access.savePerson(draft) },
+            leadingIcon = Icons.Users, progress = progress,
+            bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
         ) {
-            if (isNew) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FieldLabel("Email")
-                    SheetInput(email, { email = it; error = null }, "name@company.com", keyboard = KeyboardType.Email)
+            FormGroup("Person", Icons.Users, trailing = {
+                if (emailOk) StatusPill("Ready", PillTone.READY) else StatusPill("1 required", PillTone.NEEDED)
+            }) {
+                if (isNew) {
+                    InlineField("Email", required = true) {
+                        InlineInput(email, { email = it; error = null }, "name@company.com", keyboard = KeyboardType.Email)
+                    }
+                }
+                InlineField("Group", required = true) { InlineSelect(group?.name.orEmpty(), "Choose a group") { picking = "group" } }
+                group?.description?.takeIf { it.isNotBlank() }?.let {
+                    Txt(it, 12, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = 3)
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                FieldLabel("Group")
-                SheetSelect(group?.name ?: "Choose a group", picking) { picking = true }
-                group?.description?.takeIf { it.isNotBlank() }?.let { Txt(it, 12, 400, C.Muted) }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FieldLabel("Properties")
-                ScopeCard("All properties", "Every property, including the ones added later.", isAll) { all = true; error = null }
-                ScopeCard(
-                    "Only chosen properties",
-                    if (forced) "${group?.name} has permissions that need all properties." else "New properties aren’t included until you add them here.",
-                    !isAll, enabled = !forced, badge = if (!isAll) "${chosen.size} chosen" else null,
-                ) { all = false; error = null }
+            FormGroup("Property access", Icons.Building, trailing = {
+                if (scopeOk) StatusPill(if (isAll) "All" else "${chosen.size} chosen", PillTone.READY)
+                else StatusPill("1 required", PillTone.NEEDED)
+            }) {
+                InlineField("Access", required = true) {
+                    InlineSelect(if (isAll) ALL_PROPERTIES else CHOSEN_PROPERTIES, "", enabled = !forced) { picking = "scope" }
+                }
+                if (forced) {
+                    Txt(
+                        "${group?.name} has permissions that need all properties.", 12, 400, C.Muted,
+                        Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = 3,
+                    )
+                }
                 if (!isAll) {
-                    Column(Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14))) {
-                        properties.forEachIndexed { i, p ->
-                            Row(
-                                Modifier.fillMaxWidth().heightIn(min = 50.dp).then(if (i > 0) Modifier.topBorder(C.Border) else Modifier)
-                                    .clickable { chosen = if (p.id in chosen) chosen - p.id else chosen + p.id; error = null }
-                                    .padding(horizontal = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                CheckBox(p.id in chosen, shape = r(5), offColor = C.Soft, checkSize = 12.dp)
-                                Txt(p.name, 14, 500, modifier = Modifier.weight(1f))
-                            }
+                    properties.forEach { p ->
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border)
+                                .clickable { chosen = if (p.id in chosen) chosen - p.id else chosen + p.id; error = null }
+                                .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            CheckBox(p.id in chosen, shape = r(5), offColor = C.Soft, checkSize = 12.dp)
+                            Txt(p.name, 14, 500, modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -318,41 +316,33 @@ private fun PersonSheet(initial: Person, access: AccessViewModel, properties: Li
             if (!isNew && !isMe) {
                 Txt(
                     "Remove ${initial.name}", 14, 600, C.Red,
-                    Modifier.clip(r(8)).clickable { access.askRemovePerson(initial) }.padding(vertical = 6.dp),
+                    Modifier.padding(horizontal = 16.dp).clip(r(8)).clickable { access.askRemovePerson(initial) }.padding(vertical = 6.dp),
                 )
             }
         }
-        if (picking) {
-            ChoiceSheet(
+        when (picking) {
+            "group" -> ChoiceSheet(
                 "Choose a group", access.groups.map { it.name to it.description.ifBlank { null } }, group?.name,
-                onPick = { name -> access.groups.firstOrNull { it.name == name }?.let { groupId = it.id }; picking = false; error = null },
-                onClose = { picking = false },
+                onPick = { name -> access.groups.firstOrNull { it.name == name }?.let { groupId = it.id }; picking = null; error = null },
+                onClose = { picking = null },
             )
-        }
-    }
-}
-
-/** "All properties" / "Only chosen properties" choice. */
-@Composable
-private fun ScopeCard(title: String, body: String, on: Boolean, enabled: Boolean = true, badge: String? = null, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().alpha(if (enabled) 1f else 0.55f).clip(r(14)).background(if (on) C.YTintBg else C.Surface)
-            .border(1.dp, if (on) C.YTintBd else C.Border, r(14)).clickable(enabled = enabled, onClick = onClick).padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(Modifier.padding(top = 1.dp)) { RadioRing(on, 18.dp) }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Txt(title, 15, 600)
-                badge?.let { TintChip(it) }
-            }
-            Txt(body, 12, 400, C.Muted, maxLines = 3)
+            "scope" -> ChoiceSheet(
+                "Property access",
+                listOf(
+                    ALL_PROPERTIES to "Every property, including the ones added later.",
+                    CHOSEN_PROPERTIES to "New properties aren’t included until you add them here.",
+                ),
+                if (isAll) ALL_PROPERTIES else CHOSEN_PROPERTIES,
+                onPick = { all = it == ALL_PROPERTIES; picking = null; error = null },
+                onClose = { picking = null },
+            )
         }
     }
 }
 
 // ---------------------------------------------------------------- New / edit group
 
+/** New group / edit one: Group details (name, description) and What they can do (permissions). */
 @Composable
 private fun GroupSheet(initial: Group, access: AccessViewModel) {
     val isNew = initial.id.isEmpty()
@@ -363,6 +353,7 @@ private fun GroupSheet(initial: Group, access: AccessViewModel) {
     var error by remember { mutableStateOf<String?>(null) }
     val draft = initial.copy(name = name, description = description, permissions = perms)
     val valid = groupProblem(draft, access.groups) == null
+    val named = name.isNotBlank()
 
     FormSheet(
         if (isNew) "New group" else "Edit ${initial.name}",
@@ -373,39 +364,42 @@ private fun GroupSheet(initial: Group, access: AccessViewModel) {
         },
         if (isNew) "Add group" else "Save", valid, error, access::closeGroupForm,
         onPrimary = { error = access.saveGroup(draft) },
+        leadingIcon = iconOf(Permission.MANAGE_ACCESS.iconPath), progress = if (named) 1f else 0f,
+        bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            FieldLabel("Name")
-            SheetInput(name, { name = it; error = null }, "Group name", enabled = !locked)
+        FormGroup("Group details", Icons.Users, trailing = {
+            if (named) StatusPill("Ready", PillTone.READY) else StatusPill("1 required", PillTone.NEEDED)
+        }) {
+            InlineField("Name", required = true, dim = locked) {
+                InlineInput(name, { name = it; error = null }, "Group name", enabled = !locked)
+            }
+            InlineField("Description") { InlineInput(description, { description = it }, "What this group is for") }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            FieldLabel("Description", optional = true)
-            SheetInput(description, { description = it }, "What this group is for")
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            FieldLabel("What they can do")
+        FormGroup("What they can do", Icons.ShieldCheck, trailing = {
+            if (locked) StatusPill("Locked", PillTone.NEUTRAL) else StatusPill("${perms.size} chosen", PillTone.READY)
+        }) {
             if (locked) {
                 Row(
-                    Modifier.fillMaxWidth().clip(r(12)).background(C.YTintBg).padding(12.dp),
+                    Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    LineIcon(Icons.Lock, 14.dp, TintText, 2.2f)
-                    Txt("These permissions are locked for ${initial.name}.", 13, 400, TintText, maxLines = 2)
+                    LineIcon(Icons.Lock, 13.dp, TintText, 2.2f)
+                    Txt("These permissions are locked for ${initial.name}.", 12, 400, TintText, maxLines = 2)
                 }
             }
             Permission.entries.forEach { p ->
                 val on = locked || p in perms
                 Row(
-                    Modifier.fillMaxWidth().clip(r(14)).background(if (on) Color(0xCC2E2914) else C.Surface)
-                        .border(1.dp, if (on) C.YTintBd else C.Border, r(14))
-                        .clickable(enabled = !locked) { perms = if (p in perms) perms - p else perms + p }.padding(14.dp),
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (locked) 0.75f else 1f)
+                        .clickable(enabled = !locked) { perms = if (p in perms) perms - p else perms + p }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(Modifier.alpha(if (locked) 0.6f else 1f)) { CheckBox(on, shape = r(5), offColor = C.Soft, checkSize = 12.dp) }
-                    Column(Modifier.weight(1f).alpha(if (locked) 0.75f else 1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(Modifier.padding(top = 1.dp)) { CheckBox(on, shape = r(5), offColor = C.Soft, checkSize = 12.dp) }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            LineIcon(iconOf(p.iconPath), 16.dp, p.color.asColor(), 1.9f)
+                            LineIcon(iconOf(p.iconPath), 14.dp, p.color.asColor(), 1.9f)
                             Txt(p.title, 15, 600)
                             if (p.needsAllProperties) TintChip("Needs all properties")
                         }
