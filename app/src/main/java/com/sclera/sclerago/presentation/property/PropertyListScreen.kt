@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.components.SecureWindow
 import android.app.TimePickerDialog
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -238,6 +239,7 @@ private fun ImportSheet(onClose: () -> Unit, onProceed: (String) -> Unit, writeT
 @Composable
 private fun AddPropertySheet(existing: List<Property>, onClose: () -> Unit, onAdd: (Property) -> String?) {
     val context = LocalContext.current
+    SecureWindow() // the access code is typed here
     var name by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf("") }
     var line1 by rememberSaveable { mutableStateOf("") }

@@ -15,6 +15,10 @@ import androidx.exifinterface.media.ExifInterface
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.Media
 import java.io.File
+import java.util.concurrent.TimeUnit
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -85,29 +89,62 @@ object MediaLoader {
         bmp.asImageBitmap()
     }
 
+    /** Hosts reference photos may be downloaded from; anything else is refused. */
+    internal val ALLOWED_PHOTO_HOSTS = setOf("upload.wikimedia.org", "thumb.wikimedia.org", "commons.wikimedia.org")
+
+    /** Largest reference photo downloaded (15MB). */
+    internal const val MAX_PHOTO_BYTES = 15L * 1024 * 1024
+
+    /** True for an https URL on an allowed host: nothing is downloaded over plain http or from unknown servers. */
+    internal fun isAllowedPhotoUrl(url: String): Boolean {
+        val u = url.toHttpUrlOrNull() ?: return false
+        return u.isHttps && u.host.lowercase() in ALLOWED_PHOTO_HOSTS
+    }
+
+    private val photoClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .followSslRedirects(false) // an https page may not send us to http
+            .build()
+    }
+
     /** Web photos are downloaded once into the app cache, then read from there (works offline afterwards). */
     private fun remoteFile(context: Context, url: String): File? {
+        if (!isAllowedPhotoUrl(url)) return null
         val dir = File(context.cacheDir, "web-photos").apply { mkdirs() }
         val f = File(dir, Integer.toHexString(url.hashCode()) + "-" + url.length)
         if (f.length() > 0) return f
         val tmp = File(dir, f.name + ".part")
         return runCatching {
-            val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-            c.setRequestProperty("User-Agent", "ScleraGo/1.0 (Android; asset onboarding demo)")
-            c.connectTimeout = 15_000
-            c.readTimeout = 30_000
-            try {
-                if (c.responseCode !in 200..299) return@runCatching null
-                c.inputStream.use { input -> tmp.outputStream().use { input.copyTo(it) } }
-            } finally {
-                c.disconnect()
+            val request = Request.Builder().url(url).header("User-Agent", "ScleraGo/1.0 (Android; asset onboarding demo)").build()
+            photoClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@runCatching null
+                // The final address (after redirects) must be allowed too.
+                if (!isAllowedPhotoUrl(response.request.url.toString())) return@runCatching null
+                val body = response.body ?: return@runCatching null
+                if (body.contentLength() > MAX_PHOTO_BYTES) return@runCatching null
+                tmp.outputStream().use { out ->
+                    var total = 0L
+                    body.byteStream().use { input ->
+                        val buf = ByteArray(16 * 1024)
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            total += n
+                            if (total > MAX_PHOTO_BYTES) { tmp.delete(); return@runCatching null }
+                            out.write(buf, 0, n)
+                        }
+                    }
+                }
             }
             if (tmp.renameTo(f)) f else null
-        }.getOrNull()
+        }.getOrNull().also { if (it == null) tmp.delete() }
     }
 
     private fun open(context: Context, uri: Uri): java.io.InputStream? =
-        if (uri.scheme == "http" || uri.scheme == "https") remoteFile(context, uri.toString())?.inputStream()
+        if (uri.scheme == "https") remoteFile(context, uri.toString())?.inputStream()
+        else if (uri.scheme == "http") null
         else context.contentResolver.openInputStream(uri)
 
     private fun image(context: Context, uri: Uri, maxPx: Int): Bitmap? {

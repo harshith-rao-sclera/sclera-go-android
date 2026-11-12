@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.presentation.components.SecureWindow
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -79,6 +80,7 @@ fun PeopleScreen(
     sessionVm: SessionViewModel = hiltViewModel(),
 ) {
     BackHandler(onBack = vm::closeAdmin)
+    SecureWindow() // emails and who can open which property are shown here
     val me = (sessionVm.authState.collectAsState().value as? AuthState.SignedIn)?.session?.email
     val properties = vm.properties
     LaunchedEffect(me) { access.ensureSeeded(me, properties.map { it.id }.toSet()) }

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.di
 
+import com.sclera.sclerago.data.local.WebDataCleaner
 import com.sclera.sclerago.data.repository.AccessRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
@@ -16,7 +17,9 @@ import com.sclera.sclerago.domain.repository.LocationRepository
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
 import com.sclera.sclerago.domain.repository.ValidationRepository
+import com.sclera.sclerago.domain.repository.UserDataCleaner
 import dagger.Binds
+import dagger.multibindings.IntoSet
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ActivityRetainedComponent
@@ -37,6 +40,15 @@ abstract class RepositoryModule {
     @Binds abstract fun onboarding(impl: OnboardingRepositoryImpl): OnboardingRepository
     @Binds abstract fun validation(impl: ValidationRepositoryImpl): ValidationRepository
     @Binds abstract fun access(impl: AccessRepositoryImpl): AccessRepository
+
+    // Everything above that holds user data is also wiped on sign-out (ClearUserDataUseCase).
+    @Binds @IntoSet abstract fun clearAssets(impl: AssetRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearProperties(impl: PropertyRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearLocations(impl: LocationRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearAssetConfig(impl: AssetConfigRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearOnboarding(impl: OnboardingRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearValidation(impl: ValidationRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearAccess(impl: AccessRepositoryImpl): UserDataCleaner
 }
 
 /** Device files (photos, documents, spreadsheets). */
@@ -44,4 +56,6 @@ abstract class RepositoryModule {
 @InstallIn(SingletonComponent::class)
 abstract class FileModule {
     @Binds @Singleton abstract fun files(impl: FileRepositoryImpl): FileRepository
+    @Binds @IntoSet abstract fun clearFiles(impl: FileRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearWebData(impl: WebDataCleaner): UserDataCleaner
 }

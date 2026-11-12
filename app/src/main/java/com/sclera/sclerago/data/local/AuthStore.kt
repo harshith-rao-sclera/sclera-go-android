@@ -47,31 +47,49 @@ data class AuthSession(
             ?: email
 }
 
-/** SharedPreferences "sclera_auth" (keys unchanged). */
-class AuthStore(context: Context) {
+/**
+ * The saved session, in SharedPreferences "sclera_auth" (keys unchanged). Every value is encrypted with [cipher]
+ * (`enc1:` + ciphertext). Values saved in plain text by older versions are still read, and are
+ * re-saved encrypted the first time they are loaded; a value that can no longer be decrypted counts as no session.
+ */
+class AuthStore(context: Context, private val cipher: SecretCipher) {
     private val prefs = context.getSharedPreferences("sclera_auth", Context.MODE_PRIVATE)
 
     fun load(): AuthSession? {
-        val email = prefs.getString(KEY_EMAIL, null) ?: return null
-        val sessionId = prefs.getString(KEY_SESSION, null) ?: return null
-        return AuthSession(
-            email, sessionId, prefs.getString(KEY_TOKEN, null), prefs.getLong(KEY_EXPIRES, 0L), prefs.getString(KEY_USER_INFO, null),
+        val email = readText(KEY_EMAIL) ?: return null
+        val sessionId = readText(KEY_SESSION) ?: return null
+        val session = AuthSession(
+            email, sessionId, readText(KEY_TOKEN), prefs.getLong(KEY_EXPIRES, 0L), readText(KEY_USER_INFO),
         )
+        // Values from older versions were plain text: encrypt them now.
+        if (isPlain(KEY_EMAIL) || isPlain(KEY_SESSION) || isPlain(KEY_TOKEN) || isPlain(KEY_USER_INFO)) save(session)
+        return session
     }
 
     fun save(session: AuthSession) {
         prefs.edit()
-            .putString(KEY_EMAIL, session.email)
-            .putString(KEY_SESSION, session.sessionId)
-            .putString(KEY_TOKEN, session.accessToken)
+            .putString(KEY_EMAIL, seal(session.email))
+            .putString(KEY_SESSION, seal(session.sessionId))
+            .putString(KEY_TOKEN, session.accessToken?.let(::seal))
             .putLong(KEY_EXPIRES, session.expiresAt)
-            .putString(KEY_USER_INFO, session.userInfo)
+            .putString(KEY_USER_INFO, session.userInfo?.let(::seal))
             .apply()
     }
 
     fun clear() = prefs.edit().clear().apply()
 
+    private fun seal(plain: String) = PREFIX + cipher.encrypt(plain)
+
+    private fun isPlain(key: String): Boolean = prefs.getString(key, null)?.startsWith(PREFIX) == false
+
+    /** The stored text for [key]: decrypted, or as-is when an older version saved it in plain text; null if absent or unreadable. */
+    private fun readText(key: String): String? {
+        val raw = prefs.getString(key, null) ?: return null
+        return if (raw.startsWith(PREFIX)) cipher.decrypt(raw.removePrefix(PREFIX)) else raw
+    }
+
     private companion object {
+        const val PREFIX = "enc1:"
         const val KEY_EMAIL = "email"
         const val KEY_SESSION = "session_id"
         const val KEY_TOKEN = "access_token"
