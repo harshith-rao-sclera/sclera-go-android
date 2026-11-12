@@ -181,12 +181,11 @@ internal fun ChoiceSheet(
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
         Column(
-            Modifier.align(Alignment.BottomCenter).widthIn(max = SheetMaxWidth).fillMaxWidth().fillMaxHeight(0.85f).wrapContentHeight(Alignment.Bottom)
-                .clip(SheetShape).background(SheetBg).topBorder(C.Border).noRippleClick { }.navigationBarsPadding()
+            sheetFrame(SheetBg, radius = 28.dp, heightFraction = 0.85f)
                 .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
+            if (!isTablet()) Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
             Txt(title, 17, 700)
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 options.forEach { (name, sub) ->
@@ -234,10 +233,11 @@ internal fun FormSheet(
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(SheetBg)
-                .noRippleClick { }.navigationBarsPadding().imePadding(),
+            (if (isTablet()) sheetFrame(SheetBg, radius = 28.dp, heightFraction = 0.9f, fill = true)
+            else Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(SheetBg)
+                .noRippleClick { }.navigationBarsPadding()).imePadding(),
         ) {
-            Box(Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
+            if (!isTablet()) Box(Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
             Row(
                 Modifier.fillMaxWidth().then(if (progress == null) Modifier.bottomBorder(C.Border) else Modifier).padding(16.dp, 14.dp),
                 verticalAlignment = Alignment.Top,

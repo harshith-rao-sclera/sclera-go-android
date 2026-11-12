@@ -1,6 +1,5 @@
 package com.sclera.sclerago.presentation.main
 
-import com.sclera.sclerago.presentation.components.listColumns
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -260,9 +259,8 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel()) {
 
 @Composable
 private fun AssetsPage(vm: AppViewModel) {
-    val cols = listColumns()
     androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
-        assetList(vm.listFor(Tab.ASSETS), vm.pickedIds, { vm.setStatusFilter(Tab.ASSETS, it.status) }, vm::togglePick, vm::openAsset, columns = cols)
+        assetList(vm.listFor(Tab.ASSETS), vm.pickedIds, { vm.setStatusFilter(Tab.ASSETS, it.status) }, vm::togglePick, vm::openAsset)
     }
 }
 
