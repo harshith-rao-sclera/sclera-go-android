@@ -55,8 +55,43 @@ finding. For each check give **PASS** or a list of violations with a count.
   without them.
 - Check for the three kinds of tests: unit, UI (including tablet configurations) and integration.
 
+## 7. SOLID
+- **S:** classes mixing UI state, business rules and I/O; ViewModels/use cases/repositories that do more
+  than one job; Composables over ~300 lines doing several things.
+- **D:** ViewModels, use cases or repositories that depend on a concrete `*Impl`/`Retrofit`/`Context`-bound
+  class instead of an interface; objects created with `Foo()` in business code instead of injected;
+  hard-coded dispatchers/clocks that block testing.
+- **I:** interfaces with methods no implementer/consumer uses; **L/O:** implementations that break their
+  interface's contract (e.g. throw where the interface returns a result) and `when`/`if` chains on type
+  that should be polymorphic.
+
+## 8. Security (OWASP MASVS / MASTG)
+Scan **all** code, manifest, resources and Gradle files. List each finding with `file:line`, the MASVS
+category (STORAGE, CRYPTO, AUTH, NETWORK, PLATFORM, CODE, PRIVACY, RESILIENCE) and severity.
+- **STORAGE:** tokens/session ids/emails/access codes/contacts written to SharedPreferences, files,
+  databases or external storage without Keystore-backed encryption; sensitive files not excluded from
+  backup; `allowBackup`; media stored outside app-private storage; data not cleared on sign-out.
+- **Logging/leakage:** `Log.*`, `println`, `Toast`, analytics or crash calls that include tokens, cookies,
+  emails, codes, locations or response bodies; `HttpLoggingInterceptor` above BASIC; sensitive screens
+  without `FLAG_SECURE`; sensitive text copied to the clipboard.
+- **CRYPTO:** custom crypto, MD5/SHA-1/DES/ECB, hard-coded keys/IVs/secrets, `java.util.Random` for
+  security, exportable keys.
+- **AUTH:** passwords handled in-app, tokens in URLs/query strings, tokens not cleared on session end,
+  authorization decided only in the UI.
+- **NETWORK:** `http://` URLs, `usesCleartextTraffic`, missing `networkSecurityConfig`, trust-all
+  `TrustManager`, permissive `HostnameVerifier`, ignored `onReceivedSslError`, no certificate pinning.
+- **PLATFORM:** exported components beyond the launcher, intent filters/deep links, `PendingIntent`
+  without `FLAG_IMMUTABLE`, WebView `setJavaScriptEnabled`/`addJavascriptInterface`/file access/
+  third-party cookies and which URLs they load, permissions beyond what features need, untrusted input
+  (URIs, files, scan results, server JSON) used without validation.
+- **CODE:** hard-coded secrets/API keys/URLs with credentials, `debuggable`, R8 off in release, debug code
+  in release, dependencies with known CVEs (run a dependency check if available), `Runtime.exec`.
+- **PRIVACY:** personal data sent to third parties, permissions without rationale, hidden collection.
+- State the MASVS level you could verify (L1 vs L2 for auth/session) and what a manual MASTG test or
+  device check would still be needed for.
+
 ## Report format
-1. A one-line verdict per section (1 to 6): PASS / FAIL (n issues).
+1. A one-line verdict per section (1 to 8): PASS / FAIL (n issues).
 2. Findings grouped by section, each with `file:line` and the rule it breaks.
 3. A prioritized fix list (highest impact first) with rough effort, and what you'd do first.
 4. State plainly anything you could not check (e.g. no emulator, JaCoCo missing).

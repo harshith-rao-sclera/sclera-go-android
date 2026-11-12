@@ -2,6 +2,8 @@
 
 Android app (Kotlin, Jetpack Compose, `com.sclera.sclerago`). These rules apply to every change, whether
 it is a new feature, a fix or a UI tweak. Check them before you start and again before you finish.
+Also follow **SOLID** (section 7) and **OWASP MASVS/MASTG security** (section 8; sensitive data includes
+tokens, sessions, emails, location, access codes, contacts and asset photos).
 Run `/audit` to check the **whole project** against them.
 
 ## 1. Architecture: Clean Architecture + MVVM
@@ -97,7 +99,127 @@ and for every new or changed class.
   **Not configured yet:** add it (and a ≥80% verification rule) as part of the next test work.
 - Run the test suite **only when asked** (or via `/audit`); but always write the tests.
 
-## 7. Working agreements
+## 7. SOLID
+
+Apply these when designing every class, Composable and module; flag a violation rather than working around it.
+
+- **S, Single responsibility:** one reason to change per class. A use case = one rule, a repository = one
+  data source/area, a ViewModel = one screen's state, a Composable = one piece of UI. Split a class that
+  mixes UI state, business rules and I/O.
+- **O, Open/closed:** extend through new implementations, parameters or `when` branches on sealed types
+  instead of editing stable code. Add a repository implementation or a use case rather than patching callers.
+- **L, Liskov substitution:** every implementation honours its interface's contract (nullability, thrown
+  errors, threading). A fake used in tests must behave like the real one, so a test double can replace it.
+- **I, Interface segregation:** small, focused interfaces (per feature, as in `domain/repository`). Don't
+  add methods "in case"; don't force a class to depend on methods it never calls.
+- **D, Dependency inversion:** depend on abstractions. ViewModels and use cases take **interfaces**
+  (`AssetRepository`), never `*Impl`; concrete classes are wired only in Hilt modules. Constructor
+  injection everywhere, nothing created with `Foo()` inside business code.
+- Prefer immutable models (`data class`, `val`), sealed types for results/errors, and composition over
+  inheritance. Inject dispatchers and clocks so code is testable.
+
+## 8. Security: OWASP MASVS / MASTG
+
+Follow the **OWASP Mobile Application Security Verification Standard (MASVS v2)**: **L1 for the whole
+app, and the L2 controls for authentication, session and token handling**. Verify with the **MASTG** test
+cases for the matching MASVS category. Treat security as part of "done", not a later pass.
+
+### Sensitive data in this app (handle all of it as sensitive)
+- **Credentials and sessions:** access token, session id and cookie, the login email, user details
+  (role, organisation, phone, photo URL).
+- **Location:** GPS position, geofence and building/location trees.
+- **Site access:** property and building **access codes**, contacts (name, email, phone), people and
+  access data (who can open which property).
+- **Asset evidence:** photos, videos and documents of assets, plus scan results (IPs, MACs, BLE ids,
+  Wi-Fi SSIDs/BSSIDs, device names).
+
+### MASVS-STORAGE (data at rest)
+- Never store sensitive data in plain text. Tokens, session ids and access codes go in encrypted storage
+  backed by the **Android Keystore** (AES-GCM, e.g. Tink or DataStore + AEAD). `EncryptedSharedPreferences`
+  is deprecated, so don't add new uses.
+- Photos, videos and documents stay in app-private storage (`filesDir`), never external/shared storage;
+  delete them when their asset or draft is discarded and on sign-out.
+- **Sign-out wipes** the session store, cookies, WebView data, caches and drafts.
+- Backups: exclude every file holding sensitive data (`backup_rules.xml`, `data_extraction_rules.xml`);
+  set `allowBackup="false"` unless there is a reviewed reason.
+- No sensitive data in logs, crash reports, analytics, clipboard, screenshots or notifications. Never log
+  tokens, cookies, emails, codes, locations or full response bodies. Logs carry events and codes only, and
+  debug logs are stripped from release.
+- Use `FLAG_SECURE` (or hide content in recents) on screens showing access codes or session details.
+
+### MASVS-CRYPTO
+- Only standard, vetted algorithms and libraries (Keystore, Tink, `SecureRandom`, AES-GCM, SHA-256+).
+  No custom crypto, no MD5/SHA-1/DES/ECB, no hard-coded keys, IVs or secrets, no `java.util.Random` for
+  anything security-related. Keys are generated on the device and non-exportable.
+
+### MASVS-AUTH (login and session)
+- Authenticate through the SSO/Keycloak flow only. Never ask for or store a password in the app.
+- Tokens: short-lived, refreshed before expiry, sent only in the `Authorization` header (never in URLs or
+  query strings), and **cleared and the user signed out** on any session-ending error.
+- Verify authorization on the server; the app must never rely on hidden UI for access control.
+  Re-check the session when the app returns to the foreground.
+- Gate sensitive actions (sign-out, role/permission changes) behind confirmation; consider biometric
+  re-auth (`BiometricPrompt`) for high-risk actions.
+
+### MASVS-NETWORK
+- **HTTPS only.** Declare `android:usesCleartextTraffic="false"` and a `networkSecurityConfig`; no
+  cleartext hosts, no user-added CA trust in release.
+- Never weaken TLS: no trust-all `TrustManager`, no `HostnameVerifier` that returns true, no ignoring
+  `onReceivedSslError` (cancel the load). Pin certificates (OkHttp `CertificatePinner`) for the Sclera API
+  hosts once keys are agreed, with a backup pin and a rotation plan.
+- All network code goes through the shared Retrofit/OkHttp client. No logging interceptor above `BASIC`
+  in release, and never one that prints headers or bodies with tokens.
+- Validate and encode everything built into a URL (`Uri.encode`, Retrofit `@Path`/`@Query`).
+
+### MASVS-PLATFORM (IPC, WebView, permissions)
+- Export only what must be reachable (`MainActivity` launcher). Everything else `exported="false"`; any
+  intent filter, deep link, content provider or broadcast receiver needs a security review and input
+  validation. Use `PendingIntent.FLAG_IMMUTABLE`.
+- **WebView:** enable JavaScript only for the SSO page and the map; load only HTTPS URLs from the
+  allow-listed hosts; no `addJavascriptInterface`, no `file://`/content access, safe browsing on, and
+  third-party cookies off unless the SSO flow needs them. Clear WebView data on sign-out.
+- Request the minimum permissions, at the moment of use, with a rationale (camera, location, Bluetooth,
+  nearby Wi-Fi). Handle denial gracefully; never collect location or scans silently.
+- Treat all external input (URIs from pickers, intents, QR/BLE/Wi-Fi/network scan results, spreadsheet
+  files, server JSON) as untrusted: validate type, size and content before use (e.g. the 100MB import cap).
+
+### MASVS-CODE (code quality and build)
+- Release builds: **R8 on** (minify + shrink), `debuggable=false`, no test/debug code or endpoints, no
+  secrets or API keys in source, resources or `BuildConfig`. Environment URLs and keys come from build
+  configuration or the server, never hard-coded in the UI layer.
+- Keep dependencies current and from the version catalog; check them for known CVEs (Dependabot or
+  `./gradlew dependencyCheckAnalyze`); no dependency from an unknown source.
+- Parse untrusted data with safe APIs; avoid `Runtime.exec`, reflection on user input and dynamic code
+  loading; handle every exception without leaking details to the user or logs.
+
+### MASVS-PRIVACY
+- Collect only what a feature needs; say why in the permission rationale and the privacy policy.
+  Photos and location are used only to onboard assets, with no hidden collection and no third-party SDK
+  that sends data off the device without approval.
+- Don't send personal data to external services (analytics, crash tools, AI helpers) without approval;
+  strip identifiers first.
+
+### MASVS-RESILIENCE (decide per risk)
+- For a hardened release consider root/emulator/debugger detection, certificate pinning and tamper checks
+  (Play Integrity). Decide this with the team; record it, don't add ad-hoc checks.
+
+### Security in every change
+- Before coding a feature that touches sensitive data, name the data and where it is stored, sent and shown.
+- Write security tests where they apply: a test that sign-out clears storage, that tokens never reach logs,
+  that bad TLS is rejected, that malformed input is refused.
+- Security findings are fixed before the feature is "done"; if one can't be, record it as a known gap here.
+
+### Known security gaps (fix when touching these areas)
+- `AuthStore` keeps the access token, session id, email and user info in **plain** SharedPreferences
+  (`sclera_auth`); move to Keystore-backed encrypted storage.
+- `allowBackup="true"` (only `sclera_auth.xml` is excluded); no `networkSecurityConfig` or explicit
+  `usesCleartextTraffic="false"`; no certificate pinning; no `FLAG_SECURE` on access-code screens.
+- WebViews enable JavaScript and accept third-party cookies; restrict to allow-listed HTTPS hosts and
+  review each setting against the list above.
+- Property/building **access codes** and contacts are held and shown in plain form; treat as sensitive.
+- Release logs: confirm `Log.d/i/w` are stripped or free of identifiers (R8 keep rules).
+
+## 9. Working agreements
 
 - Never work on `main`. Use a short feature branch; pull `main` before starting and before pushing; resolve
   conflicts by understanding both sides.
@@ -114,4 +236,7 @@ and for every new or changed class.
 4. UI verified on phone, tablet portrait and tablet landscape; previews added.
 5. Reusable pieces shared, no duplication.
 6. Unit + UI + integration tests written; coverage > 80%.
-7. Builds cleanly; `/audit` reports no new violations.
+7. SOLID respected: abstractions injected, small single-purpose classes.
+8. Security (MASVS) checked for any change touching sensitive data: encrypted at rest, HTTPS only,
+   nothing sensitive in logs, minimal permissions, untrusted input validated.
+9. Builds cleanly; `/audit` reports no new violations.
