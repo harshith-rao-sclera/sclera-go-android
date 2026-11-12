@@ -25,4 +25,7 @@
     <string name="login_error_email_blank">Enter your email address</string>
     <string name="login_error_email_invalid">Enter a valid email address</string>
     <string name="login_tagline">Know every asset on site.</string>
+
+    <string name="minutes_left">minutes left</string>
+    <string name="seconds_left">seconds left</string>
 </resources>

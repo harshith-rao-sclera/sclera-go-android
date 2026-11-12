@@ -14,11 +14,16 @@ import com.example.sclerago.presentation.login.LoginScreen
 import com.example.sclerago.presentation.session.SessionViewModel
 import com.example.sclerago.ui.ScleraApp
 import com.example.sclerago.ui.theme.ScleraTheme
+import com.example.sclerago.utility.firebaseUtils.Utility
 
 class MainActivity : ComponentActivity() {
     private val session: SessionViewModel by viewModels { SessionViewModel.Factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Application context, not `this`: Utility.context is static, so holding the
+        // Activity there would leak it across rotations / recreation.
+        Utility.context = applicationContext
+
         // The app is dark-only, so keep light status/nav bar icons regardless of system theme.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),

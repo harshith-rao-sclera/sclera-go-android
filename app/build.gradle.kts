@@ -86,4 +86,11 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
+
+    //Requery
+    implementation("com.github.requery:sqlite-android:3.49.0")
+
+    //Lombok
+    compileOnly("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
 }
