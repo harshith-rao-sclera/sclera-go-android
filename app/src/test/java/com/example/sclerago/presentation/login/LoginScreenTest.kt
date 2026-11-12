@@ -1,8 +1,5 @@
 package com.example.sclerago.presentation.login
 
-import com.example.sclerago.presentation.common.UiText
-import com.example.sclerago.presentation.common.toUiText
-
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -23,7 +20,7 @@ import com.example.sclerago.domain.usecase.auth.ClearLoginCookiesUseCase
 import com.example.sclerago.domain.usecase.auth.CompleteLoginUseCase
 import com.example.sclerago.domain.usecase.auth.IsOnlineUseCase
 import com.example.sclerago.domain.usecase.auth.ValidateEmailUseCase
-import com.example.sclerago.ui.theme.ScleraTheme
+import com.example.sclerago.presentation.theme.ScleraTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

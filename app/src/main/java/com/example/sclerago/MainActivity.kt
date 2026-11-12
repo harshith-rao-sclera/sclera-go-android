@@ -8,12 +8,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dagger.hilt.android.AndroidEntryPoint
 import com.example.sclerago.domain.model.AuthState
 import com.example.sclerago.presentation.login.LoginScreen
+import com.example.sclerago.presentation.main.ScleraApp
 import com.example.sclerago.presentation.session.SessionViewModel
-import com.example.sclerago.ui.ScleraApp
-import com.example.sclerago.ui.theme.ScleraTheme
+import com.example.sclerago.presentation.theme.ScleraTheme
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
