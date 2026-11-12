@@ -16,6 +16,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -35,8 +37,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.sclera.sclerago.data.Asset
+import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailScreen
 import com.sclera.sclerago.presentation.assets.CameraPage
@@ -271,10 +275,7 @@ private fun Header(vm: AppViewModel) {
             RoundButton(36.dp, Color.Transparent, vm::openMenu, Modifier.align(Alignment.CenterStart), shape = r(10)) {
                 LineIcon(Icons.Menu, 22.dp, C.Text)
             }
-            Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.Bottom) {
-                Txt("sclera", 21, 400, spacing = -0.4f)
-                Txt("go", 21, 800, C.Yellow, Modifier.padding(start = 2.dp), italic = true, spacing = -0.4f)
-            }
+            ScleraGoLogo(Modifier.align(Alignment.CenterEnd).padding(end = 12.dp))
         }
         LocationTabs(vm)
     }
@@ -424,5 +425,19 @@ private fun SelectionDock(vm: AppViewModel) {
                 textDecoration = TextDecoration.Underline, maxLines = 1,
             )
         }
+    }
+}
+
+/** The Sclera Go mark (same artwork as the login screen and app icon) with "GO" in its right loop. */
+@Composable
+private fun ScleraGoLogo(modifier: Modifier = Modifier) {
+    Box(modifier.height(24.dp).aspectRatio(512f / 357f)) {
+        Image(
+            painterResource(R.drawable.login_logo),
+            contentDescription = "Sclera Go", // Product name: not translated.
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Centre of the right loop in login_logo.png (512 × 357): about (395, 230).
+        Txt("GO", 5, 800, C.Surface, Modifier.align(BiasAlignment(0.54f, 0.29f)))
     }
 }
