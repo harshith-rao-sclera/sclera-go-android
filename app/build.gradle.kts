@@ -13,8 +13,9 @@ android {
 
     defaultConfig {
         applicationId = "com.sclera.sclerago"
-        minSdk = 24
-        targetSdk = 36
+        // 26: the Bluetooth / Wi-Fi / network scanners (ported from AssetOnBoard) need Android 8.0+.
+        minSdk = 26
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 

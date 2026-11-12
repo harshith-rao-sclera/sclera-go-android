@@ -141,8 +141,7 @@ data class UiState(
     val importOpen: Boolean = false,
     /** Scanning tabs switched off in Property Settings, per property (Bluetooth / Network onboarding). */
     val onboardOff: Map<String, Set<Tab>> = emptyMap(),
-
-    )
+)
 
 data class StatusChip(val status: Status?, val label: String, val count: Int, val selected: Boolean)
 data class AssetListData(val items: List<Asset>, val chips: List<StatusChip>, val emptyText: String)
@@ -1288,7 +1287,6 @@ class AppViewModel @Inject constructor(app: Application) : AndroidViewModel(app)
         flash((if (t == Tab.BT) "Bluetooth" else "Wi-Fi") + " onboarding " + if (on) "on" else "off")
     }
 }
-
 
 /** Why a property called [name] of [type] can't be added, or null when it can. */
 internal fun propertyProblem(name: String, type: String, existing: List<Property>): String? = when {
