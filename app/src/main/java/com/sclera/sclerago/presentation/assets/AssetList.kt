@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.model.icon
+import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.presentation.model.color
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -25,7 +28,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.sclera.sclerago.data.Asset
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.dashedBorder

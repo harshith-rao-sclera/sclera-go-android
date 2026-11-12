@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.components
 
+import com.sclera.sclerago.domain.model.Media
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -12,7 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import com.sclera.sclerago.presentation.theme.C
-import com.sclera.sclerago.services.media.Media
 import com.sclera.sclerago.services.media.MediaLoader
 
 /** Thumbnail / full image for a photo or the first frame of a video. */

@@ -1,5 +1,13 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.Person
+import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
+import com.sclera.sclerago.domain.model.VIEW_ONLY_ICON
+import com.sclera.sclerago.presentation.common.plural
+import com.sclera.sclerago.presentation.model.color
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -24,13 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.sclera.sclerago.data.Group
-import com.sclera.sclerago.data.Permission
-import com.sclera.sclerago.data.Person
-import com.sclera.sclerago.data.Property
-import com.sclera.sclerago.data.VIEW_ONLY_COLOR
-import com.sclera.sclerago.data.VIEW_ONLY_ICON
-import com.sclera.sclerago.data.plural
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.presentation.components.AdminFab
 import com.sclera.sclerago.presentation.components.CheckBox

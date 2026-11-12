@@ -1,14 +1,14 @@
 package com.sclera.sclerago.presentation.access
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.sclera.sclerago.data.ADMINS_ID
-import com.sclera.sclerago.data.DEFAULT_GROUPS
-import com.sclera.sclerago.data.Group
-import com.sclera.sclerago.data.PROPERTIES
 import com.sclera.sclerago.data.PROPERTY_IMPORT_COLUMNS
-import com.sclera.sclerago.data.Permission
-import com.sclera.sclerago.data.Person
+import com.sclera.sclerago.data.local.DEFAULT_GROUPS
+import com.sclera.sclerago.data.local.PROPERTIES
 import com.sclera.sclerago.data.writeSamplePropertyXlsx
+import com.sclera.sclerago.domain.model.ADMINS_ID
+import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.Person
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sclera.sclerago.presentation.main.propertyProblem
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream

@@ -1,5 +1,18 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.model.icon
+import com.sclera.sclerago.domain.validation.ACROSS_RULES
+import com.sclera.sclerago.domain.validation.AssetResult
+import com.sclera.sclerago.domain.validation.RULES
+import com.sclera.sclerago.domain.validation.RULE_DESC
+import com.sclera.sclerago.domain.validation.Rule
+import com.sclera.sclerago.domain.validation.RuleOutcome
+import com.sclera.sclerago.domain.validation.SavedValidation
+import com.sclera.sclerago.domain.validation.TEMPLATES
+import com.sclera.sclerago.domain.validation.ValJob
+import com.sclera.sclerago.domain.validation.ValScope
+import com.sclera.sclerago.domain.validation.ValidationTemplate
+import com.sclera.sclerago.presentation.common.plural
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -48,7 +61,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.sclera.sclerago.data.*
 import com.sclera.sclerago.presentation.components.AddFab
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Capsule
@@ -77,7 +89,6 @@ import com.sclera.sclerago.presentation.main.RunSheet
 import com.sclera.sclerago.presentation.main.SavedEditor
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
-import com.sclera.sclerago.services.validation.*
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch

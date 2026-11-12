@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.formatDuration
+import com.sclera.sclerago.presentation.common.plural
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -48,7 +51,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.sclera.sclerago.data.plural
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.MediaImage
@@ -68,9 +70,7 @@ import com.sclera.sclerago.presentation.main.Sheet
 import com.sclera.sclerago.presentation.main.Tab
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
-import com.sclera.sclerago.services.media.Media
 import com.sclera.sclerago.services.media.captureDir
-import com.sclera.sclerago.services.media.formatDuration
 import com.sclera.sclerago.services.media.stamp
 import java.io.File
 import kotlinx.coroutines.launch

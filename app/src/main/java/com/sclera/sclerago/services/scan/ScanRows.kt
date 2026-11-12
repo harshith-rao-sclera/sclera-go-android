@@ -1,8 +1,8 @@
 package com.sclera.sclerago.services.scan
 
-import com.sclera.sclerago.data.AssetType
-import com.sclera.sclerago.data.Device
-import com.sclera.sclerago.data.typeOf
+import com.sclera.sclerago.domain.model.AssetType
+import com.sclera.sclerago.domain.model.Device
+import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.services.scan.model.BleDevice
 import com.sclera.sclerago.services.scan.model.DeviceCategory
 import com.sclera.sclerago.services.scan.model.NetworkDevice

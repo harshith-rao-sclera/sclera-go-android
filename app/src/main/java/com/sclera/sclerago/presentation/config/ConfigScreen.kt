@@ -1,5 +1,25 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.domain.model.ASSET_TYPES
+import com.sclera.sclerago.domain.model.BUILDING_TYPES
+import com.sclera.sclerago.domain.model.BuildingInfo
+import com.sclera.sclerago.domain.model.COUNTRIES
+import com.sclera.sclerago.domain.model.DATE_DISPLAY
+import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
+import com.sclera.sclerago.domain.model.FieldSection
+import com.sclera.sclerago.domain.model.JACS_CODES
+import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.OPTION_KINDS
+import com.sclera.sclerago.domain.model.PhotoReq
+import com.sclera.sclerago.domain.model.REGIONS
+import com.sclera.sclerago.domain.model.SUB_TYPES
+import com.sclera.sclerago.domain.model.SYSTEM_TYPES
+import com.sclera.sclerago.domain.model.TIME_DISPLAY
+import com.sclera.sclerago.domain.model.ValueRule
+import com.sclera.sclerago.domain.model.findNode
+import com.sclera.sclerago.domain.model.noRuleLabel
+import com.sclera.sclerago.presentation.common.plural
 import android.annotation.SuppressLint
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -37,7 +57,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.sclera.sclerago.data.*
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.BottomTabBar
 import com.sclera.sclerago.presentation.components.CfgCard

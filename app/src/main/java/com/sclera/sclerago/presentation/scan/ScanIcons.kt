@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.scan
 
+import com.sclera.sclerago.presentation.model.icon
+import com.sclera.sclerago.domain.model.Device
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -8,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.sclera.sclerago.data.Device
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C

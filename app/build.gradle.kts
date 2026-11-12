@@ -8,8 +8,8 @@ plugins {
 
 android {
     namespace = "com.sclera.sclerago"
-    // API 36: the newest SDK Android Studio 2025.2 / AGP 9.0 understand.
-    compileSdk = 36
+    // API 37 (Android 17): matches targetSdk.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.sclera.sclerago"

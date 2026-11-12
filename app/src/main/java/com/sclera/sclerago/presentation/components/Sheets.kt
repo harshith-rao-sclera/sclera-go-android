@@ -1,5 +1,11 @@
 package com.sclera.sclerago.presentation.components
 
+import com.sclera.sclerago.data.local.locationTree
+import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.LocPick
+import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.NodeKind
+import com.sclera.sclerago.presentation.common.plural
 import android.net.Uri
 import android.widget.VideoView
 import androidx.activity.compose.BackHandler
@@ -22,14 +28,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.sclera.sclerago.data.*
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.main.Preview
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
-import com.sclera.sclerago.services.media.Media
 
 private val SheetShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
 

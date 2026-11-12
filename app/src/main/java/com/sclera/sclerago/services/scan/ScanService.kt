@@ -1,10 +1,10 @@
 package com.sclera.sclerago.services.scan
 
+import com.sclera.sclerago.domain.model.Device
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.sclera.sclerago.data.Device
 import com.sclera.sclerago.services.scan.core.BleScanner
 import com.sclera.sclerago.services.scan.core.NetworkScanner
 import com.sclera.sclerago.services.scan.core.ScanDepth

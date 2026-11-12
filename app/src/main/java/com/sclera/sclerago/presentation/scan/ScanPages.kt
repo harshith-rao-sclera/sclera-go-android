@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.scan
 
+import com.sclera.sclerago.domain.model.Device
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -28,7 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.dp
-import com.sclera.sclerago.data.Device
 import com.sclera.sclerago.presentation.assets.assetList
 import com.sclera.sclerago.presentation.components.BlockedCard
 import com.sclera.sclerago.presentation.components.Capsule

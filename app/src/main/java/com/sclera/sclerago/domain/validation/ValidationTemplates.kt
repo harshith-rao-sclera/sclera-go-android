@@ -1,7 +1,7 @@
-package com.sclera.sclerago.services.validation
+package com.sclera.sclerago.domain.validation
 
-import com.sclera.sclerago.data.*
 
+import com.sclera.sclerago.domain.model.Asset
 import kotlin.math.absoluteValue
 
 /** How one asset fared on one rule. [LOOK] = worth a look, not a hard failure. */

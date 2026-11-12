@@ -1,5 +1,29 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.validation.CheckResult
+import com.sclera.sclerago.presentation.model.chipBd
+import com.sclera.sclerago.presentation.model.chipBg
+import com.sclera.sclerago.presentation.model.chipFg
+import com.sclera.sclerago.data.local.DEFAULT_FIELDS
+import com.sclera.sclerago.data.local.DETAILS
+import com.sclera.sclerago.domain.model.ASSET_TYPES
+import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.FIELD_OPTIONS
+import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
+import com.sclera.sclerago.domain.model.FieldSection
+import com.sclera.sclerago.domain.model.JACS_CODES
+import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.SUB_TYPES
+import com.sclera.sclerago.domain.model.SYSTEM_TYPES
+import com.sclera.sclerago.domain.model.Source
+import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.validation.CHECK_NAMES
+import com.sclera.sclerago.domain.validation.CheckInput
+import com.sclera.sclerago.domain.validation.FixTarget
+import com.sclera.sclerago.domain.validation.runAllChecks
+import com.sclera.sclerago.domain.validation.runCheck
+import com.sclera.sclerago.presentation.common.plural
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -34,7 +58,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.sclera.sclerago.data.*
 import com.sclera.sclerago.presentation.components.ActionCard
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CloseButton
@@ -60,11 +83,8 @@ import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.presentation.validation.ValidationPanel
 import com.sclera.sclerago.presentation.validation.validationFailCount
 import com.sclera.sclerago.services.ai.aiAutofill
-import com.sclera.sclerago.services.media.Media
 import com.sclera.sclerago.services.media.describeAttachments
 import com.sclera.sclerago.services.media.describeVisualMedia
-import com.sclera.sclerago.services.validation.*
-import com.sclera.sclerago.services.validation.CheckResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

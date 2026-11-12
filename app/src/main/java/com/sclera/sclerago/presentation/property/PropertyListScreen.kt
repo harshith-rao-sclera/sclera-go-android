@@ -1,5 +1,14 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.data.writeSamplePropertyXlsx
+import com.sclera.sclerago.domain.model.Address
+import com.sclera.sclerago.domain.model.Availability
+import com.sclera.sclerago.domain.model.Contact
+import com.sclera.sclerago.domain.model.PROPERTY_COUNTRIES
+import com.sclera.sclerago.domain.model.PROPERTY_REGIONS
+import com.sclera.sclerago.domain.model.PROPERTY_TYPES
+import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.presentation.common.plural
 import android.app.TimePickerDialog
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -30,15 +39,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.sclera.sclerago.data.Address
-import com.sclera.sclerago.data.Availability
-import com.sclera.sclerago.data.Contact
-import com.sclera.sclerago.data.PROPERTY_COUNTRIES
-import com.sclera.sclerago.data.PROPERTY_REGIONS
-import com.sclera.sclerago.data.PROPERTY_TYPES
-import com.sclera.sclerago.data.Property
-import com.sclera.sclerago.data.plural
-import com.sclera.sclerago.data.writeSamplePropertyXlsx
 import com.sclera.sclerago.presentation.components.AdminFab
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.CardWash

@@ -1,7 +1,6 @@
-package com.sclera.sclerago.data
+package com.sclera.sclerago.domain.model
 
-// Mock data for Property list / People and access until these screens are wired to the Sclera API.
-// Texts, colours and lists follow the "Sclera VDMS Mobile" design canvas.
+// People and access: groups, their permissions and the people in them.
 
 /**
  * What a group's people can do. [needsAllProperties] ones only make sense with access to every
@@ -71,25 +70,3 @@ data class Person(
 }
 
 const val ADMINS_ID = "g-admins"
-
-val DEFAULT_GROUPS = listOf(
-    Group(ADMINS_ID, "Admins", "Can do everything.", Permission.entries.toSet(), locked = true),
-    Group("g-collectors", "Collectors", "Collect assets.", setOf(Permission.COLLECT)),
-    Group("g-reviewers", "Reviewers", "Collect assets and validate them.", setOf(Permission.COLLECT, Permission.VALIDATE)),
-    Group("g-viewers", "Viewers", "Look, but not change anything.", emptySet()),
-)
-
-val PROPERTY_TYPES = listOf("Office", "Warehouse", "Hospital", "Retail", "Residential", "Industrial", "Campus", "Other")
-
-/** Countries offered in Add New Property, with their states (none for Singapore). */
-val PROPERTY_COUNTRIES: Map<String, List<String>> = linkedMapOf(
-    "Australia" to listOf("New South Wales", "Queensland", "Victoria"),
-    "Germany" to listOf("Bavaria", "Berlin", "Hesse"),
-    "India" to listOf("Delhi", "Karnataka", "Maharashtra", "Tamil Nadu"),
-    "Singapore" to emptyList(),
-    "United Arab Emirates" to listOf("Abu Dhabi", "Dubai", "Sharjah"),
-    "United Kingdom" to listOf("England", "Northern Ireland", "Scotland", "Wales"),
-    "United States" to listOf("California", "New York", "Texas", "Washington"),
-)
-
-val PROPERTY_REGIONS = listOf("North", "South", "East", "West", "Central")

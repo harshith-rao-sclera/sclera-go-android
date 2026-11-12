@@ -1,7 +1,12 @@
-package com.sclera.sclerago.services.validation
+package com.sclera.sclerago.domain.validation
 
-import com.sclera.sclerago.data.*
 
+import com.sclera.sclerago.domain.model.AssetType
+import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
+import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.ValueRule
+import com.sclera.sclerago.domain.model.typeOf
 import kotlin.math.roundToInt
 
 enum class CheckState { PASSED, FAILED, NA }

@@ -1,15 +1,15 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.data.local.DEFAULT_GROUPS
+import com.sclera.sclerago.domain.model.ADMINS_ID
+import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.Person
 import android.util.Patterns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.sclera.sclerago.data.ADMINS_ID
-import com.sclera.sclerago.data.DEFAULT_GROUPS
-import com.sclera.sclerago.data.Group
-import com.sclera.sclerago.data.Permission
-import com.sclera.sclerago.data.Person
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 

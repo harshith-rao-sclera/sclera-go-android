@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.domain.model.FieldKind
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -16,7 +17,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.sclera.sclerago.data.*
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CfgCard
 import com.sclera.sclerago.presentation.components.Pill

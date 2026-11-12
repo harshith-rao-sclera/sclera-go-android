@@ -1,76 +1,24 @@
-package com.sclera.sclerago.data
+package com.sclera.sclerago.data.local
 
-import androidx.compose.ui.graphics.Color
-import com.sclera.sclerago.presentation.icons.Ico
-import com.sclera.sclerago.presentation.icons.Icons
-import com.sclera.sclerago.presentation.theme.C
-import com.sclera.sclerago.services.media.Media
+import com.sclera.sclerago.domain.model.ADMINS_ID
+import com.sclera.sclerago.domain.model.Address
+import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.AssetDetails
+import com.sclera.sclerago.domain.model.AssetType
+import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
+import com.sclera.sclerago.domain.model.FieldSection
+import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.NodeKind
+import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.PhotoReq
+import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.domain.model.Source
+import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.ValueRule
 
-enum class Status(
-    val label: String,
-    val color: Color,
-    val icon: Ico,
-    val chipBg: Color,
-    val chipBd: Color,
-    val chipFg: Color = color,
-) {
-    AI("AI suggestion", C.Cyan, Icons.Sparkles, Color(0xFF132629), Color(0xFF1F4247)),
-    VALIDATED("Validated", C.Purple, Icons.ShieldCheck, Color(0xFF211E2E), Color(0xFF383150)),
-    SUBMITTED("Submitted", C.Green, Icons.CheckCircle, Color(0xFF17241D), Color(0xFF27402F)),
-    DRAFT("Draft", C.Muted, Icons.Pencil, C.Raised, C.Border2, C.Soft),
-    INPUT("Input needed", C.Orange, Icons.Alert, C.WarnRow, Color(0xFF4A3420)),
-    EXCEPTION("Exception", C.Red, Icons.OctagonX, Color(0xFF2A1919), Color(0xFF4A2827)),
-}
-
-enum class Source(val label: String, val via: String, val icon: Ico, val color: Color) {
-    CAMERA("Onboarded with camera", "via Camera", Icons.Camera, Color(0xFFF28FB8)),
-    BT("Onboarded by Bluetooth scan", "via Bluetooth", Icons.Bluetooth, Color(0xFF5E9DFF)),
-    WIFI("Onboarded by Wi-Fi network scan", "via Wi-Fi scan", Icons.Wifi, Color(0xFF4CC487)),
-    AP("Onboarded by access point scan", "via Access point scan", Icons.AccessPoint, Color(0xFF4CC487)),
-    FILE("Imported from file", "via File import", Icons.FileDoc, Color(0xFFFF9A45)),
-    MANUAL("Added manually", "Added manually", Icons.Keyboard, C.Soft),
-}
-
-enum class AssetType(val icon: Ico, val label: String) {
-    MOTOR(Icons.Motor, "Motor"), PUMP(Icons.Pump, "Pump"), CHILLER(Icons.Chiller, "Chiller"),
-    FAN(Icons.Fan, "Fan / AHU"), CONTROLLER(Icons.Controller, "Controller"), CCTV(Icons.Cctv, "CCTV camera"),
-    PANEL(Icons.Panel, "Distribution board"), AP(Icons.AccessPoint, "Access point"), COMPUTER(Icons.Computer, "Computer"),
-    PHONE(Icons.Phone, "Phone"), SPEAKER(Icons.Speaker, "Speakerphone"), SENSOR(Icons.Sensor, "Sensor"),
-    GENERIC(Icons.Box, "Generic"),
-}
-
-fun typeOf(name: String?): AssetType {
-    val n = (name ?: "").lowercase()
-    return when {
-        Regex("motor").containsMatchIn(n) -> AssetType.MOTOR
-        Regex("pump").containsMatchIn(n) -> AssetType.PUMP
-        Regex("chiller").containsMatchIn(n) -> AssetType.CHILLER
-        Regex("fan|ahu|compressor").containsMatchIn(n) -> AssetType.FAN
-        Regex("panel|board|db-").containsMatchIn(n) -> AssetType.PANEL
-        Regex("camera").containsMatchIn(n) -> AssetType.CCTV
-        Regex("speaker").containsMatchIn(n) -> AssetType.SPEAKER
-        Regex("phone").containsMatchIn(n) -> AssetType.PHONE
-        Regex("pc|computer|laptop").containsMatchIn(n) -> AssetType.COMPUTER
-        Regex("controller|gateway").containsMatchIn(n) -> AssetType.CONTROLLER
-        Regex("access point|router").containsMatchIn(n) -> AssetType.AP
-        Regex("sensor").containsMatchIn(n) -> AssetType.SENSOR
-        else -> AssetType.GENERIC
-    }
-}
-
-data class Asset(
-    val id: Int,
-    val name: String,
-    val detail: String,
-    val loc: String?,
-    val where: String,
-    val src: Source,
-    val st: Status,
-    val type: AssetType,
-    val prop: String = "p1",
-    /** Photos and videos attached to this asset (from the camera or the gallery). */
-    val media: List<Media> = emptyList(),
-)
+// Mock data the in-memory repositories start from, until these screens are wired to the Sclera API.
 
 val SEED_ASSETS = listOf(
     Asset(1, "Motor · ABB M3BP 160MLB 4", "ABB M3BP 160MLB 4 · 15 kW · 1470 RPM", "location1", "location1 · floor 1", Source.CAMERA, Status.VALIDATED, AssetType.MOTOR),
@@ -88,32 +36,6 @@ val SEED_ASSETS = listOf(
     Asset(10, "Access point · Floor 1 East", "Ruckus R650 · Wi-Fi 6 · PoE+", "location1", "location1 · floor 1", Source.AP, Status.VALIDATED, AssetType.AP),
 ).map { it.copy(media = SEED_PHOTOS[it.id].orEmpty()) }
 
-data class Address(
-    val line1: String = "",
-    val line2: String = "",
-    val country: String = "",
-    val state: String = "",
-    val region: String = "",
-    val city: String = "",
-    val postcode: String = "",
-)
-
-data class Contact(val name: String = "", val email: String = "", val phone: String = "")
-
-/** When the site can be visited ("HH:mm") and the code to get in. */
-data class Availability(val start: String = "00:01", val end: String = "23:59", val accessCode: String = "")
-
-data class Property(
-    val id: String,
-    val name: String,
-    val gps: Boolean,
-    val type: String = "Office",
-    val address: Address = Address(),
-    val contact: Contact = Contact(),
-    val notes: String = "",
-    val availability: Availability = Availability(),
-)
-
 val PROPERTIES = listOf(
     Property("p1", "Test 861", true),
     Property("p2", "Dhanush 16/10 2.1.0", false),
@@ -122,22 +44,6 @@ val PROPERTIES = listOf(
     Property("p5", "Harbour Point Office Tower", false, "Office", Address("1 Harbour Point", country = "Singapore")),
     Property("p6", "Northgate Logistics Hub", false, "Warehouse", Address("Northgate Industrial Estate", country = "United Kingdom", state = "England")),
     Property("p7", "Riverside Medical Centre", false, "Hospital", Address("12 Riverside Road", country = "Australia", state = "Victoria")),
-)
-
-enum class NodeKind(val title: String) { BUILDING("Building"), FLOOR("Floor"), LOCATION("Location") }
-
-/** Building → floor → location tree. Locations have kids == null. */
-data class LocNode(
-    val id: String,
-    val name: String,
-    val kind: NodeKind,
-    val kids: List<LocNode>? = null,
-    val count: Int = 0,
-    /** Locations only: what kind of space it is (e.g. Plant room) and its short code. */
-    val type: String = "",
-    val code: String = "",
-    /** Buildings only: type, address, contact and access details (Configuration → Building info). */
-    val info: BuildingInfo? = null,
 )
 
 private fun loc(id: String, name: String, count: Int = 0, type: String = "", code: String = "") =
@@ -159,31 +65,6 @@ fun locationTree(propId: String): List<LocNode> = when (propId) {
     else -> emptyList()
 }
 
-/** What the location picker hands back on Confirm. */
-data class LocPick(val id: String, val label: String, val locs: List<String>, val where: String, val path: List<String>)
-
-/**
- * One device found by a Bluetooth, Wi-Fi network or access point scan, as a scan page row.
- * Built from the real scan results in scan/ScanRows.kt; [lvl] is 1–4 signal bars.
- * [type] is the asset type the device would become (from what the scan identified); it picks the
- * row's icon, the same icon the Assets list shows for that type.
- */
-data class Device(
-    val id: String,
-    val name: String,
-    val sub: String,
-    val lvl: Int,
-    val known: Boolean,
-    val type: AssetType = AssetType.GENERIC,
-)
-
-/** Extra fields shown on the asset detail screen, keyed by asset id. */
-data class AssetDetails(
-    val code: String,
-    val fields: Map<String, String>,
-    val lowConfidence: String? = null,
-)
-
 val DETAILS = mapOf(
     1 to AssetDetails("SCL-000418", mapOf("make" to "ABB", "model" to "M3BP 160MLB 4", "serial" to "3GBP161420-ADG-4524118", "power" to "15 kW", "voltage" to "415 V", "speed" to "1470 RPM", "sys" to "Mechanical", "typ" to "Motor", "sub" to "Induction", "jacs" to "[JACS code 1]", "label" to "SCL-000418", "note" to "IE3 · IP55 · insulation class F · 27.5 A at 415 V · frame 160L · B3 foot mount"), "speed"),
     2 to AssetDetails("SCL-000421", mapOf("make" to "KSB", "model" to "Etanorm 065-040-160", "serial" to "9971843210-0003", "power" to "7.5 kW", "voltage" to "415 V", "speed" to "2900 RPM", "sys" to "Mechanical", "typ" to "Pump", "sub" to "Centrifugal", "label" to "SCL-000421", "note" to "End-suction · 50 m³/h at 32 m head · cast iron casing · mechanical seal")),
@@ -200,12 +81,40 @@ val DETAILS = mapOf(
     10 to AssetDetails("SCL-000410", mapOf("make" to "Ruckus", "model" to "R650", "serial" to "432104001877", "voltage" to "48 V", "sys" to "IT & network", "typ" to "Access point", "sub" to "Wi-Fi 6 indoor AP", "jacs" to "[JACS code 2]", "label" to "SCL-000410", "ip" to "192.168.10.5", "note" to "SSID SCL-PLANT · MAC A4:2B:B0:1C:3F:10 · 2.4 / 5 GHz 4x4 · PoE 802.3at · ceiling mount")),
 )
 
-val SYSTEM_TYPES = listOf("Generic", "Mechanical", "Electrical", "HVAC", "Fire safety", "IT & network", "Security", "Audio-visual")
-val ASSET_TYPES = listOf("Generic") + AssetType.entries.filter { it != AssetType.GENERIC }.map { it.label }
-val SUB_TYPES = listOf(
-    "Generic", "Induction", "Centrifugal", "Axial", "Plug fan", "Air-cooled screw", "TP&N final distribution",
-    "BACnet/IP controller", "Outdoor bullet", "Wi-Fi 6 indoor AP", "Desktop", "VoIP desk phone", "Bluetooth speakerphone",
+val DEFAULT_FIELDS = listOf(
+    FieldCfg("name", "Name", FieldKind.TEXT, FieldSection.IDENT, required = true, locked = true),
+    FieldCfg("make", "Manufacturer", FieldKind.TEXT, FieldSection.IDENT),
+    FieldCfg("model", "Model", FieldKind.TEXT, FieldSection.IDENT),
+    FieldCfg("serial", "Serial number", FieldKind.TEXT, FieldSection.IDENT, flagEmpty = true),
+    FieldCfg("power", "Rated power (kW)", FieldKind.NUMBER, FieldSection.IDENT, rule = ValueRule.POSITIVE),
+    FieldCfg("voltage", "Voltage (V)", FieldKind.NUMBER, FieldSection.IDENT),
+    FieldCfg("speed", "Speed (RPM)", FieldKind.NUMBER, FieldSection.IDENT),
+    FieldCfg("sys", "System type", FieldKind.DROPDOWN, FieldSection.CLASS, required = true),
+    FieldCfg("typ", "Asset type", FieldKind.DROPDOWN, FieldSection.CLASS, required = true),
+    FieldCfg("sub", "Sub type", FieldKind.DROPDOWN, FieldSection.CLASS),
+    FieldCfg("jacs", "JACS code", FieldKind.DROPDOWN, FieldSection.CLASS, required = true),
+    FieldCfg("label", "Asset tag / QR", FieldKind.TEXT, FieldSection.TAGS, rule = ValueRule.CODE),
+    FieldCfg("ble", "BLE tag", FieldKind.TEXT, FieldSection.TAGS),
+    FieldCfg("ip", "IP address", FieldKind.TEXT, FieldSection.TAGS),
+    FieldCfg("condition", "Condition", FieldKind.DROPDOWN, FieldSection.MORE, visible = false, options = listOf("Very good", "Good", "Fair", "Poor", "Very poor")),
+    FieldCfg("criticality", "Criticality", FieldKind.DROPDOWN, FieldSection.MORE, visible = false, options = listOf("Low", "Medium", "High", "Critical")),
+    FieldCfg("install", "Install date", FieldKind.DATE, FieldSection.MORE, visible = false, rule = ValueRule.PAST),
+    FieldCfg("warranty", "Warranty expiry", FieldKind.DATE, FieldSection.MORE, visible = false),
+    FieldCfg("lastService", "Last service date", FieldKind.DATE, FieldSection.MORE, visible = false, rule = ValueRule.PAST),
+    FieldCfg("nextService", "Next service date", FieldKind.DATE, FieldSection.MORE, visible = false),
+    FieldCfg("note", "Notes", FieldKind.TEXTAREA, FieldSection.NOTES),
 )
-val JACS_CODES = listOf("" to "Select JACS code", "[JACS code 1]" to "[JACS code 1]", "[JACS code 2]" to "[JACS code 2]")
 
-fun plural(n: Int, one: String, many: String) = "$n ${if (n == 1) one else many}"
+val DEFAULT_PHOTO_REQS = listOf(
+    PhotoReq("plate", "Nameplate", "Manufacturer's plate with model and serial number", 1, 2),
+    PhotoReq("asset", "Asset", "The equipment itself, in place", 1, 3),
+    PhotoReq("label", "Label / tag", "The asset tag or QR label", 0, 1),
+    PhotoReq("site", "Surroundings", "Where the asset sits, to find it again", 0, 2),
+)
+
+val DEFAULT_GROUPS = listOf(
+    Group(ADMINS_ID, "Admins", "Can do everything.", Permission.entries.toSet(), locked = true),
+    Group("g-collectors", "Collectors", "Collect assets.", setOf(Permission.COLLECT)),
+    Group("g-reviewers", "Reviewers", "Collect assets and validate them.", setOf(Permission.COLLECT, Permission.VALIDATE)),
+    Group("g-viewers", "Viewers", "Look, but not change anything.", emptySet()),
+)

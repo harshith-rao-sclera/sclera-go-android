@@ -1,6 +1,6 @@
-package com.sclera.sclerago.data
+package com.sclera.sclerago.data.local
 
-import com.sclera.sclerago.services.media.Media
+import com.sclera.sclerago.domain.model.Media
 
 /**
  * Reference photos for the sample assets: freely licensed images from Wikimedia Commons,

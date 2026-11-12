@@ -1,5 +1,9 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.domain.validation.CheckResult
+import com.sclera.sclerago.domain.validation.CheckState
+import com.sclera.sclerago.domain.validation.FixTarget
+import com.sclera.sclerago.domain.validation.dataQuality
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,10 +25,6 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
-import com.sclera.sclerago.services.validation.CheckResult
-import com.sclera.sclerago.services.validation.CheckState
-import com.sclera.sclerago.services.validation.FixTarget
-import com.sclera.sclerago.services.validation.dataQuality
 
 private val RedBg = Color(0xFF2A1919)
 private val RedBd = Color(0xFF4A2827)

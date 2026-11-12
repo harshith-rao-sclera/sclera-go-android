@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.Status
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.sclera.sclerago.data.Asset
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailScreen
