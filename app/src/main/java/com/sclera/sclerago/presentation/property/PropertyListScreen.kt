@@ -1,14 +1,5 @@
 package com.sclera.sclerago.presentation.property
 
-import com.sclera.sclerago.data.writeSamplePropertyXlsx
-import com.sclera.sclerago.domain.model.Address
-import com.sclera.sclerago.domain.model.Availability
-import com.sclera.sclerago.domain.model.Contact
-import com.sclera.sclerago.domain.model.PROPERTY_COUNTRIES
-import com.sclera.sclerago.domain.model.PROPERTY_REGIONS
-import com.sclera.sclerago.domain.model.PROPERTY_TYPES
-import com.sclera.sclerago.domain.model.Property
-import com.sclera.sclerago.presentation.common.plural
 import android.app.TimePickerDialog
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -39,6 +30,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.domain.model.Address
+import com.sclera.sclerago.domain.model.Availability
+import com.sclera.sclerago.domain.model.Contact
+import com.sclera.sclerago.domain.model.PROPERTY_COUNTRIES
+import com.sclera.sclerago.domain.model.PROPERTY_REGIONS
+import com.sclera.sclerago.domain.model.PROPERTY_TYPES
+import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.domain.usecase.property.propertyProblem
+import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.AdminFab
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.CardWash
@@ -64,10 +64,10 @@ import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
-import com.sclera.sclerago.presentation.main.propertyProblem
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.services.media.formatSize
+import java.io.OutputStream
 
 private const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 private const val MAX_IMPORT_BYTES = 100L * 1024 * 1024
@@ -87,11 +87,11 @@ fun PropertyListScreen(vm: AppViewModel) {
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                item { PageHeading("Property list", plural(s.properties.size, "property", "properties")) }
+                item { PageHeading("Property list", plural(vm.properties.size, "property", "properties")) }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatCard(Icons.Building, C.Yellow, s.properties.size.toString(), "Properties", Modifier.weight(1f))
-                        StatCard(Icons.Box, AssetBlue, s.properties.sumOf { vm.assetCount(it.id) }.toString(), "Assets", Modifier.weight(1f))
+                        StatCard(Icons.Building, C.Yellow, vm.properties.size.toString(), "Properties", Modifier.weight(1f))
+                        StatCard(Icons.Box, AssetBlue, vm.properties.sumOf { vm.assetCount(it.id) }.toString(), "Assets", Modifier.weight(1f))
                     }
                 }
                 item { ImportBanner(vm::openImport) }
@@ -110,8 +110,8 @@ fun PropertyListScreen(vm: AppViewModel) {
             Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 72.dp),
             enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut(),
         ) { Toast(s.toast) }
-        if (s.importOpen) ImportSheet(vm::closeImport, vm::importProperties)
-        if (s.addPropOpen) AddPropertySheet(s.properties, vm::closeAddProperty, vm::addProperty)
+        if (s.importOpen) ImportSheet(vm::closeImport, vm::importProperties, vm::writePropertyTemplate)
+        if (s.addPropOpen) AddPropertySheet(vm.properties, vm::closeAddProperty, vm::addProperty)
     }
 }
 
@@ -162,7 +162,7 @@ private fun PropertyCard(p: Property, assets: Int, current: Boolean, onClick: ()
 private data class PickedFile(val uri: Uri, val name: String, val size: Long)
 
 @Composable
-private fun ImportSheet(onClose: () -> Unit, onProceed: (String) -> Unit) {
+private fun ImportSheet(onClose: () -> Unit, onProceed: (String) -> Unit, writeTemplate: (OutputStream) -> Unit) {
     val context = LocalContext.current
     var file by remember { mutableStateOf<PickedFile?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -181,7 +181,7 @@ private fun ImportSheet(onClose: () -> Unit, onProceed: (String) -> Unit) {
     }
     val sampleSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(XLSX_MIME)) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        runCatching { context.contentResolver.openOutputStream(uri)?.use(::writeSamplePropertyXlsx) }
+        runCatching { context.contentResolver.openOutputStream(uri)?.use(writeTemplate) }
             .onFailure { error = "Couldn’t save the sample file." }
     }
 

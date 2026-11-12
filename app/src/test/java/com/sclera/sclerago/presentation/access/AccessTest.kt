@@ -3,13 +3,25 @@ package com.sclera.sclerago.presentation.access
 import com.sclera.sclerago.data.PROPERTY_IMPORT_COLUMNS
 import com.sclera.sclerago.data.local.DEFAULT_GROUPS
 import com.sclera.sclerago.data.local.PROPERTIES
+import com.sclera.sclerago.data.repository.AccessRepositoryImpl
 import com.sclera.sclerago.data.writeSamplePropertyXlsx
 import com.sclera.sclerago.domain.model.ADMINS_ID
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
+import com.sclera.sclerago.domain.usecase.access.AccessUseCases
+import com.sclera.sclerago.domain.usecase.access.CanDeleteGroupUseCase
+import com.sclera.sclerago.domain.usecase.access.DeleteGroupUseCase
+import com.sclera.sclerago.domain.usecase.access.ObserveGroupsUseCase
+import com.sclera.sclerago.domain.usecase.access.ObservePeopleUseCase
+import com.sclera.sclerago.domain.usecase.access.RemovePersonUseCase
+import com.sclera.sclerago.domain.usecase.access.SaveGroupUseCase
+import com.sclera.sclerago.domain.usecase.access.SavePersonUseCase
+import com.sclera.sclerago.domain.usecase.access.SeedSignedInUserUseCase
+import com.sclera.sclerago.domain.usecase.access.groupProblem
+import com.sclera.sclerago.domain.usecase.access.personProblem
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.sclera.sclerago.presentation.main.propertyProblem
+import com.sclera.sclerago.domain.usecase.property.propertyProblem
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipInputStream
@@ -26,6 +38,18 @@ import org.junit.runner.RunWith
 class AccessTest {
     private val collectors = DEFAULT_GROUPS.first { it.name == "Collectors" }
     private val admins = DEFAULT_GROUPS.first { it.id == ADMINS_ID }
+
+    /** What Hilt builds in the app, over a fresh in-memory repository. */
+    private fun accessViewModel(): AccessViewModel {
+        val repo = AccessRepositoryImpl()
+        val canDelete = CanDeleteGroupUseCase(repo)
+        return AccessViewModel(
+            AccessUseCases(
+                ObserveGroupsUseCase(repo), ObservePeopleUseCase(repo), SeedSignedInUserUseCase(repo), SavePersonUseCase(repo),
+                RemovePersonUseCase(repo), SaveGroupUseCase(repo), canDelete, DeleteGroupUseCase(repo, canDelete),
+            ),
+        )
+    }
 
     // ---- personProblem
 
@@ -67,7 +91,7 @@ class AccessTest {
 
     @Test
     fun admins_cantBeDeleted_andKeepEveryPermission() {
-        val vm = AccessViewModel()
+        val vm = accessViewModel()
         assertFalse(vm.canDelete(admins))
         assertNull(vm.saveGroup(admins.copy(permissions = setOf(Permission.COLLECT))))
         assertEquals(Permission.entries.toSet(), vm.group(ADMINS_ID)!!.permissions)
@@ -75,7 +99,7 @@ class AccessTest {
 
     @Test
     fun groupsWithPeople_cantBeDeleted() {
-        val vm = AccessViewModel()
+        val vm = accessViewModel()
         assertTrue(vm.canDelete(collectors))
         assertNull(vm.savePerson(Person("", "c@sclera.com", collectors.id, allProperties = true)))
         assertFalse(vm.canDelete(collectors))
@@ -85,33 +109,33 @@ class AccessTest {
 
     @Test
     fun deletingEmptyGroup_removesIt() {
-        val vm = AccessViewModel()
+        val vm = accessViewModel()
         vm.deleteGroup(collectors)
         assertNull(vm.group(collectors.id))
     }
 
     @Test
     fun givingGroupAManagePermission_givesItsPeopleAllProperties() {
-        val vm = AccessViewModel()
+        val vm = accessViewModel()
         vm.savePerson(Person("", "c@sclera.com", collectors.id, allProperties = false, propertyIds = setOf("p1")))
         vm.saveGroup(collectors.copy(permissions = collectors.permissions + Permission.MANAGE_ACCESS))
-        val person = vm.state.people.single()
+        val person = vm.people.single()
         assertTrue(person.allProperties)
         assertTrue(person.propertyIds.isEmpty())
     }
 
     @Test
     fun seeding_addsSignedInUserOnce() {
-        val vm = AccessViewModel()
+        val vm = accessViewModel()
         vm.ensureSeeded("dev.admin@sclera.com", setOf("p1"))
         vm.ensureSeeded("someone@else.com", emptySet())
-        assertEquals(listOf("dev.admin@sclera.com"), vm.state.people.map { it.email })
-        assertEquals(ADMINS_ID, vm.state.people.single().groupId)
+        assertEquals(listOf("dev.admin@sclera.com"), vm.people.map { it.email })
+        assertEquals(ADMINS_ID, vm.people.single().groupId)
     }
 
     @Test
     fun search_filtersPeopleAndGroups() {
-        val vm = AccessViewModel()
+        val vm = accessViewModel()
         vm.savePerson(Person("", "alpha@sclera.com", collectors.id, true))
         vm.savePerson(Person("", "beta@sclera.com", collectors.id, true))
         vm.setTab(AccessTab.PEOPLE)

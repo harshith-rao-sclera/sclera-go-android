@@ -82,3 +82,26 @@ val FIELD_OPTIONS: Map<String, List<String>> = mapOf(
 /** A kind of photo collected for each asset, with how many are needed and allowed. */
 data class PhotoReq(val id: String, val name: String, val hint: String, val min: Int, val max: Int)
 
+
+/** Configuration → Asset fields: the fields field workers fill in, the photos they take, and geofencing. */
+data class AssetConfig(
+    val fields: List<FieldCfg>,
+    val photoReqs: List<PhotoReq>,
+    val geoEnforce: Boolean = false,
+) {
+    /** Fields that must be filled, as key to label. */
+    val requiredFields: List<Pair<String, String>> get() = fields.filter { it.required && it.visible }.map { it.key to it.label }
+
+    /** Photos needed per asset, all kinds together. */
+    val minPhotos: Int get() = photoReqs.sumOf { it.min }
+}
+
+/** How many choices a dropdown field offers ("Generic" / "Select" placeholders not counted). */
+val FieldCfg.optionCount: Int
+    get() = when (key) {
+        "sys" -> SYSTEM_TYPES.size - 1
+        "typ" -> ASSET_TYPES.size - 1
+        "sub" -> SUB_TYPES.size - 1
+        "jacs" -> JACS_CODES.size - 1
+        else -> options.size
+    }

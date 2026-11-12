@@ -1,25 +1,5 @@
 package com.sclera.sclerago.presentation.config
 
-import com.sclera.sclerago.domain.model.ASSET_TYPES
-import com.sclera.sclerago.domain.model.BUILDING_TYPES
-import com.sclera.sclerago.domain.model.BuildingInfo
-import com.sclera.sclerago.domain.model.COUNTRIES
-import com.sclera.sclerago.domain.model.DATE_DISPLAY
-import com.sclera.sclerago.domain.model.FieldCfg
-import com.sclera.sclerago.domain.model.FieldKind
-import com.sclera.sclerago.domain.model.FieldSection
-import com.sclera.sclerago.domain.model.JACS_CODES
-import com.sclera.sclerago.domain.model.LocNode
-import com.sclera.sclerago.domain.model.OPTION_KINDS
-import com.sclera.sclerago.domain.model.PhotoReq
-import com.sclera.sclerago.domain.model.REGIONS
-import com.sclera.sclerago.domain.model.SUB_TYPES
-import com.sclera.sclerago.domain.model.SYSTEM_TYPES
-import com.sclera.sclerago.domain.model.TIME_DISPLAY
-import com.sclera.sclerago.domain.model.ValueRule
-import com.sclera.sclerago.domain.model.findNode
-import com.sclera.sclerago.domain.model.noRuleLabel
-import com.sclera.sclerago.presentation.common.plural
 import android.annotation.SuppressLint
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -57,6 +37,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.sclera.sclerago.domain.model.ASSET_TYPES
+import com.sclera.sclerago.domain.model.BUILDING_TYPES
+import com.sclera.sclerago.domain.model.BuildingInfo
+import com.sclera.sclerago.domain.model.COUNTRIES
+import com.sclera.sclerago.domain.model.DATE_DISPLAY
+import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
+import com.sclera.sclerago.domain.model.FieldSection
+import com.sclera.sclerago.domain.model.JACS_CODES
+import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.OPTION_KINDS
+import com.sclera.sclerago.domain.model.REGIONS
+import com.sclera.sclerago.domain.model.SUB_TYPES
+import com.sclera.sclerago.domain.model.SYSTEM_TYPES
+import com.sclera.sclerago.domain.model.TIME_DISPLAY
+import com.sclera.sclerago.domain.model.ValueRule
+import com.sclera.sclerago.domain.model.findNode
+import com.sclera.sclerago.domain.model.noRuleLabel
+import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.BottomTabBar
 import com.sclera.sclerago.presentation.components.CfgCard
@@ -730,7 +729,7 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
             Txt("MANDATORY", 10, 600, C.Muted, Modifier.width(MUST_W), spacing = 0.8f, align = TextAlign.Center)
             Txt("CHECKS", 10, 600, C.Muted, Modifier.width(CHECKS_W), spacing = 0.8f, align = TextAlign.Center)
         }
-        s.fieldCfg.forEach { f ->
+        vm.fieldCfg.forEach { f ->
             FieldCfgRow(f, vm.optionCount(f), vm, onEdit = { editFor = f.key }, onChecks = { checksFor = f.key })
         }
 
@@ -750,7 +749,7 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
             Txt("MIN", 10, 600, C.Muted, Modifier.width(92.dp), spacing = 0.8f, align = TextAlign.Center)
             Txt("MAX", 10, 600, C.Muted, Modifier.width(92.dp), spacing = 0.8f, align = TextAlign.Center)
         }
-        s.photoReqs.forEach { p ->
+        vm.photoReqs.forEach { p ->
             Row(
                 Modifier.listCard().heightIn(min = 64.dp).padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -777,10 +776,10 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
             onNew = { dial = false; drafts = emptyList(); setAdding(true) },
         )
     }
-    if (adding) AddFieldsSheet(s.fieldCfg, drafts, onClose = { setAdding(false); drafts = emptyList() }) { list ->
+    if (adding) AddFieldsSheet(vm.fieldCfg, drafts, onClose = { setAdding(false); drafts = emptyList() }) { list ->
         vm.addFields(list); setAdding(false); drafts = emptyList()
     }
-    editFor?.let { k -> s.fieldCfg.firstOrNull { it.key == k } }?.let { f ->
+    editFor?.let { k -> vm.fieldCfg.firstOrNull { it.key == k } }?.let { f ->
         FieldSheet(
             f, draft = false, options = vm.optionCount(f), editableOptions = f.key !in FIXED_OPTIONS,
             onClose = { editFor = null },
@@ -788,7 +787,7 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
             onDelete = if (f.custom) ({ vm.removeField(f.key); editFor = null }) else null,
         )
     }
-    checksFor?.let { k -> s.fieldCfg.firstOrNull { it.key == k } }?.let { f ->
+    checksFor?.let { k -> vm.fieldCfg.firstOrNull { it.key == k } }?.let { f ->
         FieldChecksSheet(f, vm.optionCount(f), onClose = { checksFor = null }) { e, rule, lo, hi ->
             vm.setFieldChecks(f.key, e, rule, lo, hi); checksFor = null
         }
@@ -1359,14 +1358,14 @@ private fun Geofencing(vm: AppViewModel) {
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.padding(12.dp).fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))
-                .clickable { vm.setGeoEnforce(!s.geoEnforce) }.padding(12.dp),
+                .clickable { vm.setGeoEnforce(!vm.geoEnforce) }.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CheckBox(s.geoEnforce)
+            CheckBox(vm.geoEnforce)
             Column(Modifier.weight(1f)) {
                 Txt("Enforce location restriction for collecting asset data", 13, 600, maxLines = 2)
-                Txt(if (s.geoEnforce) "Assets can only be collected inside the geofence." else "Assets can be collected anywhere.", 12, 400, C.Muted)
+                Txt(if (vm.geoEnforce) "Assets can only be collected inside the geofence." else "Assets can be collected anywhere.", 12, 400, C.Muted)
             }
         }
         Txt("Draw geofence", 14, 700, modifier = Modifier.padding(start = 10.dp, bottom = 8.dp))

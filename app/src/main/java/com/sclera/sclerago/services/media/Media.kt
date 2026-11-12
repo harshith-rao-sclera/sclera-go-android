@@ -1,7 +1,5 @@
 package com.sclera.sclerago.services.media
 
-import com.sclera.sclerago.domain.model.ImportedFile
-import com.sclera.sclerago.domain.model.Media
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -14,12 +12,14 @@ import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.exifinterface.media.ExifInterface
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.sclera.sclerago.domain.model.ImportedFile
+import com.sclera.sclerago.domain.model.Media
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 fun formatSize(bytes: Long): String = when {
     bytes < 0 -> "Unknown size"
@@ -27,8 +27,6 @@ fun formatSize(bytes: Long): String = when {
     bytes < 1024 * 1024 -> "${bytes / 1024} KB"
     else -> "%.1f MB".format(bytes / (1024f * 1024f))
 }
-
-fun timeLabel(at: Long): String = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(at))
 
 fun stamp(): String = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
 

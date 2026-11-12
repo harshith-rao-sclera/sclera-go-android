@@ -1,29 +1,5 @@
 package com.sclera.sclerago.presentation.assets
 
-import com.sclera.sclerago.domain.validation.CheckResult
-import com.sclera.sclerago.presentation.model.chipBd
-import com.sclera.sclerago.presentation.model.chipBg
-import com.sclera.sclerago.presentation.model.chipFg
-import com.sclera.sclerago.data.local.DEFAULT_FIELDS
-import com.sclera.sclerago.data.local.DETAILS
-import com.sclera.sclerago.domain.model.ASSET_TYPES
-import com.sclera.sclerago.domain.model.Asset
-import com.sclera.sclerago.domain.model.FIELD_OPTIONS
-import com.sclera.sclerago.domain.model.FieldCfg
-import com.sclera.sclerago.domain.model.FieldKind
-import com.sclera.sclerago.domain.model.FieldSection
-import com.sclera.sclerago.domain.model.JACS_CODES
-import com.sclera.sclerago.domain.model.Media
-import com.sclera.sclerago.domain.model.SUB_TYPES
-import com.sclera.sclerago.domain.model.SYSTEM_TYPES
-import com.sclera.sclerago.domain.model.Source
-import com.sclera.sclerago.domain.model.Status
-import com.sclera.sclerago.domain.validation.CHECK_NAMES
-import com.sclera.sclerago.domain.validation.CheckInput
-import com.sclera.sclerago.domain.validation.FixTarget
-import com.sclera.sclerago.domain.validation.runAllChecks
-import com.sclera.sclerago.domain.validation.runCheck
-import com.sclera.sclerago.presentation.common.plural
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -58,6 +34,26 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.domain.model.ASSET_TYPES
+import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.AssetDetails
+import com.sclera.sclerago.domain.model.FIELD_OPTIONS
+import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
+import com.sclera.sclerago.domain.model.FieldSection
+import com.sclera.sclerago.domain.model.JACS_CODES
+import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.SUB_TYPES
+import com.sclera.sclerago.domain.model.SYSTEM_TYPES
+import com.sclera.sclerago.domain.model.Source
+import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.validation.CHECK_NAMES
+import com.sclera.sclerago.domain.validation.CheckInput
+import com.sclera.sclerago.domain.validation.CheckResult
+import com.sclera.sclerago.domain.validation.FixTarget
+import com.sclera.sclerago.domain.validation.runAllChecks
+import com.sclera.sclerago.domain.validation.runCheck
+import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.ActionCard
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CloseButton
@@ -78,6 +74,9 @@ import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
+import com.sclera.sclerago.presentation.model.chipBd
+import com.sclera.sclerago.presentation.model.chipBg
+import com.sclera.sclerago.presentation.model.chipFg
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.presentation.validation.ValidationPanel
@@ -104,6 +103,8 @@ fun AssetDetailScreen(
     asset: Asset,
     isNew: Boolean,
     savedValues: Map<String, String>?,
+    /** Code and reference fields the asset came with (null for new ones). */
+    knownDetails: AssetDetails? = null,
     onBack: () -> Unit,
     onChangeLoc: () -> Unit,
     onCreate: (name: String, detail: String, media: List<Media>, values: Map<String, String>, submit: Boolean) -> Unit,
@@ -116,7 +117,7 @@ fun AssetDetailScreen(
     /** Values filled in for a new asset, e.g. from the scanned device it is added from. */
     prefill: Map<String, String> = emptyMap(),
     /** Which fields show and which are required (Configuration → Asset fields). */
-    fields: List<FieldCfg> = DEFAULT_FIELDS,
+    fields: List<FieldCfg>,
     /** Fewest photos a camera asset needs (sum of the photo types' minimums). */
     minPhotos: Int = 1,
 ) {
@@ -125,7 +126,7 @@ fun AssetDetailScreen(
     fun req(k: String) = cfg(k)?.let { it.required && it.visible } ?: false
     fun labelOf(k: String) = (cfg(k)?.label ?: k) + if (req(k)) " *" else ""
     fun visibleIn(sec: FieldSection) = fields.filter { it.section == sec && it.visible && it.key != "name" }
-    val details = if (isNew) null else DETAILS[asset.id]
+    val details = if (isNew) null else knownDetails
     val code = if (isNew) "New · not saved yet" else details?.code ?: "SCL-000${400 + asset.id}"
     val base = remember(asset.id, isNew, prefill) {
         val m = mutableMapOf(

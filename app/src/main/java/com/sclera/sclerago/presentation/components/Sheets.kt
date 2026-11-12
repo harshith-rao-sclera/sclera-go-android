@@ -1,11 +1,5 @@
 package com.sclera.sclerago.presentation.components
 
-import com.sclera.sclerago.data.local.locationTree
-import com.sclera.sclerago.domain.model.LocNode
-import com.sclera.sclerago.domain.model.LocPick
-import com.sclera.sclerago.domain.model.Media
-import com.sclera.sclerago.domain.model.NodeKind
-import com.sclera.sclerago.presentation.common.plural
 import android.net.Uri
 import android.widget.VideoView
 import androidx.activity.compose.BackHandler
@@ -28,6 +22,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.LocPick
+import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.NodeKind
+import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
@@ -117,7 +116,7 @@ fun LocationPicker(
     onClose: () -> Unit,
     onPick: (LocPick) -> Unit,
     /** The property's buildings → floors → locations (edited in Configuration → Building info). */
-    tree: List<LocNode> = locationTree(propId),
+    tree: List<LocNode>,
 ) {
     val byId = remember(tree) { mutableMapOf<String, LocNode>().also { m -> fun w(ns: List<LocNode>) { ns.forEach { m[it.id] = it; it.kids?.let(::w) } }; w(tree) } }
     val parent = remember(tree) { mutableMapOf<String, String?>().also { m -> fun w(ns: List<LocNode>, p: String?) { ns.forEach { m[it.id] = p; it.kids?.let { k -> w(k, it.id) } } }; w(tree, null) } }

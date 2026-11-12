@@ -1,7 +1,5 @@
 package com.sclera.sclerago.presentation.main
 
-import com.sclera.sclerago.domain.model.Asset
-import com.sclera.sclerago.domain.model.Status
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -15,10 +13,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -34,14 +32,15 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.painterResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailScreen
 import com.sclera.sclerago.presentation.assets.CameraPage
@@ -142,7 +141,8 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel()) {
             asset = d,
             isNew = s.newAsset,
             prefill = vm.newPrefill,
-            savedValues = s.savedDetails[d.id],
+            savedValues = vm.savedDetails(d.id),
+            knownDetails = if (s.newAsset) null else vm.assetDetails(d.id),
             onBack = vm::closeDetail,
             onChangeLoc = vm::openLocAsset,
             onCreate = vm::createAsset,
@@ -151,7 +151,7 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel()) {
             onDelete = vm::deleteAsset,
             onSave = { vm.saveDraft(d.id, it) },
             onSubmit = { vm.submitAsset(d.id, it) },
-            fields = s.fieldCfg,
+            fields = vm.fieldCfg,
             minPhotos = vm.minPhotos,
         )
     }

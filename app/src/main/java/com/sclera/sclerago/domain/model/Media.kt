@@ -29,3 +29,10 @@ fun formatDuration(ms: Long): String {
     val s = (ms / 1000).coerceAtLeast(0)
     return "%d:%02d".format(s / 60, s % 60)
 }
+
+/** Wall-clock time of [at] as "HH:mm:ss". */
+fun timeLabel(at: Long): String =
+    java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(at))
+
+/** The name a draft asset gets from a camera shot, e.g. "Asset from photo 14:02:31". */
+fun captureName(m: Media): String = (if (m.video) "Asset from video " else "Asset from photo ") + timeLabel(m.createdAt)

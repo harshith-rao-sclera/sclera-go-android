@@ -1,13 +1,5 @@
 package com.sclera.sclerago.presentation.access
 
-import com.sclera.sclerago.domain.model.Group
-import com.sclera.sclerago.domain.model.Permission
-import com.sclera.sclerago.domain.model.Person
-import com.sclera.sclerago.domain.model.Property
-import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
-import com.sclera.sclerago.domain.model.VIEW_ONLY_ICON
-import com.sclera.sclerago.presentation.common.plural
-import com.sclera.sclerago.presentation.model.color
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -33,6 +25,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.Person
+import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
+import com.sclera.sclerago.domain.model.VIEW_ONLY_ICON
+import com.sclera.sclerago.domain.usecase.access.groupProblem
+import com.sclera.sclerago.domain.usecase.access.personProblem
+import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.AdminFab
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.ChoiceSheet
@@ -57,6 +58,7 @@ import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
+import com.sclera.sclerago.presentation.model.color
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
@@ -75,7 +77,7 @@ fun PeopleScreen(
 ) {
     BackHandler(onBack = vm::closeAdmin)
     val me = (sessionVm.authState.collectAsState().value as? AuthState.SignedIn)?.session?.email
-    val properties = vm.state.properties
+    val properties = vm.properties
     LaunchedEffect(me) { access.ensureSeeded(me, properties.map { it.id }.toSet()) }
     val s = access.state
     val onPeople = s.tab == AccessTab.PEOPLE
@@ -96,12 +98,12 @@ fun PeopleScreen(
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatCard(Icons.Users, C.Yellow, s.people.size.toString(), "People", Modifier.weight(1f))
-                        StatCard(iconOf(Permission.MANAGE_ACCESS.iconPath), GroupsPurple, s.groups.size.toString(), "Groups", Modifier.weight(1f))
+                        StatCard(Icons.Users, C.Yellow, access.people.size.toString(), "People", Modifier.weight(1f))
+                        StatCard(iconOf(Permission.MANAGE_ACCESS.iconPath), GroupsPurple, access.groups.size.toString(), "Groups", Modifier.weight(1f))
                     }
                 }
                 item {
-                    TabSwitch(listOf("People (${s.people.size})", "Groups (${s.groups.size})"), if (onPeople) 0 else 1) {
+                    TabSwitch(listOf("People (${access.people.size})", "Groups (${access.groups.size})"), if (onPeople) 0 else 1) {
                         access.setTab(if (it == 0) AccessTab.PEOPLE else AccessTab.GROUPS)
                     }
                 }
@@ -268,7 +270,7 @@ private fun PersonSheet(initial: Person, access: AccessViewModel, properties: Li
     val forced = group?.needsAllProperties == true
     val isAll = all || forced
     val draft = initial.copy(email = email, groupId = groupId, allProperties = isAll, propertyIds = chosen)
-    val valid = personProblem(draft, access.state.people, group) == null
+    val valid = personProblem(draft, access.people, group) == null
 
     Box(Modifier.fillMaxSize()) {
         FormSheet(
@@ -322,8 +324,8 @@ private fun PersonSheet(initial: Person, access: AccessViewModel, properties: Li
         }
         if (picking) {
             ChoiceSheet(
-                "Choose a group", access.state.groups.map { it.name to it.description.ifBlank { null } }, group?.name,
-                onPick = { name -> access.state.groups.firstOrNull { it.name == name }?.let { groupId = it.id }; picking = false; error = null },
+                "Choose a group", access.groups.map { it.name to it.description.ifBlank { null } }, group?.name,
+                onPick = { name -> access.groups.firstOrNull { it.name == name }?.let { groupId = it.id }; picking = false; error = null },
                 onClose = { picking = false },
             )
         }
@@ -360,7 +362,7 @@ private fun GroupSheet(initial: Group, access: AccessViewModel) {
     var perms by remember { mutableStateOf(initial.permissions) }
     var error by remember { mutableStateOf<String?>(null) }
     val draft = initial.copy(name = name, description = description, permissions = perms)
-    val valid = groupProblem(draft, access.state.groups) == null
+    val valid = groupProblem(draft, access.groups) == null
 
     FormSheet(
         if (isNew) "New group" else "Edit ${initial.name}",

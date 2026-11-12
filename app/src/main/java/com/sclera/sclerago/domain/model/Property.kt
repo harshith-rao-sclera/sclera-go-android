@@ -40,3 +40,6 @@ val PROPERTY_COUNTRIES: Map<String, List<String>> = linkedMapOf(
 )
 
 val PROPERTY_REGIONS = listOf("North", "South", "East", "West", "Central")
+
+/** Ways of adding assets a property can switch off in Property Settings (camera, files and manual always stay). */
+enum class OnboardingChannel { BLUETOOTH, NETWORK }
