@@ -113,6 +113,14 @@ dependencies {
 // the icon path tables and the bundled data tables (OUI vendor list, Apple model list, seed data).
 jacoco { toolVersion = "0.8.16" }
 
+// Robolectric reloads classes in its own sandbox; JaCoCo must still see them.
+tasks.withType<Test>().configureEach {
+    extensions.configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
 val coverageExcludes = listOf(
     "**/R.class", "**/R\$*.class", "**/BuildConfig.*", "**/Manifest*.*",
     "**/*_Factory*.*", "**/*_MembersInjector*.*", "**/Hilt_*.*", "**/*_HiltModules*.*", "**/*_GeneratedInjector*.*",
@@ -121,7 +129,7 @@ val coverageExcludes = listOf(
     "**/services/scan/data/**", "**/di/*_*.*",
 )
 
-val coverageClasses = fileTree(layout.buildDirectory.dir("intermediates/built_in_kotlin_classes/debug")) { exclude(coverageExcludes) }
+val coverageClasses = fileTree(layout.buildDirectory.dir("intermediates/classes/debug/transformDebugClassesWithAsm/dirs")) { exclude(coverageExcludes) }
 val coverageExec = fileTree(layout.buildDirectory) { include("outputs/unit_test_code_coverage/debugUnitTest/*.exec", "jacoco/*.exec") }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
