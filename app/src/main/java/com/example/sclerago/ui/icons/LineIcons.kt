@@ -141,6 +141,15 @@ object Icons {
     val Building = Ico(s(rect(5f, 3f, 14f, 18f, 1f)), s("M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"))
     val Floor = Ico(s("M12 3l9 5-9 5-9-5z"), s("M3 13l9 5 9-5"))
     val Info = Ico(s(circle(12f, 12f, 9f)), s("M12 11v6M12 7.5v.5"))
+    val Users = Ico(
+        s(circle(9f, 8f, 3.5f)), s("M2.5 20v-.5A5.5 5.5 0 0 1 8 14h2a5.5 5.5 0 0 1 5.5 5.5v.5"),
+        s("M15.5 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a5.5 5.5 0 0 1 3.5 5.3v.5"),
+    )
+    val User = Ico(s("M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-4 3.6-6 8-6s8 2 8 6"))
+    val Mail = Ico(s(rect(3f, 5f, 18f, 14f, 2f)), s("M4 7l8 6 8-6"))
+    val ArrowRight = Ico(s("M5 12h14M13 6l6 6-6 6"))
+    val Download = Ico(s("M12 4v11M7 10l5 5 5-5"), s("M5 20h14"))
+    val SignOut = Ico(s("M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"), s("M14 8l4 4-4 4M18 12H9"))
     val UserPlus = Ico(s(circle(9f, 8f, 4f)), s("M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1"), s("M19 8v6M16 11h6"))
     val Upload = Ico(s("M12 15V4M7 9l5-5 5 5"), s("M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"))
     val Trash = Ico(s("M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"))

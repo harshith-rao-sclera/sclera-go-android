@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">登入</string>
+    <string name="login_signing_in">正在登入…</string>
+    <string name="login_error_generic">登入時發生問題，請再試一次。</string>
+    <string name="sso_error_timeout">登入頁面載入時間過長。請檢查網路連線後再試一次。</string>
+    <string name="sso_error_load">無法載入登入頁面（%1$s）。請再試一次。</string>
+    <string name="sso_error_unavailable">登入服務目前無法使用（HTTP %1$d）。請稍後再試。</string>
+    <string name="sso_error_ssl">無法與登入頁面建立安全連線。請檢查裝置的日期和時間或網路後再試一次。</string>
+    <string name="sso_error_status">登入失敗（狀態 %1$d）。請再試一次。</string>
+    <string name="auth_error_session_expired">您的工作階段已過期。請重新登入。</string>
+    <string name="auth_error_multiple_session">您已在其他地方登入，因此此工作階段已關閉。請重新登入。</string>
+    <string name="auth_error_user_blocked">您的帳戶已遭封鎖。請與管理員聯絡。</string>
+    <string name="auth_error_user_not_found">找不到與此電子郵件相關聯的 Sclera 帳戶。</string>
+    <string name="auth_error_network">無法連線至 Sclera。請檢查網際網路連線後再試一次。</string>
+    <string name="auth_error_server">登入時發生問題（%1$s）。請再試一次。</string>
+    <string name="login_subtitle">使用您的公司電子郵件繼續。</string>
+    <string name="login_email_label">電子郵件</string>
+    <string name="login_continue">繼續</string>
+    <string name="login_sso_note">由您的組織提供的安全單一登入</string>
+    <string name="login_error_email_blank">請輸入您的電子郵件地址</string>
+    <string name="login_error_email_invalid">請輸入有效的電子郵件地址</string>
+    <string name="login_tagline">掌握現場每一項資產。</string>
+</resources>

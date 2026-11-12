@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">サインイン</string>
+    <string name="login_signing_in">サインインしています…</string>
+    <string name="login_error_generic">サインイン中に問題が発生しました。もう一度お試しください。</string>
+    <string name="sso_error_timeout">サインインページの読み込みに時間がかかりすぎています。接続を確認して、もう一度お試しください。</string>
+    <string name="sso_error_load">サインインページを読み込めませんでした（%1$s）。もう一度お試しください。</string>
+    <string name="sso_error_unavailable">サインインサービスは現在利用できません（HTTP %1$d）。しばらくしてからもう一度お試しください。</string>
+    <string name="sso_error_ssl">サインインページへの安全な接続を確立できませんでした。デバイスの日付と時刻またはネットワークを確認して、もう一度お試しください。</string>
+    <string name="sso_error_status">サインインに失敗しました（ステータス %1$d）。もう一度お試しください。</string>
+    <string name="auth_error_session_expired">セッションの有効期限が切れました。もう一度サインインしてください。</string>
+    <string name="auth_error_multiple_session">別の場所でサインインしたため、このセッションは終了しました。もう一度サインインしてください。</string>
+    <string name="auth_error_user_blocked">アカウントがブロックされています。管理者にお問い合わせください。</string>
+    <string name="auth_error_user_not_found">このメールアドレスの Sclera アカウントが見つかりませんでした。</string>
+    <string name="auth_error_network">Sclera に接続できません。インターネット接続を確認して、もう一度お試しください。</string>
+    <string name="auth_error_server">サインイン中に問題が発生しました（%1$s）。もう一度お試しください。</string>
+    <string name="login_subtitle">続行するには仕事用のメールアドレスを使用してください。</string>
+    <string name="login_email_label">メールアドレス</string>
+    <string name="login_continue">続行</string>
+    <string name="login_sso_note">組織による安全なシングルサインオン</string>
+    <string name="login_error_email_blank">メールアドレスを入力してください</string>
+    <string name="login_error_email_invalid">有効なメールアドレスを入力してください</string>
+    <string name="login_tagline">現場のすべての資産を把握。</string>
+</resources>

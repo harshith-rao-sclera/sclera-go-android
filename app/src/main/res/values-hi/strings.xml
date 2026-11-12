@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">साइन इन करें</string>
+    <string name="login_signing_in">साइन इन हो रहा है…</string>
+    <string name="login_error_generic">साइन इन करते समय कुछ गलत हो गया। कृपया फिर से कोशिश करें।</string>
+    <string name="sso_error_timeout">साइन-इन पेज लोड होने में बहुत समय लगा। अपना कनेक्शन जांचें और फिर से कोशिश करें।</string>
+    <string name="sso_error_load">साइन-इन पेज लोड नहीं हो सका (%1$s)। कृपया फिर से कोशिश करें।</string>
+    <string name="sso_error_unavailable">साइन-इन सेवा अभी उपलब्ध नहीं है (HTTP %1$d)। कृपया बाद में फिर से कोशिश करें।</string>
+    <string name="sso_error_ssl">साइन-इन पेज से सुरक्षित कनेक्शन नहीं बन सका। डिवाइस की तारीख और समय या अपना नेटवर्क जांचें और फिर से कोशिश करें।</string>
+    <string name="sso_error_status">साइन इन विफल रहा (स्थिति %1$d)। कृपया फिर से कोशिश करें।</string>
+    <string name="auth_error_session_expired">आपका सत्र समाप्त हो गया है। कृपया फिर से साइन इन करें।</string>
+    <string name="auth_error_multiple_session">आपने कहीं और साइन इन किया है, इसलिए यह सत्र बंद कर दिया गया। कृपया फिर से साइन इन करें।</string>
+    <string name="auth_error_user_blocked">आपका खाता ब्लॉक कर दिया गया है। अपने व्यवस्थापक से संपर्क करें।</string>
+    <string name="auth_error_user_not_found">इस ईमेल के लिए कोई Sclera खाता नहीं मिला।</string>
+    <string name="auth_error_network">Sclera से कनेक्ट नहीं हो पा रहा है। अपना इंटरनेट कनेक्शन जांचें और फिर से कोशिश करें।</string>
+    <string name="auth_error_server">साइन इन करते समय कुछ गलत हो गया (%1$s)। कृपया फिर से कोशिश करें।</string>
+    <string name="login_subtitle">जारी रखने के लिए अपने कार्य ईमेल का उपयोग करें।</string>
+    <string name="login_email_label">ईमेल</string>
+    <string name="login_continue">जारी रखें</string>
+    <string name="login_sso_note">आपके संगठन द्वारा सुरक्षित सिंगल साइन-ऑन</string>
+    <string name="login_error_email_blank">अपना ईमेल पता दर्ज करें</string>
+    <string name="login_error_email_invalid">मान्य ईमेल पता दर्ज करें</string>
+    <string name="login_tagline">साइट पर हर एसेट को जानें।</string>
+</resources>

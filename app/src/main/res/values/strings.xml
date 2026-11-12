@@ -1,3 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Sclera Go</string>
+    <string name="app_name" translatable="false">Sclera Go</string>
+
+    <!-- Login / auth. %1$s = error description or detail; %1$d = HTTP or backend status code. -->
+    <string name="login_email_hint" translatable="false">name@company.com</string>
+    <string name="login_title">Sign in</string>
+    <string name="login_signing_in">Signing you in…</string>
+    <string name="login_error_generic">Something went wrong signing in. Please try again.</string>
+    <string name="sso_error_timeout">The sign-in page took too long to load. Check your connection and try again.</string>
+    <string name="sso_error_load">The sign-in page couldn’t be loaded (%1$s). Please try again.</string>
+    <string name="sso_error_unavailable">The sign-in service is unavailable right now (HTTP %1$d). Please try again later.</string>
+    <string name="sso_error_ssl">A secure connection to the sign-in page couldn’t be established. Check the device date and time or your network, and try again.</string>
+    <string name="sso_error_status">Sign-in failed (status %1$d). Please try again.</string>
+    <string name="auth_error_session_expired">Your session has expired. Please sign in again.</string>
+    <string name="auth_error_multiple_session">You signed in somewhere else, so this session was closed. Please sign in again.</string>
+    <string name="auth_error_user_blocked">Your account has been blocked. Contact your administrator.</string>
+    <string name="auth_error_user_not_found">No Sclera account was found for this email.</string>
+    <string name="auth_error_network">Can’t reach Sclera. Check your internet connection and try again.</string>
+    <string name="auth_error_server">Something went wrong signing in (%1$s). Please try again.</string>
+    <string name="login_subtitle">Use your work email to continue.</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_continue">Continue</string>
+    <string name="login_sso_note">Secure single sign-on by your organisation</string>
+    <string name="login_error_email_blank">Enter your email address</string>
+    <string name="login_error_email_invalid">Enter a valid email address</string>
+    <string name="login_tagline">Know every asset on site.</string>
 </resources>

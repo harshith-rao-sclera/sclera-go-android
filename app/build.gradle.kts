@@ -6,9 +6,8 @@ plugins {
 
 android {
     namespace = "com.example.sclerago"
-    compileSdk {
-        version = release(37)
-    }
+    // API 36: the newest SDK Android Studio 2025.2 / AGP 9.0 understand.
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.sclerago"
@@ -23,10 +22,13 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
-            }
+            // R8: shrink, optimize and obfuscate the whole app (AGP 9.0 has no stable `optimization {}` DSL).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "src/main/keepRules/rules.keep",
+            )
         }
     }
     compileOptions {
@@ -35,6 +37,14 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    androidResources {
+        // Builds the locale list for the per-app language setting (Android 13+) from the values-* folders.
+        generateLocaleConfig = true
+    }
+    testOptions {
+        // Robolectric needs the merged resources to resolve strings in unit tests.
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -62,6 +72,12 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.ext.junit)
+    testImplementation(composeBom)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 

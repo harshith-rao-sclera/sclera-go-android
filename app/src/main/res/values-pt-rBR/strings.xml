@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Entrar</string>
+    <string name="login_signing_in">Entrando…</string>
+    <string name="login_error_generic">Algo deu errado ao entrar. Tente novamente.</string>
+    <string name="sso_error_timeout">A página de login demorou muito para carregar. Verifique sua conexão e tente novamente.</string>
+    <string name="sso_error_load">Não foi possível carregar a página de login (%1$s). Tente novamente.</string>
+    <string name="sso_error_unavailable">O serviço de login está indisponível no momento (HTTP %1$d). Tente novamente mais tarde.</string>
+    <string name="sso_error_ssl">Não foi possível estabelecer uma conexão segura com a página de login. Verifique a data e a hora do dispositivo ou sua rede e tente novamente.</string>
+    <string name="sso_error_status">Falha no login (status %1$d). Tente novamente.</string>
+    <string name="auth_error_session_expired">Sua sessão expirou. Entre novamente.</string>
+    <string name="auth_error_multiple_session">Você entrou em outro lugar, então esta sessão foi encerrada. Entre novamente.</string>
+    <string name="auth_error_user_blocked">Sua conta foi bloqueada. Entre em contato com o administrador.</string>
+    <string name="auth_error_user_not_found">Nenhuma conta Sclera foi encontrada para este e-mail.</string>
+    <string name="auth_error_network">Não foi possível acessar o Sclera. Verifique sua conexão com a internet e tente novamente.</string>
+    <string name="auth_error_server">Algo deu errado ao entrar (%1$s). Tente novamente.</string>
+    <string name="login_subtitle">Use seu e-mail corporativo para continuar.</string>
+    <string name="login_email_label">E-mail</string>
+    <string name="login_continue">Continuar</string>
+    <string name="login_sso_note">Login único seguro da sua organização</string>
+    <string name="login_error_email_blank">Digite seu endereço de e-mail</string>
+    <string name="login_error_email_invalid">Digite um endereço de e-mail válido</string>
+    <string name="login_tagline">Conheça cada ativo no local.</string>
+</resources>

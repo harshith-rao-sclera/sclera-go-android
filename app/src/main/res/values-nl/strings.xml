@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Inloggen</string>
+    <string name="login_signing_in">Bezig met inloggen…</string>
+    <string name="login_error_generic">Er is iets misgegaan bij het inloggen. Probeer het opnieuw.</string>
+    <string name="sso_error_timeout">Het laden van de inlogpagina duurde te lang. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="sso_error_load">De inlogpagina kan niet worden geladen (%1$s). Probeer het opnieuw.</string>
+    <string name="sso_error_unavailable">De inlogservice is momenteel niet beschikbaar (HTTP %1$d). Probeer het later opnieuw.</string>
+    <string name="sso_error_ssl">Er kan geen beveiligde verbinding met de inlogpagina worden gemaakt. Controleer de datum en tijd van het apparaat of je netwerk en probeer het opnieuw.</string>
+    <string name="sso_error_status">Inloggen mislukt (status %1$d). Probeer het opnieuw.</string>
+    <string name="auth_error_session_expired">Je sessie is verlopen. Log opnieuw in.</string>
+    <string name="auth_error_multiple_session">Je bent ergens anders ingelogd, daarom is deze sessie gesloten. Log opnieuw in.</string>
+    <string name="auth_error_user_blocked">Je account is geblokkeerd. Neem contact op met je beheerder.</string>
+    <string name="auth_error_user_not_found">Er is geen Sclera-account gevonden voor dit e-mailadres.</string>
+    <string name="auth_error_network">Kan Sclera niet bereiken. Controleer je internetverbinding en probeer het opnieuw.</string>
+    <string name="auth_error_server">Er is iets misgegaan bij het inloggen (%1$s). Probeer het opnieuw.</string>
+    <string name="login_subtitle">Gebruik je werk-e-mailadres om door te gaan.</string>
+    <string name="login_email_label">E-mail</string>
+    <string name="login_continue">Doorgaan</string>
+    <string name="login_sso_note">Veilige single sign-on via je organisatie</string>
+    <string name="login_error_email_blank">Voer je e-mailadres in</string>
+    <string name="login_error_email_invalid">Voer een geldig e-mailadres in</string>
+    <string name="login_tagline">Ken elk asset op locatie.</string>
+</resources>

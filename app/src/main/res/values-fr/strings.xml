@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Se connecter</string>
+    <string name="login_signing_in">Connexion en cours…</string>
+    <string name="login_error_generic">Un problème est survenu lors de la connexion. Veuillez réessayer.</string>
+    <string name="sso_error_timeout">La page de connexion a mis trop de temps à se charger. Vérifiez votre connexion et réessayez.</string>
+    <string name="sso_error_load">Impossible de charger la page de connexion (%1$s). Veuillez réessayer.</string>
+    <string name="sso_error_unavailable">Le service de connexion est actuellement indisponible (HTTP %1$d). Veuillez réessayer plus tard.</string>
+    <string name="sso_error_ssl">Impossible d’établir une connexion sécurisée avec la page de connexion. Vérifiez la date et l’heure de l’appareil ou votre réseau, puis réessayez.</string>
+    <string name="sso_error_status">Échec de la connexion (statut %1$d). Veuillez réessayer.</string>
+    <string name="auth_error_session_expired">Votre session a expiré. Veuillez vous reconnecter.</string>
+    <string name="auth_error_multiple_session">Vous vous êtes connecté ailleurs, cette session a donc été fermée. Veuillez vous reconnecter.</string>
+    <string name="auth_error_user_blocked">Votre compte a été bloqué. Contactez votre administrateur.</string>
+    <string name="auth_error_user_not_found">Aucun compte Sclera n’a été trouvé pour cette adresse e-mail.</string>
+    <string name="auth_error_network">Impossible de joindre Sclera. Vérifiez votre connexion Internet et réessayez.</string>
+    <string name="auth_error_server">Un problème est survenu lors de la connexion (%1$s). Veuillez réessayer.</string>
+    <string name="login_subtitle">Utilisez votre adresse e-mail professionnelle pour continuer.</string>
+    <string name="login_email_label">E-mail</string>
+    <string name="login_continue">Continuer</string>
+    <string name="login_sso_note">Authentification unique sécurisée par votre organisation</string>
+    <string name="login_error_email_blank">Saisissez votre adresse e-mail</string>
+    <string name="login_error_email_invalid">Saisissez une adresse e-mail valide</string>
+    <string name="login_tagline">Connaissez chaque équipement sur site.</string>
+</resources>

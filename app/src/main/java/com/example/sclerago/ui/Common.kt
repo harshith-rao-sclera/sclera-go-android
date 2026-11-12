@@ -201,11 +201,13 @@ fun PlainField(
     singleLine: Boolean = true,
     minLines: Int = 1,
     readOnly: Boolean = false,
+    keyboard: androidx.compose.ui.text.input.KeyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
 ) {
     BasicTextField(
         value = value,
         onValueChange = onChange,
         modifier = modifier,
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboard),
         readOnly = readOnly || LocalReadOnly.current,
         singleLine = singleLine,
         minLines = minLines,

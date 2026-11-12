@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">تسجيل الدخول</string>
+    <string name="login_signing_in">جارٍ تسجيل الدخول…</string>
+    <string name="login_error_generic">حدث خطأ أثناء تسجيل الدخول. يُرجى المحاولة مرة أخرى.</string>
+    <string name="sso_error_timeout">استغرق تحميل صفحة تسجيل الدخول وقتًا طويلاً. تحقق من اتصالك وحاول مرة أخرى.</string>
+    <string name="sso_error_load">تعذّر تحميل صفحة تسجيل الدخول (%1$s). يُرجى المحاولة مرة أخرى.</string>
+    <string name="sso_error_unavailable">خدمة تسجيل الدخول غير متاحة حاليًا (HTTP %1$d). يُرجى المحاولة لاحقًا.</string>
+    <string name="sso_error_ssl">تعذّر إنشاء اتصال آمن بصفحة تسجيل الدخول. تحقق من تاريخ الجهاز ووقته أو من شبكتك وحاول مرة أخرى.</string>
+    <string name="sso_error_status">فشل تسجيل الدخول (الحالة %1$d). يُرجى المحاولة مرة أخرى.</string>
+    <string name="auth_error_session_expired">انتهت صلاحية جلستك. يُرجى تسجيل الدخول مرة أخرى.</string>
+    <string name="auth_error_multiple_session">لقد سجّلت الدخول من مكان آخر، لذا تم إغلاق هذه الجلسة. يُرجى تسجيل الدخول مرة أخرى.</string>
+    <string name="auth_error_user_blocked">تم حظر حسابك. تواصل مع المسؤول.</string>
+    <string name="auth_error_user_not_found">لم يتم العثور على حساب Sclera لهذا البريد الإلكتروني.</string>
+    <string name="auth_error_network">يتعذّر الوصول إلى Sclera. تحقق من اتصالك بالإنترنت وحاول مرة أخرى.</string>
+    <string name="auth_error_server">حدث خطأ أثناء تسجيل الدخول (%1$s). يُرجى المحاولة مرة أخرى.</string>
+    <string name="login_subtitle">استخدم بريدك الإلكتروني الخاص بالعمل للمتابعة.</string>
+    <string name="login_email_label">البريد الإلكتروني</string>
+    <string name="login_continue">متابعة</string>
+    <string name="login_sso_note">تسجيل دخول موحّد وآمن عبر مؤسستك</string>
+    <string name="login_error_email_blank">أدخل عنوان بريدك الإلكتروني</string>
+    <string name="login_error_email_invalid">أدخل عنوان بريد إلكتروني صالحًا</string>
+    <string name="login_tagline">اعرف كل أصل في الموقع.</string>
+</resources>

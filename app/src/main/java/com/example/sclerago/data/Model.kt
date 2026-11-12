@@ -88,16 +88,40 @@ val SEED_ASSETS = listOf(
     Asset(10, "Access point · Floor 1 East", "Ruckus R650 · Wi-Fi 6 · PoE+", "location1", "location1 · floor 1", Source.AP, Status.VALIDATED, AssetType.AP),
 ).map { it.copy(media = SEED_PHOTOS[it.id].orEmpty()) }
 
-data class Property(val id: String, val name: String, val gps: Boolean)
+data class Address(
+    val line1: String = "",
+    val line2: String = "",
+    val country: String = "",
+    val state: String = "",
+    val region: String = "",
+    val city: String = "",
+    val postcode: String = "",
+)
+
+data class Contact(val name: String = "", val email: String = "", val phone: String = "")
+
+/** When the site can be visited ("HH:mm") and the code to get in. */
+data class Availability(val start: String = "00:01", val end: String = "23:59", val accessCode: String = "")
+
+data class Property(
+    val id: String,
+    val name: String,
+    val gps: Boolean,
+    val type: String = "Office",
+    val address: Address = Address(),
+    val contact: Contact = Contact(),
+    val notes: String = "",
+    val availability: Availability = Availability(),
+)
 
 val PROPERTIES = listOf(
     Property("p1", "Test 861", true),
     Property("p2", "Dhanush 16/10 2.1.0", false),
     Property("p3", "Post production 12/10", false),
     Property("p4", "Sample Property 5", false),
-    Property("p5", "Harbour View Tower", false),
-    Property("p6", "Northgate Warehouse", false),
-    Property("p7", "Riverside Campus", false),
+    Property("p5", "Harbour Point Office Tower", false, "Office", Address("1 Harbour Point", country = "Singapore")),
+    Property("p6", "Northgate Logistics Hub", false, "Warehouse", Address("Northgate Industrial Estate", country = "United Kingdom", state = "England")),
+    Property("p7", "Riverside Medical Centre", false, "Hospital", Address("12 Riverside Road", country = "Australia", state = "Victoria")),
 )
 
 enum class NodeKind(val title: String) { BUILDING("Building"), FLOOR("Floor"), LOCATION("Location") }

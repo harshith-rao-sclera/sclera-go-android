@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Accedi</string>
+    <string name="login_signing_in">Accesso in corso…</string>
+    <string name="login_error_generic">Si è verificato un problema durante l’accesso. Riprova.</string>
+    <string name="sso_error_timeout">Il caricamento della pagina di accesso ha richiesto troppo tempo. Controlla la connessione e riprova.</string>
+    <string name="sso_error_load">Impossibile caricare la pagina di accesso (%1$s). Riprova.</string>
+    <string name="sso_error_unavailable">Il servizio di accesso non è al momento disponibile (HTTP %1$d). Riprova più tardi.</string>
+    <string name="sso_error_ssl">Impossibile stabilire una connessione sicura con la pagina di accesso. Controlla la data e l’ora del dispositivo o la rete e riprova.</string>
+    <string name="sso_error_status">Accesso non riuscito (stato %1$d). Riprova.</string>
+    <string name="auth_error_session_expired">La sessione è scaduta. Accedi di nuovo.</string>
+    <string name="auth_error_multiple_session">Hai effettuato l’accesso altrove, quindi questa sessione è stata chiusa. Accedi di nuovo.</string>
+    <string name="auth_error_user_blocked">Il tuo account è stato bloccato. Contatta l’amministratore.</string>
+    <string name="auth_error_user_not_found">Nessun account Sclera trovato per questa email.</string>
+    <string name="auth_error_network">Impossibile raggiungere Sclera. Controlla la connessione a Internet e riprova.</string>
+    <string name="auth_error_server">Si è verificato un problema durante l’accesso (%1$s). Riprova.</string>
+    <string name="login_subtitle">Usa la tua email di lavoro per continuare.</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_continue">Continua</string>
+    <string name="login_sso_note">Single sign-on sicuro della tua organizzazione</string>
+    <string name="login_error_email_blank">Inserisci il tuo indirizzo email</string>
+    <string name="login_error_email_invalid">Inserisci un indirizzo email valido</string>
+    <string name="login_tagline">Conosci ogni asset in sito.</string>
+</resources>

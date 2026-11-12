@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Войти</string>
+    <string name="login_signing_in">Выполняется вход…</string>
+    <string name="login_error_generic">При входе произошла ошибка. Повторите попытку.</string>
+    <string name="sso_error_timeout">Страница входа загружается слишком долго. Проверьте подключение и повторите попытку.</string>
+    <string name="sso_error_load">Не удалось загрузить страницу входа (%1$s). Повторите попытку.</string>
+    <string name="sso_error_unavailable">Служба входа сейчас недоступна (HTTP %1$d). Повторите попытку позже.</string>
+    <string name="sso_error_ssl">Не удалось установить безопасное соединение со страницей входа. Проверьте дату и время на устройстве или сеть и повторите попытку.</string>
+    <string name="sso_error_status">Не удалось войти (статус %1$d). Повторите попытку.</string>
+    <string name="auth_error_session_expired">Срок действия сеанса истёк. Войдите снова.</string>
+    <string name="auth_error_multiple_session">Вы вошли в другом месте, поэтому этот сеанс был закрыт. Войдите снова.</string>
+    <string name="auth_error_user_blocked">Ваша учётная запись заблокирована. Обратитесь к администратору.</string>
+    <string name="auth_error_user_not_found">Учётная запись Sclera для этого адреса электронной почты не найдена.</string>
+    <string name="auth_error_network">Не удаётся подключиться к Sclera. Проверьте подключение к интернету и повторите попытку.</string>
+    <string name="auth_error_server">При входе произошла ошибка (%1$s). Повторите попытку.</string>
+    <string name="login_subtitle">Используйте рабочий адрес электронной почты, чтобы продолжить.</string>
+    <string name="login_email_label">Электронная почта</string>
+    <string name="login_continue">Продолжить</string>
+    <string name="login_sso_note">Безопасный единый вход через вашу организацию</string>
+    <string name="login_error_email_blank">Введите адрес электронной почты</string>
+    <string name="login_error_email_invalid">Введите действительный адрес электронной почты</string>
+    <string name="login_tagline">Знайте каждый актив на объекте.</string>
+</resources>

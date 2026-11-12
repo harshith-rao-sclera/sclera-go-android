@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">ลงชื่อเข้าใช้</string>
+    <string name="login_signing_in">กำลังลงชื่อเข้าใช้…</string>
+    <string name="login_error_generic">เกิดข้อผิดพลาดขณะลงชื่อเข้าใช้ โปรดลองอีกครั้ง</string>
+    <string name="sso_error_timeout">หน้าลงชื่อเข้าใช้โหลดนานเกินไป ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง</string>
+    <string name="sso_error_load">โหลดหน้าลงชื่อเข้าใช้ไม่ได้ (%1$s) โปรดลองอีกครั้ง</string>
+    <string name="sso_error_unavailable">บริการลงชื่อเข้าใช้ไม่พร้อมใช้งานในขณะนี้ (HTTP %1$d) โปรดลองอีกครั้งในภายหลัง</string>
+    <string name="sso_error_ssl">ไม่สามารถสร้างการเชื่อมต่อที่ปลอดภัยกับหน้าลงชื่อเข้าใช้ได้ ตรวจสอบวันที่และเวลาของอุปกรณ์หรือเครือข่ายของคุณแล้วลองอีกครั้ง</string>
+    <string name="sso_error_status">ลงชื่อเข้าใช้ไม่สำเร็จ (สถานะ %1$d) โปรดลองอีกครั้ง</string>
+    <string name="auth_error_session_expired">เซสชันของคุณหมดอายุแล้ว โปรดลงชื่อเข้าใช้อีกครั้ง</string>
+    <string name="auth_error_multiple_session">คุณลงชื่อเข้าใช้จากที่อื่น เซสชันนี้จึงถูกปิด โปรดลงชื่อเข้าใช้อีกครั้ง</string>
+    <string name="auth_error_user_blocked">บัญชีของคุณถูกบล็อก โปรดติดต่อผู้ดูแลระบบ</string>
+    <string name="auth_error_user_not_found">ไม่พบบัญชี Sclera สำหรับอีเมลนี้</string>
+    <string name="auth_error_network">เชื่อมต่อกับ Sclera ไม่ได้ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง</string>
+    <string name="auth_error_server">เกิดข้อผิดพลาดขณะลงชื่อเข้าใช้ (%1$s) โปรดลองอีกครั้ง</string>
+    <string name="login_subtitle">ใช้อีเมลที่ทำงานของคุณเพื่อดำเนินการต่อ</string>
+    <string name="login_email_label">อีเมล</string>
+    <string name="login_continue">ดำเนินการต่อ</string>
+    <string name="login_sso_note">การลงชื่อเข้าใช้ครั้งเดียวที่ปลอดภัยโดยองค์กรของคุณ</string>
+    <string name="login_error_email_blank">ป้อนที่อยู่อีเมลของคุณ</string>
+    <string name="login_error_email_invalid">ป้อนที่อยู่อีเมลที่ถูกต้อง</string>
+    <string name="login_tagline">รู้จักทุกสินทรัพย์ในพื้นที่</string>
+</resources>

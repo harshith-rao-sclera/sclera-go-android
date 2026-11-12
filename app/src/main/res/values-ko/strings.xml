@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">로그인</string>
+    <string name="login_signing_in">로그인하는 중…</string>
+    <string name="login_error_generic">로그인하는 중에 문제가 발생했습니다. 다시 시도해 주세요.</string>
+    <string name="sso_error_timeout">로그인 페이지를 불러오는 데 시간이 너무 오래 걸립니다. 연결 상태를 확인하고 다시 시도해 주세요.</string>
+    <string name="sso_error_load">로그인 페이지를 불러올 수 없습니다(%1$s). 다시 시도해 주세요.</string>
+    <string name="sso_error_unavailable">지금은 로그인 서비스를 사용할 수 없습니다(HTTP %1$d). 나중에 다시 시도해 주세요.</string>
+    <string name="sso_error_ssl">로그인 페이지에 안전하게 연결할 수 없습니다. 기기의 날짜와 시간 또는 네트워크를 확인하고 다시 시도해 주세요.</string>
+    <string name="sso_error_status">로그인하지 못했습니다(상태 %1$d). 다시 시도해 주세요.</string>
+    <string name="auth_error_session_expired">세션이 만료되었습니다. 다시 로그인해 주세요.</string>
+    <string name="auth_error_multiple_session">다른 곳에서 로그인하여 이 세션이 종료되었습니다. 다시 로그인해 주세요.</string>
+    <string name="auth_error_user_blocked">계정이 차단되었습니다. 관리자에게 문의하세요.</string>
+    <string name="auth_error_user_not_found">이 이메일에 해당하는 Sclera 계정을 찾을 수 없습니다.</string>
+    <string name="auth_error_network">Sclera에 연결할 수 없습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.</string>
+    <string name="auth_error_server">로그인하는 중에 문제가 발생했습니다(%1$s). 다시 시도해 주세요.</string>
+    <string name="login_subtitle">계속하려면 회사 이메일을 사용하세요.</string>
+    <string name="login_email_label">이메일</string>
+    <string name="login_continue">계속</string>
+    <string name="login_sso_note">조직에서 제공하는 안전한 통합 로그인</string>
+    <string name="login_error_email_blank">이메일 주소를 입력하세요</string>
+    <string name="login_error_email_invalid">올바른 이메일 주소를 입력하세요</string>
+    <string name="login_tagline">현장의 모든 자산을 한눈에.</string>
+</resources>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">כניסה</string>
+    <string name="login_signing_in">מתבצעת כניסה…</string>
+    <string name="login_error_generic">משהו השתבש בכניסה. יש לנסות שוב.</string>
+    <string name="sso_error_timeout">טעינת דף הכניסה ארכה זמן רב מדי. יש לבדוק את החיבור ולנסות שוב.</string>
+    <string name="sso_error_load">לא ניתן היה לטעון את דף הכניסה (%1$s). יש לנסות שוב.</string>
+    <string name="sso_error_unavailable">שירות הכניסה אינו זמין כרגע (HTTP %1$d). יש לנסות שוב מאוחר יותר.</string>
+    <string name="sso_error_ssl">לא ניתן היה ליצור חיבור מאובטח לדף הכניסה. יש לבדוק את התאריך והשעה במכשיר או את הרשת ולנסות שוב.</string>
+    <string name="sso_error_status">הכניסה נכשלה (סטטוס %1$d). יש לנסות שוב.</string>
+    <string name="auth_error_session_expired">תוקף ההפעלה פג. יש להיכנס שוב.</string>
+    <string name="auth_error_multiple_session">בוצעה כניסה ממקום אחר, ולכן ההפעלה הזו נסגרה. יש להיכנס שוב.</string>
+    <string name="auth_error_user_blocked">החשבון נחסם. יש לפנות למנהל המערכת.</string>
+    <string name="auth_error_user_not_found">לא נמצא חשבון Sclera עבור האימייל הזה.</string>
+    <string name="auth_error_network">אין אפשרות להתחבר ל-Sclera. יש לבדוק את החיבור לאינטרנט ולנסות שוב.</string>
+    <string name="auth_error_server">משהו השתבש בכניסה (%1$s). יש לנסות שוב.</string>
+    <string name="login_subtitle">יש להשתמש באימייל של העבודה כדי להמשיך.</string>
+    <string name="login_email_label">אימייל</string>
+    <string name="login_continue">המשך</string>
+    <string name="login_sso_note">כניסה יחידה מאובטחת דרך הארגון שלך</string>
+    <string name="login_error_email_blank">יש להזין כתובת אימייל</string>
+    <string name="login_error_email_invalid">יש להזין כתובת אימייל תקינה</string>
+    <string name="login_tagline">הכירו כל נכס באתר.</string>
+</resources>
