@@ -7,12 +7,12 @@ plugins {
 }
 
 android {
-    namespace = "com.example.sclerago"
+    namespace = "com.sclera.sclerago"
     // API 36: the newest SDK Android Studio 2025.2 / AGP 9.0 understand.
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.sclerago"
+        applicationId = "com.sclera.sclerago"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
