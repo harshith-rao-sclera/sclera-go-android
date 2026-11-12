@@ -27,6 +27,6 @@
 # Nothing in the app is reached by reflection or serialization: auth parses JSON by hand with
 # org.json, and the SSO WebView only calls evaluateJavascript (no @JavascriptInterface), so no
 # app classes need to be kept. If you add a JavaScript interface, keep it like this:
-#-keepclassmembers class com.example.sclerago.SomeJsBridge {
+#-keepclassmembers class com.sclera.sclerago.SomeJsBridge {
 #   @android.webkit.JavascriptInterface <methods>;
 #}
