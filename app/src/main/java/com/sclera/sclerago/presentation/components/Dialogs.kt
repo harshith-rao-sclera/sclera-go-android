@@ -72,8 +72,8 @@ fun ConfirmDialog(
             Box(Modifier.size(44.dp).background(iconBg, CircleShape), contentAlignment = Alignment.Center) {
                 LineIcon(icon, 20.dp, iconFg, 2.2f)
             }
-            Txt(title, 18, 700)
-            Txt(body, 14, 400, C.Muted, maxLines = 4, lineHeight = androidx.compose.ui.unit.TextUnit(20f, androidx.compose.ui.unit.TextUnitType.Sp))
+            Txt(title, 16, 700)
+            Txt(body, 13, 400, C.Muted, maxLines = 4, lineHeight = androidx.compose.ui.unit.TextUnit(20f, androidx.compose.ui.unit.TextUnitType.Sp))
             Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Pill(no, onNo, Modifier.weight(1f), height = 46.dp, size = 14)
                 Pill(yes, onYes, Modifier.weight(1f), bg = yesBg, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700)

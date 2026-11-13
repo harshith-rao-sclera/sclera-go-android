@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.sclera.sclerago.data.local.SEED_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
 import com.sclera.sclerago.domain.model.LocationFilter
@@ -28,7 +28,7 @@ private const val TABLET_LANDSCAPE = "spec:width=1280dp,height=800dp,dpi=240"
 /** The dashboard's list for the sample assets, filtered by [query]; used by the previews and the UI tests. */
 internal fun sampleAssetList(query: String = "", picked: Set<Int> = emptySet()): AssetListBinding {
     val data: AssetListData = BuildAssetListUseCase()(
-        SEED_ASSETS.filter { it.prop == "p1" }, AssetListQuery(sources = null, location = LocationFilter.All, text = query),
+        SAMPLE_ASSETS.filter { it.prop == "p1" }, AssetListQuery(sources = null, location = LocationFilter.All, text = query),
     )
     return AssetListBinding(data, picked, query, onChip = {}, onToggle = {}, onOpen = {})
 }

@@ -153,6 +153,92 @@ class AccessViewModelTest {
     }
 
     @Test
+    fun deleteGroup_fromItsSheet_closesTheSheet() {
+        val vm = vm()
+        vm.editGroup(collectors)
+        vm.askDeleteGroup(collectors)
+        vm.deleteGroup(collectors)
+        assertNull(vm.state.groupForm)
+        assertNull(vm.state.confirmDelete)
+    }
+
+    @Test
+    fun pickingGroups_onlyDeletableOnes_selectAllAndDeleteTogether() {
+        val vm = vm()
+        vm.setTab(AccessTab.GROUPS)
+        val admins = repo.groups.value.first { it.locked }
+        val deletable = repo.groups.value.filter { vm.canDelete(it) }
+        assertTrue(deletable.size >= 2)
+
+        vm.toggleGroupPick(admins) // locked: can't be ticked
+        assertTrue(vm.state.pickedGroups.isEmpty())
+        vm.toggleGroupPick(deletable[0])
+        vm.toggleGroupPick(deletable[1])
+        assertEquals(setOf(deletable[0].id, deletable[1].id), vm.listState(null).pickedGroups)
+        assertEquals(deletable.size, vm.listState(null).selectableGroups)
+        vm.toggleGroupPick(deletable[1])
+        assertEquals(setOf(deletable[0].id), vm.state.pickedGroups)
+
+        vm.selectAllGroups()
+        assertEquals(deletable.map { it.id }.toSet(), vm.state.pickedGroups)
+        vm.selectAllGroups() // everything ticked: select all clears
+        assertTrue(vm.state.pickedGroups.isEmpty())
+
+        vm.toggleGroupPick(deletable[0])
+        vm.askDeletePicked()
+        assertTrue(vm.state.confirmDeletePicked)
+        vm.cancelDeletePicked()
+        assertFalse(vm.state.confirmDeletePicked)
+        vm.askDeletePicked()
+        vm.deletePicked()
+        assertNull(vm.group(deletable[0].id))
+        assertTrue(vm.state.pickedGroups.isEmpty())
+        assertFalse(vm.state.confirmDeletePicked)
+        assertNotNull(vm.group(admins.id))
+    }
+
+    @Test
+    fun pickingGroups_isClearedByChangingTabOrClearing() {
+        val vm = vm()
+        vm.setTab(AccessTab.GROUPS)
+        val g = repo.groups.value.first { vm.canDelete(it) }
+        vm.toggleGroupPick(g)
+        vm.askDeletePicked()
+        vm.clearGroupPick()
+        assertTrue(vm.state.pickedGroups.isEmpty())
+        assertFalse(vm.state.confirmDeletePicked)
+        vm.toggleGroupPick(g)
+        vm.setTab(AccessTab.PEOPLE)
+        assertTrue(vm.state.pickedGroups.isEmpty())
+        vm.askDeletePicked() // nothing ticked: nothing to confirm
+        assertFalse(vm.state.confirmDeletePicked)
+    }
+
+    @Test
+    fun groupFilter_showsOnlyGroupsThatCanDoIt_andCountsEachPermission() {
+        val vm = vm()
+        vm.setTab(AccessTab.GROUPS)
+        val all = vm.listState(null)
+        assertNull(all.groupFilter)
+        assertEquals(repo.groups.value.size, all.groups.size)
+        // A locked group (Admins) can do everything, so it counts for every permission.
+        Permission.entries.forEach { p -> assertEquals(repo.groups.value.count { it.locked || p in it.permissions }, all.permissionCounts[p]) }
+
+        vm.setGroupFilter(Permission.VALIDATE)
+        val validators = vm.listState(null)
+        assertEquals(Permission.VALIDATE, validators.groupFilter)
+        assertTrue(validators.groups.isNotEmpty())
+        assertTrue(validators.groups.all { it.group.can(Permission.VALIDATE) })
+        assertEquals(all.permissionCounts, validators.permissionCounts) // counts don't depend on the filter
+
+        // Search and filter combine; changing tab clears the filter.
+        vm.setQuery("zz-no-such-group")
+        assertTrue(vm.listState(null).groups.isEmpty())
+        vm.setTab(AccessTab.PEOPLE)
+        assertNull(vm.state.groupFilter)
+    }
+
+    @Test
     fun signOut_closesFormsAndClearsSearch() {
         val vm = vm()
         vm.setQuery("secret")

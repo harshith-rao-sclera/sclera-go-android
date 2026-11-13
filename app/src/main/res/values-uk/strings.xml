@@ -119,11 +119,9 @@
         <item quantity="other">%1$d активу</item>
     </plurals>
     <string name="launch_logo_description">Логотип Sclera Go</string>
-    <string name="access_heading">Люди та доступ</string>
-    <string name="access_description">Група визначає, що можуть робити її учасники. Кожна людина входить в одну групу, з доступом до всіх об’єктів або до вибраних для неї.</string>
-    <string name="access_stat_people">Люди</string>
+    <string name="access_stat_people">Користувачі</string>
     <string name="access_stat_groups">Групи</string>
-    <string name="access_tab_people">Люди (%1$d)</string>
+    <string name="access_tab_people">Користувачі (%1$d)</string>
     <string name="access_tab_groups">Групи (%1$d)</string>
     <string name="access_search_people">Пошук людей</string>
     <string name="access_search_groups">Пошук груп</string>
@@ -132,18 +130,22 @@
     <string name="access_empty_people">Поки що ні в кого немає доступу.</string>
     <string name="access_no_person_match">Немає людей, що відповідають «%1$s».</string>
     <string name="access_no_group_match">Немає груп, що відповідають «%1$s».</string>
-    <string name="access_col_group">Група</string>
-    <string name="access_col_properties">Об’єкти</string>
-    <string name="access_col_last_seen">Остання активність</string>
     <string name="access_all_properties">Усі об’єкти</string>
-    <string name="access_just_now">щойно</string>
-    <string name="access_last_seen_description">Остання активність: %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Лише перегляд</string>
     <string name="access_edit_group">Редагувати: %1$s</string>
     <string name="access_delete_group">Видалити: %1$s</string>
-    <string name="access_delete_locked">%1$s не можна видалити</string>
     <string name="access_delete_title">Видалити %1$s?</string>
     <string name="access_delete_message">Групу буде видалено. Цю дію не можна скасувати.</string>
+    <string name="access_title">Користувачі та доступ</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">Видалити цю групу?</item>
+        <item quantity="other">Видалити групи: %1$d?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">Групу буде видалено. Цю дію не можна скасувати.</item>
+        <item quantity="other">Ці групи буде видалено. Цю дію не можна скасувати.</item>
+    </plurals>
     <string name="access_action_delete">Видалити</string>
     <string name="access_remove_title">Вилучити %1$s?</string>
     <string name="access_remove_message">%1$s втратить доступ до Sclera.</string>

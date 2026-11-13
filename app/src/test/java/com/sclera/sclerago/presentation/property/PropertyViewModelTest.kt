@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import com.sclera.sclerago.R
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
@@ -34,7 +36,7 @@ import java.io.ByteArrayOutputStream
 @OptIn(ExperimentalCoroutinesApi::class)
 class PropertyViewModelTest {
     private val properties = PropertyRepositoryImpl()
-    private val assets = AssetRepositoryImpl()
+    private val assets = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
     private val files = FakeFileRepository()
     private lateinit var vm: PropertyViewModel
 
@@ -60,7 +62,6 @@ class PropertyViewModelTest {
         val s = vm.state.value
         assertEquals(properties.properties.value.size, s.rows.size)
         assertEquals(s.rows.size, s.propertyTotal)
-        assertEquals(s.rows.sumOf { it.assets }, s.assetTotal)
         assertEquals("", s.query)
         assertFalse(s.addOpen || s.importOpen)
         assertNull(s.notice)

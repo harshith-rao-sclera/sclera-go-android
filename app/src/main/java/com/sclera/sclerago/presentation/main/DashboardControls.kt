@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.components.ActionDock
+import com.sclera.sclerago.presentation.components.SelectionSummary
 import com.sclera.sclerago.presentation.components.BottomTabBar
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.NavItem
@@ -105,22 +106,9 @@ fun SelectionDock(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val clearLabel = stringResource(R.string.dash_clear_selection)
     Column(modifier.testTag(DashTags.DOCK)) {
         ActionDock(onValidate = onValidate, onAssign = onAssign, onSubmit = onSubmit, onDelete = onDelete, floating = true) {
-            RoundButton(
-                48.dp, Color.Transparent, onClear,
-                Modifier.semantics { contentDescription = clearLabel },
-            ) { LineIcon(Icons.Close, 18.dp, C.Text, 2.4f) }
-            Column(Modifier.weight(1f).padding(start = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(stringResource(R.string.dash_selected, count), 15, 700)
-                Text(
-                    if (allPicked) stringResource(R.string.dash_clear_all) else stringResource(R.string.dash_select_all, visible),
-                    Modifier.testTag(DashTags.SELECT_ALL).clickable(onClick = onSelectAll),
-                    color = C.Soft, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    textDecoration = TextDecoration.Underline, maxLines = 1,
-                )
-            }
+            SelectionSummary(count, visible, allPicked, onClear, onSelectAll, Modifier.testTag(DashTags.SELECT_ALL))
         }
     }
 }

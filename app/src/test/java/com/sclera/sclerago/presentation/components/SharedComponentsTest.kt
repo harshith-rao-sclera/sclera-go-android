@@ -71,14 +71,13 @@ class SharedComponentsTest {
     fun statRow_showsTwoTilesWithValueAndLabel() {
         phoneAndTabletChecks {
             Column {
-                PageHeading("Things", "7 things")
                 StatRow {
                     tile("7", "Things")
                     tile("25", "Parts")
                 }
             }
         }
-        compose.onNodeWithText("7 things").assertIsDisplayed()
+        compose.onNodeWithText("Things").assertIsDisplayed()
         compose.onNodeWithText("25").assertIsDisplayed()
         compose.onNodeWithText("Parts").assertIsDisplayed()
     }

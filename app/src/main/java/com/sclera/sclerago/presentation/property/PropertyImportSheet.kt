@@ -107,7 +107,7 @@ internal fun ImportSheetContent(
     BottomSheet(onClose, maxHeightFraction = 0.6f, background = C.SheetBg) {
         Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Txt(stringResource(R.string.import_title), 20, 700, modifier = Modifier.weight(1f))
+                Txt(stringResource(R.string.import_title), 17, 700, modifier = Modifier.weight(1f))
                 RoundButton(36.dp, C.Btn, onClose, Modifier.semantics { contentDescription = closeLabel }) {
                     LineIcon(Icons.Close, 14.dp, C.Text, 2.6f)
                 }
@@ -123,22 +123,22 @@ internal fun ImportSheetContent(
                     Box(Modifier.size(42.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.Upload, 22.dp, C.Yellow, 2f)
                     }
-                    if (fileName == null) Txt(stringResource(R.string.import_choose_file), 14, 600)
+                    if (fileName == null) Txt(stringResource(R.string.import_choose_file), 13, 600)
                     else Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(fileName, 14, 600, modifier = Modifier.padding(horizontal = 16.dp))
+                        Txt(fileName, 13, 600, modifier = Modifier.padding(horizontal = 16.dp))
                         Txt(
                             if (fileSize >= 0) stringResource(R.string.import_file_size_change, formatSize(fileSize))
                             else stringResource(R.string.import_choose_different),
-                            12, 400, C.Muted,
+                            11, 400, C.Muted,
                         )
                     }
                 }
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt(stringResource(R.string.import_formats), 12, 400, C.Muted)
-                    Txt(stringResource(R.string.import_max_size), 12, 400, C.Muted)
+                    Txt(stringResource(R.string.import_formats), 11, 400, C.Muted)
+                    Txt(stringResource(R.string.import_max_size), 11, 400, C.Muted)
                 }
             }
-            error?.let { Txt(it.asString(), 13, 500, C.Red, Modifier.testTag(ImportTags.ERROR), maxLines = 3) }
+            error?.let { Txt(it.asString(), 12, 500, C.Red, Modifier.testTag(ImportTags.ERROR), maxLines = 3) }
             Row(
                 Modifier.fillMaxWidth().clip(r(12)).background(C.CardWash).border(1.dp, C.Border, r(12)).padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -148,8 +148,8 @@ internal fun ImportSheetContent(
                     LineIcon(Icons.FileDoc, 16.dp, C.Yellow, 1.9f)
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt(stringResource(R.string.import_sample_title), 14, 600)
-                    Txt(stringResource(R.string.import_sample_sub), 12, 400, C.Muted, maxLines = 2)
+                    Txt(stringResource(R.string.import_sample_title), 13, 600)
+                    Txt(stringResource(R.string.import_sample_sub), 11, 400, C.Muted, maxLines = 2)
                 }
                 RoundButton(40.dp, C.Btn, onSample, Modifier.semantics { contentDescription = downloadLabel }) {
                     LineIcon(Icons.Download, 14.dp, C.Text, 2.2f)
@@ -158,7 +158,7 @@ internal fun ImportSheetContent(
             Pill(
                 stringResource(R.string.import_proceed), onProceed, Modifier.fillMaxWidth().testTag(ImportTags.PROCEED),
                 bg = if (fileName != null) C.Yellow else C.Raised, fg = if (fileName != null) C.OnYellow else C.Muted,
-                height = 46.dp, size = 15, weight = 700,
+                height = 46.dp, size = 14, weight = 700,
             )
         }
     }

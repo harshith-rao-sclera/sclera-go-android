@@ -115,11 +115,9 @@
         <item quantity="other">%1$d एसेट</item>
     </plurals>
     <string name="launch_logo_description">Sclera Go लोगो</string>
-    <string name="access_heading">लोग और एक्सेस</string>
-    <string name="access_description">समूह तय करता है कि उसके लोग क्या कर सकते हैं। हर व्यक्ति एक समूह में होता है, सभी संपत्तियों के लिए या उसके लिए चुनी गई संपत्तियों के लिए।</string>
-    <string name="access_stat_people">लोग</string>
+    <string name="access_stat_people">उपयोगकर्ता</string>
     <string name="access_stat_groups">समूह</string>
-    <string name="access_tab_people">लोग (%1$d)</string>
+    <string name="access_tab_people">उपयोगकर्ता (%1$d)</string>
     <string name="access_tab_groups">समूह (%1$d)</string>
     <string name="access_search_people">लोग खोजें</string>
     <string name="access_search_groups">समूह खोजें</string>
@@ -128,18 +126,22 @@
     <string name="access_empty_people">अभी किसी के पास एक्सेस नहीं है।</string>
     <string name="access_no_person_match">“%1$s” से कोई मेल नहीं खाता।</string>
     <string name="access_no_group_match">“%1$s” से मेल खाता कोई समूह नहीं है।</string>
-    <string name="access_col_group">समूह</string>
-    <string name="access_col_properties">संपत्तियाँ</string>
-    <string name="access_col_last_seen">आखिरी बार देखा गया</string>
     <string name="access_all_properties">सभी संपत्तियाँ</string>
-    <string name="access_just_now">अभी-अभी</string>
-    <string name="access_last_seen_description">आखिरी बार देखा गया: %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">केवल देखें</string>
     <string name="access_edit_group">%1$s संपादित करें</string>
     <string name="access_delete_group">%1$s हटाएँ</string>
-    <string name="access_delete_locked">%1$s को हटाया नहीं जा सकता</string>
     <string name="access_delete_title">%1$s हटाएँ?</string>
     <string name="access_delete_message">समूह हटा दिया जाएगा। इसे पहले जैसा नहीं किया जा सकता।</string>
+    <string name="access_title">उपयोगकर्ता और एक्सेस</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">यह समूह हटाएँ?</item>
+        <item quantity="other">%1$d समूह हटाएँ?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">समूह हटा दिया जाएगा। इसे पहले जैसा नहीं किया जा सकता।</item>
+        <item quantity="other">ये समूह हटा दिए जाएँगे। इसे पहले जैसा नहीं किया जा सकता।</item>
+    </plurals>
     <string name="access_action_delete">हटाएँ</string>
     <string name="access_remove_title">%1$s को हटाएँ?</string>
     <string name="access_remove_message">%1$s का Sclera का एक्सेस खत्म हो जाएगा।</string>

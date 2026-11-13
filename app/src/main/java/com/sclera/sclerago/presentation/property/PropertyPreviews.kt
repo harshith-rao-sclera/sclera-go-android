@@ -14,7 +14,6 @@ internal val SamplePropertyState = PropertyListState(
     rows = listOf("Test 861" to 25, "Dhanush 16/10 2.1.0" to 0, "Post production 12/10" to 0, "Harbour Point Office Tower" to 3)
         .mapIndexed { i, (name, assets) -> PropertySummary(Property("p${i + 1}", name, false), assets) },
     propertyTotal = 4,
-    assetTotal = 28,
 )
 
 @Preview(name = "Phone", device = PHONE)
@@ -23,7 +22,7 @@ internal val SamplePropertyState = PropertyListState(
 @Composable
 private fun PropertyListPreview() {
     ScleraTheme {
-        PropertyListContent(SamplePropertyState, "p1", "Test 861", onBack = {}, onQuery = {}, onOpen = {}, onAdd = {}, onImport = {})
+        PropertyListContent(SamplePropertyState, "p1", onBack = {}, onQuery = {}, onOpen = {}, onAdd = {}, onImport = {})
     }
 }
 
@@ -34,7 +33,7 @@ private fun PropertyListPreview() {
 private fun PropertyListNoMatchPreview() {
     ScleraTheme {
         PropertyListContent(
-            PropertyListState(query = "zzz", propertyTotal = 4, assetTotal = 28), "p1", "Test 861",
+            PropertyListState(query = "zzz", propertyTotal = 4), "p1",
             onBack = {}, onQuery = {}, onOpen = {}, onAdd = {}, onImport = {},
         )
     }

@@ -13,7 +13,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sclera.sclerago.R
-import com.sclera.sclerago.data.local.SEED_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.presentation.assets.AssetListTags
 import com.sclera.sclerago.presentation.theme.ScleraTheme
@@ -36,7 +36,7 @@ class DashboardScreenTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
     private fun str(id: Int, vararg args: Any) = context.getString(id, *args)
-    private val assets = SEED_ASSETS.filter { it.prop == "p1" }
+    private val assets = SAMPLE_ASSETS.filter { it.prop == "p1" }
     private val pumps = assets.filter { "pump" in "${it.name} ${it.detail}".lowercase() }
 
     // ---- the list

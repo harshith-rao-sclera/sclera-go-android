@@ -19,7 +19,14 @@ import com.sclera.sclerago.presentation.theme.Txt
 
 /** Full-width dashed strip that starts an import: download icon, [label] in yellow, then the file [format] hint. */
 @Composable
-fun ImportStrip(label: String, format: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun ImportStrip(
+    label: String,
+    format: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    labelSize: Int = 14,
+    formatSize: Int = 12,
+) {
     Row(
         modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(12)).background(C.ImportStrip)
             .dashedBorder(C.YTintBd, 1.5.dp, 12.dp).clickable(role = Role.Button, onClick = onClick),
@@ -27,7 +34,7 @@ fun ImportStrip(label: String, format: String, onClick: () -> Unit, modifier: Mo
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         LineIcon(Icons.Download, 15.dp, C.Yellow, 2.2f)
-        Txt(label, 14, 600, C.Yellow)
-        Txt(format, 12, 400, C.Muted)
+        Txt(label, labelSize, 600, C.Yellow)
+        Txt(format, formatSize, 400, C.Muted)
     }
 }

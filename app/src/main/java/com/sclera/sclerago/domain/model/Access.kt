@@ -45,10 +45,16 @@ data class Group(
 ) {
     val needsAllProperties: Boolean get() = locked || permissions.any { it.needsAllProperties }
 
+    /** Whether this group's people can do [p] (a locked group can do everything). */
+    fun can(p: Permission): Boolean = locked || p in permissions
+
+    /** Everything the group's people can do, in [Permission] order. */
+    val effectivePermissions: List<Permission> get() = Permission.entries.filter(::can)
+
     /** The strongest permission, which sets the group's icon and colour (null = view only). */
     val topPermission: Permission?
         get() = listOf(Permission.MANAGE_ACCESS, Permission.MANAGE_PROPERTIES, Permission.CONFIGURE, Permission.VALIDATE, Permission.COLLECT)
-            .firstOrNull { locked || it in permissions }
+            .firstOrNull(::can)
 }
 
 /** Each person is in one group, for all properties or only [propertyIds]. [lastSeenAt] is epoch millis (null = never). */

@@ -90,19 +90,16 @@ object MediaLoader {
         bmp.asImageBitmap()
     }
 
-    /**
-     * Hosts reference photos may be downloaded from, besides the Sclera domain (profile photos, e.g.
-     * `qa-app.sclera.com`, see [AuthConfig.isTrustedHost]); anything else is refused.
-     */
-    internal val ALLOWED_PHOTO_HOSTS = setOf("upload.wikimedia.org", "thumb.wikimedia.org", "commons.wikimedia.org")
-
     /** Largest reference photo downloaded (15MB). */
     internal const val MAX_PHOTO_BYTES = 15L * 1024 * 1024
 
-    /** True for an https URL on an allowed host: nothing is downloaded over plain http or from unknown servers. */
+    /**
+     * True for an https URL on the Sclera domain (profile photos, e.g. `qa-app.sclera.com`, see
+     * [AuthConfig.isTrustedHost]): nothing is downloaded over plain http or from any other server.
+     */
     internal fun isAllowedPhotoUrl(url: String): Boolean {
         val u = url.toHttpUrlOrNull() ?: return false
-        return u.isHttps && (u.host.lowercase() in ALLOWED_PHOTO_HOSTS || AuthConfig.isTrustedHost(u.host))
+        return u.isHttps && AuthConfig.isTrustedHost(u.host)
     }
 
     private val photoClient by lazy {

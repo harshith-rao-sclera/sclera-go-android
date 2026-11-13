@@ -80,7 +80,7 @@ internal fun RowScope.NavItem(
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(icon, iconSize, ic) }
                 Box(Modifier.height(labelH).alpha(labelA), contentAlignment = Alignment.Center) {
-                    Txt(label, 11, 700, C.Yellow, maxLines = 1)
+                    Txt(label, 10, 700, C.Yellow, maxLines = 1)
                 }
             }
             Box(Modifier.height(size), contentAlignment = Alignment.Center) {

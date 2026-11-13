@@ -115,11 +115,9 @@
         <item quantity="other">%1$d varlık</item>
     </plurals>
     <string name="launch_logo_description">Sclera Go logosu</string>
-    <string name="access_heading">Kişiler ve erişim</string>
-    <string name="access_description">Bir grup, kişilerin neler yapabileceğini belirler. Her kişi tek bir grupta yer alır; tüm mülklere ya da kendisi için seçilenlere erişir.</string>
-    <string name="access_stat_people">Kişiler</string>
+    <string name="access_stat_people">Kullanıcılar</string>
     <string name="access_stat_groups">Gruplar</string>
-    <string name="access_tab_people">Kişiler (%1$d)</string>
+    <string name="access_tab_people">Kullanıcılar (%1$d)</string>
     <string name="access_tab_groups">Gruplar (%1$d)</string>
     <string name="access_search_people">Kişi ara</string>
     <string name="access_search_groups">Grup ara</string>
@@ -128,18 +126,22 @@
     <string name="access_empty_people">Henüz kimsenin erişimi yok.</string>
     <string name="access_no_person_match">“%1$s” ile eşleşen kimse yok.</string>
     <string name="access_no_group_match">“%1$s” ile eşleşen grup yok.</string>
-    <string name="access_col_group">Grup</string>
-    <string name="access_col_properties">Mülkler</string>
-    <string name="access_col_last_seen">Son görülme</string>
     <string name="access_all_properties">Tüm mülkler</string>
-    <string name="access_just_now">şimdi</string>
-    <string name="access_last_seen_description">Son görülme: %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Yalnızca görüntüleme</string>
     <string name="access_edit_group">%1$s grubunu düzenle</string>
     <string name="access_delete_group">%1$s grubunu sil</string>
-    <string name="access_delete_locked">%1$s silinemez</string>
     <string name="access_delete_title">%1$s silinsin mi?</string>
     <string name="access_delete_message">Grup kaldırılacak. Bu işlem geri alınamaz.</string>
+    <string name="access_title">Kullanıcılar ve erişim</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">Bu grup silinsin mi?</item>
+        <item quantity="other">%1$d grup silinsin mi?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">Grup kaldırılacak. Bu işlem geri alınamaz.</item>
+        <item quantity="other">Bu gruplar kaldırılacak. Bu işlem geri alınamaz.</item>
+    </plurals>
     <string name="access_action_delete">Sil</string>
     <string name="access_remove_title">%1$s kaldırılsın mı?</string>
     <string name="access_remove_message">%1$s artık Sclera’ya erişemeyecek.</string>

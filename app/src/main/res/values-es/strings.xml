@@ -117,11 +117,9 @@
         <item quantity="other">%1$d activos</item>
     </plurals>
     <string name="launch_logo_description">Logotipo de Sclera Go</string>
-    <string name="access_heading">Personas y acceso</string>
-    <string name="access_description">Un grupo define lo que pueden hacer sus miembros. Cada persona pertenece a un grupo, para todas las propiedades o las elegidas para ella.</string>
-    <string name="access_stat_people">Personas</string>
+    <string name="access_stat_people">Usuarios</string>
     <string name="access_stat_groups">Grupos</string>
-    <string name="access_tab_people">Personas (%1$d)</string>
+    <string name="access_tab_people">Usuarios (%1$d)</string>
     <string name="access_tab_groups">Grupos (%1$d)</string>
     <string name="access_search_people">Buscar personas</string>
     <string name="access_search_groups">Buscar grupos</string>
@@ -130,18 +128,22 @@
     <string name="access_empty_people">Todavía nadie tiene acceso.</string>
     <string name="access_no_person_match">Nadie coincide con “%1$s”.</string>
     <string name="access_no_group_match">Ningún grupo coincide con “%1$s”.</string>
-    <string name="access_col_group">Grupo</string>
-    <string name="access_col_properties">Propiedades</string>
-    <string name="access_col_last_seen">Última vez visto</string>
     <string name="access_all_properties">Todas las propiedades</string>
-    <string name="access_just_now">ahora mismo</string>
-    <string name="access_last_seen_description">Última vez visto %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Solo lectura</string>
     <string name="access_edit_group">Editar %1$s</string>
     <string name="access_delete_group">Eliminar %1$s</string>
-    <string name="access_delete_locked">%1$s no se puede eliminar</string>
     <string name="access_delete_title">¿Eliminar %1$s?</string>
     <string name="access_delete_message">Se eliminará el grupo. Esta acción no se puede deshacer.</string>
+    <string name="access_title">Usuarios y acceso</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">¿Eliminar este grupo?</item>
+        <item quantity="other">¿Eliminar %1$d grupos?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">Se eliminará el grupo. Esta acción no se puede deshacer.</item>
+        <item quantity="other">Se eliminarán estos grupos. Esta acción no se puede deshacer.</item>
+    </plurals>
     <string name="access_action_delete">Eliminar</string>
     <string name="access_remove_title">¿Quitar a %1$s?</string>
     <string name="access_remove_message">%1$s perderá el acceso a Sclera.</string>

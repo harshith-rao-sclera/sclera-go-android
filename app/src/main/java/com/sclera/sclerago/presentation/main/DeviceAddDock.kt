@@ -42,11 +42,11 @@ internal fun DeviceAddDock(vm: AppViewModel) {
     ) {
         RoundButton(40.dp, Color.Transparent, vm::clearDevicePick) { LineIcon(Icons.Close, 18.dp, C.Text, 2.4f) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt("$n selected", 15, 700)
+            Txt("$n selected", 14, 700)
             Text(
                 if (vm.allDevicesPicked) "Clear all" else "Select all ${vm.addableCount}",
                 Modifier.clickable(onClick = vm::selectAllDevices),
-                color = C.Soft, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                color = C.Soft, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                 textDecoration = TextDecoration.Underline, maxLines = 1,
             )
         }

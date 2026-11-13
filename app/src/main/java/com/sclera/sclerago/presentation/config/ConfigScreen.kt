@@ -239,15 +239,15 @@ private fun BuildingInfo(vm: AppViewModel) {
                         FloorRail(floors, floor?.id, onPick = { fId = it }, onAdd = { addFloor(building) })
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             if (floor == null) {
-                                Txt("No floors yet", 18, 700)
-                                Txt("Tap + beside the floors to add one, then add its locations.", 14, 400, C.Muted, maxLines = 3)
+                                Txt("No floors yet", 16, 700)
+                                Txt("Tap + beside the floors to add one, then add its locations.", 13, 400, C.Muted, maxLines = 3)
                             } else {
                                 Column {
-                                    Txt(floor.name, 18, 700)
-                                    Txt(plural(locs.size, "location", "locations"), 14, 400, C.Muted)
+                                    Txt(floor.name, 16, 700)
+                                    Txt(plural(locs.size, "location", "locations"), 13, 400, C.Muted)
                                 }
                                 if (locs.isEmpty()) {
-                                    Txt("No locations on this floor yet. Tap + to add one.", 14, 400, C.Muted, maxLines = 3)
+                                    Txt("No locations on this floor yet. Tap + to add one.", 13, 400, C.Muted, maxLines = 3)
                                 } else {
                                     Column(Modifier.fillMaxWidth().clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16))) {
                                         locs.forEachIndexed { i, l ->
@@ -288,7 +288,7 @@ private fun BuildingInfo(vm: AppViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Txt(plural(sel.size, "location", "locations") + " selected", 13, 700, modifier = Modifier.weight(1f))
+                Txt(plural(sel.size, "location", "locations") + " selected", 12, 700, modifier = Modifier.weight(1f))
                 Pill("Clear", { sel = emptySet() }, height = 40.dp, hPad = 14.dp)
                 Pill("Delete", {
                     val ids = sel
@@ -345,14 +345,14 @@ private fun BuildingCard(building: LocNode?, menu: List<MenuAct>) {
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 if (building == null) {
-                    Txt("No buildings yet", 17, 700)
-                    Txt("Add one or import a spreadsheet", 14, 400, C.Muted)
+                    Txt("No buildings yet", 16, 700)
+                    Txt("Add one or import a spreadsheet", 13, 400, C.Muted)
                 } else {
                     val floors = building.kids.orEmpty()
-                    Txt(building.name, 17, 700)
+                    Txt(building.name, 16, 700)
                     Txt(
                         plural(floors.size, "floor", "floors") + " · " + plural(floors.sumOf { it.kids.orEmpty().size }, "location", "locations"),
-                        14, 400, C.Muted,
+                        13, 400, C.Muted,
                     )
                 }
             }
@@ -376,8 +376,8 @@ private fun FloorRail(floors: List<LocNode>, current: String?, onPick: (String) 
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Txt(floorTag(f, i), 16, 800, if (on) C.OnYellow else C.Text)
-                Txt(f.kids.orEmpty().size.toString(), 11, 600, if (on) C.OnYellow.copy(alpha = 0.75f) else C.Muted)
+                Txt(floorTag(f, i), 15, 800, if (on) C.OnYellow else C.Text)
+                Txt(f.kids.orEmpty().size.toString(), 10, 600, if (on) C.OnYellow.copy(alpha = 0.75f) else C.Muted)
             }
         }
         Box(
@@ -406,8 +406,8 @@ private fun LocationRow(l: LocNode, picked: Boolean, first: Boolean, onOpen: () 
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Txt(l.name, 15, 600, maxLines = 2)
-                Txt(listOf(l.type, l.code).filter { it.isNotBlank() }.joinToString(" · ").ifEmpty { "No type yet" }, 13, 400, C.Muted)
+                Txt(l.name, 14, 600, maxLines = 2)
+                Txt(listOf(l.type, l.code).filter { it.isNotBlank() }.joinToString(" · ").ifEmpty { "No type yet" }, 12, 400, C.Muted)
             }
             Box(Modifier.clip(r(8)).clickable(onClick = onTick).padding(10.dp)) { CheckBox(picked) }
         }
@@ -453,8 +453,8 @@ private fun SearchHits(tree: List<LocNode>, query: String, onPick: (SearchHit) -
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Txt(h.title, 15, 600, maxLines = 2)
-                        Txt(h.sub, 13, 400, C.Muted)
+                        Txt(h.title, 14, 600, maxLines = 2)
+                        Txt(h.sub, 12, 400, C.Muted)
                     }
                     LineIcon(Icons.ChevronRight, 14.dp, C.Dim, 2.6f)
                 }
@@ -565,7 +565,7 @@ internal fun IconMenu(open: Boolean, onDismiss: () -> Unit, items: List<MenuAct>
             DropdownMenuItem(
                 text = {
                     Txt(
-                        m.label, 14, if (m.selected) 700 else 500,
+                        m.label, 13, if (m.selected) 700 else 500,
                         when {
                             !m.enabled -> C.Dim
                             m.danger -> C.Red
@@ -597,13 +597,13 @@ private fun PickField(label: String, value: String, placeholder: String, options
                     .clickable { open = true }.padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Txt(value.ifEmpty { placeholder }, 14, 400, if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f))
+                Txt(value.ifEmpty { placeholder }, 13, 400, if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f))
                 LineIcon(Icons.ChevronDown, 18.dp, C.Soft, 2.4f)
             }
             DropdownMenu(open, { open = false }, Modifier.heightIn(max = 360.dp), containerColor = C.Surface) {
                 options.forEach { o ->
                     DropdownMenuItem(
-                        text = { Txt(o, 15, if (o == value) 700 else 500, if (o == value) C.Yellow else C.Text) },
+                        text = { Txt(o, 14, if (o == value) 700 else 500, if (o == value) C.Yellow else C.Text) },
                         onClick = { onPick(o); open = false },
                     )
                 }
@@ -627,7 +627,7 @@ private fun TimeField(label: String, value: String, placeholder: String, modifie
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Txt(value.ifEmpty { placeholder }, 14, 400, if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f))
+            Txt(value.ifEmpty { placeholder }, 13, 400, if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f))
             LineIcon(Icons.Clock, 20.dp, C.Soft, 2f)
         }
     }
@@ -638,8 +638,8 @@ private fun TimeField(label: String, value: String, placeholder: String, modifie
 private fun FieldLabel(label: String) {
     val req = label.endsWith("*")
     Row {
-        Txt(label.removeSuffix("*").trimEnd(), 12, 600, C.Soft)
-        if (req) Txt(" *", 12, 700, C.Red)
+        Txt(label.removeSuffix("*").trimEnd(), 11, 600, C.Soft)
+        if (req) Txt(" *", 11, 700, C.Red)
     }
 }
 
@@ -658,7 +658,7 @@ private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String,
     GuardedClose(name.trim() != b?.name.orEmpty().trim() || info != i0, onClose) { onClose ->
     BottomSheet(onClose) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 10.dp, top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Txt(if (b == null) "Add building" else "Edit ${b.name}", 17, 700, modifier = Modifier.weight(1f), maxLines = 2)
+            Txt(if (b == null) "Add building" else "Edit ${b.name}", 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
             CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
         }
         Column(
@@ -683,9 +683,9 @@ private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String,
             SheetSection("Primary contact")
             LabeledInput("Name", info.contactName, { info = info.copy(contactName = it) }, "Enter name")
             LabeledInput("Email", info.email, { info = info.copy(email = it) }, "Enter valid email")
-            if (emailBad) Txt("That doesn’t look like an email address.", 12, 500, C.Red)
+            if (emailBad) Txt("That doesn’t look like an email address.", 11, 500, C.Red)
             LabeledInput("Phone number", info.phone, { info = info.copy(phone = it) }, "Enter valid phone number")
-            if (phoneBad) Txt("Use digits, spaces, + ( ) and -, at least 6 digits.", 12, 500, C.Red)
+            if (phoneBad) Txt("Use digits, spaces, + ( ) and -, at least 6 digits.", 11, 500, C.Red)
 
             Spacer(Modifier.height(4.dp))
             SheetSection("Notes")
@@ -724,8 +724,8 @@ private fun EditFloorsSheet(b: LocNode, onClose: () -> Unit, onSave: (List<LocNo
                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             LineIcon(Icons.Floor, 19.dp, C.Yellow, 2.1f)
-                            PlainField(f.name, { v -> edit(f.id) { it.copy(name = v) } }, "Floor name", Modifier.weight(1f), size = 14, weight = 700)
-                            Txt(plural(f.kids.orEmpty().size, "location", "locations"), 12, 400, C.Muted)
+                            PlainField(f.name, { v -> edit(f.id) { it.copy(name = v) } }, "Floor name", Modifier.weight(1f), size = 13, weight = 700)
+                            Txt(plural(f.kids.orEmpty().size, "location", "locations"), 11, 400, C.Muted)
                             Box {
                                 RoundButton(36.dp, Color.Transparent, { menu = true }) { LineIcon(Icons.Dots, 18.dp, C.Soft) }
                                 IconMenu(menu, { menu = false }, listOf(
@@ -750,7 +750,7 @@ private fun EditFloorsSheet(b: LocNode, onClose: () -> Unit, onSave: (List<LocNo
                 val locs = removed.sumOf { it.kids.orEmpty().size }
                 Txt(
                     "Removing ${removed.joinToString { it.name }}" + (if (locs > 0) " deletes ${plural(locs, "location", "locations")} too" else "") + " when you save.",
-                    13, 500, C.Orange, maxLines = 3,
+                    12, 500, C.Orange, maxLines = 3,
                 )
             }
         }
@@ -785,7 +785,7 @@ private fun AddLocationSheet(onClose: () -> Unit, onAdd: (List<String>, String, 
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 CheckBox(bulk)
-                Txt("Bulk addition", 13, 600)
+                Txt("Bulk addition", 12, 600)
             }
             LabeledInput(
                 if (bulk) "Names *" else "Name *", name, { name = it },
@@ -818,7 +818,7 @@ private fun LocationSheet(l: LocNode, onClose: () -> Unit, onSave: (String, Stri
     GuardedClose(editing && (name != l.name || type != l.type || code != l.code), onClose) { onClose ->
     BottomSheet(onClose, maxHeightFraction = 0.8f) {
         Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Txt(l.name, 15, 700, modifier = Modifier.weight(1f))
+            Txt(l.name, 14, 700, modifier = Modifier.weight(1f))
             if (!editing) RoundButton(36.dp, C.Btn, { editing = true }) { LineIcon(Icons.Pencil, 16.dp, C.Yellow, 2.2f) }
             Spacer(Modifier.width(8.dp))
             CloseButton(onClose, size = 36.dp, iconSize = 16.dp)
@@ -831,8 +831,8 @@ private fun LocationSheet(l: LocNode, onClose: () -> Unit, onSave: (String, Stri
             } else {
                 listOf("Name" to l.name, "Type" to l.type, "Code" to l.code).forEach { (k, v) ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(k, 12, 600, C.Muted)
-                        Txt(v.ifBlank { "–" }, 13, 600)
+                        Txt(k, 11, 600, C.Muted)
+                        Txt(v.ifBlank { "–" }, 12, 600)
                     }
                 }
             }
@@ -873,7 +873,7 @@ private fun NameDialogBody(a: NameAsk, v: String, setV: (String) -> Unit, close:
             Modifier.padding(24.dp).fillMaxWidth().clip(r(18)).background(C.Surface).border(1.dp, C.Border, r(18)).noRippleClick { }.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Txt(a.title, 15, 700)
+            Txt(a.title, 14, 700)
             PlainField(
                 v, setV, a.placeholder,
                 Modifier.fillMaxWidth().clip(r(10)).background(C.Bg).border(1.5.dp, if (v.isNotBlank()) C.Yellow else C.Border, r(10)).padding(12.dp),
@@ -908,7 +908,7 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(top = 10.dp)) {
         Txt(
             "Choose what’s collected for every asset in ${vm.propName}, and what validation checks in each field. Mandatory fields are always visible.",
-            12, 400, C.Muted, Modifier.padding(horizontal = 16.dp), maxLines = 4,
+            11, 400, C.Muted, Modifier.padding(horizontal = 16.dp), maxLines = 4,
         )
         // Column headings, lined up with the rows' content.
         Row(
@@ -927,8 +927,8 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
         // Photos
         Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 20.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Txt("Photos", 14, 700)
-                Txt("How many of each kind to collect per asset · ${vm.minPhotos} needed in total", 12, 400, C.Muted, maxLines = 2)
+                Txt("Photos", 13, 700)
+                Txt("How many of each kind to collect per asset · ${vm.minPhotos} needed in total", 11, 400, C.Muted, maxLines = 2)
             }
             Pill("Add type", { addingPhoto = true }, height = 32.dp, hPad = 12.dp, size = 12)
         }
@@ -948,10 +948,10 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
             ) {
                 Column(Modifier.weight(1f).padding(end = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Txt(p.name, 15, 600, modifier = Modifier.weight(1f, fill = false))
+                        Txt(p.name, 14, 600, modifier = Modifier.weight(1f, fill = false))
                         Box(Modifier.clip(CircleShape).clickable { vm.removePhotoReq(p.id) }.padding(2.dp)) { LineIcon(Icons.Close, 12.dp, C.Dim, 2.4f) }
                     }
-                    Txt(p.hint, 12, 400, C.Muted, maxLines = 2)
+                    Txt(p.hint, 11, 400, C.Muted, maxLines = 2)
                 }
                 Stepper(p.min, Modifier.width(92.dp)) { vm.setPhotoLimits(p.id, it, maxOf(p.max, it)) }
                 Stepper(p.max, Modifier.width(92.dp)) { vm.setPhotoLimits(p.id, minOf(p.min, it), it) }
@@ -1034,12 +1034,12 @@ private fun FieldCfgRow(f: FieldCfg, options: Int, vm: AppViewModel, onEdit: () 
     ) {
         Column(Modifier.weight(1f).padding(end = 4.dp).alpha(if (f.visible) 1f else 0.55f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Txt(f.label, 13, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                Txt(f.label, 12, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
                 if (f.locked) LineIcon(Icons.Lock, 13.dp, C.Dim, 2.4f)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 KindChip(f.kind)
-                if (f.kind == FieldKind.DROPDOWN) Txt(plural(options, "option", "options"), 11, 700, C.Yellow, maxLines = 1)
+                if (f.kind == FieldKind.DROPDOWN) Txt(plural(options, "option", "options"), 10, 700, C.Yellow, maxLines = 1)
             }
         }
         // Show: the eye. Mandatory fields stay visible.
@@ -1072,7 +1072,7 @@ private fun FieldCfgRow(f: FieldCfg, options: Int, vm: AppViewModel, onEdit: () 
             Box(
                 Modifier.clip(r(8)).background(if (tag != null) C.YTintBg else Color.Transparent).clickable(onClick = onChecks)
                     .padding(horizontal = 10.dp, vertical = 6.dp),
-            ) { Txt(tag ?: "Add", 12, if (tag != null) 700 else 600, if (tag != null) C.Yellow else C.Soft) }
+            ) { Txt(tag ?: "Add", 11, if (tag != null) 700 else 600, if (tag != null) C.Yellow else C.Soft) }
         }
     }
 }
@@ -1109,8 +1109,8 @@ private fun DialOption(title: String, sub: String, icon: Ico, tint: Color, onCli
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(horizontalAlignment = Alignment.End) {
-            Txt(title, 14, 700)
-            Txt(sub, 12, 400, C.Muted)
+            Txt(title, 13, 700)
+            Txt(sub, 11, 400, C.Muted)
         }
         Box(Modifier.size(40.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
             LineIcon(icon, 19.dp, tint, 2f)
@@ -1123,8 +1123,8 @@ private fun DialOption(title: String, sub: String, icon: Ico, tint: Color, onCli
 private fun TightSheetHeader(title: String, sub: String?, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, 16, 700)
-            sub?.let { Txt(it, 12, 400, C.Muted, maxLines = 2) }
+            Txt(title, 15, 700)
+            sub?.let { Txt(it, 11, 400, C.Muted, maxLines = 2) }
         }
         CloseButton(onClose, size = 34.dp, iconSize = 14.dp)
     }
@@ -1178,8 +1178,8 @@ private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, on
                         ) {
                             LineIcon(d.kind.icon(), 20.dp, C.Yellow, 2.1f)
                             Column(Modifier.weight(1f)) {
-                                Txt(d.label, 13, 700)
-                                Txt(d.kind.shown + if (d.required) " · Mandatory" else "", 12, 400, C.Muted)
+                                Txt(d.label, 12, 700)
+                                Txt(d.kind.shown + if (d.required) " · Mandatory" else "", 11, 400, C.Muted)
                             }
                             LineIcon(Icons.ChevronRight, 15.dp, C.Muted, 2.4f)
                         }
@@ -1216,7 +1216,7 @@ private fun KindTile(k: FieldKind, modifier: Modifier, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         LineIcon(k.icon(), 18.dp, C.Soft, 2.1f)
-        Txt(k.shown, 13, 600, modifier = Modifier.weight(1f))
+        Txt(k.shown, 12, 600, modifier = Modifier.weight(1f))
         LineIcon(Icons.PlusSmall, 16.dp, C.Yellow, 2.6f)
     }
 }
@@ -1264,7 +1264,7 @@ private fun FieldSheet(
             Box(Modifier.size(34.dp).clip(r(10)).background(C.YTintBg), contentAlignment = Alignment.Center) {
                 LineIcon(f.kind.icon(), 19.dp, C.Yellow, 2.2f)
             }
-            Txt(if (draft) f.kind.shown else "Edit ${f.label}", 17, 700, modifier = Modifier.weight(1f), maxLines = 2)
+            Txt(if (draft) f.kind.shown else "Edit ${f.label}", 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
             CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
         }
         Column(
@@ -1281,7 +1281,7 @@ private fun FieldSheet(
                                 .padding(start = 10.dp, end = 2.dp, top = 0.dp, bottom = 0.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Txt(o, 13, 600, modifier = Modifier.weight(1f))
+                            Txt(o, 12, 600, modifier = Modifier.weight(1f))
                             Box(Modifier.size(40.dp).clip(CircleShape).clickable { cur = cur.copy(options = cur.options - o) }, contentAlignment = Alignment.Center) {
                                 LineIcon(Icons.Close, 14.dp, C.Muted, 2.4f)
                             }
@@ -1292,7 +1292,7 @@ private fun FieldSheet(
                     Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12)).padding(start = 10.dp, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PlainField(opt, { opt = it }, "Add an option", Modifier.weight(1f), size = 14)
+                    PlainField(opt, { opt = it }, "Add an option", Modifier.weight(1f), size = 13)
                     Box(Modifier.size(34.dp).clip(CircleShape).background(C.Yellow).clickable(onClick = ::addOption), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.PlusSmall, 18.dp, C.OnYellow, 2.8f)
                     }
@@ -1315,7 +1315,7 @@ private fun FieldSheet(
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Txt(v.ifEmpty { "No format" }, 15, if (cur.display == v) 700 else 500, modifier = Modifier.weight(1f))
+                            Txt(v.ifEmpty { "No format" }, 14, if (cur.display == v) 700 else 500, modifier = Modifier.weight(1f))
                             RadioDot(cur.display == v)
                         }
                     }
@@ -1328,7 +1328,7 @@ private fun FieldSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             ) {
                 LineIcon(Icons.Trash, 17.dp, C.Red, 2.2f)
-                Txt("Delete field", 13, 700, C.Red)
+                Txt("Delete field", 12, 700, C.Red)
             }
         }
         SheetButtons(if (draft) "Submit" else "Save", ok, onClose) { onSubmit(cur) }
@@ -1353,8 +1353,8 @@ private fun DefaultValueInput(f: FieldCfg, choices: List<String>, onChange: (Str
         ) {
             CheckBox(v == "Yes")
             Column {
-                Txt("Default status", 13, 700)
-                Txt("Ticked when a new asset is started", 12, 400, C.Muted)
+                Txt("Default status", 12, 700)
+                Txt("Ticked when a new asset is started", 11, 400, C.Muted)
             }
         }
         FieldKind.YESNO -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1382,8 +1382,8 @@ private fun ToggleRow(title: String, sub: String, on: Boolean, enabled: Boolean,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, 14, 700)
-            Txt(sub, 12, 400, C.Muted)
+            Txt(title, 13, 700)
+            Txt(sub, 11, 400, C.Muted)
         }
         OnOffSwitch(on) { if (enabled) onChange(it) }
     }
@@ -1399,8 +1399,8 @@ private fun LinkRow(icon: Ico, title: String, sub: String, onClick: () -> Unit, 
     ) {
         LineIcon(icon, 19.dp, C.Yellow, 2.1f)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, 14, 700)
-            Txt(sub, 12, 400, C.Muted, maxLines = 2)
+            Txt(title, 13, 700)
+            Txt(sub, 11, 400, C.Muted, maxLines = 2)
         }
         LineIcon(Icons.ChevronRight, 16.dp, C.Muted, 2.4f)
     }
@@ -1408,11 +1408,11 @@ private fun LinkRow(icon: Ico, title: String, sub: String, onClick: () -> Unit, 
 
 /** Yellow small-caps section title inside a sheet. */
 @Composable
-private fun SheetSection(text: String) = Txt(text.uppercase(), 12, 700, C.Yellow, spacing = 0.6f)
+private fun SheetSection(text: String) = Txt(text.uppercase(), 11, 700, C.Yellow, spacing = 0.6f)
 
 @Composable
 private fun InfoBox(text: String) {
-    Txt(text, 13, 400, C.Soft, Modifier.fillMaxWidth().clip(r(12)).background(C.Raised).padding(10.dp), maxLines = 4)
+    Txt(text, 12, 400, C.Soft, Modifier.fillMaxWidth().clip(r(12)).background(C.Raised).padding(10.dp), maxLines = 4)
 }
 
 /** What validation looks for in a field: flag it when empty, and what its values must be. */
@@ -1450,14 +1450,14 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onS
             if (fixedNote != null) {
                 InfoBox(fixedNote)
             } else {
-                Txt("Values must be", 13, 600, C.Soft)
+                Txt("Values must be", 12, 600, C.Soft)
                 Box {
                     Row(
                         Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12))
                             .clickable { ruleOpen = true }.padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Txt(ruleName(rule), 14, 500, modifier = Modifier.weight(1f))
+                        Txt(ruleName(rule), 13, 500, modifier = Modifier.weight(1f))
                         Column {
                             LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f, Modifier.rotate(180f))
                             LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f)
@@ -1466,7 +1466,7 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onS
                     DropdownMenu(ruleOpen, { ruleOpen = false }, containerColor = C.Surface) {
                         rules.forEach { r ->
                             DropdownMenuItem(
-                                text = { Txt(ruleName(r), 15, if (r == rule) 700 else 500, if (r == rule) C.Yellow else C.Text) },
+                                text = { Txt(ruleName(r), 14, if (r == rule) 700 else 500, if (r == rule) C.Yellow else C.Text) },
                                 onClick = { rule = r; ruleOpen = false },
                             )
                         }
@@ -1497,7 +1497,7 @@ private fun Stepper(value: Int, modifier: Modifier, onChange: (Int) -> Unit) {
         Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = value > 0) { onChange(value - 1) }, contentAlignment = Alignment.Center) {
             LineIcon(Icons.Minus, 14.dp, if (value > 0) C.Text else C.Dim, 2.6f)
         }
-        Txt(value.toString(), 13, 700, modifier = Modifier.width(26.dp), align = androidx.compose.ui.text.style.TextAlign.Center)
+        Txt(value.toString(), 12, 700, modifier = Modifier.width(26.dp), align = androidx.compose.ui.text.style.TextAlign.Center)
         Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = value < 9) { onChange(value + 1) }, contentAlignment = Alignment.Center) {
             LineIcon(Icons.PlusSmall, 14.dp, if (value < 9) C.Text else C.Dim, 2.6f)
         }
@@ -1563,11 +1563,11 @@ private fun Geofencing(vm: AppViewModel) {
         ) {
             CheckBox(vm.geoEnforce)
             Column(Modifier.weight(1f)) {
-                Txt("Enforce location restriction for collecting asset data", 13, 600, maxLines = 2)
-                Txt(if (vm.geoEnforce) "Assets can only be collected inside the geofence." else "Assets can be collected anywhere.", 12, 400, C.Muted)
+                Txt("Enforce location restriction for collecting asset data", 12, 600, maxLines = 2)
+                Txt(if (vm.geoEnforce) "Assets can only be collected inside the geofence." else "Assets can be collected anywhere.", 11, 400, C.Muted)
             }
         }
-        Txt("Draw geofence", 14, 700, modifier = Modifier.padding(start = 10.dp, bottom = 8.dp))
+        Txt("Draw geofence", 13, 700, modifier = Modifier.padding(start = 10.dp, bottom = 8.dp))
         // Serves leaflet.js / .css / images from assets/leaflet/ so no script is fetched from the internet.
         val context = androidx.compose.ui.platform.LocalContext.current
         val assets = remember { androidx.webkit.WebViewAssetLoader.Builder().addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build() }

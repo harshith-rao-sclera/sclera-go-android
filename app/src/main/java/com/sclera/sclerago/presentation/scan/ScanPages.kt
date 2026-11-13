@@ -132,7 +132,7 @@ private fun NetTab(label: String, icon: Ico, on: Boolean, modifier: Modifier, on
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             LineIcon(icon, 18.dp, fg, 2.1f)
-            Txt(label, 14, if (on) 700 else 500, fg)
+            Txt(label, 13, if (on) 700 else 500, fg)
         }
         Box(
             Modifier.align(Alignment.BottomCenter).padding(horizontal = 14.dp).fillMaxWidth().height(3.dp)
@@ -198,8 +198,8 @@ private fun LazyListScope.scanSection(
         ) {
             Radar(on, dots, coreIcon)
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(title, 16, 700)
-                Txt(sub, 12, 400, C.Muted, maxLines = 2, align = androidx.compose.ui.text.style.TextAlign.Center)
+                Txt(title, 15, 700)
+                Txt(sub, 11, 400, C.Muted, maxLines = 2, align = androidx.compose.ui.text.style.TextAlign.Center)
             }
             // How far the scan has got, with the percentage done beside it.
             if (on && progress != null) {
@@ -212,7 +212,7 @@ private fun LazyListScope.scanSection(
                     Box(Modifier.weight(1f).height(6.dp).clip(Capsule).background(C.Raised)) {
                         Box(Modifier.fillMaxWidth(progress).fillMaxHeight().clip(Capsule).background(C.Yellow))
                     }
-                    Txt("$pct% done", 12, 700, C.Yellow)
+                    Txt("$pct% done", 11, 700, C.Yellow)
                 }
             }
         }
@@ -226,16 +226,16 @@ private fun LazyListScope.scanSection(
             Column(Modifier.weight(1f)) {
                 Txt(
                     if (picks.selecting) "${picks.picked.size} of ${picks.addable} selected" else "${picks.addable} not added yet",
-                    13, 600, C.Muted,
+                    12, 600, C.Muted,
                 )
-                if (picks.auto) Txt("New finds are selected too", 12, 500, C.Yellow)
+                if (picks.auto) Txt("New finds are selected too", 11, 500, C.Yellow)
             }
             Row(
                 Modifier.clip(Capsule).clickable(onClick = picks.selectAll).padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Txt(if (picks.allPicked) "Clear all" else "Select all", 13, 700, C.Yellow)
+                Txt(if (picks.allPicked) "Clear all" else "Select all", 12, 700, C.Yellow)
                 CheckBox(picks.allPicked)
             }
         }
@@ -255,8 +255,8 @@ private fun LazyListScope.scanSection(
         ) {
             DeviceIconTile(d.device)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(d.device.name, 14, 600)
-                Txt(d.device.sub, 12, 400, C.Muted, mono = mono)
+                Txt(d.device.name, 13, 600)
+                Txt(d.device.sub, 11, 400, C.Muted, mono = mono)
             }
             if (d.isNew && picks.selecting) {
                 Box(Modifier.size(38.dp).clip(r(10)).clickable { picks.toggle(d.device.id) }, contentAlignment = Alignment.Center) {

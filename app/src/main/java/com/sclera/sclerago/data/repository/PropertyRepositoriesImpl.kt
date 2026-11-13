@@ -3,7 +3,6 @@ package com.sclera.sclerago.data.repository
 import com.sclera.sclerago.data.local.DEFAULT_FIELDS
 import com.sclera.sclerago.data.local.DEFAULT_PHOTO_REQS
 import com.sclera.sclerago.data.local.PropertyStore
-import com.sclera.sclerago.data.local.locationTree
 import com.sclera.sclerago.data.mapper.toDomain
 import com.sclera.sclerago.data.mapper.toLocalRecord
 import com.sclera.sclerago.data.remote.PropertyRemoteSource
@@ -92,13 +91,16 @@ class PropertyRepositoryImpl @Inject constructor(
     }
 }
 
+/** Building trees per property; the app's instance starts empty, previews and tests can pass [initial] ones. */
 @ActivityRetainedScoped
-class LocationRepositoryImpl @Inject constructor() : LocationRepository, UserDataCleaner {
+class LocationRepositoryImpl(private val initial: (String) -> List<LocNode>) : LocationRepository, UserDataCleaner {
+    @Inject constructor() : this({ emptyList() })
+
     private val state = MutableStateFlow(emptyMap<String, List<LocNode>>())
     override val trees: StateFlow<Map<String, List<LocNode>>> = state.asStateFlow()
     private var nodeSeq = 1
 
-    override fun tree(prop: String): List<LocNode> = state.value[prop] ?: locationTree(prop)
+    override fun tree(prop: String): List<LocNode> = state.value[prop] ?: initial(prop)
 
     override fun edit(prop: String, f: (List<LocNode>) -> List<LocNode>) {
         state.value = state.value + (prop to f(tree(prop)))

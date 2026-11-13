@@ -84,7 +84,7 @@ fun PhotoStrip(
                 Modifier.size(76.dp).testTag(PhotoTags.tile(i)).clip(r(12)).background(C.Raised)
                     .semantics { contentDescription = title }.clickable { onOpen(i) },
             ) {
-                if (m.isDoc) Txt(m.ext, 12, 800, C.Yellow, Modifier.align(Alignment.Center))
+                if (m.isDoc) Txt(m.ext, 11, 800, C.Yellow, Modifier.align(Alignment.Center))
                 else MediaImage(m, Modifier.fillMaxSize(), maxPx = 240)
                 if (m.video) Txt(
                     stringResource(R.string.detail_video_badge, m.durationText), 9, 700, C.White,
@@ -104,7 +104,7 @@ fun PhotoStrip(
                 verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
             ) {
                 LineIcon(Icons.Plus, 20.dp, C.Yellow, 2.4f)
-                Txt(stringResource(R.string.detail_add_photo), 11, 700, C.Yellow)
+                Txt(stringResource(R.string.detail_add_photo), 10, 700, C.Yellow)
             }
             DropdownMenu(menu, { menu = false }, containerColor = C.Raised) {
                 listOf(
@@ -113,7 +113,7 @@ fun PhotoStrip(
                     Triple(Icons.FileDoc, R.string.detail_menu_files, onPickFiles),
                 ).forEach { (icon, label, go) ->
                     DropdownMenuItem(
-                        text = { Txt(stringResource(label), 14, 500) },
+                        text = { Txt(stringResource(label), 13, 500) },
                         leadingIcon = { LineIcon(icon, 18.dp, C.Yellow, 2.2f) },
                         onClick = { menu = false; go() },
                     )
@@ -122,7 +122,7 @@ fun PhotoStrip(
         }
         if (media.isEmpty()) {
             Txt(
-                stringResource(R.string.detail_no_photos), 13, 400, C.Muted,
+                stringResource(R.string.detail_no_photos), 12, 400, C.Muted,
                 Modifier.align(Alignment.CenterVertically).widthIn(max = 220.dp).testTag(PhotoTags.EMPTY), maxLines = 3,
             )
         }
@@ -140,9 +140,9 @@ fun PhotoViewer(media: List<Media>, index: Int, onIndex: (Int) -> Unit, onClose:
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Txt(m.title(), 16, 700)
-                Txt(stringResource(R.string.detail_photo_of, index + 1, media.size), 12, 400, C.Muted)
-                m.credit?.let { Txt(it, 11, 400, C.Muted, maxLines = 2) }
+                Txt(m.title(), 15, 700)
+                Txt(stringResource(R.string.detail_photo_of, index + 1, media.size), 11, 400, C.Muted)
+                m.credit?.let { Txt(it, 10, 400, C.Muted, maxLines = 2) }
             }
             CloseButton(onClose)
         }

@@ -117,11 +117,9 @@
         <item quantity="other">%1$d actifs</item>
     </plurals>
     <string name="launch_logo_description">Logo Sclera Go</string>
-    <string name="access_heading">Personnes et accès</string>
-    <string name="access_description">Un groupe définit ce que ses membres peuvent faire. Chaque personne appartient à un groupe, pour toutes les propriétés ou celles qui lui sont attribuées.</string>
-    <string name="access_stat_people">Personnes</string>
+    <string name="access_stat_people">Utilisateurs</string>
     <string name="access_stat_groups">Groupes</string>
-    <string name="access_tab_people">Personnes (%1$d)</string>
+    <string name="access_tab_people">Utilisateurs (%1$d)</string>
     <string name="access_tab_groups">Groupes (%1$d)</string>
     <string name="access_search_people">Rechercher des personnes</string>
     <string name="access_search_groups">Rechercher des groupes</string>
@@ -130,18 +128,22 @@
     <string name="access_empty_people">Personne n’a encore accès.</string>
     <string name="access_no_person_match">Personne ne correspond à « %1$s ».</string>
     <string name="access_no_group_match">Aucun groupe ne correspond à « %1$s ».</string>
-    <string name="access_col_group">Groupe</string>
-    <string name="access_col_properties">Propriétés</string>
-    <string name="access_col_last_seen">Dernière connexion</string>
     <string name="access_all_properties">Toutes les propriétés</string>
-    <string name="access_just_now">à l’instant</string>
-    <string name="access_last_seen_description">Dernière connexion %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Lecture seule</string>
     <string name="access_edit_group">Modifier %1$s</string>
     <string name="access_delete_group">Supprimer %1$s</string>
-    <string name="access_delete_locked">%1$s ne peut pas être supprimé</string>
     <string name="access_delete_title">Supprimer %1$s ?</string>
     <string name="access_delete_message">Le groupe sera supprimé. Cette action est irréversible.</string>
+    <string name="access_title">Utilisateurs et accès</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">Supprimer ce groupe ?</item>
+        <item quantity="other">Supprimer %1$d groupes ?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">Le groupe sera supprimé. Cette action est irréversible.</item>
+        <item quantity="other">Ces groupes seront supprimés. Cette action est irréversible.</item>
+    </plurals>
     <string name="access_action_delete">Supprimer</string>
     <string name="access_remove_title">Retirer %1$s ?</string>
     <string name="access_remove_message">%1$s n’aura plus accès à Sclera.</string>

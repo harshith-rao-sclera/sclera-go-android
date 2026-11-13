@@ -115,11 +115,9 @@
         <item quantity="other">%1$d Assets</item>
     </plurals>
     <string name="launch_logo_description">Sclera-Go-Logo</string>
-    <string name="access_heading">Personen und Zugriff</string>
-    <string name="access_description">Eine Gruppe legt fest, was ihre Mitglieder tun dürfen. Jede Person gehört zu einer Gruppe, für alle Standorte oder die ausgewählten.</string>
-    <string name="access_stat_people">Personen</string>
+    <string name="access_stat_people">Benutzer</string>
     <string name="access_stat_groups">Gruppen</string>
-    <string name="access_tab_people">Personen (%1$d)</string>
+    <string name="access_tab_people">Benutzer (%1$d)</string>
     <string name="access_tab_groups">Gruppen (%1$d)</string>
     <string name="access_search_people">Personen suchen</string>
     <string name="access_search_groups">Gruppen suchen</string>
@@ -128,18 +126,22 @@
     <string name="access_empty_people">Noch niemand hat Zugriff.</string>
     <string name="access_no_person_match">Niemand passt zu „%1$s“.</string>
     <string name="access_no_group_match">Keine Gruppe passt zu „%1$s“.</string>
-    <string name="access_col_group">Gruppe</string>
-    <string name="access_col_properties">Standorte</string>
-    <string name="access_col_last_seen">Zuletzt gesehen</string>
     <string name="access_all_properties">Alle Standorte</string>
-    <string name="access_just_now">gerade eben</string>
-    <string name="access_last_seen_description">Zuletzt gesehen %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Nur Ansicht</string>
     <string name="access_edit_group">%1$s bearbeiten</string>
     <string name="access_delete_group">%1$s löschen</string>
-    <string name="access_delete_locked">%1$s kann nicht gelöscht werden</string>
     <string name="access_delete_title">%1$s löschen?</string>
     <string name="access_delete_message">Die Gruppe wird entfernt. Das kann nicht rückgängig gemacht werden.</string>
+    <string name="access_title">Benutzer und Zugriff</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">Diese Gruppe löschen?</item>
+        <item quantity="other">%1$d Gruppen löschen?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">Die Gruppe wird entfernt. Das kann nicht rückgängig gemacht werden.</item>
+        <item quantity="other">Diese Gruppen werden entfernt. Das kann nicht rückgängig gemacht werden.</item>
+    </plurals>
     <string name="access_action_delete">Löschen</string>
     <string name="access_remove_title">%1$s entfernen?</string>
     <string name="access_remove_message">%1$s verliert den Zugriff auf Sclera.</string>

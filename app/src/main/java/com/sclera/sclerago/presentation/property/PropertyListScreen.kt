@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -43,9 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CircleFab
-import com.sclera.sclerago.presentation.components.ColorChip
 import com.sclera.sclerago.presentation.components.ImportStrip
-import com.sclera.sclerago.presentation.components.PageHeading
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.StatCard
 import com.sclera.sclerago.presentation.components.StatRow
@@ -84,7 +81,7 @@ fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel(
     }
     Box(Modifier.fillMaxSize()) {
         PropertyListContent(
-            state, app.state.prop, app.propName,
+            state, app.state.prop,
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
             onAdd = vm::openAdd, onImport = vm::openImport,
         )
@@ -103,7 +100,6 @@ fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel(
 internal fun PropertyListContent(
     state: PropertyListState,
     currentId: String,
-    currentName: String,
     onBack: () -> Unit,
     onQuery: (String) -> Unit,
     onOpen: (String) -> Unit,
@@ -113,19 +109,19 @@ internal fun PropertyListContent(
     val gutter = pageGutter()
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            SubPageBar(stringResource(R.string.property_list_title), currentName, onBack)
+            SubPageBar(stringResource(R.string.property_list_title), property = null, onMenu = onBack)
             LazyColumn(
                 Modifier.weight(1f).fillMaxWidth().testTag(PropertyTags.LIST),
-                contentPadding = PaddingValues(start = gutter + 4.dp, end = gutter + 4.dp, top = 10.dp, bottom = 160.dp),
+                contentPadding = PaddingValues(start = gutter + 10.dp, end = gutter + 10.dp, top = 10.dp, bottom = 160.dp),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 item { Header(state, onImport) }
                 items(state.rows, key = { it.property.id }) { row ->
-                    PropertyCard(row.property.id, row.property.name, row.assets, row.property.id == currentId) { onOpen(row.property.id) }
+                    PropertyCard(row.property.id, row.property.name, row.property.id == currentId) { onOpen(row.property.id) }
                 }
                 if (state.rows.isEmpty()) item {
                     Txt(
-                        stringResource(R.string.property_none_match, state.query.trim()), 14, 400, C.Muted,
+                        stringResource(R.string.property_none_match, state.query.trim()), 13, 400, C.Muted,
                         Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 30.dp).testTag(PropertyTags.EMPTY),
                         maxLines = 3, align = TextAlign.Center,
                     )
@@ -146,46 +142,38 @@ internal fun PropertyListContent(
     }
 }
 
-/** Heading with the count, the Properties / Assets tiles and the import strip. */
+/** The Properties / Assets tiles and the import strip (the app bar already names the page). */
 @Composable
 private fun Header(state: PropertyListState, onImport: () -> Unit) {
     Column(Modifier.padding(bottom = 7.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PageHeading(
-            stringResource(R.string.property_list_title),
-            pluralStringResource(R.plurals.property_count, state.propertyTotal, state.propertyTotal),
-            Modifier.padding(horizontal = 12.dp).testTag(PropertyTags.COUNT),
-        )
         StatRow {
-            StatCard(Icons.Building, C.Yellow, state.propertyTotal.toString(), stringResource(R.string.label_properties), Modifier.weight(1f))
-            StatCard(Icons.Box, C.Blue, state.assetTotal.toString(), stringResource(R.string.label_assets), Modifier.weight(1f))
+            StatCard(
+                Icons.Building, C.Yellow, state.propertyTotal.toString(), stringResource(R.string.label_properties),
+                Modifier.weight(1f).testTag(PropertyTags.COUNT), valueSize = 17, labelSize = 11,
+            )
         }
         ImportStrip(
             stringResource(R.string.property_import_strip), stringResource(R.string.property_import_format), onImport,
-            Modifier.testTag(PropertyTags.IMPORT),
+            Modifier.testTag(PropertyTags.IMPORT), labelSize = 13, formatSize = 11,
         )
     }
 }
 
-/** A property: round building icon, name, asset count; the current property is tinted yellow. */
+/** A property: round building icon and name. The current one is marked for accessibility only. */
 @Composable
-private fun PropertyCard(id: String, name: String, assets: Int, current: Boolean, onClick: () -> Unit) {
+private fun PropertyCard(id: String, name: String, current: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(r(12)).background(if (current) C.YTintBg else C.Surface)
-            .border(1.dp, if (current) C.YTintBd else C.Border, r(12))
+        Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))
             .semantics { selected = current }.testTag(PropertyTags.row(id))
             .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
-            Modifier.size(42.dp).clip(CircleShape).background(if (current) C.Yellow.copy(alpha = 0.18f) else C.Raised)
-                .border(1.dp, if (current) C.YTintBd else C.Border, CircleShape),
+            Modifier.size(40.dp).clip(CircleShape).background(C.Raised).border(1.dp, C.Border, CircleShape),
             contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Building, 18.dp, if (current) C.Yellow else C.Muted, 1.9f) }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Txt(name, 15, 600)
-            ColorChip(pluralStringResource(R.plurals.asset_count, assets, assets), C.Blue, Icons.Box, iconSize = 10.dp)
-        }
+        ) { LineIcon(Icons.Building, 17.dp, C.Muted, 1.9f) }
+        Txt(name, 14, 600, modifier = Modifier.weight(1f), maxLines = 2)
         LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
     }
 }

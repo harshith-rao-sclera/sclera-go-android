@@ -105,13 +105,15 @@ data class UiState(
     /** Bluetooth / Network: true = "Scan" segment, false = "Assets" segment. */
     val btScan: Boolean = true,
     val netScan: Boolean = true,
-    val specLocs: List<String> = listOf("location1"),
-    val specPath: List<String> = listOf("building 1", "floor 1", "location1"),
-    val specWhere: String = "location1 · floor 1",
-    val specSel: String = "l1",
+    /** The location chosen for the lists' location tab (empty until one is picked). */
+    val specLocs: List<String> = emptyList(),
+    val specPath: List<String> = emptyList(),
+    val specWhere: String = "",
+    val specSel: String = "",
     val sheet: Sheet = Sheet.NONE,
     val sheetFor: SheetFor = SheetFor.FILTER,
-    val prop: String = "p1",
+    /** The current property; empty until the properties have loaded (then the first one). */
+    val prop: String = "",
     val propQ: String = "",
     /** Scanned devices ticked on the Bluetooth / Network scan list, to add as assets together. */
     val devPick: Set<String> = emptySet(),
@@ -243,21 +245,21 @@ class AppViewModel @Inject constructor(
 
     private val tgtLoc: String?
         get() = when (state.loc) {
-            LocFilter.SPEC -> if (state.specLocs.size == 1) state.specLocs[0] else state.specPath.last()
+            LocFilter.SPEC -> if (state.specLocs.size == 1) state.specLocs[0] else state.specPath.lastOrNull()
             LocFilter.NONE -> null
-            LocFilter.ALL -> "location1"
+            LocFilter.ALL -> null
         }
     private val tgtWhere: String
         get() = when (state.loc) {
             LocFilter.SPEC -> state.specWhere
             LocFilter.NONE -> ""
-            LocFilter.ALL -> "location1 · floor 1"
+            LocFilter.ALL -> ""
         }
 
     /** The current property's name; empty until the properties have loaded. */
     val propName: String get() = (properties.firstOrNull { it.id == state.prop } ?: properties.firstOrNull())?.name.orEmpty()
     /** The location tab path, or null when the current property has none chosen yet. */
-    val specPathShown: List<String>? get() = if (state.prop != "p1") null else state.specPath
+    val specPathShown: List<String>? get() = state.specPath.ifEmpty { null }
 
     val detailAsset: Asset?
         get() = if (state.newAsset) {
@@ -304,7 +306,8 @@ class AppViewModel @Inject constructor(
         val c = catalog.value
         return properties.filter { ql.isEmpty() || it.name.lowercase().contains(ql) }.map { p ->
             val n = c.countIn(p.id)
-            p to if (n > 0) plural(n, "asset", "assets") + (if (p.gps) " · 5 buildings" else "") else "No assets yet"
+            val buildings = treeFor(p.id).size
+            p to if (n > 0) plural(n, "asset", "assets") + (if (buildings > 0) " · " + plural(buildings, "building", "buildings") else "") else "No assets yet"
         }
     }
 
@@ -451,7 +454,8 @@ class AppViewModel @Inject constructor(
         val cur = state.loc
         when (f) {
             LocFilter.ALL -> if (cur == LocFilter.ALL) openProp() else set { copy(loc = LocFilter.ALL, assetId = null) }
-            LocFilter.SPEC -> if (cur == LocFilter.SPEC) openLocFilter() else set { copy(loc = LocFilter.SPEC, assetId = null) }
+            // No location chosen yet: the tab opens the picker straight away.
+            LocFilter.SPEC -> if (cur == LocFilter.SPEC || state.specLocs.isEmpty()) openLocFilter() else set { copy(loc = LocFilter.SPEC, assetId = null) }
             LocFilter.NONE -> set { copy(loc = LocFilter.NONE, assetId = null) }
         }
     }
@@ -494,7 +498,15 @@ class AppViewModel @Inject constructor(
     fun setPropQ(v: String) = set { copy(propQ = v) }
     fun pickProp(id: String) {
         val changed = id != state.prop
-        set { copy(prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, propQ = "") }
+        set {
+            // A location belongs to its property: switching forgets the one chosen.
+            val keep = !changed
+            copy(
+                prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, propQ = "",
+                specLocs = if (keep) specLocs else emptyList(), specPath = if (keep) specPath else emptyList(),
+                specWhere = if (keep) specWhere else "", specSel = if (keep) specSel else "",
+            )
+        }
         // The new property may not onboard over the tab that's open.
         if (state.tab !in navTabs) goTab(Tab.ASSETS)
         if (changed) flash(UiText.Res(R.string.property_showing, listOf(propName)))
@@ -837,19 +849,12 @@ class AppViewModel @Inject constructor(
     fun runOnAll(sourceId: String) = startJob(sourceId, assets.map { it.id }, "All assets")
 
     /** Starts a validation job; it runs in the background and fills in its results when done. */
-    private fun startJob(
-        sourceId: String,
-        ids: List<Int>,
-        label: String,
-        startedAt: Long = System.currentTimeMillis(),
-        instant: Boolean = false,
-    ) {
-        if (!instant) flash("Validation started · runs in the background")
+    private fun startJob(sourceId: String, ids: List<Int>, label: String) {
+        flash("Validation started · runs in the background")
         validationUseCases.start(
             sourceId, ids, label, state.prop,
             inputs = { assets.map { it to checkInputFor(it) } },
-            startedAt = startedAt, instant = instant,
-            onDone = { j -> if (!instant) flash("${j.title} finished · ${j.failed} failed · ${j.passed} passed") },
+            onDone = { j -> flash("${j.title} finished · ${j.failed} failed · ${j.passed} passed") },
         )
     }
 
@@ -909,16 +914,6 @@ class AppViewModel @Inject constructor(
         toastJob?.cancel()
         ScanService.Target.entries.forEach { scans.stop(it) }
         state = UiState()
-    }
-
-    init {
-        // A few earlier runs so "Recent jobs" isn't empty on first open.
-        val now = System.currentTimeMillis()
-        val h = 3_600_000L
-        startJob("dups", assets.map { it.id }, "All assets", now - 74 * h, instant = true)
-        startJob("full", assets.map { it.id }, "All assets", now - 50 * h, instant = true)
-        startJob("quick", listOf(1, 2), "2 chosen assets", now - 21 * h, instant = true)
-        startJob("quick", listOf(1), "1 chosen asset", now - 20 * h, instant = true)
     }
 
     // ---------- Configuration ----------

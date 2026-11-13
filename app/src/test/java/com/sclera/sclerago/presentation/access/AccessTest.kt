@@ -2,9 +2,9 @@ package com.sclera.sclerago.presentation.access
 
 import com.sclera.sclerago.data.PROPERTY_IMPORT_COLUMNS
 import com.sclera.sclerago.data.local.DEFAULT_GROUPS
-import com.sclera.sclerago.data.local.PROPERTIES
 import com.sclera.sclerago.data.repository.AccessRepositoryImpl
 import com.sclera.sclerago.data.writeSamplePropertyXlsx
+import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.ADMINS_ID
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Permission
@@ -154,10 +154,11 @@ class AccessTest {
 
     @Test
     fun property_needsNameTypeAndUniqueName() {
-        assertNotNull(propertyProblem(" ", "Office", PROPERTIES))
-        assertNotNull(propertyProblem("New tower", "", PROPERTIES))
-        assertNotNull(propertyProblem("test 861", "Office", PROPERTIES))
-        assertNull(propertyProblem("New tower", "Office", PROPERTIES))
+        val existing = listOf(Property("p1", "Test 861", false), Property("p2", "Harbour Point", false))
+        assertNotNull(propertyProblem(" ", "Office", existing))
+        assertNotNull(propertyProblem("New tower", "", existing))
+        assertNotNull(propertyProblem("test 861", "Office", existing))
+        assertNull(propertyProblem("New tower", "Office", existing))
     }
 
     @Test

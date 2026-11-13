@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase
 
+import com.sclera.sclerago.presentation.preview.sampleLocationTree
 import com.sclera.sclerago.data.repository.LocationRepositoryImpl
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.LocNode
@@ -27,7 +28,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocationUseCasesTest {
-    private val repo = LocationRepositoryImpl()
+    private val repo = LocationRepositoryImpl(::sampleLocationTree)
     private val prop = "px"
     private fun tree() = GetLocationTreeUseCase(repo)(prop)
 

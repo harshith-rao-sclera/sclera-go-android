@@ -155,7 +155,7 @@ internal fun AddPropertySheet(existing: List<Property>, onClose: () -> Unit, onA
                 Box(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp)) {
                     PlainField(
                         notes, { notes = it }, stringResource(R.string.property_notes_hint),
-                        Modifier.fillMaxWidth().heightIn(min = 84.dp).padding(vertical = 12.dp), size = 15, singleLine = false, minLines = 3,
+                        Modifier.fillMaxWidth().heightIn(min = 84.dp).padding(vertical = 12.dp), size = 14, singleLine = false, minLines = 3,
                     )
                 }
             }

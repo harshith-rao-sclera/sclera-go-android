@@ -24,11 +24,11 @@ internal fun PageBar(title: String, sub: String?, onBack: () -> Unit, property: 
     Box(Modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding().height(60.dp).padding(horizontal = 10.dp)) {
         RoundButton(42.dp, C.Btn, onBack, Modifier.align(Alignment.CenterStart)) { LineIcon(Icons.ChevronLeft, 22.dp, C.Yellow, 2.6f) }
         Column(Modifier.align(Alignment.Center).padding(horizontal = 56.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Txt(title, 18, 700)
+            Txt(title, 16, 700)
             sub?.let {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     if (property) LineIcon(Icons.Building, 13.dp, C.Muted, 2f)
-                    Txt(it, 12, 500, C.Muted)
+                    Txt(it, 11, 500, C.Muted)
                 }
             }
         }
@@ -38,7 +38,7 @@ internal fun PageBar(title: String, sub: String?, onBack: () -> Unit, property: 
 @Composable
 internal fun EmptyNote(text: String) {
     Txt(
-        text, 13, 400, C.Muted,
+        text, 12, 400, C.Muted,
         Modifier.padding(horizontal = 12.dp).fillMaxWidth().dashedBorder(C.Border2, 1.dp, 12.dp).padding(16.dp),
         maxLines = 3,
     )
@@ -81,7 +81,7 @@ internal fun LabeledInput(
             Modifier.fillMaxWidth().heightIn(min = if (compact) 42.dp else 54.dp).clip(r(if (compact) 10 else 12)).background(C.Bg)
                 .border(1.dp, C.Border2, r(if (compact) 10 else 12))
                 .padding(horizontal = if (compact) 12.dp else 16.dp, vertical = if (compact) 11.dp else 15.dp),
-            size = if (compact) 14 else 16, singleLine = singleLine, minLines = minLines,
+            size = if (compact) 13 else 15, singleLine = singleLine, minLines = minLines,
         )
     }
 }

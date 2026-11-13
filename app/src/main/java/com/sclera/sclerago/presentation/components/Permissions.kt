@@ -95,13 +95,13 @@ fun PermissionSheet(target: ScanService.Target, onContinue: () -> Unit, onNotNow
                 contentAlignment = Alignment.Center,
             ) { LineIcon(t.icon, 32.dp, C.Yellow, 2f) }
             Spacer(Modifier.height(14.dp))
-            Txt(t.sheetTitle, 19, 700, maxLines = 2, align = TextAlign.Center)
+            Txt(t.sheetTitle, 17, 700, maxLines = 2, align = TextAlign.Center)
             Spacer(Modifier.height(6.dp))
-            Txt(t.sheetBody, 14, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
+            Txt(t.sheetBody, 13, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Pill("Not now", onNotNow, Modifier.weight(1f), height = 48.dp, size = 15)
-                Pill("Allow", onContinue, Modifier.weight(1.4f), bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 15, weight = 700)
+                Pill("Not now", onNotNow, Modifier.weight(1f), height = 48.dp, size = 14)
+                Pill("Allow", onContinue, Modifier.weight(1.4f), bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700)
             }
         }
     }
@@ -124,20 +124,20 @@ fun BlockedCard(target: ScanService.Target, onRetry: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) { LineIcon(t.blockedIcon, 32.dp, C.Red, 2f) }
         Spacer(Modifier.height(12.dp))
-        Txt(t.blockedTitle, 17, 700, maxLines = 2, align = TextAlign.Center)
+        Txt(t.blockedTitle, 16, 700, maxLines = 2, align = TextAlign.Center)
         Spacer(Modifier.height(4.dp))
-        Txt(t.blockedBody, 13, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
+        Txt(t.blockedBody, 12, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
         Spacer(Modifier.height(14.dp))
         Column(
             Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Txt("In Settings", 13, 700, C.Soft)
-            Txt("1 · Open Permissions", 13, 400, C.Muted)
-            Txt("2 · ${t.settingsStep}", 13, 400, C.Muted, maxLines = 2)
+            Txt("In Settings", 12, 700, C.Soft)
+            Txt("1 · Open Permissions", 12, 400, C.Muted)
+            Txt("2 · ${t.settingsStep}", 12, 400, C.Muted, maxLines = 2)
         }
         Spacer(Modifier.height(14.dp))
-        Pill("Open settings", { openAppSettings(context) }, Modifier.fillMaxWidth(), bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 15, weight = 700)
+        Pill("Open settings", { openAppSettings(context) }, Modifier.fillMaxWidth(), bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700)
         Spacer(Modifier.height(4.dp))
         Pill("Try again", onRetry, bg = Color.Transparent, fg = C.Yellow, height = 40.dp, size = 14, weight = 700)
     }

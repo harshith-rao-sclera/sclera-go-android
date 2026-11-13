@@ -34,7 +34,7 @@ internal val Tab.sources: Set<Source>?
     }
 
 /** Which property's assets, narrowed to which location, the lists are showing now. */
-data class AssetListScope(val property: String = "p1", val location: LocationFilter = LocationFilter.All)
+data class AssetListScope(val property: String = "", val location: LocationFilter = LocationFilter.All)
 
 /** What the asset lists show: one list per tab, the selection, the search and the pending bulk delete. */
 data class AssetListState(

@@ -10,6 +10,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.assertAny
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -51,7 +54,7 @@ class PropertyListScreenTest {
         compose.setContent {
             ScleraTheme {
                 PropertyListContent(
-                    state, "p1", "Test 861", onBack = {}, onQuery = { queries += it },
+                    state, "p1", onBack = {}, onQuery = { queries += it },
                     onOpen = { opened += it }, onAdd = { added++ }, onImport = { imported++ },
                 )
             }
@@ -60,10 +63,14 @@ class PropertyListScreenTest {
 
     private fun checkKeyStates() {
         showList()
-        compose.onAllNodesWithText(str(R.string.property_list_title)).assertCountEquals(2) // app bar + heading
-        compose.onNodeWithTag(PropertyTags.COUNT).assertTextContains("4 properties", substring = true)
+        // Only the app bar names the page: no heading, no "N properties" line, no current property under the title.
+        compose.onAllNodesWithText(str(R.string.property_list_title)).assertCountEquals(1)
+        compose.onAllNodesWithText(context.resources.getQuantityString(R.plurals.property_count, 4, 4)).assertCountEquals(0)
+        compose.onNodeWithTag(PropertyTags.COUNT).onChildren().assertAny(hasText("4"))
         compose.onNodeWithText(str(R.string.label_properties)).assertIsDisplayed()
-        compose.onNodeWithText("28").assertIsDisplayed()
+        // No asset counts on this page: no Assets tile and no "N assets" on the cards.
+        compose.onNodeWithText(str(R.string.label_assets)).assertDoesNotExist()
+        compose.onNodeWithText(context.resources.getQuantityString(R.plurals.asset_count, 25, 25)).assertDoesNotExist()
         compose.onNodeWithTag(PropertyTags.IMPORT).assertIsDisplayed().performClick()
         compose.onNodeWithTag(PropertyTags.ADD).assertIsDisplayed().performClick()
         assertEquals(1, imported)
@@ -97,7 +104,7 @@ class PropertyListScreenTest {
     @Test
     @Config(qualifiers = PHONE)
     fun noMatch_showsTheQueryInTheEmptyMessage() {
-        showList(PropertyListState(query = " zzz ", propertyTotal = 4, assetTotal = 28))
+        showList(PropertyListState(query = " zzz ", propertyTotal = 4))
         compose.onNodeWithTag(PropertyTags.LIST).performScrollToNode(SemanticsMatcher.expectValue(SemanticsProperties.TestTag, PropertyTags.EMPTY))
         compose.onNodeWithTag(PropertyTags.EMPTY).assertTextContains(str(R.string.property_none_match, "zzz"))
     }

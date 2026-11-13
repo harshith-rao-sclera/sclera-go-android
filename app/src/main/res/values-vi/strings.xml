@@ -113,11 +113,9 @@
         <item quantity="other">%1$d tài sản</item>
     </plurals>
     <string name="launch_logo_description">Biểu trưng Sclera Go</string>
-    <string name="access_heading">Người dùng và quyền truy cập</string>
-    <string name="access_description">Một nhóm quy định những gì thành viên của nhóm có thể làm. Mỗi người thuộc một nhóm, với quyền truy cập tất cả cơ sở hoặc các cơ sở được chọn cho họ.</string>
-    <string name="access_stat_people">Người</string>
+    <string name="access_stat_people">Người dùng</string>
     <string name="access_stat_groups">Nhóm</string>
-    <string name="access_tab_people">Người (%1$d)</string>
+    <string name="access_tab_people">Người dùng (%1$d)</string>
     <string name="access_tab_groups">Nhóm (%1$d)</string>
     <string name="access_search_people">Tìm người</string>
     <string name="access_search_groups">Tìm nhóm</string>
@@ -126,18 +124,20 @@
     <string name="access_empty_people">Chưa có ai được cấp quyền truy cập.</string>
     <string name="access_no_person_match">Không có ai khớp với “%1$s”.</string>
     <string name="access_no_group_match">Không có nhóm nào khớp với “%1$s”.</string>
-    <string name="access_col_group">Nhóm</string>
-    <string name="access_col_properties">Cơ sở</string>
-    <string name="access_col_last_seen">Lần truy cập cuối</string>
     <string name="access_all_properties">Tất cả cơ sở</string>
-    <string name="access_just_now">vừa xong</string>
-    <string name="access_last_seen_description">Lần truy cập cuối: %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Chỉ xem</string>
     <string name="access_edit_group">Sửa %1$s</string>
     <string name="access_delete_group">Xóa %1$s</string>
-    <string name="access_delete_locked">Không thể xóa %1$s</string>
     <string name="access_delete_title">Xóa %1$s?</string>
     <string name="access_delete_message">Nhóm sẽ bị xóa. Không thể hoàn tác thao tác này.</string>
+    <string name="access_title">Người dùng và quyền truy cập</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="other">Xóa %1$d nhóm?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="other">Nhóm sẽ bị xóa. Không thể hoàn tác thao tác này.</item>
+    </plurals>
     <string name="access_action_delete">Xóa</string>
     <string name="access_remove_title">Gỡ %1$s?</string>
     <string name="access_remove_message">%1$s sẽ mất quyền truy cập Sclera.</string>

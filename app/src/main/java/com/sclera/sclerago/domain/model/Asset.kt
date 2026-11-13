@@ -56,7 +56,7 @@ data class Asset(
     val src: Source,
     val st: Status,
     val type: AssetType,
-    val prop: String = "p1",
+    val prop: String = "",
     /** Photos and videos attached to this asset (from the camera or the gallery). */
     val media: List<Media> = emptyList(),
     /** When the asset was last added or edited (epoch millis); null for sample assets nobody has touched. */

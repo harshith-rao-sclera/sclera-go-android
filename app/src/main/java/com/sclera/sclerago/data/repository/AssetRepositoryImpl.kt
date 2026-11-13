@@ -1,7 +1,5 @@
 package com.sclera.sclerago.data.repository
 
-import com.sclera.sclerago.data.local.DETAILS
-import com.sclera.sclerago.data.local.SEED_ASSETS
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetDetails
@@ -16,10 +14,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
-/** Assets in memory, starting from the sample assets, until they come from the Sclera API. */
+/**
+ * Assets in memory, until they come from the Sclera API. The app's (Hilt's) instance starts empty;
+ * previews and tests can start it with [initial] assets and their [initialDetails].
+ */
 @ActivityRetainedScoped
-class AssetRepositoryImpl @Inject constructor() : AssetRepository, UserDataCleaner {
-    private val state = MutableStateFlow(AssetCatalog(assets = SEED_ASSETS))
+class AssetRepositoryImpl(
+    private val initial: List<Asset>,
+    private val initialDetails: Map<Int, AssetDetails>,
+) : AssetRepository, UserDataCleaner {
+    @Inject constructor() : this(emptyList(), emptyMap())
+
+    private val state = MutableStateFlow(AssetCatalog(assets = initial))
     override val catalog: StateFlow<AssetCatalog> = state.asStateFlow()
 
     private fun set(f: AssetCatalog.() -> AssetCatalog) {
@@ -57,8 +63,9 @@ class AssetRepositoryImpl @Inject constructor() : AssetRepository, UserDataClean
         set { copy(deviceAsset = deviceAsset + (deviceId to assetId), addedDevices = addedDevices + deviceId) }
 
     override fun clear() {
-        state.value = AssetCatalog(assets = SEED_ASSETS)
+        state.value = AssetCatalog()
     }
 
-    override fun details(id: Int): AssetDetails? = DETAILS[id]
+    /** Code and reference fields an asset came with (from the server, once assets come from the API). */
+    override fun details(id: Int): AssetDetails? = initialDetails[id]
 }
