@@ -28,6 +28,9 @@ class MasterFormatsOfflineSource(private val db: AdcDatabase, private val io: Co
 
     fun activeFlow(): Flow<List<MasterFormat>> = db.watch(io, TABLE) { loadActive() }
 
+    /** [active] for the writers that classify an asset in their own transaction. Blocking. */
+    internal fun activeNow(): List<MasterFormat> = loadActive()
+
     /** The catalogue as a tree, each level counting the assets filed under it. */
     suspend fun classification(): List<ClassCount> = withContext(io) { loadClassification() }
 

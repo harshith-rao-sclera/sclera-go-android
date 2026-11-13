@@ -39,6 +39,9 @@ class PlacesOfflineSource(private val db: AdcDatabase, private val io: Coroutine
     /** Building, floor, location (or the shorter way to a floor or building) of [placeId]; empty when it is not there. */
     suspend fun findLocationPath(placeId: String): List<PathStep> = withContext(io) { loadPath(placeId) }
 
+    /** [findLocationPath] for the writers that resolve a place in their own transaction. Blocking. */
+    internal fun pathNow(placeId: String): List<PathStep> = loadPath(placeId)
+
     /** A lookup of place names for building asset labels. Blocking: call it on the IO dispatcher. */
     internal fun index(): PlaceIndex = db.whenOpen(PlaceIndex.EMPTY) {
         val floors = rows("floors")

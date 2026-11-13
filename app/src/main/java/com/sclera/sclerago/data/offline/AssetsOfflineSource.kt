@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
+import com.sclera.sclerago.data.mapper.FieldKeys
 import com.sclera.sclerago.data.mapper.toAsset
 import com.sclera.sclerago.data.mapper.toAssetActivity
 import com.sclera.sclerago.data.mapper.toAssetDetails
@@ -9,6 +10,7 @@ import com.sclera.sclerago.data.mapper.toMedia
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AssetFilter
 import com.sclera.sclerago.domain.model.AssetFull
 import com.sclera.sclerago.domain.model.AssetSummary
@@ -21,6 +23,9 @@ import kotlinx.coroutines.withContext
 /** Spec values shown after the make and model in an asset's one-line detail: database key to unit. */
 private val SPEC_UNITS = listOf("rated_power_kw" to "kW", "voltage" to "V", "speed" to "RPM")
 
+/** The app's field keys a scanned device is looked up in. */
+private val SCAN_KEYS = listOf("ble", "ip", "label", "note")
+
 private val ASSET_TABLES = arrayOf("assets", "asset_values", "asset_media", "buildings", "floors", "locations", "master_formats")
 
 /**
@@ -30,6 +35,7 @@ private val ASSET_TABLES = arrayOf("assets", "asset_values", "asset_media", "bui
 class AssetsOfflineSource(
     private val db: AdcDatabase,
     private val io: CoroutineDispatcher,
+    private val files: AssetFileStore,
     private val places: PlacesOfflineSource,
     private val formats: MasterFormatsOfflineSource,
     private val validation: ValidationOfflineSource,
@@ -64,6 +70,15 @@ class AssetsOfflineSource(
 
     fun assetFlow(assetId: String, propertyId: String = ""): Flow<AssetFull?> =
         db.watch(io, *ASSET_TABLES, "asset_activity", "validation_results", "validation_issues") { loadFull(assetId, propertyId) }
+
+    /** The details of each of [assetIds], by asset id. */
+    suspend fun detailsFor(assetIds: Collection<String>): Map<String, AssetDetails> = withContext(io) { loadDetails(assetIds) }
+
+    /** Scanned device id → the asset made from it. */
+    fun deviceLinksFlow(): Flow<Map<String, String>> = db.watch(io, "assets") { loadDeviceLinks() }
+
+    /** Asset id → its BLE tag, IP address, label and notes, one per line, for matching scan results. */
+    fun scanTextFlow(): Flow<Map<String, String>> = db.watch(io, "assets", "asset_values") { loadScanText() }
 
     /** An asset's photos, videos and documents in order. [Media.uri] is the stored object path (`local://` or `s3://`). */
     suspend fun media(assetId: String): List<Media> = withContext(io) { mediaFor(listOf(assetId))[assetId].orEmpty() }
@@ -134,6 +149,30 @@ class AssetsOfflineSource(
         }
     }
 
+    private fun loadDetails(assetIds: Collection<String>): Map<String, AssetDetails> = db.whenTable("assets", emptyMap()) {
+        if (assetIds.isEmpty()) return@whenTable emptyMap()
+        val rows = db.queryIn(ASSETS_BY_IDS.replace("%LIVE%", db.notRemoved("assets", "a")), assetIds)
+        val values = db.whenTable("asset_values", emptyList()) { db.queryIn(ASSET_VALUES_ROWS, assetIds) }.associateBy { it.string("asset_id").orEmpty() }
+        val formatById = formats.byId()
+        rows.associate { row ->
+            val id = row.string("id").orEmpty()
+            id to row.toAssetDetails(values[id], formatById[row.string("master_format_id")])
+        }
+    }
+
+    private fun loadDeviceLinks(): Map<String, String> = db.whenTable("assets", emptyMap()) {
+        db.query(DEVICE_LINKS.replace("%LIVE%", db.notRemoved("assets", "a"))).associate { it.string("source_ref").orEmpty() to it.string("id").orEmpty() }
+    }
+
+    private fun loadScanText(): Map<String, String> = db.whenTable("asset_values", emptyMap()) {
+        if (!db.hasTable("assets")) return@whenTable emptyMap()
+        db.query(ALL_ASSET_VALUES.replace("%LIVE%", db.notRemoved("assets", "a"))).mapNotNull { row ->
+            val values = DbJson.stringMap(row.string("values"))
+            val text = SCAN_KEYS.mapNotNull { values[FieldKeys.toDb(it)] }.filter { it.isNotBlank() }.joinToString("\n")
+            text.takeIf { it.isNotEmpty() }?.let { row.string("asset_id").orEmpty() to it }
+        }.toMap()
+    }
+
     private fun detailLine(makeModel: String, values: Map<String, String>): String =
         (listOf(makeModel) + SPEC_UNITS.mapNotNull { (key, unit) -> values[key]?.takeIf { it.isNotBlank() }?.let { spec(it, unit) } })
             .filter { it.isNotBlank() }.joinToString(" · ")
@@ -142,7 +181,7 @@ class AssetsOfflineSource(
 
     private fun mediaFor(ids: List<String>): Map<String, List<Media>> = db.whenTable("asset_media", emptyMap()) {
         db.queryIn(MEDIA_FOR.replace("%LIVE%", db.notRemoved("asset_media")), ids)
-            .groupBy({ it.string("asset_id").orEmpty() }, { it.toMedia() })
+            .groupBy({ it.string("asset_id").orEmpty() }, { it.toMedia(files.uriFor(it.string("object_path").orEmpty())) })
     }
 
     private fun valuesFor(ids: List<String>): Map<String, Map<String, String>> = db.whenTable("asset_values", emptyMap()) {
