@@ -56,8 +56,11 @@ internal fun sampleDetailState(
     return base.copy(checks = EvaluateAssetChecksUseCase()(input))
 }
 
-/** Asset 2 with its JACS code taken out, so one check fails (the design's Validation tab). */
-internal fun sampleFailingState() = sampleDetailState(edits = mapOf("jacs" to ""))
+/** Asset 2 as seeded: no JACS code (one failed check) and a speed read with low confidence (a warning), as in the design. */
+internal fun sampleFailingState() = sampleDetailState()
+
+/** Asset 2 with the JACS code set and the speed reviewed: every check passes. */
+internal fun samplePassingState() = sampleDetailState(edits = mapOf("jacs" to "[JACS code 1]", "speed" to "2900 RPM (checked)"))
 
 internal val SampleReviewItems = listOf(
     ReviewItem("a", "Asset from photo 14:02:31", UiText.Res(com.sclera.sclerago.R.string.review_photo_sub), ready = false, on = true),
@@ -93,7 +96,7 @@ private fun ChecksFailingPreview() = ScleraTheme { ChecksPage(sampleFailingState
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
-private fun ChecksPassingPreview() = ScleraTheme { ChecksPage(sampleDetailState()) }
+private fun ChecksPassingPreview() = ScleraTheme { ChecksPage(samplePassingState()) }
 
 @Composable
 private fun ChecksPage(state: AssetDetailState) {

@@ -11,7 +11,6 @@ import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AuthState
-import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.Device
@@ -455,7 +454,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    private fun comingSoon( label: Int) = flash(UiText.Res(R.string.menu_coming_soon, listOf(UiText.Res(label))))
+    private fun comingSoon(@StringRes label: Int) = flash(UiText.Res(R.string.menu_coming_soon, listOf(UiText.Res(label))))
 
     // Property list / People and access
     fun openAdmin(page: AdminPage) = set {

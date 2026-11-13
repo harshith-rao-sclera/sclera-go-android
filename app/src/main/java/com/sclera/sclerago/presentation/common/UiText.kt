@@ -21,12 +21,16 @@ sealed interface UiText {
     data class Raw(val text: String) : UiText
 }
 
+/** The text in the current locale; an argument that is itself a [UiText] is resolved too. */
 @Composable
 fun UiText.asString(): String = when (this) {
-    is UiText.Res -> stringResource(id, *args.toTypedArray())
-    is UiText.Plural -> pluralStringResource(id, count, *args.toTypedArray())
+    is UiText.Res -> stringResource(id, *args.resolved())
+    is UiText.Plural -> pluralStringResource(id, count, *args.resolved())
     is UiText.Raw -> text
 }
+
+@Composable
+private fun List<Any>.resolved(): Array<Any> = map { if (it is UiText) it.asString() else it }.toTypedArray()
 
 /** The localized message for each auth error (formerly carried on the error as messageRes/messageArgs). */
 fun AuthError.toUiText(): UiText = when (this) {

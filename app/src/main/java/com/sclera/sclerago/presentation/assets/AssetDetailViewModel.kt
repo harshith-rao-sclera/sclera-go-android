@@ -10,7 +10,7 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
-import com.sclera.sclerago.domain.usecase.config.AssetConfigUseCases
+import com.sclera.sclerago.domain.usecase.config.ObserveAssetConfigUseCase
 import com.sclera.sclerago.domain.validation.AssetCheckInput
 import com.sclera.sclerago.domain.validation.AssetChecks
 import com.sclera.sclerago.presentation.common.UiText
@@ -78,7 +78,7 @@ data class AssetDetailState(
 @HiltViewModel
 class AssetDetailViewModel @Inject constructor(
     private val useCases: AssetUseCases,
-    configUseCases: AssetConfigUseCases,
+    observeConfig: ObserveAssetConfigUseCase,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
 
@@ -99,7 +99,7 @@ class AssetDetailViewModel @Inject constructor(
     val notices: SharedFlow<UiText> = message.asSharedFlow()
 
     val state: StateFlow<AssetDetailState> =
-        combine(target, form, useCases.observe(), configUseCases.observe()) { t, f, catalog, config ->
+        combine(target, form, useCases.observe(), observeConfig()) { t, f, catalog, config ->
             if (t == null) return@combine AssetDetailState()
             val asset = if (t.isNew) t.asset
             else catalog.assetsIn(t.asset.prop).firstOrNull { it.id == t.asset.id } ?: return@combine AssetDetailState()

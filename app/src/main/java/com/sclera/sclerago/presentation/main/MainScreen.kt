@@ -31,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.pager.rememberPagerState
@@ -52,7 +51,6 @@ import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.PermissionSheet
 import com.sclera.sclerago.presentation.components.PropertySheet
-import com.sclera.sclerago.presentation.components.ReadableWidth
 import com.sclera.sclerago.presentation.components.ShakeEffect
 import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.readableWidth

@@ -30,6 +30,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -123,8 +125,9 @@ fun RoundButton(
 }
 
 @Composable
-fun CloseButton(onClick: () -> Unit, size: Dp = 44.dp, iconSize: Dp = 18.dp, bg: Color = C.Btn) {
-    RoundButton(size, bg, onClick) { LineIcon(Icons.Close, iconSize, C.Text, 2.6f) }
+fun CloseButton(onClick: () -> Unit, size: Dp = 48.dp, iconSize: Dp = 18.dp, bg: Color = C.Btn) {
+    val label = stringResource(R.string.action_close)
+    RoundButton(size, bg, onClick, Modifier.semantics { contentDescription = label }) { LineIcon(Icons.Close, iconSize, C.Text, 2.6f) }
 }
 
 @Composable
