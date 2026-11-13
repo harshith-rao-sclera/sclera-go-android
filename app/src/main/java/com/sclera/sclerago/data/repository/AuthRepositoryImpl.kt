@@ -9,6 +9,9 @@ import com.sclera.sclerago.data.mapper.cookieValue
 import com.sclera.sclerago.data.mapper.roleFromUserInfo
 import com.sclera.sclerago.data.mapper.signedInEmail
 import com.sclera.sclerago.data.mapper.toDomain
+import com.sclera.sclerago.data.mapper.toSyncCredentials
+import com.sclera.sclerago.data.sync.SyncCredentials
+import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.data.mapper.tokenExpiry
 import com.sclera.sclerago.data.remote.AuthConfig
 import com.sclera.sclerago.data.remote.AuthApi
@@ -39,7 +42,7 @@ class AuthRepositoryImpl(
     private val store: AuthStore,
     private val api: AuthApi,
     mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
-) : AuthRepository {
+) : AuthRepository, SyncCredentialsProvider {
     private companion object {
         const val TAG = "ScleraAuth"
         const val FOREGROUND_CHECK_INTERVAL_MS = 60_000L
@@ -54,6 +57,9 @@ class AuthRepositoryImpl(
     private val _state = MutableStateFlow<AuthState>(AuthState.SignedOut())
     override val state: StateFlow<AuthState> = _state.asStateFlow()
 
+    private val _credentials = MutableStateFlow<SyncCredentials?>(null)
+    override val credentials: StateFlow<SyncCredentials?> = _credentials.asStateFlow()
+
     /** The persisted session behind [AuthState.SignedIn]; null when signed out. */
     private var current: AuthSession? = null
 
@@ -62,10 +68,12 @@ class AuthRepositoryImpl(
     private fun publishSignedIn(s: AuthSession) {
         current = s
         _state.value = AuthState.SignedIn(s.toDomain())
+        _credentials.value = s.toSyncCredentials()
     }
 
     private fun publishSignedOut(reason: AuthError?) {
         current = null
+        _credentials.value = null
         _state.value = AuthState.SignedOut(reason)
     }
 

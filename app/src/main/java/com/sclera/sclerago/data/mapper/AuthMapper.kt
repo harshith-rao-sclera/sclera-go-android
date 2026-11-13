@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.mapper
 
 import android.util.Base64
 import com.sclera.sclerago.data.local.AuthSession
+import com.sclera.sclerago.data.sync.SyncCredentials
 import com.sclera.sclerago.domain.model.UserSession
 import org.json.JSONObject
 
@@ -26,10 +27,20 @@ internal fun avatarFromUserInfo(data: JSONObject): String? =
 internal fun prettyRole(raw: String): String =
     raw.trim().replace('_', ' ').replace('-', ' ').lowercase().replaceFirstChar { it.uppercase() }
 
-/** Role from the userInfo `data` object (the web app keeps it as `role`). */
-internal fun roleFromUserInfo(data: JSONObject): String? =
+/** The role exactly as the backend sends it in the userInfo `data` object (e.g. "SUPER_ADMIN"). */
+internal fun rawRoleFromUserInfo(data: JSONObject): String? =
     sequenceOf("role", "roleName", "role_name", "userRole", "user_role")
-        .map { data.optString(it).trim() }.firstOrNull { it.isNotEmpty() && it != "null" }?.let(::prettyRole)
+        .map { data.optString(it).trim() }.firstOrNull { it.isNotEmpty() && it != "null" }
+
+/** Role from the userInfo `data` object (the web app keeps it as `role`). */
+internal fun roleFromUserInfo(data: JSONObject): String? = rawRoleFromUserInfo(data)?.let(::prettyRole)
+
+/** The Sclera user id from the userInfo `data` object; unverified key names. */
+internal fun userIdFromUserInfo(data: JSONObject): String? = data.firstText("user_id", "userId", "id")
+
+/** The organisation id from the userInfo `data` object; unverified key names. */
+internal fun organisationIdFromUserInfo(data: JSONObject): String? =
+    data.firstText("organisation_id", "organisationId", "org_id", "orgId", "scleraorgid")
 
 /** Full name from the userInfo `data` object, if it has one. */
 internal fun nameFromUserInfo(data: JSONObject): String? {
@@ -107,4 +118,22 @@ internal fun signedInEmail(sessionData: JSONObject, token: String?): String? {
 internal fun tokenExpiry(data: JSONObject, token: String): Long {
     val raw = data.optLong("expiresAt", 0L).takeIf { it > 0 } ?: jwtPayload(token)?.optLong("exp", 0L) ?: 0L
     return if (raw in 1 until 100_000_000_000L) raw * 1000 else raw
+}
+
+/**
+ * What the sync engine needs, or null while there is no access token. Ids come from the user details,
+ * the user id falling back to the token's `sub` and the organisation id to the token's claims; empty when unknown.
+ */
+fun AuthSession.toSyncCredentials(): SyncCredentials? {
+    val token = accessToken ?: return null
+    val info = userInfo?.let { runCatching { JSONObject(it) }.getOrNull() }
+    val claims = jwtPayload(token)
+    return SyncCredentials(
+        email = email,
+        userId = info?.let(::userIdFromUserInfo) ?: claims?.optString("sub").orEmpty(),
+        role = info?.let(::rawRoleFromUserInfo).orEmpty(),
+        organisationId = (info?.let(::organisationIdFromUserInfo) ?: claims?.let(::organisationIdFromUserInfo)).orEmpty(),
+        accessToken = token,
+        sessionId = sessionId,
+    )
 }

@@ -28,13 +28,16 @@ object AppModule {
     /** One session per process; the saved session is restored as soon as the repository is created. */
     @Provides
     @Singleton
-    fun provideAuthRepository(
+    fun provideAuthRepositoryImpl(
         @ApplicationContext context: Context,
         api: AuthApi,
         cipher: SecretCipher,
         @MainDispatcher dispatcher: CoroutineDispatcher,
-    ): AuthRepository =
+    ): AuthRepositoryImpl =
         AuthRepositoryImpl(AuthStore(context, cipher), api, dispatcher).also { it.restore() }
+
+    @Provides
+    fun provideAuthRepository(impl: AuthRepositoryImpl): AuthRepository = impl
 
     /** Encrypts what the app keeps on the device; the key never leaves the Android Keystore. */
     @Provides
