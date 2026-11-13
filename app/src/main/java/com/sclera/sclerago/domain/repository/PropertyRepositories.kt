@@ -9,11 +9,15 @@ import com.sclera.sclerago.domain.model.PlaceRow
 import com.sclera.sclerago.domain.model.Property
 import kotlinx.coroutines.flow.StateFlow
 
-/** The properties the user can work on. */
+/** The properties the user can work on, from the server (kept for offline use). Failures throw [com.sclera.sclerago.domain.model.OnlineException]. */
 interface PropertyRepository {
     val properties: StateFlow<List<Property>>
 
-    fun add(property: Property)
+    /** Loads the properties again; the list shown before stays when it fails. */
+    suspend fun refresh()
+
+    /** Creates [property] on the server; returns it with the id it was given. Needs a connection. */
+    suspend fun add(property: Property): Property
 }
 
 /** The building → floor → location tree of the downloaded property (Configuration → Building info). Writes throw [com.sclera.sclerago.domain.model.DataException]. */
@@ -53,10 +57,11 @@ interface AssetConfigRepository {
     suspend fun update(f: (AssetConfig) -> AssetConfig)
 }
 
-/** Property Settings: the ways of adding assets each property has switched off. */
+/** Property Settings: the ways of adding assets each property has switched off (the server keeps them). */
 interface OnboardingRepository {
     /** Property id → channels switched off there. */
     val disabled: StateFlow<Map<String, Set<OnboardingChannel>>>
 
-    fun setEnabled(prop: String, channel: OnboardingChannel, enabled: Boolean)
+    /** Throws [com.sclera.sclerago.domain.model.OnlineException]; needs a connection. */
+    suspend fun setEnabled(prop: String, channel: OnboardingChannel, enabled: Boolean)
 }
