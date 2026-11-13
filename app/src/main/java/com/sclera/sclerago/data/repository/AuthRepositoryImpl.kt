@@ -15,6 +15,7 @@ import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.data.mapper.tokenExpiry
 import com.sclera.sclerago.data.remote.AuthConfig
 import com.sclera.sclerago.data.remote.AuthApi
+import com.sclera.sclerago.data.remote.adc.AccessTokenProvider
 import com.sclera.sclerago.domain.model.AuthError
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.repository.AuthRepository
@@ -42,7 +43,7 @@ class AuthRepositoryImpl(
     private val store: AuthStore,
     private val api: AuthApi,
     mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
-) : AuthRepository, SyncCredentialsProvider {
+) : AuthRepository, SyncCredentialsProvider, AccessTokenProvider {
     private companion object {
         const val TAG = "ScleraAuth"
         const val FOREGROUND_CHECK_INTERVAL_MS = 60_000L
@@ -174,7 +175,7 @@ class AuthRepositoryImpl(
      * A valid access token, regenerating it when missing/expired. Pass the token that was just
      * rejected (401/403) as [rejected] to force a new one; concurrent callers share one refresh.
      */
-    suspend fun accessToken(rejected: String? = null): String = tokenMutex.withLock {
+    override suspend fun accessToken(rejected: String?): String = tokenMutex.withLock {
         val current = session ?: throw AuthError.SessionExpired()
         val token = current.accessToken
         if (token != null && token != rejected && current.tokenValid()) return token
