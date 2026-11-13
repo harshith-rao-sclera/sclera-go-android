@@ -24,8 +24,8 @@ import com.sclera.sclerago.presentation.theme.Txt
 
 /** The bar the bottom tabs sit in (main screen and Configuration). */
 @Composable
-internal fun BottomTabBar(content: @Composable RowScope.() -> Unit) {
-    Box(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).navigationBarsPadding().height(58.dp)) {
+internal fun BottomTabBar(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    Box(modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).navigationBarsPadding().height(58.dp)) {
         Row(Modifier.fillMaxSize(), content = content)
     }
 }

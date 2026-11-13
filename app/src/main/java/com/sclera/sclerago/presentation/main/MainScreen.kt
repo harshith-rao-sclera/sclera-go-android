@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.presentation.launch.Entrance
+import com.sclera.sclerago.presentation.launch.launchEntrance
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailScreen
 import com.sclera.sclerago.presentation.assets.CameraPage
@@ -162,8 +164,8 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel()) {
 
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize().imePadding()) {
-            Header(vm)
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+            Header(vm, Modifier.launchEntrance(Entrance.DashHeader))
+            Box(Modifier.weight(1f).fillMaxWidth().launchEntrance(Entrance.DashContent)) {
                 HorizontalPager(
                     state = pager,
                     modifier = Modifier.fillMaxSize(),
@@ -267,9 +269,9 @@ private fun AssetsPage(vm: AppViewModel) {
 // ---------------------------------------------------------------- Header
 
 @Composable
-private fun Header(vm: AppViewModel) {
+private fun Header(vm: AppViewModel, modifier: Modifier = Modifier) {
     Column(
-        Modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding(),
+        modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Box(Modifier.fillMaxWidth().height(40.dp).padding(horizontal = 8.dp)) {
@@ -364,7 +366,7 @@ private fun BottomNav(vm: AppViewModel, pager: PagerState, tabs: List<Tab>) {
     // Continuous page position, e.g. 2.4 = 40% of the way from Assets to Camera.
     val pos = pager.currentPage + pager.currentPageOffsetFraction
     val shown = NAV.filter { it.tab in tabs }
-    BottomTabBar {
+    BottomTabBar(Modifier.launchEntrance(Entrance.DashNav)) {
         shown.forEachIndexed { i, n ->
             val t = (1f - abs(pos - i)).coerceIn(0f, 1f)
             NavItem(n.label, n.icon, n.iconSize, t, first = i == 0, last = i == shown.size - 1) { vm.goTab(n.tab) }
