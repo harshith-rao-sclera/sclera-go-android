@@ -447,4 +447,5 @@
     <string name="online_error_invalid">Деякі значення не прийнято. Перевірте їх і повторіть спробу.</string>
     <string name="online_error_unavailable">Sclera ще готує це. Повторіть спробу за хвилину.</string>
     <string name="online_error_server">На сервері Sclera сталася помилка. Повторіть спробу.</string>
+    <string name="detail_ai_sync_first">Спочатку синхронізуйте цей актив, потім повторіть автозаповнення з ШІ.</string>
 </resources>

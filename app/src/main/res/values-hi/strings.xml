@@ -437,4 +437,5 @@
     <string name="online_error_invalid">कुछ मान स्वीकार नहीं किए गए। उन्हें जाँचें और फिर से कोशिश करें।</string>
     <string name="online_error_unavailable">Sclera अभी इसे तैयार कर रहा है। थोड़ी देर में फिर से कोशिश करें।</string>
     <string name="online_error_server">Sclera सर्वर पर कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।</string>
+    <string name="detail_ai_sync_first">पहले इस एसेट को सिंक करें, फिर AI ऑटोफ़िल दोबारा आज़माएँ।</string>
 </resources>

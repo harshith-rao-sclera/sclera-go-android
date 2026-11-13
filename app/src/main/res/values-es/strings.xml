@@ -442,4 +442,5 @@
     <string name="online_error_invalid">Algunos valores no se aceptaron. Revísalos e inténtalo de nuevo.</string>
     <string name="online_error_unavailable">Sclera todavía lo está preparando. Inténtalo de nuevo en un momento.</string>
     <string name="online_error_server">Algo salió mal en el servidor de Sclera. Inténtalo de nuevo.</string>
+    <string name="detail_ai_sync_first">Sincroniza primero este activo y vuelve a probar el autocompletado con IA.</string>
 </resources>

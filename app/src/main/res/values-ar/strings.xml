@@ -457,4 +457,5 @@
     <string name="online_error_invalid">لم يتم قبول بعض القيم. تحقق منها وحاول مرة أخرى.</string>
     <string name="online_error_unavailable">لا يزال Sclera يجهّز هذا. حاول مرة أخرى بعد قليل.</string>
     <string name="online_error_server">حدث خطأ في خادم Sclera. يرجى المحاولة مرة أخرى.</string>
+    <string name="detail_ai_sync_first">زامن هذا الأصل أولاً ثم جرّب التعبئة التلقائية بالذكاء الاصطناعي مرة أخرى.</string>
 </resources>

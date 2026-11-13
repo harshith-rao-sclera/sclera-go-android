@@ -437,4 +437,5 @@
     <string name="online_error_invalid">Sommige waarden zijn niet geaccepteerd. Controleer ze en probeer het opnieuw.</string>
     <string name="online_error_unavailable">Sclera is dit nog aan het voorbereiden. Probeer het zo meteen opnieuw.</string>
     <string name="online_error_server">Er is iets misgegaan op de Sclera-server. Probeer het opnieuw.</string>
+    <string name="detail_ai_sync_first">Synchroniseer dit object eerst en probeer AI-automatisch invullen daarna opnieuw.</string>
 </resources>

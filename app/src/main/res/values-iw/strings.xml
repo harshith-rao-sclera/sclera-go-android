@@ -447,4 +447,5 @@
     <string name="online_error_invalid">חלק מהערכים לא התקבלו. בדקו אותם ונסו שוב.</string>
     <string name="online_error_unavailable">Sclera עדיין מכין את זה. נסו שוב בעוד רגע.</string>
     <string name="online_error_server">משהו השתבש בשרת של Sclera. נסו שוב.</string>
+    <string name="detail_ai_sync_first">סנכרנו את הנכס הזה קודם ואז נסו שוב את המילוי האוטומטי של הבינה המלאכותית.</string>
 </resources>

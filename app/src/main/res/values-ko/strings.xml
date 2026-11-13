@@ -414,4 +414,5 @@
     <string name="online_error_invalid">일부 값이 허용되지 않았습니다. 확인한 후 다시 시도하세요.</string>
     <string name="online_error_unavailable">Sclera가 아직 준비 중입니다. 잠시 후 다시 시도하세요.</string>
     <string name="online_error_server">Sclera 서버에서 문제가 발생했습니다. 다시 시도하세요.</string>
+    <string name="detail_ai_sync_first">먼저 이 자산을 동기화한 다음 AI 자동 채우기를 다시 시도하세요.</string>
 </resources>

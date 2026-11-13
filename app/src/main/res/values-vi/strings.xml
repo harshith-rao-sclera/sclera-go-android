@@ -414,4 +414,5 @@
     <string name="online_error_invalid">Một số giá trị không được chấp nhận. Hãy kiểm tra và thử lại.</string>
     <string name="online_error_unavailable">Sclera vẫn đang chuẩn bị mục này. Hãy thử lại sau giây lát.</string>
     <string name="online_error_server">Máy chủ Sclera gặp sự cố. Vui lòng thử lại.</string>
+    <string name="detail_ai_sync_first">Hãy đồng bộ tài sản này trước, rồi thử lại tự động điền bằng AI.</string>
 </resources>

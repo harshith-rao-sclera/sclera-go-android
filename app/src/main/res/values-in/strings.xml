@@ -414,4 +414,5 @@
     <string name="online_error_invalid">Beberapa nilai tidak diterima. Periksa dan coba lagi.</string>
     <string name="online_error_unavailable">Sclera masih menyiapkannya. Coba lagi sebentar lagi.</string>
     <string name="online_error_server">Terjadi kesalahan pada server Sclera. Silakan coba lagi.</string>
+    <string name="detail_ai_sync_first">Sinkronkan aset ini terlebih dahulu, lalu coba isi otomatis AI lagi.</string>
 </resources>

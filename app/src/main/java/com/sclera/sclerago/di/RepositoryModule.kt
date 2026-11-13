@@ -2,7 +2,7 @@ package com.sclera.sclerago.di
 
 import com.sclera.sclerago.data.local.WebDataCleaner
 import com.sclera.sclerago.data.repository.FileRepositoryImpl
-import com.sclera.sclerago.data.repository.LocalAutofillRepository
+import com.sclera.sclerago.data.repository.OnlineAutofillRepository
 import com.sclera.sclerago.domain.repository.AutofillRepository
 import com.sclera.sclerago.domain.repository.FileRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
@@ -15,12 +15,12 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * The autofill suggestions, held in memory for as long as the screen's ViewModels (properties and people are in OnlineModule).
+ * The AI autofill, looked up online (properties and people are in OnlineModule).
  */
 @Module
 @InstallIn(ActivityRetainedComponent::class)
 abstract class RepositoryModule {
-    @Binds abstract fun autofill(impl: LocalAutofillRepository): AutofillRepository
+    @Binds abstract fun autofill(impl: OnlineAutofillRepository): AutofillRepository
 }
 
 /** Device files (photos, documents, spreadsheets). */

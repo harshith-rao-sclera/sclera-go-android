@@ -8,6 +8,7 @@ import com.sclera.sclerago.data.online.PropertyStore
 import com.sclera.sclerago.data.remote.adc.AccessTokenProvider
 import com.sclera.sclerago.data.remote.adc.AdcApiService
 import com.sclera.sclerago.data.remote.adc.AdcConfig
+import com.sclera.sclerago.data.remote.adc.AdcJobsService
 import com.sclera.sclerago.data.remote.adc.forAdc
 import com.sclera.sclerago.data.repository.AccessRepositoryImpl
 import com.sclera.sclerago.data.repository.AuthRepositoryImpl
@@ -62,5 +63,10 @@ abstract class OnlineModule {
         @Singleton
         fun adcService(@AdcClient client: OkHttpClient): AdcApiService =
             Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcApiService::class.java)
+
+        @Provides
+        @Singleton
+        fun adcJobsService(@AdcClient client: OkHttpClient): AdcJobsService =
+            Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcJobsService::class.java)
     }
 }

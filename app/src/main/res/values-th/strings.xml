@@ -414,4 +414,5 @@
     <string name="online_error_invalid">ไม่ยอมรับค่าบางค่า ตรวจสอบแล้วลองอีกครั้ง</string>
     <string name="online_error_unavailable">Sclera ยังเตรียมข้อมูลนี้อยู่ ลองอีกครั้งในอีกสักครู่</string>
     <string name="online_error_server">เซิร์ฟเวอร์ Sclera เกิดข้อผิดพลาด โปรดลองอีกครั้ง</string>
+    <string name="detail_ai_sync_first">ซิงค์สินทรัพย์นี้ก่อน แล้วลองกรอกอัตโนมัติด้วย AI อีกครั้ง</string>
 </resources>

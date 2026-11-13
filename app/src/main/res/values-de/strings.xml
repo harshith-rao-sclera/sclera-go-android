@@ -437,4 +437,5 @@
     <string name="online_error_invalid">Einige Werte wurden nicht akzeptiert. Prüfe sie und versuche es erneut.</string>
     <string name="online_error_unavailable">Sclera bereitet das noch vor. Versuche es gleich noch einmal.</string>
     <string name="online_error_server">Auf dem Sclera-Server ist etwas schiefgelaufen. Bitte versuche es erneut.</string>
+    <string name="detail_ai_sync_first">Synchronisieren Sie dieses Asset zuerst und versuchen Sie die KI-Autofill-Funktion dann erneut.</string>
 </resources>

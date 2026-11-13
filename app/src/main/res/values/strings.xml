@@ -445,4 +445,5 @@
     <string name="online_error_invalid">Some of the values were not accepted. Check them and try again.</string>
     <string name="online_error_unavailable">Sclera is still getting this ready. Try again in a moment.</string>
     <string name="online_error_server">Something went wrong on the Sclera server. Please try again.</string>
+    <string name="detail_ai_sync_first">Sync this asset first, then try AI autofill again.</string>
 </resources>

@@ -8,6 +8,8 @@ import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.OnlineError
+import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
@@ -211,14 +213,21 @@ class AssetDetailViewModel @Inject constructor(
         }
     }
 
-    /** Fills the empty fields with suggestions; the result is shown for a moment. */
+    /** Fills the empty fields with suggestions found online; the result (or why it could not be done) is shown for a moment. */
     fun autofill() {
         val s = state.value
         val asset = s.asset ?: return
         if (form.value.aiBusy || s.locked) return
         form.update { it.copy(aiBusy = true, aiNotice = null) }
         viewModelScope.launch {
-            val fills = useCases.autofill(asset.type, s.values)
+            val fills = try {
+                useCases.autofill(asset, s.values)
+            } catch (e: OnlineException) {
+                form.update { it.copy(aiBusy = false, aiNotice = e.error.autofillText()) }
+                delay(NOTICE_MS)
+                form.update { it.copy(aiNotice = null) }
+                return@launch
+            }
             form.update {
                 it.copy(
                     edits = it.edits + fills, aiFilled = it.aiFilled + fills.keys, savedFlash = false, aiBusy = false,
@@ -229,6 +238,10 @@ class AssetDetailViewModel @Inject constructor(
             form.update { it.copy(aiNotice = null) }
         }
     }
+
+    /** A new asset, or one not synced yet, is not known to the server: it has to be synced before it can be looked up. */
+    private fun OnlineError.autofillText(): UiText =
+        if (this == OnlineError.NotFound) UiText.Res(R.string.detail_ai_sync_first) else toUiText()
 
     private companion object {
         const val NOTICE_MS = 2600L
