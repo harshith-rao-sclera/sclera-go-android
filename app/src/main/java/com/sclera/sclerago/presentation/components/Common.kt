@@ -38,6 +38,7 @@ import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
 
 val Capsule = RoundedCornerShape(percent = 50)
@@ -214,7 +215,7 @@ fun PlainField(
         cursorBrush = SolidColor(C.Yellow),
         textStyle = TextStyle(
             color = C.Text, fontSize = size.sp, fontWeight = FontWeight(weight),
-            fontFamily = if (mono) androidx.compose.ui.text.font.FontFamily.Monospace else null,
+            fontFamily = if (mono) androidx.compose.ui.text.font.FontFamily.Monospace else ScleraFonts.Inter,
         ),
         decorationBox = { inner ->
             Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) {

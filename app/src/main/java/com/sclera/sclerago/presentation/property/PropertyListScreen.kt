@@ -42,7 +42,6 @@ import com.sclera.sclerago.domain.usecase.property.propertyProblem
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.AdminFab
 import com.sclera.sclerago.presentation.components.BottomSheet
-import com.sclera.sclerago.presentation.components.CardWash
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.ColorChip
@@ -210,7 +209,7 @@ private fun ImportSheet(onClose: () -> Unit, onProceed: (String) -> Unit, writeT
             }
             error?.let { Txt(it, 13, 500, C.Red) }
             Row(
-                Modifier.fillMaxWidth().clip(r(14)).background(CardWash).border(1.dp, C.Border, r(14)).padding(12.dp),
+                Modifier.fillMaxWidth().clip(r(14)).background(C.CardWash).border(1.dp, C.Border, r(14)).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {

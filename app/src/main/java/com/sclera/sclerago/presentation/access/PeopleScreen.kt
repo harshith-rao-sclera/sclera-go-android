@@ -43,7 +43,6 @@ import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.ColorChip
 import com.sclera.sclerago.presentation.components.ConfirmDialog
-import com.sclera.sclerago.presentation.components.DangerBg
 import com.sclera.sclerago.presentation.components.FormGroup
 import com.sclera.sclerago.presentation.components.FormSheet
 import com.sclera.sclerago.presentation.components.InlineField
@@ -54,7 +53,6 @@ import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.StatusPill
 import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.TintChip
-import com.sclera.sclerago.presentation.components.TintText
 import com.sclera.sclerago.presentation.components.asColor
 import com.sclera.sclerago.presentation.components.iconOf
 import com.sclera.sclerago.presentation.components.r
@@ -125,14 +123,14 @@ fun PeopleScreen(
         s.confirmDelete?.let { g ->
             BackHandler { access.askDeleteGroup(null) }
             ConfirmDialog(
-                Icons.Trash, DangerBg, C.Red, "Delete ${g.name}?", "The group will be removed. This can’t be undone.",
+                Icons.Trash, C.DangerBg, C.Red, "Delete ${g.name}?", "The group will be removed. This can’t be undone.",
                 "Cancel", "Delete", { access.askDeleteGroup(null) }, { access.deleteGroup(g) },
             )
         }
         s.personToRemove?.let { p ->
             BackHandler { access.askRemovePerson(null) }
             ConfirmDialog(
-                Icons.Trash, DangerBg, C.Red, "Remove ${p.name}?", "${p.email} will lose access to Sclera.",
+                Icons.Trash, C.DangerBg, C.Red, "Remove ${p.name}?", "${p.email} will lose access to Sclera.",
                 "Cancel", "Remove", { access.askRemovePerson(null) }, { access.closePersonForm(); access.removePerson(p) },
             )
         }
@@ -386,8 +384,8 @@ private fun GroupSheet(initial: Group, access: AccessViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    LineIcon(Icons.Lock, 13.dp, TintText, 2.2f)
-                    Txt("These permissions are locked for ${initial.name}.", 12, 400, TintText, maxLines = 2)
+                    LineIcon(Icons.Lock, 13.dp, C.TintText, 2.2f)
+                    Txt("These permissions are locked for ${initial.name}.", 12, 400, C.TintText, maxLines = 2)
                 }
             }
             Permission.entries.forEach { p ->

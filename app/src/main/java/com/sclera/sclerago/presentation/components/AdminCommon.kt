@@ -35,13 +35,6 @@ import com.sclera.sclerago.presentation.theme.Txt
 // Building blocks shared by Property list and People and access, as drawn in the
 // "Sclera VDMS Mobile" design canvas.
 
-internal val SheetBg = Color(0xFF1B1D21)
-internal val SheetHandleColor = Color(0xFF45464C)
-internal val TintText = Color(0xFFD8CFA8)
-internal val PrimaryOffBg = Color(0xFF5C4A10)
-internal val PrimaryOffFg = Color(0xFFC9B57A)
-internal val CardWash = Color(0x80272A2F)
-internal val DangerBg = Color(0xFF2A1919)
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
 /** A 24×24 stroke icon from an SVG path (used for the per-permission icons). */
@@ -127,7 +120,7 @@ internal fun ColorChip(label: String, color: Color, icon: Ico?, small: Boolean =
 
 /** Small tinted label ("2 chosen", "Needs all properties", "None yet"). */
 @Composable
-internal fun TintChip(text: String, bg: Color = C.YTintBg, fg: Color = TintText) {
+internal fun TintChip(text: String, bg: Color = C.YTintBg, fg: Color = C.TintText) {
     Box(Modifier.clip(CircleShape).background(bg).padding(horizontal = 8.dp, vertical = 3.dp)) { Txt(text, 11, 600, fg) }
 }
 
@@ -187,19 +180,19 @@ internal fun ChoiceSheet(
     onClose: () -> Unit,
 ) {
     BackHandler(onBack = onClose)
-    Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
+    Box(Modifier.fillMaxSize().background(C.Overlay).noRippleClick(onClose)) {
         Column(
-            sheetFrame(SheetBg, radius = 28.dp, heightFraction = 0.85f)
+            sheetFrame(C.SheetBg, radius = 28.dp, heightFraction = 0.85f)
                 .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (!isTablet()) Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
+            if (!isTablet()) Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(C.SheetHandle))
             Txt(title, 17, 700)
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 options.forEach { (name, sub) ->
                     val on = name == selected
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(r(14)).background(if (on) C.YTintBg else Color(0x99272A2F))
+                        Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(r(14)).background(if (on) C.YTintBg else C.FieldRowWash)
                             .border(1.dp, if (on) C.YTintBd else C.Border, r(14)).clickable { onPick(name) }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -233,19 +226,19 @@ internal fun FormSheet(
     onPrimary: () -> Unit,
     leadingIcon: Ico? = null,
     progress: Float? = null,
-    bodyBackground: Color = SheetBg,
+    bodyBackground: Color = C.SheetBg,
     bodyPadding: PaddingValues = PaddingValues(16.dp),
     bodySpacing: Dp = 18.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onClose)
-    Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
+    Box(Modifier.fillMaxSize().background(C.Overlay).noRippleClick(onClose)) {
         Column(
-            (if (isTablet()) sheetFrame(SheetBg, radius = 28.dp, heightFraction = 0.9f, fill = true)
-            else Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(SheetBg)
+            (if (isTablet()) sheetFrame(C.SheetBg, radius = 28.dp, heightFraction = 0.9f, fill = true)
+            else Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(C.SheetBg)
                 .noRippleClick { }.navigationBarsPadding()).imePadding(),
         ) {
-            if (!isTablet()) Box(Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
+            if (!isTablet()) Box(Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(C.SheetHandle))
             Row(
                 Modifier.fillMaxWidth().then(if (progress == null) Modifier.bottomBorder(C.Border) else Modifier).padding(16.dp, 14.dp),
                 verticalAlignment = Alignment.Top,
@@ -275,7 +268,7 @@ internal fun FormSheet(
             )
             error?.let {
                 Row(
-                    Modifier.fillMaxWidth().background(DangerBg).padding(horizontal = 16.dp, vertical = 10.dp),
+                    Modifier.fillMaxWidth().background(C.DangerBg).padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -290,7 +283,7 @@ internal fun FormSheet(
                 Pill("Cancel", onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 15, weight = 600)
                 Pill(
                     primary, onPrimary, Modifier.weight(1f),
-                    bg = if (primaryEnabled) C.Yellow else PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else PrimaryOffFg,
+                    bg = if (primaryEnabled) C.Yellow else C.PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else C.PrimaryOffFg,
                     height = 50.dp, size = 15, weight = 700,
                 )
             }

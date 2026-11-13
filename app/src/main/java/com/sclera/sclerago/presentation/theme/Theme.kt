@@ -11,14 +11,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+import com.sclera.sclerago.R
 
 /** Design tokens lifted from the Sclera Go prototype. */
 object C {
@@ -49,6 +53,36 @@ object C {
     val WarnRow = Color(0xFF2A1F15)
     val Scrim = Color(0xB808090A)
     val White = Color.White
+    val IconGrey = Color(0xFF8B8F97)
+    val ImportStrip = Color(0xFF1A1B1E)
+    val SheetBg = Color(0xFF1B1D21)
+    val SheetHandle = Color(0xFF45464C)
+    val TintText = Color(0xFFD8CFA8)
+    val PrimaryOffBg = Color(0xFF5C4A10)
+    val PrimaryOffFg = Color(0xFFC9B57A)
+    val CardWash = Color(0x80272A2F)
+    val DangerBg = Color(0xFF2A1919)
+    val FieldRowWash = Color(0x99272A2F)
+
+    /** Dim behind sheets and dialogs. */
+    val Overlay = Color(0x99000000)
+
+    /** Black at the given alpha (the photo shading of the sign-in screen). */
+    fun shade(alpha: Float) = Color.Black.copy(alpha = alpha)
+
+    /** White at the given alpha (hairlines on photos). */
+    fun frost(alpha: Float) = Color.White.copy(alpha = alpha)
+}
+
+/** Bundled fonts (res/font, SIL OFL): Inter for the app, Nunito Sans for the logo lockup. */
+object ScleraFonts {
+    @OptIn(ExperimentalTextApi::class)
+    private fun variable(@androidx.annotation.FontRes res: Int, vararg weights: Int) = FontFamily(
+        weights.map { w -> Font(res, FontWeight(w), variationSettings = FontVariation.Settings(FontVariation.weight(w))) },
+    )
+
+    val Inter: FontFamily = variable(R.font.inter, 400, 500, 600, 700, 800)
+    val NunitoSans: FontFamily = variable(R.font.nunito_sans, 700, 800)
 }
 
 @Composable
@@ -62,7 +96,7 @@ fun ScleraTheme(content: @Composable () -> Unit) {
         )
     ) {
         CompositionLocalProvider(
-            LocalTextStyle provides TextStyle(color = C.Text, fontSize = 14.sp),
+            LocalTextStyle provides TextStyle(color = C.Text, fontSize = 14.sp, fontFamily = ScleraFonts.Inter),
             LocalContentColor provides C.Text,
             LocalTextSelectionColors provides TextSelectionColors(C.Yellow, C.Yellow.copy(alpha = 0.35f)),
             content = content,
@@ -92,7 +126,7 @@ fun Txt(
         fontSize = size.toFloat().sp,
         fontWeight = FontWeight(weight),
         fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal,
-        fontFamily = if (mono) FontFamily.Monospace else null,
+        fontFamily = if (mono) FontFamily.Monospace else ScleraFonts.Inter,
         letterSpacing = spacing.sp,
         maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
