@@ -22,9 +22,9 @@ interface ValidationRepository {
     fun sourceRules(id: String): List<Rule>
 
     /**
-     * Starts a job running [sourceId]'s rules on the assets [ids] of [prop], on this device and in the
-     * background; [inputs] is read when it finishes, so it checks the assets as they are then, and [onDone]
-     * gets the finished job. (The server's own full run is not available offline.)
+     * Starts a job running [sourceId]'s rules on the assets [ids] of [prop], in the background: on the server when
+     * there is a connection, otherwise on this device ([ValJob.local]; [inputs] is read when it finishes, so it checks
+     * the assets as they are then). [onDone] gets the finished job.
      */
     fun start(
         sourceId: String,

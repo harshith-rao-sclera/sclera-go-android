@@ -61,6 +61,8 @@ data class ValJob(
     val prop: String,
     val running: Boolean = true,
     val results: List<AssetResult> = emptyList(),
+    /** Run on this device (the checks that need the server or the web are approximate), not by the server. */
+    val local: Boolean = false,
 ) {
     val failed get() = results.count { it.outcome == RuleOutcome.FAIL }
     val look get() = results.count { it.outcome == RuleOutcome.LOOK }

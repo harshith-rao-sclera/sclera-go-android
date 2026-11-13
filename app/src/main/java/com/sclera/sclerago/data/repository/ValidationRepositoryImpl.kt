@@ -5,6 +5,8 @@ import com.sclera.sclerago.data.offline.ValidationWriter
 import com.sclera.sclerago.di.ApplicationScope
 import com.sclera.sclerago.di.MainDispatcher
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.repository.OnlineValidation
 import com.sclera.sclerago.domain.repository.UserDataCleaner
 import com.sclera.sclerago.domain.repository.ValidationRepository
 import com.sclera.sclerago.domain.system.IdGenerator
@@ -32,13 +34,15 @@ import javax.inject.Singleton
 
 /**
  * Saved validations and jobs. Saved validations are read from and written to the offline database. The jobs listed
- * are the ones in the database (run by the server) and the ones run on this device, which stay in memory: a
- * job's delay stands in for the time a full server run takes, and the server's own run is not available offline.
+ * are the ones in the database (run by the server) and the ones started here, which stay in memory until sync brings
+ * them: a run goes to the server when there is a connection, and otherwise (or when the server cannot do it) runs on
+ * this device, marked [ValJob.local]; its delay stands in for the time a full server run takes.
  */
 @Singleton
 class ValidationRepositoryImpl @Inject constructor(
     source: ValidationOfflineSource,
     private val writer: ValidationWriter,
+    private val online: OnlineValidation,
     private val idGen: IdGenerator,
     private val time: TimeProvider,
     @ApplicationScope private val appScope: CoroutineScope,
@@ -47,7 +51,8 @@ class ValidationRepositoryImpl @Inject constructor(
     private val localJobs = MutableStateFlow(emptyList<ValJob>())
 
     override val jobs: StateFlow<List<ValJob>> = combine(source.recentJobsFlow(), localJobs) { stored, local ->
-        (local + stored).sortedByDescending { it.startedAt }
+        val storedIds = stored.mapTo(HashSet()) { it.id }
+        (local.filter { it.id !in storedIds } + stored).sortedByDescending { it.startedAt }
     }.stateIn(appScope, SharingStarted.Eagerly, emptyList())
 
     override val saved: StateFlow<List<SavedValidation>> = source.savedFlow().stateIn(appScope, SharingStarted.Eagerly, emptyList())
@@ -68,8 +73,20 @@ class ValidationRepositoryImpl @Inject constructor(
     ) {
         val rules = sourceRules(sourceId)
         val id = idGen.next()
-        localJobs.update { listOf(ValJob(id, sourceName(sourceId), sourceId, rules.size, label, ids, time.nowMillis(), prop)) + it }
+        val started = time.nowMillis()
+        localJobs.update { listOf(ValJob(id, sourceName(sourceId), sourceId, rules.size, label, ids, started, prop)) + it }
         appScope.launch(main) {
+            val remote = try {
+                online.run(prop, sourceName(sourceId), rules.map { it.id }, ids)
+            } catch (_: OnlineException) {
+                null
+            }
+            if (remote != null) {
+                val finished = ValJob(remote.jobId, sourceName(sourceId), sourceId, rules.size, label, ids, started, prop, false, remote.results)
+                localJobs.update { jobs -> jobs.map { if (it.id == id) finished else it } }
+                onDone(finished)
+                return@launch
+            }
             delay(RUN_BASE_MS + ids.size * RUN_PER_ASSET_MS)
             val all = runCatching { inputs() }.getOrNull()
             if (all == null) {
@@ -77,7 +94,7 @@ class ValidationRepositoryImpl @Inject constructor(
                 return@launch
             }
             val results = runValidation(rules, all.filter { it.first.id in ids }, all)
-            localJobs.update { jobs -> jobs.map { if (it.id == id) it.copy(running = false, results = results) else it } }
+            localJobs.update { jobs -> jobs.map { if (it.id == id) it.copy(running = false, results = results, local = true) else it } }
             localJobs.value.firstOrNull { it.id == id }?.let(onDone)
         }
     }

@@ -10,7 +10,7 @@ import com.sclera.sclerago.domain.validation.RuleOutcome
 import com.sclera.sclerago.domain.validation.ValJob
 
 /** The outcome a validation result, check or issue severity is stored as: passed, warning, failed (error). */
-private fun outcomeFromDb(text: String?): RuleOutcome = when (text) {
+internal fun outcomeFromDb(text: String?): RuleOutcome = when (text) {
     "passed" -> RuleOutcome.PASS
     "warning" -> RuleOutcome.LOOK
     "failed", "error" -> RuleOutcome.FAIL

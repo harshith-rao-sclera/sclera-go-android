@@ -15,6 +15,7 @@ import com.sclera.sclerago.data.offline.ValidationWriter
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.data.repository.LocationRepositoryImpl
+import com.sclera.sclerago.data.repository.OnlineValidationImpl
 import com.sclera.sclerago.data.repository.ValidationRepositoryImpl
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
@@ -22,6 +23,7 @@ import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.LocationRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
+import com.sclera.sclerago.domain.repository.OnlineValidation
 import com.sclera.sclerago.domain.repository.ValidationRepository
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.TimeProvider
@@ -104,6 +106,7 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun locations(impl: LocationRepositoryImpl): LocationRepository
     @Binds abstract fun assetConfig(impl: AssetConfigRepositoryImpl): AssetConfigRepository
     @Binds abstract fun validation(impl: ValidationRepositoryImpl): ValidationRepository
+    @Binds abstract fun onlineValidation(impl: OnlineValidationImpl): OnlineValidation
     @Binds abstract fun assetFiles(impl: LocalAssetFileStore): AssetFileStore
 
     @Binds @IntoSet abstract fun clearLocations(impl: LocationRepositoryImpl): UserDataCleaner
