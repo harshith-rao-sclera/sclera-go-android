@@ -42,7 +42,6 @@ import com.sclera.sclerago.domain.usecase.config.ToggleFieldVisibleUseCase
 import com.sclera.sclerago.domain.usecase.location.ImportBuildingsUseCase
 import com.sclera.sclerago.domain.usecase.location.LocationUseCases
 import com.sclera.sclerago.domain.usecase.media.FileUseCases
-import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.validation.ValidationUseCases
 import com.sclera.sclerago.domain.usecase.validation.forProperty
@@ -63,7 +62,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.OutputStream
 import javax.inject.Inject
 
 enum class Tab { BT, NET, ASSETS, CAMERA, FILE }
@@ -151,9 +149,6 @@ data class UiState(
     val cfgPage: CfgPage = CfgPage.FIELDS,
     // ---- Property list / People and access (side menu)
     val adminPage: AdminPage? = null,
-    val propListQ: String = "",
-    val addPropOpen: Boolean = false,
-    val importOpen: Boolean = false,
 )
 
 data class StatusChip(val status: Status?, val label: String, val count: Int, val selected: Boolean)
@@ -499,12 +494,9 @@ class AppViewModel @Inject constructor(
 
     // Property list / People and access
     fun openAdmin(page: AdminPage) = set {
-        copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, assetId = null, newAsset = false, searchOpen = false, propListQ = "")
+        copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, assetId = null, newAsset = false, searchOpen = false)
     }
-    fun closeAdmin() = set { copy(adminPage = null, addPropOpen = false, importOpen = false) }
-    fun setPropListQ(v: String) = set { copy(propListQ = v) }
-    val propertyList: List<Property>
-        get() = state.propListQ.trim().lowercase().let { q -> properties.filter { q.isEmpty() || q in it.name.lowercase() } }
+    fun closeAdmin() = set { copy(adminPage = null) }
 
     /** Opening a property from the list makes it the current one and shows its assets. */
     fun openPropertyFromList(id: String) {
@@ -512,31 +504,6 @@ class AppViewModel @Inject constructor(
         pickProp(id)
         goTab(Tab.ASSETS)
     }
-    fun openAddProperty() = set { copy(addPropOpen = true) }
-    fun closeAddProperty() = set { copy(addPropOpen = false) }
-
-    /** Adds [draft] as a new property; returns an error message instead when it can't be added. */
-    fun addProperty(draft: Property): String? = when (val r = propertyUseCases.add(draft)) {
-        is AddPropertyUseCase.Result.Invalid -> r.message
-        is AddPropertyUseCase.Result.Added -> {
-            set { copy(addPropOpen = false) }
-            flash("${r.property.name} added")
-            null
-        }
-    }
-
-    /** Assets in property [id] (any status). */
-    fun assetCount(id: String): Int = catalog.value.countIn(id)
-    fun openImport() = set { copy(importOpen = true) }
-    fun closeImport() = set { copy(importOpen = false) }
-    fun importProperties(fileName: String) {
-        closeImport()
-        flash("“$fileName” uploaded · importing isn’t connected to the server yet")
-    }
-
-    /** Writes the sample spreadsheet for importing properties. */
-    fun writePropertyTemplate(out: OutputStream) = fileUseCases.writePropertyTemplate(out)
-
     fun closeProp() = set { copy(sheet = Sheet.NONE, propQ = "") }
     fun setPropQ(v: String) = set { copy(propQ = v) }
     fun pickProp(id: String) {
