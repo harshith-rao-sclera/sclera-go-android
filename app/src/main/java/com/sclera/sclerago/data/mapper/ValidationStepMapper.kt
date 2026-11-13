@@ -18,12 +18,29 @@ private val STEP_OF_RULE = mapOf(
     "spec_published" to "verified", "spec_twins" to "verified", "spec_gaps" to "verified", "ai_read" to "verified", "ai_photos" to "verified",
 )
 
+/** The server's step keys, in its default order. */
+private val STEP_KEYS = setOf("complete", "valid", "unique", "consistent", "verified")
+
+/**
+ * What a validation stores as its rules (`validations.rules`, `validation_preferences.rule_order`): the server's step keys, each
+ * once, in order. The app's own rule ids become their step; step keys pass through; anything else is dropped.
+ */
+fun stepKeysOf(ruleIds: List<String>): List<String> =
+    ruleIds.mapNotNull { if (it in STEP_KEYS) it else STEP_OF_RULE[it] }.distinct()
+
+/**
+ * The app's rule ids for what a validation stored: a step key stands for every rule of that step (the server keeps no finer
+ * choice), and rule ids written by older versions of the app are kept as they are. Each once, in order.
+ */
+fun ruleIdsOf(stored: List<String>): List<String> =
+    stored.flatMap { entry -> if (entry in STEP_KEYS) STEP_OF_RULE.filterValues { it == entry }.keys else listOf(entry) }.distinct()
+
 private const val MAX_TEXT = 300
 private const val MAX_NAME = 120
 
 /** The body of `POST /validation-jobs`: the steps of [ruleIds] (once each, in order), on [assetIds]; null when no step or asset applies. */
 fun validationJobBody(name: String, ruleIds: List<String>, assetIds: List<String>): JsonObject? {
-    val steps = ruleIds.mapNotNull { STEP_OF_RULE[it] }.distinct()
+    val steps = stepKeysOf(ruleIds)
     val ids = assetIds.filter { runCatching { UUID.fromString(it) }.isSuccess }.distinct()
     if (steps.isEmpty() || ids.isEmpty()) return null
     return JsonObject(

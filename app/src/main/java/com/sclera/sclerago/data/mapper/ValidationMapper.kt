@@ -59,7 +59,7 @@ fun DbRow.toValJob(propertyId: String, results: List<AssetResult> = emptyList(),
 fun DbRow.toSavedValidation(lastRun: Long? = null) = SavedValidation(
     id = string("id").orEmpty(),
     name = string("name").orEmpty(),
-    ruleIds = DbJson.stringList(string("rules")),
+    ruleIds = ruleIdsOf(DbJson.stringList(string("rules"))),
     lastRun = lastRun,
     description = string("description").orEmpty(),
 )

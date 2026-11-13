@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.formatDbTime
+import com.sclera.sclerago.data.mapper.stepKeysOf
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.model.DataError
@@ -22,10 +23,10 @@ class ValidationWriter(
     private val ids: IdGenerator,
     private val user: SyncCredentialsProvider,
 ) {
-    /** Adds a validation ([id] null) or updates one; returns its id. Throws NAME_TAKEN when another validation has [name]. */
+    /** Adds a validation ([id] null) or updates one; returns its id. [ruleIds] are the app's rule ids; the server's steps of them are stored. Throws NAME_TAKEN when another validation has [name]. */
     suspend fun save(id: String?, name: String, description: String, ruleIds: List<String>): String = db.write(io) {
         val now = formatDbTime(time.nowMillis())
-        val rules = DbJson.writeList(ruleIds)
+        val rules = DbJson.writeList(stepKeysOf(ruleIds))
         val text = description.trim().ifEmpty { null }
         if (id != null && !exists(live(VALIDATION_EXISTS, "validations"), listOf(id))) throw DataException(DataError.FAILED)
         if (exists(live(VALIDATION_NAME_TAKEN, "validations"), listOf(name, id.orEmpty()))) throw DataException(DataError.NAME_TAKEN)

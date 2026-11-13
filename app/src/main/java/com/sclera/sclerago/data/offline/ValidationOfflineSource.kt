@@ -3,6 +3,7 @@ package com.sclera.sclerago.data.offline
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.parseDbTime
+import com.sclera.sclerago.data.mapper.ruleIdsOf
 import com.sclera.sclerago.data.mapper.toAssetResult
 import com.sclera.sclerago.data.mapper.toJobStats
 import com.sclera.sclerago.data.mapper.toSavedValidation
@@ -116,7 +117,7 @@ class ValidationOfflineSource(private val db: AdcDatabase, private val io: Corou
     }
 
     private fun loadRuleOrder(userId: String): List<String> = db.whenTable("validation_preferences", emptyList()) {
-        DbJson.stringList(db.queryOne(RULE_ORDER, listOf(userId))?.string("rule_order"))
+        ruleIdsOf(DbJson.stringList(db.queryOne(RULE_ORDER, listOf(userId))?.string("rule_order")))
     }
 
     private fun loadRecent(limit: Int, propertyId: String): List<ValJob> = db.whenTable("validation_jobs", emptyList()) {
