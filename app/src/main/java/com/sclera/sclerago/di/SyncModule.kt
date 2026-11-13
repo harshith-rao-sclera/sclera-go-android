@@ -1,7 +1,9 @@
 package com.sclera.sclerago.di
 
+import com.sclera.sclerago.data.online.OnlineIdentity
 import com.sclera.sclerago.data.repository.AuthRepositoryImpl
 import com.sclera.sclerago.data.sync.AdcSyncController
+import com.sclera.sclerago.data.sync.MeCredentialsProvider
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.data.sync.SyncDataCleaner
 import com.sclera.sclerago.domain.repository.UserDataCleaner
@@ -31,6 +33,8 @@ abstract class SyncModule {
         fun applicationScope(): CoroutineScope = CoroutineScope(SupervisorJob())
 
         @Provides
-        fun credentials(auth: AuthRepositoryImpl): SyncCredentialsProvider = auth
+        @Singleton
+        fun credentials(auth: AuthRepositoryImpl, identity: OnlineIdentity, @ApplicationScope scope: CoroutineScope): SyncCredentialsProvider =
+            MeCredentialsProvider(auth, identity, scope)
     }
 }

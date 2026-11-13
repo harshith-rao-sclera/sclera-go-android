@@ -4,6 +4,7 @@ import com.sclera.sclerago.data.local.EncryptedCache
 import com.sclera.sclerago.data.local.EncryptedFileCache
 import com.sclera.sclerago.data.online.AccessStore
 import com.sclera.sclerago.data.online.CurrentAccessRepositoryImpl
+import com.sclera.sclerago.data.online.OnlineIdentity
 import com.sclera.sclerago.data.online.PropertyStore
 import com.sclera.sclerago.data.remote.adc.AccessTokenProvider
 import com.sclera.sclerago.data.remote.adc.AdcApiService
@@ -49,6 +50,7 @@ abstract class OnlineModule {
     @Binds @IntoSet abstract fun clearProperties(impl: PropertyStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearAccess(impl: AccessStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearCurrentAccess(impl: CurrentAccessRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearIdentity(impl: OnlineIdentity): UserDataCleaner
 
     companion object {
         @Provides

@@ -49,6 +49,7 @@ fun DataError.toUiText(): UiText = when (this) {
     DataError.NOT_READY -> UiText.Res(R.string.data_error_not_ready)
     DataError.NAME_TAKEN -> UiText.Res(R.string.data_error_name_taken)
     DataError.IN_USE -> UiText.Res(R.string.data_error_in_use)
+    DataError.FORBIDDEN -> UiText.Res(R.string.online_error_forbidden)
     DataError.FAILED -> UiText.Res(R.string.data_error_failed)
 }
 

@@ -11,6 +11,9 @@ enum class DataError {
     /** Still used by something else (a building with floors, a location with assets). */
     IN_USE,
 
+    /** The signed-in user's group does not allow it (what the server last said; the server still decides). */
+    FORBIDDEN,
+
     /** Anything else; the details stay out of the message. */
     FAILED,
 }

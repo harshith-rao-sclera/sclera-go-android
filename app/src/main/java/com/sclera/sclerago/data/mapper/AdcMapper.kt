@@ -106,12 +106,14 @@ fun UserDto.toPerson() = Person(
     allProperties = allProperties,
     propertyIds = propertyIds.toSet(),
     lastSeenAt = lastSeenAt?.let { runCatching { OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull() },
+    signedIn = signedIn,
 )
 
 private fun Person.propertyArray() = JsonArray((if (allProperties) emptySet() else propertyIds).map(::JsonPrimitive))
 
 fun Person.toInviteBody(): JsonObject = buildJsonObject {
     put("email", email.trim())
+    inviteName?.trim()?.takeIf { it.isNotEmpty() }?.let { put("name", it) }
     put("groupId", groupId)
     put("allProperties", allProperties)
     put("propertyIds", propertyArray())
@@ -126,7 +128,13 @@ fun Person.toUpdateBody(): JsonObject = buildJsonObject {
 /** `PATCH /users/{id}` that takes away all of a person's access (the API has no delete). */
 fun removeAccessBody(): JsonObject = buildJsonObject { put("groupId", JsonNull) }
 
-fun MeDto.toCurrentAccess() = CurrentAccess(
+fun MeDto.toCurrentAccess(signedInEmail: String) = CurrentAccess(
+    userId = userId,
+    email = email.ifBlank { signedInEmail },
+    name = name,
+    role = role,
+    organisationId = organisationId?.takeIf { it.isNotBlank() },
+    groupId = groupId,
     groupName = groupName,
     permissions = permissions.mapNotNull(::permissionOf).toSet(),
     allProperties = allProperties,

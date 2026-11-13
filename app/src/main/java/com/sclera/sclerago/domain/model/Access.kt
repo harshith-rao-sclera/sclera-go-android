@@ -65,6 +65,10 @@ data class Person(
     val allProperties: Boolean,
     val propertyIds: Set<String> = emptySet(),
     val lastSeenAt: Long? = null,
+    /** False for someone invited who has not signed in yet. */
+    val signedIn: Boolean = true,
+    /** The name picked from the organisation directory when inviting; sent with the invitation, not kept. */
+    val inviteName: String? = null,
 ) {
     val name: String get() = email.substringBefore('@')
 }

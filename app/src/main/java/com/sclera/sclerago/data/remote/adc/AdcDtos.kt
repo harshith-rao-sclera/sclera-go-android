@@ -62,14 +62,24 @@ data class UserDto(
     val id: String,
     val email: String,
     val name: String? = null,
+    val role: String? = null,
     val groupId: String? = null,
+    val groupName: String? = null,
+    /** False for someone invited who has not signed in yet. */
+    val signedIn: Boolean = true,
     val allProperties: Boolean = false,
     val propertyIds: List<String> = emptyList(),
     val lastSeenAt: String? = null,
 )
 
 @Serializable
-data class MemberDto(val userId: String, val email: String, val groupId: String? = null, val allProperties: Boolean = false)
+data class MemberDto(
+    val userId: String,
+    val email: String,
+    val groupId: String? = null,
+    val groupName: String? = null,
+    val allProperties: Boolean = false,
+)
 
 @Serializable
 data class DirectoryPersonDto(val email: String, val name: String? = null, val userId: String? = null, val groupId: String? = null)
@@ -83,6 +93,11 @@ data class PermissionDto(val key: String, val name: String = "", val needsAllPro
 @Serializable
 data class MeDto(
     val userId: String,
+    val email: String = "",
+    val name: String? = null,
+    /** The organisation every `/organisations/{org}` call must use (it may differ from what userInfo says). */
+    val organisationId: String? = null,
+    val role: String? = null,
     val groupId: String? = null,
     val groupName: String? = null,
     val permissions: List<String> = emptyList(),
