@@ -3,6 +3,7 @@ package com.sclera.sclerago.presentation.main
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
@@ -106,14 +107,24 @@ data class UiState(
     /** Bluetooth / Network: true = "Scan" segment, false = "Assets" segment. */
     val btScan: Boolean = true,
     val netScan: Boolean = true,
+    /** The location chosen for the lists' location tab (empty until one is picked). */
     val specLocs: List<String> = emptyList(),
     val specPath: List<String> = emptyList(),
     val specWhere: String = "",
     val specSel: String = "",
     val sheet: Sheet = Sheet.NONE,
     val sheetFor: SheetFor = SheetFor.FILTER,
+    /** The current property; empty until the properties have loaded (then the first one). */
     val prop: String = "",
     val propQ: String = "",
+    /** Scanned devices ticked on the Bluetooth / Network scan list, to add as assets together. */
+    val devPick: Set<String> = emptySet(),
+    /**
+     * Select all is on: every device that isn't an asset yet is ticked, including ones the scan finds
+     * later, except those in [devSkip] (unticked by hand).
+     */
+    val devAll: Boolean = false,
+    val devSkip: Set<String> = emptySet(),
     val pv: Preview? = null,
     val assetId: String? = null,
     val newAsset: Boolean = false,
@@ -271,16 +282,18 @@ class AppViewModel @Inject constructor(
 
     /** Form values filled in from the scanned device the new asset comes from. */
     val newPrefill: Map<String, String>
-        get() {
-            val d = state.newDevice ?: return emptyMap()
-            val m = mutableMapOf("note" to "${state.newSrc.label}: ${d.name} · ${d.sub}")
-            when (state.newSrc) {
-                Source.BT -> m["ble"] = scanKey(d)
-                Source.WIFI -> m["ip"] = scanKey(d)
-                else -> {}
-            }
-            return m
+        get() = state.newDevice?.let { prefillFor(it, state.newSrc) } ?: emptyMap()
+
+    /** What an asset made from scanned device [d] starts with: a note saying where it came from, and its BLE tag / IP. */
+    private fun prefillFor(d: Device, src: Source): Map<String, String> {
+        val m = mutableMapOf("note" to "${src.label}: ${d.name} · ${d.sub}")
+        when (src) {
+            Source.BT -> m["ble"] = scanKey(d)
+            Source.WIFI -> m["ip"] = scanKey(d)
+            else -> {}
         }
+        return m
+    }
 
     val showDetail: Boolean get() = detailAsset != null
     val camSub: Boolean get() = !state.revCam && !state.camOpen
@@ -300,7 +313,8 @@ class AppViewModel @Inject constructor(
         val ql = state.propQ.trim().lowercase()
         val n = catalog.value.assets.size
         return properties.filter { ql.isEmpty() || it.name.lowercase().contains(ql) }.map { p ->
-            p to if (n > 0) plural(n, "asset", "assets") + (if (p.gps) " · 5 buildings" else "") else "No assets yet"
+            val buildings = if (p.id == currentProp) tree.value.size else 0
+            p to if (n > 0) plural(n, "asset", "assets") + (if (buildings > 0) " · " + plural(buildings, "building", "buildings") else "") else "No assets yet"
         }
     }
 
@@ -338,10 +352,10 @@ class AppViewModel @Inject constructor(
     fun retryScan(t: ScanService.Target) = scans.start(t)
 
     val btCard: ScanService.Card
-        get() = btDevices.let { d -> scans.card(ScanService.Target.BLUETOOTH, d.size, d.count { it.isNew }) }
+        get() = scans.card(ScanService.Target.BLUETOOTH, btDevices.size, btNew)
 
     val netCard: ScanService.Card
-        get() = netDevices.let { d -> scans.card(netTarget, d.size, d.count { it.isNew }) }
+        get() = scans.card(netTarget, netDevices.size, netNew)
 
     private fun deviceName(d: Device) = if (d.name in setOf(UNKNOWN_DEVICE, "Hidden network")) "" else d.name
 
@@ -359,9 +373,19 @@ class AppViewModel @Inject constructor(
         return devices.map { DeviceRow(it, it.id !in added && matches[it.id] == null) }
     }
 
-    val btDevices: List<DeviceRow> get() = rows(scans.rows(ScanService.Target.BLUETOOTH), Source.BT)
-    val netDevices: List<DeviceRow>
-        get() = rows(scans.rows(netTarget), if (state.netMode == NetMode.AP) Source.AP else Source.WIFI)
+    // Cached: rebuilt only when the scan's rows, the assets or the Network mode change, not on every
+    // read (the scan card and the list both read them, and the card's progress ticks several times a second).
+    private val btRowsState = derivedStateOf { rows(scans.rows(ScanService.Target.BLUETOOTH), Source.BT) }
+    private val netRowsState = derivedStateOf {
+        rows(scans.rows(netTarget), if (state.netMode == NetMode.AP) Source.AP else Source.WIFI)
+    }
+    private val btNewState = derivedStateOf { btRowsState.value.count { it.isNew } }
+    private val netNewState = derivedStateOf { netRowsState.value.count { it.isNew } }
+
+    val btDevices: List<DeviceRow> get() = btRowsState.value
+    val netDevices: List<DeviceRow> get() = netRowsState.value
+    private val btNew: Int get() = btNewState.value
+    private val netNew: Int get() = netNewState.value
 
     // Camera: every selected capture becomes its own draft asset.
     val camReview: List<ReviewItem>
@@ -398,7 +422,7 @@ class AppViewModel @Inject constructor(
     fun goTab(t: Tab) {
         val from = state.tab
         set {
-            var o = copy(tab = t, assetId = null, newAsset = false, newDevice = null, newMedia = emptyList())
+            var o = copy(tab = t, assetId = null, newAsset = false, newDevice = null, newMedia = emptyList(), devPick = emptySet(), devAll = false, devSkip = emptySet())
             if (t == Tab.CAMERA) o = o.copy(camOpen = true, revCam = false)
             if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = true)
             // Scanning tabs always open on their Scan segment, not their asset list.
@@ -437,6 +461,7 @@ class AppViewModel @Inject constructor(
         val cur = state.loc
         when (f) {
             LocFilter.ALL -> if (cur == LocFilter.ALL) openProp() else set { copy(loc = LocFilter.ALL, assetId = null) }
+            // No location chosen yet: the tab opens the picker straight away.
             LocFilter.SPEC -> if (cur == LocFilter.SPEC || state.specLocs.isEmpty()) openLocFilter() else set { copy(loc = LocFilter.SPEC, assetId = null) }
             LocFilter.NONE -> set { copy(loc = LocFilter.NONE, assetId = null) }
         }
@@ -480,7 +505,15 @@ class AppViewModel @Inject constructor(
     fun setPropQ(v: String) = set { copy(propQ = v) }
     fun pickProp(id: String) {
         val changed = id != currentProp
-        set { copy(prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, propQ = "") }
+        set {
+            // A location belongs to its property: switching forgets the one chosen.
+            val keep = !changed
+            copy(
+                prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, propQ = "",
+                specLocs = if (keep) specLocs else emptyList(), specPath = if (keep) specPath else emptyList(),
+                specWhere = if (keep) specWhere else "", specSel = if (keep) specSel else "",
+            )
+        }
         // The new property may not onboard over the tab that's open.
         if (state.tab !in navTabs) goTab(Tab.ASSETS)
         if (changed) flash(UiText.Res(R.string.property_showing, listOf(propName)))
@@ -510,20 +543,84 @@ class AppViewModel @Inject constructor(
     fun locValue(r: LocPick) = LocValue(if (r.locs.size == 1) r.locs[0] else r.label, r.where, r.id)
 
     fun setBtScan(scan: Boolean) {
-        set { copy(btScan = scan) }
+        set { copy(btScan = scan, devPick = emptySet(), devAll = false, devSkip = emptySet()) }
         if (scan) scans.start(ScanService.Target.BLUETOOTH, auto = true)
     }
     fun setNetScan(scan: Boolean) {
-        set { copy(netScan = scan) }
+        set { copy(netScan = scan, devPick = emptySet(), devAll = false, devSkip = emptySet()) }
         if (scan) scans.start(netTarget, auto = true)
     }
     fun setNetMode(m: NetMode) {
-        set { copy(netMode = m) }
+        set { copy(netMode = m, devPick = emptySet(), devAll = false, devSkip = emptySet()) }
         if (state.netScan) scans.start(netTarget, auto = true)
     }
     /** Tap on the radar card: pause a running scan, or start a new one. */
     fun toggleBt() = scans.toggle(ScanService.Target.BLUETOOTH)
     fun toggleNet() = scans.toggle(netTarget)
+    // ---------- Adding several scanned devices at once ----------
+
+    /** The scan list on screen (Bluetooth, or the Network tab's current mode), or empty off the scan pages. */
+    private val shownDevices: List<DeviceRow>
+        get() = when {
+            state.tab == Tab.BT && state.btScan -> btDevices
+            state.tab == Tab.NET && state.netScan -> netDevices
+            else -> emptyList()
+        }
+
+    /** Devices on the list that aren't assets yet: the ones that can be ticked. */
+    private val addableDevices: List<Device> get() = shownDevices.filter { it.isNew }.map { it.device }
+
+    /** Ticked devices that are still on the list and still not assets (with Select all on, new finds are ticked too). */
+    val pickedDevices: List<Device>
+        get() = state.let { s ->
+            if (s.devAll) addableDevices.filter { it.id !in s.devSkip } else addableDevices.filter { it.id in s.devPick }
+        }
+
+    /** Select all is on, so devices the scan finds from now on are ticked as they appear. */
+    val devAllOn: Boolean get() = state.devAll
+
+    /** Ticking is under way: rows show tick boxes and the add bar shows. */
+    val devSelOn: Boolean get() = pickedDevices.isNotEmpty() && !showDetail && !sheetOpen
+    val allDevicesPicked: Boolean get() = addableDevices.let { a -> a.isNotEmpty() && pickedDevices.size == a.size }
+    val addableCount: Int get() = addableDevices.size
+
+    /** Tick / untick one device. With Select all on, unticking keeps that device out as more are found. */
+    fun toggleDevicePick(id: String) = set {
+        if (devAll) copy(devSkip = if (id in devSkip) devSkip - id else devSkip + id)
+        else copy(devPick = if (id in devPick) devPick - id else devPick + id)
+    }
+
+    /**
+     * Select all on the scan list: ticks every device that isn't an asset yet and keeps ticking new
+     * ones as the scan finds them; if everything is already ticked, clears instead.
+     */
+    fun selectAllDevices() {
+        if (allDevicesPicked) clearDevicePick() else set { copy(devAll = true, devSkip = emptySet(), devPick = emptySet()) }
+    }
+
+    fun clearDevicePick() = set { copy(devPick = emptySet(), devAll = false, devSkip = emptySet()) }
+
+    /**
+     * Adds every ticked device as a draft asset, with what the add form would have filled in from it
+     * (name, its scan line, type, BLE tag / IP and a note). They're then marked as added on the list.
+     */
+    fun addPickedDevices() {
+        val picked = pickedDevices
+        if (picked.isEmpty()) return
+        val src = scanSource
+        val place = AssetPlace(currentProp, tgtLoc, tgtWhere, tgtPlace)
+        clearDevicePick()
+        write {
+            picked.forEach { d ->
+                assetUseCases.create(
+                    deviceName(d), "", emptyList(), prefillFor(d, src), false,
+                    place = place, captures = emptyList(), device = d, deviceSource = src,
+                )
+            }
+            flash(UiText.Res(R.string.notice_with_source, listOf(UiText.Raw(plural(picked.size, "asset", "assets") + " added as drafts"), UiText.Res(src.viaRes))))
+        }
+    }
+
     /** Tap on a scanned device: open its asset if it already has one, otherwise the add form prefilled from it. */
     fun openDevice(d: Device) {
         val src = scanSource

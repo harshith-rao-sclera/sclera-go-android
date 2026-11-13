@@ -113,11 +113,9 @@
         <item quantity="other">%1$d สินทรัพย์</item>
     </plurals>
     <string name="launch_logo_description">โลโก้ Sclera Go</string>
-    <string name="access_heading">บุคคลและการเข้าถึง</string>
-    <string name="access_description">กลุ่มกำหนดสิ่งที่สมาชิกทำได้ แต่ละคนอยู่ในหนึ่งกลุ่ม โดยเข้าถึงได้ทุกสถานที่หรือเฉพาะที่เลือกไว้</string>
-    <string name="access_stat_people">บุคคล</string>
+    <string name="access_stat_people">ผู้ใช้</string>
     <string name="access_stat_groups">กลุ่ม</string>
-    <string name="access_tab_people">บุคคล (%1$d)</string>
+    <string name="access_tab_people">ผู้ใช้ (%1$d)</string>
     <string name="access_tab_groups">กลุ่ม (%1$d)</string>
     <string name="access_search_people">ค้นหาบุคคล</string>
     <string name="access_search_groups">ค้นหากลุ่ม</string>
@@ -126,18 +124,20 @@
     <string name="access_empty_people">ยังไม่มีใครเข้าถึงได้</string>
     <string name="access_no_person_match">ไม่พบบุคคลที่ตรงกับ “%1$s”</string>
     <string name="access_no_group_match">ไม่พบกลุ่มที่ตรงกับ “%1$s”</string>
-    <string name="access_col_group">กลุ่ม</string>
-    <string name="access_col_properties">สถานที่</string>
-    <string name="access_col_last_seen">เห็นล่าสุด</string>
     <string name="access_all_properties">ทุกสถานที่</string>
-    <string name="access_just_now">เมื่อสักครู่</string>
-    <string name="access_last_seen_description">เห็นล่าสุด %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">ดูได้อย่างเดียว</string>
     <string name="access_edit_group">แก้ไข %1$s</string>
     <string name="access_delete_group">ลบ %1$s</string>
-    <string name="access_delete_locked">ลบ %1$s ไม่ได้</string>
     <string name="access_delete_title">ลบ %1$s หรือไม่</string>
     <string name="access_delete_message">กลุ่มจะถูกลบ การดำเนินการนี้ย้อนกลับไม่ได้</string>
+    <string name="access_title">ผู้ใช้และสิทธิ์การเข้าถึง</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="other">ลบกลุ่ม %1$d กลุ่มไหม</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="other">กลุ่มจะถูกลบ การดำเนินการนี้ย้อนกลับไม่ได้</item>
+    </plurals>
     <string name="access_action_delete">ลบ</string>
     <string name="access_remove_title">นำ %1$s ออกหรือไม่</string>
     <string name="access_remove_message">%1$s จะไม่สามารถเข้าถึง Sclera ได้อีก</string>

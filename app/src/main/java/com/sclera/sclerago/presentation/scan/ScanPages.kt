@@ -13,6 +13,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.presentation.assets.assetList
 import com.sclera.sclerago.presentation.components.BlockedCard
 import com.sclera.sclerago.presentation.components.Capsule
+import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.SegHeader
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
@@ -65,19 +67,16 @@ fun BluetoothPage(vm: AppViewModel) {
             assetList(list, header = seg)
         } else {
             stickyHeader(key = "seg") { seg() }
-            val devs = vm.btDevices
-            val card = vm.btCard
             scanSection(
-                on = vm.btOn,
-                title = card.title,
-                sub = card.sub,
-                progress = card.progress,
+                on = { vm.btOn },
+                card = { vm.btCard },
                 coreIcon = Icons.Bluetooth,
                 dots = BT_DOTS,
                 onToggle = vm::toggleBt,
-                devices = devs,
+                devices = vm.btDevices,
                 mono = false,
                 onOpen = vm::openDevice,
+                picks = devicePicks(vm),
                 blocked = ScanService.Target.BLUETOOTH.takeIf { vm.scanBlocked(it) },
                 onRetry = { vm.retryScan(ScanService.Target.BLUETOOTH) },
             )
@@ -105,19 +104,16 @@ fun NetworkPage(vm: AppViewModel) {
         } else {
             stickyHeader(key = "head") { head() }
             val ap = s.netMode == NetMode.AP
-            val devs = vm.netDevices
-            val card = vm.netCard
             scanSection(
-                on = vm.netOn,
-                title = card.title,
-                sub = card.sub,
-                progress = card.progress,
+                on = { vm.netOn },
+                card = { vm.netCard },
                 coreIcon = if (ap) Icons.AccessPoint else Icons.Wifi,
                 dots = NET_DOTS,
                 onToggle = vm::toggleNet,
-                devices = devs,
+                devices = vm.netDevices,
                 mono = true,
                 onOpen = vm::openDevice,
+                picks = devicePicks(vm),
                 blocked = vm.netTarget.takeIf { vm.scanBlocked(it) },
                 onRetry = { vm.retryScan(vm.netTarget) },
             )
@@ -136,7 +132,7 @@ private fun NetTab(label: String, icon: Ico, on: Boolean, modifier: Modifier, on
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             LineIcon(icon, 18.dp, fg, 2.1f)
-            Txt(label, 14, if (on) 700 else 500, fg)
+            Txt(label, 13, if (on) 700 else 500, fg)
         }
         Box(
             Modifier.align(Alignment.BottomCenter).padding(horizontal = 14.dp).fillMaxWidth().height(3.dp)
@@ -146,17 +142,43 @@ private fun NetTab(label: String, icon: Ico, on: Boolean, modifier: Modifier, on
     }
 }
 
+/**
+ * The radar card and the devices found. [on] and [card] are read inside the card's own item: the card's
+ * progress changes several times a second, and reading it there redraws only the card, not every row.
+ */
+/** Ticking scanned devices to add several at once (see [AppViewModel.addPickedDevices]). */
+private class DevicePicks(
+    val picked: Set<String>,
+    val selecting: Boolean,
+    val addable: Int,
+    val allPicked: Boolean,
+    /** Select all is on: new finds are ticked as they appear. */
+    val auto: Boolean,
+    val toggle: (String) -> Unit,
+    val selectAll: () -> Unit,
+)
+
+private fun devicePicks(vm: AppViewModel) = DevicePicks(
+    picked = vm.pickedDevices.mapTo(HashSet()) { it.id },
+    selecting = vm.devSelOn,
+    addable = vm.addableCount,
+    allPicked = vm.allDevicesPicked,
+    auto = vm.devAllOn,
+    toggle = vm::toggleDevicePick,
+    selectAll = vm::selectAllDevices,
+)
+
+@OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.scanSection(
-    on: Boolean,
-    title: String,
-    sub: String,
-    progress: Float?,
+    on: () -> Boolean,
+    card: () -> ScanService.Card,
     coreIcon: Ico,
     dots: List<Dot>,
     onToggle: () -> Unit,
     devices: List<DeviceRow>,
     mono: Boolean,
     onOpen: (Device) -> Unit,
+    picks: DevicePicks,
     blocked: ScanService.Target? = null,
     onRetry: () -> Unit = {},
 ) {
@@ -166,6 +188,8 @@ private fun LazyListScope.scanSection(
             BlockedCard(blocked, onRetry)
             return@item
         }
+        val on = on()
+        val (title, sub, progress) = card()
         Column(
             Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(16)).background(C.Surface)
                 .border(1.dp, C.Border, r(16)).clickable(onClick = onToggle).padding(14.dp),
@@ -174,8 +198,8 @@ private fun LazyListScope.scanSection(
         ) {
             Radar(on, dots, coreIcon)
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(title, 16, 700)
-                Txt(sub, 12, 400, C.Muted, maxLines = 2, align = androidx.compose.ui.text.style.TextAlign.Center)
+                Txt(title, 15, 700)
+                Txt(sub, 11, 400, C.Muted, maxLines = 2, align = androidx.compose.ui.text.style.TextAlign.Center)
             }
             // How far the scan has got, with the percentage done beside it.
             if (on && progress != null) {
@@ -188,25 +212,57 @@ private fun LazyListScope.scanSection(
                     Box(Modifier.weight(1f).height(6.dp).clip(Capsule).background(C.Raised)) {
                         Box(Modifier.fillMaxWidth(progress).fillMaxHeight().clip(Capsule).background(C.Yellow))
                     }
-                    Txt("$pct% done", 12, 700, C.Yellow)
+                    Txt("$pct% done", 11, 700, C.Yellow)
                 }
             }
         }
     }
-    items(devices, key = { it.device.id }) { d ->
+    // "N not added yet" and Select all, once there is anything to add.
+    if (picks.addable > 0) item(key = "selectall") {
         Row(
-            Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
-                .border(1.dp, C.Border, r(14)).clickable { onOpen(d.device) }
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Txt(
+                    if (picks.selecting) "${picks.picked.size} of ${picks.addable} selected" else "${picks.addable} not added yet",
+                    12, 600, C.Muted,
+                )
+                if (picks.auto) Txt("New finds are selected too", 11, 500, C.Yellow)
+            }
+            Row(
+                Modifier.clip(Capsule).clickable(onClick = picks.selectAll).padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Txt(if (picks.allPicked) "Clear all" else "Select all", 12, 700, C.Yellow)
+                CheckBox(picks.allPicked)
+            }
+        }
+    }
+    items(devices, key = { it.device.id }, contentType = { "device" }) { d ->
+        val picked = d.device.id in picks.picked
+        // While ticking, tapping a device that can be added ticks it; long-press starts ticking.
+        val tap = { if (picks.selecting && d.isNew) picks.toggle(d.device.id) else onOpen(d.device) }
+        Row(
+            Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(14))
+                .background(if (picked) C.PickedRow else C.Surface)
+                .border(1.dp, if (picked) C.YTintBd else C.Border, r(14))
+                .combinedClickable(onClick = tap, onLongClick = { if (d.isNew) picks.toggle(d.device.id) })
                 .padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             DeviceIconTile(d.device)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(d.device.name, 14, 600)
-                Txt(d.device.sub, 12, 400, C.Muted, mono = mono)
+                Txt(d.device.name, 13, 600)
+                Txt(d.device.sub, 11, 400, C.Muted, mono = mono)
             }
-            if (d.isNew) {
+            if (d.isNew && picks.selecting) {
+                Box(Modifier.size(38.dp).clip(r(10)).clickable { picks.toggle(d.device.id) }, contentAlignment = Alignment.Center) {
+                    CheckBox(picked)
+                }
+            } else if (d.isNew) {
                 Box(
                     Modifier.size(38.dp).clip(r(10)).background(C.YTintBg).border(1.dp, C.YTintBd, r(10))
                         .clickable { onOpen(d.device) },

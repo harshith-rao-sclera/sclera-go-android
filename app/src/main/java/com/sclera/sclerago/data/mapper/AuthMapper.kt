@@ -18,10 +18,9 @@ private fun JSONObject.firstText(vararg keys: String): String? =
 internal fun organisationFromUserInfo(data: JSONObject): String? =
     data.firstText("organisation_title", "company_name", "provider_name")
 
-/** Profile photo from the userInfo `data` object; only absolute http(s) URLs are used. */
+/** Profile photo from the userInfo `data` object; only absolute https URLs are used (cleartext is blocked). */
 internal fun avatarFromUserInfo(data: JSONObject): String? =
-    data.firstText("image_url")
-        ?.takeIf { it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true) }
+    data.firstText("image_url")?.takeIf { it.startsWith("https://", ignoreCase = true) }
 
 /** "admin" / "SUPER_ADMIN" / "field-engineer" → "Admin" / "Super admin" / "Field engineer". */
 internal fun prettyRole(raw: String): String =

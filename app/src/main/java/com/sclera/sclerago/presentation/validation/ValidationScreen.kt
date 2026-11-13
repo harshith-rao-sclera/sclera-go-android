@@ -70,6 +70,7 @@ import com.sclera.sclerago.presentation.components.CfgCard
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.PageBar
@@ -204,10 +205,10 @@ internal fun SectionTitle(title: String, count: Int?, trailing: (@Composable () 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Txt(title, 16, 700)
+        Txt(title, 15, 700)
         count?.let {
             Box(Modifier.size(22.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
-                Txt(it.toString(), 11, 700, C.Soft)
+                Txt(it.toString(), 10, 700, C.Soft)
             }
         }
         Spacer(Modifier.weight(1f))
@@ -225,7 +226,7 @@ internal fun YellowButton(text: String, onClick: () -> Unit, modifier: Modifier 
     ) {
         val fg = if (enabled) C.OnYellow else C.Dim
         LineIcon(Icons.Play, 13.dp, fg)
-        Txt(text, 14, 700, fg)
+        Txt(text, 13, 700, fg)
     }
 }
 
@@ -251,15 +252,15 @@ private fun TemplateCard(t: ValidationTemplate, onRun: () -> Unit, onChoose: () 
             Box(Modifier.size(36.dp).clip(r(9)).background(C.YTintBg), contentAlignment = Alignment.Center) {
                 LineIcon(templateIcon(t.id), 18.dp, C.Yellow, 2.2f)
             }
-            Txt(t.name, 15, 700, modifier = Modifier.weight(1f, fill = false))
+            Txt(t.name, 14, 700, modifier = Modifier.weight(1f, fill = false))
             if (t.ai) AiBadge()
         }
-        Txt(t.tagline, 13, 400, C.Muted)
+        Txt(t.tagline, 12, 400, C.Muted)
         YellowButton("Run on all assets", onRun, Modifier.fillMaxWidth(), height = 40)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Txt("Choose assets", 12, 600, C.Soft, Modifier.clip(r(6)).clickable(onClick = onChoose).padding(vertical = 4.dp))
+            Txt("Choose assets", 11, 600, C.Soft, Modifier.clip(r(6)).clickable(onClick = onChoose).padding(vertical = 4.dp))
             Spacer(Modifier.weight(1f))
-            Txt("See the ${t.ruleIds.size} checks", 12, 600, C.Yellow, Modifier.clip(r(6)).clickable(onClick = onChecks).padding(vertical = 4.dp))
+            Txt("See the ${t.ruleIds.size} checks", 11, 600, C.Yellow, Modifier.clip(r(6)).clickable(onClick = onChecks).padding(vertical = 4.dp))
         }
     }
 }
@@ -272,14 +273,14 @@ private fun SavedCard(sv: SavedValidation, lastRun: Long?, onRun: () -> Unit, on
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Txt(sv.name, 15, 700, modifier = Modifier.weight(1f))
-            Txt(lastRun?.let { "Last run " + relativeTime(it) } ?: "Not run yet", 12, 400, C.Muted)
+            Txt(sv.name, 14, 700, modifier = Modifier.weight(1f))
+            Txt(lastRun?.let { "Last run " + relativeTime(it) } ?: "Not run yet", 11, 400, C.Muted)
         }
-        Txt(sv.rules.joinToString(" · ") { it.name }, 12, 400, C.Muted, maxLines = 3)
+        Txt(sv.rules.joinToString(" · ") { it.name }, 11, 400, C.Muted, maxLines = 3)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             YellowButton("Run", onRun, height = 36)
             Spacer(Modifier.weight(1f))
-            Txt("Delete", 13, 700, C.Red, Modifier.clip(r(8)).clickable(onClick = onDelete).padding(horizontal = 8.dp, vertical = 8.dp))
+            Txt("Delete", 12, 700, C.Red, Modifier.clip(r(8)).clickable(onClick = onDelete).padding(horizontal = 8.dp, vertical = 8.dp))
         }
     }
 }
@@ -300,8 +301,8 @@ private fun Counts(failed: Int, look: Int, passed: Int) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         listOf(Triple(failed, "failed", C.Red), Triple(look, "to look at", C.Orange), Triple(passed, "passed", C.Green)).forEach { (n, l, c) ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Txt(n.toString(), 12, 700, if (n > 0) c else C.Soft)
-                Txt(l, 12, 400, C.Muted)
+                Txt(n.toString(), 11, 700, if (n > 0) c else C.Soft)
+                Txt(l, 11, 400, C.Muted)
             }
         }
     }
@@ -320,10 +321,10 @@ private fun StatusChip(running: Boolean) {
                 0f, 360f, infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Restart), label = "spin",
             )
             Box(Modifier.size(9.dp).rotate(spin).border(1.5.dp, C.Yellow, CircleShape).padding(2.dp))
-            Txt("Running", 11, 700, C.Yellow)
+            Txt("Running", 10, 700, C.Yellow)
         } else {
             Box(Modifier.size(7.dp).clip(CircleShape).background(C.Green))
-            Txt("Completed", 11, 700, C.Green)
+            Txt("Completed", 10, 700, C.Green)
         }
     }
 }
@@ -338,12 +339,12 @@ private fun JobRow(j: ValJob, onReview: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatusChip(j.running)
             Spacer(Modifier.weight(1f))
-            Txt(relativeTime(j.startedAt), 12, 400, C.Muted)
+            Txt(relativeTime(j.startedAt), 11, 400, C.Muted)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(j.title, 15, 700)
-                Txt("${j.scopeLabel} · ${plural(j.checks, "check", "checks")}", 12, 400, C.Muted)
+                Txt(j.title, 14, 700)
+                Txt("${j.scopeLabel} · ${plural(j.checks, "check", "checks")}", 11, 400, C.Muted)
             }
             if (!j.running) Pill("Review", onReview, height = 34.dp, hPad = 14.dp, size = 12)
         }
@@ -354,7 +355,7 @@ private fun JobRow(j: ValJob, onReview: () -> Unit) {
             Box(Modifier.fillMaxWidth().height(6.dp).clip(Capsule).background(C.Raised)) {
                 Box(Modifier.fillMaxWidth(p).fillMaxHeight().background(C.Yellow.copy(alpha = 0.7f)))
             }
-            Txt("Checking ${plural(j.assetIds.size, "asset", "assets")}…", 12, 400, C.Muted)
+            Txt("Checking ${plural(j.assetIds.size, "asset", "assets")}…", 11, 400, C.Muted)
         } else {
             ResultBar(j.failed, j.look, j.passed)
             Counts(j.failed, j.look, j.passed)
@@ -380,10 +381,10 @@ internal fun OptionCard(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Txt(title, 14, 700, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+            Txt(title, 13, 700, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
             badge?.invoke()
         }
-        Txt(body, 12, 400, if (selected) C.Soft else C.Muted, maxLines = 6)
+        Txt(body, 11, 400, if (selected) C.Soft else C.Muted, maxLines = 6)
     }
 }
 
@@ -395,7 +396,7 @@ private fun RuleChip(text: String, ai: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (ai) LineIcon(Icons.Sparkles, 10.dp, C.Purple)
-        Txt(text, 12, 500, C.Soft)
+        Txt(text, 11, 500, C.Soft)
     }
 }
 
@@ -409,14 +410,14 @@ private fun RunSheetView(vm: AppViewModel, sh: RunSheet) {
     val chosen = options.firstOrNull { it.id == sh.sourceId }
     BottomSheet(vm::closeRunSheet) {
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Txt("Run validation", 17, 700, modifier = Modifier.weight(1f))
+            Txt("Run validation", 16, 700, modifier = Modifier.weight(1f))
             CloseButton(vm::closeRunSheet, size = 36.dp, iconSize = 15.dp)
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Txt("What to check", 13, 600, C.Soft, Modifier.padding(start = 2.dp, bottom = 2.dp))
+            Txt("What to check", 12, 600, C.Soft, Modifier.padding(start = 2.dp, bottom = 2.dp))
             options.forEach { o ->
                 val on = sh.sourceId == o.id
                 val rules = vm.sourceRules(o.id)
@@ -431,11 +432,11 @@ private fun RunSheetView(vm: AppViewModel, sh: RunSheet) {
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Txt(o.name, 14, 700, modifier = Modifier.weight(1f, fill = false))
+                                Txt(o.name, 13, 700, modifier = Modifier.weight(1f, fill = false))
                                 if (o.ai) AiBadge()
                                 if (o.saved) Txt("saved", 10, 600, C.Muted)
                             }
-                            Txt("${o.tagline} · ${plural(rules.size, "check", "checks")}", 12, 400, C.Muted)
+                            Txt("${o.tagline} · ${plural(rules.size, "check", "checks")}", 11, 400, C.Muted)
                         }
                         RadioDot(on)
                     }
@@ -451,7 +452,7 @@ private fun RunSheetView(vm: AppViewModel, sh: RunSheet) {
                 }
             }
 
-            Txt("Which assets", 13, 600, C.Soft, Modifier.padding(start = 2.dp, top = 10.dp, bottom = 2.dp))
+            Txt("Which assets", 12, 600, C.Soft, Modifier.padding(start = 2.dp, top = 10.dp, bottom = 2.dp))
             ScopeTabs(
                 listOf("All · ${vm.assets.size}", "Choose", "New or changed"), ValScope.entries.indexOf(sh.scope),
             ) { i ->
@@ -463,7 +464,7 @@ private fun RunSheetView(vm: AppViewModel, sh: RunSheet) {
                 ValScope.CHANGED -> if (vm.lastRun(sh.sourceId) == null) "Not run yet, so every asset."
                 else "${plural(targets.size, "asset", "assets")} added or edited since the last run"
                 ValScope.ALL -> null
-            }?.let { Txt(it, 12, 400, C.Muted, Modifier.padding(start = 2.dp)) }
+            }?.let { Txt(it, 11, 400, C.Muted, Modifier.padding(start = 2.dp)) }
             Spacer(Modifier.height(4.dp))
         }
         Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
@@ -490,7 +491,7 @@ private fun ScopeTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Un
             Box(
                 Modifier.weight(1f).height(32.dp).clip(r(8)).background(if (on) C.Yellow else Color.Transparent).clickable { onSelect(i) },
                 contentAlignment = Alignment.Center,
-            ) { Txt(l, 12, if (on) 700 else 500, if (on) C.OnYellow else C.Muted, maxLines = 1) }
+            ) { Txt(l, 11, if (on) 700 else 500, if (on) C.OnYellow else C.Muted, maxLines = 1) }
         }
     }
 }
@@ -507,7 +508,7 @@ private fun AssetPicker(vm: AppViewModel, sh: RunSheet) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             CheckBox(all)
-            Txt("Select all (${list.size})", 14, 600)
+            Txt("Select all (${list.size})", 13, 600)
         }
         LazyColumn(Modifier.weight(1f, fill = false)) {
             items(list, key = { it.id }) { a ->
@@ -522,8 +523,8 @@ private fun AssetPicker(vm: AppViewModel, sh: RunSheet) {
                         LineIcon(a.type.icon, 17.dp, C.Yellow, 1.9f)
                     }
                     Column(Modifier.weight(1f)) {
-                        Txt(a.name, 14, 600)
-                        Txt(a.detail, 12, 400, C.Muted)
+                        Txt(a.name, 13, 600)
+                        Txt(a.detail, 11, 400, C.Muted)
                     }
                 }
             }
@@ -541,8 +542,8 @@ private fun ChecksSheet(name: String, rules: List<Rule>, onClose: () -> Unit) {
     BottomSheet(onClose) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 14.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(name, 24, 700, maxLines = 2)
-                Txt(plural(rules.size, "check", "checks"), 14, 400, C.Muted)
+                Txt(name, 22, 700, maxLines = 2)
+                Txt(plural(rules.size, "check", "checks"), 13, 400, C.Muted)
             }
             CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
         }
@@ -555,10 +556,10 @@ private fun ChecksSheet(name: String, rules: List<Rule>, onClose: () -> Unit) {
                     LineIcon(Icons.CheckCircle, 22.dp, C.Yellow, 2f, Modifier.padding(top = 1.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Txt(r.name, 16, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                            Txt(r.name, 15, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
                             if (r.ai) AiBadge()
                         }
-                        RULE_DESC[r.id]?.let { Txt(it, 13, 400, C.Muted, maxLines = 6) }
+                        RULE_DESC[r.id]?.let { Txt(it, 12, 400, C.Muted, maxLines = 6) }
                     }
                 }
             }
@@ -572,7 +573,14 @@ private fun ChecksSheet(name: String, rules: List<Rule>, onClose: () -> Unit) {
  */
 @Composable
 private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
-    BackHandler(onBack = vm::closeEditor)
+    // What it looked like when opened: leaving with anything changed asks first.
+    val start = remember(e.id) { e }
+    Box(Modifier.fillMaxSize()) { GuardedClose(e != start, vm::closeEditor) { close -> EditorPageBody(vm, e, close) } }
+}
+
+@Composable
+private fun EditorPageBody(vm: AppViewModel, e: SavedEditor, close: () -> Unit) {
+    BackHandler(onBack = close)
     var q by remember { mutableStateOf("") }
     var infoFor by remember { mutableStateOf<String?>(null) }
     val ok = e.name.isNotBlank() && e.ruleIds.isNotEmpty()
@@ -607,7 +615,7 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
         }
     }
     Column(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }.blockSwipe()) {
-        PageBar(if (e.id == null) "New validation" else "Edit validation", vm.propName, vm::closeEditor, property = true)
+        PageBar(if (e.id == null) "New validation" else "Edit validation", vm.propName, close, property = true)
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).navigationBarsPadding().imePadding().padding(horizontal = 6.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -618,7 +626,7 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
                     LabeledInput("Name", e.name, vm::setEditorName, "e.g. Main Validation", compact = true)
                     LabeledInput("Description (optional)", e.description, vm::setEditorDesc, "What this is for", compact = true)
                     Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Pill("Cancel", vm::closeEditor, height = 38.dp, hPad = 14.dp, size = 13)
+                        Pill("Cancel", close, height = 38.dp, hPad = 14.dp, size = 13)
                         Pill("Save", { if (ok) vm.saveEditor() }, Modifier.alpha(if (ok) 1f else 0.5f), height = 38.dp, hPad = 16.dp, size = 13)
                         Pill(
                             "Save and run", { if (ok) vm.saveEditor(run = true) }, Modifier.weight(1f).alpha(if (ok) 1f else 0.5f),
@@ -632,28 +640,28 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
             CfgCard {
                 Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Txt("Steps", 15, 700)
+                        Txt("Steps", 14, 700)
                         Box(Modifier.size(20.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
-                            Txt(e.ruleIds.size.toString(), 11, 700, C.Soft)
+                            Txt(e.ruleIds.size.toString(), 10, 700, C.Soft)
                         }
                         Spacer(Modifier.weight(1f))
-                        if (e.ruleIds.isNotEmpty()) Txt("Clear all", 12, 600, C.Soft, Modifier.clip(r(8)).clickable(onClick = vm::clearSteps).padding(4.dp))
+                        if (e.ruleIds.isNotEmpty()) Txt("Clear all", 11, 600, C.Soft, Modifier.clip(r(8)).clickable(onClick = vm::clearSteps).padding(4.dp))
                     }
-                    Txt("Every asset goes through these in order. Drag the handle or use the arrows to reorder.", 12, 400, C.Muted, maxLines = 3)
+                    Txt("Every asset goes through these in order. Drag the handle or use the arrows to reorder.", 11, 400, C.Muted, maxLines = 3)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Txt("Start from", 12, 500, C.Muted)
+                        Txt("Start from", 11, 500, C.Muted)
                         Spacer(Modifier.width(8.dp))
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             TEMPLATES.forEach { t ->
                                 Box(
                                     Modifier.clip(Capsule).border(1.dp, C.Border2, Capsule).clickable { vm.stepsFrom(t.id) }
                                         .padding(horizontal = 11.dp, vertical = 6.dp),
-                                ) { Txt(t.name.substringBefore(" and"), 12, 600) }
+                                ) { Txt(t.name.substringBefore(" and"), 11, 600) }
                             }
                         }
                     }
                     if (e.ruleIds.isEmpty()) {
-                        Txt("No steps yet. Add checks below, or start from a template.", 12, 400, C.Muted, maxLines = 2)
+                        Txt("No steps yet. Add checks below, or start from a template.", 11, 400, C.Muted, maxLines = 2)
                     }
                     // Drag to reorder: the held step follows the finger (lifted, above the rest), the steps it
                     // passes slide out of its way, and on release it settles into its new place.
@@ -711,8 +719,8 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
             // Checks to add
             CfgCard {
                 Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Txt("Checks", 15, 700)
-                    Txt("Press Add to put a check at the end of the steps.", 12, 400, C.Muted)
+                    Txt("Checks", 14, 700)
+                    Txt("Press Add to put a check at the end of the steps.", 11, 400, C.Muted)
                     SearchField(q, { q = it }, "Search checks")
                     val query = q.trim()
                     val all = RULES.values.filter { r ->
@@ -721,10 +729,10 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
                     listOf("Each asset" to all.filter { it.id !in ACROSS_RULES }, "Across assets" to all.filter { it.id in ACROSS_RULES })
                         .filter { it.second.isNotEmpty() }
                         .forEach { (title, rules) ->
-                            Txt(title.uppercase(), 11, 600, C.Muted, Modifier.padding(top = 4.dp), spacing = 0.8f)
+                            Txt(title.uppercase(), 10, 600, C.Muted, Modifier.padding(top = 4.dp), spacing = 0.8f)
                             rules.forEach { r -> CheckRow(r, r.id in e.ruleIds) { vm.addStep(r.id) } }
                         }
-                    if (all.isEmpty()) Txt("No check matches “$query”.", 12, 400, C.Muted)
+                    if (all.isEmpty()) Txt("No check matches “$query”.", 11, 400, C.Muted)
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -733,7 +741,7 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
     infoFor?.let { id -> RULES[id] }?.let { r ->
         BottomSheet({ infoFor = null }) {
             SheetHeader(r.name, if (r.id in ACROSS_RULES) "Across assets" else "Each asset", { infoFor = null })
-            Txt(RULE_DESC[r.id].orEmpty(), 15, 400, C.Soft, Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp), maxLines = 8)
+            Txt(RULE_DESC[r.id].orEmpty(), 14, 400, C.Soft, Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp), maxLines = 8)
         }
     }
 }
@@ -758,11 +766,11 @@ private fun StepRow(
         // The drag handle (dragging is handled by the list, which moves the row).
         Box(Modifier.size(30.dp, 40.dp).then(handle), contentAlignment = Alignment.Center) { LineIcon(Icons.Menu, 16.dp, C.Muted, 2.2f) }
         Box(Modifier.size(24.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
-            Txt("${i + 1}", 12, 700, C.Yellow)
+            Txt("${i + 1}", 11, 700, C.Yellow)
         }
         Column(Modifier.weight(1f).padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Txt(rule.name, 13, 600, maxLines = 2)
-            Txt(if (rule.id in ACROSS_RULES) "Across assets" else "Each asset", 11, 400, C.Muted)
+            Txt(rule.name, 12, 600, maxLines = 2)
+            Txt(if (rule.id in ACROSS_RULES) "Across assets" else "Each asset", 10, 400, C.Muted)
         }
         StepIcon(Icons.Gear, true, onInfo)
         StepIcon(Icons.ChevronDown, !first, { onMove(-1) }, flip = true)
@@ -788,10 +796,10 @@ private fun CheckRow(rule: Rule, added: Boolean, onAdd: () -> Unit) {
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Txt(rule.name, 13, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                Txt(rule.name, 12, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
                 if (rule.ai) AiBadge()
             }
-            Txt(RULE_DESC[rule.id].orEmpty(), 11, 400, C.Muted, maxLines = 2)
+            Txt(RULE_DESC[rule.id].orEmpty(), 10, 400, C.Muted, maxLines = 2)
         }
         if (added) {
             Row(
@@ -800,7 +808,7 @@ private fun CheckRow(rule: Rule, added: Boolean, onAdd: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 LineIcon(Icons.Check, 12.dp, C.Muted, 2.4f)
-                Txt("Added", 12, 600, C.Muted)
+                Txt("Added", 11, 600, C.Muted)
             }
         } else {
             Row(
@@ -809,7 +817,7 @@ private fun CheckRow(rule: Rule, added: Boolean, onAdd: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 LineIcon(Icons.PlusSmall, 12.dp, C.Text, 2.6f)
-                Txt("Add", 12, 700)
+                Txt("Add", 11, 700)
             }
         }
     }
@@ -828,7 +836,7 @@ private fun JobReview(j: ValJob, vm: AppViewModel) {
                     Modifier.padding(12.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Txt("${j.passed} of ${j.results.size} assets pass every rule", 15, 700, maxLines = 2)
+                    Txt("${j.passed} of ${j.results.size} assets pass every rule", 14, 700, maxLines = 2)
                     ResultBar(j.failed, j.look, j.passed)
                     Counts(j.failed, j.look, j.passed)
                 }
@@ -847,8 +855,8 @@ private fun JobReview(j: ValJob, vm: AppViewModel) {
                             horizontalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
                             o?.let { Box(Modifier.size(7.dp).clip(CircleShape).background(outcomeColor(it))) }
-                            Txt(label, 12, 600, if (on) C.Yellow else C.Soft)
-                            Txt(n.toString(), 11, 700, (if (on) C.Yellow else C.Soft).copy(alpha = 0.8f))
+                            Txt(label, 11, 600, if (on) C.Yellow else C.Soft)
+                            Txt(n.toString(), 10, 700, (if (on) C.Yellow else C.Soft).copy(alpha = 0.8f))
                         }
                     }
                 }
@@ -876,16 +884,16 @@ private fun ResultRow(res: AssetResult, exists: Boolean, onOpen: () -> Unit) {
                 else -> Icons.CheckCircle
             }
             LineIcon(icon, 20.dp, c, 2.2f)
-            Txt(res.assetName, 15, 600, modifier = Modifier.weight(1f))
+            Txt(res.assetName, 14, 600, modifier = Modifier.weight(1f))
             if (exists) LineIcon(Icons.ChevronRight, 16.dp, C.Muted, 2.4f)
         }
-        if (res.findings.isEmpty()) Txt("Passed every rule", 12, 400, C.Muted, Modifier.padding(start = 30.dp))
+        if (res.findings.isEmpty()) Txt("Passed every rule", 11, 400, C.Muted, Modifier.padding(start = 30.dp))
         res.findings.forEach { f ->
             Row(Modifier.padding(start = 30.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.padding(top = 6.dp).size(6.dp).clip(CircleShape).background(outcomeColor(f.outcome)))
                 Column(Modifier.weight(1f)) {
-                    Txt(f.rule, 13, 600, C.Soft, maxLines = 2)
-                    f.message?.let { Txt(it, 12, 400, C.Muted, maxLines = 3) }
+                    Txt(f.rule, 12, 600, C.Soft, maxLines = 2)
+                    f.message?.let { Txt(it, 11, 400, C.Muted, maxLines = 3) }
                 }
             }
         }

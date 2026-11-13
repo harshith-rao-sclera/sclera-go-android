@@ -113,11 +113,9 @@
         <item quantity="other">%1$d aset</item>
     </plurals>
     <string name="launch_logo_description">Logo Sclera Go</string>
-    <string name="access_heading">Orang dan akses</string>
-    <string name="access_description">Grup menentukan apa yang bisa dilakukan anggotanya. Setiap orang berada di satu grup, untuk semua properti atau properti yang dipilih untuknya.</string>
-    <string name="access_stat_people">Orang</string>
+    <string name="access_stat_people">Pengguna</string>
     <string name="access_stat_groups">Grup</string>
-    <string name="access_tab_people">Orang (%1$d)</string>
+    <string name="access_tab_people">Pengguna (%1$d)</string>
     <string name="access_tab_groups">Grup (%1$d)</string>
     <string name="access_search_people">Cari orang</string>
     <string name="access_search_groups">Cari grup</string>
@@ -126,18 +124,20 @@
     <string name="access_empty_people">Belum ada yang memiliki akses.</string>
     <string name="access_no_person_match">Tidak ada orang yang cocok dengan “%1$s”.</string>
     <string name="access_no_group_match">Tidak ada grup yang cocok dengan “%1$s”.</string>
-    <string name="access_col_group">Grup</string>
-    <string name="access_col_properties">Properti</string>
-    <string name="access_col_last_seen">Terakhir dilihat</string>
     <string name="access_all_properties">Semua properti</string>
-    <string name="access_just_now">baru saja</string>
-    <string name="access_last_seen_description">Terakhir dilihat %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Hanya lihat</string>
     <string name="access_edit_group">Ubah %1$s</string>
     <string name="access_delete_group">Hapus %1$s</string>
-    <string name="access_delete_locked">%1$s tidak dapat dihapus</string>
     <string name="access_delete_title">Hapus %1$s?</string>
     <string name="access_delete_message">Grup akan dihapus. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="access_title">Pengguna dan akses</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="other">Hapus %1$d grup?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="other">Grup akan dihapus. Tindakan ini tidak dapat dibatalkan.</item>
+    </plurals>
     <string name="access_action_delete">Hapus</string>
     <string name="access_remove_title">Hapus %1$s?</string>
     <string name="access_remove_message">%1$s akan kehilangan akses ke Sclera.</string>

@@ -119,11 +119,9 @@
         <item quantity="other">%1$d актива</item>
     </plurals>
     <string name="launch_logo_description">Логотип Sclera Go</string>
-    <string name="access_heading">Люди и доступ</string>
-    <string name="access_description">Группа определяет, что могут делать её участники. Каждый человек состоит в одной группе: для всех объектов или только для выбранных.</string>
-    <string name="access_stat_people">Люди</string>
+    <string name="access_stat_people">Пользователи</string>
     <string name="access_stat_groups">Группы</string>
-    <string name="access_tab_people">Люди (%1$d)</string>
+    <string name="access_tab_people">Пользователи (%1$d)</string>
     <string name="access_tab_groups">Группы (%1$d)</string>
     <string name="access_search_people">Поиск людей</string>
     <string name="access_search_groups">Поиск групп</string>
@@ -132,18 +130,22 @@
     <string name="access_empty_people">Пока ни у кого нет доступа.</string>
     <string name="access_no_person_match">Нет совпадений для «%1$s».</string>
     <string name="access_no_group_match">Нет групп, соответствующих «%1$s».</string>
-    <string name="access_col_group">Группа</string>
-    <string name="access_col_properties">Объекты</string>
-    <string name="access_col_last_seen">Был в сети</string>
     <string name="access_all_properties">Все объекты</string>
-    <string name="access_just_now">только что</string>
-    <string name="access_last_seen_description">Был в сети: %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Только просмотр</string>
     <string name="access_edit_group">Изменить: %1$s</string>
     <string name="access_delete_group">Удалить: %1$s</string>
-    <string name="access_delete_locked">Нельзя удалить: %1$s</string>
     <string name="access_delete_title">Удалить: %1$s?</string>
     <string name="access_delete_message">Группа будет удалена. Это действие нельзя отменить.</string>
+    <string name="access_title">Пользователи и доступ</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">Удалить эту группу?</item>
+        <item quantity="other">Удалить группы: %1$d?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">Группа будет удалена. Это действие нельзя отменить.</item>
+        <item quantity="other">Эти группы будут удалены. Это действие нельзя отменить.</item>
+    </plurals>
     <string name="access_action_delete">Удалить</string>
     <string name="access_remove_title">Убрать: %1$s?</string>
     <string name="access_remove_message">%1$s потеряет доступ к Sclera.</string>

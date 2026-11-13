@@ -120,9 +120,9 @@ fun AssetInfoTab(
     ) {
         Box(Modifier.size(40.dp).background(C.YTintBg, r(12)), contentAlignment = Alignment.Center) { LineIcon(Icons.Pin, 20.dp, C.Yellow, 2.2f) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(stringResource(R.string.detail_location).uppercase(), 11, 600, C.Muted, spacing = 0.6f)
+            Txt(stringResource(R.string.detail_location).uppercase(), 10, 600, C.Muted, spacing = 0.6f)
             Txt(
-                asset.where.ifEmpty { stringResource(R.string.detail_no_location) }, 15, 700,
+                asset.where.ifEmpty { stringResource(R.string.detail_no_location) }, 14, 700,
                 if (asset.loc != null) C.Text else C.Orange,
             )
         }
@@ -143,8 +143,8 @@ fun AssetInfoTab(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Txt(stringResource(R.string.detail_asset_id), 13, 500, C.Muted, Modifier.width(92.dp))
-                Txt(state.code.orEmpty(), 14, 600, C.Soft, Modifier.weight(1f), mono = true)
+                Txt(stringResource(R.string.detail_asset_id), 12, 500, C.Muted, Modifier.width(92.dp))
+                Txt(state.code.orEmpty(), 13, 600, C.Soft, Modifier.weight(1f), mono = true)
             }
         }
         spec.visibleIn(FieldSection.IDENT).forEach { f ->
@@ -248,7 +248,7 @@ fun AssetInfoTab(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     LineIcon(Icons.Mic, 14.dp, C.Yellow, 2.2f)
-                    Txt(stringResource(R.string.detail_voice_note), 12, 600)
+                    Txt(stringResource(R.string.detail_voice_note), 11, 600)
                 }
             }
         }),
@@ -257,7 +257,7 @@ fun AssetInfoTab(
             v("note"), { actions.onEdit("note", it) }, stringResource(R.string.detail_note_hint),
             Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(r(10)).background(C.Bg)
                 .border(1.5.dp, if (state.dirty("note")) C.Yellow else C.Border, r(10)).padding(10.dp),
-            size = 14, singleLine = false, minLines = 3,
+            size = 13, singleLine = false, minLines = 3,
         )
     }
 
@@ -280,14 +280,14 @@ fun AssetInfoTab(
             SaveCard(Modifier.padding(horizontal = 12.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     if (dirty > 0) {
-                        Txt(pluralStringResource(R.plurals.detail_unsaved, dirty, dirty), 15, 700)
+                        Txt(pluralStringResource(R.plurals.detail_unsaved, dirty, dirty), 14, 700)
                         Txt(
-                            stringResource(R.string.action_discard), 13, 700, C.Yellow,
+                            stringResource(R.string.action_discard), 12, 700, C.Yellow,
                             Modifier.heightIn(min = 48.dp).clip(r(6)).clickable(onClick = actions.onDiscardEdits).padding(vertical = 2.dp),
                         )
                     } else {
-                        Txt(stringResource(R.string.detail_no_unsaved), 15, 700)
-                        Txt(stringResource(R.string.detail_status, stringResource(asset.st.labelRes)), 13, 400, C.Muted)
+                        Txt(stringResource(R.string.detail_no_unsaved), 14, 700)
+                        Txt(stringResource(R.string.detail_status, stringResource(asset.st.labelRes)), 12, 400, C.Muted)
                     }
                 }
                 Pill(
@@ -305,11 +305,11 @@ fun AssetInfoTab(
         SaveCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp)) {
             Pill(
                 stringResource(R.string.action_save), { actions.onCreate(false) }, Modifier.weight(1f).testTag(DetailTags.SAVE),
-                height = 48.dp, size = 15, weight = 700,
+                height = 48.dp, size = 14, weight = 700,
             )
             Pill(
                 stringResource(R.string.action_submit), { onModal(DetailModal.SUBMIT) }, Modifier.weight(1f).testTag(DetailTags.SUBMIT),
-                bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 15, weight = 700,
+                bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700,
             )
         }
     }

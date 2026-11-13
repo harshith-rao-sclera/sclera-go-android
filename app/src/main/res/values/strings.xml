@@ -121,11 +121,9 @@
     </plurals>
     <string name="property_import_format" translatable="false">.xlsx</string>
     <string name="launch_logo_description">Sclera Go logo</string>
-    <string name="access_heading">People and access</string>
-    <string name="access_description">A group says what its people can do. Each person is in one group, for all properties or the ones chosen for them.</string>
-    <string name="access_stat_people">People</string>
+    <string name="access_stat_people">Users</string>
     <string name="access_stat_groups">Groups</string>
-    <string name="access_tab_people">People (%1$d)</string>
+    <string name="access_tab_people">Users (%1$d)</string>
     <string name="access_tab_groups">Groups (%1$d)</string>
     <string name="access_search_people">Search people</string>
     <string name="access_search_groups">Search groups</string>
@@ -134,18 +132,22 @@
     <string name="access_empty_people">No one has access yet.</string>
     <string name="access_no_person_match">No one matches “%1$s”.</string>
     <string name="access_no_group_match">No group matches “%1$s”.</string>
-    <string name="access_col_group">Group</string>
-    <string name="access_col_properties">Properties</string>
-    <string name="access_col_last_seen">Last seen</string>
     <string name="access_all_properties">All properties</string>
-    <string name="access_just_now">just now</string>
-    <string name="access_last_seen_description">Last seen %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">View only</string>
     <string name="access_edit_group">Edit %1$s</string>
     <string name="access_delete_group">Delete %1$s</string>
-    <string name="access_delete_locked">%1$s can’t be deleted</string>
     <string name="access_delete_title">Delete %1$s?</string>
     <string name="access_delete_message">The group will be removed. This can’t be undone.</string>
+    <string name="access_title">Users and access</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">Delete this group?</item>
+        <item quantity="other">Delete %1$d groups?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">The group will be removed. This can’t be undone.</item>
+        <item quantity="other">These groups will be removed. This can’t be undone.</item>
+    </plurals>
     <string name="access_action_delete">Delete</string>
     <string name="access_remove_title">Remove %1$s?</string>
     <string name="access_remove_message">%1$s will lose access to Sclera.</string>

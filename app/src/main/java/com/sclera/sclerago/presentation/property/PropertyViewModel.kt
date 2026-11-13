@@ -32,7 +32,6 @@ data class PropertyListState(
     /** Every property (not only the matching rows), for the Add form's duplicate check. */
     val properties: List<Property> = emptyList(),
     val propertyTotal: Int = 0,
-    val assetTotal: Int = 0,
     val addOpen: Boolean = false,
     val importOpen: Boolean = false,
     val notice: UiText? = null,
@@ -57,7 +56,6 @@ class PropertyViewModel @Inject constructor(
                 rows = useCases.filter(all, q),
                 properties = all.map { it.property },
                 propertyTotal = all.size,
-                assetTotal = all.sumOf { it.assets },
                 addOpen = f.addOpen,
                 importOpen = f.importOpen,
                 notice = f.notice,

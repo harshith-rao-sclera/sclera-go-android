@@ -33,10 +33,14 @@ object AccessTags {
     const val PERSON_PILL = "access_person_pill"
     const val REMOVE = "access_remove_person"
     const val ELEVATE_NOTICE = "access_elevate_notice"
+    const val DELETE_GROUP = "access_delete_group"
+    const val FILTER_ALL = "access_filter_all"
+    const val GROUP_DOCK = "access_group_dock"
+    const val GROUP_SELECT_ALL = "access_group_select_all"
     fun person(id: String) = "access_person_$id"
     fun group(id: String) = "access_group_$id"
-    fun editGroup(id: String) = "access_group_edit_$id"
-    fun deleteGroup(id: String) = "access_group_delete_$id"
+    fun groupTick(id: String) = "access_group_tick_$id"
+    fun filter(p: Permission) = "access_filter_${p.name}"
     fun permission(p: Permission) = "access_permission_${p.name}"
 }
 

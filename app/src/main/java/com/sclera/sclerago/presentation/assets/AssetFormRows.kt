@@ -112,10 +112,10 @@ fun FormSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 LineIcon(Icons.ChevronDown, 18.dp, C.Muted, 2.4f, Modifier.rotate(rot))
-                Txt(title, 15, 700, modifier = Modifier.weight(1f))
+                Txt(title, 14, 700, modifier = Modifier.weight(1f))
                 if (!open && summary != null) {
-                    Txt(summary.text, 12, if (summary.warn) 700 else 500, if (summary.warn) C.Orange else C.Muted, mono = summary.mono)
-                } else note?.let { Txt(it, 11, 500, C.Muted) }
+                    Txt(summary.text, 11, if (summary.warn) 700 else 500, if (summary.warn) C.Orange else C.Muted, mono = summary.mono)
+                } else note?.let { Txt(it, 10, 500, C.Muted) }
             }
             if (open) trailing?.invoke()
         }
@@ -143,11 +143,11 @@ fun FieldRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Txt(label, 13, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
         PlainField(
             value, onChange, stringResource(R.string.detail_field_hint, label.lowercase(Locale.getDefault())),
             Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
-            size = if (mono) 14 else 15, weight = 600, mono = mono,
+            size = if (mono) 13 else 14, weight = 600, mono = mono,
         )
         BadgeText(key, badge)
     }
@@ -191,9 +191,9 @@ fun SelectRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Txt(label, 13, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+            Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
             Txt(
-                shown, 15, 600, if (value.isEmpty()) C.Muted else C.Text,
+                shown, 14, 600, if (value.isEmpty()) C.Muted else C.Text,
                 Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
             )
             if (required) Txt(stringResource(R.string.check_required), 10, 700, C.Orange)
@@ -202,7 +202,7 @@ fun SelectRow(
         DropdownMenu(open, { open = false }, containerColor = C.Surface) {
             options.forEach { (k, text) ->
                 DropdownMenuItem(
-                    text = { Txt(text, 15, if (k == value) 700 else 500, if (k == value) C.Yellow else C.Text) },
+                    text = { Txt(text, 14, if (k == value) 700 else 500, if (k == value) C.Yellow else C.Text) },
                     onClick = { onChange(k); open = false },
                 )
             }

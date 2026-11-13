@@ -83,8 +83,8 @@ fun SubmittedCard(onRecollect: () -> Unit, modifier: Modifier) {
                 LineIcon(Icons.CheckCircle, 20.dp, C.Green, 2.2f)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(stringResource(R.string.status_submitted), 15, 700, C.Green)
-                Txt(stringResource(R.string.detail_submitted_body), 12, 400, C.Muted, maxLines = 3)
+                Txt(stringResource(R.string.status_submitted), 14, 700, C.Green)
+                Txt(stringResource(R.string.detail_submitted_body), 11, 400, C.Muted, maxLines = 3)
             }
         }
         Pill(stringResource(R.string.detail_recollect), onRecollect, Modifier.fillMaxWidth(), height = 48.dp, size = 14, weight = 700)
@@ -104,7 +104,7 @@ fun StatusLine(asset: Asset, modifier: Modifier = Modifier) {
         val st = asset.st
         Box(
             Modifier.clip(Capsule).background(st.chipBg).border(1.dp, st.chipBd, Capsule).padding(horizontal = 10.dp, vertical = 4.dp),
-        ) { Txt(stringResource(st.labelRes), 12, 700, st.chipFg) }
+        ) { Txt(stringResource(st.labelRes), 11, 700, st.chipFg) }
         InfoChip(stringResource(asset.src.viaRes))
         asset.updatedAt?.let { InfoChip(stringResource(R.string.detail_updated, formatDayAndTime(it, locale))) }
     }
@@ -112,7 +112,7 @@ fun StatusLine(asset: Asset, modifier: Modifier = Modifier) {
 
 @Composable
 private fun InfoChip(text: String) {
-    Box(Modifier.clip(Capsule).background(C.Raised).padding(horizontal = 10.dp, vertical = 4.dp)) { Txt(text, 12, 600, C.Soft) }
+    Box(Modifier.clip(Capsule).background(C.Raised).padding(horizontal = 10.dp, vertical = 4.dp)) { Txt(text, 11, 600, C.Soft) }
 }
 
 /** An Info / Validation tab; [fails] is the failed-check badge (null = none shown, 0 = a tick). */
@@ -126,13 +126,13 @@ fun DetailTab(label: String, icon: Ico, selected: Boolean, fails: Int?, modifier
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             LineIcon(icon, 15.dp, fg, 2.4f)
-            Txt(label, 15, if (selected) 700 else 500, fg)
+            Txt(label, 14, if (selected) 700 else 500, fg)
             when {
                 fails == null -> {}
                 fails > 0 -> Box(
                     Modifier.heightIn(min = 18.dp).widthIn(min = 18.dp).background(C.Red, Capsule).padding(horizontal = 5.dp),
                     contentAlignment = Alignment.Center,
-                ) { Txt(fails.toString(), 11, 800, C.OnYellow) }
+                ) { Txt(fails.toString(), 10, 800, C.OnYellow) }
                 else -> Box(Modifier.size(18.dp).background(C.Green, CircleShape), contentAlignment = Alignment.Center) {
                     LineIcon(Icons.Check, 11.dp, C.OnYellow, 3.6f)
                 }
@@ -166,7 +166,7 @@ fun FormFloatingButtons(
 @Composable
 private fun Bubble(text: String, maxLines: Int) {
     Txt(
-        text, 12, 500, C.Soft,
+        text, 11, 500, C.Soft,
         Modifier.widthIn(max = 210.dp).fabShadow(r(12)).clip(r(12)).background(C.Surface).border(1.dp, C.Border2, r(12))
             .padding(horizontal = 12.dp, vertical = 8.dp),
         maxLines = maxLines,

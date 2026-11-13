@@ -119,11 +119,9 @@
         <item quantity="other">%1$d פריטים</item>
     </plurals>
     <string name="launch_logo_description">הלוגו של Sclera Go</string>
-    <string name="access_heading">אנשים וגישה</string>
-    <string name="access_description">קבוצה קובעת מה האנשים בה יכולים לעשות. כל אדם שייך לקבוצה אחת, לכל הנכסים או לנכסים שנבחרו עבורו.</string>
-    <string name="access_stat_people">אנשים</string>
+    <string name="access_stat_people">משתמשים</string>
     <string name="access_stat_groups">קבוצות</string>
-    <string name="access_tab_people">אנשים (%1$d)</string>
+    <string name="access_tab_people">משתמשים (%1$d)</string>
     <string name="access_tab_groups">קבוצות (%1$d)</string>
     <string name="access_search_people">חיפוש אנשים</string>
     <string name="access_search_groups">חיפוש קבוצות</string>
@@ -132,18 +130,22 @@
     <string name="access_empty_people">עדיין לאף אחד אין גישה.</string>
     <string name="access_no_person_match">אין אנשים התואמים ל-“%1$s”.</string>
     <string name="access_no_group_match">אין קבוצות התואמות ל-“%1$s”.</string>
-    <string name="access_col_group">קבוצה</string>
-    <string name="access_col_properties">נכסים</string>
-    <string name="access_col_last_seen">נראה לאחרונה</string>
     <string name="access_all_properties">כל הנכסים</string>
-    <string name="access_just_now">הרגע</string>
-    <string name="access_last_seen_description">נראה לאחרונה: %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">צפייה בלבד</string>
     <string name="access_edit_group">עריכת %1$s</string>
     <string name="access_delete_group">מחיקת %1$s</string>
-    <string name="access_delete_locked">לא ניתן למחוק את %1$s</string>
     <string name="access_delete_title">למחוק את %1$s?</string>
     <string name="access_delete_message">הקבוצה תוסר. לא ניתן לבטל פעולה זו.</string>
+    <string name="access_title">משתמשים והרשאות גישה</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">למחוק את הקבוצה הזו?</item>
+        <item quantity="other">למחוק %1$d קבוצות?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">הקבוצה תוסר. לא ניתן לבטל פעולה זו.</item>
+        <item quantity="other">הקבוצות האלה יוסרו. לא ניתן לבטל פעולה זו.</item>
+    </plurals>
     <string name="access_action_delete">מחיקה</string>
     <string name="access_remove_title">להסיר את %1$s?</string>
     <string name="access_remove_message">ל-%1$s לא תהיה יותר גישה ל-Sclera.</string>

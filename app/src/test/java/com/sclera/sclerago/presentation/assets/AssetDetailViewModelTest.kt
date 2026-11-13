@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sclera.sclerago.R
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
@@ -35,7 +37,7 @@ import org.junit.runner.RunWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
 class AssetDetailViewModelTest {
-    private val repo = AssetRepositoryImpl()
+    private val repo = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
     private val config = AssetConfigRepositoryImpl()
     private val autofill = FakeAutofillRepository()
 

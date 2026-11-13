@@ -63,7 +63,7 @@ internal fun KindChip(kind: FieldKind) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         LineIcon(kind.icon(), 11.dp, C.Soft, 2.4f)
-        Txt(kind.shown, 11, 600, C.Soft)
+        Txt(kind.shown, 10, 600, C.Soft)
     }
 }
 
@@ -103,10 +103,10 @@ fun PropertySettingsPage(vm: AppViewModel) {
     val bt = vm.onboardingOn(Tab.BT)
     val net = vm.onboardingOn(Tab.NET)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(horizontal = 4.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Txt("Choose how people can add assets in ${vm.propName} from their phone.", 12, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = 3)
+        Txt("Choose how people can add assets in ${vm.propName} from their phone.", 11, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = 3)
         CfgCard {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt("Network onboarding", 14, 700)
+                Txt("Network onboarding", 13, 700)
                 Txt(
                     when {
                         bt && net -> "Both are on, so the phone shows its Bluetooth and Network tabs for this property."
@@ -114,13 +114,13 @@ fun PropertySettingsPage(vm: AppViewModel) {
                         net -> "Only Wi-Fi is on, so the phone hides its Bluetooth tab for this property."
                         else -> "Both are off, so the phone hides its Bluetooth and Network tabs for this property."
                     },
-                    12, 400, C.Muted, maxLines = 3,
+                    11, 400, C.Muted, maxLines = 3,
                 )
             }
             OnboardRow(Icons.Bluetooth, "Bluetooth onboarding", "People can add assets by finding them over Bluetooth on their phone.", bt) { vm.setOnboarding(Tab.BT, it) }
             OnboardRow(Icons.Wifi, "Wi-Fi onboarding", "People can add assets by finding them on the Wi-Fi network.", net) { vm.setOnboarding(Tab.NET, it) }
         }
-        Txt("ON THE PHONE", 11, 700, C.Muted, Modifier.padding(start = 12.dp, top = 6.dp), spacing = 0.6f)
+        Txt("ON THE PHONE", 10, 700, C.Muted, Modifier.padding(start = 12.dp, top = 6.dp), spacing = 0.6f)
         CfgCard {
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                 listOf(
@@ -129,12 +129,12 @@ fun PropertySettingsPage(vm: AppViewModel) {
                 ).filter { it.first in vm.navTabs }.forEach { (_, label, icon) ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         LineIcon(icon, 20.dp, C.Soft, 2f)
-                        Txt(label, 11, 600, C.Muted)
+                        Txt(label, 10, 600, C.Muted)
                     }
                 }
             }
         }
-        Txt("Turning onboarding off only hides it on the phone; assets already added stay as they are.", 12, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = 3)
+        Txt("Turning onboarding off only hides it on the phone; assets already added stay as they are.", 11, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = 3)
         Spacer(Modifier.height(12.dp))
     }
 }
@@ -148,8 +148,8 @@ private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, onCh
     ) {
         Box(Modifier.size(38.dp).clip(r(10)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 19.dp, C.Yellow, 2.1f) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, 13, 700)
-            Txt(body, 12, 400, C.Muted, maxLines = 2)
+            Txt(title, 12, 700)
+            Txt(body, 11, 400, C.Muted, maxLines = 2)
         }
         OnOffSwitch(on, onChange)
     }

@@ -47,40 +47,44 @@ internal fun iconOf(path: String) = Ico(Ico.Part(path))
 
 internal fun Long.asColor() = Color(this)
 
-/** App bar of the side-menu pages: back button, then the page title over the current property. */
+/**
+ * App bar of the side-menu pages: the sidebar button (same as the main header's), then the page title,
+ * over the current [property] when one is given.
+ */
 @Composable
-internal fun SubPageBar(title: String, property: String, onBack: () -> Unit) {
+internal fun SubPageBar(title: String, property: String?, onMenu: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding().height(64.dp)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        RoundButton(44.dp, C.Btn, onBack, Modifier.border(1.dp, C.Border2, CircleShape)) {
-            LineIcon(Icons.ChevronLeft, 20.dp, C.Yellow, 2.4f)
+        RoundButton(44.dp, Color.Transparent, onMenu, shape = r(10)) {
+            LineIcon(Icons.Menu, 22.dp, C.Text)
         }
         Column(Modifier.weight(1f).padding(end = 56.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Txt(title, 16, 700)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                LineIcon(Icons.Building, 12.dp, C.Muted, 1.9f)
-                Txt(property, 11, 500, C.Muted)
+            if (property != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    LineIcon(Icons.Building, 12.dp, C.Muted, 1.9f)
+                    Txt(property, 11, 500, C.Muted)
+                }
             }
         }
     }
 }
 
-/** Page title (22 by default) with an optional count or description under it. */
-@Composable
-internal fun PageHeading(title: String, sub: String?, modifier: Modifier = Modifier, titleSize: Int = 22, gap: Dp = 2.dp) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
-        Txt(title, titleSize, 700)
-        sub?.let { Txt(it, 13, 400, C.Muted, maxLines = 4) }
-    }
-}
-
 /** Tile with a tinted icon, a number and what it counts (the 2-up tiles of the list pages). */
 @Composable
-internal fun StatCard(icon: Ico, tint: Color, value: String, label: String, modifier: Modifier = Modifier) {
+internal fun StatCard(
+    icon: Ico,
+    tint: Color,
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    valueSize: Int = 20,
+    labelSize: Int = 12,
+) {
     Row(
         modifier.clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -90,8 +94,8 @@ internal fun StatCard(icon: Ico, tint: Color, value: String, label: String, modi
             LineIcon(icon, 16.dp, tint, 1.9f)
         }
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Txt(value, 20, 700)
-            Txt(label, 12, 400, C.Muted)
+            Txt(value, valueSize, 700)
+            Txt(label, labelSize, 400, C.Muted)
         }
     }
 }
@@ -125,8 +129,8 @@ internal fun TintChip(text: String, bg: Color = C.YTintBg, fg: Color = C.TintTex
 @Composable
 internal fun FieldLabel(text: String, optional: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Txt(text, 14, 600)
-        if (optional) Txt(" (optional)", 14, 400, C.Muted)
+        Txt(text, 13, 600)
+        if (optional) Txt(" (optional)", 13, 400, C.Muted)
     }
 }
 
@@ -187,7 +191,7 @@ internal fun ChoiceSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (!isTablet()) Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(C.SheetHandle))
-            Txt(title, 17, 700)
+            Txt(title, 16, 700)
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 options.forEach { (name, sub) ->
                     val on = name == selected
@@ -199,8 +203,8 @@ internal fun ChoiceSheet(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Txt(name, 15, 600)
-                            sub?.let { Txt(it, 13, 400, C.Muted, maxLines = 2) }
+                            Txt(name, 14, 600)
+                            sub?.let { Txt(it, 12, 400, C.Muted, maxLines = 2) }
                         }
                         RadioRing(on)
                     }
@@ -230,6 +234,33 @@ internal fun FormSheet(
     bodyPadding: PaddingValues = PaddingValues(16.dp),
     bodySpacing: Dp = 18.dp,
     primaryModifier: Modifier = Modifier,
+    /** Something was entered or changed: closing (back, outside, ×, Cancel) asks before discarding it. */
+    dirty: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) = Box(Modifier.fillMaxSize()) {
+    GuardedClose(dirty, onClose) { close ->
+        FormSheetBody(
+            title, sub, primary, primaryEnabled, error, close, onPrimary, leadingIcon, progress,
+            bodyBackground, bodyPadding, bodySpacing, primaryModifier, content,
+        )
+    }
+}
+
+@Composable
+private fun FormSheetBody(
+    title: String,
+    sub: String?,
+    primary: String,
+    primaryEnabled: Boolean,
+    error: String?,
+    onClose: () -> Unit,
+    onPrimary: () -> Unit,
+    leadingIcon: Ico?,
+    progress: Float?,
+    bodyBackground: Color,
+    bodyPadding: PaddingValues,
+    bodySpacing: Dp,
+    primaryModifier: Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onClose)
@@ -252,8 +283,8 @@ internal fun FormSheet(
                     ) { LineIcon(it, 20.dp, C.Yellow, 1.9f) }
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Txt(title, 19, 700)
-                    sub?.let { Txt(it, 13, 400, C.Muted, maxLines = 3) }
+                    Txt(title, 17, 700)
+                    sub?.let { Txt(it, 12, 400, C.Muted, maxLines = 3) }
                 }
                 CloseButton(onClose, size = 36.dp, iconSize = 14.dp)
             }
@@ -274,18 +305,18 @@ internal fun FormSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     LineIcon(Icons.Alert, 16.dp, C.Red, 2.2f)
-                    Txt(it, 13, 500, C.Text, Modifier.weight(1f), maxLines = 3)
+                    Txt(it, 12, 500, C.Text, Modifier.weight(1f), maxLines = 3)
                 }
             }
             Row(
                 Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Pill(stringResource(R.string.action_cancel), onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 15, weight = 600)
+                Pill(stringResource(R.string.action_cancel), onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 14, weight = 600)
                 Pill(
                     primary, onPrimary, Modifier.weight(1f).then(primaryModifier),
                     bg = if (primaryEnabled) C.Yellow else C.PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else C.PrimaryOffFg,
-                    height = 50.dp, size = 15, weight = 700,
+                    height = 50.dp, size = 14, weight = 700,
                 )
             }
         }
@@ -313,7 +344,7 @@ internal fun FormGroup(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(Modifier.size(28.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 15.dp, C.Yellow, 1.9f) }
-            Txt(title, 15, 700, modifier = Modifier.weight(1f))
+            Txt(title, 14, 700, modifier = Modifier.weight(1f))
             trailing?.invoke()
             if (collapsible) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f, Modifier.rotate(chevron))
         }
@@ -330,8 +361,8 @@ internal fun InlineField(label: String, required: Boolean = false, dim: Boolean 
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(Modifier.width(104.dp)) {
-            Txt(label, 13, 500, C.Muted)
-            if (required) Txt("*", 13, 600, C.Yellow, Modifier.padding(start = 2.dp))
+            Txt(label, 12, 500, C.Muted)
+            if (required) Txt("*", 12, 600, C.Yellow, Modifier.padding(start = 2.dp))
         }
         input()
     }
@@ -346,7 +377,7 @@ internal fun RowScope.InlineInput(
     enabled: Boolean = true,
     keyboard: KeyboardType = KeyboardType.Text,
 ) {
-    PlainField(value, onChange, placeholder, Modifier.weight(1f).then(modifier), size = 15, readOnly = !enabled, keyboard = keyboard)
+    PlainField(value, onChange, placeholder, Modifier.weight(1f).then(modifier), size = 14, readOnly = !enabled, keyboard = keyboard)
 }
 
 @Composable
@@ -362,7 +393,7 @@ internal fun RowScope.InlineSelect(
         Modifier.weight(1f).heightIn(min = 44.dp).clickable(enabled = enabled, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Txt(value.ifEmpty { placeholder }, 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
+        Txt(value.ifEmpty { placeholder }, 14, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
         if (chevron && upDown) LineIcon(Icons.ChevronUpDown, 12.dp, C.Yellow, 2.4f)
         else if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
     }

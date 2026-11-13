@@ -115,11 +115,9 @@
         <item quantity="other">%1$d assets</item>
     </plurals>
     <string name="launch_logo_description">Sclera Go-logo</string>
-    <string name="access_heading">Mensen en toegang</string>
-    <string name="access_description">Een groep bepaalt wat de mensen erin kunnen doen. Elke persoon zit in één groep, voor alle locaties of voor de locaties die zijn gekozen.</string>
-    <string name="access_stat_people">Mensen</string>
+    <string name="access_stat_people">Gebruikers</string>
     <string name="access_stat_groups">Groepen</string>
-    <string name="access_tab_people">Mensen (%1$d)</string>
+    <string name="access_tab_people">Gebruikers (%1$d)</string>
     <string name="access_tab_groups">Groepen (%1$d)</string>
     <string name="access_search_people">Mensen zoeken</string>
     <string name="access_search_groups">Groepen zoeken</string>
@@ -128,18 +126,22 @@
     <string name="access_empty_people">Nog niemand heeft toegang.</string>
     <string name="access_no_person_match">Niemand komt overeen met “%1$s”.</string>
     <string name="access_no_group_match">Geen groep komt overeen met “%1$s”.</string>
-    <string name="access_col_group">Groep</string>
-    <string name="access_col_properties">Locaties</string>
-    <string name="access_col_last_seen">Laatst gezien</string>
     <string name="access_all_properties">Alle locaties</string>
-    <string name="access_just_now">zojuist</string>
-    <string name="access_last_seen_description">Laatst gezien: %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Alleen bekijken</string>
     <string name="access_edit_group">%1$s bewerken</string>
     <string name="access_delete_group">%1$s verwijderen</string>
-    <string name="access_delete_locked">%1$s kan niet worden verwijderd</string>
     <string name="access_delete_title">%1$s verwijderen?</string>
     <string name="access_delete_message">De groep wordt verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="access_title">Gebruikers en toegang</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="one">Deze groep verwijderen?</item>
+        <item quantity="other">%1$d groepen verwijderen?</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="one">De groep wordt verwijderd. Dit kan niet ongedaan worden gemaakt.</item>
+        <item quantity="other">Deze groepen worden verwijderd. Dit kan niet ongedaan worden gemaakt.</item>
+    </plurals>
     <string name="access_action_delete">Verwijderen</string>
     <string name="access_remove_title">%1$s verwijderen?</string>
     <string name="access_remove_message">%1$s verliest de toegang tot Sclera.</string>

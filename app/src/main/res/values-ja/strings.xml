@@ -113,8 +113,6 @@
         <item quantity="other">%1$d 件の資産</item>
     </plurals>
     <string name="launch_logo_description">Sclera Go のロゴ</string>
-    <string name="access_heading">ユーザーとアクセス</string>
-    <string name="access_description">グループは、そのメンバーができることを定めます。各ユーザーは 1 つのグループに属し、すべての物件または選択した物件にアクセスできます。</string>
     <string name="access_stat_people">ユーザー</string>
     <string name="access_stat_groups">グループ</string>
     <string name="access_tab_people">ユーザー (%1$d)</string>
@@ -126,18 +124,20 @@
     <string name="access_empty_people">まだアクセス権のあるユーザーはいません。</string>
     <string name="access_no_person_match">「%1$s」に一致するユーザーはいません。</string>
     <string name="access_no_group_match">「%1$s」に一致するグループはありません。</string>
-    <string name="access_col_group">グループ</string>
-    <string name="access_col_properties">物件</string>
-    <string name="access_col_last_seen">最終確認</string>
     <string name="access_all_properties">すべての物件</string>
-    <string name="access_just_now">たった今</string>
-    <string name="access_last_seen_description">最終確認: %1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">閲覧のみ</string>
     <string name="access_edit_group">%1$s を編集</string>
     <string name="access_delete_group">%1$s を削除</string>
-    <string name="access_delete_locked">%1$s は削除できません</string>
     <string name="access_delete_title">%1$s を削除しますか?</string>
     <string name="access_delete_message">グループが削除されます。この操作は元に戻せません。</string>
+    <string name="access_title">ユーザーとアクセス</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="other">%1$d 件のグループを削除しますか？</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="other">グループが削除されます。この操作は元に戻せません。</item>
+    </plurals>
     <string name="access_action_delete">削除</string>
     <string name="access_remove_title">%1$s を削除しますか?</string>
     <string name="access_remove_message">%1$s は Sclera にアクセスできなくなります。</string>

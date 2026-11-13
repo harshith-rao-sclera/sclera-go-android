@@ -42,11 +42,12 @@ internal val SamplePeopleList = AccessListState(
 internal val SampleGroupsList = SamplePeopleList.copy(
     tab = AccessTab.GROUPS,
     groups = DEFAULT_GROUPS.map { GroupRow(it, if (it.id == ADMINS_ID) 1 else 0, canDelete = !it.locked) },
+    permissionCounts = Permission.entries.associateWith { p -> DEFAULT_GROUPS.count { it.can(p) } },
 )
 
 @Composable
 private fun Page(list: AccessListState) = ScleraTheme {
-    PeopleContent(list, SampleProperties, "Test 861", {}, {}, {}, {}, {}, {}, {})
+    PeopleContent(list, SampleProperties, {}, {}, {}, {}, {}, {})
 }
 
 @Preview(name = "Phone", device = PHONE)
@@ -60,6 +61,13 @@ private fun PeoplePreview() = Page(SamplePeopleList)
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun GroupsPreview() = Page(SampleGroupsList)
+
+/** Two groups ticked for deleting: the dock (× · 2 selected · Select all 3 · Delete) replaces the buttons. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun GroupsTickedPreview() = Page(SampleGroupsList.copy(pickedGroups = setOf("g-collectors", "g-reviewers"), selectableGroups = 3))
 
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
@@ -83,6 +91,15 @@ private fun EditPersonPreview() = ScleraTheme {
 @Composable
 private fun NewGroupPreview() = ScleraTheme {
     GroupSheet(com.sclera.sclerago.domain.model.Group("", "", "", emptySet()), { null }, { 0 }, { null }, {})
+}
+
+/** An existing group that can be deleted: Delete shows at the end of the sheet. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun EditGroupPreview() = ScleraTheme {
+    GroupSheet(DEFAULT_GROUPS.first { it.id == "g-collectors" }, { null }, { 0 }, { null }, {}, canDelete = true)
 }
 
 @Preview(name = "Phone", device = PHONE)

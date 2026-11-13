@@ -9,6 +9,7 @@ import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.system.TimeProvider
 import com.sclera.sclerago.domain.usecase.access.AccessUseCases
@@ -28,6 +29,12 @@ enum class AccessTab { PEOPLE, GROUPS }
 data class AccessState(
     val tab: AccessTab = AccessTab.PEOPLE,
     val query: String = "",
+    /** Groups tab: show only groups that can do this; null = all. */
+    val groupFilter: Permission? = null,
+    /** Groups ticked for deleting together (only groups that can be deleted). */
+    val pickedGroups: Set<String> = emptySet(),
+    /** Deleting [pickedGroups] waits for confirmation. */
+    val confirmDeletePicked: Boolean = false,
     /** Person being added (id == "") or edited; null when the form is closed. */
     val personForm: Person? = null,
     /** Group being added (id == "") or edited; null when the form is closed. */
@@ -51,6 +58,14 @@ data class GroupRow(val group: Group, val members: Int, val canDelete: Boolean)
 data class AccessListState(
     val tab: AccessTab = AccessTab.PEOPLE,
     val query: String = "",
+    /** The Groups tab's permission filter (null = All). */
+    val groupFilter: Permission? = null,
+    /** How many groups can do each permission, for the filter chips. */
+    val permissionCounts: Map<Permission, Int> = emptyMap(),
+    /** Groups ticked for deleting together. */
+    val pickedGroups: Set<String> = emptySet(),
+    /** How many of the shown groups could be ticked (deletable ones), for "Select all N". */
+    val selectableGroups: Int = 0,
     val people: List<PersonRow> = emptyList(),
     val groups: List<GroupRow> = emptyList(),
     val peopleTotal: Int = 0,
@@ -96,7 +111,8 @@ class AccessViewModel @Inject constructor(
 
     fun consumeNotice() = set { copy(notice = null) }
 
-    fun setTab(t: AccessTab) = set { copy(tab = t, query = "") }
+    fun setTab(t: AccessTab) = set { copy(tab = t, query = "", groupFilter = null, pickedGroups = emptySet()) }
+    fun setGroupFilter(p: Permission?) = set { copy(groupFilter = p) }
     fun setQuery(q: String) = set { copy(query = q) }
 
     fun group(id: String): Group? = groups.firstOrNull { it.id == id }
@@ -110,7 +126,8 @@ class AccessViewModel @Inject constructor(
 
     val visibleGroups: List<Group>
         get() = state.query.trim().lowercase().let { q ->
-            groups.filter { q.isEmpty() || q in it.name.lowercase() || q in it.description.lowercase() }
+            val f = state.groupFilter
+            groups.filter { (q.isEmpty() || q in it.name.lowercase() || q in it.description.lowercase()) && (f == null || it.can(f)) }
         }
 
     /** The page's rows for the current tab and search; [me] is the signed-in user's email. */
@@ -124,6 +141,10 @@ class AccessViewModel @Inject constructor(
                 PersonRow(it, group(it.groupId), isMe, if (isMe) now else it.lastSeenAt)
             },
             groups = visibleGroups.map { GroupRow(it, peopleIn(it.id), canDelete(it)) },
+            groupFilter = state.groupFilter,
+            permissionCounts = Permission.entries.associateWith { p -> groups.count { it.can(p) } },
+            pickedGroups = pickedGroups.map { it.id }.toSet(),
+            selectableGroups = visibleGroups.count(::canDelete),
             peopleTotal = people.size,
             groupsTotal = groups.size,
             nowMillis = now,
@@ -208,10 +229,40 @@ class AccessViewModel @Inject constructor(
         return useCases.canDeleteGroup(g)
     }
     fun askDeleteGroup(g: Group?) = set { copy(confirmDelete = g) }
+
+    // ---- Selecting groups to delete together
+
+    /** The ticked groups that still exist and can still be deleted. */
+    val pickedGroups: List<Group> get() = groups.filter { it.id in state.pickedGroups && canDelete(it) }
+
+    /** Ticks or unticks [g]; groups that can't be deleted (Admins, groups with people) can't be ticked. */
+    fun toggleGroupPick(g: Group) {
+        if (!canDelete(g)) return
+        set { copy(pickedGroups = if (g.id in pickedGroups) pickedGroups - g.id else pickedGroups + g.id) }
+    }
+
+    /** Ticks every deletable group shown; when they all are already, clears instead. */
+    fun selectAllGroups() {
+        val all = visibleGroups.filter(::canDelete).map { it.id }.toSet()
+        set { copy(pickedGroups = if (all.isNotEmpty() && pickedGroups.containsAll(all)) emptySet() else all) }
+    }
+
+    fun clearGroupPick() = set { copy(pickedGroups = emptySet(), confirmDeletePicked = false) }
+    fun askDeletePicked() = set { copy(confirmDeletePicked = pickedGroups.isNotEmpty()) }
+    fun cancelDeletePicked() = set { copy(confirmDeletePicked = false) }
+
+    /** Deletes every ticked group that can still be deleted, then ends the selection. */
+    fun deletePicked() {
+        val doomed = pickedGroups
+        viewModelScope.launch {
+            doomed.forEach { online { useCases.deleteGroup(it) } }
+            set { copy(pickedGroups = emptySet(), confirmDeletePicked = false) }
+        }
+    }
     fun deleteGroup(g: Group) {
         viewModelScope.launch {
             online { useCases.deleteGroup(g) }
-            set { copy(confirmDelete = null) }
+            set { copy(confirmDelete = null, groupForm = null) }
         }
     }
 }

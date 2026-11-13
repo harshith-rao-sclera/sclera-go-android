@@ -91,6 +91,8 @@ internal fun PersonSheet(
             leadingIcon = Icons.Users, progress = (total - required) / total.toFloat(),
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
             primaryModifier = Modifier.testTag(AccessTags.SHEET_PRIMARY),
+            dirty = email.trim() != initial.email.trim() || groupId != initial.groupId ||
+                all != initial.allProperties || chosen != initial.propertyIds,
         ) {
             FormGroup(stringResource(R.string.access_section_person), Icons.Users, trailing = {
                 Box(Modifier.testTag(AccessTags.PERSON_PILL)) {
@@ -110,7 +112,7 @@ internal fun PersonSheet(
                     InlineSelect(groupName, stringResource(R.string.access_choose_group), upDown = true) { picking = Picker.GROUP }
                 }
                 group?.description?.takeIf { it.isNotBlank() }?.let {
-                    Txt(it, 12, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = 3)
+                    Txt(it, 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = 3)
                 }
             }
             FormGroup(stringResource(R.string.access_section_property_access), Icons.Building, trailing = {
@@ -122,7 +124,7 @@ internal fun PersonSheet(
                 }
                 if (forced) {
                     Txt(
-                        stringResource(R.string.access_forced_all, groupName), 12, 400, C.Muted,
+                        stringResource(R.string.access_forced_all, groupName), 11, 400, C.Muted,
                         Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = 3,
                     )
                 }
@@ -136,7 +138,7 @@ internal fun PersonSheet(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             CheckBox(p.id in chosen, shape = r(5), offColor = C.Soft, checkSize = 12.dp)
-                            Txt(p.name, 14, 500, modifier = Modifier.weight(1f))
+                            Txt(p.name, 13, 500, modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -144,7 +146,7 @@ internal fun PersonSheet(
             // Not in the design: removing a person needs an entry point (a confirmation follows).
             if (!isNew && !isMe) {
                 Txt(
-                    stringResource(R.string.access_remove_person, initial.name), 14, 600, C.Red,
+                    stringResource(R.string.access_remove_person, initial.name), 13, 600, C.Red,
                     Modifier.testTag(AccessTags.REMOVE).padding(horizontal = 16.dp).clip(r(8)).clickable { onRemove(initial) }
                         .heightIn(min = 48.dp).padding(vertical = 6.dp),
                 )

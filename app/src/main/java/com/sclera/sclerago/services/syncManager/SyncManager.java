@@ -32,6 +32,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.sclera.sclerago.R;
 import com.sclera.sclerago.services.syncManager.enums.OfflineFeatures;
 import com.sclera.sclerago.services.syncManager.enums.SyncMode;
@@ -41,7 +42,6 @@ import com.sclera.sclerago.services.syncManager.services.LargeDataSyncService;
 import com.sclera.sclerago.services.syncManager.services.WebSocketClientService;
 import com.sclera.sclerago.services.syncManager.utils.AuthInterceptor;
 import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
-import com.fasterxml.jackson.annotation.JsonCreator;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -83,6 +83,7 @@ public class SyncManager {
     public static String sessionUrl;
     public static String cloudUrl;
     public String inspectionVersion;
+    public String propertyId;
     public final Context appContext;
     public final OfflineFeatures feature;
     private SQLiteDatabase dbConnection;
@@ -316,7 +317,7 @@ public class SyncManager {
 
     // for asset data collection
     @JsonCreator
-    public SyncManager(String user, String url, String token, String sessionId, String sessionUrl, String orgId, Context appContext) {
+    public SyncManager(String user, String url, String token, String sessionId, String sessionUrl, String orgId, Context appContext, String propertyId) {
         SyncManager.user = user;
         this.syncURL = url + "/adc-offline-sync";
         SyncManager.token = token;
@@ -329,7 +330,7 @@ public class SyncManager {
         editor = SyncUtils.getSharedPrefs(appContext).edit();
         this.isSynced = sharedPrefs.getInt("adc_sync_status", 0);
         this.totalImages = sharedPrefs.getInt("adc_total_images", 0);
-
+        this.propertyId = propertyId;
     }
 
     public void startConnection() {

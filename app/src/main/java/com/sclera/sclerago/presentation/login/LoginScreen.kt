@@ -123,7 +123,7 @@ fun LoginScreen(reason: AuthError?, vm: LoginViewModel = hiltViewModel()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = C.Yellow)
                     Spacer(Modifier.height(16.dp))
-                    Txt(stringResource(R.string.login_signing_in), 15, 500, C.Muted)
+                    Txt(stringResource(R.string.login_signing_in), 14, 500, C.Muted)
                 }
             }
         }
@@ -140,7 +140,7 @@ private fun FieldError(message: String) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         LineIcon(Icons.Alert, 14.dp, C.Red, 2.2f)
-        Txt(message, 13, 500, C.Red, Modifier.weight(1f), maxLines = 3)
+        Txt(message, 12, 500, C.Red, Modifier.weight(1f), maxLines = 3)
     }
 }
 

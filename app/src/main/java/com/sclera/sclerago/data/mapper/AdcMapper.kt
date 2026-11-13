@@ -36,7 +36,7 @@ fun PropertyDto.toRecord(): PropertyRecord {
         id = id,
         name = name,
         gps = false, // geofencing has no API; it stays on the device
-        type = type.orEmpty(),
+        type = type?.let(::prettyPropertyType).orEmpty(),
         address = Address(
             line1 = addressLine1.orEmpty(), line2 = addressLine2.orEmpty(), country = country.orEmpty(),
             state = state.orEmpty(), region = region.orEmpty(), city = city.orEmpty(), postcode = postalCode.orEmpty(),

@@ -145,11 +145,11 @@ internal fun SideMenuPanel(
         AlertDialog(
             onDismissRequest = { confirmSignOut = false },
             containerColor = C.Surface,
-            title = { Txt(stringResource(R.string.menu_sign_out_title), 19, 700) },
+            title = { Txt(stringResource(R.string.menu_sign_out_title), 17, 700) },
             text = {
                 Txt(
                     if (email != null) stringResource(R.string.menu_sign_out_message, email) else stringResource(R.string.menu_sign_out_message_generic),
-                    14, 400, C.Muted, maxLines = 4,
+                    13, 400, C.Muted, maxLines = 4,
                 )
             },
             confirmButton = {
@@ -160,10 +160,10 @@ internal fun SideMenuPanel(
                         onSignOut()
                     },
                     Modifier.testTag(MenuTags.SIGN_OUT_CONFIRM),
-                ) { Txt(stringResource(R.string.menu_sign_out), 15, 700, C.Red) }
+                ) { Txt(stringResource(R.string.menu_sign_out), 14, 700, C.Red) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmSignOut = false }) { Txt(stringResource(R.string.action_cancel), 15, 600, C.Text) }
+                TextButton(onClick = { confirmSignOut = false }) { Txt(stringResource(R.string.action_cancel), 14, 600, C.Text) }
             },
         )
     }
@@ -188,11 +188,11 @@ internal fun SideMenuPanel(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Avatar(name, session?.avatarUrl)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(name, 16, 700)
+                        Txt(name, 15, 700)
                         listOfNotNull(session?.role, session?.organisation).joinToString(" · ").takeIf { it.isNotEmpty() }?.let {
-                            Txt(it, 12, 600, C.Yellow)
+                            Txt(it, 11, 600, C.Yellow)
                         }
-                        session?.email?.let { Txt(it, 12, 400, C.Muted) }
+                        session?.email?.let { Txt(it, 11, 400, C.Muted) }
                     }
                     val closeLabel = stringResource(R.string.action_close)
                     RoundButton(38.dp, C.Btn, onClose, Modifier.semantics { contentDescription = closeLabel }) {
@@ -222,8 +222,8 @@ internal fun SideMenuPanel(
                             }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Txt(stringResource(R.string.menu_current_property).uppercase(Locale.getDefault()), 10, 600, C.Muted, spacing = 0.4f)
-                                Txt(propertyName, 15, 700)
-                                Txt(pluralStringResource(R.plurals.asset_count, assetCount, assetCount), 12, 400, C.Muted)
+                                Txt(propertyName, 14, 700)
+                                Txt(pluralStringResource(R.plurals.asset_count, assetCount, assetCount), 11, 400, C.Muted)
                             }
                         }
                         Pill(stringResource(R.string.menu_switch), onSwitch, Modifier.testTag(MenuTags.SWITCH), height = 34.dp, hPad = 10.dp, size = 12)
@@ -258,7 +258,7 @@ internal fun SideMenuPanel(
                 ) {
                     LineIcon(Icons.SignOut, 19.dp, C.Red, 2.2f)
                     Spacer(Modifier.width(8.dp))
-                    Txt(stringResource(R.string.menu_sign_out), 15, 600, C.Red)
+                    Txt(stringResource(R.string.menu_sign_out), 14, 600, C.Red)
                 }
             }
         }
@@ -279,7 +279,7 @@ private fun Avatar(name: String, url: String?) {
         if (p != null) {
             Image(p, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {
-            Txt(initials(name), 16, 800, C.OnYellow)
+            Txt(initials(name), 15, 800, C.OnYellow)
         }
     }
 }
@@ -308,7 +308,7 @@ private fun TopRow(item: MenuItem, label: String, icon: Ico, active: MenuItem, o
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         IconBox(icon)
-        Txt(label, 15, 600, modifier = Modifier.weight(1f))
+        Txt(label, 14, 600, modifier = Modifier.weight(1f))
         LineIcon(Icons.ChevronRight, 14.dp, C.Dim, 2.6f)
     }
 }
@@ -335,10 +335,10 @@ private fun SectionRow(
             Modifier.weight(1f).heightIn(min = 48.dp).then(if (first) Modifier else Modifier.topBorder(C.Border)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Txt(label, 15, 600, modifier = Modifier.weight(1f))
+            Txt(label, 14, 600, modifier = Modifier.weight(1f))
             when (trailing) {
                 is Trailing.Count -> Box(Modifier.clip(CircleShape).background(C.Raised).padding(horizontal = 9.dp, vertical = 3.dp)) {
-                    Txt(trailing.n.toString(), 12, 700)
+                    Txt(trailing.n.toString(), 11, 700)
                 }
                 Trailing.Open -> LineIcon(Icons.ChevronRight, 14.dp, C.Dim, 2.6f)
                 Trailing.Soon -> Box(Modifier.clip(CircleShape).background(C.Raised).padding(horizontal = 8.dp, vertical = 3.dp)) {

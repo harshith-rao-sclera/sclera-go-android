@@ -5,10 +5,13 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- Launch splash: dark canvas and the brand symbol, handed over to the Compose intro. -->
+    <!--
+      System splash (Android can't skip it from 12 on): only the dark canvas, the same colour as the
+      first frame of the Compose launch animation, so the animation seems to start straight away.
+    -->
     <style name="Theme.Sclera.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/sclera_splash_bg</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_symbol</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_blank</item>
         <item name="postSplashScreenTheme">@style/Theme.ScleraGo</item>
     </style>
 </resources>

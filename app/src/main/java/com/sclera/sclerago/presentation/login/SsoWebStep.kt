@@ -88,8 +88,8 @@ internal fun SsoWebStep(
             CloseButton(onClick = onCancel, size = 38.dp, iconSize = 16.dp)
             Spacer(Modifier.size(12.dp))
             Column(Modifier.weight(1f)) {
-                Txt(stringResource(R.string.login_title), 15, 600)
-                Txt(host, 12, 400, C.Muted)
+                Txt(stringResource(R.string.login_title), 14, 600)
+                Txt(host, 11, 400, C.Muted)
             }
         }
         if (progress in 1..99) {

@@ -107,6 +107,8 @@ internal fun AddPropertySheet(existing: List<Property>, onClose: () -> Unit, onA
             },
             leadingIcon = Icons.Building, progress = done / 2f,
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
+            dirty = listOf(name, type, line1, line2, country, state, region, city, contactName, contactEmail, contactPhone, notes, accessCode)
+                .any { it.isNotBlank() } || start != "00:01" || end != "23:59",
         ) {
             FormGroup(stringResource(R.string.property_group_details), Icons.Building, collapsible = true, trailing = {
                 val ok = done == 2
@@ -153,7 +155,7 @@ internal fun AddPropertySheet(existing: List<Property>, onClose: () -> Unit, onA
                 Box(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp)) {
                     PlainField(
                         notes, { notes = it }, stringResource(R.string.property_notes_hint),
-                        Modifier.fillMaxWidth().heightIn(min = 84.dp).padding(vertical = 12.dp), size = 15, singleLine = false, minLines = 3,
+                        Modifier.fillMaxWidth().heightIn(min = 84.dp).padding(vertical = 12.dp), size = 14, singleLine = false, minLines = 3,
                     )
                 }
             }

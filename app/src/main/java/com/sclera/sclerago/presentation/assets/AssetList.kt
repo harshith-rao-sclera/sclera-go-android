@@ -149,8 +149,8 @@ private fun Chip(c: StatusCount, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         c.status?.let { LineIcon(it.icon, 12.dp, it.color, 2.8f) }
-        Txt(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), 12, 600, fg)
-        Txt(c.count.toString(), 11, 700, fg.copy(alpha = 0.8f))
+        Txt(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), 11, 600, fg)
+        Txt(c.count.toString(), 10, 700, fg.copy(alpha = 0.8f))
     }
 }
 
@@ -198,8 +198,8 @@ fun AssetRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(a.name, 15, 600)
-                Txt(a.detail, 12, 400, C.Muted)
+                Txt(a.name, 14, 600)
+                Txt(a.detail, 11, 400, C.Muted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
                 LineIcon(a.src.icon, 18.dp, a.src.color, 2f)
@@ -219,14 +219,14 @@ private fun EmptyCard(reason: EmptyReason, query: String, modifier: Modifier = M
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Txt(stringResource(R.string.dash_empty_title), 15, 600)
+        Txt(stringResource(R.string.dash_empty_title), 14, 600)
         val text = when (reason) {
             EmptyReason.SEARCH -> stringResource(R.string.dash_empty_search, query.trim())
             EmptyReason.STATUS -> stringResource(R.string.dash_empty_status)
             EmptyReason.ASSETS_TAB -> stringResource(R.string.dash_empty_assets)
             EmptyReason.SOURCE_TAB -> stringResource(R.string.dash_empty_source)
         }
-        Txt(text, 13, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
+        Txt(text, 12, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
     }
 }
 

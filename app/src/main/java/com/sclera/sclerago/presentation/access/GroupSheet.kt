@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -56,7 +57,8 @@ private const val LockedRowAlpha = 0.75f
 /**
  * New group / edit one: Group details (name, description) and What they can do (permissions).
  * [givenAll] says how many people the draft would move to every property (shown as a notice;
- * the caller asks for confirmation before saving).
+ * the caller asks for confirmation before saving). A group that [canDelete] offers Delete at the end
+ * ([onDelete] asks for confirmation); the list's group cards have no buttons of their own.
  */
 @Composable
 internal fun GroupSheet(
@@ -65,6 +67,8 @@ internal fun GroupSheet(
     givenAll: (Group) -> Int,
     onSave: (Group) -> GroupProblem?,
     onClose: () -> Unit,
+    canDelete: Boolean = false,
+    onDelete: (Group) -> Unit = {},
 ) {
     val isNew = initial.id.isEmpty()
     val locked = initial.locked
@@ -90,6 +94,7 @@ internal fun GroupSheet(
             leadingIcon = iconOf(Permission.MANAGE_ACCESS.iconPath), progress = if (named) 1f else 0f,
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
             primaryModifier = Modifier.testTag(AccessTags.SHEET_PRIMARY),
+            dirty = name.trim() != initial.name.trim() || description.trim() != initial.description.trim() || perms != initial.permissions,
         ) {
             FormGroup(stringResource(R.string.access_group_details), Icons.Users, trailing = {
                 if (named) StatusPill(stringResource(R.string.property_ready), PillTone.READY)
@@ -116,7 +121,7 @@ internal fun GroupSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         LineIcon(Icons.Lock, 13.dp, C.TintText, 2.2f)
-                        Txt(stringResource(R.string.access_locked_notice, initial.name), 12, 400, C.TintText, maxLines = 2)
+                        Txt(stringResource(R.string.access_locked_notice, initial.name), 11, 400, C.TintText, maxLines = 2)
                     }
                 }
                 Permission.entries.forEach { PermissionRow(it, on = locked || it in perms, locked = locked) { perms = if (it in perms) perms - it else perms + it } }
@@ -128,8 +133,15 @@ internal fun GroupSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     LineIcon(Icons.Alert, 14.dp, C.TintText, 2.2f)
-                    Txt(pluralStringResource(R.plurals.access_elevate_notice, affected, affected), 12, 500, C.TintText, maxLines = 3)
+                    Txt(pluralStringResource(R.plurals.access_elevate_notice, affected, affected), 11, 500, C.TintText, maxLines = 3)
                 }
+            }
+            if (!isNew && canDelete) {
+                Txt(
+                    stringResource(R.string.access_delete_group, initial.name), 13, 600, C.Red,
+                    Modifier.testTag(AccessTags.DELETE_GROUP).padding(horizontal = 16.dp).clip(r(8))
+                        .clickable(role = Role.Button) { onDelete(initial) }.heightIn(min = 48.dp).padding(vertical = 6.dp),
+                )
             }
         }
     }
@@ -148,10 +160,10 @@ private fun PermissionRow(p: Permission, on: Boolean, locked: Boolean, onToggle:
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 LineIcon(iconOf(p.iconPath), 13.dp, p.color.asColor(), 1.9f)
-                Txt(stringResource(p.titleRes()), 15, 600)
+                Txt(stringResource(p.titleRes()), 14, 600)
                 if (p.needsAllProperties) TintChip(stringResource(R.string.access_needs_all))
             }
-            Txt(stringResource(p.descriptionRes()), 12, 400, C.Muted, maxLines = 3, lineHeight = 17.sp)
+            Txt(stringResource(p.descriptionRes()), 11, 400, C.Muted, maxLines = 3, lineHeight = 15.sp)
         }
     }
 }

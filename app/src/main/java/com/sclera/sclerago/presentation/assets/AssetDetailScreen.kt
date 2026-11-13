@@ -39,6 +39,7 @@ import com.sclera.sclerago.domain.validation.AssetCheck
 import com.sclera.sclerago.domain.validation.FixTarget
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.RoundButton
@@ -94,8 +95,11 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
         }
     }
 
+    // Leaving asks first only when something would be lost: a new asset once anything has been entered
+    // or attached (defaults and values filled in from a scanned device don't count), an existing one
+    // while it has unsaved changes. Otherwise back just goes back.
     fun back() {
-        if (isNew) modal = DetailModal.DISCARD else actions.onBack()
+        if (state.dirtyCount > 0 || (isNew && state.newPicks.isNotEmpty())) modal = DetailModal.DISCARD else actions.onBack()
     }
 
     BackHandler {
@@ -170,17 +174,28 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                     actions.onDelete()
                 },
             )
-            DetailModal.DISCARD -> ConfirmDialog(
-                icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
-                title = stringResource(R.string.detail_discard_title),
-                body = stringResource(R.string.detail_discard_body),
-                no = stringResource(R.string.action_keep_editing), yes = stringResource(R.string.action_discard),
-                onNo = { modal = DetailModal.NONE },
-                onYes = {
-                    modal = DetailModal.NONE
-                    actions.onBack()
-                },
-            )
+            DetailModal.DISCARD -> if (isNew) {
+                ConfirmDialog(
+                    icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
+                    title = stringResource(R.string.detail_discard_title),
+                    body = stringResource(R.string.detail_discard_body),
+                    no = stringResource(R.string.action_keep_editing), yes = stringResource(R.string.action_discard),
+                    onNo = { modal = DetailModal.NONE },
+                    onYes = {
+                        modal = DetailModal.NONE
+                        actions.onBack()
+                    },
+                )
+            } else {
+                DiscardChangesDialog(
+                    onKeep = { modal = DetailModal.NONE },
+                    onDiscard = {
+                        modal = DetailModal.NONE
+                        actions.onDiscardEdits()
+                        actions.onBack()
+                    },
+                )
+            }
             DetailModal.NONE -> {}
         }
     }
@@ -206,7 +221,7 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
         PlainField(
             name, onName, stringResource(R.string.detail_name_hint),
             Modifier.weight(1f).padding(end = 6.dp).height(40.dp).bottomBorder(headLine, 1.5.dp).padding(horizontal = 2.dp),
-            size = 19, weight = 700, readOnly = state.locked,
+            size = 17, weight = 700, readOnly = state.locked,
         )
         if (state.dirtyCount == 0 && state.savedFlash) {
             Row(
@@ -215,7 +230,7 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 LineIcon(Icons.Check, 11.dp, C.Green, 3f)
-                Txt(stringResource(R.string.detail_saved), 11, 700, C.Green)
+                Txt(stringResource(R.string.detail_saved), 10, 700, C.Green)
             }
         }
     }

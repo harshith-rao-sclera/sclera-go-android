@@ -17,7 +17,7 @@ fun DbRow.toProperty(): Property {
         id = string("id").orEmpty(),
         name = string("name").orEmpty(),
         gps = (DbJson.obj(string("settings"))["gps"] as? JsonPrimitive)?.booleanOrNull ?: false,
-        type = string("type").orEmpty(),
+        type = string("type")?.let(::prettyPropertyType).orEmpty(),
         address = Address(
             line1 = string("address_line1").orEmpty(),
             line2 = string("address_line2").orEmpty(),
@@ -30,9 +30,16 @@ fun DbRow.toProperty(): Property {
         contact = Contact(string("contact_name").orEmpty(), string("contact_email").orEmpty(), string("contact_phone").orEmpty()),
         notes = string("notes").orEmpty(),
         availability = Availability(
-            start = string("available_from")?.takeIf { it.isNotBlank() } ?: defaults.start,
-            end = string("available_until")?.takeIf { it.isNotBlank() } ?: defaults.end,
+            start = string("available_from")?.takeIf { it.isNotBlank() }?.let(::hoursMinutes) ?: defaults.start,
+            end = string("available_until")?.takeIf { it.isNotBlank() }?.let(::hoursMinutes) ?: defaults.end,
             accessCode = string("access_code").orEmpty(),
         ),
     )
 }
+
+/** "data_center" → "Data center"; types that are already words ("Commercial office") stay as they are. */
+internal fun prettyPropertyType(raw: String): String =
+    if ('_' in raw) raw.trim().replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() } else raw.trim()
+
+/** "00:45:00" → "00:45". */
+internal fun hoursMinutes(time: String): String = time.trim().split(':').take(2).joinToString(":")

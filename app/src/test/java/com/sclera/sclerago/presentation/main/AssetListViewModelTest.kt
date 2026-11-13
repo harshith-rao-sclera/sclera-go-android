@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.presentation.preview.SAMPLE_PROPERTY_ID
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sclera.sclerago.R
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
@@ -29,7 +32,7 @@ import org.junit.runner.RunWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
 class AssetListViewModelTest {
-    private val repo = AssetRepositoryImpl()
+    private val repo = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
 
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -37,7 +40,8 @@ class AssetListViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = AssetListViewModel(assetUseCases(repo))
+    /** The list view model on the sample property (the app's starts with no property until they load). */
+    private fun vm() = AssetListViewModel(assetUseCases(repo)).apply { setScope(SAMPLE_PROPERTY_ID, LocationFilter.All) }
     private fun catalogIds() = repo.catalog.value.assetsIn("p1").map { it.id }
     private fun AssetListViewModel.ids(tab: Tab = Tab.ASSETS) = state.value.lists.getValue(tab).items.map { it.id }
 

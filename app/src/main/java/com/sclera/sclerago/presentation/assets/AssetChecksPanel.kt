@@ -97,14 +97,14 @@ fun AssetChecksPanel(
             if (checks.canValidate) {
                 Pill(
                     stringResource(R.string.action_validate), onValidate, Modifier.weight(1f).testTag(ChecksTags.FOOTER),
-                    bg = C.Yellow, fg = C.OnYellow, height = 48.dp, hPad = 18.dp, size = 15, weight = 700,
+                    bg = C.Yellow, fg = C.OnYellow, height = 48.dp, hPad = 18.dp, size = 14, weight = 700,
                 )
             } else {
                 // Not clickable: the checks have to be fixed first.
                 Box(
                     Modifier.weight(1f).testTag(ChecksTags.FOOTER).height(48.dp).clip(Capsule).background(C.Raised),
                     contentAlignment = Alignment.Center,
-                ) { Txt(pluralStringResource(R.plurals.check_fix_footer, checks.failed, checks.failed), 15, 700, C.Muted) }
+                ) { Txt(pluralStringResource(R.plurals.check_fix_footer, checks.failed, checks.failed), 14, 700, C.Muted) }
             }
         }
     }
@@ -125,11 +125,11 @@ private fun ChecksBanner(failed: Int) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(
                 if (ok) stringResource(R.string.check_banner_passed) else pluralStringResource(R.plurals.check_banner_failed, failed, failed),
-                16, 700,
+                15, 700,
             )
             Txt(
                 stringResource(if (ok) R.string.check_banner_passed_sub else R.string.check_banner_failed_sub),
-                12, 400, C.Muted, maxLines = 2,
+                11, 400, C.Muted, maxLines = 2,
             )
         }
     }
@@ -147,10 +147,10 @@ private fun CheckRow(check: AssetCheck, onFix: ((AssetCheck) -> Unit)?) {
         Box(Modifier.width(32.dp), contentAlignment = Alignment.Center) { OutcomeGlyph(check.outcome) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Txt(title, 14, 600, modifier = Modifier.weight(1f, fill = false))
+                Txt(title, 13, 600, modifier = Modifier.weight(1f, fill = false))
                 if (check.required && check.outcome != CheckOutcome.PASS) Txt(stringResource(R.string.check_required), 9, 700, C.Red, spacing = 0.3f)
             }
-            note?.let { Txt(it, 12, 400, C.Muted, maxLines = 3) }
+            note?.let { Txt(it, 11, 400, C.Muted, maxLines = 3) }
         }
         if (check.fix != null && onFix != null) {
             Box(
@@ -158,7 +158,7 @@ private fun CheckRow(check: AssetCheck, onFix: ((AssetCheck) -> Unit)?) {
                 contentAlignment = Alignment.Center,
             ) {
                 Box(Modifier.height(32.dp).clip(Capsule).background(C.Btn).padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-                    Txt(stringResource(R.string.action_fix), 12, 600)
+                    Txt(stringResource(R.string.action_fix), 11, 600)
                 }
             }
         }
@@ -180,7 +180,7 @@ private fun OutcomeGlyph(outcome: CheckOutcome) {
         when (outcome) {
             CheckOutcome.PASS -> LineIcon(Icons.Check, 12.dp, C.Bg, 3.2f)
             CheckOutcome.FAIL -> LineIcon(Icons.Close, 11.dp, C.Bg, 3.2f)
-            CheckOutcome.WARN -> Txt("!", 13, 800, C.Bg)
+            CheckOutcome.WARN -> Txt("!", 12, 800, C.Bg)
         }
     }
 }

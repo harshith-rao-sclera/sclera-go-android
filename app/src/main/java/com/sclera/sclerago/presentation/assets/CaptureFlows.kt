@@ -273,7 +273,7 @@ fun CameraCapture(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Box(Modifier.size(8.dp).background(C.Red, CircleShape))
-                        Txt(formatDuration(recNanos / 1_000_000), 13, 700, C.Red)
+                        Txt(formatDuration(recNanos / 1_000_000), 12, 700, C.Red)
                     }
                 }
             }
@@ -289,7 +289,7 @@ fun CameraCapture(
                 contentAlignment = Alignment.Center,
             ) {
                 LineIcon(Icons.Check, 26.dp, C.OnYellow, 3f)
-                Txt(chosen.toString(), 12, 800, C.OnYellow, Modifier.align(Alignment.BottomEnd).padding(end = 9.dp, bottom = 6.dp))
+                Txt(chosen.toString(), 11, 800, C.OnYellow, Modifier.align(Alignment.BottomEnd).padding(end = 9.dp, bottom = 6.dp))
             }
         }
 
@@ -298,7 +298,7 @@ fun CameraCapture(
             Box(
                 Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).clip(Capsule).background(Glass)
                     .padding(horizontal = 12.dp, vertical = 7.dp),
-            ) { Txt("Take a photo or video to start a new asset", 12, 600, C.Soft) }
+            ) { Txt("Take a photo or video to start a new asset", 11, 600, C.Soft) }
         } else {
             LazyRow(
                 Modifier.align(Alignment.BottomStart).padding(bottom = 136.dp).fillMaxWidth().height(78.dp),
@@ -368,11 +368,11 @@ private fun PermissionPrompt(blocked: Boolean, onAllow: () -> Unit, modifier: Mo
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         LineIcon(Icons.Camera, 40.dp, C.Muted, 1.8f)
-        Txt("Camera access is off", 17, 700)
+        Txt("Camera access is off", 16, 700)
         Txt(
             if (blocked) "Turn on Camera for Sclera Go in Settings to photograph nameplates and assets."
             else "Allow the camera to photograph nameplates and assets.",
-            13, 400, C.Muted, maxLines = 3, align = TextAlign.Center,
+            12, 400, C.Muted, maxLines = 3, align = TextAlign.Center,
         )
         Pill(
             if (blocked) "Open settings" else "Allow camera", onAllow,
@@ -434,8 +434,8 @@ private fun FileWaiting(vm: AppViewModel) {
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
     ) {
         LineIcon(Icons.FileUpload, 40.dp, C.Muted, 1.8f)
-        Txt("Import from files", 17, 700)
-        Txt("Excel, CSV, PDF, photos or videos from your phone or cloud drives.", 13, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
+        Txt("Import from files", 16, 700)
+        Txt("Excel, CSV, PDF, photos or videos from your phone or cloud drives.", 12, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
         Pill("Open file manager", vm::openFile, bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700)
         Pill("Cancel", vm::cancelFile, bg = Color.Transparent, fg = C.Muted, height = 40.dp)
     }
@@ -451,7 +451,7 @@ private fun FileReview(vm: AppViewModel) {
         onDiscard = vm::discardFile, onGo = vm::onboardFile,
     ) { ri ->
         Box(Modifier.size(52.dp).background(C.Raised, r(10)), contentAlignment = Alignment.Center) {
-            Txt(ri.ext, 12, 800, ri.extColor)
+            Txt(ri.ext, 11, 800, ri.extColor)
         }
     }
 }

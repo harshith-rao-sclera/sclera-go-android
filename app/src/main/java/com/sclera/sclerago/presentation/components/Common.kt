@@ -163,7 +163,7 @@ fun Segmented(labels: List<String>, selected: Int, onSelect: (Int) -> Unit, icon
                 val fg = if (on) C.OnYellow else C.Muted
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     icons.getOrNull(i)?.let { LineIcon(it, 18.dp, fg, 2.2f) }
-                    Txt(l, 13, 700, fg)
+                    Txt(l, 12, 700, fg)
                 }
             }
         }
@@ -188,7 +188,7 @@ fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String, 
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         LineIcon(Icons.Search, 18.dp, C.Muted)
-        PlainField(value, onChange, placeholder, Modifier.weight(1f), size = 14)
+        PlainField(value, onChange, placeholder, Modifier.weight(1f), size = 13)
     }
 }
 
@@ -275,7 +275,7 @@ fun Toast(text: String, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         LineIcon(Icons.Check, 15.dp, C.Green, 2.8f)
-        Txt(text, 13, 700, C.Green)
+        Txt(text, 12, 700, C.Green)
     }
 }
 
@@ -286,17 +286,18 @@ fun SheetHandle(modifier: Modifier = Modifier) {
 }
 
 /**
- * Bottom action bar for assets: a leading area (selection count, or a single asset's status),
- * then Validate, Assign, Submit and Delete, each in its own color. Used by list selection and asset details.
- * Pass null for an action to leave it out (e.g. Submit on an asset that is already submitted).
+ * Bottom action bar: a leading area (selection count, or a single asset's status), then Validate, Assign,
+ * Submit and Delete, each in its own color. Used by list selection (assets, groups) and asset details.
+ * Pass null for an action to leave it out (e.g. Submit on an asset that is already submitted; groups only Delete).
  */
 @Composable
 fun ActionDock(
     onValidate: (() -> Unit)?,
-    onAssign: () -> Unit,
+    onAssign: (() -> Unit)?,
     onSubmit: (() -> Unit)?,
     onDelete: () -> Unit,
     floating: Boolean = false,
+    deleteModifier: Modifier = Modifier.width(56.dp),
     leading: @Composable RowScope.() -> Unit,
 ) {
     // Floating: inset from the edges with rounded corners and a shadow; otherwise flush with a top border.
@@ -313,9 +314,9 @@ fun ActionDock(
     ) {
         leading()
         onValidate?.let { DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it) }
-        DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, onAssign)
+        onAssign?.let { DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it) }
         onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it) }
-        DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete)
+        DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, deleteModifier)
     }
 }
 
@@ -361,6 +362,6 @@ private fun DockAction(
         verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
     ) {
         LineIcon(icon, 21.dp, color, 2.1f)
-        Txt(label, 11, 700, color)
+        Txt(label, 10, 700, color)
     }
 }

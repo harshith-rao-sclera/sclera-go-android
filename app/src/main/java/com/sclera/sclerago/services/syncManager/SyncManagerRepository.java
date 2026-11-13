@@ -27,7 +27,8 @@ public class SyncManagerRepository {
                     GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_SESSION_ID,
                     GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_SESSION_URL,
                     GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_URL,
-                    GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_CLOUD_URL
+                    GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_CLOUD_URL,
+                    GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID
             };
             Cursor cursor = GlobalConfigDatabaseHelper.initializeInstance(Utility.context)
                     .globalDB.query(GlobalConfigDatabaseHelper.TABLE_NAME_ASSET_CONFIG, columns, null, null, null, null, null);
@@ -43,9 +44,10 @@ public class SyncManagerRepository {
                     String sessionUrl = cursor.getString(cursor.getColumnIndex(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_SESSION_URL));
                     String role = cursor.getString(cursor.getColumnIndex(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_ROLE));
                     String cloudUrl = cursor.getString(cursor.getColumnIndex(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_CLOUD_URL));
+                    String propertyId = cursor.getString(cursor.getColumnIndex(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID));
 
                     if (SyncUtils.dbInstance == null) {
-                        SyncManager syncManager = new SyncManager(user, url, token, sessionId, sessionUrl, orgId, Utility.context);
+                        SyncManager syncManager = new SyncManager(user, url, token, sessionId, sessionUrl, orgId, Utility.context, propertyId);
                         SyncUtils.dbInstance = syncManager;
                         SyncManager.userId = userId;
                         SyncManager.cloudUrl = cloudUrl;

@@ -1,5 +1,7 @@
 package com.sclera.sclerago.domain.usecase
 
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
 import com.sclera.sclerago.domain.model.Property
@@ -18,7 +20,7 @@ import org.junit.Test
 
 class PropertyListUseCasesTest {
     private val properties = PropertyRepositoryImpl()
-    private val assets = AssetRepositoryImpl()
+    private val assets = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
 
     @Test
     fun summaries_pairEveryPropertyWithItsAssetCount() = runTest {

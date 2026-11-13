@@ -70,8 +70,8 @@ fun ReviewScreen(
             item(key = "head") {
                 Row(Modifier.readableWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(R.string.review_title), 18, 700)
-                        Txt(sub, 12, 400, C.Muted)
+                        Txt(stringResource(R.string.review_title), 16, 700)
+                        Txt(sub, 11, 400, C.Muted)
                     }
                     Pill(addLabel, onAdd, Modifier.testTag(ReviewTags.ADD))
                 }
@@ -86,11 +86,11 @@ fun ReviewScreen(
                 ) {
                     thumb(ri)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(ri.name, 15, 600)
-                        Txt(ri.sub.asString(), 12, 400, C.Muted)
+                        Txt(ri.name, 14, 600)
+                        Txt(ri.sub.asString(), 11, 400, C.Muted)
                         Txt(
                             stringResource(if (ri.ready) R.string.review_ready else R.string.review_needs_input),
-                            12, 600, if (ri.ready) C.Green else C.Orange,
+                            11, 600, if (ri.ready) C.Green else C.Orange,
                         )
                     }
                     val include = stringResource(R.string.review_include)
@@ -111,7 +111,7 @@ fun ReviewScreen(
                 Pill(
                     if (on > 0) pluralStringResource(R.plurals.review_onboard, on, on) else stringResource(R.string.review_select_items),
                     onGo, Modifier.weight(1f).testTag(ReviewTags.GO), bg = if (on > 0) C.Yellow else C.Raised,
-                    fg = if (on > 0) C.OnYellow else C.Muted, height = 48.dp, size = 15, weight = 700,
+                    fg = if (on > 0) C.OnYellow else C.Muted, height = 48.dp, size = 14, weight = 700,
                 )
             }
         }

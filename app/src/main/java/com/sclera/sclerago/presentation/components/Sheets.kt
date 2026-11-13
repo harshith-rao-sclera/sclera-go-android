@@ -51,22 +51,8 @@ fun PropertySheet(vm: AppViewModel) {
         ) {
             if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Txt("Select property", 22, 700, modifier = Modifier.weight(1f))
+                Txt("Select property", 17, 700, modifier = Modifier.weight(1f))
                 CloseButton(vm::closeProp)
-            }
-            Row(
-                Modifier.fillMaxWidth().clip(r(14)).background(C.YTintBg).border(1.dp, C.YTintBd, r(14)).padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(Modifier.size(40.dp).background(C.Yellow, r(12)), contentAlignment = Alignment.Center) {
-                    LineIcon(Icons.Crosshair, 22.dp, C.OnYellow, 2.2f)
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt("Use my location", 15, 700)
-                    Txt("GPS: nearest is Test 861 · ±12 m", 12, 400, Color(0xFFD8CFA8))
-                }
-                Pill("Use", { vm.pickProp("p1") }, bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 16.dp, size = 14, weight = 700)
             }
             SearchField(s.propQ, vm::setPropQ, "Search properties")
             LazyColumn(Modifier.heightIn(max = 330.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -82,8 +68,8 @@ fun PropertySheet(vm: AppViewModel) {
                             LineIcon(Icons.Property, 19.dp, if (on) C.Yellow else C.Muted)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Txt(p.name, 15, if (on) 700 else 500, if (on) C.Yellow else C.Text)
-                            Txt(sub, 12, 400, C.Muted)
+                            Txt(p.name, 14, if (on) 700 else 500, if (on) C.Yellow else C.Text)
+                            Txt(sub, 11, 400, C.Muted)
                         }
                         if (p.gps) {
                             Box(
@@ -93,7 +79,7 @@ fun PropertySheet(vm: AppViewModel) {
                         RadioDot(on)
                     }
                 }
-                if (rows.isEmpty()) item { Txt("No property matches that name.", 14, 400, C.Muted, Modifier.padding(12.dp, 4.dp)) }
+                if (rows.isEmpty()) item { Txt("No property matches that name.", 13, 400, C.Muted, Modifier.padding(12.dp, 4.dp)) }
             }
         }
     }
@@ -175,10 +161,10 @@ fun LocationPicker(
                 if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt("Select location", 22, 700)
+                        Txt("Select location", 17, 700)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             LineIcon(Icons.Property, 13.dp, C.Muted, 2.2f)
-                            Txt(propName, 12, 500, C.Muted)
+                            Txt(propName, 11, 500, C.Muted)
                         }
                     }
                     CloseButton(onClose)
@@ -198,7 +184,7 @@ fun LocationPicker(
                                     .border(1.dp, if (last) C.YTintBd else C.ChipBd, Capsule).clickable { pick(n.id) }
                                     .padding(horizontal = 10.dp),
                                 contentAlignment = Alignment.Center,
-                            ) { Txt(n.name, 12, 600, if (last) C.Yellow else C.Text) }
+                            ) { Txt(n.name, 11, 600, if (last) C.Yellow else C.Text) }
                         }
                     }
                 }
@@ -220,8 +206,8 @@ fun LocationPicker(
                         ) {
                             KindIcon(n.kind, C.Yellow)
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Txt(n.name, 15, 600)
-                                Txt(if (c.size > 1) c.dropLast(1).joinToString(" › ") { it.name } else "Building", 12, 400, C.Muted)
+                                Txt(n.name, 14, 600)
+                                Txt(if (c.size > 1) c.dropLast(1).joinToString(" › ") { it.name } else "Building", 11, 400, C.Muted)
                             }
                         }
                     }
@@ -229,7 +215,7 @@ fun LocationPicker(
                     items(rows, key = { if (it is TreeRow.Node) it.node.id else "e-" + (it as TreeRow.Empty).depth + it.text }) { row ->
                         when (row) {
                             is TreeRow.Empty -> Txt(
-                                row.text, 13, 400, Color(0xFF8B8F97),
+                                row.text, 12, 400, Color(0xFF8B8F97),
                                 Modifier.heightIn(min = 40.dp).padding(start = (4 + row.depth * 20 + 36).dp).wrapContentHeight(),
                             )
                             is TreeRow.Node -> TreeNodeRow(
@@ -241,7 +227,7 @@ fun LocationPicker(
                         }
                     }
                 }
-                if (emptyText.isNotEmpty()) item { Txt(emptyText, 14, 400, C.Muted, Modifier.padding(10.dp, 16.dp), maxLines = 3) }
+                if (emptyText.isNotEmpty()) item { Txt(emptyText, 13, 400, C.Muted, Modifier.padding(10.dp, 16.dp), maxLines = 3) }
             }
 
             Row(
@@ -250,12 +236,12 @@ fun LocationPicker(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt("SELECTED", 11, 500, C.Muted, spacing = 0.6f)
-                    Txt(node?.name ?: "Nothing selected", 16, 700)
+                    Txt("SELECTED", 10, 500, C.Muted, spacing = 0.6f)
+                    Txt(node?.name ?: "Nothing selected", 15, 700)
                     Txt(
                         if (node == null) "Pick a building, floor or location"
                         else if (selChain.size > 1) names.dropLast(1).joinToString(" › ") else "Whole building",
-                        12, 400, C.Muted,
+                        11, 400, C.Muted,
                     )
                 }
                 Pill(
@@ -266,7 +252,7 @@ fun LocationPicker(
                         }
                     },
                     bg = if (node != null) C.Yellow else C.Raised, fg = if (node != null) C.OnYellow else C.Muted,
-                    height = 48.dp, hPad = 22.dp, size = 15, weight = 700,
+                    height = 48.dp, hPad = 22.dp, size = 14, weight = 700,
                 )
             }
         }
@@ -328,14 +314,14 @@ private fun TreeNodeRow(
         ) {
             KindIcon(n.kind, if (selected || onPath) C.Yellow else C.Muted)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Txt(n.name, 15, if (selected || onPath) 700 else 500, if (selected) C.Yellow else C.Text)
-                Txt(sub, 12, 400, C.Muted)
+                Txt(n.name, 14, if (selected || onPath) 700 else 500, if (selected) C.Yellow else C.Text)
+                Txt(sub, 11, 400, C.Muted)
             }
             if (count > 0) {
                 Box(
                     Modifier.widthIn(min = 24.dp).clip(Capsule).background(C.Raised).padding(horizontal = 7.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center,
-                ) { Txt(count.toString(), 11, 700, C.Muted) }
+                ) { Txt(count.toString(), 10, 700, C.Muted) }
             }
             RadioDot(selected)
         }

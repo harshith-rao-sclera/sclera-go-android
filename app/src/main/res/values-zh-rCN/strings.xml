@@ -113,11 +113,9 @@
         <item quantity="other">%1$d 项资产</item>
     </plurals>
     <string name="launch_logo_description">Sclera Go 标志</string>
-    <string name="access_heading">人员与访问权限</string>
-    <string name="access_description">群组决定其成员可以执行的操作。每个人属于一个群组，可访问所有物业或为其选定的物业。</string>
-    <string name="access_stat_people">人员</string>
+    <string name="access_stat_people">用户</string>
     <string name="access_stat_groups">群组</string>
-    <string name="access_tab_people">人员（%1$d）</string>
+    <string name="access_tab_people">用户（%1$d）</string>
     <string name="access_tab_groups">群组（%1$d）</string>
     <string name="access_search_people">搜索人员</string>
     <string name="access_search_groups">搜索群组</string>
@@ -126,18 +124,20 @@
     <string name="access_empty_people">暂无人员拥有访问权限。</string>
     <string name="access_no_person_match">没有与“%1$s”匹配的人员。</string>
     <string name="access_no_group_match">没有与“%1$s”匹配的群组。</string>
-    <string name="access_col_group">群组</string>
-    <string name="access_col_properties">物业</string>
-    <string name="access_col_last_seen">最近上线</string>
     <string name="access_all_properties">所有物业</string>
-    <string name="access_just_now">刚刚</string>
-    <string name="access_last_seen_description">最近上线：%1$s</string>
+    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">仅查看</string>
     <string name="access_edit_group">编辑 %1$s</string>
     <string name="access_delete_group">删除 %1$s</string>
-    <string name="access_delete_locked">无法删除 %1$s</string>
     <string name="access_delete_title">删除 %1$s？</string>
     <string name="access_delete_message">该群组将被移除，此操作无法撤销。</string>
+    <string name="access_title">用户与访问权限</string>
+    <plurals name="access_delete_groups_title">
+        <item quantity="other">删除 %1$d 个群组？</item>
+    </plurals>
+    <plurals name="access_delete_groups_message">
+        <item quantity="other">该群组将被移除，此操作无法撤销。</item>
+    </plurals>
     <string name="access_action_delete">删除</string>
     <string name="access_remove_title">移除 %1$s？</string>
     <string name="access_remove_message">%1$s 将无法再访问 Sclera。</string>

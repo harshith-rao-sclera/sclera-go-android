@@ -1,7 +1,6 @@
 package com.sclera.sclerago.domain.usecase
 
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
-import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
 import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.usecase.media.DeleteOwnedMediaUseCase
@@ -17,6 +16,7 @@ import com.sclera.sclerago.domain.usecase.property.propertyProblem
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.testutil.FakeFileRepository
+import com.sclera.sclerago.testutil.FakePropertyRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -25,7 +25,7 @@ import org.junit.Test
 import java.io.ByteArrayOutputStream
 
 class PropertyAndFileUseCasesTest {
-    private val repo = PropertyRepositoryImpl()
+    private val repo = FakePropertyRepository()
 
     @Test
     fun propertyProblem_explainsWhatIsWrong() {

@@ -172,7 +172,8 @@ public class SyncUtils {
 
         if (feature.equals(OfflineFeatures.ASSET_DATA_COLLECTION)) {
             requestBuilder.addHeader("userid", SyncManager.userId)
-                    .addHeader("scleraorgid", SyncUtils.dbInstance.getOrgId());
+                    .addHeader("scleraorgid", SyncUtils.dbInstance.getOrgId())
+                    .addHeader("PropertyId", syncManager.propertyId);
         }
 
         return requestBuilder.build();
@@ -205,7 +206,8 @@ public class SyncUtils {
 
         if (feature.equals(OfflineFeatures.ASSET_DATA_COLLECTION)) {
             requestBuilder.addHeader("userid", SyncManager.userId)
-                    .addHeader("scleraorgid", SyncUtils.dbInstance.getOrgId());
+                    .addHeader("scleraorgid", SyncUtils.dbInstance.getOrgId())
+                    .addHeader("PropertyId", syncManager.propertyId);
         }
 
         return requestBuilder.build();

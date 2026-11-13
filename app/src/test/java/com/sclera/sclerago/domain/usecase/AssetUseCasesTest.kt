@@ -1,5 +1,7 @@
 package com.sclera.sclerago.domain.usecase
 
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.domain.model.AssetType
@@ -30,7 +32,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AssetUseCasesTest {
-    private val repo = AssetRepositoryImpl()
+    private val repo = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
     private val place = AssetPlace("p1", "loc1", "Building A")
     private val photo = Media("m1", "content://m1", video = false, createdAt = 0L)
     private fun assetNow(id: String) = repo.catalog.value.assetsIn("p1").first { it.id == id }

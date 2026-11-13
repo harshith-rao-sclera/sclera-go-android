@@ -67,8 +67,8 @@ fun LineIcon(icon: Ico, size: Dp, color: Color, stroke: Float = 2f, modifier: Mo
 
 object Icons {
     val Menu = Ico(s("M4 7h16M4 12h16M4 17h16"))
-    /** The property (site): the same building as Configuration's header. */
-    val Property = Ico(s(rect(5f, 3f, 14f, 18f, 1f)), s("M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"))
+    /** The property (site): the side menu's two-building icon. A getter, as [Buildings] is declared further down. */
+    val Property: Ico get() = Buildings
     val Pin = Ico(s("M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"), s(circle(12f, 9.5f, 2.5f)))
     val Unmapped = Ico(
         s("M9.3 4.2A7 7 0 0 1 19 9.5c0 1.6-.6 3.3-1.5 4.8M14.8 17.6C13.3 19.6 12 21 12 21s-7-6.2-7-11.5c0-.9.2-1.8.5-2.6"),
@@ -140,12 +140,13 @@ object Icons {
     val Search = Ico(s(circle(11f, 11f, 7f)), s("M20 20l-3.5-3.5"))
     val Save = Ico(s("M5 3h11l3 3v15H5z"), s("M8 3v5h7V3M8 21v-7h8v7"))
     val Crosshair = Ico(s(circle(12f, 12f, 3f)), s(circle(12f, 12f, 7.5f)), s("M12 2v3M12 19v3M2 12h3M19 12h3"))
-    val Building = Ico(s(rect(5f, 3f, 14f, 18f, 1f)), s("M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"))
     /** Two buildings side by side: property list / current property in the side menu. */
     val Buildings = Ico(
         s("M3 21V6a1 1 0 011-1h7a1 1 0 011 1v15M2 21h20M12 21V10a1 1 0 011-1h6a1 1 0 011 1v11"),
         s("M6.5 9h2M6.5 12.5h2M6.5 16h2M15.5 13h1.5M15.5 16.5h1.5"),
     )
+    /** Every building in the app uses the side menu's two-building icon. */
+    val Building: Ico get() = Buildings
     val Floor = Ico(s("M12 3l9 5-9 5-9-5z"), s("M3 13l9 5 9-5"))
     val Info = Ico(s(circle(12f, 12f, 9f)), s("M12 11v6M12 7.5v.5"))
     val Users = Ico(

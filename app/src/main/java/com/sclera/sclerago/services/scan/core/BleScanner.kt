@@ -54,8 +54,11 @@ class BleScanner(
     /** How long one scan runs before it stops itself (ScleraGo: drives the progress shown on the scan card). */
     val scanWindowMs: Long get() = SCAN_WINDOW_MS
 
+    // Only touched on the main thread: scan callbacks arrive there, and [scope] runs there.
     private val found = LinkedHashMap<String, BleDevice>()
+    private var dirty = false
     private var job: Job? = null
+    private var publisher: Job? = null
     private var callback: ScanCallback? = null
 
     /** Caller must hold [ScanPermissions.Surface.BLE] before calling this. */
@@ -123,11 +126,20 @@ class BleScanner(
             delay(SCAN_WINDOW_MS)
             stop()
         }
+        publisher = scope.launch {
+            while (true) {
+                delay(PUBLISH_INTERVAL_MS)
+                publish()
+            }
+        }
     }
 
     fun stop() {
         job?.cancel()
         job = null
+        publisher?.cancel()
+        publisher = null
+        publish() // whatever arrived since the last tick
 
         val listener = callback
         callback = null
@@ -198,11 +210,21 @@ class BleScanner(
             )
         }
 
-        _devices.value = found.values.sortedByDescending { it.rssiDbm }
+        // Published by [publisher] a few times a second, not per advertisement: a busy room sends
+        // dozens a second, and copying the list on each one kept the main thread busy.
+        dirty = true
+    }
+
+    /** Hands the merged sightings on if anything changed since last time (ScleraGo: the scan page sorts them). */
+    private fun publish() {
+        if (!dirty) return
+        dirty = false
+        _devices.value = found.values.toList()
     }
 
     private companion object {
         const val SCAN_WINDOW_MS = 12_000L
+        const val PUBLISH_INTERVAL_MS = 300L
 
         /** ScanRecord returns this sentinel when no TX power is advertised. */
         const val TX_POWER_ABSENT = Int.MIN_VALUE

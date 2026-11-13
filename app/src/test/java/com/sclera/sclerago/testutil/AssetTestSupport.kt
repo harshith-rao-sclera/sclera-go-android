@@ -1,5 +1,7 @@
 package com.sclera.sclerago.testutil
 
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.domain.model.AssetType
@@ -38,7 +40,7 @@ class FakeAutofillRepository(var suggestions: Map<String, String> = emptyMap()) 
 
 /** The asset use cases over the given repositories, wired as Hilt does. */
 fun assetUseCases(
-    repo: AssetRepository = AssetRepositoryImpl(),
+    repo: AssetRepository = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS),
     config: AssetConfigRepository = AssetConfigRepositoryImpl(),
     autofill: AutofillRepository = FakeAutofillRepository(),
     time: TimeProvider = FakeTimeProvider(),

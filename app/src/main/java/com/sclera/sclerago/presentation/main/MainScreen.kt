@@ -152,6 +152,7 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
     // System back closes the topmost transient UI first.
     BackHandler(enabled = lists.searchOpen) { list.closeSearch() }
     BackHandler(enabled = selecting) { list.clearSelection() }
+    BackHandler(enabled = vm.devSelOn) { vm.clearDevicePick() }
 
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize().imePadding()) {
@@ -183,8 +184,8 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
 
                 if (detail != null && !s.valOpen) detailView(detail)
 
-                // The + and search buttons and the selection dock never show together: selecting hides the buttons.
-                if (vm.listInteractive && !selecting) {
+                // The + and search buttons and the selection docks never show together: selecting hides the buttons.
+                if (vm.listInteractive && !selecting && !vm.devSelOn) {
                     Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
                         DashboardFabs(
                             searchOpen = lists.searchOpen,
@@ -215,6 +216,13 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
                         onDelete = list::askDelete,
                     )
                 }
+                // Scanned devices ticked on the Bluetooth / Network list: add them all as assets.
+                androidx.compose.animation.AnimatedVisibility(
+                    vm.devSelOn,
+                    Modifier.align(Alignment.BottomCenter).readableWidth(),
+                    enter = slideInVertically { it } + fadeIn(),
+                    exit = slideOutVertically { it } + fadeOut(),
+                ) { DeviceAddDock(vm) }
                 // Messages sit above everything in the content area, asset details included.
                 androidx.compose.animation.AnimatedVisibility(
                     s.toastOn,

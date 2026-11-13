@@ -1,20 +1,27 @@
 package com.sclera.sclerago.presentation.access
 
-import android.text.format.DateUtils
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,26 +34,25 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
 import com.sclera.sclerago.domain.model.VIEW_ONLY_ICON
-import com.sclera.sclerago.presentation.components.ColorChip
+import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.asColor
 import com.sclera.sclerago.presentation.components.iconOf
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
-/** Cards and the tab switch of People and access. */
+// Cards, the tab switch and the group filter of People and access.
 
 /** The two-segment People / Groups switch (36dp high). */
 @Composable
@@ -62,75 +68,54 @@ internal fun TabSwitch(labels: List<String>, tags: List<String>, selected: Int, 
                 Modifier.weight(1f).height(36.dp).clip(r(9)).background(bg).testTag(tags[i])
                     .semantics { this.selected = on }.clickable(role = Role.Tab) { onSelect(i) },
                 contentAlignment = Alignment.Center,
-            ) { Txt(l, 14, 600, if (on) C.Text else C.Muted) }
+            ) { Txt(l, 13, 600, if (on) C.Text else C.Muted) }
         }
     }
 }
 
+/** A list card: one row, whole card tappable; [onLongClick] (if any) starts selecting; [picked] tints it. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RowCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Column(
-        modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+private fun RowCard(
+    modifier: Modifier,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    picked: Boolean = false,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val haptics = LocalHapticFeedback.current
+    Row(
+        modifier.fillMaxWidth().heightIn(min = 60.dp).clip(r(12)).background(if (picked) C.PickedRow else C.Surface)
+            .border(1.dp, if (picked) C.YTintBd else C.Border, r(12))
+            .semantics { if (onLongClick != null) selected = picked }
+            .combinedClickable(
+                role = Role.Button, onClick = onClick,
+                onLongClick = onLongClick?.let { { haptics.performHapticFeedback(HapticFeedbackType.LongPress); it() } },
+            ).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) { content() }
 }
 
-/** "just now" within the last minute, otherwise the platform's localized relative time ("5 minutes ago"). */
-@Composable
-internal fun lastSeenText(at: Long, now: Long): String =
-    if (now - at < JustNowMillis) stringResource(R.string.access_just_now)
-    else DateUtils.getRelativeTimeSpanString(at, now, DateUtils.MINUTE_IN_MILLIS).toString()
-
-private const val JustNowMillis = 60_000L
-
-@Composable
-private fun ColumnLabel(text: String) = Txt(text.uppercase(), 11, 600, C.Muted, spacing = 0.6f)
-
 /**
- * A person: initials, name and email, then a divider and three columns (GROUP, PROPERTIES, LAST SEEN).
- * Tap to edit.
+ * A person: initials, name, email and "group · property access", then their group's icon. Tap to edit.
  */
 @Composable
-internal fun PersonCard(row: PersonRow, properties: List<Property>, now: Long, onEdit: () -> Unit) {
+internal fun PersonCard(row: PersonRow, properties: List<Property>, onEdit: () -> Unit) {
     val p = row.person
-    RowCard(Modifier.testTag(AccessTags.person(p.id)).clickable(role = Role.Button, onClick = onEdit)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                Modifier.size(40.dp).clip(CircleShape).background(C.Yellow.copy(alpha = 0.18f)).border(1.dp, C.Yellow.copy(alpha = 0.5f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) { Txt(initialsOf(p.name), 15, 700, C.Yellow) }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Txt(p.name, 16, 600)
-                Txt(p.email, 13, 400, C.Muted)
-            }
-            LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
+    RowCard(Modifier.testTag(AccessTags.person(p.id)), onEdit) {
+        Box(
+            Modifier.size(40.dp).clip(CircleShape).background(C.Yellow.copy(alpha = 0.18f)).border(1.dp, C.Yellow.copy(alpha = 0.5f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) { Txt(initialsOf(p.name), 14, 700, C.Yellow) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Txt(p.name, 14, 600)
+            Txt(p.email, 12, 400, C.Muted)
+            val access = propertiesText(p.allProperties, p.propertyIds, properties)
+            Txt(row.group?.let { stringResource(R.string.access_pair, it.name, access) } ?: access, 12, 400, C.Muted)
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(C.Border))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                ColumnLabel(stringResource(R.string.access_col_group))
-                row.group?.let { ColorChip(it.name, it.tint(), it.icon(), iconSize = 10.dp) }
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                ColumnLabel(stringResource(R.string.access_col_properties))
-                Txt(propertiesText(p.allProperties, p.propertyIds, properties), 14, 500, maxLines = 2)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                ColumnLabel(stringResource(R.string.access_col_last_seen))
-                row.lastSeenAt?.let { at ->
-                    val text = lastSeenText(at, now)
-                    val description = stringResource(R.string.access_last_seen_description, text)
-                    Row(
-                        Modifier.semantics(mergeDescendants = true) { contentDescription = description },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Box(Modifier.size(7.dp).background(C.Green, CircleShape))
-                        Txt(text, 14, 400, C.Soft, maxLines = 2)
-                    }
-                }
-            }
-        }
+        row.group?.let { LineIcon(it.icon(), 20.dp, it.tint(), 1.9f) }
+        LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
     }
 }
 
@@ -141,53 +126,102 @@ private fun propertiesText(all: Boolean, ids: Set<String>, properties: List<Prop
     return if (chosen.size == 1) chosen[0].name else pluralStringResource(R.plurals.access_property_count, chosen.size, chosen.size)
 }
 
-/** A group: icon, name, member count, description, edit and delete buttons, and its permission chips. */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * A group: icon, name, "N people · description", then an icon for each thing it can do. Tap to edit;
+ * long-press (or tap its icon) to tick it for deleting. While [selecting], a tap ticks instead, and groups
+ * that can't be deleted (Admins, groups with people) are dimmed.
+ */
 @Composable
-internal fun GroupCard(row: GroupRow, onEdit: () -> Unit, onDelete: () -> Unit) {
+internal fun GroupCard(
+    row: GroupRow,
+    onEdit: () -> Unit,
+    picked: Boolean = false,
+    selecting: Boolean = false,
+    onToggle: () -> Unit = {},
+) {
     val g = row.group
-    RowCard(Modifier.testTag(AccessTags.group(g.id))) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(40.dp).clip(r(11)).background(g.tint().copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
-                LineIcon(g.icon(), 17.dp, g.tint(), 1.9f)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Txt(g.name, 16, 600, modifier = Modifier.weight(1f, fill = false))
-                    Txt(pluralStringResource(R.plurals.access_person_count, row.members, row.members), 13, 400, C.Muted)
-                }
-                if (g.description.isNotBlank()) Txt(g.description, 13, 400, C.Soft, maxLines = 3, lineHeight = 18.sp)
-            }
-            SquareAction(
-                true, stringResource(R.string.access_edit_group, g.name), onEdit, Modifier.testTag(AccessTags.editGroup(g.id)),
-            ) { LineIcon(Icons.Pencil, 14.dp, C.Text, 1.9f) }
-            SquareAction(
-                row.canDelete,
-                stringResource(if (row.canDelete) R.string.access_delete_group else R.string.access_delete_locked, g.name),
-                onDelete, Modifier.testTag(AccessTags.deleteGroup(g.id)),
-            ) { LineIcon(Icons.Trash, 14.dp, if (row.canDelete) C.Red else C.RadioOff, 1.9f) }
+    val selectable = row.canDelete
+    RowCard(
+        Modifier.testTag(AccessTags.group(g.id)),
+        onClick = { if (selecting) { if (selectable) onToggle() } else onEdit() },
+        onLongClick = if (selectable) onToggle else null,
+        picked = picked,
+    ) {
+        GroupBadge(g.icon(), g.tint(), picked, selecting, selectable, Modifier.testTag(AccessTags.groupTick(g.id)), onToggle)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Txt(g.name, 14, 600)
+            val members = pluralStringResource(R.plurals.access_person_count, row.members, row.members)
+            // On the card the description follows the count, so its closing full stop goes (the sheet keeps it).
+            val description = g.description.trim().removeSuffix(".")
+            Txt(if (description.isBlank()) members else stringResource(R.string.access_pair, members, description), 12, 400, C.Muted, maxLines = 2)
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            if (g.permissions.isEmpty() && !g.locked) {
-                ColorChip(stringResource(R.string.access_view_only), VIEW_ONLY_COLOR.asColor(), iconOf(VIEW_ONLY_ICON), iconSize = 10.dp)
-            } else {
-                Permission.entries.filter { g.locked || it in g.permissions }.forEach {
-                    ColorChip(stringResource(it.titleRes()), it.color.asColor(), iconOf(it.iconPath), iconSize = 10.dp)
-                }
-            }
+        val perms = g.effectivePermissions
+        val names = if (perms.isEmpty()) listOf(stringResource(R.string.access_view_only)) else perms.map { stringResource(it.titleRes()) }
+        Row(
+            Modifier.semantics { contentDescription = names.joinToString() },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (perms.isEmpty()) LineIcon(iconOf(VIEW_ONLY_ICON), 18.dp, VIEW_ONLY_COLOR.asColor(), 1.9f)
+            else perms.forEach { LineIcon(iconOf(it.iconPath), 18.dp, it.color.asColor(), 1.9f) }
         }
     }
 }
 
-/** A 38dp icon button; at least 48dp to tap. */
+/** The group's icon box; ticked: a yellow box with a check. Tapping it ticks the group when it can be deleted. */
 @Composable
-private fun SquareAction(enabled: Boolean, description: String, onClick: () -> Unit, modifier: Modifier, icon: @Composable () -> Unit) {
-    Box(Modifier.size(48.dp).then(modifier), contentAlignment = Alignment.Center) {
-        Box(
-            Modifier.size(38.dp).clip(r(11)).background(C.Raised).border(1.dp, C.Border2, r(11))
-                .semantics { contentDescription = description; if (!enabled) disabled() }
-                .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) { icon() }
+private fun GroupBadge(icon: Ico, tint: Color, picked: Boolean, selecting: Boolean, selectable: Boolean, modifier: Modifier, onToggle: () -> Unit) {
+    val bg by animateColorAsState(if (picked) C.Yellow else tint.copy(alpha = 0.16f), label = "badge")
+    Box(
+        modifier.size(40.dp).alpha(if (selecting && !selectable) DimmedAlpha else 1f).clip(r(11)).background(bg)
+            .then(if (selecting && selectable && !picked) Modifier.border(2.dp, C.RadioOff, r(11)) else Modifier)
+            .clickable(enabled = selectable, role = Role.Checkbox, onClick = onToggle),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (picked) LineIcon(Icons.Check, 20.dp, C.OnYellow, 3f) else LineIcon(icon, 18.dp, tint, 1.9f)
+    }
+}
+
+/** How faded a group that can't be ticked looks while ticking. */
+private const val DimmedAlpha = 0.4f
+
+/**
+ * The Groups tab's filter: All, then one chip per permission with how many groups can do it.
+ * Scrolls sideways when the chips don't fit.
+ */
+@Composable
+internal fun GroupFilterChips(
+    selected: Permission?,
+    total: Int,
+    counts: Map<Permission, Int>,
+    onSelect: (Permission?) -> Unit,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(contentPadding),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(stringResource(R.string.access_all), total, null, C.Yellow, selected == null, Modifier.testTag(AccessTags.FILTER_ALL)) { onSelect(null) }
+        Permission.entries.forEach { p ->
+            FilterChip(
+                stringResource(p.titleRes()), counts[p] ?: 0, iconOf(p.iconPath), p.color.asColor(), selected == p,
+                Modifier.testTag(AccessTags.filter(p)),
+            ) { onSelect(p) }
+        }
+    }
+}
+
+@Composable
+private fun FilterChip(label: String, count: Int, icon: Ico?, tint: Color, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier.heightIn(min = 34.dp).clip(Capsule).background(if (on) C.YTintBg else Color.Transparent)
+            .border(1.dp, if (on) C.Yellow else C.Border2, Capsule)
+            .semantics { selected = on }.clickable(role = Role.Tab, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        icon?.let { LineIcon(it, 12.dp, tint, 2.2f) }
+        Txt(label, 12, 600, if (on) C.Yellow else C.Soft)
+        Txt(count.toString(), 12, 600, if (on) C.Yellow else C.Muted)
     }
 }
