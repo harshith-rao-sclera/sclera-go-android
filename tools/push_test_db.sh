@@ -11,6 +11,9 @@
 # `run-as` only works for debuggable apps, so this can never touch a release install.
 set -euo pipefail
 
+# Git Bash on Windows rewrites /data/... arguments into C:/Program Files/Git/data/...; keep device paths as written.
+export MSYS_NO_PATHCONV=1
+
 PKG="com.sclera.sclerago"
 DB_NAME="master-test.db"
 SERIAL=""
@@ -39,11 +42,14 @@ adb_cmd() { if [ -n "$SERIAL" ]; then "$ADB" -s "$SERIAL" "$@"; else "$ADB" "$@"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 cp "$SRC" "$WORK/$DB_NAME"
+# Native Windows tools (adb, sqlite3) need a Windows path for local files; plain Linux/macOS keep the path as is.
+LOCAL_DB="$WORK/$DB_NAME"
+if command -v cygpath >/dev/null; then LOCAL_DB="$(cygpath -m "$LOCAL_DB")"; fi
 
 if [ "$WITH_PROPERTIES" = 1 ]; then
   command -v sqlite3 >/dev/null || { echo "--with-properties needs sqlite3 on the host PATH." >&2; exit 1; }
   # Columns read by data/mapper/PropertyMapper (toProperty) and PropertyOfflineSource.
-  sqlite3 "$WORK/$DB_NAME" <<'SQL'
+  sqlite3 "$LOCAL_DB" <<'SQL'
 DROP TABLE IF EXISTS properties;
 CREATE TABLE properties (
   id TEXT PRIMARY KEY, name TEXT, type TEXT, settings TEXT,
@@ -60,7 +66,7 @@ fi
 
 REMOTE="/data/local/tmp/$DB_NAME"
 echo "Pushing $(basename "$SRC") to the device..."
-adb_cmd push "$WORK/$DB_NAME" "$REMOTE" >/dev/null
+adb_cmd push "$LOCAL_DB" "$REMOTE" >/dev/null
 
 # Stop the app first so nothing holds the old file open, then replace it inside the app's private storage.
 adb_cmd shell am force-stop "$PKG"
