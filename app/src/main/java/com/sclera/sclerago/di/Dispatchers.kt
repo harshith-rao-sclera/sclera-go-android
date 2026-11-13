@@ -18,6 +18,11 @@ annotation class IoDispatcher
 @Retention(AnnotationRetention.BINARY)
 annotation class MainDispatcher
 
+/** A coroutine scope that lives as long as the app process. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DispatchersModule {

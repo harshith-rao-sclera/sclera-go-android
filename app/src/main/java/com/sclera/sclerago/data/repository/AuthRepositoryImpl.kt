@@ -9,12 +9,13 @@ import com.sclera.sclerago.data.mapper.cookieValue
 import com.sclera.sclerago.data.mapper.roleFromUserInfo
 import com.sclera.sclerago.data.mapper.signedInEmail
 import com.sclera.sclerago.data.mapper.toDomain
+import com.sclera.sclerago.data.mapper.toSyncCredentials
+import com.sclera.sclerago.data.sync.SyncCredentials
+import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.data.mapper.tokenExpiry
 import com.sclera.sclerago.data.remote.AuthConfig
-import com.sclera.sclerago.data.remote.AdcApi
 import com.sclera.sclerago.data.remote.AuthApi
-import com.sclera.sclerago.data.remote.AuthorizedCaller
-import com.sclera.sclerago.data.remote.HttpResult
+import com.sclera.sclerago.data.remote.adc.AccessTokenProvider
 import com.sclera.sclerago.domain.model.AuthError
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.repository.AuthRepository
@@ -41,9 +42,8 @@ import org.json.JSONObject
 class AuthRepositoryImpl(
     private val store: AuthStore,
     private val api: AuthApi,
-    private val adc: AdcApi,
     mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
-) : AuthRepository, AuthorizedCaller {
+) : AuthRepository, SyncCredentialsProvider, AccessTokenProvider {
     private companion object {
         const val TAG = "ScleraAuth"
         const val FOREGROUND_CHECK_INTERVAL_MS = 60_000L
@@ -58,6 +58,9 @@ class AuthRepositoryImpl(
     private val _state = MutableStateFlow<AuthState>(AuthState.SignedOut())
     override val state: StateFlow<AuthState> = _state.asStateFlow()
 
+    private val _credentials = MutableStateFlow<SyncCredentials?>(null)
+    override val credentials: StateFlow<SyncCredentials?> = _credentials.asStateFlow()
+
     /** The persisted session behind [AuthState.SignedIn]; null when signed out. */
     private var current: AuthSession? = null
 
@@ -66,10 +69,12 @@ class AuthRepositoryImpl(
     private fun publishSignedIn(s: AuthSession) {
         current = s
         _state.value = AuthState.SignedIn(s.toDomain())
+        _credentials.value = s.toSyncCredentials()
     }
 
     private fun publishSignedOut(reason: AuthError?) {
         current = null
+        _credentials.value = null
         _state.value = AuthState.SignedOut(reason)
     }
 
@@ -83,7 +88,7 @@ class AuthRepositoryImpl(
         scheduleRefresh(saved)
         scope.launch {
             validateSession(force = true)
-            refreshUserDetails()
+            refreshUserInfo()
         }
     }
 
@@ -112,8 +117,8 @@ class AuthRepositoryImpl(
         val withToken = requestToken(AuthSession(enteredEmail, sessionId, null, 0L))
         // Prefer the account Keycloak actually signed in (the user can change it on that page).
         val signedIn = withToken.copy(email = signedInEmail(sessionData, withToken.accessToken) ?: enteredEmail)
-        // Role, name… come from userInfo, the organisation id from /me; signing in still works without them.
-        val session = withMe(withUserInfo(signedIn))
+        // Role, name… come from userInfo; signing in still works without them.
+        val session = withUserInfo(signedIn)
         store.save(session)
         return session
     }
@@ -147,34 +152,12 @@ class AuthRepositoryImpl(
         }
     }
 
-    /**
-     * [s] with the ADC `GET /api/v1/me` response (organisation id, group, permissions); [s] unchanged
-     * when the call fails.
-     */
-    private suspend fun withMe(s: AuthSession): AuthSession {
-        val token = s.accessToken ?: return s
-        return try {
-            val res = adc.me(token)
-            val json = res.json
-            if (res.error(authEndpoint = false) != null || json == null) {
-                Log.w(TAG, "me: HTTP ${res.code}, json=${json != null}")
-                s
-            } else {
-                s.copy(me = json.toString())
-            }
-        } catch (e: AuthError) {
-            Log.w(TAG, "me failed: ${e.message}")
-            s
-        }
-    }
-
-    /** Re-reads the user details (userInfo and /me) and keeps them if the session is unchanged. */
-    private suspend fun refreshUserDetails() {
+    /** Re-reads the user details for the signed-in user and keeps them if the session is unchanged. */
+    private suspend fun refreshUserInfo() {
         val current = session ?: return
-        val fresh = withMe(withUserInfo(current))
-        val changed = fresh.userInfo != current.userInfo || fresh.me != current.me
-        if (changed && session?.sessionId == current.sessionId) {
-            val updated = session!!.copy(userInfo = fresh.userInfo, me = fresh.me)
+        val fresh = withUserInfo(current)
+        if (fresh.userInfo != current.userInfo && session?.sessionId == current.sessionId) {
+            val updated = session!!.copy(userInfo = fresh.userInfo)
             store.save(updated)
             publishSignedIn(updated)
         }
@@ -192,7 +175,7 @@ class AuthRepositoryImpl(
      * A valid access token, regenerating it when missing/expired. Pass the token that was just
      * rejected (401/403) as [rejected] to force a new one; concurrent callers share one refresh.
      */
-    suspend fun accessToken(rejected: String? = null): String = tokenMutex.withLock {
+    override suspend fun accessToken(rejected: String?): String = tokenMutex.withLock {
         val current = session ?: throw AuthError.SessionExpired()
         val token = current.accessToken
         if (token != null && token != rejected && current.tokenValid()) return token
@@ -206,19 +189,18 @@ class AuthRepositoryImpl(
     suspend fun request(method: String, url: String, body: JSONObject? = null): JSONObject {
         val email = session?.email ?: throw AuthError.SessionExpired()
         val fullUrl = Uri.parse(url).buildUpon().appendQueryParameter("loggedInUser", email).build().toString()
-        return call { token -> api.authenticated(method, fullUrl, token, body?.toString()) }.json ?: JSONObject()
-    }
 
-    override suspend fun call(request: suspend (accessToken: String) -> HttpResult): HttpResult {
+        suspend fun call(token: String) = api.authenticated(method, fullUrl, token, body?.toString())
+
         var token = accessToken()
-        var res = request(token)
+        var res = call(token)
         if (res.code == 401 || res.code == 403) {
-            Log.i(TAG, "API call → ${res.code}; regenerating token")
+            Log.i(TAG, "$method ${Uri.parse(url).path} → ${res.code}; regenerating token")
             token = accessToken(rejected = token)
-            res = request(token)
+            res = call(token)
         }
         res.error(authEndpoint = false)?.let { err -> if (err.endsSession) signOut(err); throw err }
-        return res
+        return res.json ?: JSONObject()
     }
 
     private suspend fun refreshLocked(current: AuthSession): AuthSession = try {

@@ -82,16 +82,16 @@ class AssetListUseCasesTest {
     @Test
     fun toggleSelection_picksAndUnpicks() {
         val toggle = ToggleSelectionUseCase()
-        assertEquals(setOf(1), toggle(emptySet(), 1))
-        assertEquals(setOf(1, 2), toggle(setOf(1), 2))
-        assertEquals(emptySet<Int>(), toggle(setOf(1), 1))
+        assertEquals(setOf("1"), toggle(emptySet(), "1"))
+        assertEquals(setOf("1", "2"), toggle(setOf("1"), "2"))
+        assertEquals(emptySet<String>(), toggle(setOf("1"), "1"))
     }
 
     @Test
     fun selectAll_picksEverythingVisible_orClearsWhenAllArePicked() {
         val selectAll = SelectAllUseCase()
-        assertEquals(setOf(5, 1, 2), selectAll(setOf(5), listOf(1, 2)))
-        assertEquals(emptySet<Int>(), selectAll(setOf(1, 2, 5), listOf(1, 2)))
-        assertEquals(emptySet<Int>(), selectAll(emptySet(), emptyList()))
+        assertEquals(setOf("5", "1", "2"), selectAll(setOf("5"), listOf("1", "2")))
+        assertEquals(emptySet<String>(), selectAll(setOf("1", "2", "5"), listOf("1", "2")))
+        assertEquals(emptySet<String>(), selectAll(emptySet(), emptyList()))
     }
 }

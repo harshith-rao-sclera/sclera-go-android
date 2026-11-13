@@ -32,6 +32,7 @@ import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.SearchFab
@@ -65,8 +66,14 @@ fun PeopleScreen(
     SecureWindow() // emails and who can open which property are shown here
     val authState by sessionVm.authState.collectAsStateWithLifecycle()
     val me = (authState as? AuthState.SignedIn)?.session?.email
-    LaunchedEffect(me) { access.ensureSeeded(me) }
     val s = access.state
+    val notice = s.notice?.asString()
+    LaunchedEffect(notice) {
+        if (notice != null) {
+            vm.flash(notice)
+            access.consumeNotice()
+        }
+    }
     val properties = vm.properties
 
     Box(Modifier.fillMaxSize()) {

@@ -65,7 +65,7 @@ import kotlinx.coroutines.launch
 /** Test tags of the asset list. */
 object AssetListTags {
     const val EMPTY = "asset-list-empty"
-    fun row(id: Int) = "asset-row-$id"
+    fun row(id: String) = "asset-row-$id"
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
 }
 
@@ -233,9 +233,9 @@ private fun EmptyCard(reason: EmptyReason, query: String, modifier: Modifier = M
 /** What the list needs from outside: the data, the selection and the actions on it. */
 class AssetListBinding(
     val data: AssetListData,
-    val picked: Set<Int>,
+    val picked: Set<String>,
     val query: String,
     val onChip: (StatusCount) -> Unit,
-    val onToggle: (Int) -> Unit,
-    val onOpen: (Int) -> Unit,
+    val onToggle: (String) -> Unit,
+    val onOpen: (String) -> Unit,
 )

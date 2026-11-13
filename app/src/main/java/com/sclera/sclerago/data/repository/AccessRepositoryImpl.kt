@@ -1,34 +1,22 @@
 package com.sclera.sclerago.data.repository
 
-import com.sclera.sclerago.data.local.DEFAULT_GROUPS
+import com.sclera.sclerago.data.online.AccessStore
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.repository.AccessRepository
-import com.sclera.sclerago.domain.repository.UserDataCleaner
-import dagger.hilt.android.scopes.ActivityRetainedScoped
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
+import javax.inject.Singleton
 
-/** Groups and people in memory (mock data) until People and access is wired to the Sclera API. */
-@ActivityRetainedScoped
-class AccessRepositoryImpl @Inject constructor() : AccessRepository, UserDataCleaner {
-    private val groupState = MutableStateFlow(DEFAULT_GROUPS)
-    private val peopleState = MutableStateFlow(emptyList<Person>())
-    override val groups: StateFlow<List<Group>> = groupState.asStateFlow()
-    override val people: StateFlow<List<Person>> = peopleState.asStateFlow()
+/** Groups and people, read and changed through the [AccessStore] (the server decides who may). */
+@Singleton
+class AccessRepositoryImpl @Inject constructor(private val store: AccessStore) : AccessRepository {
+    override val groups: StateFlow<List<Group>> = store.groups
+    override val people: StateFlow<List<Person>> = store.people
 
-    override fun setGroups(groups: List<Group>) {
-        groupState.value = groups
-    }
-
-    override fun clear() {
-        groupState.value = DEFAULT_GROUPS
-        peopleState.value = emptyList()
-    }
-
-    override fun setPeople(people: List<Person>) {
-        peopleState.value = people
-    }
+    override suspend fun refresh() = store.refresh()
+    override suspend fun saveGroup(group: Group): Group = store.saveGroup(group)
+    override suspend fun deleteGroup(id: String) = store.deleteGroup(id)
+    override suspend fun savePerson(person: Person): Person = store.savePerson(person)
+    override suspend fun removePerson(id: String) = store.removePerson(id)
 }

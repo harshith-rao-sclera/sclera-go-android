@@ -392,4 +392,27 @@
     <string name="dash_clear_search_text">Xóa văn bản tìm kiếm</string>
     <string name="detail_add_photo">Thêm ảnh</string>
     <string name="detail_voice_fill">Điền trường bằng giọng nói</string>
+    <string name="sync_title">Đang tải dữ liệu của bạn</string>
+    <string name="sync_subtitle">Việc này chỉ xảy ra lần đầu. Hãy giữ ứng dụng mở cho đến khi hoàn tất.</string>
+    <string name="sync_progress_description">Tiến trình tải xuống</string>
+    <string name="sync_progress_mb">%1$.1f MB trên %2$.1f MB</string>
+    <string name="sync_failed_title">Không thể tải dữ liệu của bạn</string>
+    <string name="sync_failed_no_network">Bạn đang ngoại tuyến. Hãy kết nối internet và thử lại.</string>
+    <string name="sync_failed_session">Phiên của bạn đã kết thúc. Hãy đăng nhập lại để tiếp tục.</string>
+    <string name="sync_failed_server">Đã xảy ra sự cố ở phía chúng tôi. Vui lòng thử lại sau giây lát.</string>
+    <string name="sync_failed_storage">Thiết bị không còn đủ dung lượng trống. Hãy giải phóng bộ nhớ và thử lại.</string>
+    <string name="sync_retry">Thử lại</string>
+    <string name="data_error_not_ready">Dữ liệu chưa sẵn sàng. Hãy chờ quá trình tải xuống hoàn tất.</string>
+    <string name="data_error_name_taken">Tên này đã được dùng ở đây. Hãy chọn tên khác.</string>
+    <string name="data_error_in_use">Không thể xóa khi vẫn còn tầng, vị trí hoặc tài sản bên trong.</string>
+    <string name="data_error_failed">Không thể lưu thay đổi. Vui lòng thử lại.</string>
+    <string name="online_error_offline">Bạn đang ngoại tuyến. Hãy kết nối internet và thử lại.</string>
+    <string name="online_error_session">Phiên của bạn đã kết thúc. Vui lòng đăng nhập lại.</string>
+    <string name="online_error_forbidden">Bạn không có quyền thực hiện việc này.</string>
+    <string name="online_error_not_found">Mục này không còn tồn tại. Hãy làm mới trang và thử lại.</string>
+    <string name="online_error_conflict">Mục này xung đột với một mục đã có. Hãy kiểm tra và thử lại.</string>
+    <string name="online_error_invalid">Một số giá trị không được chấp nhận. Hãy kiểm tra và thử lại.</string>
+    <string name="online_error_unavailable">Sclera vẫn đang chuẩn bị mục này. Hãy thử lại sau giây lát.</string>
+    <string name="online_error_server">Máy chủ Sclera gặp sự cố. Vui lòng thử lại.</string>
+    <string name="detail_ai_sync_first">Hãy đồng bộ tài sản này trước, rồi thử lại tự động điền bằng AI.</string>
 </resources>

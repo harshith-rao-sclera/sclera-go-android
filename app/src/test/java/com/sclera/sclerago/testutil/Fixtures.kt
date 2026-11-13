@@ -16,6 +16,16 @@ fun asset(
     src: Source = Source.MANUAL,
     type: AssetType = AssetType.PUMP,
     loc: String? = "L1",
+) = asset(id.toString(), name, prop, st, src, type, loc)
+
+fun asset(
+    id: String,
+    name: String = "Pump $id",
+    prop: String = "p1",
+    st: Status = Status.DRAFT,
+    src: Source = Source.MANUAL,
+    type: AssetType = AssetType.PUMP,
+    loc: String? = "L1",
 ) = Asset(id, name, "detail", loc, "Building A", src, st, type, prop)
 
 fun checkInput(values: Map<String, String> = emptyMap(), photoCount: Int = 1, hasLocation: Boolean = true) =

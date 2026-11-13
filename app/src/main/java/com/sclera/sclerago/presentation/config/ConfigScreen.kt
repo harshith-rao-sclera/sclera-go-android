@@ -201,7 +201,7 @@ private fun BuildingInfo(vm: AppViewModel) {
 
     fun closeSearch() { searching = false; q = "" }
     fun addFloor(b: LocNode) {
-        nameAsk = NameAsk("Add floor", "", "Floor name, e.g. Level 2") { n -> fId = vm.addFloor(b.id, n) }
+        nameAsk = NameAsk("Add floor", "", "Floor name, e.g. Level 2") { n -> vm.addFloor(b.id, n) { fId = it } }
     }
     BackHandler(enabled = searching, onBack = ::closeSearch)
     BackHandler(enabled = dial) { dial = false }
@@ -313,7 +313,7 @@ private fun BuildingInfo(vm: AppViewModel) {
     buildingSheet?.let { id ->
         val b = if (id.isEmpty()) null else tree.firstOrNull { it.id == id }
         EditBuildingSheet(b, onClose = { buildingSheet = null }) { n, info ->
-            if (b == null) { bId = vm.addBuilding(n, info); fId = null } else vm.saveBuilding(b.id, n, info)
+            if (b == null) { vm.addBuilding(n, info) { bId = it; fId = null } } else vm.saveBuilding(b.id, n, info)
             buildingSheet = null
         }
     }

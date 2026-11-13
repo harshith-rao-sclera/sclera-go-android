@@ -24,6 +24,16 @@
         </pin-set>
     </domain-config>
 
+    <!--
+      The asset data collection API (adc.vdms163.qa-gateway.scleravdms.com for QA) is outside sclera.com and its
+      certificate chain is not known yet, so no pins are set: HTTPS only, system certificate authorities only.
+      TODO: pin its public keys (with a backup pin) once the gateway's certificates are agreed, and add the
+      production host when its URL is known.
+    -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">scleravdms.com</domain>
+    </domain-config>
+
     <!-- Debug builds only: allow a proxy's certificate (user-installed CA) for inspecting traffic. -->
     <debug-overrides>
         <trust-anchors>

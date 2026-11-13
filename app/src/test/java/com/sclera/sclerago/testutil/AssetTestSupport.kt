@@ -9,6 +9,7 @@ import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.AutofillRepository
 import com.sclera.sclerago.domain.system.TimeProvider
+import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.usecase.asset.AddAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.AssignLocationUseCase
@@ -43,10 +44,11 @@ fun assetUseCases(
     config: AssetConfigRepository = AssetConfigRepositoryImpl(),
     autofill: AutofillRepository = FakeAutofillRepository(),
     time: TimeProvider = FakeTimeProvider(),
+    ids: IdGenerator = SequentialIdGenerator(),
 ) = AssetUseCases(
     ObserveAssetsUseCase(repo), GetAssetDetailsUseCase(repo), SetAssetStatusUseCase(repo), SaveAssetDetailsUseCase(repo),
-    DeleteAssetsUseCase(repo), AssignLocationUseCase(repo), AttachMediaUseCase(repo), AddAssetsUseCase(repo),
-    CreateAssetUseCase(repo), MatchDevicesUseCase(repo), BuildCheckInputUseCase(repo, config),
+    DeleteAssetsUseCase(repo), AssignLocationUseCase(repo), AttachMediaUseCase(repo), AddAssetsUseCase(repo, ids),
+    CreateAssetUseCase(repo, ids), MatchDevicesUseCase(repo), BuildCheckInputUseCase(repo, config),
     BuildAssetListUseCase(), ToggleSelectionUseCase(), SelectAllUseCase(), EvaluateAssetChecksUseCase(),
     AutofillAssetUseCase(autofill), BuildFormValuesUseCase(time),
 )

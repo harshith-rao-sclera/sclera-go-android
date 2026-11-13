@@ -74,6 +74,20 @@ public class SyncUtils {
 
     public static String assetDataImageProgress;
 
+    /** Told (from a sync thread) which tables a batch of pulled changes touched, so the app can re-query them. */
+    public interface TablesChangedListener {
+        void onTablesChanged(Set<String> tables);
+    }
+
+    public static volatile TablesChangedListener tablesChangedListener;
+
+    public static void notifyTablesChanged(Set<String> tables) {
+        TablesChangedListener listener = tablesChangedListener;
+        if (listener != null && tables != null && !tables.isEmpty()) {
+            listener.onTablesChanged(tables);
+        }
+    }
+
     public static JSONObject response(JSONObject data, String message, String path, Integer status, Boolean success) {
         JSONObject result = new JSONObject();
         try {

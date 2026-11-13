@@ -1,41 +1,42 @@
 package com.sclera.sclerago.domain.repository
 
-import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.Status
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Assets and the edits made to them. Every change that edits an asset (not deleting it) also
- * records when, in [AssetCatalog.touched].
+ * The assets of the downloaded property and the edits made to them. Writes throw
+ * [com.sclera.sclerago.domain.model.DataException] when they cannot be made.
  */
 interface AssetRepository {
     val catalog: StateFlow<AssetCatalog>
 
-    /** Reserves [count] new asset ids and returns the first; the rest follow it. */
-    fun newIds(count: Int): Int
+    /** Adds [assets], each with its media, values and the scanned device it was made from, in one change. */
+    suspend fun add(assets: List<NewAsset>)
 
-    /** Adds [assets] in front of the others (newest first). */
-    fun add(assets: List<Asset>)
-
-    fun setStatus(ids: Collection<Int>, status: Status)
+    /**
+     * Moves assets to [status]. Submitting follows the server's rule: an asset with a mandatory field empty becomes an
+     * exception when [allowExceptions] and stays as it is otherwise; one already submitted or validated is left alone.
+     */
+    suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean = true)
 
     /** Keeps the values from an asset's details form. */
-    fun saveDetails(id: Int, values: Map<String, String>)
+    suspend fun saveDetails(id: String, values: Map<String, String>)
 
-    fun delete(ids: Collection<Int>)
+    suspend fun delete(ids: Collection<String>)
 
-    fun assignLocation(ids: Collection<Int>, location: LocValue)
+    suspend fun assignLocation(ids: Collection<String>, location: LocValue)
 
     /** Adds photos / videos / documents to an asset. */
-    fun attachMedia(id: Int, media: List<Media>)
+    suspend fun attachMedia(id: String, media: List<Media>)
 
-    /** Remembers that the scanned device [deviceId] was made into the asset [assetId]. */
-    fun linkDevice(deviceId: String, assetId: Int)
+    /** The code, fields, confidence and sources of the asset [id]; null when it is not there. */
+    suspend fun details(id: String): AssetDetails?
 
-    /** Code and reference fields an existing asset came with; null for assets added here. */
-    fun details(id: Int): AssetDetails?
+    /** [details] of several assets at once, by asset id. */
+    suspend fun detailsFor(ids: Collection<String>): Map<String, AssetDetails>
 }

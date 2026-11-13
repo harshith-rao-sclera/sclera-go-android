@@ -1,8 +1,9 @@
 package com.sclera.sclerago.domain.usecase.validation
 
 import com.sclera.sclerago.domain.model.Asset
-import com.sclera.sclerago.domain.repository.AssetRepository
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.repository.ValidationRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.validation.CheckInput
 import com.sclera.sclerago.domain.validation.Rule
 import com.sclera.sclerago.domain.validation.SavedValidation
@@ -11,8 +12,8 @@ import com.sclera.sclerago.domain.validation.ValScope
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
-/** [prop]'s jobs, newest first. */
-fun List<ValJob>.forProperty(prop: String): List<ValJob> = filter { it.prop == prop }
+/** [prop]'s jobs, newest first. A job without a property (the downloaded ones) belongs to the one downloaded property, so it is in every list. */
+fun List<ValJob>.forProperty(prop: String): List<ValJob> = filter { it.prop == prop || it.prop.isEmpty() }
 
 /** When [sourceId] last ran on [prop], if ever. */
 fun List<ValJob>.lastRun(prop: String, sourceId: String): Long? =
@@ -33,43 +34,46 @@ class GetValidationSourceUseCase @Inject constructor(private val repo: Validatio
 }
 
 /** The assets a run would cover: all of them, the ones chosen, or the ones new or changed since its last run. */
-class SelectValidationTargetsUseCase @Inject constructor(
-    private val validation: ValidationRepository,
-    private val assets: AssetRepository,
-) {
-    operator fun invoke(scope: ValScope, chosen: Set<Int>, sourceId: String, prop: String, all: List<Asset>): List<Asset> = when (scope) {
+class SelectValidationTargetsUseCase @Inject constructor(private val validation: ValidationRepository) {
+    operator fun invoke(scope: ValScope, chosen: Set<String>, sourceId: String, prop: String, all: List<Asset>): List<Asset> = when (scope) {
         ValScope.ALL -> all
         ValScope.CHOOSE -> all.filter { it.id in chosen }
         ValScope.CHANGED -> {
             val since = validation.jobs.value.lastRun(prop, sourceId)
-            val touched = assets.catalog.value.touched
-            if (since == null) all else all.filter { (touched[it.id] ?: 0L) > since }
+            if (since == null) all else all.filter { (it.updatedAt ?: 0L) > since }
         }
     }
 }
 
-/** Starts a validation job; it runs in the background (or at once when [instant]) and fills in its results when done. */
-class StartValidationUseCase @Inject constructor(private val repo: ValidationRepository) {
+/** Starts a validation job; it runs in the background and fills in its results when done. */
+class StartValidationUseCase @Inject constructor(private val repo: ValidationRepository, private val guard: PermissionGuard) {
+    /** Throws [com.sclera.sclerago.domain.model.DataException] (FORBIDDEN) when the user may not run validations. */
     operator fun invoke(
         sourceId: String,
-        ids: List<Int>,
+        ids: List<String>,
         label: String,
         prop: String,
-        inputs: () -> List<Pair<Asset, CheckInput>>,
-        startedAt: Long = System.currentTimeMillis(),
-        instant: Boolean = false,
+        inputs: suspend () -> List<Pair<Asset, CheckInput>>,
         onDone: (ValJob) -> Unit = {},
-    ) = repo.start(sourceId, ids, label, prop, inputs, startedAt, instant, onDone)
+    ) {
+        guard.requireOffline(Permission.VALIDATE)
+        repo.start(sourceId, ids, label, prop, inputs, onDone)
+    }
 }
 
 /** Saves a validation with its steps in the order given; returns its id, or null if it isn't complete. */
-class SaveValidationUseCase @Inject constructor(private val repo: ValidationRepository) {
-    operator fun invoke(id: String?, name: String, description: String, ruleIds: List<String>): String? =
-        repo.save(id, name, description, ruleIds)
+class SaveValidationUseCase @Inject constructor(private val repo: ValidationRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(id: String?, name: String, description: String, ruleIds: List<String>): String? {
+        guard.requireOffline(Permission.VALIDATE)
+        return repo.save(id, name, description, ruleIds)
+    }
 }
 
-class DeleteValidationUseCase @Inject constructor(private val repo: ValidationRepository) {
-    operator fun invoke(id: String) = repo.delete(id)
+class DeleteValidationUseCase @Inject constructor(private val repo: ValidationRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(id: String) {
+        guard.requireOffline(Permission.VALIDATE)
+        repo.delete(id)
+    }
 }
 
 /** The validation use cases, for injecting as one. */

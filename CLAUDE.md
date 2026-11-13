@@ -256,6 +256,7 @@ Still open:
   are shown in plain form; they must be encrypted when they are persisted or come from the API.
 - Release logs: confirm `Log.d/i/w` are stripped or free of identifiers (R8 keep rules).
 - `./gradlew dependencyCheckAnalyze` is configured but needs an `NVD_API_KEY`; run it and record the result.
+- The synced offline SQLite database (`ASSET_DATA_COLLECTION.db`, app-private `databases/`) is unencrypted at rest, and the Java sync engine also keeps the access token and session id in plain text in `global_config.db`; both need an encrypted SQLite engine (e.g. SQLCipher). They are excluded from backups and wiped on sign-out.
 
 ## 9. Working agreements
 

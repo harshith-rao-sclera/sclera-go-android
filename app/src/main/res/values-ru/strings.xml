@@ -427,4 +427,27 @@
     <string name="dash_clear_search_text">Очистить текст поиска</string>
     <string name="detail_add_photo">Добавить фото</string>
     <string name="detail_voice_fill">Заполнить поля голосом</string>
+    <string name="sync_title">Загрузка ваших данных</string>
+    <string name="sync_subtitle">Это происходит только в первый раз. Не закрывайте приложение до завершения.</string>
+    <string name="sync_progress_description">Ход загрузки</string>
+    <string name="sync_progress_mb">%1$.1f МБ из %2$.1f МБ</string>
+    <string name="sync_failed_title">Не удалось загрузить ваши данные</string>
+    <string name="sync_failed_no_network">Нет подключения к интернету. Подключитесь и повторите попытку.</string>
+    <string name="sync_failed_session">Сеанс завершён. Войдите снова, чтобы продолжить.</string>
+    <string name="sync_failed_server">На нашей стороне произошла ошибка. Повторите попытку чуть позже.</string>
+    <string name="sync_failed_storage">На устройстве недостаточно свободного места. Освободите память и повторите попытку.</string>
+    <string name="sync_retry">Повторить</string>
+    <string name="data_error_not_ready">Данные ещё не готовы. Дождитесь окончания загрузки.</string>
+    <string name="data_error_name_taken">Это имя уже используется. Выберите другое.</string>
+    <string name="data_error_in_use">Это нельзя удалить, пока в нём остаются этажи, места или активы.</string>
+    <string name="data_error_failed">Не удалось сохранить изменение. Повторите попытку.</string>
+    <string name="online_error_offline">Вы не в сети. Подключитесь к интернету и повторите попытку.</string>
+    <string name="online_error_session">Сеанс завершён. Войдите снова.</string>
+    <string name="online_error_forbidden">У вас нет разрешения на это действие.</string>
+    <string name="online_error_not_found">Этого больше нет. Обновите страницу и повторите попытку.</string>
+    <string name="online_error_conflict">Это конфликтует с уже существующими данными. Проверьте и повторите попытку.</string>
+    <string name="online_error_invalid">Некоторые значения не приняты. Проверьте их и повторите попытку.</string>
+    <string name="online_error_unavailable">Sclera ещё готовит это. Повторите попытку через минуту.</string>
+    <string name="online_error_server">На сервере Sclera произошла ошибка. Повторите попытку.</string>
+    <string name="detail_ai_sync_first">Сначала синхронизируйте этот актив, затем повторите автозаполнение с ИИ.</string>
 </resources>

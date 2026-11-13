@@ -392,4 +392,27 @@
     <string name="dash_clear_search_text">清除搜尋文字</string>
     <string name="detail_add_photo">新增照片</string>
     <string name="detail_voice_fill">語音填寫欄位</string>
+    <string name="sync_title">正在下載您的資料</string>
+    <string name="sync_subtitle">此操作僅會在首次執行時進行。完成前請保持應用程式開啟。</string>
+    <string name="sync_progress_description">下載進度</string>
+    <string name="sync_progress_mb">%1$.1f MB / %2$.1f MB</string>
+    <string name="sync_failed_title">無法下載您的資料</string>
+    <string name="sync_failed_no_network">您已離線。請連線至網際網路後再試一次。</string>
+    <string name="sync_failed_session">您的工作階段已結束。請重新登入以繼續。</string>
+    <string name="sync_failed_server">我們這邊發生問題。請稍後再試。</string>
+    <string name="sync_failed_storage">此裝置的可用空間不足。請釋出一些儲存空間後再試一次。</string>
+    <string name="sync_retry">重試</string>
+    <string name="data_error_not_ready">資料尚未準備好。請等待下載完成。</string>
+    <string name="data_error_name_taken">該名稱已被使用。請選擇其他名稱。</string>
+    <string name="data_error_in_use">只要其中還有樓層、位置或資產，就無法刪除。</string>
+    <string name="data_error_failed">無法儲存變更。請再試一次。</string>
+    <string name="online_error_offline">你已離線。請連線到網際網路後再試一次。</string>
+    <string name="online_error_session">你的工作階段已結束。請重新登入。</string>
+    <string name="online_error_forbidden">你沒有執行此操作的權限。</string>
+    <string name="online_error_not_found">此項目已不存在。請重新整理頁面後再試一次。</string>
+    <string name="online_error_conflict">這與已存在的內容衝突。請檢查後再試一次。</string>
+    <string name="online_error_invalid">部分值未被接受。請檢查後再試一次。</string>
+    <string name="online_error_unavailable">Sclera 仍在準備中。請稍後再試。</string>
+    <string name="online_error_server">Sclera 伺服器發生問題。請再試一次。</string>
+    <string name="detail_ai_sync_first">請先同步此資產，然後再次嘗試 AI 自動填寫。</string>
 </resources>

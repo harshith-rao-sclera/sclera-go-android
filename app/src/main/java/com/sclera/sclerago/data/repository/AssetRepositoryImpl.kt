@@ -1,71 +1,52 @@
 package com.sclera.sclerago.data.repository
 
-import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.data.offline.AssetsOfflineSource
+import com.sclera.sclerago.data.offline.AssetsWriter
+import com.sclera.sclerago.di.ApplicationScope
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.repository.AssetRepository
-import com.sclera.sclerago.domain.repository.UserDataCleaner
-import dagger.hilt.android.scopes.ActivityRetainedScoped
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
- * Assets in memory, until they come from the Sclera API. The app's (Hilt's) instance starts empty;
- * previews and tests can start it with [initial] assets and their [initialDetails].
+ * The assets of the downloaded property, read from the offline database and written back to it (the sync pushes the
+ * changes). The one downloaded database is the property being worked on, so assets are not filtered by property.
  */
-@ActivityRetainedScoped
-class AssetRepositoryImpl(
-    private val initial: List<Asset>,
-    private val initialDetails: Map<Int, AssetDetails>,
-) : AssetRepository, UserDataCleaner {
-    @Inject constructor() : this(emptyList(), emptyMap())
+@Singleton
+class AssetRepositoryImpl @Inject constructor(
+    private val source: AssetsOfflineSource,
+    private val writer: AssetsWriter,
+    @ApplicationScope scope: CoroutineScope,
+) : AssetRepository {
+    override val catalog: StateFlow<AssetCatalog> =
+        combine(source.listFlow(), source.deviceLinksFlow(), source.scanTextFlow()) { assets, devices, scanText ->
+            AssetCatalog(assets, devices, scanText)
+        }.stateIn(scope, SharingStarted.Eagerly, AssetCatalog())
 
-    private val state = MutableStateFlow(AssetCatalog(assets = initial))
-    override val catalog: StateFlow<AssetCatalog> = state.asStateFlow()
+    override suspend fun add(assets: List<NewAsset>) = writer.add(assets)
 
-    private fun set(f: AssetCatalog.() -> AssetCatalog) {
-        state.value = state.value.f()
-    }
+    override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean) =
+        writer.setStatus(ids, status, allowExceptions)
 
-    private fun AssetCatalog.touch(ids: Collection<Int>): AssetCatalog {
-        val now = System.currentTimeMillis()
-        return copy(touched = touched + ids.associateWith { now })
-    }
+    override suspend fun saveDetails(id: String, values: Map<String, String>) = writer.saveDetails(id, values)
 
-    override fun newIds(count: Int): Int {
-        val first = state.value.nextId
-        set { copy(nextId = nextId + count) }
-        return first
-    }
+    override suspend fun delete(ids: Collection<String>) = writer.delete(ids)
 
-    override fun add(assets: List<Asset>) = set { copy(assets = assets + this.assets).touch(assets.map { it.id }) }
+    override suspend fun assignLocation(ids: Collection<String>, location: LocValue) = writer.assignLocation(ids, location)
 
-    override fun setStatus(ids: Collection<Int>, status: Status) =
-        set { copy(statusOverride = statusOverride + ids.associateWith { status }).touch(ids) }
+    override suspend fun attachMedia(id: String, media: List<Media>) = writer.attachMedia(id, media)
 
-    override fun saveDetails(id: Int, values: Map<String, String>) =
-        set { copy(savedDetails = savedDetails + (id to values)).touch(listOf(id)) }
+    override suspend fun details(id: String): AssetDetails? = source.asset(id)?.details
 
-    override fun delete(ids: Collection<Int>) = set { copy(deleted = deleted + ids) }
-
-    override fun assignLocation(ids: Collection<Int>, location: LocValue) =
-        set { copy(locationOverride = locationOverride + ids.associateWith { location }).touch(ids) }
-
-    override fun attachMedia(id: Int, media: List<Media>) =
-        set { copy(mediaAdded = mediaAdded + (id to (mediaAdded[id].orEmpty() + media))).touch(listOf(id)) }
-
-    override fun linkDevice(deviceId: String, assetId: Int) =
-        set { copy(deviceAsset = deviceAsset + (deviceId to assetId), addedDevices = addedDevices + deviceId) }
-
-    override fun clear() {
-        state.value = AssetCatalog()
-    }
-
-    /** Code and reference fields an asset came with (from the server, once assets come from the API). */
-    override fun details(id: Int): AssetDetails? = initialDetails[id]
+    override suspend fun detailsFor(ids: Collection<String>): Map<String, AssetDetails> = source.detailsFor(ids)
 }

@@ -425,4 +425,27 @@
     <string name="dash_clear_search_text">Clear search text</string>
     <string name="detail_add_photo">Add photo</string>
     <string name="detail_voice_fill">Fill fields by voice</string>
+    <string name="sync_title">Downloading your data</string>
+    <string name="sync_subtitle">This only happens the first time. Keep the app open until it finishes.</string>
+    <string name="sync_progress_description">Download progress</string>
+    <string name="sync_progress_mb">%1$.1f MB of %2$.1f MB</string>
+    <string name="sync_failed_title">Couldn’t download your data</string>
+    <string name="sync_failed_no_network">You’re offline. Connect to the internet and try again.</string>
+    <string name="sync_failed_session">Your session has ended. Sign in again to continue.</string>
+    <string name="sync_failed_server">Something went wrong on our side. Please try again in a moment.</string>
+    <string name="sync_failed_storage">There isn’t enough free space on this device. Free up some storage and try again.</string>
+    <string name="sync_retry">Try again</string>
+    <string name="data_error_not_ready">The data is not ready yet. Wait for the download to finish.</string>
+    <string name="data_error_name_taken">That name is already used here. Choose another one.</string>
+    <string name="data_error_in_use">This cannot be removed while it still contains floors, locations or assets.</string>
+    <string name="data_error_failed">The change could not be saved. Please try again.</string>
+    <string name="online_error_offline">You are offline. Connect to the internet and try again.</string>
+    <string name="online_error_session">Your session has ended. Please sign in again.</string>
+    <string name="online_error_forbidden">You do not have permission to do this.</string>
+    <string name="online_error_not_found">This no longer exists. Refresh the page and try again.</string>
+    <string name="online_error_conflict">This clashes with something that already exists. Check it and try again.</string>
+    <string name="online_error_invalid">Some of the values were not accepted. Check them and try again.</string>
+    <string name="online_error_unavailable">Sclera is still getting this ready. Try again in a moment.</string>
+    <string name="online_error_server">Something went wrong on the Sclera server. Please try again.</string>
+    <string name="detail_ai_sync_first">Sync this asset first, then try AI autofill again.</string>
 </resources>

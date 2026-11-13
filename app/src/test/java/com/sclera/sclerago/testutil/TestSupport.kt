@@ -54,7 +54,7 @@ class CountingCleaner(private val fails: Boolean = false) : UserDataCleaner {
 /** Ids "prefix-1", "prefix-2", ... so tests can predict them. */
 class SequentialIdGenerator : com.sclera.sclerago.domain.system.IdGenerator {
     private var n = 0
-    override fun next(prefix: String): String = "$prefix-${++n}"
+    override fun next(prefix: String): String = if (prefix.isEmpty()) "${++n}" else "$prefix-${++n}"
 }
 
 /** A clock the test moves by hand. */

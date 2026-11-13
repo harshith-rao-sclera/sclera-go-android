@@ -48,7 +48,7 @@ fun typeOf(name: String?): AssetType {
 }
 
 data class Asset(
-    val id: Int,
+    val id: String,
     val name: String,
     val detail: String,
     val loc: String?,
@@ -56,12 +56,28 @@ data class Asset(
     val src: Source,
     val st: Status,
     val type: AssetType,
-    val prop: String = "",
+    val propertyId: String,
     /** Photos and videos attached to this asset (from the camera or the gallery). */
     val media: List<Media> = emptyList(),
     /** When the asset was last added or edited (epoch millis); null for sample assets nobody has touched. */
     val updatedAt: Long? = null,
+    val buildingId: String? = null,
+    val floorId: String? = null,
+    val locationId: String? = null,
+    val masterFormatId: String? = null,
+    val needsReview: Boolean = false,
+    val aiSuggestion: Boolean = false,
+    val validated: Boolean = false,
+    /** Server row version, bumped on each synced edit. */
+    val version: Int = 1,
 )
+
+/**
+ * An asset to add. [asset] carries its media and, in [Asset.locationId], the id of the place it goes (a building,
+ * floor or location); [values] are the details form answers to keep with it; [deviceId] is the scanned device it was
+ * made from, if any.
+ */
+data class NewAsset(val asset: Asset, val values: Map<String, String> = emptyMap(), val deviceId: String? = null)
 
 /**
  * One device found by a Bluetooth, Wi-Fi network or access point scan, as a scan page row.
@@ -83,6 +99,10 @@ data class AssetDetails(
     val code: String,
     val fields: Map<String, String>,
     val lowConfidence: String? = null,
+    /** Per field key: how sure a reader was, 0..1. */
+    val confidence: Map<String, Double> = emptyMap(),
+    /** Per field key: the web page a looked-up answer came from. */
+    val sources: Map<String, String> = emptyMap(),
 )
 
 val SYSTEM_TYPES = listOf("Generic", "Mechanical", "Electrical", "HVAC", "Fire safety", "IT & network", "Security", "Audio-visual")
