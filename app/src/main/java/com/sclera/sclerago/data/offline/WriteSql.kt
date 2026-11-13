@@ -115,11 +115,15 @@ internal const val FIELD_INSERT = """INSERT INTO asset_fields (id, key, name, ty
     checks, aliases, is_standard, is_builtin, version, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 1, 0, 1, ?, ?)"""
 
-internal const val FIELD_UPDATE = """UPDATE asset_fields SET name = ?, type = ?, options = ?, is_required = ?, is_active = ?, position = ?, help_text = ?,
+internal const val FIELD_UPDATE = """UPDATE asset_fields SET name = ?, options = ?, is_required = ?, is_active = ?, position = ?, help_text = ?,
     default_value = ?, checks = ?, version = version + 1, updated_at = ? WHERE id = ?"""
 
 internal const val FIELD_KEY_TAKEN = "SELECT 1 FROM asset_fields WHERE key = ? AND %LIVE%"
 internal const val FIELD_NAME_TAKEN = "SELECT 1 FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '') AND lower(name) = lower(?) AND id <> ? AND %LIVE%"
+
+/** The answers (`asset_values.values` of live assets) that may hold a field's key, to be checked in code; `%LIVE%` is for `assets a`. */
+internal const val FIELD_ANSWERS = """SELECT av."values" AS v FROM asset_values av JOIN assets a ON a.id = av.asset_id
+    WHERE av."values" LIKE ? ESCAPE '\' AND %LIVE%"""
 
 // ---- validations
 

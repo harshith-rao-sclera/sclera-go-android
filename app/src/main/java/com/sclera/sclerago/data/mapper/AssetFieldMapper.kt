@@ -6,6 +6,7 @@ import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.OPTION_KINDS
 import com.sclera.sclerago.domain.model.ValueRule
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -73,10 +74,16 @@ fun DbRow.toMasterFormat() = MasterFormat(
 /** The `asset_fields.type` text of a field kind. */
 fun FieldKind.toDbType(): String = TYPE_BY_KIND.getValue(this)
 
-/** The `options` column text for a field's choices: a list of `{label}` as the server writes them; null when it has none. */
-fun FieldCfg.optionsJson(): String? =
-    options.takeIf { kind in OPTION_KINDS && it.isNotEmpty() }
-        ?.let { list -> JsonArray(list.map { buildJsonObject { put("label", it) } }).toString() }
+/**
+ * The `options` column text for a field's choices: a list of `{label}` as the server writes them; null when it has none.
+ * A choice that was already in [existing] keeps what the server stored with it (its colour).
+ */
+fun FieldCfg.optionsJson(existing: String? = null): String? {
+    if (kind !in OPTION_KINDS || options.isEmpty()) return null
+    val old = (runCatching { Json.parseToJsonElement(existing.orEmpty()) }.getOrNull() as? JsonArray).orEmpty()
+        .mapNotNull { it as? JsonObject }.associateBy { (it["label"] as? JsonPrimitive)?.contentOrNull }
+    return JsonArray(options.map { label -> old[label] ?: buildJsonObject { put("label", label) } }).toString()
+}
 
 /**
  * The `checks` column text for this field: [existing] with the highlight-empty flag and the date and number limits

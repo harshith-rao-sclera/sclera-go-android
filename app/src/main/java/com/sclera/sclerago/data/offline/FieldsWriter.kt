@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.offline
 
+import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.FieldKeys
 import com.sclera.sclerago.data.mapper.formatDbTime
@@ -36,7 +37,7 @@ class FieldsWriter(
             val reordered = before.map { it.key } != after.map { it.key }
 
             (old.keys - after.map { it.key }.toSet()).forEach { key ->
-                rows[key]?.takeIf { !it.bool("is_builtin") }?.let { removeRows("asset_fields", "id = ?", listOf(it.string("id").orEmpty()), now) }
+                rows[key]?.takeIf { !it.bool("is_builtin") }?.let { remove(it, now) }
             }
             after.forEachIndexed { position, f ->
                 val row = rows[f.key]
@@ -48,10 +49,20 @@ class FieldsWriter(
         }
     }
 
+    /** Removes a field; refused (IN_USE) while an asset still has an answer to it (the server's rule: answers go only on request). */
+    private fun AdcDatabase.remove(row: DbRow, now: String) {
+        if (hasAnswers(row.string("key").orEmpty())) throw DataException(DataError.IN_USE)
+        removeRows("asset_fields", "id = ?", listOf(row.string("id").orEmpty()), now)
+    }
+
+    private fun AdcDatabase.hasAnswers(key: String): Boolean =
+        hasTable("asset_values") && query(FIELD_ANSWERS.replace("%LIVE%", notRemoved("assets", "a")), listOf(likeContains("\"$key\":")))
+            .any { DbJson.stringMap(it.string("v"))[key].orEmpty().isNotBlank() }
+
     private fun AdcDatabase.insert(f: FieldCfg, position: Int, now: String) {
-        val key = FieldKeys.toDb(f.key)
+        val key = freeKey(f.label)
         if (f.label.isBlank()) throw DataException(DataError.FAILED)
-        if (exists(live(FIELD_KEY_TAKEN, "asset_fields"), listOf(key)) || exists(live(FIELD_NAME_TAKEN, "asset_fields"), listOf(f.label, ""))) {
+        if (exists(live(FIELD_NAME_TAKEN, "asset_fields"), listOf(f.label, ""))) {
             throw DataException(DataError.NAME_TAKEN)
         }
         execute(
@@ -71,12 +82,25 @@ class FieldsWriter(
         execute(
             FIELD_UPDATE,
             listOf(
-                f.label, f.kind.toDbType(), f.optionsJson(),
+                f.label, f.optionsJson(row.string("options")),
                 f.required.bit(), f.visible.bit(), position, f.tooltip.orNull(), f.defaultValue.orNull(), f.mergeChecks(row.string("checks")), now, id,
             ),
             setOf("asset_fields"),
         )
     }
 
+    /** The server's key for a new field: its name in lower case with runs of other characters as "_" (at most 60), "_2", "_3" … when taken. */
+    private fun AdcDatabase.freeKey(label: String): String {
+        val base = label.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_').take(MAX_KEY).ifEmpty { "field" }
+        var key = base
+        var n = 2
+        while (exists(live(FIELD_KEY_TAKEN, "asset_fields"), listOf(key))) key = "${base}_${n++}"
+        return key
+    }
+
     private fun String.orNull(): String? = trim().takeIf { it.isNotEmpty() }
+
+    private companion object {
+        const val MAX_KEY = 60
+    }
 }
