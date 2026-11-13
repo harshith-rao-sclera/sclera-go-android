@@ -6,6 +6,7 @@ import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.MapRow
 import io.requery.android.database.sqlite.SQLiteDatabase
 import kotlinx.coroutines.flow.Flow
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,6 +25,7 @@ class AdcDatabase @Inject constructor(
     private val lock = ReentrantLock()
     private var depth = 0
     private val pending = mutableSetOf<String>()
+    private val knownColumns = ConcurrentHashMap.newKeySet<String>()
 
     val isOpen: Boolean get() = bridge.connection() != null
 
@@ -31,6 +33,15 @@ class AdcDatabase @Inject constructor(
 
     fun hasTable(name: String): Boolean =
         query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", listOf(name)).isNotEmpty()
+
+    /** True when [table] has [column]. A found column is remembered; a missing one is looked up again, as a later sync may add it. */
+    fun hasColumn(table: String, column: String): Boolean {
+        val key = "$table.$column"
+        if (key in knownColumns) return true
+        val found = query("SELECT 1 FROM pragma_table_info(?) WHERE name = ?", listOf(table, column)).isNotEmpty()
+        if (found) knownColumns += key
+        return found
+    }
 
     /** Rows of [sql]; [args] are bound as text, so they must not be null. */
     fun query(sql: String, args: List<Any> = emptyList()): List<DbRow> =

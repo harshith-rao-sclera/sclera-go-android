@@ -2,6 +2,10 @@ package com.sclera.sclerago.data.mapper
 
 import com.sclera.sclerago.domain.validation.AssetResult
 import com.sclera.sclerago.domain.validation.Finding
+import com.sclera.sclerago.domain.validation.JobStats
+import com.sclera.sclerago.domain.validation.RuleStats
+import com.sclera.sclerago.domain.validation.SavedValidation
+import com.sclera.sclerago.domain.validation.ValidationIssue
 import com.sclera.sclerago.domain.validation.RuleOutcome
 import com.sclera.sclerago.domain.validation.ValJob
 
@@ -50,3 +54,34 @@ fun DbRow.toValJob(propertyId: String, results: List<AssetResult> = emptyList(),
         results = results,
     )
 }
+
+/** A `validations` row as a [SavedValidation]; [lastRun] is when a job of it last started. */
+fun DbRow.toSavedValidation(lastRun: Long? = null) = SavedValidation(
+    id = string("id").orEmpty(),
+    name = string("name").orEmpty(),
+    ruleIds = DbJson.stringList(string("rules")),
+    lastRun = lastRun,
+    description = string("description").orEmpty(),
+)
+
+/** A `validation_issues` row as a [ValidationIssue]. */
+fun DbRow.toValidationIssue() = ValidationIssue(
+    id = string("id").orEmpty(),
+    jobId = string("job_id").orEmpty(),
+    assetId = string("asset_id").orEmpty(),
+    rule = string("rule").orEmpty(),
+    outcome = outcomeFromDb(string("severity")),
+    message = string("message").orEmpty(),
+    currentValue = string("current_value"),
+    status = string("status").orEmpty(),
+)
+
+/** The totals and per-rule counts of a `validation_jobs` row. */
+fun DbRow.toJobStats() = JobStats(
+    passed = int("passed_count") ?: 0,
+    warning = int("warning_count") ?: 0,
+    failed = int("failed_count") ?: 0,
+    rules = DbJson.intMaps(string("rule_stats")).mapValues { (_, c) ->
+        RuleStats(c["passed"] ?: 0, c["warning"] ?: 0, c["failed"] ?: 0, c["skipped"] ?: 0)
+    },
+)

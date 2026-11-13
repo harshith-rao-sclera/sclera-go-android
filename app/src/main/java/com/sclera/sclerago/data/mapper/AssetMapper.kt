@@ -37,7 +37,7 @@ fun DbRow.toAsset(
     val needsReview = bool("needs_review")
     val validated = bool("validated")
     val aiSuggestion = bool("ai_suggestion")
-    val locationId = string("location_id")
+    val locationId = string("location_id")?.takeIf { it.isNotBlank() }
     return Asset(
         id = string("id").orEmpty(),
         name = name,
@@ -50,10 +50,10 @@ fun DbRow.toAsset(
         propertyId = propertyId,
         media = media,
         updatedAt = parseDbTime(string("updated_at")),
-        buildingId = string("building_id"),
-        floorId = string("floor_id"),
+        buildingId = string("building_id")?.takeIf { it.isNotBlank() },
+        floorId = string("floor_id")?.takeIf { it.isNotBlank() },
         locationId = locationId,
-        masterFormatId = string("master_format_id"),
+        masterFormatId = string("master_format_id")?.takeIf { it.isNotBlank() },
         needsReview = needsReview,
         aiSuggestion = aiSuggestion,
         validated = validated,

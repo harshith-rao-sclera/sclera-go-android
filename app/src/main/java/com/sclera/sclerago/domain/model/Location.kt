@@ -69,3 +69,6 @@ val COUNTRIES = listOf(
 )
 
 val REGIONS = listOf("Asia Pacific", "Middle East", "Africa", "Europe", "North America", "Latin America")
+
+/** One step of the way to a place: a building, a floor of it or a location on it. */
+data class PathStep(val id: String, val name: String, val kind: NodeKind)

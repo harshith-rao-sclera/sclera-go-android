@@ -27,6 +27,13 @@ internal object DbJson {
     /** An array as texts; objects in it use their label, name or value. */
     fun stringList(text: String?): List<String> = (parse(text) as? JsonArray).orEmpty().mapNotNull(::text)
 
+    /** Object of objects of numbers, as key to key to whole number (rule_stats). */
+    fun intMaps(text: String?): Map<String, Map<String, Int>> = obj(text).mapNotNull { (k, v) ->
+        (v as? JsonObject)?.let { inner ->
+            k to inner.mapNotNull { (name, n) -> (n as? JsonPrimitive)?.doubleOrNull?.toInt()?.let { name to it } }.toMap()
+        }
+    }.toMap()
+
     fun text(v: JsonElement): String? = when (v) {
         is JsonNull -> null
         is JsonPrimitive -> v.contentOrNull
