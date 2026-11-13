@@ -288,6 +288,8 @@ private fun AddPropertySheet(existing: List<Property>, onClose: () -> Unit, onAd
             },
             leadingIcon = Icons.Building, progress = done / 2f,
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
+            dirty = listOf(name, type, line1, line2, country, state, region, city, contactName, contactEmail, contactPhone, notes, accessCode)
+                .any { it.isNotBlank() } || start != "00:01" || end != "23:59",
         ) {
             FormGroup("Property details", Icons.Building, trailing = {
                 val ok = done == 2

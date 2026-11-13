@@ -54,6 +54,7 @@ import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.NavItem
 import com.sclera.sclerago.presentation.components.PermissionSheet
+import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.PropertySheet
 import com.sclera.sclerago.presentation.components.RoundButton
@@ -159,6 +160,7 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel()) {
     // System back closes the topmost transient UI first.
     BackHandler(enabled = s.searchOpen) { vm.closeSearch() }
     BackHandler(enabled = vm.selOn) { vm.clearPick() }
+    BackHandler(enabled = vm.devSelOn) { vm.clearDevicePick() }
 
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize().imePadding()) {
@@ -191,6 +193,13 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel()) {
                     enter = slideInVertically { it } + fadeIn(),
                     exit = slideOutVertically { it } + fadeOut(),
                 ) { SelectionDock(vm) }
+                // Scanned devices ticked on the Bluetooth / Network list: add them all as assets.
+                androidx.compose.animation.AnimatedVisibility(
+                    vm.devSelOn,
+                    Modifier.align(Alignment.BottomCenter),
+                    enter = slideInVertically { it } + fadeIn(),
+                    exit = slideOutVertically { it } + fadeOut(),
+                ) { DeviceAddDock(vm) }
                 // Messages sit above everything in the content area, asset details included.
                 androidx.compose.animation.AnimatedVisibility(
                     s.toastOn,
@@ -318,16 +327,20 @@ private fun RowScope.LocCell(
     label: @Composable (Color, Int) -> Unit,
 ) {
     val w by animateFloatAsState(if (on) (if (wide) 1.5f else 1.25f) else 1f, tween(350), label = "w")
-    val bg by animateColorAsState(if (on) C.Raised else Color.Transparent, tween(300), label = "bg")
-    val fg by animateColorAsState(if (on) C.Yellow else C.Soft, tween(300), label = "fg")
-    val ic by animateColorAsState(if (on) C.Yellow else C.Muted, tween(300), label = "ic")
-    val bar by animateColorAsState(if (on) C.Yellow else Color.Transparent, tween(300), label = "bar")
+    // Selected colours switch at once, together with the bold label: fading the background made the
+    // chevron's side of the cell lag behind the text. Only the width eases.
+    val bg = if (on) C.Raised else Color.Transparent
+    val fg = if (on) C.Yellow else C.Soft
+    val ic = if (on) C.Yellow else C.Muted
+    val bar = if (on) C.Yellow else Color.Transparent
+    // The whole cell is the tap target (so its press highlight covers the chevron's side too); the
+    // chevron's own click, inside it, opens the picker instead.
     Row(
         Modifier.weight(w).fillMaxHeight().background(bg).then(if (divider) Modifier.endBorder(C.Border) else Modifier)
-            .bottomBorder(bar, 3.dp),
+            .bottomBorder(bar, 3.dp).clickable(onClick = onPick),
     ) {
         Row(
-            Modifier.weight(1f).fillMaxHeight().clickable(onClick = onPick)
+            Modifier.weight(1f).fillMaxHeight()
                 .padding(start = 6.dp, end = if (on && onChevron != null) 0.dp else 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
@@ -426,6 +439,35 @@ private fun SelectionDock(vm: AppViewModel) {
                 textDecoration = TextDecoration.Underline, maxLines = 1,
             )
         }
+    }
+}
+
+/** Docked above the tabs while scanned devices are ticked: clear, how many, and Add them as draft assets. */
+@Composable
+private fun DeviceAddDock(vm: AppViewModel) {
+    val n = vm.pickedDevices.size
+    val shape = r(14)
+    Row(
+        Modifier.padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 8.dp).fillMaxWidth().height(60.dp)
+            .fabShadow(shape, 10.dp).clip(shape).background(C.Surface).border(1.dp, C.Border2, shape)
+            .padding(start = 4.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        RoundButton(40.dp, Color.Transparent, vm::clearDevicePick) { LineIcon(Icons.Close, 18.dp, C.Text, 2.4f) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Txt("$n selected", 15, 700)
+            Text(
+                if (vm.allDevicesPicked) "Clear all" else "Select all ${vm.addableCount}",
+                Modifier.clickable(onClick = vm::selectAllDevices),
+                color = C.Soft, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                textDecoration = TextDecoration.Underline, maxLines = 1,
+            )
+        }
+        Pill(
+            "Add $n as ${if (n == 1) "asset" else "assets"}", vm::addPickedDevices,
+            bg = C.Yellow, fg = C.OnYellow, height = 42.dp, hPad = 16.dp, size = 14, weight = 700,
+        )
     }
 }
 

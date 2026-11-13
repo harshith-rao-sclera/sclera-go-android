@@ -273,6 +273,8 @@ private fun PersonSheet(initial: Person, access: AccessViewModel, properties: Li
             onPrimary = { error = access.savePerson(draft) },
             leadingIcon = Icons.Users, progress = progress,
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
+            dirty = email.trim() != initial.email.trim() || groupId != initial.groupId ||
+                all != initial.allProperties || chosen != initial.propertyIds,
         ) {
             FormGroup("Person", Icons.Users, trailing = {
                 if (emailOk) StatusPill("Ready", PillTone.READY) else StatusPill("1 required", PillTone.NEEDED)
@@ -368,6 +370,7 @@ private fun GroupSheet(initial: Group, access: AccessViewModel) {
         onPrimary = { error = access.saveGroup(draft) },
         leadingIcon = iconOf(Permission.MANAGE_ACCESS.iconPath), progress = if (named) 1f else 0f,
         bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
+        dirty = name.trim() != initial.name.trim() || description.trim() != initial.description.trim() || perms != initial.permissions,
     ) {
         FormGroup("Group details", Icons.Users, trailing = {
             if (named) StatusPill("Ready", PillTone.READY) else StatusPill("1 required", PillTone.NEEDED)

@@ -59,6 +59,7 @@ import com.sclera.sclerago.presentation.components.ActionCard
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.MediaFull
 import com.sclera.sclerago.presentation.components.MediaImage
@@ -240,8 +241,11 @@ fun AssetDetailScreen(
         }
     }
 
+    // Leaving asks first only when something would be lost: a new asset once anything has been entered
+    // or attached (defaults and values filled in from a scanned device don't count), an existing one
+    // while it has unsaved changes. Otherwise back just goes back.
     fun back() {
-        if (isNew) modal = Modal.DISCARD else onBack()
+        if (dirtyN > 0 || (isNew && newPicks.isNotEmpty())) modal = Modal.DISCARD else onBack()
     }
 
     /** New asset: create it as a draft, or submitted. All entered values are kept with it. */
@@ -657,6 +661,13 @@ fun AssetDetailScreen(
                         edits = emptyMap()
                     }
                 },
+            )
+        } else if (modal == Modal.DISCARD && !isNew) {
+            DiscardChangesDialog(
+                onKeep = { modal = Modal.NONE },
+                onDiscard = { modal = Modal.NONE; edits = emptyMap(); onBack() },
+                body = (if (dirtyN == 1) "You have 1 unsaved change" else "You have $dirtyN unsaved changes") +
+                    " to ${v("name").ifEmpty { "this asset" }}. If you leave now, they’re lost.",
             )
         } else if (modal != Modal.NONE) {
             val del = modal == Modal.DELETE

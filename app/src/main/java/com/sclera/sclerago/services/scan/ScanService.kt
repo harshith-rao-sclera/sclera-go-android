@@ -11,11 +11,15 @@ import com.sclera.sclerago.services.scan.core.ScanDepth
 import com.sclera.sclerago.services.scan.core.ScanPermissions
 import com.sclera.sclerago.services.scan.core.WifiAccessPointScanner
 import com.sclera.sclerago.services.scan.model.BleDevice
-import com.sclera.sclerago.services.scan.model.NetworkDevice
-import com.sclera.sclerago.services.scan.model.WifiAccessPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 
 /**
@@ -41,12 +45,19 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
     data class Card(val title: String, val sub: String, val progress: Float? = null)
 
     private val ble = BleScanner(app, scope)
-    private val lan = NetworkScanner(app, scope)
+    // The network sweep handles tens of thousands of probe results and re-fingerprints hosts as they
+    // come in; on the main thread that made the scan pages stutter. It runs on a background
+    // dispatcher, still cancelled with [scope] (its results are handled one at a time, so its own
+    // bookkeeping needs no extra locking). Bluetooth and access points stay on [scope]: their
+    // callbacks arrive on the main thread anyway and are cheap.
+    private val lan = NetworkScanner(app, CoroutineScope(scope.coroutineContext + Dispatchers.Default))
     private val aps = WifiAccessPointScanner(app, scope)
 
-    private var bleFound by mutableStateOf<List<BleDevice>>(emptyList())
-    private var lanFound by mutableStateOf<List<NetworkDevice>>(emptyList())
-    private var apFound by mutableStateOf<List<WifiAccessPoint>>(emptyList())
+    // What each scan has found, already turned into page rows (off the main thread) and refreshed at
+    // most a few times a second, however fast results arrive.
+    private var bleRows by mutableStateOf<List<Device>>(emptyList())
+    private var lanRows by mutableStateOf<List<Device>>(emptyList())
+    private var apRows by mutableStateOf<List<Device>>(emptyList())
     private var lanSubnet by mutableStateOf<String?>(null)
 
     private var scanning by mutableStateOf(emptySet<Target>())
@@ -76,9 +87,15 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
     private val clocks = mutableMapOf<Target, Job>()
 
     init {
-        scope.launch { ble.devices.collect { bleFound = it } }
+        scope.launch {
+            // Strongest first, but by signal bars rather than raw dBm (which flickers every advert),
+            // then in the order they were found: rows stay put instead of jumping around the list.
+            ble.devices.asRows { list ->
+                list.sortedWith(compareByDescending<BleDevice> { it.signalBars }.thenBy { it.firstSeen }).map { it.toRow() }
+            }.collect { bleRows = it }
+        }
         scope.launch { ble.isScanning.collect { setScanning(Target.BLUETOOTH, it) } }
-        scope.launch { lan.devices.collect { lanFound = it } }
+        scope.launch { lan.devices.asRows { list -> list.sortedBy { it.ip }.map { it.toRow() } }.collect { lanRows = it } }
         scope.launch { lan.subnet.collect { lanSubnet = it?.toString() } }
         scope.launch {
             lan.phase.collect { p ->
@@ -86,7 +103,7 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
                 if (p is NetworkScanner.Phase.Failed) issues = issues + (Target.NETWORK to p.label)
             }
         }
-        scope.launch { aps.accessPoints.collect { apFound = it } }
+        scope.launch { aps.accessPoints.asRows { list -> list.map { it.toRow() } }.collect { apRows = it } }
         scope.launch { aps.isScanning.collect { setScanning(Target.ACCESS_POINTS, it) } }
         scope.launch { lan.progress.collect { setProgress(Target.NETWORK, it) } }
     }
@@ -115,12 +132,22 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
 
     fun isScanning(t: Target): Boolean = t in scanning
 
-    /** What [t] has found so far, as scan page rows. */
+    /** What [t] has found so far, as scan page rows (built once per refresh, not on every read). */
     fun rows(t: Target): List<Device> = when (t) {
-        Target.BLUETOOTH -> bleFound.map { it.toRow() }
-        Target.NETWORK -> lanFound.sortedBy { it.ip }.map { it.toRow() }
-        Target.ACCESS_POINTS -> apFound.map { it.toRow() }
+        Target.BLUETOOTH -> bleRows
+        Target.NETWORK -> lanRows
+        Target.ACCESS_POINTS -> apRows
     }
+
+    /**
+     * A scanner's results as page rows: the first list straight away, then at most one every
+     * [ROW_REFRESH_MS] (always the latest, nothing in between is kept), built on a background thread.
+     */
+    private fun <T> Flow<List<T>>.asRows(build: (List<T>) -> List<Device>): Flow<List<Device>> =
+        conflate()
+            .transform { emit(it); delay(ROW_REFRESH_MS) }
+            .map(build)
+            .flowOn(Dispatchers.Default)
 
     /**
      * Starts [t] unless it is already running: asks for its permission first if needed, and records
@@ -219,5 +246,10 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
         Target.BLUETOOTH -> ScanPermissions.Surface.BLE
         Target.NETWORK -> ScanPermissions.Surface.LAN
         Target.ACCESS_POINTS -> ScanPermissions.Surface.WIFI
+    }
+
+    private companion object {
+        /** How often a scan page's list may change while results pour in. */
+        const val ROW_REFRESH_MS = 500L
     }
 }

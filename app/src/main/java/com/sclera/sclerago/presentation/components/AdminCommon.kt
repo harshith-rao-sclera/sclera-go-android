@@ -236,6 +236,25 @@ internal fun FormSheet(
     bodyBackground: Color = SheetBg,
     bodyPadding: PaddingValues = PaddingValues(16.dp),
     bodySpacing: Dp = 18.dp,
+    /** Something was entered or changed: closing (back, outside, ×, Cancel) asks before discarding it. */
+    dirty: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) = Box(Modifier.fillMaxSize()) { GuardedClose(dirty, onClose) { close -> FormSheetBody(title, sub, primary, primaryEnabled, error, close, onPrimary, leadingIcon, progress, bodyBackground, bodyPadding, bodySpacing, content) } }
+
+@Composable
+private fun FormSheetBody(
+    title: String,
+    sub: String?,
+    primary: String,
+    primaryEnabled: Boolean,
+    error: String?,
+    onClose: () -> Unit,
+    onPrimary: () -> Unit,
+    leadingIcon: Ico?,
+    progress: Float?,
+    bodyBackground: Color,
+    bodyPadding: PaddingValues,
+    bodySpacing: Dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onClose)

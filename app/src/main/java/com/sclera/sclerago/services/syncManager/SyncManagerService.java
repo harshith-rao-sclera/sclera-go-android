@@ -51,7 +51,7 @@ public class SyncManagerService {
             String userId = assetCollectionData.getId();
             String role = assetCollectionData.getRole();
             String url = assetCollectionData.getUrl();
-            url = url.replace("/api/asset-data-collection", "");
+
             String token = assetCollectionData.getAccessToken();
             String orgId = assetCollectionData.getOrganisationId();
             String sessionId = assetCollectionData.getSessionId();

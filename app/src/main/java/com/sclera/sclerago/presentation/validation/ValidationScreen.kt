@@ -69,6 +69,7 @@ import com.sclera.sclerago.presentation.components.CfgCard
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.PageBar
@@ -571,7 +572,14 @@ private fun ChecksSheet(name: String, rules: List<Rule>, onClose: () -> Unit) {
  */
 @Composable
 private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
-    BackHandler(onBack = vm::closeEditor)
+    // What it looked like when opened: leaving with anything changed asks first.
+    val start = remember(e.id) { e }
+    Box(Modifier.fillMaxSize()) { GuardedClose(e != start, vm::closeEditor) { close -> EditorPageBody(vm, e, close) } }
+}
+
+@Composable
+private fun EditorPageBody(vm: AppViewModel, e: SavedEditor, close: () -> Unit) {
+    BackHandler(onBack = close)
     var q by remember { mutableStateOf("") }
     var infoFor by remember { mutableStateOf<String?>(null) }
     val ok = e.name.isNotBlank() && e.ruleIds.isNotEmpty()
@@ -606,7 +614,7 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
         }
     }
     Column(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }.blockSwipe()) {
-        PageBar(if (e.id == null) "New validation" else "Edit validation", vm.propName, vm::closeEditor, property = true)
+        PageBar(if (e.id == null) "New validation" else "Edit validation", vm.propName, close, property = true)
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).navigationBarsPadding().imePadding().padding(horizontal = 6.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -617,7 +625,7 @@ private fun EditorPage(vm: AppViewModel, e: SavedEditor) {
                     LabeledInput("Name", e.name, vm::setEditorName, "e.g. Main Validation", compact = true)
                     LabeledInput("Description (optional)", e.description, vm::setEditorDesc, "What this is for", compact = true)
                     Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Pill("Cancel", vm::closeEditor, height = 38.dp, hPad = 14.dp, size = 13)
+                        Pill("Cancel", close, height = 38.dp, hPad = 14.dp, size = 13)
                         Pill("Save", { if (ok) vm.saveEditor() }, Modifier.alpha(if (ok) 1f else 0.5f), height = 38.dp, hPad = 16.dp, size = 13)
                         Pill(
                             "Save and run", { if (ok) vm.saveEditor(run = true) }, Modifier.weight(1f).alpha(if (ok) 1f else 0.5f),
