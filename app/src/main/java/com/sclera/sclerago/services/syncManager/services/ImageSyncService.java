@@ -1,16 +1,16 @@
-package com.example.sclerago.services.syncManager.services;
+package com.sclera.sclerago.services.syncManager.services;
 
 
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampId;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampImageConfig;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampMediaTimestamp;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampSyncStatus;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.multimediaContent;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.multimediaId;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.multimediaTable;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.timeStampTable;
-import static com.example.sclerago.services.syncManager.utils.SyncUtils.imageProgressMap;
-import static com.example.sclerago.services.syncManager.utils.SyncUtils.readBinaryData;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampId;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampImageConfig;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampMediaTimestamp;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampSyncStatus;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.multimediaContent;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.multimediaId;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.multimediaTable;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.timeStampTable;
+import static com.sclera.sclerago.services.syncManager.utils.SyncUtils.imageProgressMap;
+import static com.sclera.sclerago.services.syncManager.utils.SyncUtils.readBinaryData;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
@@ -20,10 +20,10 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.example.sclerago.services.syncManager.SyncManager;
-import com.example.sclerago.services.syncManager.enums.OfflineFeatures;
-import com.example.sclerago.services.syncManager.enums.SyncMode;
-import com.example.sclerago.services.syncManager.utils.SyncUtils;
+import com.sclera.sclerago.services.syncManager.SyncManager;
+import com.sclera.sclerago.services.syncManager.enums.OfflineFeatures;
+import com.sclera.sclerago.services.syncManager.enums.SyncMode;
+import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;

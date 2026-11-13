@@ -1,4 +1,4 @@
-package com.example.sclerago.utility.firebaseUtils;
+package com.sclera.sclerago.utility;
 
 import android.annotation.SuppressLint;
 import android.content.Context;

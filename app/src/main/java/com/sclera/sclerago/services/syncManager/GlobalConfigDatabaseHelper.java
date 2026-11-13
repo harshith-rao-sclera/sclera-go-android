@@ -1,4 +1,4 @@
-package com.example.sclerago.services.syncManager;
+package com.sclera.sclerago.services.syncManager;
 
 import android.content.Context;
 import android.database.Cursor;

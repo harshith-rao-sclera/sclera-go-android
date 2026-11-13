@@ -1,10 +1,10 @@
-package com.example.sclerago.services.syncManager.utils;
+package com.sclera.sclerago.services.syncManager.utils;
 
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.example.sclerago.services.syncManager.SyncManager;
+import com.sclera.sclerago.services.syncManager.SyncManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;

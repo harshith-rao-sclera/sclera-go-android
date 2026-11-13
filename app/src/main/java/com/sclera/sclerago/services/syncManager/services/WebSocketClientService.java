@@ -1,15 +1,15 @@
-package com.example.sclerago.services.syncManager.services;
+package com.sclera.sclerago.services.syncManager.services;
 
 
-import static com.example.sclerago.services.syncManager.utils.SyncUtils.replaceUrl;
+import static com.sclera.sclerago.services.syncManager.utils.SyncUtils.replaceUrl;
 
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.example.sclerago.services.syncManager.SyncManager;
-import com.example.sclerago.services.syncManager.enums.SyncMode;
-import com.example.sclerago.services.syncManager.utils.AuthInterceptor;
+import com.sclera.sclerago.services.syncManager.SyncManager;
+import com.sclera.sclerago.services.syncManager.enums.SyncMode;
+import com.sclera.sclerago.services.syncManager.utils.AuthInterceptor;
 
 import java.io.BufferedReader;
 import java.io.IOException;

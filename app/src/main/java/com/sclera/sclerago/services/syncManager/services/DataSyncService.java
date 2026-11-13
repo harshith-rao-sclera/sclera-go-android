@@ -1,9 +1,9 @@
-package com.example.sclerago.services.syncManager.services;
+package com.sclera.sclerago.services.syncManager.services;
 
 
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampId;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampSeq;
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.timeStampTable;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampId;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.globalTimestampSeq;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.timeStampTable;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
@@ -14,10 +14,10 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.example.sclerago.services.syncManager.SyncManager;
-import com.example.sclerago.services.syncManager.enums.OfflineFeatures;
-import com.example.sclerago.services.syncManager.enums.SyncMode;
-import com.example.sclerago.services.syncManager.utils.SyncUtils;
+import com.sclera.sclerago.services.syncManager.SyncManager;
+import com.sclera.sclerago.services.syncManager.enums.OfflineFeatures;
+import com.sclera.sclerago.services.syncManager.enums.SyncMode;
+import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;

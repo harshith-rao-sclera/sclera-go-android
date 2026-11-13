@@ -1,7 +1,7 @@
-package com.example.sclerago.services.syncManager.utils;
+package com.sclera.sclerago.services.syncManager.utils;
 
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.*;
-import static com.example.sclerago.utility.firebaseUtils.Utility.context;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.*;
+import static com.sclera.sclerago.utility.Utility.context;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
@@ -13,10 +13,10 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.util.Log;
 
-import com.example.sclerago.services.syncManager.GlobalConfigDatabaseHelper;
-import com.example.sclerago.services.syncManager.SyncManager;
-import com.example.sclerago.services.syncManager.enums.OfflineFeatures;
-import com.example.sclerago.utility.firebaseUtils.Utility;
+import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper;
+import com.sclera.sclerago.services.syncManager.SyncManager;
+import com.sclera.sclerago.services.syncManager.enums.OfflineFeatures;
+import com.sclera.sclerago.utility.Utility;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

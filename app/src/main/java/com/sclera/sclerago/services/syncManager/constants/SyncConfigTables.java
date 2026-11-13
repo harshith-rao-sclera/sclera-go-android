@@ -1,4 +1,4 @@
-package com.example.sclerago.services.syncManager.constants;
+package com.sclera.sclerago.services.syncManager.constants;
 
 public class SyncConfigTables {
     public static final String timeStampTable = "global_timestamp";
