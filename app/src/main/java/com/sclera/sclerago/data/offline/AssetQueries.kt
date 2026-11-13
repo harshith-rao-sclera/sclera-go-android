@@ -8,9 +8,9 @@ import com.sclera.sclerago.domain.model.sourceToDb
 internal const val STATUS_SQL = """CASE
     WHEN a.status = 'exception' THEN 'EXCEPTION'
     WHEN a.status = 'saved' OR a.validated = 1 THEN 'VALIDATED'
-    WHEN a.ai_suggestion = 1 AND a.status IN ('drafted', 'submitted') THEN 'AI'
     WHEN a.status = 'submitted' THEN 'SUBMITTED'
-    WHEN a.needs_review = 1 THEN 'INPUT'
+    WHEN a.status = 'drafted' AND a.ai_suggestion = 1 THEN 'AI'
+    WHEN a.status = 'drafted' AND a.needs_review = 1 THEN 'INPUT'
     ELSE 'DRAFT' END"""
 
 internal const val ASSET_ORDER = "ORDER BY a.created_at DESC, a.id DESC"
@@ -18,10 +18,21 @@ internal const val ASSET_ORDER = "ORDER BY a.created_at DESC, a.id DESC"
 internal const val ASSET_BY_ID = "SELECT a.* FROM assets a WHERE a.id = ? AND %LIVE%"
 
 internal const val ASSET_SUMMARY = """
-    SELECT $STATUS_SQL AS st, COUNT(*) AS n, COALESCE(SUM(a.ai_suggestion), 0) AS ai, COALESCE(SUM(a.validated), 0) AS ok
+    SELECT $STATUS_SQL AS st, COUNT(*) AS n, COALESCE(SUM(CASE WHEN a.status = 'drafted' THEN a.ai_suggestion ELSE 0 END), 0) AS ai, COALESCE(SUM(a.validated), 0) AS ok
     FROM assets a WHERE %WHERE% GROUP BY st"""
 
 internal const val ASSET_VALUES_FOR = "SELECT asset_id, \"values\" FROM asset_values WHERE asset_id IN (%IN%)"
+
+internal const val ASSETS_BY_IDS = "SELECT a.* FROM assets a WHERE a.id IN (%IN%) AND %LIVE%"
+
+internal const val ASSET_VALUES_ROWS = "SELECT * FROM asset_values WHERE asset_id IN (%IN%)"
+
+/** Scanned devices made into assets: the device id is kept in `source_ref` of Bluetooth and Wi-Fi assets. */
+internal const val DEVICE_LINKS =
+    "SELECT a.id, a.source_ref FROM assets a WHERE a.source IN ('bluetooth', 'wifi') AND a.source_ref IS NOT NULL AND a.source_ref <> '' AND %LIVE%"
+
+internal const val ALL_ASSET_VALUES =
+    "SELECT v.asset_id, v.\"values\" FROM asset_values v JOIN assets a ON a.id = v.asset_id WHERE %LIVE%"
 
 internal const val ASSET_VALUES_ONE = "SELECT * FROM asset_values WHERE asset_id = ?"
 

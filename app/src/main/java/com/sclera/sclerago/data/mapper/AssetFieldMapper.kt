@@ -4,7 +4,9 @@ import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.domain.model.MasterFormat
+import com.sclera.sclerago.domain.model.OPTION_KINDS
 import com.sclera.sclerago.domain.model.ValueRule
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -45,7 +47,7 @@ fun DbRow.toFieldCfg(): FieldCfg? {
         visible = bool("is_active"),
         required = bool("is_required"),
         locked = key == "name",
-        custom = !bool("is_builtin") && int("is_standard") != 1,
+        custom = !bool("is_builtin"),
         options = DbJson.stringList(string("options")),
         defaultValue = string("default_value").orEmpty(),
         tooltip = string("help_text").orEmpty(),
@@ -68,34 +70,38 @@ fun DbRow.toMasterFormat() = MasterFormat(
     subtype = string("subtype")?.takeIf { it.isNotBlank() },
 )
 
-/** The `asset_fields` columns to insert or update for [this]; [id] is the row id and [position] its order. */
-fun FieldCfg.toFieldRow(id: String, position: Int, version: Int = 1): Map<String, Any?> = mapOf(
-    "id" to id,
-    "key" to FieldKeys.toDb(key),
-    "name" to label,
-    "type" to TYPE_BY_KIND.getValue(kind),
-    "options" to options.takeIf { it.isNotEmpty() }?.let(DbJson::writeList),
-    "is_required" to if (required) 1 else 0,
-    "is_active" to if (visible) 1 else 0,
-    "position" to position,
-    "help_text" to tooltip.ifBlank { null },
-    "default_value" to defaultValue.ifBlank { null },
-    "checks" to checksJson(),
-    "version" to version,
-)
+/** The `asset_fields.type` text of a field kind. */
+fun FieldKind.toDbType(): String = TYPE_BY_KIND.getValue(this)
 
-private fun FieldCfg.checksJson(): String = buildJsonObject {
-    if (flagEmpty) put("highlight_empty", true)
+/** The `options` column text for a field's choices: a list of `{label}` as the server writes them; null when it has none. */
+fun FieldCfg.optionsJson(): String? =
+    options.takeIf { kind in OPTION_KINDS && it.isNotEmpty() }
+        ?.let { list -> JsonArray(list.map { buildJsonObject { put("label", it) } }).toString() }
+
+/**
+ * The `checks` column text for this field: [existing] with the highlight-empty flag and the date and number limits
+ * set from the field. Other checks the server keeps there (a format kind and pattern) are left as they are.
+ */
+fun FieldCfg.mergeChecks(existing: String?): String {
+    val old = DbJson.obj(existing)
+    val oldFormat = old["format"] as? JsonObject ?: JsonObject(emptyMap())
     val dates = when (rule) {
         ValueRule.PAST -> "past"
         ValueRule.FUTURE -> "future"
         else -> null
     }
-    if (dates != null || min.isNotBlank() || max.isNotBlank()) {
-        put("format", buildJsonObject {
-            dates?.let { put("dates", it) }
-            min.toDoubleOrNull()?.let { put("min", it) }
-            max.toDoubleOrNull()?.let { put("max", it) }
-        })
+    val format = buildJsonObject {
+        oldFormat.filterKeys { it !in LIMIT_KEYS }.forEach { (k, v) -> put(k, v) }
+        dates?.let { put("dates", it) }
+        min.toDoubleOrNull()?.let { put("min", it) }
+        max.toDoubleOrNull()?.let { put("max", it) }
     }
-}.toString()
+    return buildJsonObject {
+        old.filterKeys { it != "format" && it != "highlight_empty" }.forEach { (k, v) -> put(k, v) }
+        if (flagEmpty) put("highlight_empty", true)
+        if (format.isNotEmpty()) put("format", format)
+    }.toString()
+}
+
+/** The keys of a `checks.format` that a [FieldCfg] sets itself. */
+private val LIMIT_KEYS = setOf("dates", "min", "max")

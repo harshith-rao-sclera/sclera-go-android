@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.mapper
 
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.time.ZoneOffset
 
 /**
@@ -42,5 +43,6 @@ fun parseDbTime(text: String?): Long? {
 
 /** Epoch millis as a stored timestamp ("yyyy-MM-dd HH:mm:ss.SSS", UTC), for writing timestamp columns. */
 fun formatDbTime(millis: Long): String =
-    LocalDateTime.ofEpochSecond(Math.floorDiv(millis, 1000L), (Math.floorMod(millis, 1000L) * 1_000_000L).toInt(), ZoneOffset.UTC)
-        .toString().replace('T', ' ')
+    DB_TIME.format(LocalDateTime.ofEpochSecond(Math.floorDiv(millis, 1000L), (Math.floorMod(millis, 1000L) * 1_000_000L).toInt(), ZoneOffset.UTC))
+
+private val DB_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")

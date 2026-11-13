@@ -99,8 +99,8 @@ fun Asset.toAssetRow(): Map<String, Any?> {
         "status" to db.status,
         "source" to sourceToDb(src),
         "master_format_id" to masterFormatId,
-        "needs_review" to needsReview.toInt(),
-        "ai_suggestion" to db.aiSuggestion.toInt(),
+        "needs_review" to db.needsReview.toInt(),
+        "ai_suggestion" to (db.aiSuggestion ?: aiSuggestion).toInt(),
         "validated" to db.validated.toInt(),
         "version" to version,
     )
