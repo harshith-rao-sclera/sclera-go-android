@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
+import com.sclera.sclerago.data.mapper.FieldKeys
 import com.sclera.sclerago.data.mapper.toFieldCfg
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.model.FieldCfg
@@ -30,6 +31,15 @@ class FieldsOfflineSource(private val db: AdcDatabase, private val io: Coroutine
     suspend fun effective(assetId: String): List<FieldCfg> = withContext(io) { loadEffective(assetId) }
 
     fun effectiveFlow(assetId: String): Flow<List<FieldCfg>> = db.watch(io, TABLE) { loadEffective(assetId) }
+
+    /** Field id by form key (the app's key, so manufacturer is "make") for the fields of [assetId]: the standard ones and its own. */
+    suspend fun idsByKey(assetId: String): Map<String, String> = withContext(io) {
+        db.whenTable(TABLE, emptyMap()) {
+            db.query(EFFECTIVE_FIELDS.replace("%LIVE%", db.notRemoved(TABLE)), listOf(assetId))
+                .mapNotNull { row -> row.string("id")?.let { FieldKeys.toApp(row.string("key").orEmpty()) to it } }
+                .toMap()
+        }
+    }
 
     private fun loadStandard(): List<DbRow> = db.whenTable(TABLE, emptyList()) {
         db.query(STANDARD_FIELDS.replace("%LIVE%", db.notRemoved(TABLE)))

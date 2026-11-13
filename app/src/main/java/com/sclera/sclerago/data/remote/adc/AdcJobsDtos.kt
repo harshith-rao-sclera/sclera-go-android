@@ -5,7 +5,7 @@ import kotlinx.serialization.json.JsonElement
 
 // The background-job calls' JSON (spec look-ups and validation runs). Only what the app reads is declared.
 
-/** A spec look-up: [status] is queued, running, completed or failed; [values] are keyed by the server's field key. */
+/** A spec look-up: [status] is queued, running, completed or failed; [values] are keyed by the server's field id (a UUID), never by key. */
 @Serializable
 data class LookupJobDto(
     val id: String,
