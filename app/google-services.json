@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "553190940972",
+    "project_id": "sclerago-19bbc",
+    "storage_bucket": "sclerago-19bbc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:553190940972:android:6df0211dd5080ac813cc89",
+        "android_client_info": {
+          "package_name": "com.sclera.sclerago"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2cI1UZLuWeOE0AYKZ_7xmrqF3kCdD3Mo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

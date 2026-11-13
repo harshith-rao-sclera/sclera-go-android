@@ -7,6 +7,7 @@ import com.sclera.sclerago.domain.usecase.auth.CheckSessionOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.ClearUserDataUseCase
 import com.sclera.sclerago.domain.usecase.auth.LogoutUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
+import com.sclera.sclerago.domain.usecase.telemetry.TrackSessionChangeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,13 +20,19 @@ class SessionViewModel @Inject constructor(
     private val checkSessionOnForeground: CheckSessionOnForegroundUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val clearUserData: ClearUserDataUseCase,
+    private val trackSessionChange: TrackSessionChangeUseCase,
 ) : ViewModel() {
     val authState: StateFlow<AuthState> = observeAuthState()
 
     init {
         // Whenever the session ends (sign-out, expiry, blocked account), nothing of the user stays on the device.
         viewModelScope.launch {
-            authState.collect { if (it is AuthState.SignedOut) clearUserData() }
+            var previous: AuthState? = null
+            authState.collect {
+                if (it is AuthState.SignedOut) clearUserData()
+                trackSessionChange(previous, it)
+                previous = it
+            }
         }
     }
 
