@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">Nhập địa chỉ email hợp lệ</string>
     <string name="login_tagline">Nắm rõ mọi tài sản tại hiện trường.</string>
     <string name="sso_error_untrusted">Để bảo mật cho bạn, đăng nhập chỉ mở các trang của Sclera.</string>
+    <string name="minutes_left">phút còn lại</string>
+    <string name="seconds_left">giây còn lại</string>
 </resources>

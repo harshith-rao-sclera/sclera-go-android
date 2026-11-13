@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">Masukkan alamat email yang valid</string>
     <string name="login_tagline">Kenali setiap aset di lokasi.</string>
     <string name="sso_error_untrusted">Demi keamanan Anda, proses masuk hanya membuka halaman dari Sclera.</string>
+    <string name="minutes_left">menit tersisa</string>
+    <string name="seconds_left">detik tersisa</string>
 </resources>

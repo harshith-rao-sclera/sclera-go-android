@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">Geben Sie eine gültige E-Mail-Adresse ein</string>
     <string name="login_tagline">Jedes Asset vor Ort im Blick.</string>
     <string name="sso_error_untrusted">Zu Ihrer Sicherheit öffnet die Anmeldung nur Seiten von Sclera.</string>
+    <string name="minutes_left">Minuten übrig</string>
+    <string name="seconds_left">Sekunden übrig</string>
 </resources>

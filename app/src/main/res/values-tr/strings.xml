@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">Geçerli bir e-posta adresi girin</string>
     <string name="login_tagline">Sahadaki her varlığı tanıyın.</string>
     <string name="sso_error_untrusted">Güvenliğiniz için oturum açma yalnızca Sclera sayfalarını açar.</string>
+    <string name="minutes_left">dakika kaldı</string>
+    <string name="seconds_left">saniye kaldı</string>
 </resources>

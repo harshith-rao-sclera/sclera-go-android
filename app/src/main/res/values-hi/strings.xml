@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">मान्य ईमेल पता दर्ज करें</string>
     <string name="login_tagline">साइट पर हर एसेट को जानें।</string>
     <string name="sso_error_untrusted">आपकी सुरक्षा के लिए, साइन-इन केवल Sclera के पेज खोलता है।</string>
+    <string name="minutes_left">मिनट शेष</string>
+    <string name="seconds_left">सेकंड शेष</string>
 </resources>

@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">올바른 이메일 주소를 입력하세요</string>
     <string name="login_tagline">현장의 모든 자산을 한눈에.</string>
     <string name="sso_error_untrusted">보안을 위해 로그인은 Sclera 페이지만 엽니다.</string>
+    <string name="minutes_left">분 남음</string>
+    <string name="seconds_left">초 남음</string>
 </resources>

@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">Wpisz prawidłowy adres e-mail</string>
     <string name="login_tagline">Poznaj każdy zasób na miejscu.</string>
     <string name="sso_error_untrusted">Dla Twojego bezpieczeństwa logowanie otwiera tylko strony Sclera.</string>
+    <string name="minutes_left">minut do końca</string>
+    <string name="seconds_left">sekund do końca</string>
 </resources>

@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">Введите действительный адрес электронной почты</string>
     <string name="login_tagline">Знайте каждый актив на объекте.</string>
     <string name="sso_error_untrusted">В целях безопасности вход открывает только страницы Sclera.</string>
+    <string name="minutes_left">мин осталось</string>
+    <string name="seconds_left">сек осталось</string>
 </resources>

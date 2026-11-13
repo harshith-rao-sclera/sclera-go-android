@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">Saisissez une adresse e-mail valide</string>
     <string name="login_tagline">Connaissez chaque équipement sur site.</string>
     <string name="sso_error_untrusted">Pour votre sécurité, la connexion n’ouvre que des pages Sclera.</string>
+    <string name="minutes_left">minutes restantes</string>
+    <string name="seconds_left">secondes restantes</string>
 </resources>

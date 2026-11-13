@@ -22,4 +22,6 @@
     <string name="login_error_email_invalid">請輸入有效的電子郵件地址</string>
     <string name="login_tagline">掌握現場每一項資產。</string>
     <string name="sso_error_untrusted">為了您的安全，登入僅會開啟 Sclera 的頁面。</string>
+    <string name="minutes_left">分鐘剩餘</string>
+    <string name="seconds_left">秒剩餘</string>
 </resources>
