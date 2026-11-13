@@ -4,6 +4,9 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics.plugin)
+    alias(libs.plugins.firebase.perf.plugin)
     jacoco
     alias(libs.plugins.dependency.check)
 }
@@ -21,6 +24,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // Firebase collection is on in release only; debug builds stay quiet (AndroidManifest meta-data).
+        manifestPlaceholders["telemetryEnabled"] = "false"
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -32,6 +38,7 @@ android {
             enableUnitTestCoverage = true
         }
         release {
+            manifestPlaceholders["telemetryEnabled"] = "true"
             // Production.
             buildConfigField("String", "ACCOUNTS_URL", "\"https://accounts.sclera.com\"")
             buildConfigField("String", "APP_URL", "\"https://app.sclera.com\"")
@@ -81,6 +88,7 @@ dependencies {
     implementation(libs.exifinterface)
     // Bluetooth / Wi-Fi / access point scanning (scan/ package)
     implementation(libs.core.ktx)
+    implementation(libs.core.splashscreen)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     // Dependency injection
@@ -91,6 +99,11 @@ dependencies {
     implementation(libs.androidx.webkit)
     implementation(libs.retrofit)
     implementation(libs.okhttp)
+    // Crash reports, anonymous usage events and performance traces (see domain/telemetry; release builds only)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.perf)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)

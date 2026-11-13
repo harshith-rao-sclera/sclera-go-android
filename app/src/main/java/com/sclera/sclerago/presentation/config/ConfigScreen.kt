@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.pageGutter
 import android.annotation.SuppressLint
@@ -164,7 +165,7 @@ fun ConfigScreen(vm: AppViewModel) {
             s.toastOn,
             Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp),
             enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut(),
-        ) { Toast(s.toast) }
+        ) { Toast(s.toast.asString()) }
     }
 }
 

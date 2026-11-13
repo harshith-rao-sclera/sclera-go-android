@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
@@ -16,11 +17,16 @@ import com.sclera.sclerago.presentation.theme.Txt
 
 /** A bottom sheet over a dimmed backdrop. Back and a tap on the backdrop close it. */
 @Composable
-internal fun BottomSheet(onDismiss: () -> Unit, maxHeightFraction: Float = 0.92f, content: @Composable ColumnScope.() -> Unit) {
+internal fun BottomSheet(
+    onDismiss: () -> Unit,
+    maxHeightFraction: Float = 0.92f,
+    background: Color = C.Surface,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     BackHandler(onBack = onDismiss)
     Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onDismiss).blockSwipe().imePadding()) {
         Column(
-            sheetFrame(C.Surface, heightFraction = maxHeightFraction),
+            sheetFrame(background, heightFraction = maxHeightFraction),
         ) {
             if (isTablet()) Spacer(Modifier.height(12.dp)) else SheetHandle(Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp, bottom = 4.dp))
             content()

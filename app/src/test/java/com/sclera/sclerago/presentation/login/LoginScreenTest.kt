@@ -131,6 +131,43 @@ class LoginScreenTest {
         compose.onNodeWithTag(LoginTags.ERROR).assertDoesNotExist()
     }
 
+    private fun assertEmailStepShown() {
+        compose.onNodeWithTag(LoginTags.EMAIL).assertIsDisplayed()
+        compose.onNodeWithTag(LoginTags.CONTINUE).assertIsDisplayed()
+        compose.onNodeWithTag(LoginTags.TAGLINE).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.login_title)).assertIsDisplayed()
+    }
+
+    private fun assertInvalidEmailShowsError() {
+        compose.onNodeWithTag(LoginTags.EMAIL).performTextInput("not-an-email")
+        compose.onNodeWithTag(LoginTags.CONTINUE).performClick()
+        compose.onNodeWithTag(LoginTags.ERROR).assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun phone_showsEmailStepAndValidates() {
+        show()
+        assertEmailStepShown()
+        assertInvalidEmailShowsError()
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h1280dp")
+    fun tabletPortrait_showsEmailStepAndValidates() {
+        show()
+        assertEmailStepShown()
+        assertInvalidEmailShowsError()
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun tabletLandscape_showsEmailStepAndValidates() {
+        show()
+        assertEmailStepShown()
+        assertInvalidEmailShowsError()
+    }
+
     @Test
     @Config(qualifiers = "fr")
     fun rendersInDeviceLanguage() {

@@ -13,11 +13,14 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
+/** Why a property can't be added. */
+enum class PropertyProblem { NAME_REQUIRED, TYPE_REQUIRED, DUPLICATE }
+
 /** Why a property called [name] of [type] can't be added, or null when it can. */
-fun propertyProblem(name: String, type: String, existing: List<Property>): String? = when {
-    name.isBlank() -> "Enter the property name."
-    type.isBlank() -> "Choose the property type."
-    existing.any { it.name.equals(name.trim(), ignoreCase = true) } -> "There is already a property called ${name.trim()}."
+fun propertyProblem(name: String, type: String, existing: List<Property>): PropertyProblem? = when {
+    name.isBlank() -> PropertyProblem.NAME_REQUIRED
+    type.isBlank() -> PropertyProblem.TYPE_REQUIRED
+    existing.any { it.name.equals(name.trim(), ignoreCase = true) } -> PropertyProblem.DUPLICATE
     else -> null
 }
 
@@ -29,12 +32,12 @@ class ObservePropertiesUseCase @Inject constructor(private val repo: PropertyRep
 class AddPropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
     sealed interface Result {
         data class Added(val property: Property) : Result
-        data class Invalid(val message: String) : Result
+        data class Invalid(val problem: PropertyProblem, val name: String) : Result
     }
 
     operator fun invoke(draft: Property): Result {
         val clean = draft.name.trim()
-        propertyProblem(clean, draft.type, repo.properties.value)?.let { return Result.Invalid(it) }
+        propertyProblem(clean, draft.type, repo.properties.value)?.let { return Result.Invalid(it, clean) }
         val p = draft.copy(id = "p${System.currentTimeMillis()}", name = clean, gps = false)
         repo.add(p)
         return Result.Added(p)
@@ -83,4 +86,7 @@ class PropertyUseCases @Inject constructor(
     val sync: SyncPropertiesUseCase,
     val observeOnboarding: ObserveOnboardingUseCase,
     val setOnboarding: SetOnboardingUseCase,
+    val summaries: ObservePropertySummariesUseCase,
+    val filter: FilterPropertySummariesUseCase,
+    val validateImport: ValidateImportFileUseCase,
 )

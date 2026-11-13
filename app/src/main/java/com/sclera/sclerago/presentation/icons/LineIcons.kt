@@ -77,6 +77,7 @@ object Icons {
     val ChevronDown = Ico(s("M6 9l6 6 6-6"))
     val ChevronLeft = Ico(s("M15 6l-6 6 6 6"))
     val ChevronRight = Ico(s("M9 6l6 6-6 6"))
+    val ChevronUpDown = Ico(s("M8 9l4-4 4 4M8 15l4 4 4-4"))
     val Bluetooth = Ico(s("M7 7l10 10-5 5V2l5 5L7 17"))
     val Wifi = Ico(
         s("M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"),
@@ -115,6 +116,7 @@ object Icons {
     val Check = Ico(s("M20 6L9 17l-5-5"))
     val CheckCircle = Ico(s(circle(12f, 12f, 9f)), s("M8 12l3 3 5-6"))
     val ShieldCheck = Ico(s("M12 3L5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"), s("M9 12l2 2 4-4"))
+    val ShieldX = Ico(s("M12 3L5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"), s("M9.5 9.5l5 5M14.5 9.5l-5 5"))
     val Send = Ico(s("M21 3L3 10.5l7 2.5 2.5 7z"), s("M21 3L10 13"))
     val Pencil = Ico(s("M4 20h4L19 9l-4-4L4 16z"), s("M13.5 6.5l4 4"))
     val Alert = Ico(s(circle(12f, 12f, 9f)), s("M12 7v6M12 16.5v.5"))

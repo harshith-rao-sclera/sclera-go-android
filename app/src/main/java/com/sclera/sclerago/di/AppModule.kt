@@ -1,6 +1,7 @@
 package com.sclera.sclerago.di
 
 import android.content.Context
+import com.sclera.sclerago.data.local.AndroidMotionPreference
 import com.sclera.sclerago.data.local.AndroidNetworkMonitor
 import com.sclera.sclerago.data.local.AuthStore
 import com.sclera.sclerago.data.local.SecretCipher
@@ -10,6 +11,7 @@ import com.sclera.sclerago.data.remote.AuthApi
 import com.sclera.sclerago.data.remote.AuthorizedCaller
 import com.sclera.sclerago.data.repository.AuthRepositoryImpl
 import com.sclera.sclerago.domain.repository.AuthRepository
+import com.sclera.sclerago.domain.repository.MotionPreference
 import com.sclera.sclerago.domain.repository.NetworkMonitor
 import com.sclera.sclerago.di.MainDispatcher
 import dagger.Module
@@ -52,4 +54,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideNetworkMonitor(@ApplicationContext context: Context): NetworkMonitor = AndroidNetworkMonitor(context)
+
+    @Provides
+    @Singleton
+    fun provideMotionPreference(@ApplicationContext context: Context): MotionPreference = AndroidMotionPreference(context)
 }

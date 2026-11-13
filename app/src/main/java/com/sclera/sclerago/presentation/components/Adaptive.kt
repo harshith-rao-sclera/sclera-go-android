@@ -64,3 +64,6 @@ fun BoxScope.sheetFrame(background: Color, radius: Dp = 22.dp, heightFraction: F
         .then(height).clip(shape).background(background).then(edge).noRippleClick { }
         .then(if (tablet) Modifier else Modifier.navigationBarsPadding())
 }
+
+/** Content of a page: as wide as the screen up to [ReadableWidth], centred inside a column that centres its children. */
+fun Modifier.readableWidth(): Modifier = widthIn(max = ReadableWidth).fillMaxWidth()

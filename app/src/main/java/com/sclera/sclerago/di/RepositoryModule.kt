@@ -9,6 +9,7 @@ import com.sclera.sclerago.data.repository.AccessRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.data.repository.FileRepositoryImpl
+import com.sclera.sclerago.data.repository.LocalAutofillRepository
 import com.sclera.sclerago.data.repository.LocationRepositoryImpl
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
@@ -16,6 +17,7 @@ import com.sclera.sclerago.data.repository.ValidationRepositoryImpl
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
+import com.sclera.sclerago.domain.repository.AutofillRepository
 import com.sclera.sclerago.domain.repository.FileRepository
 import com.sclera.sclerago.domain.repository.LocationRepository
 import com.sclera.sclerago.domain.repository.OnboardingRepository
@@ -44,6 +46,7 @@ abstract class RepositoryModule {
     @Binds abstract fun onboarding(impl: OnboardingRepositoryImpl): OnboardingRepository
     @Binds abstract fun validation(impl: ValidationRepositoryImpl): ValidationRepository
     @Binds abstract fun access(impl: AccessRepositoryImpl): AccessRepository
+    @Binds abstract fun autofill(impl: LocalAutofillRepository): AutofillRepository
 
     // Everything above that holds user data is also wiped on sign-out (ClearUserDataUseCase).
     @Binds @IntoSet abstract fun clearAssets(impl: AssetRepositoryImpl): UserDataCleaner

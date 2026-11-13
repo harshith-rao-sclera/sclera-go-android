@@ -5,33 +5,27 @@ package com.sclera.sclerago.domain.model
 /**
  * What a group's people can do. [needsAllProperties] ones only make sense with access to every
  * property. [color] / [iconPath] (24×24 SVG path) are the permission's chip colour and icon.
+ * Their user-facing names and descriptions live in string resources (presentation).
  */
 enum class Permission(
-    val title: String,
-    val description: String,
     val color: Long,
     val iconPath: String,
     val needsAllProperties: Boolean = false,
 ) {
     COLLECT(
-        "Collect", "Add, edit and delete assets; upload files and media; review assets read from files; submit.",
         0xFF6FA8E6, "M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z",
     ),
     VALIDATE(
-        "Validate", "Run validations; accept or dismiss fixes; sign assets off or send them back; merge duplicates.",
         0xFF5DBE8C, "M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3zM9 12l2 2 4-4",
     ),
     CONFIGURE(
-        "Configure", "Set up a property: buildings, floors, locations, fields and types.",
         0xFFEE9A4D, "M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M8 15v4",
     ),
     MANAGE_PROPERTIES(
-        "Manage properties", "Create, edit and delete properties. Needs access to all properties.",
         0xFFAE9CE6, "M5 21V4a1 1 0 011-1h12a1 1 0 011 1v17M3 21h18M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2",
         needsAllProperties = true,
     ),
     MANAGE_ACCESS(
-        "Manage access", "Create groups, put people in groups and choose who can open which property. Needs access to all properties.",
         0xFFF5B800, "M21 2l-2 2m-7.6 7.6a5.5 5.5 0 11-7.8 7.8 5.5 5.5 0 017.8-7.8zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4",
         needsAllProperties = true,
     ),
@@ -57,14 +51,14 @@ data class Group(
             .firstOrNull { locked || it in permissions }
 }
 
-/** Each person is in one group, for all properties or only [propertyIds]. [lastSeen] is display text. */
+/** Each person is in one group, for all properties or only [propertyIds]. [lastSeenAt] is epoch millis (null = never). */
 data class Person(
     val id: String,
     val email: String,
     val groupId: String,
     val allProperties: Boolean,
     val propertyIds: Set<String> = emptySet(),
-    val lastSeen: String? = null,
+    val lastSeenAt: Long? = null,
 ) {
     val name: String get() = email.substringBefore('@')
 }

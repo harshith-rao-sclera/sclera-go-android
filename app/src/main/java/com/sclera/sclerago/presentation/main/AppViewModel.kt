@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.main
 
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -8,9 +9,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AuthState
-import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.Device
@@ -18,6 +19,7 @@ import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.LocPick
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
@@ -43,7 +45,6 @@ import com.sclera.sclerago.domain.usecase.config.ToggleFieldVisibleUseCase
 import com.sclera.sclerago.domain.usecase.location.ImportBuildingsUseCase
 import com.sclera.sclerago.domain.usecase.location.LocationUseCases
 import com.sclera.sclerago.domain.usecase.media.FileUseCases
-import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.validation.ValidationUseCases
 import com.sclera.sclerago.domain.usecase.validation.forProperty
@@ -54,7 +55,9 @@ import com.sclera.sclerago.domain.validation.SavedValidation
 import com.sclera.sclerago.domain.validation.TEMPLATES
 import com.sclera.sclerago.domain.validation.ValJob
 import com.sclera.sclerago.domain.validation.ValScope
+import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.observedIn
+import com.sclera.sclerago.presentation.model.viaRes
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.services.media.formatSize
@@ -64,7 +67,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.OutputStream
 import javax.inject.Inject
 
 enum class Tab { BT, NET, ASSETS, CAMERA, FILE }
@@ -103,9 +105,6 @@ data class UiState(
     /** Bluetooth / Network: true = "Scan" segment, false = "Assets" segment. */
     val btScan: Boolean = true,
     val netScan: Boolean = true,
-    val statusFilter: Map<Tab, Status?> = emptyMap(),
-    val q: String = "",
-    val searchOpen: Boolean = false,
     val specLocs: List<String> = listOf("location1"),
     val specPath: List<String> = listOf("building 1", "floor 1", "location1"),
     val specWhere: String = "location1 · floor 1",
@@ -114,7 +113,6 @@ data class UiState(
     val sheetFor: SheetFor = SheetFor.FILTER,
     val prop: String = "p1",
     val propQ: String = "",
-    val pick: Set<Int> = emptySet(),
     /** Scanned devices ticked on the Bluetooth / Network scan list, to add as assets together. */
     val devPick: Set<String> = emptySet(),
     /**
@@ -140,10 +138,8 @@ data class UiState(
     /** Set when the File tab should launch the system file manager; the UI clears it. */
     val pendingFilePicker: Boolean = false,
     val revOff: Set<String> = emptySet(),
-    val toast: String = "",
+    val toast: UiText = UiText.Raw(""),
     val toastOn: Boolean = false,
-    /** Bulk delete waiting for confirmation. */
-    val confirmDeleteSel: Boolean = false,
     /** Side menu (header menu button). */
     val menuOpen: Boolean = false,
     // ---- Validation page
@@ -160,18 +156,12 @@ data class UiState(
     val cfgPage: CfgPage = CfgPage.FIELDS,
     // ---- Property list / People and access (side menu)
     val adminPage: AdminPage? = null,
-    val propListQ: String = "",
-    val addPropOpen: Boolean = false,
-    val importOpen: Boolean = false,
 )
-
-data class StatusChip(val status: Status?, val label: String, val count: Int, val selected: Boolean)
-data class AssetListData(val items: List<Asset>, val chips: List<StatusChip>, val emptyText: String)
 
 data class ReviewItem(
     val id: String,
     val name: String,
-    val sub: String,
+    val sub: UiText,
     val ready: Boolean,
     val on: Boolean,
     val ext: String = "",
@@ -224,7 +214,7 @@ class AppViewModel @Inject constructor(
     private val saved = validationUseCases.observeSaved().observedIn(viewModelScope)
 
     private var toastJob: Job? = null
-    fun flash(msg: String) {
+    fun flash(msg: UiText) {
         set { copy(toast = msg, toastOn = true) }
         toastJob?.cancel()
         toastJob = viewModelScope.launch {
@@ -233,6 +223,9 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    /** Message not yet moved to string resources (Validation and Configuration pages). */
+    fun flash(msg: String) = flash(UiText.Raw(msg))
+
     // ---------- Derived data ----------
 
     /** The current property's assets, with every edit applied. */
@@ -240,17 +233,13 @@ class AppViewModel @Inject constructor(
 
     val properties: List<Property> get() = propertyFlow.value
 
-    /** Values saved from an asset's details form, if any. */
-    fun savedDetails(id: Int): Map<String, String>? = catalog.value.savedDetails[id]
-
-    /** Code and reference fields an existing asset came with. */
-    fun assetDetails(id: Int): AssetDetails? = assetUseCases.details(id)
-
-    private fun inLoc(a: Asset): Boolean = when (state.loc) {
-        LocFilter.ALL -> true
-        LocFilter.SPEC -> a.loc != null && a.loc in state.specLocs
-        LocFilter.NONE -> a.loc == null
-    }
+    /** Which assets the lists show by location. */
+    val locationFilter: LocationFilter
+        get() = when (state.loc) {
+            LocFilter.ALL -> LocationFilter.All
+            LocFilter.SPEC -> LocationFilter.Specific(state.specLocs)
+            LocFilter.NONE -> LocationFilter.Unmapped
+        }
 
     private val tgtLoc: String?
         get() = when (state.loc) {
@@ -265,38 +254,10 @@ class AppViewModel @Inject constructor(
             LocFilter.ALL -> "location1 · floor 1"
         }
 
-    fun listFor(tab: Tab): AssetListData {
-        val s = state
-        val ql = s.q.trim().lowercase()
-        val srcs: Set<Source>? = when (tab) {
-            Tab.BT -> setOf(Source.BT)
-            Tab.NET -> setOf(Source.WIFI, Source.AP)
-            Tab.CAMERA -> setOf(Source.CAMERA)
-            Tab.FILE -> setOf(Source.FILE)
-            Tab.ASSETS -> null
-        }
-        val base = assets
-            .filter { srcs == null || it.src in srcs }
-            .filter { inLoc(it) }
-            .filter { ql.isEmpty() || "${it.name} ${it.detail}".lowercase().contains(ql) }
-        val sf = s.statusFilter[tab]
-        val items = base.filter { sf == null || it.st == sf }
-        val chips = listOf(StatusChip(null, "All", base.size, sf == null)) +
-            Status.entries.filter { it != Status.INPUT }.map { st ->
-                StatusChip(st, st.label, base.count { it.st == st }, sf == st)
-            }
-        val emptyText = when {
-            ql.isNotEmpty() -> "No asset matches “${s.q.trim()}”."
-            sf != null -> "No assets with this status here."
-            tab == Tab.ASSETS -> "Scan, photograph or import assets with the tabs below."
-            else -> "Nothing onboarded this way here yet."
-        }
-        return AssetListData(items, chips, emptyText)
-    }
-
     /** The current property's name; empty until the properties have loaded. */
     val propName: String get() = (properties.firstOrNull { it.id == state.prop } ?: properties.firstOrNull())?.name.orEmpty()
-    val specPathShown: List<String> get() = if (state.prop != "p1") listOf("Choose location") else state.specPath
+    /** The location tab path, or null when the current property has none chosen yet. */
+    val specPathShown: List<String>? get() = if (state.prop != "p1") null else state.specPath
 
     val detailAsset: Asset?
         get() = if (state.newAsset) {
@@ -334,15 +295,9 @@ class AppViewModel @Inject constructor(
             Tab.FILE -> fileSub
         }
     private val sheetOpen get() = state.sheet != Sheet.NONE
-    val selOn: Boolean get() = pickedIds.isNotEmpty() && listy && !showDetail && !sheetOpen
-    val showFabs: Boolean get() = listy && !showDetail && !sheetOpen && !selOn && !devSelOn
 
-    /** Only ids that still exist in the current property count as picked. */
-    val pickedIds: Set<Int> get() = state.pick.filter { id -> assets.any { it.id == id } }.toSet()
-
-    private val curItems: List<Asset> get() = if (listy) listFor(state.tab).items else emptyList()
-    val allPicked: Boolean get() = curItems.isNotEmpty() && curItems.all { it.id in pickedIds }
-    val curCount: Int get() = curItems.size
+    /** The asset lists are on screen and nothing covers them (so selecting and searching make sense). */
+    val listInteractive: Boolean get() = listy && !showDetail && !sheetOpen
 
     fun propRows(): List<Pair<Property, String>> {
         val ql = state.propQ.trim().lowercase()
@@ -427,7 +382,7 @@ class AppViewModel @Inject constructor(
         get() = state.captures.filter { it.id in state.camSel }.map { m ->
             ReviewItem(
                 id = m.id, name = captureName(m),
-                sub = if (m.video) "Video ${m.durationText} · name and details to add" else "Photo · name and details to add",
+                sub = if (m.video) UiText.Res(R.string.review_video_sub, listOf(m.durationText)) else UiText.Res(R.string.review_photo_sub),
                 ready = false, on = m.id !in state.revOff, media = m,
             )
         }
@@ -436,7 +391,7 @@ class AppViewModel @Inject constructor(
     val fileReview: List<ReviewItem>
         get() = state.importFiles.map { f ->
             ReviewItem(
-                id = f.id, name = f.baseName, sub = "${f.name} · ${formatSize(f.size)}", ready = false,
+                id = f.id, name = f.baseName, sub = UiText.Res(R.string.review_file_sub, listOf(f.name, formatSize(f.size))), ready = false,
                 on = f.id !in state.revOff, ext = f.ext, extColor = extColor(f), file = f.name,
             )
         }
@@ -457,7 +412,7 @@ class AppViewModel @Inject constructor(
     fun goTab(t: Tab) {
         val from = state.tab
         set {
-            var o = copy(tab = t, assetId = null, newAsset = false, newDevice = null, newMedia = emptyList(), pick = emptySet(), devPick = emptySet(), devAll = false, devSkip = emptySet())
+            var o = copy(tab = t, assetId = null, newAsset = false, newDevice = null, newMedia = emptyList(), devPick = emptySet(), devAll = false, devSkip = emptySet())
             if (t == Tab.CAMERA) o = o.copy(camOpen = true, revCam = false)
             if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = true)
             // Scanning tabs always open on their Scan segment, not their asset list.
@@ -489,7 +444,7 @@ class AppViewModel @Inject constructor(
         val s = state
         if (s.tab == Tab.CAMERA && s.camOpen && !s.revCam && s.sheet == Sheet.NONE && s.pv == null) return
         goTab(Tab.CAMERA)
-        set { copy(sheet = Sheet.NONE, pv = null, searchOpen = false) }
+        set { copy(sheet = Sheet.NONE, pv = null) }
     }
 
     fun tapLocTab(f: LocFilter) {
@@ -504,7 +459,7 @@ class AppViewModel @Inject constructor(
     fun openProp() = set { copy(sheet = Sheet.PROP) }
 
     // Side menu
-    fun openMenu() = set { copy(menuOpen = true, searchOpen = false) }
+    fun openMenu() = set { copy(menuOpen = true) }
     fun closeMenu() = set { copy(menuOpen = false) }
     fun switchPropertyFromMenu() = set { copy(menuOpen = false, sheet = Sheet.PROP) }
     fun pickMenu(item: MenuItem) {
@@ -515,18 +470,19 @@ class AppViewModel @Inject constructor(
             MenuItem.ASSETS -> { closeAdmin(); goTab(Tab.ASSETS) }
             MenuItem.VALIDATION -> { closeAdmin(); openValidation() }
             MenuItem.CONFIGURATION -> { closeAdmin(); openConfig() }
-            else -> flash(item.name.lowercase().replaceFirstChar { it.uppercase() } + " is coming soon")
+            MenuItem.AUDIT -> comingSoon(R.string.menu_audit)
+            MenuItem.SURVEY -> comingSoon(R.string.menu_survey)
+            MenuItem.INTEGRATION -> comingSoon(R.string.menu_integration)
         }
     }
 
+    private fun comingSoon(@StringRes label: Int) = flash(UiText.Res(R.string.menu_coming_soon, listOf(UiText.Res(label))))
+
     // Property list / People and access
     fun openAdmin(page: AdminPage) = set {
-        copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, assetId = null, newAsset = false, searchOpen = false, propListQ = "")
+        copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, assetId = null, newAsset = false)
     }
-    fun closeAdmin() = set { copy(adminPage = null, addPropOpen = false, importOpen = false) }
-    fun setPropListQ(v: String) = set { copy(propListQ = v) }
-    val propertyList: List<Property>
-        get() = state.propListQ.trim().lowercase().let { q -> properties.filter { q.isEmpty() || q in it.name.lowercase() } }
+    fun closeAdmin() = set { copy(adminPage = null) }
 
     /** Opening a property from the list makes it the current one and shows its assets. */
     fun openPropertyFromList(id: String) {
@@ -534,39 +490,14 @@ class AppViewModel @Inject constructor(
         pickProp(id)
         goTab(Tab.ASSETS)
     }
-    fun openAddProperty() = set { copy(addPropOpen = true) }
-    fun closeAddProperty() = set { copy(addPropOpen = false) }
-
-    /** Adds [draft] as a new property; returns an error message instead when it can't be added. */
-    fun addProperty(draft: Property): String? = when (val r = propertyUseCases.add(draft)) {
-        is AddPropertyUseCase.Result.Invalid -> r.message
-        is AddPropertyUseCase.Result.Added -> {
-            set { copy(addPropOpen = false) }
-            flash("${r.property.name} added")
-            null
-        }
-    }
-
-    /** Assets in property [id] (any status). */
-    fun assetCount(id: String): Int = catalog.value.countIn(id)
-    fun openImport() = set { copy(importOpen = true) }
-    fun closeImport() = set { copy(importOpen = false) }
-    fun importProperties(fileName: String) {
-        closeImport()
-        flash("“$fileName” uploaded · importing isn’t connected to the server yet")
-    }
-
-    /** Writes the sample spreadsheet for importing properties. */
-    fun writePropertyTemplate(out: OutputStream) = fileUseCases.writePropertyTemplate(out)
-
     fun closeProp() = set { copy(sheet = Sheet.NONE, propQ = "") }
     fun setPropQ(v: String) = set { copy(propQ = v) }
     fun pickProp(id: String) {
         val changed = id != state.prop
-        set { copy(prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, pick = emptySet(), propQ = "") }
+        set { copy(prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, propQ = "") }
         // The new property may not onboard over the tab that's open.
         if (state.tab !in navTabs) goTab(Tab.ASSETS)
-        if (changed) flash("Showing $propName")
+        if (changed) flash(UiText.Res(R.string.property_showing, listOf(propName)))
     }
 
     fun openLocFilter() = set { copy(sheet = Sheet.LOC, sheetFor = SheetFor.FILTER) }
@@ -574,28 +505,23 @@ class AppViewModel @Inject constructor(
     fun assignSel() = set { copy(sheet = Sheet.LOC, sheetFor = SheetFor.BULK) }
     fun closeLoc() = set { copy(sheet = Sheet.NONE) }
 
+    /** A location chosen for the open asset or for the lists' location filter (the selection is the list's, see [AssetListViewModel.assignSelected]). */
     fun pickLoc(r: LocPick) {
-        val v = LocValue(if (r.locs.size == 1) r.locs[0] else r.label, r.where)
+        val v = locValue(r)
         val detail = detailAsset
-        when {
-            state.sheetFor == SheetFor.ASSET && detail != null && detail.id > 0 -> {
-                set { copy(sheet = Sheet.NONE) }
-                assetUseCases.assignLocation(listOf(detail.id), v)
-            }
-            state.sheetFor == SheetFor.BULK -> {
-                val ids = pickedIds
-                set { copy(sheet = Sheet.NONE, pick = emptySet()) }
-                assetUseCases.assignLocation(ids, v)
-                flash(plural(ids.size, "asset", "assets") + " assigned to " + r.label)
-            }
-            else -> set {
-                copy(
-                    sheet = Sheet.NONE, loc = LocFilter.SPEC, specLocs = r.locs, specPath = r.path.ifEmpty { listOf(r.label) },
-                    specWhere = r.where, specSel = r.id, assetId = null,
-                )
-            }
+        if (state.sheetFor == SheetFor.ASSET && detail != null && detail.id > 0) {
+            set { copy(sheet = Sheet.NONE) }
+            assetUseCases.assignLocation(listOf(detail.id), v)
+        } else set {
+            copy(
+                sheet = Sheet.NONE, loc = LocFilter.SPEC, specLocs = r.locs, specPath = r.path.ifEmpty { listOf(r.label) },
+                specWhere = r.where, specSel = r.id, assetId = null,
+            )
         }
     }
+
+    /** What a picked location gives an asset. */
+    fun locValue(r: LocPick) = LocValue(if (r.locs.size == 1) r.locs[0] else r.label, r.where)
 
     fun setBtScan(scan: Boolean) {
         set { copy(btScan = scan, devPick = emptySet(), devAll = false, devSkip = emptySet()) }
@@ -679,64 +605,14 @@ class AppViewModel @Inject constructor(
         val src = scanSource
         val existing = assetUseCases.matchDevices(listOf(d), src, assets)[d.id]
         set {
-            if (existing != null) copy(assetId = existing, newAsset = false, newDevice = null, searchOpen = false, pick = emptySet())
-            else copy(newAsset = true, newDevice = d, newSrc = src, newMedia = emptyList(), assetId = null, searchOpen = false, pick = emptySet())
+            if (existing != null) copy(assetId = existing, newAsset = false, newDevice = null)
+            else copy(newAsset = true, newDevice = d, newSrc = src, newMedia = emptyList(), assetId = null)
         }
     }
 
-    fun setStatusFilter(tab: Tab, st: Status?) = set { copy(statusFilter = statusFilter + (tab to st)) }
+    fun openAsset(id: Int) = set { copy(assetId = id, newAsset = false) }
 
-    fun togglePick(id: Int) = set {
-        val cur = pickedIds
-        copy(pick = if (id in cur) cur - id else cur + id, searchOpen = false)
-    }
-
-    fun openAsset(id: Int) {
-        if (pickedIds.isNotEmpty()) togglePick(id) else set { copy(assetId = id, newAsset = false, searchOpen = false) }
-    }
-
-    fun selAll() {
-        if (allPicked) set { copy(pick = emptySet()) } else {
-            val ids = curItems.map { it.id }
-            set { copy(pick = pickedIds + ids) }
-        }
-    }
-
-    fun clearPick() = set { copy(pick = emptySet()) }
-    fun validateSel() {
-        val ids = pickedIds
-        assetUseCases.setStatus(ids, Status.VALIDATED)
-        set { copy(pick = emptySet()) }
-        flash(plural(ids.size, "asset", "assets") + " validated")
-    }
-
-    /** Status change for one asset (from its detail screen). */
-    fun setAssetStatus(id: Int, st: Status) {
-        assetUseCases.setStatus(listOf(id), st)
-        flash("Asset " + st.label.lowercase())
-    }
-
-    fun submitSel() {
-        val ids = pickedIds
-        assetUseCases.setStatus(ids, Status.SUBMITTED)
-        set { copy(pick = emptySet()) }
-        flash(plural(ids.size, "asset", "assets") + " submitted")
-    }
-
-    fun askDeleteSel() = set { copy(confirmDeleteSel = true) }
-    fun cancelDeleteSel() = set { copy(confirmDeleteSel = false) }
-    fun deleteSel() {
-        val ids = pickedIds
-        assetUseCases.delete(ids)
-        set { copy(pick = emptySet(), confirmDeleteSel = false) }
-        flash(plural(ids.size, "asset", "assets") + " deleted")
-    }
-
-    fun openSearch() = set { copy(searchOpen = true) }
-    fun closeSearch() = set { copy(searchOpen = false, q = "") }
-    fun setQ(v: String) = set { copy(q = v) }
-
-    fun openNew() = set { copy(newAsset = true, newDevice = null, newSrc = Source.MANUAL, newMedia = emptyList(), assetId = null, searchOpen = false, pick = emptySet()) }
+    fun openNew() = set { copy(newAsset = true, newDevice = null, newSrc = Source.MANUAL, newMedia = emptyList(), assetId = null) }
     fun closeDetail() {
         // A camera shot that never became an asset is thrown away with the form.
         if (state.newAsset) fileUseCases.deleteOwned(state.newMedia)
@@ -749,21 +625,8 @@ class AppViewModel @Inject constructor(
         set {
             copy(
                 newAsset = true, newDevice = null, newSrc = Source.CAMERA, newMedia = media, assetId = null,
-                searchOpen = false, pick = emptySet(),
             )
         }
-    }
-
-    /** Save on an asset's details: keeps the values and moves it (back) to Draft. */
-    fun saveDraft(id: Int, values: Map<String, String>) {
-        assetUseCases.saveDetails(id, values, Status.DRAFT)
-        flash("Saved as draft")
-    }
-
-    /** Submit on an asset's details: keeps the values and locks it as Submitted. */
-    fun submitAsset(id: Int, values: Map<String, String>) {
-        assetUseCases.saveDetails(id, values, Status.SUBMITTED)
-        flash("Asset submitted · it can’t be edited now")
     }
 
     fun createAsset(
@@ -772,44 +635,37 @@ class AppViewModel @Inject constructor(
         media: List<Media> = emptyList(),
         values: Map<String, String> = emptyMap(),
         submit: Boolean = false,
-    ) {
+    ): CreateAssetUseCase.Via {
         val s = state
         val created = assetUseCases.create(
             name, detail, media, values, submit,
             place = AssetPlace(s.prop, tgtLoc, tgtWhere),
             captures = s.newMedia, device = s.newDevice, deviceSource = s.newSrc,
         )
-        val savedAs = if (submit) "Asset submitted" else "Asset added as draft"
+        val savedAs = UiText.Res(if (submit) R.string.asset_added_submitted else R.string.asset_added_draft)
         when (created.via) {
             // From the Camera tab: stay on the camera for the next one.
             CreateAssetUseCase.Via.CAMERA -> {
                 set { copy(newAsset = false, newMedia = emptyList()) }
-                flash("$savedAs · via Camera")
+                flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(Source.CAMERA.viaRes))))
             }
             // From a scan: stay on the scan.
             CreateAssetUseCase.Via.SCAN -> {
                 set { copy(newAsset = false, newDevice = null) }
-                flash("$savedAs · ${created.source.via}")
+                flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(created.source.viaRes))))
             }
             CreateAssetUseCase.Via.MANUAL -> {
-                set { copy(newAsset = false, tab = Tab.ASSETS, statusFilter = statusFilter + (Tab.ASSETS to null)) }
+                set { copy(newAsset = false, tab = Tab.ASSETS) }
                 flash(savedAs)
             }
         }
+        return created.via
     }
 
     fun deleteAsset(id: Int) {
         assetUseCases.delete(listOf(id))
         set { copy(assetId = null) }
-        flash("Asset deleted")
-    }
-
-    fun saveDetail(id: Int, values: Map<String, String>) = assetUseCases.saveDetails(id, values)
-
-    /** Photos/videos from the asset's camera ("Add photo") attached to an existing asset. */
-    fun attachMedia(assetId: Int, media: List<Media>) {
-        if (!assetUseCases.attachMedia(assetId, media)) return
-        flash(plural(media.size, "item", "items") + " added to asset")
+        flash(UiText.Res(R.string.asset_deleted))
     }
 
     fun showPreview(p: Preview) = set { copy(pv = p) }
@@ -868,7 +724,7 @@ class AppViewModel @Inject constructor(
                 captures = captures.filter { it.id !in used },
             )
         }
-        flash(plural(made.size, "asset", "assets") + " added · details needed")
+        flash(UiText.Plural(R.plurals.assets_added_details, made.size))
     }
 
     // ---------- Files ----------
@@ -905,7 +761,7 @@ class AppViewModel @Inject constructor(
             Asset(id, r.name, r.file, loc, where, Source.FILE, Status.INPUT, typeOf(r.name), prop)
         }
         set { copy(revOff = emptySet(), revFile = false, fileOpen = false, importFiles = emptyList()) }
-        flash(plural(made.size, "asset", "assets") + " imported · details needed")
+        flash(UiText.Plural(R.plurals.assets_imported_details, made.size))
     }
 
     // ---------- Validation ----------
@@ -934,7 +790,7 @@ class AppViewModel @Inject constructor(
     // Side-menu pages always return to the Assets tab. It is also selected on open, so the
     // pager slides there hidden behind the page rather than visibly on close.
     fun openValidation() = set {
-        copy(valOpen = true, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false, searchOpen = false, pick = emptySet())
+        copy(valOpen = true, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
     }
     fun closeValidation() = set {
         copy(
@@ -1068,7 +924,7 @@ class AppViewModel @Inject constructor(
     // ---------- Configuration ----------
 
     fun openConfig() = set {
-        copy(cfgOpen = true, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false, searchOpen = false, pick = emptySet())
+        copy(cfgOpen = true, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
     }
     fun closeConfig() = set { copy(cfgOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
 

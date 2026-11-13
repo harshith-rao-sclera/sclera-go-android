@@ -4,4 +4,11 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+
+    <!-- Launch splash: dark canvas and the brand symbol, handed over to the Compose intro. -->
+    <style name="Theme.Sclera.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/sclera_splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_symbol</item>
+        <item name="postSplashScreenTheme">@style/Theme.ScleraGo</item>
+    </style>
 </resources>
