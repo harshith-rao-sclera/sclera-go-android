@@ -415,4 +415,14 @@
     <string name="dash_clear_search_text">Zoektekst wissen</string>
     <string name="detail_add_photo">Foto toevoegen</string>
     <string name="detail_voice_fill">Velden met spraak invullen</string>
+    <string name="sync_title">Je gegevens worden gedownload</string>
+    <string name="sync_subtitle">Dit gebeurt alleen de eerste keer. Laat de app open tot het klaar is.</string>
+    <string name="sync_progress_description">Downloadvoortgang</string>
+    <string name="sync_progress_mb">%1$.1f MB van %2$.1f MB</string>
+    <string name="sync_failed_title">Je gegevens konden niet worden gedownload</string>
+    <string name="sync_failed_no_network">Je bent offline. Maak verbinding met internet en probeer het opnieuw.</string>
+    <string name="sync_failed_session">Je sessie is beëindigd. Meld je opnieuw aan om door te gaan.</string>
+    <string name="sync_failed_server">Er ging iets mis aan onze kant. Probeer het zo meteen opnieuw.</string>
+    <string name="sync_failed_storage">Er is niet genoeg vrije ruimte op dit apparaat. Maak opslagruimte vrij en probeer het opnieuw.</string>
+    <string name="sync_retry">Opnieuw proberen</string>
 </resources>

@@ -415,4 +415,14 @@
     <string name="dash_clear_search_text">Arama metnini temizle</string>
     <string name="detail_add_photo">Fotoğraf ekle</string>
     <string name="detail_voice_fill">Alanları sesle doldur</string>
+    <string name="sync_title">Verileriniz indiriliyor</string>
+    <string name="sync_subtitle">Bu yalnızca ilk seferde olur. Bitene kadar uygulamayı açık tutun.</string>
+    <string name="sync_progress_description">İndirme ilerlemesi</string>
+    <string name="sync_progress_mb">%1$.1f MB / %2$.1f MB</string>
+    <string name="sync_failed_title">Verileriniz indirilemedi</string>
+    <string name="sync_failed_no_network">Çevrimdışısınız. İnternete bağlanıp tekrar deneyin.</string>
+    <string name="sync_failed_session">Oturumunuz sona erdi. Devam etmek için yeniden giriş yapın.</string>
+    <string name="sync_failed_server">Bizim tarafımızda bir sorun oluştu. Lütfen biraz sonra tekrar deneyin.</string>
+    <string name="sync_failed_storage">Bu cihazda yeterli boş alan yok. Biraz yer açıp tekrar deneyin.</string>
+    <string name="sync_retry">Tekrar dene</string>
 </resources>

@@ -420,4 +420,14 @@
     <string name="dash_clear_search_text">Limpar texto da busca</string>
     <string name="detail_add_photo">Adicionar foto</string>
     <string name="detail_voice_fill">Preencher campos por voz</string>
+    <string name="sync_title">Baixando seus dados</string>
+    <string name="sync_subtitle">Isso só acontece na primeira vez. Mantenha o app aberto até terminar.</string>
+    <string name="sync_progress_description">Progresso do download</string>
+    <string name="sync_progress_mb">%1$.1f MB de %2$.1f MB</string>
+    <string name="sync_failed_title">Não foi possível baixar seus dados</string>
+    <string name="sync_failed_no_network">Você está offline. Conecte-se à internet e tente novamente.</string>
+    <string name="sync_failed_session">Sua sessão terminou. Entre novamente para continuar.</string>
+    <string name="sync_failed_server">Algo deu errado do nosso lado. Tente novamente em instantes.</string>
+    <string name="sync_failed_storage">Não há espaço livre suficiente neste dispositivo. Libere armazenamento e tente novamente.</string>
+    <string name="sync_retry">Tentar novamente</string>
 </resources>

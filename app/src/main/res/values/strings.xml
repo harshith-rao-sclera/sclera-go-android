@@ -423,4 +423,14 @@
     <string name="dash_clear_search_text">Clear search text</string>
     <string name="detail_add_photo">Add photo</string>
     <string name="detail_voice_fill">Fill fields by voice</string>
+    <string name="sync_title">Downloading your data</string>
+    <string name="sync_subtitle">This only happens the first time. Keep the app open until it finishes.</string>
+    <string name="sync_progress_description">Download progress</string>
+    <string name="sync_progress_mb">%1$.1f MB of %2$.1f MB</string>
+    <string name="sync_failed_title">Couldn’t download your data</string>
+    <string name="sync_failed_no_network">You’re offline. Connect to the internet and try again.</string>
+    <string name="sync_failed_session">Your session has ended. Sign in again to continue.</string>
+    <string name="sync_failed_server">Something went wrong on our side. Please try again in a moment.</string>
+    <string name="sync_failed_storage">There isn’t enough free space on this device. Free up some storage and try again.</string>
+    <string name="sync_retry">Try again</string>
 </resources>

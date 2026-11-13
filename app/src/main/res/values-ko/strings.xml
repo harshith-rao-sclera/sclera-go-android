@@ -392,4 +392,14 @@
     <string name="dash_clear_search_text">검색어 지우기</string>
     <string name="detail_add_photo">사진 추가</string>
     <string name="detail_voice_fill">음성으로 필드 채우기</string>
+    <string name="sync_title">데이터를 다운로드하는 중</string>
+    <string name="sync_subtitle">처음 한 번만 진행됩니다. 완료될 때까지 앱을 열어 두세요.</string>
+    <string name="sync_progress_description">다운로드 진행률</string>
+    <string name="sync_progress_mb">%1$.1f MB / %2$.1f MB</string>
+    <string name="sync_failed_title">데이터를 다운로드하지 못했습니다</string>
+    <string name="sync_failed_no_network">오프라인 상태입니다. 인터넷에 연결한 후 다시 시도하세요.</string>
+    <string name="sync_failed_session">세션이 종료되었습니다. 계속하려면 다시 로그인하세요.</string>
+    <string name="sync_failed_server">서버에서 문제가 발생했습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="sync_failed_storage">기기의 저장 공간이 부족합니다. 공간을 확보한 후 다시 시도하세요.</string>
+    <string name="sync_retry">다시 시도</string>
 </resources>

@@ -420,4 +420,14 @@
     <string name="dash_clear_search_text">Effacer le texte de recherche</string>
     <string name="detail_add_photo">Ajouter une photo</string>
     <string name="detail_voice_fill">Remplir les champs à la voix</string>
+    <string name="sync_title">Téléchargement de vos données</string>
+    <string name="sync_subtitle">Cela n’arrive qu’une seule fois. Gardez l’application ouverte jusqu’à la fin.</string>
+    <string name="sync_progress_description">Progression du téléchargement</string>
+    <string name="sync_progress_mb">%1$.1f Mo sur %2$.1f Mo</string>
+    <string name="sync_failed_title">Impossible de télécharger vos données</string>
+    <string name="sync_failed_no_network">Vous êtes hors ligne. Connectez-vous à Internet et réessayez.</string>
+    <string name="sync_failed_session">Votre session a expiré. Reconnectez-vous pour continuer.</string>
+    <string name="sync_failed_server">Un problème est survenu de notre côté. Veuillez réessayer dans un instant.</string>
+    <string name="sync_failed_storage">Il n’y a pas assez d’espace libre sur cet appareil. Libérez de l’espace et réessayez.</string>
+    <string name="sync_retry">Réessayer</string>
 </resources>
