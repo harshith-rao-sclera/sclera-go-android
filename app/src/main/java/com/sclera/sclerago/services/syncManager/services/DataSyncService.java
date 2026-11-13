@@ -509,6 +509,7 @@ public class DataSyncService {
     @SuppressLint("CheckResult")
     public void processChanges(BufferedReader bufferedReader, String lastSyncTimestamp, SyncMode mode) {
         dbConnection.execSQL("PRAGMA foreign_keys=OFF;");
+        Set<String> changedTables = new HashSet<>();
         try {
             String tablename = null;
             List<String> columns = new ArrayList<>();
@@ -534,6 +535,7 @@ public class DataSyncService {
                     System.out.println("STARTED");
                 } else if (trimmedLine.startsWith("TABLENAME:")) {
                     tablename = trimmedLine.substring("TABLENAME:".length()).trim();
+                    changedTables.add(tablename);
                     primaryKeyColumns = syncManager.getPrimaryKeyColumns(tablename);
                 } else if (trimmedLine.startsWith("COLUMNS:")) {
                     columns = Arrays.asList(trimmedLine.substring("COLUMNS:".length()).trim().split("\\|\\$\\|"));
@@ -609,6 +611,7 @@ public class DataSyncService {
             //isPullingChanges = false;
         } finally {
             dbConnection.execSQL("PRAGMA foreign_keys=ON;");
+            SyncUtils.notifyTablesChanged(changedTables);
         }
     }
 
