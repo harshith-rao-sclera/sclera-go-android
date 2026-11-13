@@ -20,6 +20,10 @@ import com.sclera.sclerago.domain.usecase.access.SavePersonUseCase
 import com.sclera.sclerago.domain.usecase.access.SeedSignedInUserUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.testutil.FakeAuthRepository
+import com.sclera.sclerago.testutil.FakeTimeProvider
+import com.sclera.sclerago.testutil.accessUseCases
+import com.sclera.sclerago.domain.usecase.access.GroupProblem
+import com.sclera.sclerago.domain.usecase.access.PersonProblem
 import com.sclera.sclerago.domain.usecase.access.groupProblem
 import com.sclera.sclerago.domain.usecase.access.personProblem
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -44,13 +48,10 @@ class AccessTest {
     /** What Hilt builds in the app, over a fresh in-memory repository. */
     private fun accessViewModel(): AccessViewModel {
         val repo = AccessRepositoryImpl()
-        val canDelete = CanDeleteGroupUseCase(repo)
         return AccessViewModel(
-            AccessUseCases(
-                ObserveGroupsUseCase(repo), ObservePeopleUseCase(repo), SeedSignedInUserUseCase(repo), SavePersonUseCase(repo),
-                RemovePersonUseCase(repo), SaveGroupUseCase(repo), canDelete, DeleteGroupUseCase(repo, canDelete),
-            ),
+            accessUseCases(repo),
             ObserveAuthStateUseCase(FakeAuthRepository()),
+            FakeTimeProvider(),
         )
     }
 
@@ -63,7 +64,7 @@ class AccessTest {
         assertNotNull(personProblem(ok.copy(email = ""), emptyList(), collectors))
         assertNotNull(personProblem(ok.copy(email = "not-an-email"), emptyList(), collectors))
         val existing = listOf(Person("u1", "NEW@sclera.com", collectors.id, true))
-        assertEquals("new@sclera.com already has access.", personProblem(ok, existing, collectors))
+        assertEquals(PersonProblem.EMAIL_TAKEN, personProblem(ok, existing, collectors))
         // Editing the same person keeps their own email.
         assertNull(personProblem(ok.copy(id = "u1"), existing, collectors))
     }
@@ -78,7 +79,7 @@ class AccessTest {
     @Test
     fun person_groupsThatManageNeedAllProperties() {
         val p = Person("", "a@b.com", ADMINS_ID, allProperties = false, propertyIds = setOf("p1"))
-        assertEquals("Admins has permissions that need all properties.", personProblem(p, emptyList(), admins))
+        assertEquals(PersonProblem.GROUP_NEEDS_ALL_PROPERTIES, personProblem(p, emptyList(), admins))
         assertNull(personProblem(p.copy(allProperties = true), emptyList(), admins))
     }
 
@@ -87,7 +88,7 @@ class AccessTest {
     @Test
     fun group_needsUniqueName() {
         assertNotNull(groupProblem(Group("", " ", "", emptySet()), DEFAULT_GROUPS))
-        assertEquals("There is already a group called collectors.", groupProblem(Group("", "collectors", "", emptySet()), DEFAULT_GROUPS))
+        assertEquals(GroupProblem.NAME_TAKEN, groupProblem(Group("", "collectors", "", emptySet()), DEFAULT_GROUPS))
         assertNull(groupProblem(collectors.copy(description = "changed"), DEFAULT_GROUPS))
         assertNull(groupProblem(Group("", "Auditors", "", setOf(Permission.VALIDATE)), DEFAULT_GROUPS))
     }
@@ -130,8 +131,8 @@ class AccessTest {
     @Test
     fun seeding_addsSignedInUserOnce() {
         val vm = accessViewModel()
-        vm.ensureSeeded("dev.admin@sclera.com", setOf("p1"))
-        vm.ensureSeeded("someone@else.com", emptySet())
+        vm.ensureSeeded("dev.admin@sclera.com")
+        vm.ensureSeeded("someone@else.com")
         assertEquals(listOf("dev.admin@sclera.com"), vm.people.map { it.email })
         assertEquals(ADMINS_ID, vm.people.single().groupId)
     }

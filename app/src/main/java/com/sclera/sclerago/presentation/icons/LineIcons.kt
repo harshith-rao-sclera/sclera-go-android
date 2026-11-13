@@ -77,6 +77,7 @@ object Icons {
     val ChevronDown = Ico(s("M6 9l6 6 6-6"))
     val ChevronLeft = Ico(s("M15 6l-6 6 6 6"))
     val ChevronRight = Ico(s("M9 6l6 6-6 6"))
+    val ChevronUpDown = Ico(s("M8 9l4-4 4 4M8 15l4 4 4-4"))
     val Bluetooth = Ico(s("M7 7l10 10-5 5V2l5 5L7 17"))
     val Wifi = Ico(
         s("M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"),

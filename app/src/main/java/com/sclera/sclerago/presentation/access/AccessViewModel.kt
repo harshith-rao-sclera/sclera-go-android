@@ -8,7 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Person
+import com.sclera.sclerago.domain.system.TimeProvider
 import com.sclera.sclerago.domain.usecase.access.AccessUseCases
+import com.sclera.sclerago.domain.usecase.access.GroupProblem
+import com.sclera.sclerago.domain.usecase.access.PersonProblem
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.presentation.common.observedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +22,7 @@ enum class AccessTab { PEOPLE, GROUPS }
 
 /** What People and access shows: the tab, search and open forms. The groups and people are in [AccessViewModel.groups] / [AccessViewModel.people]. */
 data class AccessState(
-    val tab: AccessTab = AccessTab.GROUPS,
+    val tab: AccessTab = AccessTab.PEOPLE,
     val query: String = "",
     /** Person being added (id == "") or edited; null when the form is closed. */
     val personForm: Person? = null,
@@ -28,6 +31,25 @@ data class AccessState(
     /** Group waiting for delete confirmation. */
     val confirmDelete: Group? = null,
     val personToRemove: Person? = null,
+    /** Group edit waiting for the user to agree that its people get every property. */
+    val groupToConfirm: Group? = null,
+)
+
+/** A person in the list: who, their group, and when they were last seen. */
+data class PersonRow(val person: Person, val group: Group?, val isMe: Boolean, val lastSeenAt: Long?)
+
+/** A group in the list: how many people are in it and whether it can be deleted. */
+data class GroupRow(val group: Group, val members: Int, val canDelete: Boolean)
+
+/** The rows and totals the page shows for the current tab and search. */
+data class AccessListState(
+    val tab: AccessTab = AccessTab.PEOPLE,
+    val query: String = "",
+    val people: List<PersonRow> = emptyList(),
+    val groups: List<GroupRow> = emptyList(),
+    val peopleTotal: Int = 0,
+    val groupsTotal: Int = 0,
+    val nowMillis: Long = 0,
 )
 
 /** People and access: who is in which group, for which properties. */
@@ -35,6 +57,7 @@ data class AccessState(
 class AccessViewModel @Inject constructor(
     private val useCases: AccessUseCases,
     observeAuthState: ObserveAuthStateUseCase,
+    private val time: TimeProvider,
 ) : ViewModel() {
     var state by mutableStateOf(AccessState())
         private set
@@ -55,8 +78,7 @@ class AccessViewModel @Inject constructor(
     val people: List<Person> get() = peopleList.value
 
     /** Seeds the list with the signed-in user as an admin the first time the screen opens. */
-    @Suppress("UNUSED_PARAMETER")
-    fun ensureSeeded(currentEmail: String?, propertyIds: Set<String>) = useCases.seedSignedInUser(currentEmail)
+    fun ensureSeeded(currentEmail: String?) = useCases.seedSignedInUser(currentEmail)
 
     fun setTab(t: AccessTab) = set { copy(tab = t, query = "") }
     fun setQuery(q: String) = set { copy(query = q) }
@@ -64,13 +86,33 @@ class AccessViewModel @Inject constructor(
     fun group(id: String): Group? = groups.firstOrNull { it.id == id }
     fun peopleIn(groupId: String): Int = people.count { it.groupId == groupId }
 
+    /** Matches the email or the name of the person's group. */
     val visiblePeople: List<Person>
-        get() = state.query.trim().lowercase().let { q -> people.filter { q.isEmpty() || q in it.email.lowercase() } }
+        get() = state.query.trim().lowercase().let { q ->
+            people.filter { q.isEmpty() || q in it.email.lowercase() || q in group(it.groupId)?.name.orEmpty().lowercase() }
+        }
 
     val visibleGroups: List<Group>
         get() = state.query.trim().lowercase().let { q ->
             groups.filter { q.isEmpty() || q in it.name.lowercase() || q in it.description.lowercase() }
         }
+
+    /** The page's rows for the current tab and search; [me] is the signed-in user's email. */
+    fun listState(me: String?): AccessListState {
+        val now = time.nowMillis()
+        return AccessListState(
+            tab = state.tab,
+            query = state.query,
+            people = visiblePeople.map {
+                val isMe = it.email.equals(me, ignoreCase = true)
+                PersonRow(it, group(it.groupId), isMe, if (isMe) now else it.lastSeenAt)
+            },
+            groups = visibleGroups.map { GroupRow(it, peopleIn(it.id), canDelete(it)) },
+            peopleTotal = people.size,
+            groupsTotal = groups.size,
+            nowMillis = now,
+        )
+    }
 
     // ---- People
 
@@ -81,8 +123,11 @@ class AccessViewModel @Inject constructor(
     fun editPerson(p: Person) = set { copy(personForm = p) }
     fun closePersonForm() = set { copy(personForm = null) }
 
-    /** Saves [p]; returns an error message instead when it can't be saved. */
-    fun savePerson(p: Person): String? {
+    /** Why [p] can't be saved yet, or null. */
+    fun personProblem(p: Person): PersonProblem? = useCases.validatePerson(p)
+
+    /** Saves [p]; returns why it can't be saved instead, or null once it is (the form closes). */
+    fun savePerson(p: Person): PersonProblem? {
         useCases.savePerson(p)?.let { return it }
         set { copy(personForm = null) }
         return null
@@ -91,19 +136,46 @@ class AccessViewModel @Inject constructor(
     fun askRemovePerson(p: Person?) = set { copy(personToRemove = p) }
     fun removePerson(p: Person) {
         useCases.removePerson(p)
-        set { copy(personToRemove = null) }
+        set { copy(personToRemove = null, personForm = null) }
     }
 
     // ---- Groups
 
     fun newGroup() = set { copy(groupForm = Group("", "", "", emptySet())) }
     fun editGroup(g: Group) = set { copy(groupForm = g) }
-    fun closeGroupForm() = set { copy(groupForm = null) }
+    fun closeGroupForm() = set { copy(groupForm = null, groupToConfirm = null) }
 
-    /** Saves [g]; returns an error message instead when it can't be saved. */
-    fun saveGroup(g: Group): String? {
+    /** Why [g] can't be saved yet, or null. */
+    fun groupProblem(g: Group): GroupProblem? = useCases.validateGroup(g)
+
+    /** How many people [g] would give every property to when saved (they are asked first). */
+    fun givenAllProperties(g: Group): Int {
+        people // recompose when people change
+        return useCases.countGivenAllProperties(g)
+    }
+
+    /**
+     * Saves [g]; returns why it can't be saved instead, or null. When the save would give people every
+     * property, nothing is saved yet: [AccessState.groupToConfirm] is set until [confirmGroupSave] or [cancelGroupConfirm].
+     */
+    fun saveGroup(g: Group): GroupProblem? {
+        useCases.validateGroup(g)?.let { return it }
+        if (givenAllProperties(g) > 0) {
+            set { copy(groupToConfirm = g) }
+            return null
+        }
+        return commitGroup(g)
+    }
+
+    fun confirmGroupSave() {
+        state.groupToConfirm?.let(::commitGroup)
+    }
+
+    fun cancelGroupConfirm() = set { copy(groupToConfirm = null) }
+
+    private fun commitGroup(g: Group): GroupProblem? {
         useCases.saveGroup(g)?.let { return it }
-        set { copy(groupForm = null) }
+        set { copy(groupForm = null, groupToConfirm = null) }
         return null
     }
 

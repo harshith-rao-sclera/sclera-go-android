@@ -22,9 +22,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
@@ -34,6 +36,9 @@ import com.sclera.sclerago.presentation.theme.Txt
 
 // Building blocks shared by Property list and People and access, as drawn in the
 // "Sclera VDMS Mobile" design canvas.
+
+/** Opacity of a field that can't be edited right now (the design's locked and waiting fields). */
+private const val DimmedAlpha = 0.55f
 
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
@@ -95,20 +100,6 @@ internal fun StatCard(icon: Ico, tint: Color, value: String, label: String, modi
 @Composable
 internal fun StatRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
-}
-
-/** Yellow floating button with a plus and a label, bottom-right. */
-@Composable
-internal fun AdminFab(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier.navigationBarsPadding().padding(end = 12.dp, bottom = 24.dp).height(48.dp).fabShadow(r(24)).clip(r(24))
-            .background(C.Yellow).clickable(onClick = onClick).padding(start = 14.dp, end = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        LineIcon(Icons.Plus, 18.dp, C.OnYellow, 2.4f)
-        Txt(label, 14, 700, C.OnYellow)
-    }
 }
 
 /** Rounded label in [color] with an icon (permissions, groups, asset counts); [small] for compact rows. */
@@ -185,6 +176,8 @@ internal fun ChoiceSheet(
     selected: String?,
     onPick: (String) -> Unit,
     onClose: () -> Unit,
+    /** Options that are shown but can't be picked. */
+    disabled: Set<String> = emptySet(),
 ) {
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(C.Overlay).noRippleClick(onClose)) {
@@ -199,8 +192,8 @@ internal fun ChoiceSheet(
                 options.forEach { (name, sub) ->
                     val on = name == selected
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(r(14)).background(if (on) C.YTintBg else C.FieldRowWash)
-                            .border(1.dp, if (on) C.YTintBd else C.Border, r(14)).clickable { onPick(name) }
+                        Modifier.fillMaxWidth().heightIn(min = 64.dp).alpha(if (name in disabled) DimmedAlpha else 1f).clip(r(14)).background(if (on) C.YTintBg else C.FieldRowWash)
+                            .border(1.dp, if (on) C.YTintBd else C.Border, r(14)).clickable(enabled = name !in disabled) { onPick(name) }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -236,6 +229,7 @@ internal fun FormSheet(
     bodyBackground: Color = C.SheetBg,
     bodyPadding: PaddingValues = PaddingValues(16.dp),
     bodySpacing: Dp = 18.dp,
+    primaryModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onClose)
@@ -287,9 +281,9 @@ internal fun FormSheet(
                 Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Pill("Cancel", onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 15, weight = 600)
+                Pill(stringResource(R.string.action_cancel), onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 15, weight = 600)
                 Pill(
-                    primary, onPrimary, Modifier.weight(1f),
+                    primary, onPrimary, Modifier.weight(1f).then(primaryModifier),
                     bg = if (primaryEnabled) C.Yellow else C.PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else C.PrimaryOffFg,
                     height = 50.dp, size = 15, weight = 700,
                 )
@@ -331,7 +325,7 @@ internal fun FormGroup(
 @Composable
 internal fun InlineField(label: String, required: Boolean = false, dim: Boolean = false, input: @Composable RowScope.() -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (dim) 0.45f else 1f).padding(horizontal = 12.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (dim) DimmedAlpha else 1f).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -356,13 +350,21 @@ internal fun RowScope.InlineInput(
 }
 
 @Composable
-internal fun RowScope.InlineSelect(value: String, placeholder: String, enabled: Boolean = true, chevron: Boolean = true, onClick: () -> Unit) {
+internal fun RowScope.InlineSelect(
+    value: String,
+    placeholder: String,
+    enabled: Boolean = true,
+    chevron: Boolean = true,
+    upDown: Boolean = false,
+    onClick: () -> Unit,
+) {
     Row(
         Modifier.weight(1f).heightIn(min = 44.dp).clickable(enabled = enabled, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Txt(value.ifEmpty { placeholder }, 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
-        if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
+        if (chevron && upDown) LineIcon(Icons.ChevronUpDown, 12.dp, C.Yellow, 2.4f)
+        else if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
     }
 }
 
