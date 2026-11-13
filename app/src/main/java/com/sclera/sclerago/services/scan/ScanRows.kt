@@ -7,6 +7,7 @@ import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.domain.model.NET_ID
 import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
 import com.sclera.sclerago.domain.model.typeOf
+import com.sclera.sclerago.domain.validation.sanitizeScanText
 import com.sclera.sclerago.services.scan.model.BleDevice
 import com.sclera.sclerago.services.scan.model.DeviceCategory
 import com.sclera.sclerago.services.scan.model.NetworkDevice
@@ -34,15 +35,15 @@ fun BleDevice.toRow(): Device {
         metres < 30 -> "~${metres.roundToInt()} m"
         else -> "30 m+"
     }
-    val kind = manufacturerName ?: if (connectable) "BLE device" else "BLE beacon"
+    val kind = sanitizeScanText(manufacturerName).ifEmpty { null } ?: if (connectable) "BLE device" else "BLE beacon"
     return Device(
         id = BLE_ID + address,
-        name = if (isUnnamed) UNKNOWN_DEVICE else displayName,
+        name = if (isUnnamed) UNKNOWN_DEVICE else sanitizeScanText(displayName).ifEmpty { UNKNOWN_DEVICE },
         sub = listOf(kind, dbm(rssiDbm), dist).joinToString(" · "),
         lvl = signalBars.coerceIn(1, 4),
         known = false,
         // A Bluetooth advertisement only says what it is through its name ("TH-22 sensor", "Jabra Speak").
-        type = typeOf(name),
+        type = typeOf(sanitizeScanText(name)),
     )
 }
 
@@ -58,12 +59,12 @@ fun NetworkDevice.toRow(): Device {
     }
     return Device(
         id = NET_ID + ip,
-        name = if (isUnnamed) UNKNOWN_DEVICE else displayName,
+        name = if (isUnnamed) UNKNOWN_DEVICE else sanitizeScanText(displayName).ifEmpty { UNKNOWN_DEVICE },
         // The IP leads the line: it is what an asset's "IP address" field is matched on.
-        sub = "$ip · $subtitle",
+        sub = "${ip} · ${sanitizeScanText(subtitle)}",
         lvl = lvl,
         known = false,
-        type = assetType(category).takeIf { it != AssetType.GENERIC } ?: typeOf(listOfNotNull(displayName, modelName).joinToString(" ")),
+        type = assetType(category).takeIf { it != AssetType.GENERIC } ?: typeOf(listOfNotNull(sanitizeScanText(displayName), sanitizeScanText(modelName)).joinToString(" ")),
     )
 }
 
@@ -80,10 +81,10 @@ private fun assetType(c: DeviceCategory): AssetType = when (c) {
 
 fun WifiAccessPoint.toRow(): Device = Device(
     id = AP_ID + bssid,
-    name = displayName,
+    name = sanitizeScanText(displayName),
     // The BSSID leads the line: it identifies the access point even when the SSID is shared or hidden.
     // Signal strength goes on the line now that the icon tile has taken the signal bars' place.
-    sub = listOfNotNull(bssid, channel?.let { "ch $it" }, band, dbm(rssiDbm), if (isCurrentNetwork) "connected" else null).joinToString(" · "),
+    sub = listOfNotNull(sanitizeScanText(bssid), channel?.let { "ch $it" }, sanitizeScanText(band).ifEmpty { null }, dbm(rssiDbm), if (isCurrentNetwork) "connected" else null).joinToString(" · "),
     lvl = signalBars.coerceIn(1, 4),
     known = false,
     type = AssetType.AP,

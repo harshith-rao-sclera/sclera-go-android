@@ -3,12 +3,12 @@ package com.sclera.sclerago.data
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.sclera.sclerago.domain.limits.MAX_IMPORT_BYTES
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.zip.ZipInputStream
 
-/** Largest spreadsheet read (100MB), and the limits for what an .xlsx may unpack to (zip-bomb guard). */
-const val MAX_SHEET_BYTES = 100L * 1024 * 1024
+/** The limits for what an .xlsx may unpack to (zip-bomb guard). */
 const val MAX_SHEET_ENTRY_BYTES = 50L * 1024 * 1024
 const val MAX_SHEET_ZIP_ENTRIES = 2_000
 
@@ -40,7 +40,7 @@ fun readSheet(context: Context, uri: Uri): List<List<String>> {
         if (c.moveToFirst()) c.getString(0) else null
     }.orEmpty().lowercase()
     val type = cr.getType(uri).orEmpty()
-    val bytes = cr.openInputStream(uri)?.use { it.readBounded(MAX_SHEET_BYTES) } ?: error("Can't open file")
+    val bytes = cr.openInputStream(uri)?.use { it.readBounded(MAX_IMPORT_BYTES) } ?: error("Can't open file")
     val isXlsx = name.endsWith(".xlsx") || type.contains("openxmlformats") ||
         (bytes.size > 4 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte())
     if (isXlsx) return readXlsx(bytes)

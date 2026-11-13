@@ -1,14 +1,12 @@
 package com.sclera.sclerago.domain.usecase.property
 
+import com.sclera.sclerago.domain.limits.MAX_IMPORT_BYTES
 import com.sclera.sclerago.domain.model.PropertySummary
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
-
-/** Largest spreadsheet the property import accepts. */
-const val MAX_IMPORT_BYTES = 100L * 1024 * 1024
 
 /** Every property with its asset count, updated when either changes. */
 class ObservePropertySummariesUseCase @Inject constructor(

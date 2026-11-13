@@ -6,7 +6,7 @@ import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.PropertySummary
 import com.sclera.sclerago.domain.usecase.property.FilterPropertySummariesUseCase
 import com.sclera.sclerago.domain.usecase.property.ImportFileProblem
-import com.sclera.sclerago.domain.usecase.property.MAX_IMPORT_BYTES
+import com.sclera.sclerago.domain.limits.MAX_IMPORT_BYTES
 import com.sclera.sclerago.domain.usecase.property.ObservePropertySummariesUseCase
 import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
 import kotlinx.coroutines.flow.first
