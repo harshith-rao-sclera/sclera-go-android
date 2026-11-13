@@ -648,7 +648,7 @@ class AppViewModel @Inject constructor(
                 val m = r.media!!
                 Asset(
                     id, r.name, (if (m.video) "Video ${m.durationText}" else "Photo") + " · captured " + timeLabel(m.createdAt).take(5),
-                    loc, where, Source.CAMERA, Status.INPUT, AssetType.GENERIC, prop, listOf(m), locationId = place,
+                    loc, where, Source.CAMERA, Status.DRAFT, AssetType.GENERIC, prop, listOf(m), locationId = place,
                 )
             }
             flash(UiText.Plural(R.plurals.assets_added_details, made.size))
@@ -689,7 +689,7 @@ class AppViewModel @Inject constructor(
         write {
             val made = assetUseCases.add(picked.size) { id, i ->
                 val r = picked[i]
-                Asset(id, r.name, r.file, loc, where, Source.FILE, Status.INPUT, typeOf(r.name), prop, locationId = place)
+                Asset(id, r.name, r.file, loc, where, Source.FILE, Status.DRAFT, typeOf(r.name), prop, locationId = place)
             }
             flash(UiText.Plural(R.plurals.assets_imported_details, made.size))
         }

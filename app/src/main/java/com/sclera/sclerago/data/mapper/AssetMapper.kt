@@ -25,16 +25,16 @@ data class AssetValueSplit(val columns: Map<String, String>, val extra: Map<Stri
 
 /**
  * An `assets` row as the app's [Asset]. [place] and [format] come from the location and master format
- * lookups, [media] from asset_media; all are optional.
+ * lookups, [media] from asset_media; all are optional. [missingRequired]: a mandatory field is still empty (makes a drafted asset "Input needed").
  */
 fun DbRow.toAsset(
     propertyId: String,
     place: PlaceLabel? = null,
     format: MasterFormat? = null,
     media: List<Media> = emptyList(),
+    missingRequired: Boolean = false,
 ): Asset {
     val name = string("name").orEmpty()
-    val needsReview = bool("needs_review")
     val validated = bool("validated")
     val aiSuggestion = bool("ai_suggestion")
     val locationId = string("location_id")?.takeIf { it.isNotBlank() }
@@ -45,7 +45,7 @@ fun DbRow.toAsset(
         loc = place?.loc ?: locationId,
         where = place?.where.orEmpty(),
         src = sourceFromDb(string("source")),
-        st = statusFromDb(string("status"), needsReview, validated, aiSuggestion),
+        st = statusFromDb(string("status"), validated, aiSuggestion, missingRequired),
         type = format?.let { typeOf(it.label) }?.takeIf { it != AssetType.GENERIC } ?: typeOf(name),
         propertyId = propertyId,
         media = media,
@@ -54,7 +54,7 @@ fun DbRow.toAsset(
         floorId = string("floor_id")?.takeIf { it.isNotBlank() },
         locationId = locationId,
         masterFormatId = string("master_format_id")?.takeIf { it.isNotBlank() },
-        needsReview = needsReview,
+        needsReview = bool("needs_review"),
         aiSuggestion = aiSuggestion,
         validated = validated,
         version = int("version") ?: 1,
@@ -99,7 +99,7 @@ fun Asset.toAssetRow(): Map<String, Any?> {
         "status" to db.status,
         "source" to sourceToDb(src),
         "master_format_id" to masterFormatId,
-        "needs_review" to db.needsReview.toInt(),
+        "needs_review" to needsReview.toInt(),
         "ai_suggestion" to (db.aiSuggestion ?: aiSuggestion).toInt(),
         "validated" to db.validated.toInt(),
         "version" to version,

@@ -18,7 +18,11 @@ interface AssetRepository {
     /** Adds [assets], each with its media, values and the scanned device it was made from, in one change. */
     suspend fun add(assets: List<NewAsset>)
 
-    suspend fun setStatus(ids: Collection<String>, status: Status)
+    /**
+     * Moves assets to [status]. Submitting follows the server's rule: an asset with a mandatory field empty becomes an
+     * exception when [allowExceptions] and stays as it is otherwise; one already submitted or validated is left alone.
+     */
+    suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean = true)
 
     /** Keeps the values from an asset's details form. */
     suspend fun saveDetails(id: String, values: Map<String, String>)

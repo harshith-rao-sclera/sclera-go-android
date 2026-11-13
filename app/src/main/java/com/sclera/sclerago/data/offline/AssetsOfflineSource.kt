@@ -26,7 +26,7 @@ private val SPEC_UNITS = listOf("rated_power_kw" to "kW", "voltage" to "V", "spe
 /** The app's field keys a scanned device is looked up in. */
 private val SCAN_KEYS = listOf("ble", "ip", "label", "note")
 
-private val ASSET_TABLES = arrayOf("assets", "asset_values", "asset_media", "buildings", "floors", "locations", "master_formats")
+private val ASSET_TABLES = arrayOf("assets", "asset_values", "asset_media", "buildings", "floors", "locations", "master_formats", "asset_fields")
 
 /**
  * The assets of the offline database: lists with filters and paging, the status counts, one asset in full, and
@@ -57,13 +57,13 @@ class AssetsOfflineSource(
     /** How many assets [filter] keeps. */
     suspend fun count(filter: AssetFilter = AssetFilter()): Int = withContext(io) { loadCount(filter) }
 
-    fun countFlow(filter: AssetFilter = AssetFilter()): Flow<Int> = db.watch(io, "assets", "asset_values") { loadCount(filter) }
+    fun countFlow(filter: AssetFilter = AssetFilter()): Flow<Int> = db.watch(io, "assets", "asset_values", "asset_fields") { loadCount(filter) }
 
     /** Counts per status for the status chips: [filter] without its status. */
     suspend fun summary(filter: AssetFilter = AssetFilter()): AssetSummary = withContext(io) { loadSummary(filter) }
 
     fun summaryFlow(filter: AssetFilter = AssetFilter()): Flow<AssetSummary> =
-        db.watch(io, "assets", "asset_values") { loadSummary(filter) }
+        db.watch(io, "assets", "asset_values", "asset_fields") { loadSummary(filter) }
 
     /** [assetId] with its field values, activity and latest validation result; null when it is not there. */
     suspend fun asset(assetId: String, propertyId: String = ""): AssetFull? = withContext(io) { loadFull(assetId, propertyId) }
@@ -88,25 +88,42 @@ class AssetsOfflineSource(
 
     fun activityFlow(assetId: String): Flow<List<AssetActivity>> = db.watch(io, "asset_activity") { loadActivity(assetId) }
 
+    /**
+     * One page of the assets [filter] keeps. Draft and Input needed are told apart in code (a mandatory field empty), so for
+     * those two the drafted assets are read, narrowed to the chosen status, and only then cut to the page.
+     */
     private fun loadPage(filter: AssetFilter, limit: Int?, offset: Int, propertyId: String): List<Asset> =
         db.whenTable("assets", emptyList()) {
             val where = db.assetWhere(filter)
-            val paging = if (limit != null) " LIMIT ${limit.coerceAtLeast(0)} OFFSET ${offset.coerceAtLeast(0)}" else ""
+            val derived = filter.status == Status.DRAFT || filter.status == Status.INPUT
+            val paging = if (limit != null && !derived) " LIMIT ${limit.coerceAtLeast(0)} OFFSET ${offset.coerceAtLeast(0)}" else ""
             val rows = db.query("SELECT a.* FROM assets a WHERE ${where.sql} $ASSET_ORDER$paging", where.args)
-            toAssets(rows, propertyId)
+            val assets = toAssets(rows, propertyId)
+            if (!derived) assets
+            else assets.filter { it.st == filter.status }.drop(if (limit != null) offset.coerceAtLeast(0) else 0).take(limit?.coerceAtLeast(0) ?: Int.MAX_VALUE)
         }
 
     private fun loadCount(filter: AssetFilter): Int = db.whenTable("assets", 0) {
         val where = db.assetWhere(filter)
-        db.queryOne("SELECT COUNT(*) AS n FROM assets a WHERE ${where.sql}", where.args)?.int("n") ?: 0
+        if (filter.status == Status.DRAFT || filter.status == Status.INPUT) {
+            val rows = db.query("SELECT a.* FROM assets a WHERE ${where.sql}", where.args)
+            val input = inputNeeded(rows)
+            if (filter.status == Status.INPUT) input.size else rows.size - input.size
+        } else {
+            db.queryOne("SELECT COUNT(*) AS n FROM assets a WHERE ${where.sql}", where.args)?.int("n") ?: 0
+        }
     }
 
     private fun loadSummary(filter: AssetFilter): AssetSummary = db.whenTable("assets", AssetSummary(0, emptyMap(), 0, 0)) {
         val where = db.assetWhere(filter, withStatus = false)
         val rows = db.query(ASSET_SUMMARY.replace("%WHERE%", where.sql), where.args)
+        // The drafted assets with a mandatory field empty are "Input needed", not "Draft".
+        val drafts = db.query("SELECT a.* FROM assets a WHERE ${where.sql} AND ($STATUS_SQL) = 'DRAFT'", where.args)
+        val input = inputNeeded(drafts).size
+        val counts = rows.mapNotNull { r -> Status.entries.firstOrNull { it.name == r.string("st") }?.let { it to (r.int("n") ?: 0) } }.toMap()
         AssetSummary(
             total = rows.sumOf { it.int("n") ?: 0 },
-            byStatus = rows.mapNotNull { r -> Status.entries.firstOrNull { it.name == r.string("st") }?.let { it to (r.int("n") ?: 0) } }.toMap(),
+            byStatus = (counts + (Status.DRAFT to ((counts[Status.DRAFT] ?: 0) - input)) + (Status.INPUT to input)).filterValues { it > 0 },
             aiSuggestions = rows.sumOf { it.int("ai") ?: 0 },
             validated = rows.sumOf { it.int("ok") ?: 0 },
         )
@@ -136,16 +153,29 @@ class AssetsOfflineSource(
         val ids = rows.mapNotNull { it.string("id") }
         val media = mediaFor(ids)
         val values = valuesFor(ids)
+        val input = inputNeeded(rows, values)
         val formatById = formats.byId()
         val index = places.index()
         return rows.map { row ->
             val id = row.string("id").orEmpty()
             val place = index.location(row.string("location_id"))
-            val asset = row.toAsset(propertyId, place, formatById[row.string("master_format_id")], media[id].orEmpty())
+            val asset = row.toAsset(propertyId, place, formatById[row.string("master_format_id")], media[id].orEmpty(), id in input)
             asset.copy(
                 detail = detailLine(asset.detail, values[id].orEmpty()),
                 where = place?.where ?: index.floorOrBuilding(asset.floorId, asset.buildingId),
             )
+        }
+    }
+
+    /** The ids of the drafted (not AI) [rows] with a mandatory field still empty: their status is "Input needed". [values] are the rows' answers when already read. */
+    private fun inputNeeded(rows: List<DbRow>, values: Map<String, Map<String, String>>? = null): Set<String> {
+        val drafts = rows.filter { it.string("status") == "drafted" && !it.bool("ai_suggestion") && !it.bool("validated") }
+        val required = db.requiredKeys()
+        if (drafts.isEmpty() || required.isEmpty) return emptySet()
+        val answers = values ?: valuesFor(drafts.mapNotNull { it.string("id") })
+        return drafts.mapNotNullTo(HashSet()) { row ->
+            val id = row.string("id").orEmpty()
+            id.takeIf { required.missingFor(id, row, answers[id].orEmpty()).isNotEmpty() }
         }
     }
 

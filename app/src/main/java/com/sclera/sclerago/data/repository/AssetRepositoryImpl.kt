@@ -35,7 +35,8 @@ class AssetRepositoryImpl @Inject constructor(
 
     override suspend fun add(assets: List<NewAsset>) = writer.add(assets)
 
-    override suspend fun setStatus(ids: Collection<String>, status: Status) = writer.setStatus(ids, status)
+    override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean) =
+        writer.setStatus(ids, status, allowExceptions)
 
     override suspend fun saveDetails(id: String, values: Map<String, String>) = writer.saveDetails(id, values)
 

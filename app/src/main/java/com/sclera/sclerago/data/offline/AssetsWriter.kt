@@ -14,7 +14,6 @@ import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.sourceToDb
-import com.sclera.sclerago.domain.model.statusFromDb
 import com.sclera.sclerago.domain.model.statusToDb
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.TimeProvider
@@ -103,20 +102,40 @@ class AssetsWriter(
         history(id, "updated", "Asset updated", changesJson(changes.map { it.first }), now)
     }
 
-    /** Moves [assetIds] to [status], with the flags that go with it (see `statusToDb`); assets already there are left alone. */
-    suspend fun setStatus(assetIds: Collection<String>, status: Status) = db.write(io) {
-        val target = statusToDb(status)
+    /**
+     * Moves [assetIds] to [status], with the flags that go with it (see `statusToDb`); assets already there are left alone.
+     * Submitting follows the server's rule (`POST /assets/bulk/submit`): only drafted or exception assets are submitted; one
+     * with a mandatory field empty becomes an exception when [allowExceptions] and is left as it is otherwise; assets that
+     * are already submitted or validated stay as they are.
+     */
+    suspend fun setStatus(assetIds: Collection<String>, status: Status, allowExceptions: Boolean = true) = db.write(io) {
         val now = now()
+        val required = if (status == Status.SUBMITTED) requiredKeys() else null
         assetIds.forEach { id ->
             val row = assetState(id) ?: return@forEach
-            val current = statusFromDb(row.string("status"), row.bool("needs_review"), row.bool("validated"), row.bool("ai_suggestion"))
-            if (current == status) return@forEach
+            val moved = if (required == null) status else submitTarget(row, id, required, allowExceptions) ?: return@forEach
+            val target = statusToDb(moved)
+            val unchanged = row.string("status") == target.status && row.bool("validated") == target.validated &&
+                (target.aiSuggestion == null || row.bool("ai_suggestion") == target.aiSuggestion)
+            if (unchanged) return@forEach
             execute(
                 ASSET_UPDATE_STATUS,
-                listOf(target.status, target.validated.bit(), target.aiSuggestion?.bit(), target.needsReview.bit(), now, id),
+                listOf(target.status, target.validated.bit(), target.aiSuggestion?.bit(), now, id),
                 setOf("assets"),
             )
-            statusLine(status, wasDrafted = row.string("status") == "drafted")?.let { (action, text) -> history(id, action, text, null, now) }
+            statusLine(moved, wasDrafted = row.string("status") == "drafted")?.let { (action, text) -> history(id, action, text, null, now) }
+        }
+    }
+
+    /** What submitting asset [id] makes of it, or null to leave it alone. */
+    private fun AdcDatabase.submitTarget(row: DbRow, id: String, required: RequiredKeys, allowExceptions: Boolean): Status? {
+        if (row.string("status") != "drafted" && row.string("status") != "exception") return null
+        val answers = DbJson.stringMap(queryOne(ASSET_VALUES_ROW, listOf(id))?.string("values"))
+        val complete = required.missingFor(id, row, answers).isEmpty()
+        return when {
+            complete -> Status.SUBMITTED
+            allowExceptions -> Status.EXCEPTION
+            else -> null
         }
     }
 
@@ -187,7 +206,7 @@ class AssetsWriter(
                 asset.id, (split.columns["name"]?.trim()?.takeIf { it.isNotEmpty() } ?: asset.name).ifBlank { null },
                 place.building, place.floor, place.location, status.status, sourceToDb(asset.src), item.deviceId, user.userId(),
                 now, now, split.columns["manufacturer"].orNull(), split.columns["model"].orNull(), split.columns["serial_number"].orNull(),
-                status.needsReview.bit(), now, classification.source, classification.formatId, classification.jacs,
+                now, classification.source, classification.formatId, classification.jacs,
                 status.validated.bit(), (status.aiSuggestion ?: false).bit(),
             ),
             setOf("assets"),

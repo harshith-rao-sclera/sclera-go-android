@@ -8,21 +8,21 @@ package com.sclera.sclerago.data.offline
 // ---- assets
 
 /** The columns of an asset the writers compare and edit. */
-internal const val ASSET_STATE = """SELECT status, validated, needs_review, ai_suggestion, name, manufacturer, model, serial_number,
+internal const val ASSET_STATE = """SELECT status, validated, ai_suggestion, name, manufacturer, model, serial_number,
     master_format_id, jacs_code_id, classification_source, building_id, floor_id, location_id
     FROM assets WHERE id = ? AND %LIVE%"""
 
 internal const val ASSET_INSERT = """INSERT INTO assets (id, name, building_id, floor_id, location_id, status, source, source_ref, created_by,
     version, created_at, updated_at, manufacturer, model, serial_number, needs_review, values_changed_at, classification_source,
     values_revision, master_format_id, jacs_code_id, validated, ai_suggestion)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)"""
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 0, ?, ?, 1, ?, ?, ?, ?)"""
 
 /** New values for an asset's answers: bumps the revision validation's "new or changed" compares. */
 internal const val ASSET_UPDATE_VALUES = """UPDATE assets SET name = ?, manufacturer = ?, model = ?, serial_number = ?, master_format_id = ?,
     jacs_code_id = ?, classification_source = ?, values_revision = values_revision + 1, values_changed_at = ?,
     version = version + 1, updated_at = ? WHERE id = ?"""
 
-internal const val ASSET_UPDATE_STATUS = """UPDATE assets SET status = ?, validated = ?, ai_suggestion = COALESCE(?, ai_suggestion), needs_review = ?,
+internal const val ASSET_UPDATE_STATUS = """UPDATE assets SET status = ?, validated = ?, ai_suggestion = COALESCE(?, ai_suggestion),
     version = version + 1, updated_at = ? WHERE id = ?"""
 
 /** The place of an asset is one of its answers, so it bumps the revision too. */

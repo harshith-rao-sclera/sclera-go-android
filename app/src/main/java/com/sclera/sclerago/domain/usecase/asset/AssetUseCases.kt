@@ -36,9 +36,9 @@ class GetAssetDetailsUseCase @Inject constructor(private val repo: AssetReposito
 
 /** Moves assets to [status]: signing off needs the Validate permission, everything else Collect. */
 class SetAssetStatusUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(ids: Collection<String>, status: Status) {
+    suspend operator fun invoke(ids: Collection<String>, status: Status, allowExceptions: Boolean = true) {
         guard.requireOffline(permissionFor(status))
-        repo.setStatus(ids, status)
+        repo.setStatus(ids, status, allowExceptions)
     }
 }
 
@@ -50,7 +50,7 @@ class SaveAssetDetailsUseCase @Inject constructor(private val repo: AssetReposit
         guard.requireOffline(Permission.COLLECT)
         if (status != null) guard.requireOffline(permissionFor(status))
         repo.saveDetails(id, values)
-        if (status != null) repo.setStatus(listOf(id), status)
+        if (status != null) repo.setStatus(listOf(id), status, allowExceptions = true)
     }
 }
 

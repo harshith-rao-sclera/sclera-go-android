@@ -2,15 +2,15 @@ package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.model.AssetFilter
+import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.sourceToDb
 
-/** The app's status as SQL, the same rules as `statusFromDb` (first match wins). Names are the [com.sclera.sclerago.domain.model.Status] names. */
+/** The app's status as SQL, the same rules as `statusFromDb` (first match wins) except that "Input needed" cannot be told in SQL: a drafted asset is DRAFT here, and the ones with a mandatory field empty are found in code (see `RequiredKeys`). Names are the [com.sclera.sclerago.domain.model.Status] names. */
 internal const val STATUS_SQL = """CASE
     WHEN a.status = 'exception' THEN 'EXCEPTION'
     WHEN a.status = 'saved' OR a.validated = 1 THEN 'VALIDATED'
     WHEN a.status = 'submitted' THEN 'SUBMITTED'
     WHEN a.status = 'drafted' AND a.ai_suggestion = 1 THEN 'AI'
-    WHEN a.status = 'drafted' AND a.needs_review = 1 THEN 'INPUT'
     ELSE 'DRAFT' END"""
 
 internal const val ASSET_ORDER = "ORDER BY a.created_at DESC, a.id DESC"
@@ -49,7 +49,7 @@ internal fun AdcDatabase.assetWhere(filter: AssetFilter, withStatus: Boolean = t
     val args = mutableListOf<String>()
     filter.status?.takeIf { withStatus }?.let {
         parts += "($STATUS_SQL) = ?"
-        args += it.name
+        args += (if (it == Status.INPUT) Status.DRAFT else it).name
     }
     filter.sources?.let { sources ->
         val db = sources.map(::sourceToDb).distinct()
