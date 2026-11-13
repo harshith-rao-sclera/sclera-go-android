@@ -15,6 +15,7 @@ import com.sclera.sclerago.data.remote.AuthApi
 import com.sclera.sclerago.domain.model.AuthError
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.repository.AuthRepository
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,6 +38,7 @@ import org.json.JSONObject
 class AuthRepositoryImpl(
     private val store: AuthStore,
     private val api: AuthApi,
+    mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
 ) : AuthRepository {
     private companion object {
         const val TAG = "ScleraAuth"
@@ -44,7 +46,7 @@ class AuthRepositoryImpl(
         const val REFRESH_RETRY_MS = 30_000L
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + mainDispatcher)
     private val tokenMutex = Mutex()
     private var refreshJob: Job? = null
     private var lastSessionCheck = 0L

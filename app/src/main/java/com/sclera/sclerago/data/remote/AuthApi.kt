@@ -1,6 +1,7 @@
 package com.sclera.sclerago.data.remote
 
 import android.net.Uri
+import com.sclera.sclerago.BuildConfig
 import com.sclera.sclerago.domain.model.AuthError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,15 +26,23 @@ import javax.inject.Singleton
  *     The same call regenerates the token whenever it expires or an API answers 401/403.
  */
 object AuthConfig {
-    // QA environment (matches REACT_APP_ACCOUNTS_URL in the web app). Prod: accounts.sclera.com / app.sclera.com
-    const val ACCOUNTS_URL = "https://qa-accounts.sclera.com"
-    const val APP_URL = "https://qa-app.sclera.com"
+    // Set per build type in app/build.gradle.kts: QA for debug builds, production for release builds.
+    const val ACCOUNTS_URL = BuildConfig.ACCOUNTS_URL
+    const val APP_URL = BuildConfig.APP_URL
     const val SCLERA_API = "$ACCOUNTS_URL/sclera/api"
 
     /** Refresh the access token this long before it expires. */
     const val TOKEN_REFRESH_MARGIN_MS = 60_000L
 
     val accountsHost: String get() = Uri.parse(ACCOUNTS_URL).host.orEmpty()
+
+    /** The Sclera domain (e.g. `sclera.com`): the sign-in web view may only load https pages from it and its sub-domains. */
+    val trustedDomain: String get() = accountsHost.substringAfter('.', accountsHost)
+
+    fun isTrustedHost(host: String?): Boolean {
+        val h = host?.lowercase() ?: return false
+        return h == trustedDomain || h.endsWith(".$trustedDomain")
+    }
 
     /**
      * Same call as the web app (`${authlink}/api/user/${email}/getRedirectUrlByEmail?domain=…`):

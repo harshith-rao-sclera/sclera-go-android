@@ -45,12 +45,11 @@ fun PropertySheet(vm: AppViewModel) {
     BackHandler(onBack = vm::closeProp)
     Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(vm::closeProp)) {
         Column(
-            Modifier.align(Alignment.BottomCenter).widthIn(max = SheetMaxWidth).fillMaxWidth().clip(SheetShape).background(C.Surface).topBorder(C.Border)
-                .noRippleClick { }.navigationBarsPadding().imePadding()
+            sheetFrame(C.Surface).imePadding()
                 .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 22.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SheetHandle(Modifier.align(Alignment.CenterHorizontally))
+            if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Txt("Select property", 22, 700, modifier = Modifier.weight(1f))
                 CloseButton(vm::closeProp)
@@ -168,11 +167,12 @@ fun LocationPicker(
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onClose).statusBarsPadding()) {
         Column(
-            Modifier.padding(top = 40.dp).fillMaxSize().clip(SheetShape).background(C.Surface).topBorder(C.Border)
-                .noRippleClick { }.navigationBarsPadding().imePadding(),
+            (if (isTablet()) sheetFrame(C.Surface, heightFraction = 0.9f, fill = true)
+            else Modifier.padding(top = 40.dp).fillMaxSize().clip(SheetShape).background(C.Surface).topBorder(C.Border)
+                .noRippleClick { }.navigationBarsPadding()).imePadding(),
         ) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SheetHandle(Modifier.align(Alignment.CenterHorizontally))
+                if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Txt("Select location", 22, 700)

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AuthError
+import com.sclera.sclerago.domain.repository.SsoConfig
 import com.sclera.sclerago.domain.usecase.auth.ClearLoginCookiesUseCase
 import com.sclera.sclerago.domain.usecase.auth.CompleteLoginUseCase
 import com.sclera.sclerago.domain.usecase.auth.EmailProblem
@@ -47,6 +48,8 @@ class LoginViewModel @Inject constructor(
     private val clearLoginCookies: ClearLoginCookiesUseCase,
     private val validateEmail: ValidateEmailUseCase,
     private val isOnline: IsOnlineUseCase,
+    /** Where the sign-in web page is and which pages it may load. */
+    val sso: SsoConfig,
 ) : ViewModel() {
     private val _state = MutableStateFlow(LoginUiState())
     val state: StateFlow<LoginUiState> = _state.asStateFlow()

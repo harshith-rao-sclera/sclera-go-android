@@ -5,11 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.usecase.access.AccessUseCases
+import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.presentation.common.observedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class AccessTab { PEOPLE, GROUPS }
@@ -29,11 +32,21 @@ data class AccessState(
 
 /** People and access: who is in which group, for which properties. */
 @HiltViewModel
-class AccessViewModel @Inject constructor(private val useCases: AccessUseCases) : ViewModel() {
+class AccessViewModel @Inject constructor(
+    private val useCases: AccessUseCases,
+    observeAuthState: ObserveAuthStateUseCase,
+) : ViewModel() {
     var state by mutableStateOf(AccessState())
         private set
 
     private fun set(f: AccessState.() -> AccessState) { state = state.f() }
+
+    init {
+        // When the session ends, close every form and clear the search.
+        viewModelScope.launch {
+            observeAuthState().collect { if (it is AuthState.SignedOut) state = AccessState() }
+        }
+    }
 
     private val groupList = useCases.observeGroups().observedIn(viewModelScope)
     private val peopleList = useCases.observePeople().observedIn(viewModelScope)

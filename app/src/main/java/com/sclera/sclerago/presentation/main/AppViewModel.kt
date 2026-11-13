@@ -1,6 +1,5 @@
 package com.sclera.sclerago.presentation.main
 
-import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.BuildingInfo
@@ -35,6 +35,7 @@ import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.domain.usecase.asset.AssetPlace
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
+import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.domain.usecase.config.AssetConfigUseCases
 import com.sclera.sclerago.domain.usecase.config.ImportFieldsUseCase
 import com.sclera.sclerago.domain.usecase.config.ToggleFieldVisibleUseCase
@@ -57,6 +58,7 @@ import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.services.media.formatSize
 import com.sclera.sclerago.services.scan.ScanService
+import com.sclera.sclerago.services.scan.ScanServiceFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -187,7 +189,8 @@ private val Tab.channel: OnboardingChannel?
  */
 @HiltViewModel
 class AppViewModel @Inject constructor(
-    app: Application,
+    scanFactory: ScanServiceFactory,
+    observeAuthState: ObserveAuthStateUseCase,
     private val assetUseCases: AssetUseCases,
     private val propertyUseCases: PropertyUseCases,
     private val locationUseCases: LocationUseCases,
@@ -340,7 +343,7 @@ class AppViewModel @Inject constructor(
 
     // ---------- Scanning: the scans themselves live in services/scan/ScanService ----------
 
-    private val scans = ScanService(app, viewModelScope)
+    private val scans = scanFactory.create(viewModelScope)
 
     override fun onCleared() {
         scans.shutdown()
@@ -945,6 +948,19 @@ class AppViewModel @Inject constructor(
         validationUseCases.delete(id)
         set { copy(valConfirmDelete = null) }
         flash("Validation deleted")
+    }
+
+    init {
+        // When the session ends, forget everything on screen so the next user starts clean.
+        viewModelScope.launch {
+            observeAuthState().collect { if (it is AuthState.SignedOut) resetForNewSession() }
+        }
+    }
+
+    private fun resetForNewSession() {
+        toastJob?.cancel()
+        ScanService.Target.entries.forEach { scans.stop(it) }
+        state = UiState()
     }
 
     init {

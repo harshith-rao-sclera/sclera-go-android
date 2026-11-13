@@ -9,6 +9,7 @@ import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.repository.AssetRepository
+import com.sclera.sclerago.domain.repository.UserDataCleaner
 import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +18,7 @@ import javax.inject.Inject
 
 /** Assets in memory, starting from the sample assets, until they come from the Sclera API. */
 @ActivityRetainedScoped
-class AssetRepositoryImpl @Inject constructor() : AssetRepository {
+class AssetRepositoryImpl @Inject constructor() : AssetRepository, UserDataCleaner {
     private val state = MutableStateFlow(AssetCatalog(assets = SEED_ASSETS))
     override val catalog: StateFlow<AssetCatalog> = state.asStateFlow()
 
@@ -54,6 +55,10 @@ class AssetRepositoryImpl @Inject constructor() : AssetRepository {
 
     override fun linkDevice(deviceId: String, assetId: Int) =
         set { copy(deviceAsset = deviceAsset + (deviceId to assetId), addedDevices = addedDevices + deviceId) }
+
+    override fun clear() {
+        state.value = AssetCatalog(assets = SEED_ASSETS)
+    }
 
     override fun details(id: Int): AssetDetails? = DETAILS[id]
 }

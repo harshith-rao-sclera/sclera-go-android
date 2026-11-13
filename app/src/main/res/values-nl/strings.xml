@@ -21,4 +21,5 @@
     <string name="login_error_email_blank">Voer je e-mailadres in</string>
     <string name="login_error_email_invalid">Voer een geldig e-mailadres in</string>
     <string name="login_tagline">Ken elk asset op locatie.</string>
+    <string name="sso_error_untrusted">Voor uw veiligheid opent het inloggen alleen pagina’s van Sclera.</string>
 </resources>

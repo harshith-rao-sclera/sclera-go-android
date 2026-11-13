@@ -1,36 +1,41 @@
 package com.sclera.sclerago.presentation.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.presentation.theme.C
 
-// Tablet layout basics: phones keep one column; wider screens lay cards out in columns, keep
-// reading content to a comfortable width, and keep sheets phone-sized.
+// Tablet layout basics: phones are unchanged; on tablets reading content keeps a comfortable
+// width and sheets open in the middle of the screen at phone width.
 
-/** Widest a bottom sheet gets; on tablets it sits centred at this width. */
+/** Shortest screen side from which the app uses its tablet layout (portrait and landscape). */
+val TabletMinSide = 600.dp
+
+/** Widest a sheet gets; on tablets it opens centred on the screen at this width. */
 val SheetMaxWidth = 640.dp
 
 /** Widest single-column page content (forms, settings, validation) gets. */
 val ReadableWidth = 760.dp
 
-/** How many columns card lists use at this width: 1 on phones, 2 from 600dp, 3 from 1100dp. */
+/** True on tablets (shortest side at least [TabletMinSide]), in either orientation. */
 @Composable
-fun listColumns(): Int {
-    val w = LocalConfiguration.current.screenWidthDp
-    return when {
-        w >= 1100 -> 3
-        w >= 600 -> 2
-        else -> 1
-    }
+fun isTablet(): Boolean {
+    val c = LocalConfiguration.current
+    return minOf(c.screenWidthDp, c.screenHeightDp) >= TabletMinSide.value
 }
 
 /** Side margin that centres content of at most [maxContent] on wide screens (0 on phones). */
@@ -41,36 +46,21 @@ fun pageGutter(maxContent: Dp = ReadableWidth): Dp {
 }
 
 /**
- * Lays [items] out [columns] to a row, each cell an equal share of the width; a short last row keeps
- * the cells the same width. With one column it is just the items, one per row.
+ * How a sheet sits in its full-screen scrim box: docked to the bottom with its top corners rounded on
+ * phones, or in the middle of the screen at [SheetMaxWidth] with every corner rounded on tablets.
+ * [heightFraction] caps its height (it wraps its content below that); [fill] makes it that tall.
  */
 @Composable
-fun <T> GridRow(items: List<T>, columns: Int, modifier: Modifier = Modifier, spacing: Dp = 0.dp, cell: @Composable (T) -> Unit) {
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing)) {
-        items.forEach { Box(Modifier.weight(1f)) { cell(it) } }
-        repeat(columns - items.size) { Spacer(Modifier.weight(1f)) }
+fun BoxScope.sheetFrame(background: Color, radius: Dp = 22.dp, heightFraction: Float? = null, fill: Boolean = false): Modifier {
+    val tablet = isTablet()
+    val shape = if (tablet) RoundedCornerShape(radius) else RoundedCornerShape(topStart = radius, topEnd = radius)
+    val height = when {
+        heightFraction == null -> Modifier
+        fill -> Modifier.fillMaxHeight(heightFraction)
+        else -> Modifier.fillMaxHeight(heightFraction).wrapContentHeight(if (tablet) Alignment.CenterVertically else Alignment.Bottom)
     }
+    val edge = if (tablet) Modifier.border(1.dp, C.Border, shape) else Modifier.topBorder(C.Border)
+    return Modifier.align(if (tablet) Alignment.Center else Alignment.BottomCenter).widthIn(max = SheetMaxWidth).fillMaxWidth()
+        .then(height).clip(shape).background(background).then(edge).noRippleClick { }
+        .then(if (tablet) Modifier else Modifier.navigationBarsPadding())
 }
-
-/**
- * [items] in a lazy list, [columns] to a row ([GridRow]) on wide screens and one per row on phones.
- * [key] must be unique per item, as for `items`.
- */
-fun <T> LazyListScope.gridItems(
-    items: List<T>,
-    columns: Int,
-    key: (T) -> Any,
-    spacing: Dp = 0.dp,
-    content: @Composable (T) -> Unit,
-) {
-    if (columns <= 1) {
-        items(items, key = key) { content(it) }
-    } else {
-        items(items.chunked(columns), key = { row -> "row-${key(row.first())}" }) { row ->
-            GridRow(row, columns, spacing = spacing) { content(it) }
-        }
-    }
-}
-
-/** Widest card-grid pages (Property list, People and access) get before they are centred. */
-val WideWidth = 1200.dp

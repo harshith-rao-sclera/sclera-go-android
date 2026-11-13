@@ -14,19 +14,15 @@ import com.sclera.sclerago.presentation.theme.Txt
 
 // Bottom sheet container and header shared across screens.
 
-private val SheetTop = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
-
 /** A bottom sheet over a dimmed backdrop. Back and a tap on the backdrop close it. */
 @Composable
 internal fun BottomSheet(onDismiss: () -> Unit, maxHeightFraction: Float = 0.92f, content: @Composable ColumnScope.() -> Unit) {
     BackHandler(onBack = onDismiss)
     Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onDismiss).blockSwipe().imePadding()) {
         Column(
-            Modifier.align(Alignment.BottomCenter).widthIn(max = SheetMaxWidth).fillMaxWidth().fillMaxHeight(maxHeightFraction).wrapContentHeight(Alignment.Bottom)
-                .clip(SheetTop).background(C.Surface).topBorder(C.Border).noRippleClick { }
-                .navigationBarsPadding(),
+            sheetFrame(C.Surface, heightFraction = maxHeightFraction),
         ) {
-            SheetHandle(Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp, bottom = 4.dp))
+            if (isTablet()) Spacer(Modifier.height(12.dp)) else SheetHandle(Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp, bottom = 4.dp))
             content()
         }
     }

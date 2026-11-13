@@ -3,7 +3,32 @@ package com.sclera.sclerago.data
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.util.zip.ZipInputStream
+
+/** Largest spreadsheet read (100MB), and the limits for what an .xlsx may unpack to (zip-bomb guard). */
+const val MAX_SHEET_BYTES = 100L * 1024 * 1024
+const val MAX_SHEET_ENTRY_BYTES = 50L * 1024 * 1024
+const val MAX_SHEET_ZIP_ENTRIES = 2_000
+
+/** A spreadsheet (or something inside it) is bigger than the app will read. */
+class SheetTooLargeException(message: String) : IllegalArgumentException(message)
+
+/** All of this stream, or a [SheetTooLargeException] as soon as it passes [max] bytes. */
+internal fun InputStream.readBounded(max: Long): ByteArray {
+    val out = ByteArrayOutputStream()
+    val buf = ByteArray(64 * 1024)
+    var total = 0L
+    while (true) {
+        val n = read(buf)
+        if (n < 0) break
+        total += n
+        if (total > max) throw SheetTooLargeException("The file is larger than the allowed -eMB")
+        out.write(buf, 0, n)
+    }
+    return out.toByteArray()
+}
 
 /**
  * Reads the first sheet of a spreadsheet the user picked: CSV (comma, semicolon or tab separated)
@@ -15,7 +40,7 @@ fun readSheet(context: Context, uri: Uri): List<List<String>> {
         if (c.moveToFirst()) c.getString(0) else null
     }.orEmpty().lowercase()
     val type = cr.getType(uri).orEmpty()
-    val bytes = cr.openInputStream(uri)?.use { it.readBytes() } ?: error("Can't open file")
+    val bytes = cr.openInputStream(uri)?.use { it.readBounded(MAX_SHEET_BYTES) } ?: error("Can't open file")
     val isXlsx = name.endsWith(".xlsx") || type.contains("openxmlformats") ||
         (bytes.size > 4 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte())
     if (isXlsx) return readXlsx(bytes)
@@ -54,15 +79,21 @@ fun readCsv(text: String): List<List<String>> {
 }
 
 /** The first worksheet of an .xlsx (a zip of XML files): shared strings + sheet1 cells. */
-private fun readXlsx(bytes: ByteArray): List<List<String>> {
+internal fun readXlsx(
+    bytes: ByteArray,
+    maxEntryBytes: Long = MAX_SHEET_ENTRY_BYTES,
+    maxEntries: Int = MAX_SHEET_ZIP_ENTRIES,
+): List<List<String>> {
     var strings = ""
     var sheet = ""
+    var entries = 0
     ZipInputStream(bytes.inputStream()).use { zip ->
         while (true) {
             val e = zip.nextEntry ?: break
+            if (++entries > maxEntries) throw SheetTooLargeException("The spreadsheet has too many parts")
             when (e.name) {
-                "xl/sharedStrings.xml" -> strings = zip.readBytes().toString(Charsets.UTF_8)
-                "xl/worksheets/sheet1.xml" -> sheet = zip.readBytes().toString(Charsets.UTF_8)
+                "xl/sharedStrings.xml" -> strings = zip.readBounded(maxEntryBytes).toString(Charsets.UTF_8)
+                "xl/worksheets/sheet1.xml" -> sheet = zip.readBounded(maxEntryBytes).toString(Charsets.UTF_8)
             }
         }
     }
