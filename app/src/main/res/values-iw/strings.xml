@@ -215,4 +215,214 @@
         <item quantity="many">%1$d אנשים בקבוצה זו יקבלו גישה לכל הנכסים.</item>
         <item quantity="other">%1$d אנשים בקבוצה זו יקבלו גישה לכל הנכסים.</item>
     </plurals>
+    <string name="action_validate">אימות</string>
+    <string name="action_assign">הקצאה</string>
+    <string name="action_submit">שליחה</string>
+    <string name="action_delete">מחיקה</string>
+    <string name="action_save">שמירה</string>
+    <string name="action_discard">ביטול</string>
+    <string name="action_keep_editing">המשך עריכה</string>
+    <string name="action_add">הוספה</string>
+    <string name="action_change">שינוי</string>
+    <string name="action_fix">תיקון</string>
+    <string name="dash_menu">תפריט</string>
+    <string name="dash_unmapped">ללא מיקום</string>
+    <string name="dash_choose_location">בחירת מיקום</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">רשת</string>
+    <string name="nav_camera">מצלמה</string>
+    <string name="nav_file">קובץ</string>
+    <string name="dash_search_hint">חיפוש לפי שם, מספר סידורי או תג</string>
+    <string name="dash_add_asset">הוספת נכס</string>
+    <string name="dash_selected">%1$d נבחרו</string>
+    <string name="dash_select_all">בחירת כל ה-%1$d</string>
+    <string name="dash_clear_all">ניקוי הכול</string>
+    <string name="dash_clear_selection">ניקוי הבחירה</string>
+    <string name="dash_empty_title">עדיין אין כאן כלום</string>
+    <string name="dash_empty_search">אין נכס שמתאים ל-“%1$s”.</string>
+    <string name="dash_empty_status">אין כאן נכסים בסטטוס הזה.</string>
+    <string name="dash_empty_assets">סרקו, צלמו או ייבאו נכסים באמצעות הכרטיסיות למטה.</string>
+    <string name="dash_empty_source">עדיין לא נוסף כאן דבר בדרך זו.</string>
+    <string name="dash_chip_all">הכול</string>
+    <string name="dash_chips_back">הצגת סטטוסים קודמים</string>
+    <string name="dash_chips_more">הצגת סטטוסים נוספים</string>
+    <string name="status_ai">הצעת AI</string>
+    <string name="status_validated">אומת</string>
+    <string name="status_submitted">נשלח</string>
+    <string name="status_draft">טיוטה</string>
+    <string name="status_input">נדרש קלט</string>
+    <string name="status_exception">חריגה</string>
+    <string name="source_camera">דרך המצלמה</string>
+    <string name="source_bt">דרך Bluetooth</string>
+    <string name="source_wifi">דרך סריקת Wi-Fi</string>
+    <string name="source_ap">דרך סריקת נקודות גישה</string>
+    <string name="source_file">דרך ייבוא קובץ</string>
+    <string name="source_manual">נוסף ידנית</string>
+    <string name="asset_deleted">הנכס נמחק</string>
+    <string name="asset_validated_notice">הנכס אומת</string>
+    <string name="asset_saved_draft">נשמר כטיוטה</string>
+    <string name="asset_submitted_notice">הנכס נשלח · אי אפשר לערוך אותו עכשיו</string>
+    <string name="asset_added_draft">הנכס נוסף כטיוטה</string>
+    <string name="asset_added_submitted">הנכס נשלח</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">מוצג: %1$s</string>
+    <string name="menu_coming_soon">%1$s יהיה זמין בקרוב</string>
+    <string name="review_title">בדיקה והוספה</string>
+    <string name="review_ready">מוכן להוספה</string>
+    <string name="review_needs_input">יידרש קלט</string>
+    <string name="review_add_more">הוספת עוד</string>
+    <string name="review_add_files">הוספת קבצים</string>
+    <string name="review_select_items">בחרו פריטים להוספה</string>
+    <string name="review_photo_sub">תמונה · יש להוסיף שם ופרטים</string>
+    <string name="review_video_sub">וידאו %1$s · יש להוסיף שם ופרטים</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">לכלול בהוספה</string>
+    <string name="detail_tab_info">מידע</string>
+    <string name="detail_tab_validation">אימות</string>
+    <string name="detail_back">חזרה לרשימה</string>
+    <string name="detail_name_hint">שם הנכס</string>
+    <string name="detail_saved">נשמר</string>
+    <string name="detail_menu_camera">צילום תמונה או וידאו</string>
+    <string name="detail_menu_gallery">העלאה מהגלריה</string>
+    <string name="detail_menu_files">העלאה מקבצים</string>
+    <string name="detail_no_photos">עדיין אין תמונות: צלמו תמונה או העלו מהגלריה או מקבצים.</string>
+    <string name="detail_photo">תמונה</string>
+    <string name="detail_video">וידאו</string>
+    <string name="detail_document">מסמך</string>
+    <string name="detail_video_badge">וידאו %1$s</string>
+    <string name="detail_location">מיקום</string>
+    <string name="detail_no_location">עדיין אין מיקום</string>
+    <string name="detail_sec_ident">זיהוי</string>
+    <string name="detail_sec_class">סיווג</string>
+    <string name="detail_sec_tags">תגים וקישוריות</string>
+    <string name="detail_sec_more">פרטים נוספים</string>
+    <string name="detail_sec_notes">הערות</string>
+    <string name="detail_note_nameplate">נקרא מלוחית הזיהוי</string>
+    <string name="detail_note_photos">הוצע על סמך תמונות</string>
+    <string name="detail_note_scan">מהסריקה</string>
+    <string name="detail_none_yet">עדיין כלום</string>
+    <string name="detail_not_set">לא הוגדר</string>
+    <string name="detail_required_summary">נדרש: %1$s</string>
+    <string name="detail_filled_summary">%1$d מתוך %2$d מולאו</string>
+    <string name="detail_asset_id">מזהה נכס</string>
+    <string name="detail_new_code">חדש · לא נשמר</string>
+    <string name="detail_field_hint">הוספת %1$s</string>
+    <string name="detail_select">בחירה</string>
+    <string name="detail_select_jacs">בחירת קוד JACS</string>
+    <string name="detail_badge_check">לבדיקה</string>
+    <string name="detail_badge_edited">נערך</string>
+    <string name="detail_voice_note">הערה קולית</string>
+    <string name="detail_listening">מאזין… נסו “מספר סידורי 24A-118903”</string>
+    <string name="detail_ai_busy">ה-AI ממלא שדות ריקים…</string>
+    <string name="detail_ai_nothing">לא נשאר מה למלא</string>
+    <string name="detail_ai_fill">מילוי שדות ריקים באמצעות AI</string>
+    <string name="detail_note_hint">הוסיפו הערה על המצב, הגישה או כל דבר אחר</string>
+    <string name="detail_submit_title">לשלוח את הנכס הזה?</string>
+    <string name="detail_submit_body">לאחר השליחה אי אפשר לערוך את השדות. אם יהיה צורך בשינוי בהמשך, בקשו איסוף מחדש.</string>
+    <string name="detail_delete_title">למחוק את הנכס הזה?</string>
+    <string name="detail_delete_body">‏%1$s יוסר. אי אפשר לבטל פעולה זו.</string>
+    <string name="detail_delete_body_unnamed">הנכס הזה יוסר. אי אפשר לבטל פעולה זו.</string>
+    <string name="detail_discard_title">לבטל את הנכס החדש הזה?</string>
+    <string name="detail_discard_body">מה שהזנתם לא יישמר.</string>
+    <string name="detail_no_unsaved">אין שינויים שלא נשמרו</string>
+    <string name="detail_status">סטטוס: %1$s</string>
+    <string name="detail_submitted_body">אי אפשר עוד לערוך את השדות. צריך שינוי? בקשו איסוף מחדש.</string>
+    <string name="detail_recollect">בקשת איסוף מחדש</string>
+    <string name="detail_updated">עודכן: %1$s</string>
+    <string name="detail_photo_of">%1$d מתוך %2$d</string>
+    <string name="detail_prev">התמונה הקודמת</string>
+    <string name="detail_next">התמונה הבאה</string>
+    <string name="check_banner_passed">כל הבדיקות עברו</string>
+    <string name="check_banner_passed_sub">הנכס הזה מוכן לאימות.</string>
+    <string name="check_banner_failed_sub">תקנו את הבדיקות הנדרשות לפני אימות הנכס.</string>
+    <string name="check_location">מיקום הוקצה</string>
+    <string name="check_asset_type">סוג הנכס סווג</string>
+    <string name="check_jacs">קוד JACS הוגדר</string>
+    <string name="check_make_model">יצרן ודגם נרשמו</string>
+    <string name="check_serial">מספר סידורי נרשם</string>
+    <string name="check_low_confidence">קריאה בביטחון נמוך נבדקה</string>
+    <string name="check_photo">תמונה צורפה</string>
+    <string name="check_required">נדרש</string>
+    <string name="check_note_required">נדרש לפני שאפשר לאמת את הנכס</string>
+    <string name="check_note_missing">עדיין לא נרשם</string>
+    <string name="check_note_low_confidence">‏%1$s נקרא בביטחון נמוך — השוו ללוחית הזיהוי</string>
+    <string name="check_note_no_photo">עדיין אין תמונה</string>
+    <string name="check_state_passed">עבר</string>
+    <string name="check_state_failed">נכשל</string>
+    <string name="check_state_warning">דורש בדיקה</string>
+    <plurals name="assets_validated">
+        <item quantity="one">אומת %1$d נכס</item>
+        <item quantity="other">אומתו %1$d נכסים</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="one">נשלח %1$d נכס</item>
+        <item quantity="other">נשלחו %1$d נכסים</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="one">נמחק %1$d נכס</item>
+        <item quantity="other">נמחקו %1$d נכסים</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="one">הוקצה %1$d נכס אל %2$s</item>
+        <item quantity="other">הוקצו %1$d נכסים אל %2$s</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="one">נוסף %1$d פריט לנכס</item>
+        <item quantity="other">נוספו %1$d פריטים לנכס</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="one">נוסף %1$d נכס · נדרשים פרטים</item>
+        <item quantity="other">נוספו %1$d נכסים · נדרשים פרטים</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="one">יובא %1$d נכס · נדרשים פרטים</item>
+        <item quantity="other">יובאו %1$d נכסים · נדרשים פרטים</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="one">למחוק את הנכס הזה?</item>
+        <item quantity="other">למחוק %1$d נכסים?</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="one">הנכס שנבחר יוסר. אי אפשר לבטל פעולה זו.</item>
+        <item quantity="other">%1$d הנכסים שנבחרו יוסרו. אי אפשר לבטל פעולה זו.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="one">הוספת %1$d נכס</item>
+        <item quantity="other">הוספת %1$d נכסים</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="one">%1$d פריט · כל אחד הופך לנכס בטיוטה</item>
+        <item quantity="other">%1$d פריטים · כל אחד הופך לנכס בטיוטה</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="one">נבחר %1$d קובץ · כל אחד הופך לנכס בטיוטה</item>
+        <item quantity="other">נבחרו %1$d קבצים · כל אחד הופך לנכס בטיוטה</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="one">%1$d שינוי שלא נשמר</item>
+        <item quantity="other">%1$d שינויים שלא נשמרו</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="one">ה-AI מילא %1$d שדה · בדקו ושמרו</item>
+        <item quantity="other">ה-AI מילא %1$d שדות · בדקו ושמרו</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="one">%1$d בדיקה נכשלה</item>
+        <item quantity="other">%1$d בדיקות נכשלו</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="one">תקנו %1$d בדיקה כדי לאמת</item>
+        <item quantity="other">תקנו %1$d בדיקות כדי לאמת</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="one">%1$d תמונה</item>
+        <item quantity="other">%1$d תמונות</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="one">נדרשת לפחות %2$d תמונה (עד כה %1$d)</item>
+        <item quantity="other">נדרשות לפחות %2$d תמונות (עד כה %1$d)</item>
+    </plurals>
+    <string name="dash_clear_search_text">ניקוי טקסט החיפוש</string>
+    <string name="detail_add_photo">הוספת תמונה</string>
+    <string name="detail_voice_fill">מילוי שדות בקול</string>
 </resources>

@@ -205,4 +205,214 @@
         <item quantity="one">%1$d persoon in deze groep krijgt toegang tot alle locaties.</item>
         <item quantity="other">%1$d mensen in deze groep krijgen toegang tot alle locaties.</item>
     </plurals>
+    <string name="action_validate">Valideren</string>
+    <string name="action_assign">Toewijzen</string>
+    <string name="action_submit">Indienen</string>
+    <string name="action_delete">Verwijderen</string>
+    <string name="action_save">Opslaan</string>
+    <string name="action_discard">Verwerpen</string>
+    <string name="action_keep_editing">Verder bewerken</string>
+    <string name="action_add">Toevoegen</string>
+    <string name="action_change">Wijzigen</string>
+    <string name="action_fix">Herstellen</string>
+    <string name="dash_menu">Menu</string>
+    <string name="dash_unmapped">Zonder locatie</string>
+    <string name="dash_choose_location">Locatie kiezen</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">Netwerk</string>
+    <string name="nav_camera">Camera</string>
+    <string name="nav_file">Bestand</string>
+    <string name="dash_search_hint">Zoek op naam, serienr. of tag</string>
+    <string name="dash_add_asset">Asset toevoegen</string>
+    <string name="dash_selected">%1$d geselecteerd</string>
+    <string name="dash_select_all">Alle %1$d selecteren</string>
+    <string name="dash_clear_all">Alles wissen</string>
+    <string name="dash_clear_selection">Selectie wissen</string>
+    <string name="dash_empty_title">Hier is nog niets</string>
+    <string name="dash_empty_search">Geen asset komt overeen met “%1$s”.</string>
+    <string name="dash_empty_status">Hier zijn geen assets met deze status.</string>
+    <string name="dash_empty_assets">Scan, fotografeer of importeer assets met de tabs hieronder.</string>
+    <string name="dash_empty_source">Op deze manier is hier nog niets toegevoegd.</string>
+    <string name="dash_chip_all">Alle</string>
+    <string name="dash_chips_back">Eerdere statussen tonen</string>
+    <string name="dash_chips_more">Meer statussen tonen</string>
+    <string name="status_ai">AI-suggestie</string>
+    <string name="status_validated">Gevalideerd</string>
+    <string name="status_submitted">Ingediend</string>
+    <string name="status_draft">Concept</string>
+    <string name="status_input">Invoer nodig</string>
+    <string name="status_exception">Uitzondering</string>
+    <string name="source_camera">via camera</string>
+    <string name="source_bt">via Bluetooth</string>
+    <string name="source_wifi">via wifi-scan</string>
+    <string name="source_ap">via accesspoint-scan</string>
+    <string name="source_file">via bestandsimport</string>
+    <string name="source_manual">Handmatig toegevoegd</string>
+    <string name="asset_deleted">Asset verwijderd</string>
+    <string name="asset_validated_notice">Asset gevalideerd</string>
+    <string name="asset_saved_draft">Opgeslagen als concept</string>
+    <string name="asset_submitted_notice">Asset ingediend · het kan niet meer worden bewerkt</string>
+    <string name="asset_added_draft">Asset toegevoegd als concept</string>
+    <string name="asset_added_submitted">Asset ingediend</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">%1$s wordt getoond</string>
+    <string name="menu_coming_soon">%1$s komt binnenkort</string>
+    <string name="review_title">Controleren en toevoegen</string>
+    <string name="review_ready">Klaar om toe te voegen</string>
+    <string name="review_needs_input">Heeft invoer nodig</string>
+    <string name="review_add_more">Meer toevoegen</string>
+    <string name="review_add_files">Bestanden toevoegen</string>
+    <string name="review_select_items">Selecteer items om toe te voegen</string>
+    <string name="review_photo_sub">Foto · naam en details nog toevoegen</string>
+    <string name="review_video_sub">Video %1$s · naam en details nog toevoegen</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">Opnemen in de onboarding</string>
+    <string name="detail_tab_info">Info</string>
+    <string name="detail_tab_validation">Validatie</string>
+    <string name="detail_back">Terug naar lijst</string>
+    <string name="detail_name_hint">Assetnaam</string>
+    <string name="detail_saved">Opgeslagen</string>
+    <string name="detail_menu_camera">Foto of video maken</string>
+    <string name="detail_menu_gallery">Uploaden uit galerij</string>
+    <string name="detail_menu_files">Uploaden uit bestanden</string>
+    <string name="detail_no_photos">Nog geen foto’s: maak er een of upload er een uit de galerij of bestanden.</string>
+    <string name="detail_photo">Foto</string>
+    <string name="detail_video">Video</string>
+    <string name="detail_document">Document</string>
+    <string name="detail_video_badge">VIDEO %1$s</string>
+    <string name="detail_location">Locatie</string>
+    <string name="detail_no_location">Nog geen locatie</string>
+    <string name="detail_sec_ident">Identificatie</string>
+    <string name="detail_sec_class">Classificatie</string>
+    <string name="detail_sec_tags">Tags en connectiviteit</string>
+    <string name="detail_sec_more">Meer details</string>
+    <string name="detail_sec_notes">Notities</string>
+    <string name="detail_note_nameplate">Afgelezen van het typeplaatje</string>
+    <string name="detail_note_photos">Voorgesteld op basis van foto’s</string>
+    <string name="detail_note_scan">Uit scan</string>
+    <string name="detail_none_yet">Nog niets</string>
+    <string name="detail_not_set">Niet ingesteld</string>
+    <string name="detail_required_summary">%1$s vereist</string>
+    <string name="detail_filled_summary">%1$d van %2$d ingevuld</string>
+    <string name="detail_asset_id">Asset-ID</string>
+    <string name="detail_new_code">Nieuw · nog niet opgeslagen</string>
+    <string name="detail_field_hint">%1$s toevoegen</string>
+    <string name="detail_select">Selecteren</string>
+    <string name="detail_select_jacs">JACS-code selecteren</string>
+    <string name="detail_badge_check">CONTROLEREN</string>
+    <string name="detail_badge_edited">GEWIJZIGD</string>
+    <string name="detail_voice_note">Spraaknotitie</string>
+    <string name="detail_listening">Luisteren… probeer “Serienummer 24A-118903”</string>
+    <string name="detail_ai_busy">AI vult lege velden in…</string>
+    <string name="detail_ai_nothing">Er is niets meer in te vullen</string>
+    <string name="detail_ai_fill">Lege velden invullen met AI</string>
+    <string name="detail_note_hint">Voeg een notitie toe over staat, toegang of iets anders</string>
+    <string name="detail_submit_title">Deze asset indienen?</string>
+    <string name="detail_submit_body">Na indienen kunnen de velden niet meer worden bewerkt. Moet er later iets veranderen, vraag dan een nieuwe inventarisatie aan.</string>
+    <string name="detail_delete_title">Deze asset verwijderen?</string>
+    <string name="detail_delete_body">%1$s wordt verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="detail_delete_body_unnamed">Deze asset wordt verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="detail_discard_title">Deze nieuwe asset verwerpen?</string>
+    <string name="detail_discard_body">Wat je hebt ingevoerd wordt niet opgeslagen.</string>
+    <string name="detail_no_unsaved">Geen niet-opgeslagen wijzigingen</string>
+    <string name="detail_status">Status: %1$s</string>
+    <string name="detail_submitted_body">De velden kunnen niet meer worden bewerkt. Wijziging nodig? Vraag een nieuwe inventarisatie aan.</string>
+    <string name="detail_recollect">Nieuwe inventarisatie aanvragen</string>
+    <string name="detail_updated">Bijgewerkt op %1$s</string>
+    <string name="detail_photo_of">%1$d van %2$d</string>
+    <string name="detail_prev">Vorige foto</string>
+    <string name="detail_next">Volgende foto</string>
+    <string name="check_banner_passed">Alle controles geslaagd</string>
+    <string name="check_banner_passed_sub">Deze asset is klaar om te valideren.</string>
+    <string name="check_banner_failed_sub">Los de verplichte controles op voordat je deze asset valideert.</string>
+    <string name="check_location">Locatie toegewezen</string>
+    <string name="check_asset_type">Assettype geclassificeerd</string>
+    <string name="check_jacs">JACS-code ingesteld</string>
+    <string name="check_make_model">Merk en model vastgelegd</string>
+    <string name="check_serial">Serienummer vastgelegd</string>
+    <string name="check_low_confidence">Onzeker afgelezen waarde gecontroleerd</string>
+    <string name="check_photo">Foto bijgevoegd</string>
+    <string name="check_required">VERPLICHT</string>
+    <string name="check_note_required">Vereist voordat de asset kan worden gevalideerd</string>
+    <string name="check_note_missing">Nog niet vastgelegd</string>
+    <string name="check_note_low_confidence">%1$s is met lage zekerheid afgelezen: vergelijk met het typeplaatje</string>
+    <string name="check_note_no_photo">Nog geen foto</string>
+    <string name="check_state_passed">Geslaagd</string>
+    <string name="check_state_failed">Mislukt</string>
+    <string name="check_state_warning">Controle nodig</string>
+    <plurals name="assets_validated">
+        <item quantity="one">%1$d asset gevalideerd</item>
+        <item quantity="other">%1$d assets gevalideerd</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="one">%1$d asset ingediend</item>
+        <item quantity="other">%1$d assets ingediend</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="one">%1$d asset verwijderd</item>
+        <item quantity="other">%1$d assets verwijderd</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="one">%1$d asset toegewezen aan %2$s</item>
+        <item quantity="other">%1$d assets toegewezen aan %2$s</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="one">%1$d item aan asset toegevoegd</item>
+        <item quantity="other">%1$d items aan asset toegevoegd</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="one">%1$d asset toegevoegd · details nodig</item>
+        <item quantity="other">%1$d assets toegevoegd · details nodig</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="one">%1$d asset geïmporteerd · details nodig</item>
+        <item quantity="other">%1$d assets geïmporteerd · details nodig</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="one">Deze asset verwijderen?</item>
+        <item quantity="other">%1$d assets verwijderen?</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="one">De geselecteerde asset wordt verwijderd. Dit kan niet ongedaan worden gemaakt.</item>
+        <item quantity="other">De %1$d geselecteerde assets worden verwijderd. Dit kan niet ongedaan worden gemaakt.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="one">%1$d asset toevoegen</item>
+        <item quantity="other">%1$d assets toevoegen</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="one">%1$d item · elk wordt een conceptasset</item>
+        <item quantity="other">%1$d items · elk wordt een conceptasset</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="one">%1$d bestand geselecteerd · elk wordt een conceptasset</item>
+        <item quantity="other">%1$d bestanden geselecteerd · elk wordt een conceptasset</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="one">%1$d niet-opgeslagen wijziging</item>
+        <item quantity="other">%1$d niet-opgeslagen wijzigingen</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="one">AI vulde %1$d veld in · controleer en sla op</item>
+        <item quantity="other">AI vulde %1$d velden in · controleer en sla op</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="one">%1$d controle mislukt</item>
+        <item quantity="other">%1$d controles mislukt</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="one">Los %1$d controle op om te valideren</item>
+        <item quantity="other">Los %1$d controles op om te valideren</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="one">%1$d foto</item>
+        <item quantity="other">%1$d foto’s</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="one">Minstens %2$d foto nodig (nu %1$d)</item>
+        <item quantity="other">Minstens %2$d foto’s nodig (nu %1$d)</item>
+    </plurals>
+    <string name="dash_clear_search_text">Zoektekst wissen</string>
+    <string name="detail_add_photo">Foto toevoegen</string>
+    <string name="detail_voice_fill">Velden met spraak invullen</string>
 </resources>

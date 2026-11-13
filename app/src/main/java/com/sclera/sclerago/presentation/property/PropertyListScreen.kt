@@ -92,7 +92,7 @@ fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel(
             app.state.toastOn && !state.addOpen,
             Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 72.dp),
             enter = fadeIn(), exit = fadeOut(),
-        ) { Toast(app.state.toast) }
+        ) { Toast(app.state.toast.asString()) }
         if (state.importOpen) ImportSheet(vm::closeImport, vm::importFile, vm::importProblem, vm::writeSample)
         if (state.addOpen) AddPropertySheet(state.properties, vm::closeAdd, vm::addProperty)
     }

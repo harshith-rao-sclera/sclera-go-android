@@ -200,4 +200,196 @@
     <plurals name="access_elevate_notice">
         <item quantity="other">이 그룹의 %1$d명이 모든 시설에 접근할 수 있게 됩니다.</item>
     </plurals>
+    <string name="action_validate">검증</string>
+    <string name="action_assign">할당</string>
+    <string name="action_submit">제출</string>
+    <string name="action_delete">삭제</string>
+    <string name="action_save">저장</string>
+    <string name="action_discard">취소</string>
+    <string name="action_keep_editing">계속 편집</string>
+    <string name="action_add">추가</string>
+    <string name="action_change">변경</string>
+    <string name="action_fix">수정</string>
+    <string name="dash_menu">메뉴</string>
+    <string name="dash_unmapped">위치 없음</string>
+    <string name="dash_choose_location">위치 선택</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">네트워크</string>
+    <string name="nav_camera">카메라</string>
+    <string name="nav_file">파일</string>
+    <string name="dash_search_hint">이름, 일련번호 또는 태그 검색</string>
+    <string name="dash_add_asset">자산 추가</string>
+    <string name="dash_selected">%1$d개 선택됨</string>
+    <string name="dash_select_all">%1$d개 모두 선택</string>
+    <string name="dash_clear_all">모두 해제</string>
+    <string name="dash_clear_selection">선택 해제</string>
+    <string name="dash_empty_title">아직 아무것도 없습니다</string>
+    <string name="dash_empty_search">“%1$s”와(과) 일치하는 자산이 없습니다.</string>
+    <string name="dash_empty_status">여기에는 이 상태의 자산이 없습니다.</string>
+    <string name="dash_empty_assets">아래 탭으로 자산을 스캔하거나 촬영하거나 가져오세요.</string>
+    <string name="dash_empty_source">이 방식으로 등록된 항목이 아직 없습니다.</string>
+    <string name="dash_chip_all">전체</string>
+    <string name="dash_chips_back">이전 상태 표시</string>
+    <string name="dash_chips_more">더 많은 상태 표시</string>
+    <string name="status_ai">AI 제안</string>
+    <string name="status_validated">검증됨</string>
+    <string name="status_submitted">제출됨</string>
+    <string name="status_draft">초안</string>
+    <string name="status_input">입력 필요</string>
+    <string name="status_exception">예외</string>
+    <string name="source_camera">카메라로</string>
+    <string name="source_bt">Bluetooth로</string>
+    <string name="source_wifi">Wi-Fi 스캔으로</string>
+    <string name="source_ap">액세스 포인트 스캔으로</string>
+    <string name="source_file">파일 가져오기로</string>
+    <string name="source_manual">수동으로 추가됨</string>
+    <string name="asset_deleted">자산이 삭제되었습니다</string>
+    <string name="asset_validated_notice">자산이 검증되었습니다</string>
+    <string name="asset_saved_draft">초안으로 저장했습니다</string>
+    <string name="asset_submitted_notice">자산이 제출되었습니다 · 이제 편집할 수 없습니다</string>
+    <string name="asset_added_draft">자산이 초안으로 추가되었습니다</string>
+    <string name="asset_added_submitted">자산이 제출되었습니다</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">%1$s 표시 중</string>
+    <string name="menu_coming_soon">%1$s 기능은 곧 제공됩니다</string>
+    <string name="review_title">검토 및 등록</string>
+    <string name="review_ready">등록 준비 완료</string>
+    <string name="review_needs_input">입력이 필요합니다</string>
+    <string name="review_add_more">더 추가</string>
+    <string name="review_add_files">파일 추가</string>
+    <string name="review_select_items">등록할 항목을 선택하세요</string>
+    <string name="review_photo_sub">사진 · 이름과 세부 정보 추가 필요</string>
+    <string name="review_video_sub">동영상 %1$s · 이름과 세부 정보 추가 필요</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">등록에 포함</string>
+    <string name="detail_tab_info">정보</string>
+    <string name="detail_tab_validation">검증</string>
+    <string name="detail_back">목록으로 돌아가기</string>
+    <string name="detail_name_hint">자산 이름</string>
+    <string name="detail_saved">저장됨</string>
+    <string name="detail_menu_camera">사진 또는 동영상 촬영</string>
+    <string name="detail_menu_gallery">갤러리에서 업로드</string>
+    <string name="detail_menu_files">파일에서 업로드</string>
+    <string name="detail_no_photos">아직 사진이 없습니다. 촬영하거나 갤러리 또는 파일에서 업로드하세요.</string>
+    <string name="detail_photo">사진</string>
+    <string name="detail_video">동영상</string>
+    <string name="detail_document">문서</string>
+    <string name="detail_video_badge">동영상 %1$s</string>
+    <string name="detail_location">위치</string>
+    <string name="detail_no_location">아직 위치가 없습니다</string>
+    <string name="detail_sec_ident">식별</string>
+    <string name="detail_sec_class">분류</string>
+    <string name="detail_sec_tags">태그 및 연결</string>
+    <string name="detail_sec_more">추가 세부 정보</string>
+    <string name="detail_sec_notes">메모</string>
+    <string name="detail_note_nameplate">명판에서 읽음</string>
+    <string name="detail_note_photos">사진에서 추천됨</string>
+    <string name="detail_note_scan">스캔에서</string>
+    <string name="detail_none_yet">아직 없음</string>
+    <string name="detail_not_set">설정 안 됨</string>
+    <string name="detail_required_summary">%1$s 필수</string>
+    <string name="detail_filled_summary">%2$d개 중 %1$d개 입력됨</string>
+    <string name="detail_asset_id">자산 ID</string>
+    <string name="detail_new_code">신규 · 저장 안 됨</string>
+    <string name="detail_field_hint">%1$s 추가</string>
+    <string name="detail_select">선택</string>
+    <string name="detail_select_jacs">JACS 코드 선택</string>
+    <string name="detail_badge_check">확인 필요</string>
+    <string name="detail_badge_edited">수정됨</string>
+    <string name="detail_voice_note">음성 메모</string>
+    <string name="detail_listening">듣는 중… “일련번호 24A-118903”이라고 말해 보세요</string>
+    <string name="detail_ai_busy">AI가 빈 필드를 채우는 중…</string>
+    <string name="detail_ai_nothing">더 채울 항목이 없습니다</string>
+    <string name="detail_ai_fill">AI로 빈 필드 채우기</string>
+    <string name="detail_note_hint">상태, 접근 방법 등에 대한 메모를 추가하세요</string>
+    <string name="detail_submit_title">이 자산을 제출할까요?</string>
+    <string name="detail_submit_body">제출하면 필드를 편집할 수 없습니다. 나중에 변경이 필요하면 재수집을 요청하세요.</string>
+    <string name="detail_delete_title">이 자산을 삭제할까요?</string>
+    <string name="detail_delete_body">%1$s이(가) 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</string>
+    <string name="detail_delete_body_unnamed">이 자산이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</string>
+    <string name="detail_discard_title">이 새 자산을 취소할까요?</string>
+    <string name="detail_discard_body">입력한 내용은 저장되지 않습니다.</string>
+    <string name="detail_no_unsaved">저장되지 않은 변경 사항 없음</string>
+    <string name="detail_status">상태: %1$s</string>
+    <string name="detail_submitted_body">필드를 더 이상 편집할 수 없습니다. 변경이 필요하신가요? 재수집을 요청하세요.</string>
+    <string name="detail_recollect">재수집 요청</string>
+    <string name="detail_updated">업데이트: %1$s</string>
+    <string name="detail_photo_of">%1$d / %2$d</string>
+    <string name="detail_prev">이전 사진</string>
+    <string name="detail_next">다음 사진</string>
+    <string name="check_banner_passed">모든 점검 통과</string>
+    <string name="check_banner_passed_sub">이 자산은 검증할 준비가 되었습니다.</string>
+    <string name="check_banner_failed_sub">이 자산을 검증하기 전에 필수 점검을 수정하세요.</string>
+    <string name="check_location">위치 할당됨</string>
+    <string name="check_asset_type">자산 유형 분류됨</string>
+    <string name="check_jacs">JACS 코드 설정됨</string>
+    <string name="check_make_model">제조사 및 모델 기록됨</string>
+    <string name="check_serial">일련번호 기록됨</string>
+    <string name="check_low_confidence">신뢰도 낮은 판독 검토됨</string>
+    <string name="check_photo">사진 첨부됨</string>
+    <string name="check_required">필수</string>
+    <string name="check_note_required">자산을 검증하려면 먼저 필요합니다</string>
+    <string name="check_note_missing">아직 기록되지 않음</string>
+    <string name="check_note_low_confidence">%1$s을(를) 낮은 신뢰도로 읽었습니다 — 명판과 대조해 보세요</string>
+    <string name="check_note_no_photo">아직 사진 없음</string>
+    <string name="check_state_passed">통과</string>
+    <string name="check_state_failed">실패</string>
+    <string name="check_state_warning">검토 필요</string>
+    <plurals name="assets_validated">
+        <item quantity="other">자산 %1$d개를 검증했습니다</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="other">자산 %1$d개를 제출했습니다</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="other">자산 %1$d개를 삭제했습니다</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="other">자산 %1$d개를 %2$s에 할당했습니다</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="other">항목 %1$d개를 자산에 추가했습니다</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="other">자산 %1$d개를 추가했습니다 · 세부 정보 필요</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="other">자산 %1$d개를 가져왔습니다 · 세부 정보 필요</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="other">자산 %1$d개를 삭제할까요?</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="other">선택한 자산 %1$d개가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="other">자산 %1$d개 등록</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="other">항목 %1$d개 · 각각 초안 자산이 됩니다</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="other">파일 %1$d개 선택됨 · 각각 초안 자산이 됩니다</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="other">저장되지 않은 변경 %1$d개</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="other">AI가 필드 %1$d개를 채웠습니다 · 검토 후 저장하세요</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="other">점검 %1$d개 실패</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="other">점검 %1$d개를 수정해야 검증할 수 있습니다</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="other">사진 %1$d장</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="other">사진이 최소 %2$d장 필요합니다 (현재 %1$d장)</item>
+    </plurals>
+    <string name="dash_clear_search_text">검색어 지우기</string>
+    <string name="detail_add_photo">사진 추가</string>
+    <string name="detail_voice_fill">음성으로 필드 채우기</string>
 </resources>

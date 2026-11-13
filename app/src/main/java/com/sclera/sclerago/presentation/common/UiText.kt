@@ -1,8 +1,10 @@
 package com.sclera.sclerago.presentation.common
 
+import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AuthError
@@ -12,6 +14,9 @@ import com.sclera.sclerago.domain.model.AuthError
 sealed interface UiText {
     data class Res(@param:StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
 
+    /** A plural string: the form is picked by [count]; [args] fill its placeholders (just the count by default). */
+    data class Plural(@param:PluralsRes val id: Int, val count: Int, val args: List<Any> = listOf(count)) : UiText
+
     /** Text that can't be localized on the device, e.g. a message returned by the server. */
     data class Raw(val text: String) : UiText
 }
@@ -19,6 +24,7 @@ sealed interface UiText {
 @Composable
 fun UiText.asString(): String = when (this) {
     is UiText.Res -> stringResource(id, *args.toTypedArray())
+    is UiText.Plural -> pluralStringResource(id, count, *args.toTypedArray())
     is UiText.Raw -> text
 }
 

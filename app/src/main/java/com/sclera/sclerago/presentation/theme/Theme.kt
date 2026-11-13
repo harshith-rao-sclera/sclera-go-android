@@ -62,6 +62,8 @@ object C {
     val PrimaryOffFg = Color(0xFFC9B57A)
     val CardWash = Color(0x80272A2F)
     val DangerBg = Color(0xFF2A1919)
+    val GreenBg = Color(0xFF17241D)
+    val GreenBd = Color(0xFF27402F)
     /** Launch splash canvas and the yellow of its "-go" wordmark. */
     val Splash = Color(0xFF0B0B0C)
     val BrandYellow = Color(0xFFFFCB05)

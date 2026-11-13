@@ -73,8 +73,23 @@ fun SearchFab(
     modifier: Modifier = Modifier,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
+    SearchFab(open, { open = it }, query, onQueryChange, placeholder, openDescription, closeDescription, modifier)
+}
+
+/** [SearchFab] whose open state belongs to the caller (e.g. so the back button and other actions can close it). */
+@Composable
+fun SearchFab(
+    open: Boolean,
+    onOpenChange: (Boolean) -> Unit,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    placeholder: String,
+    openDescription: String,
+    closeDescription: String,
+    modifier: Modifier = Modifier,
+) {
     if (!open) {
-        CircleFab(Icons.Search, openDescription, { open = true }, modifier, bg = C.Btn, fg = C.Text, iconSize = 20.dp, stroke = 2.4f)
+        CircleFab(Icons.Search, openDescription, { onOpenChange(true) }, modifier, bg = C.Btn, fg = C.Text, iconSize = 20.dp, stroke = 2.4f)
         return
     }
     val focus = remember { FocusRequester() }
@@ -88,7 +103,7 @@ fun SearchFab(
         LineIcon(Icons.Search, 17.dp, C.Yellow, 2.4f)
         PlainField(query, onQueryChange, placeholder, Modifier.weight(1f).focusRequester(focus))
         RoundButton(
-            42.dp, C.Btn, { onQueryChange(""); open = false },
+            42.dp, C.Btn, { onQueryChange(""); onOpenChange(false) },
             Modifier.semantics { contentDescription = closeDescription },
         ) { LineIcon(Icons.Close, 14.dp, C.Text, 2.6f) }
     }

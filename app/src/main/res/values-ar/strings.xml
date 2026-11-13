@@ -225,4 +225,214 @@
         <item quantity="many">سيحصل %1$d شخصًا في هذه المجموعة على الوصول إلى جميع العقارات.</item>
         <item quantity="other">سيحصل %1$d شخص في هذه المجموعة على الوصول إلى جميع العقارات.</item>
     </plurals>
+    <string name="action_validate">تحقق</string>
+    <string name="action_assign">تعيين</string>
+    <string name="action_submit">إرسال</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_save">حفظ</string>
+    <string name="action_discard">تجاهل</string>
+    <string name="action_keep_editing">متابعة التحرير</string>
+    <string name="action_add">إضافة</string>
+    <string name="action_change">تغيير</string>
+    <string name="action_fix">إصلاح</string>
+    <string name="dash_menu">القائمة</string>
+    <string name="dash_unmapped">بلا موقع</string>
+    <string name="dash_choose_location">اختيار موقع</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">الشبكة</string>
+    <string name="nav_camera">الكاميرا</string>
+    <string name="nav_file">ملف</string>
+    <string name="dash_search_hint">ابحث بالاسم أو الرقم التسلسلي أو الوسم</string>
+    <string name="dash_add_asset">إضافة أصل</string>
+    <string name="dash_selected">تم تحديد %1$d</string>
+    <string name="dash_select_all">تحديد الكل (%1$d)</string>
+    <string name="dash_clear_all">إلغاء تحديد الكل</string>
+    <string name="dash_clear_selection">مسح التحديد</string>
+    <string name="dash_empty_title">لا يوجد شيء هنا بعد</string>
+    <string name="dash_empty_search">لا يوجد أصل يطابق “%1$s”.</string>
+    <string name="dash_empty_status">لا توجد أصول بهذه الحالة هنا.</string>
+    <string name="dash_empty_assets">امسح الأصول أو صوّرها أو استوردها باستخدام علامات التبويب أدناه.</string>
+    <string name="dash_empty_source">لم تتم إضافة شيء بهذه الطريقة هنا بعد.</string>
+    <string name="dash_chip_all">الكل</string>
+    <string name="dash_chips_back">عرض الحالات السابقة</string>
+    <string name="dash_chips_more">عرض المزيد من الحالات</string>
+    <string name="status_ai">اقتراح الذكاء الاصطناعي</string>
+    <string name="status_validated">تم التحقق</string>
+    <string name="status_submitted">تم الإرسال</string>
+    <string name="status_draft">مسودة</string>
+    <string name="status_input">مطلوب إدخال</string>
+    <string name="status_exception">استثناء</string>
+    <string name="source_camera">عبر الكاميرا</string>
+    <string name="source_bt">عبر Bluetooth</string>
+    <string name="source_wifi">عبر مسح Wi-Fi</string>
+    <string name="source_ap">عبر مسح نقاط الوصول</string>
+    <string name="source_file">عبر استيراد ملف</string>
+    <string name="source_manual">أُضيف يدويًا</string>
+    <string name="asset_deleted">تم حذف الأصل</string>
+    <string name="asset_validated_notice">تم التحقق من الأصل</string>
+    <string name="asset_saved_draft">تم الحفظ كمسودة</string>
+    <string name="asset_submitted_notice">تم إرسال الأصل · لا يمكن تحريره الآن</string>
+    <string name="asset_added_draft">أُضيف الأصل كمسودة</string>
+    <string name="asset_added_submitted">تم إرسال الأصل</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">عرض %1$s</string>
+    <string name="menu_coming_soon">%1$s قريبًا</string>
+    <string name="review_title">مراجعة وإضافة</string>
+    <string name="review_ready">جاهز للإضافة</string>
+    <string name="review_needs_input">سيحتاج إلى إدخال</string>
+    <string name="review_add_more">إضافة المزيد</string>
+    <string name="review_add_files">إضافة ملفات</string>
+    <string name="review_select_items">حدد العناصر المراد إضافتها</string>
+    <string name="review_photo_sub">صورة · يلزم إضافة الاسم والتفاصيل</string>
+    <string name="review_video_sub">فيديو %1$s · يلزم إضافة الاسم والتفاصيل</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">تضمين في الإضافة</string>
+    <string name="detail_tab_info">معلومات</string>
+    <string name="detail_tab_validation">التحقق</string>
+    <string name="detail_back">العودة إلى القائمة</string>
+    <string name="detail_name_hint">اسم الأصل</string>
+    <string name="detail_saved">تم الحفظ</string>
+    <string name="detail_menu_camera">التقاط صورة أو فيديو</string>
+    <string name="detail_menu_gallery">رفع من المعرض</string>
+    <string name="detail_menu_files">رفع من الملفات</string>
+    <string name="detail_no_photos">لا توجد صور بعد: التقط صورة أو ارفعها من المعرض أو الملفات.</string>
+    <string name="detail_photo">صورة</string>
+    <string name="detail_video">فيديو</string>
+    <string name="detail_document">مستند</string>
+    <string name="detail_video_badge">فيديو %1$s</string>
+    <string name="detail_location">الموقع</string>
+    <string name="detail_no_location">لا يوجد موقع بعد</string>
+    <string name="detail_sec_ident">التعريف</string>
+    <string name="detail_sec_class">التصنيف</string>
+    <string name="detail_sec_tags">الوسوم والاتصال</string>
+    <string name="detail_sec_more">مزيد من التفاصيل</string>
+    <string name="detail_sec_notes">ملاحظات</string>
+    <string name="detail_note_nameplate">تمت القراءة من لوحة البيانات</string>
+    <string name="detail_note_photos">مقترح من الصور</string>
+    <string name="detail_note_scan">من المسح</string>
+    <string name="detail_none_yet">لا شيء بعد</string>
+    <string name="detail_not_set">غير محدد</string>
+    <string name="detail_required_summary">%1$s مطلوب</string>
+    <string name="detail_filled_summary">تمت تعبئة %1$d من %2$d</string>
+    <string name="detail_asset_id">معرّف الأصل</string>
+    <string name="detail_new_code">جديد · لم يُحفظ</string>
+    <string name="detail_field_hint">إضافة %1$s</string>
+    <string name="detail_select">اختيار</string>
+    <string name="detail_select_jacs">اختيار رمز JACS</string>
+    <string name="detail_badge_check">تحقق</string>
+    <string name="detail_badge_edited">تم التعديل</string>
+    <string name="detail_voice_note">ملاحظة صوتية</string>
+    <string name="detail_listening">جارٍ الاستماع… جرّب “الرقم التسلسلي 24A-118903”</string>
+    <string name="detail_ai_busy">يقوم الذكاء الاصطناعي بتعبئة الحقول الفارغة…</string>
+    <string name="detail_ai_nothing">لا يوجد ما يمكن تعبئته</string>
+    <string name="detail_ai_fill">تعبئة الحقول الفارغة بالذكاء الاصطناعي</string>
+    <string name="detail_note_hint">أضف ملاحظة عن الحالة أو الوصول أو أي شيء آخر</string>
+    <string name="detail_submit_title">إرسال هذا الأصل؟</string>
+    <string name="detail_submit_body">بعد الإرسال لا يمكن تحرير حقوله. إذا لزم تغيير شيء لاحقًا فاطلب إعادة الجمع.</string>
+    <string name="detail_delete_title">حذف هذا الأصل؟</string>
+    <string name="detail_delete_body">سيتم حذف %1$s. لا يمكن التراجع عن ذلك.</string>
+    <string name="detail_delete_body_unnamed">سيتم حذف هذا الأصل. لا يمكن التراجع عن ذلك.</string>
+    <string name="detail_discard_title">تجاهل هذا الأصل الجديد؟</string>
+    <string name="detail_discard_body">لن يتم حفظ ما أدخلته.</string>
+    <string name="detail_no_unsaved">لا توجد تغييرات غير محفوظة</string>
+    <string name="detail_status">الحالة: %1$s</string>
+    <string name="detail_submitted_body">لم يعد بالإمكان تحرير حقوله. هل تحتاج إلى تغيير؟ اطلب إعادة الجمع.</string>
+    <string name="detail_recollect">طلب إعادة الجمع</string>
+    <string name="detail_updated">آخر تحديث: %1$s</string>
+    <string name="detail_photo_of">%1$d من %2$d</string>
+    <string name="detail_prev">الصورة السابقة</string>
+    <string name="detail_next">الصورة التالية</string>
+    <string name="check_banner_passed">اجتازت جميع الفحوصات</string>
+    <string name="check_banner_passed_sub">هذا الأصل جاهز للتحقق.</string>
+    <string name="check_banner_failed_sub">أصلح الفحوصات المطلوبة قبل التحقق من هذا الأصل.</string>
+    <string name="check_location">تم تعيين الموقع</string>
+    <string name="check_asset_type">تم تصنيف نوع الأصل</string>
+    <string name="check_jacs">تم تعيين رمز JACS</string>
+    <string name="check_make_model">تم تسجيل الشركة المصنعة والطراز</string>
+    <string name="check_serial">تم تسجيل الرقم التسلسلي</string>
+    <string name="check_low_confidence">تمت مراجعة القراءة منخفضة الثقة</string>
+    <string name="check_photo">تم إرفاق صورة</string>
+    <string name="check_required">مطلوب</string>
+    <string name="check_note_required">مطلوب قبل أن يمكن التحقق من الأصل</string>
+    <string name="check_note_missing">لم يُسجَّل بعد</string>
+    <string name="check_note_low_confidence">قُرئ %1$s بثقة منخفضة — قارنه بلوحة البيانات</string>
+    <string name="check_note_no_photo">لا توجد صورة بعد</string>
+    <string name="check_state_passed">اجتاز</string>
+    <string name="check_state_failed">فشل</string>
+    <string name="check_state_warning">يحتاج إلى مراجعة</string>
+    <plurals name="assets_validated">
+        <item quantity="one">تم التحقق من %1$d أصل</item>
+        <item quantity="other">تم التحقق من %1$d أصل</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="one">تم إرسال %1$d أصل</item>
+        <item quantity="other">تم إرسال %1$d أصل</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="one">تم حذف %1$d أصل</item>
+        <item quantity="other">تم حذف %1$d أصل</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="one">تم تعيين %1$d أصل إلى %2$s</item>
+        <item quantity="other">تم تعيين %1$d أصل إلى %2$s</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="one">تمت إضافة %1$d عنصر إلى الأصل</item>
+        <item quantity="other">تمت إضافة %1$d عنصر إلى الأصل</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="one">تمت إضافة %1$d أصل · يلزم إدخال التفاصيل</item>
+        <item quantity="other">تمت إضافة %1$d أصل · يلزم إدخال التفاصيل</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="one">تم استيراد %1$d أصل · يلزم إدخال التفاصيل</item>
+        <item quantity="other">تم استيراد %1$d أصل · يلزم إدخال التفاصيل</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="one">حذف هذا الأصل؟</item>
+        <item quantity="other">حذف %1$d أصل؟</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="one">سيتم حذف الأصل المحدد. لا يمكن التراجع عن ذلك.</item>
+        <item quantity="other">سيتم حذف الأصول المحددة (%1$d). لا يمكن التراجع عن ذلك.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="one">إضافة %1$d أصل</item>
+        <item quantity="other">إضافة %1$d أصل</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="one">%1$d عنصر · يصبح كل منها أصلًا بحالة مسودة</item>
+        <item quantity="other">%1$d عنصر · يصبح كل منها أصلًا بحالة مسودة</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="one">تم تحديد %1$d ملف · يصبح كل منها أصلًا بحالة مسودة</item>
+        <item quantity="other">تم تحديد %1$d ملف · يصبح كل منها أصلًا بحالة مسودة</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="one">%1$d تغيير غير محفوظ</item>
+        <item quantity="other">%1$d تغيير غير محفوظ</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="one">عبّأ الذكاء الاصطناعي %1$d حقل · راجع ثم احفظ</item>
+        <item quantity="other">عبّأ الذكاء الاصطناعي %1$d حقل · راجع ثم احفظ</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="one">فشل %1$d فحص</item>
+        <item quantity="other">فشل %1$d فحص</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="one">أصلح %1$d فحص للتحقق</item>
+        <item quantity="other">أصلح %1$d فحص للتحقق</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="one">%1$d صورة</item>
+        <item quantity="other">%1$d صورة</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="one">يلزم %2$d صورة على الأقل (%1$d حتى الآن)</item>
+        <item quantity="other">يلزم %2$d صورة على الأقل (%1$d حتى الآن)</item>
+    </plurals>
+    <string name="dash_clear_search_text">مسح نص البحث</string>
+    <string name="detail_add_photo">إضافة صورة</string>
+    <string name="detail_voice_fill">تعبئة الحقول بالصوت</string>
 </resources>

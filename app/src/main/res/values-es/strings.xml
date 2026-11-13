@@ -210,4 +210,214 @@
         <item quantity="many">%1$d de personas de este grupo tendrán acceso a todas las propiedades.</item>
         <item quantity="other">%1$d personas de este grupo tendrán acceso a todas las propiedades.</item>
     </plurals>
+    <string name="action_validate">Validar</string>
+    <string name="action_assign">Asignar</string>
+    <string name="action_submit">Enviar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_discard">Descartar</string>
+    <string name="action_keep_editing">Seguir editando</string>
+    <string name="action_add">Añadir</string>
+    <string name="action_change">Cambiar</string>
+    <string name="action_fix">Corregir</string>
+    <string name="dash_menu">Menú</string>
+    <string name="dash_unmapped">Sin ubicación</string>
+    <string name="dash_choose_location">Elegir ubicación</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">Red</string>
+    <string name="nav_camera">Cámara</string>
+    <string name="nav_file">Archivo</string>
+    <string name="dash_search_hint">Buscar por nombre, n.º de serie o etiqueta</string>
+    <string name="dash_add_asset">Añadir activo</string>
+    <string name="dash_selected">%1$d seleccionados</string>
+    <string name="dash_select_all">Seleccionar los %1$d</string>
+    <string name="dash_clear_all">Quitar todo</string>
+    <string name="dash_clear_selection">Borrar selección</string>
+    <string name="dash_empty_title">Aún no hay nada aquí</string>
+    <string name="dash_empty_search">Ningún activo coincide con “%1$s”.</string>
+    <string name="dash_empty_status">No hay activos con este estado aquí.</string>
+    <string name="dash_empty_assets">Escanea, fotografía o importa activos con las pestañas de abajo.</string>
+    <string name="dash_empty_source">Todavía no se ha incorporado nada así aquí.</string>
+    <string name="dash_chip_all">Todos</string>
+    <string name="dash_chips_back">Mostrar estados anteriores</string>
+    <string name="dash_chips_more">Mostrar más estados</string>
+    <string name="status_ai">Sugerencia de IA</string>
+    <string name="status_validated">Validado</string>
+    <string name="status_submitted">Enviado</string>
+    <string name="status_draft">Borrador</string>
+    <string name="status_input">Falta información</string>
+    <string name="status_exception">Excepción</string>
+    <string name="source_camera">con cámara</string>
+    <string name="source_bt">por Bluetooth</string>
+    <string name="source_wifi">por escaneo Wi-Fi</string>
+    <string name="source_ap">por escaneo de punto de acceso</string>
+    <string name="source_file">por importación de archivo</string>
+    <string name="source_manual">Añadido manualmente</string>
+    <string name="asset_deleted">Activo eliminado</string>
+    <string name="asset_validated_notice">Activo validado</string>
+    <string name="asset_saved_draft">Guardado como borrador</string>
+    <string name="asset_submitted_notice">Activo enviado · ya no se puede editar</string>
+    <string name="asset_added_draft">Activo añadido como borrador</string>
+    <string name="asset_added_submitted">Activo enviado</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">Mostrando %1$s</string>
+    <string name="menu_coming_soon">%1$s estará disponible próximamente</string>
+    <string name="review_title">Revisar e incorporar</string>
+    <string name="review_ready">Listo para incorporar</string>
+    <string name="review_needs_input">Necesitará datos</string>
+    <string name="review_add_more">Añadir más</string>
+    <string name="review_add_files">Añadir archivos</string>
+    <string name="review_select_items">Selecciona elementos para incorporar</string>
+    <string name="review_photo_sub">Foto · falta añadir nombre y detalles</string>
+    <string name="review_video_sub">Vídeo %1$s · falta añadir nombre y detalles</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">Incluir en la incorporación</string>
+    <string name="detail_tab_info">Info</string>
+    <string name="detail_tab_validation">Validación</string>
+    <string name="detail_back">Volver a la lista</string>
+    <string name="detail_name_hint">Nombre del activo</string>
+    <string name="detail_saved">Guardado</string>
+    <string name="detail_menu_camera">Hacer foto o vídeo</string>
+    <string name="detail_menu_gallery">Subir desde la galería</string>
+    <string name="detail_menu_files">Subir desde archivos</string>
+    <string name="detail_no_photos">Aún no hay fotos: haz una o súbela desde la galería o los archivos.</string>
+    <string name="detail_photo">Foto</string>
+    <string name="detail_video">Vídeo</string>
+    <string name="detail_document">Documento</string>
+    <string name="detail_video_badge">VÍDEO %1$s</string>
+    <string name="detail_location">Ubicación</string>
+    <string name="detail_no_location">Aún sin ubicación</string>
+    <string name="detail_sec_ident">Identificación</string>
+    <string name="detail_sec_class">Clasificación</string>
+    <string name="detail_sec_tags">Etiquetas y conectividad</string>
+    <string name="detail_sec_more">Más detalles</string>
+    <string name="detail_sec_notes">Notas</string>
+    <string name="detail_note_nameplate">Leído de la placa</string>
+    <string name="detail_note_photos">Sugerido a partir de las fotos</string>
+    <string name="detail_note_scan">Del escaneo</string>
+    <string name="detail_none_yet">Aún nada</string>
+    <string name="detail_not_set">Sin definir</string>
+    <string name="detail_required_summary">Falta: %1$s</string>
+    <string name="detail_filled_summary">%1$d de %2$d rellenados</string>
+    <string name="detail_asset_id">ID del activo</string>
+    <string name="detail_new_code">Nuevo · sin guardar</string>
+    <string name="detail_field_hint">Añadir %1$s</string>
+    <string name="detail_select">Seleccionar</string>
+    <string name="detail_select_jacs">Seleccionar código JACS</string>
+    <string name="detail_badge_check">REVISAR</string>
+    <string name="detail_badge_edited">EDITADO</string>
+    <string name="detail_voice_note">Nota de voz</string>
+    <string name="detail_listening">Escuchando… prueba “Número de serie 24A-118903”</string>
+    <string name="detail_ai_busy">La IA está rellenando los campos vacíos…</string>
+    <string name="detail_ai_nothing">No queda nada por rellenar</string>
+    <string name="detail_ai_fill">Rellenar campos vacíos con IA</string>
+    <string name="detail_note_hint">Añade una nota sobre el estado, el acceso o cualquier otra cosa</string>
+    <string name="detail_submit_title">¿Enviar este activo?</string>
+    <string name="detail_submit_body">Una vez enviado, sus campos no se pueden editar. Si hay que cambiar algo más tarde, solicita una nueva recogida.</string>
+    <string name="detail_delete_title">¿Eliminar este activo?</string>
+    <string name="detail_delete_body">%1$s se eliminará. Esta acción no se puede deshacer.</string>
+    <string name="detail_delete_body_unnamed">Este activo se eliminará. Esta acción no se puede deshacer.</string>
+    <string name="detail_discard_title">¿Descartar este nuevo activo?</string>
+    <string name="detail_discard_body">Lo que has introducido no se guardará.</string>
+    <string name="detail_no_unsaved">No hay cambios sin guardar</string>
+    <string name="detail_status">Estado: %1$s</string>
+    <string name="detail_submitted_body">Sus campos ya no se pueden editar. ¿Necesitas un cambio? Pide que se vuelva a recoger.</string>
+    <string name="detail_recollect">Solicitar nueva recogida</string>
+    <string name="detail_updated">Actualizado %1$s</string>
+    <string name="detail_photo_of">%1$d de %2$d</string>
+    <string name="detail_prev">Foto anterior</string>
+    <string name="detail_next">Foto siguiente</string>
+    <string name="check_banner_passed">Todas las comprobaciones superadas</string>
+    <string name="check_banner_passed_sub">Este activo está listo para validarse.</string>
+    <string name="check_banner_failed_sub">Corrige las comprobaciones obligatorias antes de validar este activo.</string>
+    <string name="check_location">Ubicación asignada</string>
+    <string name="check_asset_type">Tipo de activo clasificado</string>
+    <string name="check_jacs">Código JACS definido</string>
+    <string name="check_make_model">Marca y modelo registrados</string>
+    <string name="check_serial">Número de serie registrado</string>
+    <string name="check_low_confidence">Lectura de baja confianza revisada</string>
+    <string name="check_photo">Foto adjunta</string>
+    <string name="check_required">OBLIGATORIO</string>
+    <string name="check_note_required">Obligatorio para poder validar el activo</string>
+    <string name="check_note_missing">Aún sin registrar</string>
+    <string name="check_note_low_confidence">%1$s se leyó con baja confianza: compárala con la placa</string>
+    <string name="check_note_no_photo">Aún sin foto</string>
+    <string name="check_state_passed">Superada</string>
+    <string name="check_state_failed">Fallida</string>
+    <string name="check_state_warning">Requiere revisión</string>
+    <plurals name="assets_validated">
+        <item quantity="one">%1$d activo validado</item>
+        <item quantity="other">%1$d activos validados</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="one">%1$d activo enviado</item>
+        <item quantity="other">%1$d activos enviados</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="one">%1$d activo eliminado</item>
+        <item quantity="other">%1$d activos eliminados</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="one">%1$d activo asignado a %2$s</item>
+        <item quantity="other">%1$d activos asignados a %2$s</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="one">%1$d elemento añadido al activo</item>
+        <item quantity="other">%1$d elementos añadidos al activo</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="one">%1$d activo añadido · faltan datos</item>
+        <item quantity="other">%1$d activos añadidos · faltan datos</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="one">%1$d activo importado · faltan datos</item>
+        <item quantity="other">%1$d activos importados · faltan datos</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="one">¿Eliminar este activo?</item>
+        <item quantity="other">¿Eliminar %1$d activos?</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="one">El activo seleccionado se eliminará. Esta acción no se puede deshacer.</item>
+        <item quantity="other">Los %1$d activos seleccionados se eliminarán. Esta acción no se puede deshacer.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="one">Incorporar %1$d activo</item>
+        <item quantity="other">Incorporar %1$d activos</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="one">%1$d elemento · cada uno se convierte en un activo en borrador</item>
+        <item quantity="other">%1$d elementos · cada uno se convierte en un activo en borrador</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="one">%1$d archivo seleccionado · cada uno se convierte en un activo en borrador</item>
+        <item quantity="other">%1$d archivos seleccionados · cada uno se convierte en un activo en borrador</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="one">%1$d cambio sin guardar</item>
+        <item quantity="other">%1$d cambios sin guardar</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="one">La IA rellenó %1$d campo · revisa y guarda</item>
+        <item quantity="other">La IA rellenó %1$d campos · revisa y guarda</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="one">%1$d comprobación fallida</item>
+        <item quantity="other">%1$d comprobaciones fallidas</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="one">Corrige %1$d comprobación para validar</item>
+        <item quantity="other">Corrige %1$d comprobaciones para validar</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="one">%1$d foto</item>
+        <item quantity="other">%1$d fotos</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="one">Se necesita al menos %2$d foto (%1$d hasta ahora)</item>
+        <item quantity="other">Se necesitan al menos %2$d fotos (%1$d hasta ahora)</item>
+    </plurals>
+    <string name="dash_clear_search_text">Borrar texto de búsqueda</string>
+    <string name="detail_add_photo">Añadir foto</string>
+    <string name="detail_voice_fill">Rellenar campos por voz</string>
 </resources>

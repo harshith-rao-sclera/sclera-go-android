@@ -200,4 +200,196 @@
     <plurals name="access_elevate_notice">
         <item quantity="other">%1$d người trong nhóm này sẽ có quyền truy cập tất cả cơ sở.</item>
     </plurals>
+    <string name="action_validate">Xác thực</string>
+    <string name="action_assign">Gán</string>
+    <string name="action_submit">Gửi</string>
+    <string name="action_delete">Xóa</string>
+    <string name="action_save">Lưu</string>
+    <string name="action_discard">Bỏ</string>
+    <string name="action_keep_editing">Tiếp tục chỉnh sửa</string>
+    <string name="action_add">Thêm</string>
+    <string name="action_change">Thay đổi</string>
+    <string name="action_fix">Sửa</string>
+    <string name="dash_menu">Menu</string>
+    <string name="dash_unmapped">Chưa có vị trí</string>
+    <string name="dash_choose_location">Chọn vị trí</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">Mạng</string>
+    <string name="nav_camera">Máy ảnh</string>
+    <string name="nav_file">Tệp</string>
+    <string name="dash_search_hint">Tìm theo tên, số sê-ri hoặc thẻ</string>
+    <string name="dash_add_asset">Thêm tài sản</string>
+    <string name="dash_selected">Đã chọn %1$d</string>
+    <string name="dash_select_all">Chọn tất cả %1$d</string>
+    <string name="dash_clear_all">Bỏ chọn tất cả</string>
+    <string name="dash_clear_selection">Xóa lựa chọn</string>
+    <string name="dash_empty_title">Chưa có gì ở đây</string>
+    <string name="dash_empty_search">Không có tài sản nào khớp với “%1$s”.</string>
+    <string name="dash_empty_status">Không có tài sản nào ở trạng thái này.</string>
+    <string name="dash_empty_assets">Quét, chụp ảnh hoặc nhập tài sản bằng các tab bên dưới.</string>
+    <string name="dash_empty_source">Chưa có gì được đưa vào theo cách này ở đây.</string>
+    <string name="dash_chip_all">Tất cả</string>
+    <string name="dash_chips_back">Hiện các trạng thái trước</string>
+    <string name="dash_chips_more">Hiện thêm trạng thái</string>
+    <string name="status_ai">Gợi ý của AI</string>
+    <string name="status_validated">Đã xác thực</string>
+    <string name="status_submitted">Đã gửi</string>
+    <string name="status_draft">Bản nháp</string>
+    <string name="status_input">Cần nhập liệu</string>
+    <string name="status_exception">Ngoại lệ</string>
+    <string name="source_camera">qua Máy ảnh</string>
+    <string name="source_bt">qua Bluetooth</string>
+    <string name="source_wifi">qua quét Wi-Fi</string>
+    <string name="source_ap">qua quét điểm truy cập</string>
+    <string name="source_file">qua nhập tệp</string>
+    <string name="source_manual">Thêm thủ công</string>
+    <string name="asset_deleted">Đã xóa tài sản</string>
+    <string name="asset_validated_notice">Đã xác thực tài sản</string>
+    <string name="asset_saved_draft">Đã lưu dưới dạng bản nháp</string>
+    <string name="asset_submitted_notice">Đã gửi tài sản · không thể chỉnh sửa nữa</string>
+    <string name="asset_added_draft">Đã thêm tài sản dưới dạng bản nháp</string>
+    <string name="asset_added_submitted">Đã gửi tài sản</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">Đang hiển thị %1$s</string>
+    <string name="menu_coming_soon">%1$s sắp ra mắt</string>
+    <string name="review_title">Xem lại và đưa vào</string>
+    <string name="review_ready">Sẵn sàng đưa vào</string>
+    <string name="review_needs_input">Cần nhập thêm</string>
+    <string name="review_add_more">Thêm nữa</string>
+    <string name="review_add_files">Thêm tệp</string>
+    <string name="review_select_items">Chọn mục để đưa vào</string>
+    <string name="review_photo_sub">Ảnh · cần thêm tên và chi tiết</string>
+    <string name="review_video_sub">Video %1$s · cần thêm tên và chi tiết</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">Đưa vào danh sách</string>
+    <string name="detail_tab_info">Thông tin</string>
+    <string name="detail_tab_validation">Xác thực</string>
+    <string name="detail_back">Quay lại danh sách</string>
+    <string name="detail_name_hint">Tên tài sản</string>
+    <string name="detail_saved">Đã lưu</string>
+    <string name="detail_menu_camera">Chụp ảnh hoặc quay video</string>
+    <string name="detail_menu_gallery">Tải lên từ thư viện</string>
+    <string name="detail_menu_files">Tải lên từ tệp</string>
+    <string name="detail_no_photos">Chưa có ảnh: hãy chụp một ảnh hoặc tải lên từ thư viện hoặc tệp.</string>
+    <string name="detail_photo">Ảnh</string>
+    <string name="detail_video">Video</string>
+    <string name="detail_document">Tài liệu</string>
+    <string name="detail_video_badge">VIDEO %1$s</string>
+    <string name="detail_location">Vị trí</string>
+    <string name="detail_no_location">Chưa có vị trí</string>
+    <string name="detail_sec_ident">Nhận dạng</string>
+    <string name="detail_sec_class">Phân loại</string>
+    <string name="detail_sec_tags">Thẻ và kết nối</string>
+    <string name="detail_sec_more">Chi tiết khác</string>
+    <string name="detail_sec_notes">Ghi chú</string>
+    <string name="detail_note_nameplate">Đọc từ biển tên</string>
+    <string name="detail_note_photos">Gợi ý từ ảnh</string>
+    <string name="detail_note_scan">Từ lần quét</string>
+    <string name="detail_none_yet">Chưa có</string>
+    <string name="detail_not_set">Chưa đặt</string>
+    <string name="detail_required_summary">Cần có %1$s</string>
+    <string name="detail_filled_summary">Đã điền %1$d/%2$d</string>
+    <string name="detail_asset_id">ID tài sản</string>
+    <string name="detail_new_code">Mới · chưa lưu</string>
+    <string name="detail_field_hint">Thêm %1$s</string>
+    <string name="detail_select">Chọn</string>
+    <string name="detail_select_jacs">Chọn mã JACS</string>
+    <string name="detail_badge_check">KIỂM TRA</string>
+    <string name="detail_badge_edited">ĐÃ SỬA</string>
+    <string name="detail_voice_note">Ghi chú giọng nói</string>
+    <string name="detail_listening">Đang nghe… thử nói “Số sê-ri 24A-118903”</string>
+    <string name="detail_ai_busy">AI đang điền các trường trống…</string>
+    <string name="detail_ai_nothing">Không còn gì để điền</string>
+    <string name="detail_ai_fill">Điền các trường trống bằng AI</string>
+    <string name="detail_note_hint">Thêm ghi chú về tình trạng, cách vào hoặc điều gì khác</string>
+    <string name="detail_submit_title">Gửi tài sản này?</string>
+    <string name="detail_submit_body">Sau khi gửi, các trường không thể chỉnh sửa. Nếu sau này cần thay đổi, hãy yêu cầu thu thập lại.</string>
+    <string name="detail_delete_title">Xóa tài sản này?</string>
+    <string name="detail_delete_body">%1$s sẽ bị xóa. Không thể hoàn tác.</string>
+    <string name="detail_delete_body_unnamed">Tài sản này sẽ bị xóa. Không thể hoàn tác.</string>
+    <string name="detail_discard_title">Bỏ tài sản mới này?</string>
+    <string name="detail_discard_body">Những gì bạn đã nhập sẽ không được lưu.</string>
+    <string name="detail_no_unsaved">Không có thay đổi chưa lưu</string>
+    <string name="detail_status">Trạng thái: %1$s</string>
+    <string name="detail_submitted_body">Các trường không thể chỉnh sửa nữa. Cần thay đổi? Hãy yêu cầu thu thập lại.</string>
+    <string name="detail_recollect">Yêu cầu thu thập lại</string>
+    <string name="detail_updated">Cập nhật %1$s</string>
+    <string name="detail_photo_of">%1$d/%2$d</string>
+    <string name="detail_prev">Ảnh trước</string>
+    <string name="detail_next">Ảnh tiếp theo</string>
+    <string name="check_banner_passed">Tất cả kiểm tra đều đạt</string>
+    <string name="check_banner_passed_sub">Tài sản này đã sẵn sàng để xác thực.</string>
+    <string name="check_banner_failed_sub">Hãy sửa các kiểm tra bắt buộc trước khi xác thực tài sản này.</string>
+    <string name="check_location">Đã gán vị trí</string>
+    <string name="check_asset_type">Đã phân loại tài sản</string>
+    <string name="check_jacs">Đã đặt mã JACS</string>
+    <string name="check_make_model">Đã ghi nhận hãng và kiểu máy</string>
+    <string name="check_serial">Đã ghi nhận số sê-ri</string>
+    <string name="check_low_confidence">Đã xem lại kết quả đọc độ tin cậy thấp</string>
+    <string name="check_photo">Đã đính kèm ảnh</string>
+    <string name="check_required">BẮT BUỘC</string>
+    <string name="check_note_required">Cần có trước khi có thể xác thực tài sản</string>
+    <string name="check_note_missing">Chưa ghi nhận</string>
+    <string name="check_note_low_confidence">%1$s được đọc với độ tin cậy thấp — hãy đối chiếu với biển tên</string>
+    <string name="check_note_no_photo">Chưa có ảnh</string>
+    <string name="check_state_passed">Đạt</string>
+    <string name="check_state_failed">Không đạt</string>
+    <string name="check_state_warning">Cần xem lại</string>
+    <plurals name="assets_validated">
+        <item quantity="other">Đã xác thực %1$d tài sản</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="other">Đã gửi %1$d tài sản</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="other">Đã xóa %1$d tài sản</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="other">Đã gán %1$d tài sản cho %2$s</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="other">Đã thêm %1$d mục vào tài sản</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="other">Đã thêm %1$d tài sản · cần chi tiết</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="other">Đã nhập %1$d tài sản · cần chi tiết</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="other">Xóa %1$d tài sản?</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="other">%1$d tài sản đã chọn sẽ bị xóa. Không thể hoàn tác.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="other">Đưa vào %1$d tài sản</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="other">%1$d mục · mỗi mục thành một tài sản nháp</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="other">Đã chọn %1$d tệp · mỗi tệp thành một tài sản nháp</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="other">%1$d thay đổi chưa lưu</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="other">AI đã điền %1$d trường · hãy xem lại và lưu</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="other">%1$d kiểm tra không đạt</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="other">Sửa %1$d kiểm tra để xác thực</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="other">%1$d ảnh</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="other">Cần ít nhất %2$d ảnh (hiện có %1$d)</item>
+    </plurals>
+    <string name="dash_clear_search_text">Xóa văn bản tìm kiếm</string>
+    <string name="detail_add_photo">Thêm ảnh</string>
+    <string name="detail_voice_fill">Điền trường bằng giọng nói</string>
 </resources>

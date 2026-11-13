@@ -200,4 +200,196 @@
     <plurals name="access_elevate_notice">
         <item quantity="other">このグループの %1$d 人が、すべての物件にアクセスできるようになります。</item>
     </plurals>
+    <string name="action_validate">検証</string>
+    <string name="action_assign">割り当て</string>
+    <string name="action_submit">送信</string>
+    <string name="action_delete">削除</string>
+    <string name="action_save">保存</string>
+    <string name="action_discard">破棄</string>
+    <string name="action_keep_editing">編集を続ける</string>
+    <string name="action_add">追加</string>
+    <string name="action_change">変更</string>
+    <string name="action_fix">修正</string>
+    <string name="dash_menu">メニュー</string>
+    <string name="dash_unmapped">場所なし</string>
+    <string name="dash_choose_location">場所を選択</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">ネットワーク</string>
+    <string name="nav_camera">カメラ</string>
+    <string name="nav_file">ファイル</string>
+    <string name="dash_search_hint">名前・シリアル番号・タグで検索</string>
+    <string name="dash_add_asset">資産を追加</string>
+    <string name="dash_selected">%1$d 件選択中</string>
+    <string name="dash_select_all">%1$d 件すべてを選択</string>
+    <string name="dash_clear_all">すべて解除</string>
+    <string name="dash_clear_selection">選択を解除</string>
+    <string name="dash_empty_title">まだ何もありません</string>
+    <string name="dash_empty_search">「%1$s」に一致する資産はありません。</string>
+    <string name="dash_empty_status">このステータスの資産はここにはありません。</string>
+    <string name="dash_empty_assets">下のタブで資産をスキャン、撮影、またはインポートします。</string>
+    <string name="dash_empty_source">この方法で登録されたものはまだありません。</string>
+    <string name="dash_chip_all">すべて</string>
+    <string name="dash_chips_back">前のステータスを表示</string>
+    <string name="dash_chips_more">他のステータスを表示</string>
+    <string name="status_ai">AI の提案</string>
+    <string name="status_validated">検証済み</string>
+    <string name="status_submitted">送信済み</string>
+    <string name="status_draft">下書き</string>
+    <string name="status_input">入力が必要</string>
+    <string name="status_exception">例外</string>
+    <string name="source_camera">カメラ経由</string>
+    <string name="source_bt">Bluetooth 経由</string>
+    <string name="source_wifi">Wi-Fi スキャン経由</string>
+    <string name="source_ap">アクセスポイントスキャン経由</string>
+    <string name="source_file">ファイルインポート経由</string>
+    <string name="source_manual">手動で追加</string>
+    <string name="asset_deleted">資産を削除しました</string>
+    <string name="asset_validated_notice">資産を検証しました</string>
+    <string name="asset_saved_draft">下書きとして保存しました</string>
+    <string name="asset_submitted_notice">資産を送信しました · 編集できなくなりました</string>
+    <string name="asset_added_draft">資産を下書きとして追加しました</string>
+    <string name="asset_added_submitted">資産を送信しました</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">%1$s を表示中</string>
+    <string name="menu_coming_soon">%1$s は近日公開です</string>
+    <string name="review_title">確認して登録</string>
+    <string name="review_ready">登録の準備完了</string>
+    <string name="review_needs_input">入力が必要です</string>
+    <string name="review_add_more">さらに追加</string>
+    <string name="review_add_files">ファイルを追加</string>
+    <string name="review_select_items">登録する項目を選択</string>
+    <string name="review_photo_sub">写真 · 名前と詳細を追加してください</string>
+    <string name="review_video_sub">動画 %1$s · 名前と詳細を追加してください</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">登録に含める</string>
+    <string name="detail_tab_info">情報</string>
+    <string name="detail_tab_validation">検証</string>
+    <string name="detail_back">一覧に戻る</string>
+    <string name="detail_name_hint">資産名</string>
+    <string name="detail_saved">保存しました</string>
+    <string name="detail_menu_camera">写真または動画を撮影</string>
+    <string name="detail_menu_gallery">ギャラリーからアップロード</string>
+    <string name="detail_menu_files">ファイルからアップロード</string>
+    <string name="detail_no_photos">写真はまだありません。撮影するか、ギャラリーまたはファイルからアップロードしてください。</string>
+    <string name="detail_photo">写真</string>
+    <string name="detail_video">動画</string>
+    <string name="detail_document">ドキュメント</string>
+    <string name="detail_video_badge">動画 %1$s</string>
+    <string name="detail_location">場所</string>
+    <string name="detail_no_location">場所はまだありません</string>
+    <string name="detail_sec_ident">識別情報</string>
+    <string name="detail_sec_class">分類</string>
+    <string name="detail_sec_tags">タグと接続</string>
+    <string name="detail_sec_more">その他の詳細</string>
+    <string name="detail_sec_notes">メモ</string>
+    <string name="detail_note_nameplate">銘板から読み取り</string>
+    <string name="detail_note_photos">写真から提案</string>
+    <string name="detail_note_scan">スキャンから</string>
+    <string name="detail_none_yet">まだありません</string>
+    <string name="detail_not_set">未設定</string>
+    <string name="detail_required_summary">%1$s は必須</string>
+    <string name="detail_filled_summary">%2$d 件中 %1$d 件入力済み</string>
+    <string name="detail_asset_id">資産 ID</string>
+    <string name="detail_new_code">新規 · 未保存</string>
+    <string name="detail_field_hint">%1$s を追加</string>
+    <string name="detail_select">選択</string>
+    <string name="detail_select_jacs">JACS コードを選択</string>
+    <string name="detail_badge_check">要確認</string>
+    <string name="detail_badge_edited">編集済み</string>
+    <string name="detail_voice_note">音声メモ</string>
+    <string name="detail_listening">聞き取り中… 「シリアル番号 24A-118903」と話してみてください</string>
+    <string name="detail_ai_busy">AI が空のフィールドを入力しています…</string>
+    <string name="detail_ai_nothing">入力できる項目はもうありません</string>
+    <string name="detail_ai_fill">AI で空のフィールドを入力</string>
+    <string name="detail_note_hint">状態やアクセスなどについてメモを追加</string>
+    <string name="detail_submit_title">この資産を送信しますか？</string>
+    <string name="detail_submit_body">送信すると、フィールドは編集できなくなります。後で変更が必要な場合は、再収集を依頼してください。</string>
+    <string name="detail_delete_title">この資産を削除しますか？</string>
+    <string name="detail_delete_body">%1$s は削除されます。この操作は元に戻せません。</string>
+    <string name="detail_delete_body_unnamed">この資産は削除されます。この操作は元に戻せません。</string>
+    <string name="detail_discard_title">この新しい資産を破棄しますか？</string>
+    <string name="detail_discard_body">入力した内容は保存されません。</string>
+    <string name="detail_no_unsaved">未保存の変更はありません</string>
+    <string name="detail_status">ステータス: %1$s</string>
+    <string name="detail_submitted_body">フィールドはもう編集できません。変更が必要ですか？再収集を依頼してください。</string>
+    <string name="detail_recollect">再収集を依頼</string>
+    <string name="detail_updated">更新: %1$s</string>
+    <string name="detail_photo_of">%1$d / %2$d</string>
+    <string name="detail_prev">前の写真</string>
+    <string name="detail_next">次の写真</string>
+    <string name="check_banner_passed">すべてのチェックに合格</string>
+    <string name="check_banner_passed_sub">この資産は検証の準備ができています。</string>
+    <string name="check_banner_failed_sub">この資産を検証する前に、必須のチェックを修正してください。</string>
+    <string name="check_location">場所を割り当て済み</string>
+    <string name="check_asset_type">資産タイプを分類済み</string>
+    <string name="check_jacs">JACS コードを設定済み</string>
+    <string name="check_make_model">メーカーと型式を記録済み</string>
+    <string name="check_serial">シリアル番号を記録済み</string>
+    <string name="check_low_confidence">信頼度の低い読み取りを確認済み</string>
+    <string name="check_photo">写真を添付済み</string>
+    <string name="check_required">必須</string>
+    <string name="check_note_required">資産を検証する前に必要です</string>
+    <string name="check_note_missing">まだ記録されていません</string>
+    <string name="check_note_low_confidence">%1$s は信頼度が低い状態で読み取られました。銘板と照合してください</string>
+    <string name="check_note_no_photo">写真はまだありません</string>
+    <string name="check_state_passed">合格</string>
+    <string name="check_state_failed">不合格</string>
+    <string name="check_state_warning">要確認</string>
+    <plurals name="assets_validated">
+        <item quantity="other">%1$d 件の資産を検証しました</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="other">%1$d 件の資産を送信しました</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="other">%1$d 件の資産を削除しました</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="other">%1$d 件の資産を %2$s に割り当てました</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="other">%1$d 件の項目を資産に追加しました</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="other">%1$d 件の資産を追加しました · 詳細の入力が必要です</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="other">%1$d 件の資産をインポートしました · 詳細の入力が必要です</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="other">%1$d 件の資産を削除しますか？</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="other">選択した %1$d 件の資産が削除されます。この操作は元に戻せません。</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="other">%1$d 件の資産を登録</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="other">%1$d 件の項目 · それぞれ下書きの資産になります</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="other">%1$d 件のファイルを選択中 · それぞれ下書きの資産になります</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="other">未保存の変更 %1$d 件</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="other">AI が %1$d 件のフィールドを入力しました · 確認して保存してください</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="other">%1$d 件のチェックが不合格</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="other">%1$d 件のチェックを修正して検証</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="other">写真 %1$d 枚</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="other">写真が最低 %2$d 枚必要です（現在 %1$d 枚）</item>
+    </plurals>
+    <string name="dash_clear_search_text">検索テキストを消去</string>
+    <string name="detail_add_photo">写真を追加</string>
+    <string name="detail_voice_fill">音声でフィールドを入力</string>
 </resources>

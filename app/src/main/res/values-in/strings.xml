@@ -200,4 +200,196 @@
     <plurals name="access_elevate_notice">
         <item quantity="other">%1$d orang di grup ini akan mendapat akses ke semua properti.</item>
     </plurals>
+    <string name="action_validate">Validasi</string>
+    <string name="action_assign">Tetapkan</string>
+    <string name="action_submit">Kirim</string>
+    <string name="action_delete">Hapus</string>
+    <string name="action_save">Simpan</string>
+    <string name="action_discard">Buang</string>
+    <string name="action_keep_editing">Lanjutkan mengedit</string>
+    <string name="action_add">Tambah</string>
+    <string name="action_change">Ubah</string>
+    <string name="action_fix">Perbaiki</string>
+    <string name="dash_menu">Menu</string>
+    <string name="dash_unmapped">Tanpa lokasi</string>
+    <string name="dash_choose_location">Pilih lokasi</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">Jaringan</string>
+    <string name="nav_camera">Kamera</string>
+    <string name="nav_file">File</string>
+    <string name="dash_search_hint">Cari nama, no. seri, atau tag</string>
+    <string name="dash_add_asset">Tambah aset</string>
+    <string name="dash_selected">%1$d dipilih</string>
+    <string name="dash_select_all">Pilih semua %1$d</string>
+    <string name="dash_clear_all">Hapus semua</string>
+    <string name="dash_clear_selection">Hapus pilihan</string>
+    <string name="dash_empty_title">Belum ada apa pun di sini</string>
+    <string name="dash_empty_search">Tidak ada aset yang cocok dengan “%1$s”.</string>
+    <string name="dash_empty_status">Tidak ada aset dengan status ini di sini.</string>
+    <string name="dash_empty_assets">Pindai, foto, atau impor aset dengan tab di bawah.</string>
+    <string name="dash_empty_source">Belum ada yang didaftarkan dengan cara ini di sini.</string>
+    <string name="dash_chip_all">Semua</string>
+    <string name="dash_chips_back">Tampilkan status sebelumnya</string>
+    <string name="dash_chips_more">Tampilkan status lainnya</string>
+    <string name="status_ai">Saran AI</string>
+    <string name="status_validated">Tervalidasi</string>
+    <string name="status_submitted">Terkirim</string>
+    <string name="status_draft">Draf</string>
+    <string name="status_input">Perlu input</string>
+    <string name="status_exception">Pengecualian</string>
+    <string name="source_camera">lewat Kamera</string>
+    <string name="source_bt">lewat Bluetooth</string>
+    <string name="source_wifi">lewat pemindaian Wi-Fi</string>
+    <string name="source_ap">lewat pemindaian titik akses</string>
+    <string name="source_file">lewat impor file</string>
+    <string name="source_manual">Ditambahkan manual</string>
+    <string name="asset_deleted">Aset dihapus</string>
+    <string name="asset_validated_notice">Aset tervalidasi</string>
+    <string name="asset_saved_draft">Disimpan sebagai draf</string>
+    <string name="asset_submitted_notice">Aset terkirim · tidak dapat diedit lagi</string>
+    <string name="asset_added_draft">Aset ditambahkan sebagai draf</string>
+    <string name="asset_added_submitted">Aset terkirim</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">Menampilkan %1$s</string>
+    <string name="menu_coming_soon">%1$s segera hadir</string>
+    <string name="review_title">Tinjau dan daftarkan</string>
+    <string name="review_ready">Siap didaftarkan</string>
+    <string name="review_needs_input">Perlu input</string>
+    <string name="review_add_more">Tambah lagi</string>
+    <string name="review_add_files">Tambah file</string>
+    <string name="review_select_items">Pilih item untuk didaftarkan</string>
+    <string name="review_photo_sub">Foto · nama dan detail perlu ditambahkan</string>
+    <string name="review_video_sub">Video %1$s · nama dan detail perlu ditambahkan</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">Sertakan dalam pendaftaran</string>
+    <string name="detail_tab_info">Info</string>
+    <string name="detail_tab_validation">Validasi</string>
+    <string name="detail_back">Kembali ke daftar</string>
+    <string name="detail_name_hint">Nama aset</string>
+    <string name="detail_saved">Tersimpan</string>
+    <string name="detail_menu_camera">Ambil foto atau video</string>
+    <string name="detail_menu_gallery">Unggah dari galeri</string>
+    <string name="detail_menu_files">Unggah dari file</string>
+    <string name="detail_no_photos">Belum ada foto: ambil satu atau unggah dari galeri atau file.</string>
+    <string name="detail_photo">Foto</string>
+    <string name="detail_video">Video</string>
+    <string name="detail_document">Dokumen</string>
+    <string name="detail_video_badge">VIDEO %1$s</string>
+    <string name="detail_location">Lokasi</string>
+    <string name="detail_no_location">Belum ada lokasi</string>
+    <string name="detail_sec_ident">Identifikasi</string>
+    <string name="detail_sec_class">Klasifikasi</string>
+    <string name="detail_sec_tags">Tag &amp; konektivitas</string>
+    <string name="detail_sec_more">Detail lainnya</string>
+    <string name="detail_sec_notes">Catatan</string>
+    <string name="detail_note_nameplate">Dibaca dari pelat nama</string>
+    <string name="detail_note_photos">Disarankan dari foto</string>
+    <string name="detail_note_scan">Dari pemindaian</string>
+    <string name="detail_none_yet">Belum ada</string>
+    <string name="detail_not_set">Belum diatur</string>
+    <string name="detail_required_summary">%1$s wajib diisi</string>
+    <string name="detail_filled_summary">%1$d dari %2$d terisi</string>
+    <string name="detail_asset_id">ID aset</string>
+    <string name="detail_new_code">Baru · belum disimpan</string>
+    <string name="detail_field_hint">Tambah %1$s</string>
+    <string name="detail_select">Pilih</string>
+    <string name="detail_select_jacs">Pilih kode JACS</string>
+    <string name="detail_badge_check">PERIKSA</string>
+    <string name="detail_badge_edited">DIEDIT</string>
+    <string name="detail_voice_note">Catatan suara</string>
+    <string name="detail_listening">Mendengarkan… coba ucapkan “Nomor seri 24A-118903”</string>
+    <string name="detail_ai_busy">AI sedang mengisi kolom kosong…</string>
+    <string name="detail_ai_nothing">Tidak ada lagi yang perlu diisi</string>
+    <string name="detail_ai_fill">Isi kolom kosong dengan AI</string>
+    <string name="detail_note_hint">Tambahkan catatan tentang kondisi, akses, atau hal lain</string>
+    <string name="detail_submit_title">Kirim aset ini?</string>
+    <string name="detail_submit_body">Setelah dikirim, kolomnya tidak dapat diedit. Jika perlu perubahan nanti, minta pengumpulan ulang.</string>
+    <string name="detail_delete_title">Hapus aset ini?</string>
+    <string name="detail_delete_body">%1$s akan dihapus. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="detail_delete_body_unnamed">Aset ini akan dihapus. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="detail_discard_title">Buang aset baru ini?</string>
+    <string name="detail_discard_body">Yang telah Anda masukkan tidak akan disimpan.</string>
+    <string name="detail_no_unsaved">Tidak ada perubahan yang belum disimpan</string>
+    <string name="detail_status">Status: %1$s</string>
+    <string name="detail_submitted_body">Kolomnya tidak dapat diedit lagi. Perlu perubahan? Minta pengumpulan ulang.</string>
+    <string name="detail_recollect">Minta pengumpulan ulang</string>
+    <string name="detail_updated">Diperbarui %1$s</string>
+    <string name="detail_photo_of">%1$d dari %2$d</string>
+    <string name="detail_prev">Foto sebelumnya</string>
+    <string name="detail_next">Foto berikutnya</string>
+    <string name="check_banner_passed">Semua pemeriksaan lulus</string>
+    <string name="check_banner_passed_sub">Aset ini siap divalidasi.</string>
+    <string name="check_banner_failed_sub">Perbaiki pemeriksaan wajib sebelum memvalidasi aset ini.</string>
+    <string name="check_location">Lokasi ditetapkan</string>
+    <string name="check_asset_type">Jenis aset diklasifikasikan</string>
+    <string name="check_jacs">Kode JACS diatur</string>
+    <string name="check_make_model">Merek dan model tercatat</string>
+    <string name="check_serial">Nomor seri tercatat</string>
+    <string name="check_low_confidence">Pembacaan berkepercayaan rendah ditinjau</string>
+    <string name="check_photo">Foto terlampir</string>
+    <string name="check_required">WAJIB</string>
+    <string name="check_note_required">Diperlukan sebelum aset dapat divalidasi</string>
+    <string name="check_note_missing">Belum dicatat</string>
+    <string name="check_note_low_confidence">%1$s dibaca dengan kepercayaan rendah — cocokkan dengan pelat nama</string>
+    <string name="check_note_no_photo">Belum ada foto</string>
+    <string name="check_state_passed">Lulus</string>
+    <string name="check_state_failed">Gagal</string>
+    <string name="check_state_warning">Perlu ditinjau</string>
+    <plurals name="assets_validated">
+        <item quantity="other">%1$d aset divalidasi</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="other">%1$d aset dikirim</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="other">%1$d aset dihapus</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="other">%1$d aset ditetapkan ke %2$s</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="other">%1$d item ditambahkan ke aset</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="other">%1$d aset ditambahkan · detail diperlukan</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="other">%1$d aset diimpor · detail diperlukan</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="other">Hapus %1$d aset?</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="other">%1$d aset yang dipilih akan dihapus. Tindakan ini tidak dapat dibatalkan.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="other">Daftarkan %1$d aset</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="other">%1$d item · masing-masing menjadi draf aset</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="other">%1$d file dipilih · masing-masing menjadi draf aset</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="other">%1$d perubahan belum disimpan</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="other">AI mengisi %1$d kolom · tinjau dan simpan</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="other">%1$d pemeriksaan gagal</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="other">Perbaiki %1$d pemeriksaan untuk memvalidasi</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="other">%1$d foto</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="other">Setidaknya %2$d foto diperlukan (saat ini %1$d)</item>
+    </plurals>
+    <string name="dash_clear_search_text">Hapus teks pencarian</string>
+    <string name="detail_add_photo">Tambah foto</string>
+    <string name="detail_voice_fill">Isi kolom dengan suara</string>
 </resources>

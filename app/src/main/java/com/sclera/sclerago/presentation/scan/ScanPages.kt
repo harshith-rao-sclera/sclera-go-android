@@ -42,6 +42,7 @@ import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.main.DeviceRow
 import com.sclera.sclerago.presentation.main.NetMode
 import com.sclera.sclerago.presentation.main.Tab
+import com.sclera.sclerago.presentation.main.rememberAssetListBinding
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.services.scan.ScanService
@@ -55,12 +56,13 @@ private val NET_DOTS = listOf(Dot(54f, 44f, 6f, C.Green), Dot(150f, 84f, 6f, C.Y
 @Composable
 fun BluetoothPage(vm: AppViewModel) {
     val s = vm.state
+    val list = rememberAssetListBinding(vm, Tab.BT)
     LazyColumn(Modifier.fillMaxSize()) {
         val seg: @Composable () -> Unit = {
             SegHeader(listOf("Assets", "Scan"), if (s.btScan) 1 else 0) { vm.setBtScan(it == 1) }
         }
         if (!s.btScan) {
-            assetList(vm.listFor(Tab.BT), vm.pickedIds, { vm.setStatusFilter(Tab.BT, it.status) }, vm::togglePick, vm::openAsset, header = seg)
+            assetList(list, header = seg)
         } else {
             stickyHeader(key = "seg") { seg() }
             val devs = vm.btDevices
@@ -87,6 +89,7 @@ fun BluetoothPage(vm: AppViewModel) {
 @Composable
 fun NetworkPage(vm: AppViewModel) {
     val s = vm.state
+    val list = rememberAssetListBinding(vm, Tab.NET)
     LazyColumn(Modifier.fillMaxSize()) {
         val head: @Composable () -> Unit = {
             Column(Modifier.background(C.Bg)) {
@@ -98,7 +101,7 @@ fun NetworkPage(vm: AppViewModel) {
             }
         }
         if (!s.netScan) {
-            assetList(vm.listFor(Tab.NET), vm.pickedIds, { vm.setStatusFilter(Tab.NET, it.status) }, vm::togglePick, vm::openAsset, header = head)
+            assetList(list, header = head)
         } else {
             stickyHeader(key = "head") { head() }
             val ap = s.netMode == NetMode.AP

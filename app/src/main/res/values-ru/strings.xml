@@ -215,4 +215,214 @@
         <item quantity="many">%1$d человек из этой группы получат доступ ко всем объектам.</item>
         <item quantity="other">%1$d человека из этой группы получат доступ ко всем объектам.</item>
     </plurals>
+    <string name="action_validate">Проверить</string>
+    <string name="action_assign">Назначить</string>
+    <string name="action_submit">Отправить</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_discard">Отменить</string>
+    <string name="action_keep_editing">Продолжить редактирование</string>
+    <string name="action_add">Добавить</string>
+    <string name="action_change">Изменить</string>
+    <string name="action_fix">Исправить</string>
+    <string name="dash_menu">Меню</string>
+    <string name="dash_unmapped">Без места</string>
+    <string name="dash_choose_location">Выбрать место</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">Сеть</string>
+    <string name="nav_camera">Камера</string>
+    <string name="nav_file">Файл</string>
+    <string name="dash_search_hint">Поиск по названию, серийному номеру или метке</string>
+    <string name="dash_add_asset">Добавить актив</string>
+    <string name="dash_selected">Выбрано: %1$d</string>
+    <string name="dash_select_all">Выбрать все (%1$d)</string>
+    <string name="dash_clear_all">Снять все</string>
+    <string name="dash_clear_selection">Сбросить выбор</string>
+    <string name="dash_empty_title">Здесь пока ничего нет</string>
+    <string name="dash_empty_search">Нет активов, подходящих под «%1$s».</string>
+    <string name="dash_empty_status">Нет активов с таким статусом.</string>
+    <string name="dash_empty_assets">Сканируйте, фотографируйте или импортируйте активы с помощью вкладок ниже.</string>
+    <string name="dash_empty_source">Так здесь пока ничего не добавлено.</string>
+    <string name="dash_chip_all">Все</string>
+    <string name="dash_chips_back">Показать предыдущие статусы</string>
+    <string name="dash_chips_more">Показать другие статусы</string>
+    <string name="status_ai">Подсказка ИИ</string>
+    <string name="status_validated">Проверен</string>
+    <string name="status_submitted">Отправлен</string>
+    <string name="status_draft">Черновик</string>
+    <string name="status_input">Нужны данные</string>
+    <string name="status_exception">Исключение</string>
+    <string name="source_camera">через камеру</string>
+    <string name="source_bt">через Bluetooth</string>
+    <string name="source_wifi">через сканирование Wi-Fi</string>
+    <string name="source_ap">через сканирование точек доступа</string>
+    <string name="source_file">через импорт файла</string>
+    <string name="source_manual">Добавлен вручную</string>
+    <string name="asset_deleted">Актив удалён</string>
+    <string name="asset_validated_notice">Актив проверен</string>
+    <string name="asset_saved_draft">Сохранено как черновик</string>
+    <string name="asset_submitted_notice">Актив отправлен · его больше нельзя редактировать</string>
+    <string name="asset_added_draft">Актив добавлен как черновик</string>
+    <string name="asset_added_submitted">Актив отправлен</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">Показано: %1$s</string>
+    <string name="menu_coming_soon">%1$s скоро появится</string>
+    <string name="review_title">Проверка и добавление</string>
+    <string name="review_ready">Готов к добавлению</string>
+    <string name="review_needs_input">Потребуются данные</string>
+    <string name="review_add_more">Добавить ещё</string>
+    <string name="review_add_files">Добавить файлы</string>
+    <string name="review_select_items">Выберите элементы для добавления</string>
+    <string name="review_photo_sub">Фото · нужно добавить название и данные</string>
+    <string name="review_video_sub">Видео %1$s · нужно добавить название и данные</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">Включить в добавление</string>
+    <string name="detail_tab_info">Инфо</string>
+    <string name="detail_tab_validation">Проверка</string>
+    <string name="detail_back">Назад к списку</string>
+    <string name="detail_name_hint">Название актива</string>
+    <string name="detail_saved">Сохранено</string>
+    <string name="detail_menu_camera">Снять фото или видео</string>
+    <string name="detail_menu_gallery">Загрузить из галереи</string>
+    <string name="detail_menu_files">Загрузить из файлов</string>
+    <string name="detail_no_photos">Фото пока нет: снимите или загрузите из галереи либо файлов.</string>
+    <string name="detail_photo">Фото</string>
+    <string name="detail_video">Видео</string>
+    <string name="detail_document">Документ</string>
+    <string name="detail_video_badge">ВИДЕО %1$s</string>
+    <string name="detail_location">Место</string>
+    <string name="detail_no_location">Места пока нет</string>
+    <string name="detail_sec_ident">Идентификация</string>
+    <string name="detail_sec_class">Классификация</string>
+    <string name="detail_sec_tags">Метки и подключение</string>
+    <string name="detail_sec_more">Дополнительно</string>
+    <string name="detail_sec_notes">Заметки</string>
+    <string name="detail_note_nameplate">Считано с шильдика</string>
+    <string name="detail_note_photos">Предложено по фото</string>
+    <string name="detail_note_scan">Из сканирования</string>
+    <string name="detail_none_yet">Пока ничего</string>
+    <string name="detail_not_set">Не задано</string>
+    <string name="detail_required_summary">Обязательно: %1$s</string>
+    <string name="detail_filled_summary">Заполнено %1$d из %2$d</string>
+    <string name="detail_asset_id">ID актива</string>
+    <string name="detail_new_code">Новый · не сохранён</string>
+    <string name="detail_field_hint">Добавить: %1$s</string>
+    <string name="detail_select">Выбрать</string>
+    <string name="detail_select_jacs">Выбрать код JACS</string>
+    <string name="detail_badge_check">ПРОВЕРИТЬ</string>
+    <string name="detail_badge_edited">ИЗМЕНЕНО</string>
+    <string name="detail_voice_note">Голосовая заметка</string>
+    <string name="detail_listening">Слушаю… скажите «Серийный номер 24A-118903»</string>
+    <string name="detail_ai_busy">ИИ заполняет пустые поля…</string>
+    <string name="detail_ai_nothing">Заполнять больше нечего</string>
+    <string name="detail_ai_fill">Заполнить пустые поля с помощью ИИ</string>
+    <string name="detail_note_hint">Добавьте заметку о состоянии, доступе или чём-то ещё</string>
+    <string name="detail_submit_title">Отправить этот актив?</string>
+    <string name="detail_submit_body">После отправки поля нельзя редактировать. Если позже что-то понадобится изменить, запросите повторный сбор.</string>
+    <string name="detail_delete_title">Удалить этот актив?</string>
+    <string name="detail_delete_body">«%1$s» будет удалён. Это действие нельзя отменить.</string>
+    <string name="detail_delete_body_unnamed">Этот актив будет удалён. Это действие нельзя отменить.</string>
+    <string name="detail_discard_title">Отменить создание этого актива?</string>
+    <string name="detail_discard_body">Введённые данные не сохранятся.</string>
+    <string name="detail_no_unsaved">Нет несохранённых изменений</string>
+    <string name="detail_status">Статус: %1$s</string>
+    <string name="detail_submitted_body">Поля больше нельзя редактировать. Нужно изменение? Запросите повторный сбор.</string>
+    <string name="detail_recollect">Запросить повторный сбор</string>
+    <string name="detail_updated">Обновлено: %1$s</string>
+    <string name="detail_photo_of">%1$d из %2$d</string>
+    <string name="detail_prev">Предыдущее фото</string>
+    <string name="detail_next">Следующее фото</string>
+    <string name="check_banner_passed">Все проверки пройдены</string>
+    <string name="check_banner_passed_sub">Этот актив готов к проверке.</string>
+    <string name="check_banner_failed_sub">Исправьте обязательные проверки, прежде чем проверять этот актив.</string>
+    <string name="check_location">Место назначено</string>
+    <string name="check_asset_type">Тип актива определён</string>
+    <string name="check_jacs">Код JACS задан</string>
+    <string name="check_make_model">Производитель и модель указаны</string>
+    <string name="check_serial">Серийный номер указан</string>
+    <string name="check_low_confidence">Неуверенное считывание проверено</string>
+    <string name="check_photo">Фото прикреплено</string>
+    <string name="check_required">ОБЯЗАТЕЛЬНО</string>
+    <string name="check_note_required">Нужно, чтобы актив можно было проверить</string>
+    <string name="check_note_missing">Пока не указано</string>
+    <string name="check_note_low_confidence">Поле «%1$s» считано неуверенно — сверьте с шильдиком</string>
+    <string name="check_note_no_photo">Фото пока нет</string>
+    <string name="check_state_passed">Пройдена</string>
+    <string name="check_state_failed">Не пройдена</string>
+    <string name="check_state_warning">Нужна проверка</string>
+    <plurals name="assets_validated">
+        <item quantity="one">Проверен %1$d актив</item>
+        <item quantity="other">Проверено активов: %1$d</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="one">Отправлен %1$d актив</item>
+        <item quantity="other">Отправлено активов: %1$d</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="one">Удалён %1$d актив</item>
+        <item quantity="other">Удалено активов: %1$d</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="one">%1$d актив назначен: %2$s</item>
+        <item quantity="other">Активов назначено: %1$d (%2$s)</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="one">%1$d элемент добавлен к активу</item>
+        <item quantity="other">Элементов добавлено к активу: %1$d</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="one">Добавлен %1$d актив · нужны данные</item>
+        <item quantity="other">Добавлено активов: %1$d · нужны данные</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="one">Импортирован %1$d актив · нужны данные</item>
+        <item quantity="other">Импортировано активов: %1$d · нужны данные</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="one">Удалить этот актив?</item>
+        <item quantity="other">Удалить активы: %1$d?</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="one">Выбранный актив будет удалён. Это действие нельзя отменить.</item>
+        <item quantity="other">Выбранные активы (%1$d) будут удалены. Это действие нельзя отменить.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="one">Добавить %1$d актив</item>
+        <item quantity="other">Добавить активов: %1$d</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="one">%1$d элемент · каждый станет черновиком актива</item>
+        <item quantity="other">Элементов: %1$d · каждый станет черновиком актива</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="one">Выбран %1$d файл · каждый станет черновиком актива</item>
+        <item quantity="other">Выбрано файлов: %1$d · каждый станет черновиком актива</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="one">%1$d несохранённое изменение</item>
+        <item quantity="other">Несохранённых изменений: %1$d</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="one">ИИ заполнил %1$d поле · проверьте и сохраните</item>
+        <item quantity="other">ИИ заполнил полей: %1$d · проверьте и сохраните</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="one">%1$d проверка не пройдена</item>
+        <item quantity="other">Не пройдено проверок: %1$d</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="one">Исправьте %1$d проверку для подтверждения</item>
+        <item quantity="other">Исправьте проверки (%1$d) для подтверждения</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="one">%1$d фото</item>
+        <item quantity="other">Фото: %1$d</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="one">Нужно минимум фото: %2$d (сейчас %1$d)</item>
+        <item quantity="other">Нужно минимум фото: %2$d (сейчас %1$d)</item>
+    </plurals>
+    <string name="dash_clear_search_text">Очистить текст поиска</string>
+    <string name="detail_add_photo">Добавить фото</string>
+    <string name="detail_voice_fill">Заполнить поля голосом</string>
 </resources>

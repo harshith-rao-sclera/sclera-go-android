@@ -200,4 +200,196 @@
     <plurals name="access_elevate_notice">
         <item quantity="other">此群組中的 %1$d 人將獲得所有物業的存取權限。</item>
     </plurals>
+    <string name="action_validate">驗證</string>
+    <string name="action_assign">指派</string>
+    <string name="action_submit">提交</string>
+    <string name="action_delete">刪除</string>
+    <string name="action_save">儲存</string>
+    <string name="action_discard">捨棄</string>
+    <string name="action_keep_editing">繼續編輯</string>
+    <string name="action_add">新增</string>
+    <string name="action_change">變更</string>
+    <string name="action_fix">修正</string>
+    <string name="dash_menu">選單</string>
+    <string name="dash_unmapped">無位置</string>
+    <string name="dash_choose_location">選擇位置</string>
+    <string name="nav_bluetooth">藍牙</string>
+    <string name="nav_network">網路</string>
+    <string name="nav_camera">相機</string>
+    <string name="nav_file">檔案</string>
+    <string name="dash_search_hint">搜尋名稱、序號或標籤</string>
+    <string name="dash_add_asset">新增資產</string>
+    <string name="dash_selected">已選取 %1$d 項</string>
+    <string name="dash_select_all">全選（%1$d 項）</string>
+    <string name="dash_clear_all">全部取消</string>
+    <string name="dash_clear_selection">清除選取</string>
+    <string name="dash_empty_title">這裡還沒有內容</string>
+    <string name="dash_empty_search">沒有符合「%1$s」的資產。</string>
+    <string name="dash_empty_status">這裡沒有此狀態的資產。</string>
+    <string name="dash_empty_assets">使用下方分頁掃描、拍照或匯入資產。</string>
+    <string name="dash_empty_source">這裡還沒有以這種方式登錄的資產。</string>
+    <string name="dash_chip_all">全部</string>
+    <string name="dash_chips_back">顯示較早的狀態</string>
+    <string name="dash_chips_more">顯示更多狀態</string>
+    <string name="status_ai">AI 建議</string>
+    <string name="status_validated">已驗證</string>
+    <string name="status_submitted">已提交</string>
+    <string name="status_draft">草稿</string>
+    <string name="status_input">需要輸入</string>
+    <string name="status_exception">例外</string>
+    <string name="source_camera">透過相機</string>
+    <string name="source_bt">透過藍牙</string>
+    <string name="source_wifi">透過 Wi-Fi 掃描</string>
+    <string name="source_ap">透過存取點掃描</string>
+    <string name="source_file">透過檔案匯入</string>
+    <string name="source_manual">手動新增</string>
+    <string name="asset_deleted">資產已刪除</string>
+    <string name="asset_validated_notice">資產已驗證</string>
+    <string name="asset_saved_draft">已儲存為草稿</string>
+    <string name="asset_submitted_notice">資產已提交 · 現在無法編輯</string>
+    <string name="asset_added_draft">資產已新增為草稿</string>
+    <string name="asset_added_submitted">資產已提交</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">正在顯示 %1$s</string>
+    <string name="menu_coming_soon">%1$s 即將推出</string>
+    <string name="review_title">檢閱並登錄</string>
+    <string name="review_ready">可以登錄</string>
+    <string name="review_needs_input">需要補充資訊</string>
+    <string name="review_add_more">新增更多</string>
+    <string name="review_add_files">新增檔案</string>
+    <string name="review_select_items">選取要登錄的項目</string>
+    <string name="review_photo_sub">照片 · 需補充名稱和詳細資料</string>
+    <string name="review_video_sub">影片 %1$s · 需補充名稱和詳細資料</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">納入登錄</string>
+    <string name="detail_tab_info">資訊</string>
+    <string name="detail_tab_validation">驗證</string>
+    <string name="detail_back">返回清單</string>
+    <string name="detail_name_hint">資產名稱</string>
+    <string name="detail_saved">已儲存</string>
+    <string name="detail_menu_camera">拍攝照片或影片</string>
+    <string name="detail_menu_gallery">從相簿上傳</string>
+    <string name="detail_menu_files">從檔案上傳</string>
+    <string name="detail_no_photos">還沒有照片：拍一張，或從相簿或檔案上傳。</string>
+    <string name="detail_photo">照片</string>
+    <string name="detail_video">影片</string>
+    <string name="detail_document">文件</string>
+    <string name="detail_video_badge">影片 %1$s</string>
+    <string name="detail_location">位置</string>
+    <string name="detail_no_location">還沒有位置</string>
+    <string name="detail_sec_ident">識別資訊</string>
+    <string name="detail_sec_class">分類</string>
+    <string name="detail_sec_tags">標籤與連線</string>
+    <string name="detail_sec_more">更多詳細資料</string>
+    <string name="detail_sec_notes">備註</string>
+    <string name="detail_note_nameplate">已從銘牌讀取</string>
+    <string name="detail_note_photos">根據照片建議</string>
+    <string name="detail_note_scan">來自掃描</string>
+    <string name="detail_none_yet">尚無</string>
+    <string name="detail_not_set">未設定</string>
+    <string name="detail_required_summary">%1$s 為必填</string>
+    <string name="detail_filled_summary">已填寫 %1$d/%2$d</string>
+    <string name="detail_asset_id">資產 ID</string>
+    <string name="detail_new_code">新增 · 未儲存</string>
+    <string name="detail_field_hint">新增%1$s</string>
+    <string name="detail_select">選擇</string>
+    <string name="detail_select_jacs">選擇 JACS 代碼</string>
+    <string name="detail_badge_check">請核對</string>
+    <string name="detail_badge_edited">已編輯</string>
+    <string name="detail_voice_note">語音備註</string>
+    <string name="detail_listening">正在聆聽…試著說「序號 24A-118903」</string>
+    <string name="detail_ai_busy">AI 正在填寫空白欄位…</string>
+    <string name="detail_ai_nothing">沒有可填寫的內容了</string>
+    <string name="detail_ai_fill">用 AI 填寫空白欄位</string>
+    <string name="detail_note_hint">新增關於狀況、存取方式或其他內容的備註</string>
+    <string name="detail_submit_title">提交此資產？</string>
+    <string name="detail_submit_body">提交後，其欄位將無法編輯。如果之後需要變更，請申請重新蒐集。</string>
+    <string name="detail_delete_title">刪除此資產？</string>
+    <string name="detail_delete_body">%1$s 將被移除。此操作無法復原。</string>
+    <string name="detail_delete_body_unnamed">此資產將被移除。此操作無法復原。</string>
+    <string name="detail_discard_title">捨棄此新資產？</string>
+    <string name="detail_discard_body">您輸入的內容將不會儲存。</string>
+    <string name="detail_no_unsaved">沒有未儲存的變更</string>
+    <string name="detail_status">狀態：%1$s</string>
+    <string name="detail_submitted_body">其欄位已無法再編輯。需要變更？請申請重新蒐集。</string>
+    <string name="detail_recollect">申請重新蒐集</string>
+    <string name="detail_updated">更新於 %1$s</string>
+    <string name="detail_photo_of">%1$d/%2$d</string>
+    <string name="detail_prev">上一張照片</string>
+    <string name="detail_next">下一張照片</string>
+    <string name="check_banner_passed">所有檢查均已通過</string>
+    <string name="check_banner_passed_sub">此資產已可以驗證。</string>
+    <string name="check_banner_failed_sub">驗證此資產前，請先修正必要的檢查項目。</string>
+    <string name="check_location">已指派位置</string>
+    <string name="check_asset_type">已歸類資產類型</string>
+    <string name="check_jacs">已設定 JACS 代碼</string>
+    <string name="check_make_model">已記錄品牌和型號</string>
+    <string name="check_serial">已記錄序號</string>
+    <string name="check_low_confidence">已複核低信賴度讀數</string>
+    <string name="check_photo">已附加照片</string>
+    <string name="check_required">必填</string>
+    <string name="check_note_required">需先完成此項才能驗證資產</string>
+    <string name="check_note_missing">尚未記錄</string>
+    <string name="check_note_low_confidence">%1$s 的讀取信賴度較低——請對照銘牌確認</string>
+    <string name="check_note_no_photo">還沒有照片</string>
+    <string name="check_state_passed">通過</string>
+    <string name="check_state_failed">未通過</string>
+    <string name="check_state_warning">需要複核</string>
+    <plurals name="assets_validated">
+        <item quantity="other">已驗證 %1$d 項資產</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="other">已提交 %1$d 項資產</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="other">已刪除 %1$d 項資產</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="other">已將 %1$d 項資產指派到 %2$s</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="other">已向資產新增 %1$d 個項目</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="other">已新增 %1$d 項資產 · 需要補充詳細資料</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="other">已匯入 %1$d 項資產 · 需要補充詳細資料</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="other">刪除 %1$d 項資產？</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="other">所選的 %1$d 項資產將被移除。此操作無法復原。</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="other">登錄 %1$d 項資產</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="other">%1$d 個項目 · 每個都將成為草稿資產</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="other">已選取 %1$d 個檔案 · 每個都將成為草稿資產</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="other">%1$d 項未儲存的變更</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="other">AI 已填寫 %1$d 個欄位 · 請核對並儲存</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="other">%1$d 項檢查未通過</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="other">修正 %1$d 項檢查後才能驗證</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="other">%1$d 張照片</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="other">至少需要 %2$d 張照片（目前 %1$d 張）</item>
+    </plurals>
+    <string name="dash_clear_search_text">清除搜尋文字</string>
+    <string name="detail_add_photo">新增照片</string>
+    <string name="detail_voice_fill">語音填寫欄位</string>
 </resources>

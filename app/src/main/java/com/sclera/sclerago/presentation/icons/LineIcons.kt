@@ -116,6 +116,7 @@ object Icons {
     val Check = Ico(s("M20 6L9 17l-5-5"))
     val CheckCircle = Ico(s(circle(12f, 12f, 9f)), s("M8 12l3 3 5-6"))
     val ShieldCheck = Ico(s("M12 3L5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"), s("M9 12l2 2 4-4"))
+    val ShieldX = Ico(s("M12 3L5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"), s("M9.5 9.5l5 5M14.5 9.5l-5 5"))
     val Send = Ico(s("M21 3L3 10.5l7 2.5 2.5 7z"), s("M21 3L10 13"))
     val Pencil = Ico(s("M4 20h4L19 9l-4-4L4 16z"), s("M13.5 6.5l4 4"))
     val Alert = Ico(s(circle(12f, 12f, 9f)), s("M12 7v6M12 16.5v.5"))

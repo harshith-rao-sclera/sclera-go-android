@@ -211,4 +211,216 @@
         <item quantity="one">%1$d person in this group will get access to all properties.</item>
         <item quantity="other">%1$d people in this group will get access to all properties.</item>
     </plurals>
+    <string name="action_validate">Validate</string>
+    <string name="action_assign">Assign</string>
+    <string name="action_submit">Submit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_save">Save</string>
+    <string name="action_discard">Discard</string>
+    <string name="action_keep_editing">Keep editing</string>
+    <string name="action_add">Add</string>
+    <string name="action_change">Change</string>
+    <string name="action_fix">Fix</string>
+    <string name="dash_menu">Menu</string>
+    <string name="dash_unmapped">Unmapped</string>
+    <string name="dash_choose_location">Choose location</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">Network</string>
+    <string name="nav_camera">Camera</string>
+    <string name="nav_file">File</string>
+    <string name="dash_search_hint">Search name, serial no. or tag</string>
+    <string name="dash_add_asset">Add asset</string>
+    <string name="dash_selected">%1$d selected</string>
+    <string name="dash_select_all">Select all %1$d</string>
+    <string name="dash_clear_all">Clear all</string>
+    <string name="dash_clear_selection">Clear selection</string>
+    <string name="dash_empty_title">Nothing here yet</string>
+    <string name="dash_empty_search">No asset matches “%1$s”.</string>
+    <string name="dash_empty_status">No assets with this status here.</string>
+    <string name="dash_empty_assets">Scan, photograph or import assets with the tabs below.</string>
+    <string name="dash_empty_source">Nothing onboarded this way here yet.</string>
+    <string name="dash_chip_all">All</string>
+    <string name="dash_chips_back">Show earlier statuses</string>
+    <string name="dash_chips_more">Show more statuses</string>
+    <string name="status_ai">AI suggestion</string>
+    <string name="status_validated">Validated</string>
+    <string name="status_submitted">Submitted</string>
+    <string name="status_draft">Draft</string>
+    <string name="status_input">Input needed</string>
+    <string name="status_exception">Exception</string>
+    <string name="source_camera">via Camera</string>
+    <string name="source_bt">via Bluetooth</string>
+    <string name="source_wifi">via Wi-Fi scan</string>
+    <string name="source_ap">via Access point scan</string>
+    <string name="source_file">via File import</string>
+    <string name="source_manual">Added manually</string>
+    <string name="asset_deleted">Asset deleted</string>
+    <string name="asset_validated_notice">Asset validated</string>
+    <string name="asset_saved_draft">Saved as draft</string>
+    <string name="asset_submitted_notice">Asset submitted · it can’t be edited now</string>
+    <string name="asset_added_draft">Asset added as draft</string>
+    <string name="asset_added_submitted">Asset submitted</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">Showing %1$s</string>
+    <string name="menu_coming_soon">%1$s is coming soon</string>
+    <string name="review_title">Review &amp; onboard</string>
+    <string name="review_ready">Ready to onboard</string>
+    <string name="review_needs_input">Will need input</string>
+    <string name="review_add_more">Add more</string>
+    <string name="review_add_files">Add files</string>
+    <string name="review_select_items">Select items to onboard</string>
+    <string name="review_photo_sub">Photo · name and details to add</string>
+    <string name="review_video_sub">Video %1$s · name and details to add</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">Include in onboarding</string>
+    <string name="detail_tab_info">Info</string>
+    <string name="detail_tab_validation">Validation</string>
+    <string name="detail_back">Back to list</string>
+    <string name="detail_name_hint">Asset name</string>
+    <string name="detail_saved">Saved</string>
+    <string name="detail_menu_camera">Take photo or video</string>
+    <string name="detail_menu_gallery">Upload from gallery</string>
+    <string name="detail_menu_files">Upload from files</string>
+    <string name="detail_no_photos">No photos yet — take one, or upload from the gallery or files.</string>
+    <string name="detail_photo">Photo</string>
+    <string name="detail_video">Video</string>
+    <string name="detail_document">Document</string>
+    <string name="detail_video_badge">VIDEO %1$s</string>
+    <string name="detail_location">Location</string>
+    <string name="detail_no_location">No location yet</string>
+    <string name="detail_sec_ident">Identification</string>
+    <string name="detail_sec_class">Classification</string>
+    <string name="detail_sec_tags">Tags &amp; connectivity</string>
+    <string name="detail_sec_more">More details</string>
+    <string name="detail_sec_notes">Notes</string>
+    <string name="detail_note_nameplate">Read from nameplate</string>
+    <string name="detail_note_photos">Suggested from photos</string>
+    <string name="detail_note_scan">From scan</string>
+    <string name="detail_none_yet">None yet</string>
+    <string name="detail_not_set">Not set</string>
+    <string name="detail_required_summary">%1$s required</string>
+    <string name="detail_filled_summary">%1$d of %2$d filled</string>
+    <string name="detail_asset_id">Asset ID</string>
+    <string name="detail_new_code">New · not saved yet</string>
+    <string name="detail_field_hint">Add %1$s</string>
+    <string name="detail_select">Select</string>
+    <string name="detail_select_jacs">Select JACS code</string>
+    <string name="detail_badge_check">CHECK</string>
+    <string name="detail_badge_edited">EDITED</string>
+    <string name="detail_voice_note">Voice note</string>
+    <string name="detail_listening">Listening… try “Serial number 24A-118903”</string>
+    <string name="detail_ai_busy">AI is filling empty fields…</string>
+    <string name="detail_ai_nothing">Nothing left to fill</string>
+    <string name="detail_ai_fill">Fill empty fields with AI</string>
+    <string name="detail_note_hint">Add a note about condition, access or anything else</string>
+    <string name="detail_submit_title">Submit this asset?</string>
+    <string name="detail_submit_body">Once it’s submitted, its fields can’t be edited. If something needs changing later, request a recollect.</string>
+    <string name="detail_delete_title">Delete this asset?</string>
+    <string name="detail_delete_body">%1$s will be removed. This can’t be undone.</string>
+    <string name="detail_delete_body_unnamed">This asset will be removed. This can’t be undone.</string>
+    <string name="detail_discard_title">Discard this new asset?</string>
+    <string name="detail_discard_body">What you’ve entered won’t be saved.</string>
+    <string name="detail_no_unsaved">No unsaved changes</string>
+    <string name="detail_status">Status: %1$s</string>
+    <string name="detail_submitted_body">Its fields can’t be edited any more. Need a change? Ask for it to be collected again.</string>
+    <string name="detail_recollect">Request recollect</string>
+    <string name="detail_updated">Updated %1$s</string>
+    <string name="detail_photo_of">%1$d of %2$d</string>
+    <string name="detail_prev">Previous photo</string>
+    <string name="detail_next">Next photo</string>
+    <string name="check_banner_passed">All checks passed</string>
+    <string name="check_banner_passed_sub">This asset is ready to validate.</string>
+    <string name="check_banner_failed_sub">Fix the required checks before validating this asset.</string>
+    <string name="check_location">Location assigned</string>
+    <string name="check_asset_type">Asset type classified</string>
+    <string name="check_jacs">JACS code set</string>
+    <string name="check_make_model">Make and model recorded</string>
+    <string name="check_serial">Serial number recorded</string>
+    <string name="check_low_confidence">Low-confidence reading reviewed</string>
+    <string name="check_photo">Photo attached</string>
+    <string name="check_required">REQUIRED</string>
+    <string name="check_note_required">Required before the asset can be validated</string>
+    <string name="check_note_missing">Not recorded yet</string>
+    <string name="check_note_low_confidence">%1$s was read with low confidence — check it against the nameplate</string>
+    <string name="check_note_no_photo">No photo yet</string>
+    <string name="check_state_passed">Passed</string>
+    <string name="check_state_failed">Failed</string>
+    <string name="check_state_warning">Needs review</string>
+    <plurals name="assets_validated">
+        <item quantity="one">%1$d asset validated</item>
+        <item quantity="other">%1$d assets validated</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="one">%1$d asset submitted</item>
+        <item quantity="other">%1$d assets submitted</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="one">%1$d asset deleted</item>
+        <item quantity="other">%1$d assets deleted</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="one">%1$d asset assigned to %2$s</item>
+        <item quantity="other">%1$d assets assigned to %2$s</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="one">%1$d item added to asset</item>
+        <item quantity="other">%1$d items added to asset</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="one">%1$d asset added · details needed</item>
+        <item quantity="other">%1$d assets added · details needed</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="one">%1$d asset imported · details needed</item>
+        <item quantity="other">%1$d assets imported · details needed</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="one">Delete this asset?</item>
+        <item quantity="other">Delete %1$d assets?</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="one">The selected asset will be removed. This can’t be undone.</item>
+        <item quantity="other">The %1$d selected assets will be removed. This can’t be undone.</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="one">Onboard %1$d asset</item>
+        <item quantity="other">Onboard %1$d assets</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="one">%1$d item · each becomes a draft asset</item>
+        <item quantity="other">%1$d items · each becomes a draft asset</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="one">%1$d file selected · each becomes a draft asset</item>
+        <item quantity="other">%1$d files selected · each becomes a draft asset</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="one">%1$d unsaved change</item>
+        <item quantity="other">%1$d unsaved changes</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="one">AI filled %1$d field · review and save</item>
+        <item quantity="other">AI filled %1$d fields · review and save</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="one">%1$d check failed</item>
+        <item quantity="other">%1$d checks failed</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="one">Fix %1$d check to validate</item>
+        <item quantity="other">Fix %1$d checks to validate</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="one">%1$d photo</item>
+        <item quantity="other">%1$d photos</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="one">Needs at least %2$d photo (%1$d so far)</item>
+        <item quantity="other">Needs at least %2$d photos (%1$d so far)</item>
+    </plurals>
+    <string name="detail_badge_ocr" translatable="false">OCR</string>
+    <string name="detail_badge_ai" translatable="false">AI</string>
+    <string name="dash_clear_search_text">Clear search text</string>
+    <string name="detail_add_photo">Add photo</string>
+    <string name="detail_voice_fill">Fill fields by voice</string>
 </resources>

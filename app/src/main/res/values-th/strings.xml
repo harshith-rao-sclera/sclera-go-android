@@ -200,4 +200,196 @@
     <plurals name="access_elevate_notice">
         <item quantity="other">%1$d คนในกลุ่มนี้จะเข้าถึงได้ทุกสถานที่</item>
     </plurals>
+    <string name="action_validate">ตรวจสอบ</string>
+    <string name="action_assign">มอบหมาย</string>
+    <string name="action_submit">ส่ง</string>
+    <string name="action_delete">ลบ</string>
+    <string name="action_save">บันทึก</string>
+    <string name="action_discard">ทิ้ง</string>
+    <string name="action_keep_editing">แก้ไขต่อ</string>
+    <string name="action_add">เพิ่ม</string>
+    <string name="action_change">เปลี่ยน</string>
+    <string name="action_fix">แก้ไข</string>
+    <string name="dash_menu">เมนู</string>
+    <string name="dash_unmapped">ไม่มีตำแหน่ง</string>
+    <string name="dash_choose_location">เลือกตำแหน่ง</string>
+    <string name="nav_bluetooth">Bluetooth</string>
+    <string name="nav_network">เครือข่าย</string>
+    <string name="nav_camera">กล้อง</string>
+    <string name="nav_file">ไฟล์</string>
+    <string name="dash_search_hint">ค้นหาชื่อ เลขซีเรียล หรือแท็ก</string>
+    <string name="dash_add_asset">เพิ่มสินทรัพย์</string>
+    <string name="dash_selected">เลือกแล้ว %1$d</string>
+    <string name="dash_select_all">เลือกทั้งหมด %1$d</string>
+    <string name="dash_clear_all">ล้างทั้งหมด</string>
+    <string name="dash_clear_selection">ล้างการเลือก</string>
+    <string name="dash_empty_title">ยังไม่มีอะไรที่นี่</string>
+    <string name="dash_empty_search">ไม่มีสินทรัพย์ที่ตรงกับ “%1$s”</string>
+    <string name="dash_empty_status">ไม่มีสินทรัพย์ที่มีสถานะนี้ที่นี่</string>
+    <string name="dash_empty_assets">สแกน ถ่ายภาพ หรือนำเข้าสินทรัพย์ด้วยแท็บด้านล่าง</string>
+    <string name="dash_empty_source">ยังไม่มีสินทรัพย์ที่เพิ่มด้วยวิธีนี้ที่นี่</string>
+    <string name="dash_chip_all">ทั้งหมด</string>
+    <string name="dash_chips_back">แสดงสถานะก่อนหน้า</string>
+    <string name="dash_chips_more">แสดงสถานะเพิ่มเติม</string>
+    <string name="status_ai">คำแนะนำจาก AI</string>
+    <string name="status_validated">ตรวจสอบแล้ว</string>
+    <string name="status_submitted">ส่งแล้ว</string>
+    <string name="status_draft">ฉบับร่าง</string>
+    <string name="status_input">ต้องกรอกข้อมูล</string>
+    <string name="status_exception">ข้อยกเว้น</string>
+    <string name="source_camera">ผ่านกล้อง</string>
+    <string name="source_bt">ผ่าน Bluetooth</string>
+    <string name="source_wifi">ผ่านการสแกน Wi-Fi</string>
+    <string name="source_ap">ผ่านการสแกนจุดเข้าใช้งาน</string>
+    <string name="source_file">ผ่านการนำเข้าไฟล์</string>
+    <string name="source_manual">เพิ่มด้วยตนเอง</string>
+    <string name="asset_deleted">ลบสินทรัพย์แล้ว</string>
+    <string name="asset_validated_notice">ตรวจสอบสินทรัพย์แล้ว</string>
+    <string name="asset_saved_draft">บันทึกเป็นฉบับร่างแล้ว</string>
+    <string name="asset_submitted_notice">ส่งสินทรัพย์แล้ว · ไม่สามารถแก้ไขได้อีก</string>
+    <string name="asset_added_draft">เพิ่มสินทรัพย์เป็นฉบับร่างแล้ว</string>
+    <string name="asset_added_submitted">ส่งสินทรัพย์แล้ว</string>
+    <string name="notice_with_source">%1$s · %2$s</string>
+    <string name="property_showing">กำลังแสดง %1$s</string>
+    <string name="menu_coming_soon">%1$s เร็ว ๆ นี้</string>
+    <string name="review_title">ตรวจทานและนำเข้า</string>
+    <string name="review_ready">พร้อมนำเข้า</string>
+    <string name="review_needs_input">ต้องกรอกข้อมูล</string>
+    <string name="review_add_more">เพิ่มอีก</string>
+    <string name="review_add_files">เพิ่มไฟล์</string>
+    <string name="review_select_items">เลือกรายการที่จะนำเข้า</string>
+    <string name="review_photo_sub">รูปภาพ · ต้องเพิ่มชื่อและรายละเอียด</string>
+    <string name="review_video_sub">วิดีโอ %1$s · ต้องเพิ่มชื่อและรายละเอียด</string>
+    <string name="review_file_sub">%1$s · %2$s</string>
+    <string name="review_include">รวมในการนำเข้า</string>
+    <string name="detail_tab_info">ข้อมูล</string>
+    <string name="detail_tab_validation">การตรวจสอบ</string>
+    <string name="detail_back">กลับไปที่รายการ</string>
+    <string name="detail_name_hint">ชื่อสินทรัพย์</string>
+    <string name="detail_saved">บันทึกแล้ว</string>
+    <string name="detail_menu_camera">ถ่ายภาพหรือวิดีโอ</string>
+    <string name="detail_menu_gallery">อัปโหลดจากแกลเลอรี</string>
+    <string name="detail_menu_files">อัปโหลดจากไฟล์</string>
+    <string name="detail_no_photos">ยังไม่มีรูปภาพ: ถ่ายภาพหรืออัปโหลดจากแกลเลอรีหรือไฟล์</string>
+    <string name="detail_photo">รูปภาพ</string>
+    <string name="detail_video">วิดีโอ</string>
+    <string name="detail_document">เอกสาร</string>
+    <string name="detail_video_badge">วิดีโอ %1$s</string>
+    <string name="detail_location">ตำแหน่ง</string>
+    <string name="detail_no_location">ยังไม่มีตำแหน่ง</string>
+    <string name="detail_sec_ident">การระบุตัวตน</string>
+    <string name="detail_sec_class">การจัดประเภท</string>
+    <string name="detail_sec_tags">แท็กและการเชื่อมต่อ</string>
+    <string name="detail_sec_more">รายละเอียดเพิ่มเติม</string>
+    <string name="detail_sec_notes">บันทึก</string>
+    <string name="detail_note_nameplate">อ่านจากแผ่นป้าย</string>
+    <string name="detail_note_photos">แนะนำจากรูปภาพ</string>
+    <string name="detail_note_scan">จากการสแกน</string>
+    <string name="detail_none_yet">ยังไม่มี</string>
+    <string name="detail_not_set">ยังไม่ได้ตั้งค่า</string>
+    <string name="detail_required_summary">ต้องมี%1$s</string>
+    <string name="detail_filled_summary">กรอกแล้ว %1$d จาก %2$d</string>
+    <string name="detail_asset_id">รหัสสินทรัพย์</string>
+    <string name="detail_new_code">ใหม่ · ยังไม่ได้บันทึก</string>
+    <string name="detail_field_hint">เพิ่ม%1$s</string>
+    <string name="detail_select">เลือก</string>
+    <string name="detail_select_jacs">เลือกรหัส JACS</string>
+    <string name="detail_badge_check">ตรวจสอบ</string>
+    <string name="detail_badge_edited">แก้ไขแล้ว</string>
+    <string name="detail_voice_note">บันทึกเสียง</string>
+    <string name="detail_listening">กำลังฟัง… ลองพูดว่า “เลขซีเรียล 24A-118903”</string>
+    <string name="detail_ai_busy">AI กำลังกรอกช่องที่ว่าง…</string>
+    <string name="detail_ai_nothing">ไม่มีอะไรให้กรอกอีกแล้ว</string>
+    <string name="detail_ai_fill">กรอกช่องที่ว่างด้วย AI</string>
+    <string name="detail_note_hint">เพิ่มบันทึกเกี่ยวกับสภาพ การเข้าถึง หรืออื่น ๆ</string>
+    <string name="detail_submit_title">ส่งสินทรัพย์นี้ไหม</string>
+    <string name="detail_submit_body">เมื่อส่งแล้ว จะแก้ไขช่องต่าง ๆ ไม่ได้ หากต้องการเปลี่ยนในภายหลัง ให้ขอเก็บข้อมูลใหม่</string>
+    <string name="detail_delete_title">ลบสินทรัพย์นี้ไหม</string>
+    <string name="detail_delete_body">%1$s จะถูกลบ การดำเนินการนี้ย้อนกลับไม่ได้</string>
+    <string name="detail_delete_body_unnamed">สินทรัพย์นี้จะถูกลบ การดำเนินการนี้ย้อนกลับไม่ได้</string>
+    <string name="detail_discard_title">ทิ้งสินทรัพย์ใหม่นี้ไหม</string>
+    <string name="detail_discard_body">สิ่งที่คุณป้อนจะไม่ถูกบันทึก</string>
+    <string name="detail_no_unsaved">ไม่มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก</string>
+    <string name="detail_status">สถานะ: %1$s</string>
+    <string name="detail_submitted_body">ไม่สามารถแก้ไขช่องต่าง ๆ ได้อีก ต้องการเปลี่ยนไหม ขอเก็บข้อมูลใหม่</string>
+    <string name="detail_recollect">ขอเก็บข้อมูลใหม่</string>
+    <string name="detail_updated">อัปเดต %1$s</string>
+    <string name="detail_photo_of">%1$d จาก %2$d</string>
+    <string name="detail_prev">รูปก่อนหน้า</string>
+    <string name="detail_next">รูปถัดไป</string>
+    <string name="check_banner_passed">ผ่านการตรวจทั้งหมด</string>
+    <string name="check_banner_passed_sub">สินทรัพย์นี้พร้อมสำหรับการตรวจสอบ</string>
+    <string name="check_banner_failed_sub">แก้ไขการตรวจที่จำเป็นก่อนตรวจสอบสินทรัพย์นี้</string>
+    <string name="check_location">มอบหมายตำแหน่งแล้ว</string>
+    <string name="check_asset_type">จัดประเภทสินทรัพย์แล้ว</string>
+    <string name="check_jacs">ตั้งรหัส JACS แล้ว</string>
+    <string name="check_make_model">บันทึกยี่ห้อและรุ่นแล้ว</string>
+    <string name="check_serial">บันทึกเลขซีเรียลแล้ว</string>
+    <string name="check_low_confidence">ตรวจทานการอ่านที่ความมั่นใจต่ำแล้ว</string>
+    <string name="check_photo">แนบรูปภาพแล้ว</string>
+    <string name="check_required">จำเป็น</string>
+    <string name="check_note_required">จำเป็นก่อนที่จะตรวจสอบสินทรัพย์ได้</string>
+    <string name="check_note_missing">ยังไม่ได้บันทึก</string>
+    <string name="check_note_low_confidence">%1$s ถูกอ่านด้วยความมั่นใจต่ำ — ตรวจเทียบกับแผ่นป้าย</string>
+    <string name="check_note_no_photo">ยังไม่มีรูปภาพ</string>
+    <string name="check_state_passed">ผ่าน</string>
+    <string name="check_state_failed">ไม่ผ่าน</string>
+    <string name="check_state_warning">ต้องตรวจทาน</string>
+    <plurals name="assets_validated">
+        <item quantity="other">ตรวจสอบสินทรัพย์ %1$d รายการแล้ว</item>
+    </plurals>
+    <plurals name="assets_submitted">
+        <item quantity="other">ส่งสินทรัพย์ %1$d รายการแล้ว</item>
+    </plurals>
+    <plurals name="assets_deleted">
+        <item quantity="other">ลบสินทรัพย์ %1$d รายการแล้ว</item>
+    </plurals>
+    <plurals name="assets_assigned">
+        <item quantity="other">มอบหมายสินทรัพย์ %1$d รายการให้ %2$s แล้ว</item>
+    </plurals>
+    <plurals name="items_added_to_asset">
+        <item quantity="other">เพิ่ม %1$d รายการลงในสินทรัพย์แล้ว</item>
+    </plurals>
+    <plurals name="assets_added_details">
+        <item quantity="other">เพิ่มสินทรัพย์ %1$d รายการแล้ว · ต้องกรอกรายละเอียด</item>
+    </plurals>
+    <plurals name="assets_imported_details">
+        <item quantity="other">นำเข้าสินทรัพย์ %1$d รายการแล้ว · ต้องกรอกรายละเอียด</item>
+    </plurals>
+    <plurals name="dash_delete_title">
+        <item quantity="other">ลบสินทรัพย์ %1$d รายการไหม</item>
+    </plurals>
+    <plurals name="dash_delete_body">
+        <item quantity="other">สินทรัพย์ที่เลือก %1$d รายการจะถูกลบ การดำเนินการนี้ย้อนกลับไม่ได้</item>
+    </plurals>
+    <plurals name="review_onboard">
+        <item quantity="other">นำเข้าสินทรัพย์ %1$d รายการ</item>
+    </plurals>
+    <plurals name="review_items_sub">
+        <item quantity="other">%1$d รายการ · แต่ละรายการจะเป็นสินทรัพย์ฉบับร่าง</item>
+    </plurals>
+    <plurals name="review_files_sub">
+        <item quantity="other">เลือกไฟล์ %1$d ไฟล์ · แต่ละไฟล์จะเป็นสินทรัพย์ฉบับร่าง</item>
+    </plurals>
+    <plurals name="detail_unsaved">
+        <item quantity="other">การเปลี่ยนแปลงที่ยังไม่ได้บันทึก %1$d รายการ</item>
+    </plurals>
+    <plurals name="ai_filled">
+        <item quantity="other">AI กรอก %1$d ช่องแล้ว · ตรวจทานและบันทึก</item>
+    </plurals>
+    <plurals name="check_banner_failed">
+        <item quantity="other">การตรวจไม่ผ่าน %1$d รายการ</item>
+    </plurals>
+    <plurals name="check_fix_footer">
+        <item quantity="other">แก้ไขการตรวจ %1$d รายการเพื่อตรวจสอบ</item>
+    </plurals>
+    <plurals name="check_note_photos">
+        <item quantity="other">รูปภาพ %1$d รูป</item>
+    </plurals>
+    <plurals name="check_note_photos_needed">
+        <item quantity="other">ต้องมีรูปภาพอย่างน้อย %2$d รูป (ตอนนี้ %1$d)</item>
+    </plurals>
+    <string name="dash_clear_search_text">ล้างข้อความค้นหา</string>
+    <string name="detail_add_photo">เพิ่มรูปภาพ</string>
+    <string name="detail_voice_fill">กรอกช่องด้วยเสียง</string>
 </resources>
