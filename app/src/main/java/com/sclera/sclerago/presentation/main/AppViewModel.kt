@@ -294,7 +294,8 @@ class AppViewModel @Inject constructor(
         return AssetListData(items, chips, emptyText)
     }
 
-    val propName: String get() = (properties.firstOrNull { it.id == state.prop } ?: properties[0]).name
+    /** The current property's name; empty until the properties have loaded. */
+    val propName: String get() = (properties.firstOrNull { it.id == state.prop } ?: properties.firstOrNull())?.name.orEmpty()
     val specPathShown: List<String> get() = if (state.prop != "p1") listOf("Choose location") else state.specPath
 
     val detailAsset: Asset?
@@ -1037,6 +1038,14 @@ class AppViewModel @Inject constructor(
         // When the session ends, forget everything on screen so the next user starts clean.
         viewModelScope.launch {
             observeAuthState().collect { if (it is AuthState.SignedOut) resetForNewSession() }
+        }
+        // Load the organisation's properties (all pages) into the table once its id is known.
+        viewModelScope.launch { propertyUseCases.sync() }
+        // The current property must be one of the loaded ones: fall back to the first.
+        viewModelScope.launch {
+            propertyUseCases.observe().collect { list ->
+                if (list.isNotEmpty() && list.none { it.id == state.prop }) set { copy(prop = list.first().id) }
+            }
         }
     }
 

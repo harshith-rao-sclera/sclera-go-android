@@ -1,6 +1,10 @@
 package com.sclera.sclerago.di
 
+import com.sclera.sclerago.data.local.GlobalConfigPropertyStore
+import com.sclera.sclerago.data.local.PropertyStore
 import com.sclera.sclerago.data.local.WebDataCleaner
+import com.sclera.sclerago.data.remote.AdcPropertyRemoteSource
+import com.sclera.sclerago.data.remote.PropertyRemoteSource
 import com.sclera.sclerago.data.repository.AccessRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
@@ -49,6 +53,14 @@ abstract class RepositoryModule {
     @Binds @IntoSet abstract fun clearOnboarding(impl: OnboardingRepositoryImpl): UserDataCleaner
     @Binds @IntoSet abstract fun clearValidation(impl: ValidationRepositoryImpl): UserDataCleaner
     @Binds @IntoSet abstract fun clearAccess(impl: AccessRepositoryImpl): UserDataCleaner
+}
+
+/** Where properties come from: the `properties` table and the ADC API. */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class PropertyDataModule {
+    @Binds abstract fun propertyStore(impl: GlobalConfigPropertyStore): PropertyStore
+    @Binds abstract fun propertyRemote(impl: AdcPropertyRemoteSource): PropertyRemoteSource
 }
 
 /** Device files (photos, documents, spreadsheets). */

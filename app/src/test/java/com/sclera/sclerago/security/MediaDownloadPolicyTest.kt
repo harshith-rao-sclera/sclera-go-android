@@ -1,11 +1,14 @@
 package com.sclera.sclerago.security
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sclera.sclerago.services.media.MediaLoader
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
 
 /** MASVS-NETWORK: reference photos are only fetched over https from the allowed hosts. */
+@RunWith(AndroidJUnit4::class) // the Sclera domain check reads the accounts URL with android.net.Uri
 class MediaDownloadPolicyTest {
     @Test
     fun allowsHttpsOnWikimedia() {

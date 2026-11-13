@@ -5,7 +5,9 @@ import com.sclera.sclerago.data.local.AndroidNetworkMonitor
 import com.sclera.sclerago.data.local.AuthStore
 import com.sclera.sclerago.data.local.SecretCipher
 import com.sclera.sclerago.data.local.keystoreSecretCipher
+import com.sclera.sclerago.data.remote.AdcApi
 import com.sclera.sclerago.data.remote.AuthApi
+import com.sclera.sclerago.data.remote.AuthorizedCaller
 import com.sclera.sclerago.data.repository.AuthRepositoryImpl
 import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.NetworkMonitor
@@ -26,13 +28,21 @@ object AppModule {
     /** One session per process; the saved session is restored as soon as the repository is created. */
     @Provides
     @Singleton
-    fun provideAuthRepository(
+    fun provideAuthRepositoryImpl(
         @ApplicationContext context: Context,
         api: AuthApi,
+        adc: AdcApi,
         cipher: SecretCipher,
         @MainDispatcher dispatcher: CoroutineDispatcher,
-    ): AuthRepository =
-        AuthRepositoryImpl(AuthStore(context, cipher), api, dispatcher).also { it.restore() }
+    ): AuthRepositoryImpl =
+        AuthRepositoryImpl(AuthStore(context, cipher), api, adc, dispatcher).also { it.restore() }
+
+    @Provides
+    fun provideAuthRepository(impl: AuthRepositoryImpl): AuthRepository = impl
+
+    /** API calls with the same session's token, so every caller shares one token and one refresh. */
+    @Provides
+    fun provideAuthorizedCaller(impl: AuthRepositoryImpl): AuthorizedCaller = impl
 
     /** Encrypts what the app keeps on the device; the key never leaves the Android Keystore. */
     @Provides

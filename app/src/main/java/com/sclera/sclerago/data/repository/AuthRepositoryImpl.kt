@@ -11,7 +11,10 @@ import com.sclera.sclerago.data.mapper.signedInEmail
 import com.sclera.sclerago.data.mapper.toDomain
 import com.sclera.sclerago.data.mapper.tokenExpiry
 import com.sclera.sclerago.data.remote.AuthConfig
+import com.sclera.sclerago.data.remote.AdcApi
 import com.sclera.sclerago.data.remote.AuthApi
+import com.sclera.sclerago.data.remote.AuthorizedCaller
+import com.sclera.sclerago.data.remote.HttpResult
 import com.sclera.sclerago.domain.model.AuthError
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.repository.AuthRepository
@@ -38,8 +41,9 @@ import org.json.JSONObject
 class AuthRepositoryImpl(
     private val store: AuthStore,
     private val api: AuthApi,
+    private val adc: AdcApi,
     mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
-) : AuthRepository {
+) : AuthRepository, AuthorizedCaller {
     private companion object {
         const val TAG = "ScleraAuth"
         const val FOREGROUND_CHECK_INTERVAL_MS = 60_000L
@@ -79,7 +83,7 @@ class AuthRepositoryImpl(
         scheduleRefresh(saved)
         scope.launch {
             validateSession(force = true)
-            refreshUserInfo()
+            refreshUserDetails()
         }
     }
 
@@ -108,8 +112,8 @@ class AuthRepositoryImpl(
         val withToken = requestToken(AuthSession(enteredEmail, sessionId, null, 0L))
         // Prefer the account Keycloak actually signed in (the user can change it on that page).
         val signedIn = withToken.copy(email = signedInEmail(sessionData, withToken.accessToken) ?: enteredEmail)
-        // Role, name… come from userInfo; signing in still works without them.
-        val session = withUserInfo(signedIn)
+        // Role, name… come from userInfo, the organisation id from /me; signing in still works without them.
+        val session = withMe(withUserInfo(signedIn))
         store.save(session)
         return session
     }
@@ -143,12 +147,34 @@ class AuthRepositoryImpl(
         }
     }
 
-    /** Re-reads the user details for the signed-in user and keeps them if the session is unchanged. */
-    private suspend fun refreshUserInfo() {
+    /**
+     * [s] with the ADC `GET /api/v1/me` response (organisation id, group, permissions); [s] unchanged
+     * when the call fails.
+     */
+    private suspend fun withMe(s: AuthSession): AuthSession {
+        val token = s.accessToken ?: return s
+        return try {
+            val res = adc.me(token)
+            val json = res.json
+            if (res.error(authEndpoint = false) != null || json == null) {
+                Log.w(TAG, "me: HTTP ${res.code}, json=${json != null}")
+                s
+            } else {
+                s.copy(me = json.toString())
+            }
+        } catch (e: AuthError) {
+            Log.w(TAG, "me failed: ${e.message}")
+            s
+        }
+    }
+
+    /** Re-reads the user details (userInfo and /me) and keeps them if the session is unchanged. */
+    private suspend fun refreshUserDetails() {
         val current = session ?: return
-        val fresh = withUserInfo(current)
-        if (fresh.userInfo != current.userInfo && session?.sessionId == current.sessionId) {
-            val updated = session!!.copy(userInfo = fresh.userInfo)
+        val fresh = withMe(withUserInfo(current))
+        val changed = fresh.userInfo != current.userInfo || fresh.me != current.me
+        if (changed && session?.sessionId == current.sessionId) {
+            val updated = session!!.copy(userInfo = fresh.userInfo, me = fresh.me)
             store.save(updated)
             publishSignedIn(updated)
         }
@@ -180,18 +206,19 @@ class AuthRepositoryImpl(
     suspend fun request(method: String, url: String, body: JSONObject? = null): JSONObject {
         val email = session?.email ?: throw AuthError.SessionExpired()
         val fullUrl = Uri.parse(url).buildUpon().appendQueryParameter("loggedInUser", email).build().toString()
+        return call { token -> api.authenticated(method, fullUrl, token, body?.toString()) }.json ?: JSONObject()
+    }
 
-        suspend fun call(token: String) = api.authenticated(method, fullUrl, token, body?.toString())
-
+    override suspend fun call(request: suspend (accessToken: String) -> HttpResult): HttpResult {
         var token = accessToken()
-        var res = call(token)
+        var res = request(token)
         if (res.code == 401 || res.code == 403) {
-            Log.i(TAG, "$method ${Uri.parse(url).path} → ${res.code}; regenerating token")
+            Log.i(TAG, "API call → ${res.code}; regenerating token")
             token = accessToken(rejected = token)
-            res = call(token)
+            res = request(token)
         }
         res.error(authEndpoint = false)?.let { err -> if (err.endsSession) signOut(err); throw err }
-        return res.json ?: JSONObject()
+        return res
     }
 
     private suspend fun refreshLocked(current: AuthSession): AuthSession = try {

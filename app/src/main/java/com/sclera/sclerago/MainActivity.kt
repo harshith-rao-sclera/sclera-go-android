@@ -13,8 +13,11 @@ import com.sclera.sclerago.presentation.login.LoginScreen
 import com.sclera.sclerago.presentation.main.ScleraApp
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.ScleraTheme
+import com.sclera.sclerago.services.syncManager.SyncManagerService
 import com.sclera.sclerago.utility.Utility
 import dagger.hilt.android.AndroidEntryPoint
+import org.json.JSONObject
+import kotlin.concurrent.thread
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -24,6 +27,10 @@ class MainActivity : ComponentActivity() {
         // Application context, not `this`: Utility.context is static, so holding the
         // Activity there would leak it across rotations / recreation.
         Utility.context = applicationContext
+        // Offline asset-data sync: opens and writes its config database and may start downloading,
+        // so it runs off the main thread (on it, it held up the first frame). Safe to call again on
+        // recreation: it reuses the running SyncManager.
+        thread(name = "asset-sync-init") { SyncManagerService.initAssetDataSync(JSONObject()) }
 
         // The app is dark-only, so keep light status/nav bar icons regardless of system theme.
         enableEdgeToEdge(

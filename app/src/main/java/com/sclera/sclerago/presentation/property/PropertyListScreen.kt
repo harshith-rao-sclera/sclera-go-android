@@ -104,7 +104,7 @@ fun PropertyListScreen(vm: AppViewModel) {
                     PropertyCard(p, vm.assetCount(p.id), current = p.id == s.prop) { vm.openPropertyFromList(p.id) }
                 }
                 if (list.isEmpty()) item {
-                    Txt("No property matches “${s.propListQ.trim()}”.", 14, 400, C.Muted, maxLines = 2)
+                    Txt("No property matches “${s.propListQ.trim()}”.", 13, 400, C.Muted, maxLines = 2)
                 }
             }
         }
@@ -143,9 +143,10 @@ private fun PropertyCard(p: Property, assets: Int, current: Boolean, onClick: ()
             Modifier.size(40.dp).clip(CircleShape).background(if (current) C.Yellow.copy(alpha = 0.18f) else C.Raised),
             contentAlignment = Alignment.Center,
         ) { LineIcon(Icons.Building, 20.dp, if (current) C.Yellow else C.Muted, 1.9f) }
+        // Same text sizes as an asset row: 15 name, 12 second line.
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Txt(p.name, 15, 600)
-            ColorChip(plural(assets, "asset", "assets"), AssetBlue, Icons.Box, small = true)
+            ColorChip(plural(assets, "asset", "assets"), AssetBlue, Icons.Box)
         }
         LineIcon(Icons.ChevronRight, 16.dp, C.Dim, 2.4f)
     }

@@ -26,6 +26,7 @@ public class GlobalConfigDatabaseHelper {
     public static final String ASSET_CONFIG_TABLE_COLUMN_SESSION_URL = "session_url";
     public static final String ASSET_CONFIG_TABLE_COLUMN_ROLE = "role";
     public static final String ASSET_CONFIG_TABLE_COLUMN_CLOUD_URL = "cloud_url";
+    public static final String ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID = "property_id";
 
     public static final String TABLE_NAME_QR_CODE = "qr_code_table";
     public static final String QR_CODE_COLUMN_ID = "id";
@@ -112,7 +113,67 @@ public class GlobalConfigDatabaseHelper {
     public static final String COLUMN_USER_INFO_CACHE_DATA = "user_info";
     public static final String COLUMN_USER_INFO_CACHE_TOKEN = "token_info";
 
+    /**
+     * The organisation's properties, as GET /api/v1/organisations/{orgId}/properties returns them.
+     * Rows from the API have is_synced = 1; properties added on the device have is_synced = 0 until
+     * they reach the server. Access codes and contacts are stored encrypted (see PropertyStore).
+     */
+    public static final String TABLE_NAME_PROPERTIES = "properties";
+    public static final String PROPERTIES_COLUMN_ID = "id";
+    public static final String PROPERTIES_COLUMN_ORGANISATION_ID = "organisation_id";
+    public static final String PROPERTIES_COLUMN_NAME = "name";
+    public static final String PROPERTIES_COLUMN_TYPE = "type";
+    public static final String PROPERTIES_COLUMN_ADDRESS_LINE1 = "address_line1";
+    public static final String PROPERTIES_COLUMN_ADDRESS_LINE2 = "address_line2";
+    public static final String PROPERTIES_COLUMN_CITY = "city";
+    public static final String PROPERTIES_COLUMN_STATE = "state";
+    public static final String PROPERTIES_COLUMN_COUNTRY = "country";
+    public static final String PROPERTIES_COLUMN_REGION = "region";
+    public static final String PROPERTIES_COLUMN_POSTAL_CODE = "postal_code";
+    public static final String PROPERTIES_COLUMN_CONTACT_NAME = "contact_name";
+    public static final String PROPERTIES_COLUMN_CONTACT_EMAIL = "contact_email";
+    public static final String PROPERTIES_COLUMN_CONTACT_PHONE = "contact_phone";
+    public static final String PROPERTIES_COLUMN_NOTES = "notes";
+    public static final String PROPERTIES_COLUMN_AVAILABLE_FROM = "available_from";
+    public static final String PROPERTIES_COLUMN_AVAILABLE_UNTIL = "available_until";
+    public static final String PROPERTIES_COLUMN_ACCESS_CODE = "access_code";
+    public static final String PROPERTIES_COLUMN_STATUS = "status";
+    public static final String PROPERTIES_COLUMN_STATUS_DETAIL = "status_detail";
+    public static final String PROPERTIES_COLUMN_SETTINGS = "settings";
+    public static final String PROPERTIES_COLUMN_GEOFENCE_ENFORCED = "geofence_enforced";
+    public static final String PROPERTIES_COLUMN_CREATED_AT = "created_at";
+    public static final String PROPERTIES_COLUMN_UPDATED_AT = "updated_at";
+    public static final String PROPERTIES_COLUMN_IS_SYNCED = "is_synced";
+
     private static volatile GlobalConfigDatabaseHelper instance;
+
+    private static final String TABLE_CREATE_PROPERTIES =
+            "CREATE TABLE IF NOT EXISTS " + TABLE_NAME_PROPERTIES + " (" +
+                    PROPERTIES_COLUMN_ID + " TEXT PRIMARY KEY, " +
+                    PROPERTIES_COLUMN_ORGANISATION_ID + " TEXT, " +
+                    PROPERTIES_COLUMN_NAME + " TEXT NOT NULL DEFAULT '', " +
+                    PROPERTIES_COLUMN_TYPE + " TEXT, " +
+                    PROPERTIES_COLUMN_ADDRESS_LINE1 + " TEXT, " +
+                    PROPERTIES_COLUMN_ADDRESS_LINE2 + " TEXT, " +
+                    PROPERTIES_COLUMN_CITY + " TEXT, " +
+                    PROPERTIES_COLUMN_STATE + " TEXT, " +
+                    PROPERTIES_COLUMN_COUNTRY + " TEXT, " +
+                    PROPERTIES_COLUMN_REGION + " TEXT, " +
+                    PROPERTIES_COLUMN_POSTAL_CODE + " TEXT, " +
+                    PROPERTIES_COLUMN_CONTACT_NAME + " TEXT, " +
+                    PROPERTIES_COLUMN_CONTACT_EMAIL + " TEXT, " +
+                    PROPERTIES_COLUMN_CONTACT_PHONE + " TEXT, " +
+                    PROPERTIES_COLUMN_NOTES + " TEXT, " +
+                    PROPERTIES_COLUMN_AVAILABLE_FROM + " TEXT, " +
+                    PROPERTIES_COLUMN_AVAILABLE_UNTIL + " TEXT, " +
+                    PROPERTIES_COLUMN_ACCESS_CODE + " TEXT, " +
+                    PROPERTIES_COLUMN_STATUS + " TEXT, " +
+                    PROPERTIES_COLUMN_STATUS_DETAIL + " TEXT, " +
+                    PROPERTIES_COLUMN_SETTINGS + " TEXT, " +
+                    PROPERTIES_COLUMN_GEOFENCE_ENFORCED + " INTEGER DEFAULT 0, " +
+                    PROPERTIES_COLUMN_CREATED_AT + " TEXT, " +
+                    PROPERTIES_COLUMN_UPDATED_AT + " TEXT, " +
+                    PROPERTIES_COLUMN_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0 CHECK (" + PROPERTIES_COLUMN_IS_SYNCED + " IN (0, 1)));";
 
     private static final String TABLE_USER_DATA =
             "CREATE TABLE IF NOT EXISTS " + USER_DATA + " (" +
@@ -135,6 +196,7 @@ public class GlobalConfigDatabaseHelper {
                     ASSET_CONFIG_TABLE_COLUMN_CLOUD_URL + " TEXT, " +
                     ASSET_CONFIG_TABLE_COLUMN_ORG_ID + " TEXT, " +
                     ASSET_CONFIG_TABLE_COLUMN_ROLE + " TEXT, " +
+                    ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID + " TEXT, " +
                     ASSET_CONFIG_TABLE_COLUMN_URL + " TEXT);";
 
     private static final String TABLE_CREATE_QR_CODE =
@@ -225,6 +287,7 @@ public class GlobalConfigDatabaseHelper {
         globalDB.execSQL(TABLE_CREATE_CONFIG_ASSET_TABLE);
         globalDB.execSQL(TABLE_CREATE_CLIENT_BAR_CODE_RECORDS);
         globalDB.execSQL(TABLE_USER_INFO_CACHE);
+        globalDB.execSQL(TABLE_CREATE_PROPERTIES);
         syncSchema();
     }
 
@@ -239,6 +302,7 @@ public class GlobalConfigDatabaseHelper {
             syncTableSchema(TABLE_NAME_CLIENT_BAR_CODE_RECORDS, TABLE_CREATE_CLIENT_BAR_CODE_RECORDS);
             syncTableSchema(USER_DATA, TABLE_USER_DATA);
             syncTableSchema(USER_INFO_CACHE, TABLE_USER_INFO_CACHE);
+            syncTableSchema(TABLE_NAME_PROPERTIES, TABLE_CREATE_PROPERTIES);
 
             globalDB.setTransactionSuccessful();
         } finally {

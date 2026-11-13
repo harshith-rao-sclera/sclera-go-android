@@ -1,5 +1,7 @@
 package com.sclera.sclerago.di
 
+import com.sclera.sclerago.data.remote.AdcApi
+import com.sclera.sclerago.data.remote.AdcApiService
 import com.sclera.sclerago.data.remote.AuthApi
 import com.sclera.sclerago.data.remote.ScleraApiService
 import dagger.Module
@@ -21,4 +23,9 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideScleraApiService(client: OkHttpClient): ScleraApiService = AuthApi.service(client = client)
+
+    /** The ADC API (user details, properties) over the same client. */
+    @Provides
+    @Singleton
+    fun provideAdcApiService(client: OkHttpClient): AdcApiService = AdcApi.service(client = client)
 }

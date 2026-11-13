@@ -12,6 +12,7 @@ import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.exifinterface.media.ExifInterface
+import com.sclera.sclerago.data.remote.AuthConfig
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.Media
 import java.io.File
@@ -89,7 +90,10 @@ object MediaLoader {
         bmp.asImageBitmap()
     }
 
-    /** Hosts reference photos may be downloaded from; anything else is refused. */
+    /**
+     * Hosts reference photos may be downloaded from, besides the Sclera domain (profile photos, e.g.
+     * `qa-app.sclera.com`, see [AuthConfig.isTrustedHost]); anything else is refused.
+     */
     internal val ALLOWED_PHOTO_HOSTS = setOf("upload.wikimedia.org", "thumb.wikimedia.org", "commons.wikimedia.org")
 
     /** Largest reference photo downloaded (15MB). */
@@ -98,7 +102,7 @@ object MediaLoader {
     /** True for an https URL on an allowed host: nothing is downloaded over plain http or from unknown servers. */
     internal fun isAllowedPhotoUrl(url: String): Boolean {
         val u = url.toHttpUrlOrNull() ?: return false
-        return u.isHttps && u.host.lowercase() in ALLOWED_PHOTO_HOSTS
+        return u.isHttps && (u.host.lowercase() in ALLOWED_PHOTO_HOSTS || AuthConfig.isTrustedHost(u.host))
     }
 
     private val photoClient by lazy {

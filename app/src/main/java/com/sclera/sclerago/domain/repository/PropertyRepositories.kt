@@ -6,11 +6,18 @@ import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.Property
 import kotlinx.coroutines.flow.StateFlow
 
-/** The properties the user can work on. */
+/** The properties the user can work on: the organisation's (from the server) and any added on this device. */
 interface PropertyRepository {
     val properties: StateFlow<List<Property>>
 
+    /** Saves a property added on this device; it stays unsynced until it reaches the server. */
     fun add(property: Property)
+
+    /**
+     * Replaces the saved server properties with [organisationId]'s current list (every page).
+     * Throws [com.sclera.sclerago.domain.model.AuthError] when it can't; the saved list is then kept.
+     */
+    suspend fun refresh(organisationId: String)
 }
 
 /** Each property's building → floor → location tree (Configuration → Building info). */

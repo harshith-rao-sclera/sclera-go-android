@@ -85,6 +85,26 @@ class HttpResult(val code: Int, val json: JSONObject?) {
     private fun message(): String? = json?.optString("message")?.takeIf { it.isNotBlank() }
 }
 
+internal fun bearer(token: String) = "Bearer $token"
+
+/**
+ * Runs one Retrofit call off the main thread and reads its JSON body (error bodies too). Connection
+ * problems surface as [AuthError.Network]; every HTTP status comes back as an [HttpResult].
+ */
+internal suspend fun httpCall(request: suspend () -> Response<ResponseBody>): HttpResult = withContext(Dispatchers.IO) {
+    val response = try {
+        request()
+    } catch (e: IOException) {
+        throw AuthError.Network(e)
+    }
+    val text = try {
+        (if (response.isSuccessful) response.body() else response.errorBody())?.use { it.string() }
+    } catch (e: IOException) {
+        throw AuthError.Network(e)
+    }
+    HttpResult(response.code(), text?.let { runCatching { JSONObject(it) }.getOrNull() })
+}
+
 /**
  * Calls to the Sclera accounts API over [ScleraApiService]. Main-safe; connection problems surface
  * as [AuthError.Network], everything else as an [HttpResult] for the caller to interpret.
@@ -117,21 +137,7 @@ class AuthApi @Inject constructor(private val service: ScleraApiService) {
         }
     }
 
-    private fun bearer(token: String) = "Bearer $token"
-
-    private suspend fun call(request: suspend () -> Response<ResponseBody>): HttpResult = withContext(Dispatchers.IO) {
-        val response = try {
-            request()
-        } catch (e: IOException) {
-            throw AuthError.Network(e)
-        }
-        val text = try {
-            (if (response.isSuccessful) response.body() else response.errorBody())?.use { it.string() }
-        } catch (e: IOException) {
-            throw AuthError.Network(e)
-        }
-        HttpResult(response.code(), text?.let { runCatching { JSONObject(it) }.getOrNull() })
-    }
+    private suspend fun call(request: suspend () -> Response<ResponseBody>): HttpResult = httpCall(request)
 
     companion object {
         private val JSON = "application/json".toMediaType()

@@ -8,19 +8,22 @@ import org.json.JSONObject
 /** Persisted session → what the app shows. */
 fun AuthSession.toDomain() = UserSession(
     email = email, displayName = displayName, role = role, organisation = organisation, avatarUrl = avatarUrl,
+    organisationId = organisationId,
 )
 
-private fun JSONObject.firstText(vararg keys: String): String? =
+internal fun JSONObject.firstText(vararg keys: String): String? =
     keys.asSequence().map { optString(it).trim() }.firstOrNull { it.isNotEmpty() && it != "null" }
+
+/** Organisation id from the ADC `/api/v1/me` response (e.g. "85161001"). */
+internal fun organisationIdFromMe(me: JSONObject): String? = me.firstText("organisationId")
 
 /** Organisation name from the userInfo `data` object (e.g. "Optima"). */
 internal fun organisationFromUserInfo(data: JSONObject): String? =
     data.firstText("organisation_title", "company_name", "provider_name")
 
-/** Profile photo from the userInfo `data` object; only absolute http(s) URLs are used. */
+/** Profile photo from the userInfo `data` object; only absolute https URLs are used (cleartext is blocked). */
 internal fun avatarFromUserInfo(data: JSONObject): String? =
-    data.firstText("image_url")
-        ?.takeIf { it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true) }
+    data.firstText("image_url")?.takeIf { it.startsWith("https://", ignoreCase = true) }
 
 /** "admin" / "SUPER_ADMIN" / "field-engineer" → "Admin" / "Super admin" / "Field engineer". */
 internal fun prettyRole(raw: String): String =

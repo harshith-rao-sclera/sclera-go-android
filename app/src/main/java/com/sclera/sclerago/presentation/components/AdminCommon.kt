@@ -49,17 +49,20 @@ internal fun iconOf(path: String) = Ico(Ico.Part(path))
 
 internal fun Long.asColor() = Color(this)
 
-/** App bar of the side-menu pages: back button, then the page title over the current property. */
+/**
+ * App bar of the side-menu pages: the sidebar button (same as the main header's), then the page title
+ * over the current property.
+ */
 @Composable
-internal fun SubPageBar(title: String, property: String, onBack: () -> Unit) {
+internal fun SubPageBar(title: String, property: String, onMenu: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding().height(64.dp)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        RoundButton(44.dp, C.Btn, onBack, Modifier.border(1.dp, C.Border2, CircleShape)) {
-            LineIcon(Icons.ChevronLeft, 20.dp, C.Yellow, 2.4f)
+        RoundButton(44.dp, Color.Transparent, onMenu, shape = r(10)) {
+            LineIcon(Icons.Menu, 22.dp, C.Text)
         }
         Column(Modifier.weight(1f).padding(end = 56.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Txt(title, 16, 700)
