@@ -32,6 +32,7 @@ data class AssetCatalog(
             statusOverride[a.id]?.let { x = x.copy(st = it) }
             savedDetails[a.id]?.get("name")?.takeIf { it.isNotBlank() }?.let { x = x.copy(name = it) }
             mediaAdded[a.id]?.let { x = x.copy(media = x.media + it) }
+            touched[a.id]?.let { x = x.copy(updatedAt = it) }
             x
         }
 

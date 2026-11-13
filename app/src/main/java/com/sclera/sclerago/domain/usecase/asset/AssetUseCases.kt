@@ -172,4 +172,10 @@ class AssetUseCases @Inject constructor(
     val create: CreateAssetUseCase,
     val matchDevices: MatchDevicesUseCase,
     val checkInput: BuildCheckInputUseCase,
+    val buildList: BuildAssetListUseCase,
+    val toggleSelection: ToggleSelectionUseCase,
+    val selectAll: SelectAllUseCase,
+    val evaluateChecks: EvaluateAssetChecksUseCase,
+    val autofill: AutofillAssetUseCase,
+    val formValues: BuildFormValuesUseCase,
 )
