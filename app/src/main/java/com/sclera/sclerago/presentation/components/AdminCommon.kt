@@ -64,30 +64,37 @@ internal fun SubPageBar(title: String, property: String, onBack: () -> Unit) {
     }
 }
 
+/** Page title (22 by default) with an optional count or description under it. */
 @Composable
-internal fun PageHeading(title: String, sub: String?) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Txt(title, 24, 700)
+internal fun PageHeading(title: String, sub: String?, modifier: Modifier = Modifier, titleSize: Int = 22, gap: Dp = 2.dp) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
+        Txt(title, titleSize, 700)
         sub?.let { Txt(it, 13, 400, C.Muted, maxLines = 4) }
     }
 }
 
-/** Tile with an icon, a number and what it counts. */
+/** Tile with a tinted icon, a number and what it counts (the 2-up tiles of the list pages). */
 @Composable
 internal fun StatCard(icon: Ico, tint: Color, value: String, label: String, modifier: Modifier = Modifier) {
     Row(
-        modifier.clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16)).padding(12.dp),
+        modifier.clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(r(12)).background(tint.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
-            LineIcon(icon, 18.dp, tint, 1.9f)
+        Box(Modifier.size(36.dp).clip(r(10)).background(tint.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+            LineIcon(icon, 16.dp, tint, 1.9f)
         }
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Txt(value, 20, 700)
             Txt(label, 12, 400, C.Muted)
         }
     }
+}
+
+/** Two [StatCard]s side by side, equal width. */
+@Composable
+internal fun StatRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
 }
 
 /** Yellow floating button with a plus and a label, bottom-right. */
@@ -106,14 +113,14 @@ internal fun AdminFab(label: String, onClick: () -> Unit, modifier: Modifier = M
 
 /** Rounded label in [color] with an icon (permissions, groups, asset counts); [small] for compact rows. */
 @Composable
-internal fun ColorChip(label: String, color: Color, icon: Ico?, small: Boolean = false) {
+internal fun ColorChip(label: String, color: Color, icon: Ico?, small: Boolean = false, iconSize: Dp = if (small) 11.dp else 12.dp) {
     Row(
         Modifier.clip(CircleShape).background(color.copy(alpha = 0.15f)).border(1.dp, color.copy(alpha = 0.3f), CircleShape)
             .padding(horizontal = if (small) 8.dp else 10.dp, vertical = if (small) 3.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(if (small) 4.dp else 5.dp),
     ) {
-        icon?.let { LineIcon(it, if (small) 11.dp else 12.dp, color, 2.2f) }
+        icon?.let { LineIcon(it, iconSize, color, 2.2f) }
         Txt(label, if (small) 11 else 12, 600, color)
     }
 }
@@ -337,8 +344,15 @@ internal fun InlineField(label: String, required: Boolean = false, dim: Boolean 
 }
 
 @Composable
-internal fun RowScope.InlineInput(value: String, onChange: (String) -> Unit, placeholder: String, enabled: Boolean = true, keyboard: KeyboardType = KeyboardType.Text) {
-    PlainField(value, onChange, placeholder, Modifier.weight(1f), size = 15, readOnly = !enabled, keyboard = keyboard)
+internal fun RowScope.InlineInput(
+    value: String,
+    onChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    keyboard: KeyboardType = KeyboardType.Text,
+) {
+    PlainField(value, onChange, placeholder, Modifier.weight(1f).then(modifier), size = 15, readOnly = !enabled, keyboard = keyboard)
 }
 
 @Composable
