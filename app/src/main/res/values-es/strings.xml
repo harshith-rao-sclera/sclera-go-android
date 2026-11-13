@@ -21,4 +21,5 @@
     <string name="login_error_email_blank">Introduce tu dirección de correo electrónico</string>
     <string name="login_error_email_invalid">Introduce una dirección de correo electrónico válida</string>
     <string name="login_tagline">Conoce cada activo del sitio.</string>
+    <string name="sso_error_untrusted">Por tu seguridad, el inicio de sesión solo abre páginas de Sclera.</string>
 </resources>

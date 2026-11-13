@@ -18,6 +18,8 @@ import com.sclera.sclerago.domain.usecase.access.RemovePersonUseCase
 import com.sclera.sclerago.domain.usecase.access.SaveGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.SavePersonUseCase
 import com.sclera.sclerago.domain.usecase.access.SeedSignedInUserUseCase
+import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
+import com.sclera.sclerago.testutil.FakeAuthRepository
 import com.sclera.sclerago.domain.usecase.access.groupProblem
 import com.sclera.sclerago.domain.usecase.access.personProblem
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -48,6 +50,7 @@ class AccessTest {
                 ObserveGroupsUseCase(repo), ObservePeopleUseCase(repo), SeedSignedInUserUseCase(repo), SavePersonUseCase(repo),
                 RemovePersonUseCase(repo), SaveGroupUseCase(repo), canDelete, DeleteGroupUseCase(repo, canDelete),
             ),
+            ObserveAuthStateUseCase(FakeAuthRepository()),
         )
     }
 

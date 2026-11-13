@@ -1,6 +1,8 @@
 package com.sclera.sclerago.data.repository
 
+import com.sclera.sclerago.di.MainDispatcher
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.repository.UserDataCleaner
 import com.sclera.sclerago.domain.repository.ValidationRepository
 import com.sclera.sclerago.domain.validation.CheckInput
 import com.sclera.sclerago.domain.validation.DEFAULT_SAVED
@@ -13,7 +15,7 @@ import com.sclera.sclerago.domain.validation.runValidation
 import dagger.hilt.android.ActivityRetainedLifecycle
 import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -28,8 +30,11 @@ import javax.inject.Inject
  * delay stands in for the time a server-side run will take.
  */
 @ActivityRetainedScoped
-class ValidationRepositoryImpl @Inject constructor(lifecycle: ActivityRetainedLifecycle) : ValidationRepository {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+class ValidationRepositoryImpl @Inject constructor(
+    lifecycle: ActivityRetainedLifecycle,
+    @MainDispatcher dispatcher: CoroutineDispatcher,
+) : ValidationRepository, UserDataCleaner {
+    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     init {
         lifecycle.addOnClearedListener { scope.cancel() }
@@ -86,6 +91,12 @@ class ValidationRepositoryImpl @Inject constructor(lifecycle: ActivityRetainedLi
             if (it.id == id) it.copy(name = name.trim(), ruleIds = steps, description = description.trim()) else it
         }
         return id
+    }
+
+    override fun clear() {
+        jobState.value = emptyList()
+        savedState.value = DEFAULT_SAVED
+        nextJobId = 1
     }
 
     override fun delete(id: String) {

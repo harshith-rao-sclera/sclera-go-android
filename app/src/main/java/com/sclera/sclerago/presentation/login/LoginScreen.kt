@@ -84,7 +84,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
-import com.sclera.sclerago.data.remote.AuthConfig
+import com.sclera.sclerago.domain.repository.SsoConfig
 import com.sclera.sclerago.domain.model.AuthError
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
@@ -135,6 +135,7 @@ fun LoginScreen(reason: AuthError?, vm: LoginViewModel = hiltViewModel()) {
             )
             LoginStage.Web -> Box(Modifier.systemBarsPadding().imePadding()) {
                 SsoWebStep(
+                    sso = vm.sso,
                     email = email.trim(),
                     onReturned = { vm.onReturned(email.trim()) },
                     onError = vm::fail,
@@ -391,13 +392,14 @@ private fun SignInForm(
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun SsoWebStep(
+    sso: SsoConfig,
     email: String,
     onReturned: () -> Unit,
     onError: (UiText) -> Unit,
     onCancel: () -> Unit,
 ) {
     var progress by remember { mutableIntStateOf(0) }
-    var host by remember { mutableStateOf(AuthConfig.accountsHost) }
+    var host by remember { mutableStateOf(sso.host) }
     var firstPageLoaded by remember { mutableStateOf(false) }
     var webView by remember { mutableStateOf<WebView?>(null) }
 
@@ -439,19 +441,26 @@ private fun SsoWebStep(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
                 WebView(ctx).apply {
+                    // JavaScript and DOM storage are needed by the Keycloak page; nothing else is switched on.
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    settings.allowFileAccess = false
+                    settings.allowContentAccess = false
+                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                    settings.safeBrowsingEnabled = true
                     // Show the Keycloak page as designed: the app's dark theme would otherwise make
                     // WebView auto-darken it (background photo blacked out, Log in button dimmed).
                     disableAutoDarkening(settings)
+                    // Only pages on the Sclera domain are loaded (see SsoClient), so cookies stay first-party.
                     CookieManager.getInstance().setAcceptCookie(true)
-                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
                     webChromeClient = object : WebChromeClient() {
                         override fun onProgressChanged(view: WebView, newProgress: Int) {
                             progress = newProgress
                         }
                     }
                     webViewClient = SsoClient(
+                        sso = sso,
                         onReturned = onReturned,
                         onError = onError,
                         onPage = { url ->
@@ -459,7 +468,7 @@ private fun SsoWebStep(
                             Uri.parse(url).host?.let { host = it }
                         },
                     )
-                    loadUrl(AuthConfig.loginUrl(email))
+                    loadUrl(sso.loginUrl(email))
                     webView = this
                 }
             },
@@ -523,6 +532,7 @@ internal fun accountsRejection(json: JSONObject): UiText? {
 }
 
 private class SsoClient(
+    private val sso: SsoConfig,
     private val onReturned: () -> Unit,
     private val onError: (UiText) -> Unit,
     private val onPage: (String) -> Unit,
@@ -536,9 +546,17 @@ private class SsoClient(
     }
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-        if (AuthConfig.isReturnUrl(request.url.toString())) {
+        val url = request.url.toString()
+        if (sso.isReturnUrl(url)) {
             Log.d(TAG, "SSO returned to app domain")
             finish(onReturned)
+            return true
+        }
+        // Never leave the Sclera domain or drop to plain http inside the sign-in page.
+        if (!sso.isTrustedUrl(url)) {
+            Log.w(TAG, "Blocked sign-in navigation to ${request.url.host}")
+            view.stopLoading()
+            finish { onError(UiText.Res(R.string.sso_error_untrusted)) }
             return true
         }
         return false
@@ -546,7 +564,7 @@ private class SsoClient(
 
     override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
         // Some redirects bypass shouldOverrideUrlLoading; catch the return here too.
-        if (AuthConfig.isReturnUrl(url)) {
+        if (sso.isReturnUrl(url)) {
             view.stopLoading()
             finish(onReturned)
         }
@@ -555,11 +573,11 @@ private class SsoClient(
     override fun onPageFinished(view: WebView, url: String?) {
         if (url == null || done) return
         onPage(url)
-        if (Uri.parse(url).host.equals(AuthConfig.accountsHost, ignoreCase = true)) {
+        if (Uri.parse(url).host.equals(sso.host, ignoreCase = true)) {
             view.evaluateJavascript(FIX_KEYCLOAK_LAYOUT_JS, null)
         }
         // getRedirectUrlByEmail answers with JSON instead of redirecting when it rejects the email.
-        if (AuthConfig.isAccountsApiUrl(url)) {
+        if (sso.isAccountsApiUrl(url)) {
             view.evaluateJavascript("document.body ? document.body.innerText : ''") { raw ->
                 val text = runCatching { JSONObject("{\"v\":$raw}").getString("v") }.getOrNull().orEmpty()
                 val json = runCatching { JSONObject(text) }.getOrNull() ?: return@evaluateJavascript
@@ -573,7 +591,7 @@ private class SsoClient(
     override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
         if (!request.isForMainFrame || done) return
         // Losing the return redirect itself is fine — we intercept it before it loads.
-        if (AuthConfig.isReturnUrl(request.url.toString())) return
+        if (sso.isReturnUrl(request.url.toString())) return
         Log.w(TAG, "SSO page error ${error.errorCode}: ${error.description}")
         val message = when (error.errorCode) {
             ERROR_HOST_LOOKUP, ERROR_CONNECT, ERROR_TIMEOUT, ERROR_IO -> AuthError.Network().toUiText()
@@ -586,7 +604,7 @@ private class SsoClient(
         if (!request.isForMainFrame || done) return
         val url = request.url.toString()
         // Accounts API errors carry a JSON body with a status code; onPageFinished reads it.
-        if (AuthConfig.isAccountsApiUrl(url) || AuthConfig.isReturnUrl(url)) return
+        if (sso.isAccountsApiUrl(url) || sso.isReturnUrl(url)) return
         if (response.statusCode >= 500) {
             Log.w(TAG, "SSO page HTTP ${response.statusCode}")
             finish { onError(UiText.Res(R.string.sso_error_unavailable, listOf(response.statusCode))) }

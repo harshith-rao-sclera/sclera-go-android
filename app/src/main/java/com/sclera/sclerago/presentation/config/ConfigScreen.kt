@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.pageGutter
 import android.annotation.SuppressLint
 import android.webkit.WebChromeClient
@@ -127,6 +128,7 @@ fun ConfigScreen(vm: AppViewModel) {
         }
     }
     BackHandler(onBack = vm::closeConfig)
+    SecureWindow() // building access codes and contacts are shown here
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             PageBar("Configuration", vm.propName, vm::closeConfig, property = true)
@@ -1311,7 +1313,7 @@ private fun Stepper(value: Int, modifier: Modifier, onChange: (Int) -> Unit) {
 /** OpenStreetMap via Leaflet in a WebView, with address search (Nominatim). Drawing the fence comes later. */
 private const val MAP_HTML = """<!doctype html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://appassets.androidplatform.net/assets/leaflet/leaflet.css">
 <style>
 html,body{margin:0;height:100%;background:#aad3df}
 #m{position:absolute;top:0;left:0;right:0;bottom:0}
@@ -1323,7 +1325,7 @@ html,body{margin:0;height:100%;background:#aad3df}
 <div id="m"></div>
 <form id="s"><input id="q" type="search" placeholder="Search address" enterkeyhint="search" autocomplete="off"></form>
 <div id="e">The map needs an internet connection.</div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://appassets.androidplatform.net/assets/leaflet/leaflet.js"></script>
 <script>
 if (!window.L) { document.getElementById('e').style.display = 'flex'; }
 else {
@@ -1370,11 +1372,20 @@ private fun Geofencing(vm: AppViewModel) {
             }
         }
         Txt("Draw geofence", 14, 700, modifier = Modifier.padding(start = 10.dp, bottom = 8.dp))
+        // Serves leaflet.js / .css / images from assets/leaflet/ so no script is fetched from the internet.
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val assets = remember { androidx.webkit.WebViewAssetLoader.Builder().addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build() }
         AndroidView(
             factory = { ctx ->
                 WebView(ctx).apply {
+                    // JavaScript runs the map; nothing else is switched on, and only the bundled page and
+                    // Leaflet (served from the app's assets) plus map tiles and address search are reachable.
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    settings.allowFileAccess = false
+                    settings.allowContentAccess = false
+                    settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                    settings.safeBrowsingEnabled = true
                     // Without MATCH_PARENT the WebView sizes its viewport to the (empty) page: a 0-high map.
                     layoutParams = android.view.ViewGroup.LayoutParams(
                         android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1384,9 +1395,15 @@ private fun Geofencing(vm: AppViewModel) {
                         if (e.actionMasked == android.view.MotionEvent.ACTION_DOWN) v.parent?.requestDisallowInterceptTouchEvent(true)
                         false
                     }
-                    webViewClient = WebViewClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest) =
+                            assets.shouldInterceptRequest(request.url)
+
+                        // The map never navigates away; links stay inert.
+                        override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest) = true
+                    }
                     webChromeClient = WebChromeClient()
-                    loadDataWithBaseURL("https://sclerago.app/", MAP_HTML, "text/html", "utf-8", null)
+                    loadDataWithBaseURL("https://appassets.androidplatform.net/", MAP_HTML, "text/html", "utf-8", null)
                 }
             },
             onRelease = { it.destroy() },

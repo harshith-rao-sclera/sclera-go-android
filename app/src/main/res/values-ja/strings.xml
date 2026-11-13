@@ -21,4 +21,5 @@
     <string name="login_error_email_blank">メールアドレスを入力してください</string>
     <string name="login_error_email_invalid">有効なメールアドレスを入力してください</string>
     <string name="login_tagline">現場のすべての資産を把握。</string>
+    <string name="sso_error_untrusted">安全のため、サインインでは Sclera のページのみ開きます。</string>
 </resources>

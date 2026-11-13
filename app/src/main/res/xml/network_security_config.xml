@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network security: HTTPS only, system certificate authorities only, and the Sclera hosts are pinned.
+
+  Pins are the SHA-256 of the public key (SPKI) of the Let's Encrypt intermediate "YR1" and the roots
+  "ISRG Root YR" and "ISRG Root X1", not of the leaf certificates, which renew every 90 days. Any one
+  of the three matching is enough, so a change of intermediate does not lock people out. Pins stop
+  being enforced after the expiration date (then normal validation applies); renew them before then:
+    openssl s_client -connect accounts.sclera.com:443 -showcerts   (then hash each certificate's public key)
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">sclera.com</domain>
+        <pin-set expiration="2028-08-01">
+            <pin digest="SHA-256">LoMHBotttiDko50Gi13uXW71eIy7LAttI+rYT8wXF4w=</pin>
+            <pin digest="SHA-256">fk6IOKit1ild5647BH06ujSIq5XbCgqlbYl6ANhhi88=</pin>
+            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
+        </pin-set>
+    </domain-config>
+
+    <!-- Debug builds only: allow a proxy's certificate (user-installed CA) for inspecting traffic. -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

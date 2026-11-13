@@ -29,7 +29,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.presentation.components.Capsule
-import com.sclera.sclerago.presentation.components.gridItems
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.r
@@ -54,8 +53,6 @@ fun LazyListScope.assetList(
     onChip: (StatusChip) -> Unit,
     onToggle: (Int) -> Unit,
     onOpen: (Int) -> Unit,
-    /** Cards per row: 1 on phones, more on tablets (see [listColumns]). */
-    columns: Int = 1,
     header: (@Composable () -> Unit)? = null,
 ) {
     stickyHeader(key = "chips") {
@@ -64,7 +61,7 @@ fun LazyListScope.assetList(
             StatusChips(data.chips, onChip)
         }
     }
-    gridItems(data.items, columns, key = { it.id }) { a ->
+    items(data.items, key = { it.id }) { a ->
         AssetRow(a, a.id in picked, picked.isNotEmpty(), { onToggle(a.id) }, { onOpen(a.id) })
     }
     if (data.items.isEmpty()) item(key = "empty") { EmptyCard(data.emptyText) }

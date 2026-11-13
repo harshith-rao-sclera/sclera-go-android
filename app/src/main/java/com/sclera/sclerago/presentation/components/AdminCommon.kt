@@ -1,6 +1,8 @@
 package com.sclera.sclerago.presentation.components
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,14 +12,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -93,27 +101,27 @@ internal fun StatCard(icon: Ico, tint: Color, value: String, label: String, modi
 @Composable
 internal fun AdminFab(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier.navigationBarsPadding().padding(end = 20.dp, bottom = 32.dp).height(56.dp).fabShadow(r(28)).clip(r(28))
-            .background(C.Yellow).clickable(onClick = onClick).padding(start = 18.dp, end = 22.dp),
+        modifier.navigationBarsPadding().padding(end = 12.dp, bottom = 24.dp).height(48.dp).fabShadow(r(24)).clip(r(24))
+            .background(C.Yellow).clickable(onClick = onClick).padding(start = 14.dp, end = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        LineIcon(Icons.Plus, 20.dp, C.OnYellow, 2.4f)
-        Txt(label, 15, 700, C.OnYellow)
+        LineIcon(Icons.Plus, 18.dp, C.OnYellow, 2.4f)
+        Txt(label, 14, 700, C.OnYellow)
     }
 }
 
-/** Rounded label in [color] with an icon (permissions, groups, asset counts). */
+/** Rounded label in [color] with an icon (permissions, groups, asset counts); [small] for compact rows. */
 @Composable
-internal fun ColorChip(label: String, color: Color, icon: Ico?) {
+internal fun ColorChip(label: String, color: Color, icon: Ico?, small: Boolean = false) {
     Row(
         Modifier.clip(CircleShape).background(color.copy(alpha = 0.15f)).border(1.dp, color.copy(alpha = 0.3f), CircleShape)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = if (small) 8.dp else 10.dp, vertical = if (small) 3.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (small) 4.dp else 5.dp),
     ) {
-        icon?.let { LineIcon(it, 12.dp, color, 2.2f) }
-        Txt(label, 12, 600, color)
+        icon?.let { LineIcon(it, if (small) 11.dp else 12.dp, color, 2.2f) }
+        Txt(label, if (small) 11 else 12, 600, color)
     }
 }
 
@@ -181,12 +189,11 @@ internal fun ChoiceSheet(
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
         Column(
-            Modifier.align(Alignment.BottomCenter).widthIn(max = SheetMaxWidth).fillMaxWidth().fillMaxHeight(0.85f).wrapContentHeight(Alignment.Bottom)
-                .clip(SheetShape).background(SheetBg).topBorder(C.Border).noRippleClick { }.navigationBarsPadding()
+            sheetFrame(SheetBg, radius = 28.dp, heightFraction = 0.85f)
                 .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
+            if (!isTablet()) Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
             Txt(title, 17, 700)
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 options.forEach { (name, sub) ->
@@ -234,10 +241,11 @@ internal fun FormSheet(
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(SheetBg)
-                .noRippleClick { }.navigationBarsPadding().imePadding(),
+            (if (isTablet()) sheetFrame(SheetBg, radius = 28.dp, heightFraction = 0.9f, fill = true)
+            else Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(SheetBg)
+                .noRippleClick { }.navigationBarsPadding()).imePadding(),
         ) {
-            Box(Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
+            if (!isTablet()) Box(Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
             Row(
                 Modifier.fillMaxWidth().then(if (progress == null) Modifier.bottomBorder(C.Border) else Modifier).padding(16.dp, 14.dp),
                 verticalAlignment = Alignment.Top,
@@ -288,4 +296,78 @@ internal fun FormSheet(
             }
         }
     }
+}
+
+// ---------------------------------------------------------------- Sectioned forms (Add property, people, groups)
+
+/** A titled group of fields (full-width band with dividers); [collapsible] ones fold under a chevron. */
+@Composable
+internal fun FormGroup(
+    title: String,
+    icon: Ico,
+    collapsible: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var open by rememberSaveable(title) { mutableStateOf(true) }
+    val chevron by animateFloatAsState(if (open) 0f else -90f, label = "group")
+    Column(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(bottom = 6.dp)) {
+        Row(
+            Modifier.fillMaxWidth().height(52.dp).then(if (collapsible) Modifier.clickable { open = !open } else Modifier)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(Modifier.size(28.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 15.dp, C.Yellow, 1.9f) }
+            Txt(title, 15, 700, modifier = Modifier.weight(1f))
+            trailing?.invoke()
+            if (collapsible) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f, Modifier.rotate(chevron))
+        }
+        AnimatedVisibility(open) { Column(content = content) }
+    }
+}
+
+/** Row: label on the left (104dp), the input on the right. */
+@Composable
+internal fun InlineField(label: String, required: Boolean = false, dim: Boolean = false, input: @Composable RowScope.() -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (dim) 0.45f else 1f).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(Modifier.width(104.dp)) {
+            Txt(label, 13, 500, C.Muted)
+            if (required) Txt("*", 13, 600, C.Yellow, Modifier.padding(start = 2.dp))
+        }
+        input()
+    }
+}
+
+@Composable
+internal fun RowScope.InlineInput(value: String, onChange: (String) -> Unit, placeholder: String, enabled: Boolean = true, keyboard: KeyboardType = KeyboardType.Text) {
+    PlainField(value, onChange, placeholder, Modifier.weight(1f), size = 15, readOnly = !enabled, keyboard = keyboard)
+}
+
+@Composable
+internal fun RowScope.InlineSelect(value: String, placeholder: String, enabled: Boolean = true, chevron: Boolean = true, onClick: () -> Unit) {
+    Row(
+        Modifier.weight(1f).heightIn(min = 44.dp).clickable(enabled = enabled, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Txt(value.ifEmpty { placeholder }, 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
+        if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
+    }
+}
+
+/** A section's status on the right of its title: "Ready" in green, "1 required" in yellow, "Locked" in grey. */
+enum class PillTone { READY, NEEDED, NEUTRAL }
+
+@Composable
+internal fun StatusPill(text: String, tone: PillTone) {
+    val c = when (tone) {
+        PillTone.READY -> C.Green
+        PillTone.NEEDED -> C.Yellow
+        PillTone.NEUTRAL -> VIEW_ONLY_COLOR.asColor()
+    }
+    TintChip(text, bg = c.copy(alpha = 0.15f), fg = c)
 }

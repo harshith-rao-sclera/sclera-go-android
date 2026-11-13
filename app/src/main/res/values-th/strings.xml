@@ -21,4 +21,5 @@
     <string name="login_error_email_blank">ป้อนที่อยู่อีเมลของคุณ</string>
     <string name="login_error_email_invalid">ป้อนที่อยู่อีเมลที่ถูกต้อง</string>
     <string name="login_tagline">รู้จักทุกสินทรัพย์ในพื้นที่</string>
+    <string name="sso_error_untrusted">เพื่อความปลอดภัยของคุณ การเข้าสู่ระบบจะเปิดเฉพาะหน้าของ Sclera</string>
 </resources>
