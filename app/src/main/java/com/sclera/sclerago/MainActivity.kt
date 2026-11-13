@@ -20,6 +20,10 @@ class MainActivity : ComponentActivity() {
     private val session: SessionViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Application context, not `this`: Utility.context is static, so holding the
+        // Activity there would leak it across rotations / recreation.
+        Utility.context = applicationContext
+
         // The app is dark-only, so keep light status/nav bar icons regardless of system theme.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),

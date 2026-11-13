@@ -104,6 +104,18 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 
+    implementation("com.fasterxml.jackson.core:jackson-core:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+
+    //Requery
+    implementation("com.github.requery:sqlite-android:3.49.0")
+
+    //Lombok
+    compileOnly("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
 }
 
 // ---------------------------------------------------------------- Code coverage (JaCoCo)
