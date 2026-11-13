@@ -437,4 +437,12 @@
     <string name="data_error_name_taken">That name is already used here. Choose another one.</string>
     <string name="data_error_in_use">This cannot be removed while it still contains floors, locations or assets.</string>
     <string name="data_error_failed">The change could not be saved. Please try again.</string>
+    <string name="online_error_offline">You are offline. Connect to the internet and try again.</string>
+    <string name="online_error_session">Your session has ended. Please sign in again.</string>
+    <string name="online_error_forbidden">You do not have permission to do this.</string>
+    <string name="online_error_not_found">This no longer exists. Refresh the page and try again.</string>
+    <string name="online_error_conflict">This clashes with something that already exists. Check it and try again.</string>
+    <string name="online_error_invalid">Some of the values were not accepted. Check them and try again.</string>
+    <string name="online_error_unavailable">Sclera is still getting this ready. Try again in a moment.</string>
+    <string name="online_error_server">Something went wrong on the Sclera server. Please try again.</string>
 </resources>

@@ -9,6 +9,7 @@ import androidx.compose.ui.res.stringResource
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AuthError
 import com.sclera.sclerago.domain.model.DataError
+import com.sclera.sclerago.domain.model.OnlineError
 
 /** User-facing text that is resolved against the current locale at display time. */
 @Immutable
@@ -49,4 +50,16 @@ fun DataError.toUiText(): UiText = when (this) {
     DataError.NAME_TAKEN -> UiText.Res(R.string.data_error_name_taken)
     DataError.IN_USE -> UiText.Res(R.string.data_error_in_use)
     DataError.FAILED -> UiText.Res(R.string.data_error_failed)
+}
+
+/** The localized message for each reason a call to the online API failed (the server's own text is never shown). */
+fun OnlineError.toUiText(): UiText = when (this) {
+    OnlineError.Offline -> UiText.Res(R.string.online_error_offline)
+    OnlineError.SessionExpired -> UiText.Res(R.string.online_error_session)
+    OnlineError.Forbidden -> UiText.Res(R.string.online_error_forbidden)
+    OnlineError.NotFound -> UiText.Res(R.string.online_error_not_found)
+    is OnlineError.Conflict -> UiText.Res(R.string.online_error_conflict)
+    OnlineError.Invalid -> UiText.Res(R.string.online_error_invalid)
+    is OnlineError.Unavailable -> UiText.Res(R.string.online_error_unavailable)
+    OnlineError.Server -> UiText.Res(R.string.online_error_server)
 }

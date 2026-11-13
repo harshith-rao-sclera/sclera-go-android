@@ -439,4 +439,12 @@
     <string name="data_error_name_taken">השם הזה כבר בשימוש כאן. בחר שם אחר.</string>
     <string name="data_error_in_use">אי אפשר להסיר את זה כל עוד יש בו קומות, מיקומים או נכסים.</string>
     <string name="data_error_failed">לא ניתן היה לשמור את השינוי. נסה שוב.</string>
+    <string name="online_error_offline">אתם לא מחוברים לאינטרנט. התחברו לאינטרנט ונסו שוב.</string>
+    <string name="online_error_session">ההתחברות שלכם הסתיימה. התחברו שוב.</string>
+    <string name="online_error_forbidden">אין לכם הרשאה לבצע פעולה זו.</string>
+    <string name="online_error_not_found">הפריט הזה כבר לא קיים. רעננו את הדף ונסו שוב.</string>
+    <string name="online_error_conflict">זה מתנגש עם משהו שכבר קיים. בדקו ונסו שוב.</string>
+    <string name="online_error_invalid">חלק מהערכים לא התקבלו. בדקו אותם ונסו שוב.</string>
+    <string name="online_error_unavailable">Sclera עדיין מכין את זה. נסו שוב בעוד רגע.</string>
+    <string name="online_error_server">משהו השתבש בשרת של Sclera. נסו שוב.</string>
 </resources>

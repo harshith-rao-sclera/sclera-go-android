@@ -25,6 +25,7 @@ import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.PhotoReq
+import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
@@ -111,7 +112,7 @@ data class UiState(
     val specSel: String = "",
     val sheet: Sheet = Sheet.NONE,
     val sheetFor: SheetFor = SheetFor.FILTER,
-    val prop: String = "p1",
+    val prop: String = "",
     val propQ: String = "",
     val pv: Preview? = null,
     val assetId: String? = null,
@@ -250,7 +251,10 @@ class AppViewModel @Inject constructor(
     private val tgtWhere: String get() = if (state.loc == LocFilter.SPEC) state.specWhere else ""
     private val tgtPlace: String? get() = if (state.loc == LocFilter.SPEC) state.specSel.ifEmpty { null } else null
 
-    val propName: String get() = (properties.firstOrNull { it.id == state.prop } ?: properties[0]).name
+    /** The property being worked on: the one picked, else the first of the list (none while the list is empty). */
+    val currentProp: String get() = properties.firstOrNull { it.id == state.prop }?.id ?: properties.firstOrNull()?.id ?: state.prop
+
+    val propName: String get() = properties.firstOrNull { it.id == currentProp }?.name.orEmpty()
     /** The location tab path, or null when no location is chosen yet. */
     val specPathShown: List<String>? get() = state.specPath.takeIf { it.isNotEmpty() }
 
@@ -260,7 +264,7 @@ class AppViewModel @Inject constructor(
             val cam = state.newMedia.firstOrNull()
             Asset(
                 "", d?.let { deviceName(it) } ?: cam?.let { captureName(it) } ?: "", d?.sub ?: "", tgtLoc, tgtWhere,
-                state.newSrc, Status.DRAFT, d?.type ?: AssetType.GENERIC, state.prop,
+                state.newSrc, Status.DRAFT, d?.type ?: AssetType.GENERIC, currentProp,
                 media = state.newMedia,
             )
         } else state.assetId?.let { id -> assets.firstOrNull { it.id == id } }
@@ -419,7 +423,7 @@ class AppViewModel @Inject constructor(
     }
 
     /** The bottom tabs this property shows: Bluetooth / Network are hidden when their onboarding is off. */
-    val navTabs: List<Tab> get() = Tab.entries - onboardingOff.value[state.prop].orEmpty().map { it.tab }.toSet()
+    val navTabs: List<Tab> get() = Tab.entries - onboardingOff.value[currentProp].orEmpty().map { it.tab }.toSet()
 
     /** Shake gesture: jump straight to the live camera from anywhere. */
     fun openCameraByShake() {
@@ -475,7 +479,7 @@ class AppViewModel @Inject constructor(
     fun closeProp() = set { copy(sheet = Sheet.NONE, propQ = "") }
     fun setPropQ(v: String) = set { copy(propQ = v) }
     fun pickProp(id: String) {
-        val changed = id != state.prop
+        val changed = id != currentProp
         set { copy(prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, propQ = "") }
         // The new property may not onboard over the tab that's open.
         if (state.tab !in navTabs) goTab(Tab.ASSETS)
@@ -558,7 +562,7 @@ class AppViewModel @Inject constructor(
     ): CreateAssetUseCase.Via {
         val s = state
         val via = assetUseCases.create.viaFor(s.newMedia, s.newDevice)
-        val place = AssetPlace(s.prop, tgtLoc, tgtWhere, tgtPlace)
+        val place = AssetPlace(currentProp, tgtLoc, tgtWhere, tgtPlace)
         val savedAs = UiText.Res(if (submit) R.string.asset_added_submitted else R.string.asset_added_draft)
         when (via) {
             // From the Camera tab: stay on the camera for the next one.
@@ -627,7 +631,7 @@ class AppViewModel @Inject constructor(
     fun onboardCam() {
         val picked = camReview.filter { it.on }
         if (picked.isEmpty()) return
-        val prop = state.prop
+        val prop = currentProp
         val loc = tgtLoc
         val where = tgtWhere
         val place = tgtPlace
@@ -677,7 +681,7 @@ class AppViewModel @Inject constructor(
     fun onboardFile() {
         val picked = fileReview.filter { it.on }
         if (picked.isEmpty()) return
-        val prop = state.prop
+        val prop = currentProp
         val loc = tgtLoc
         val where = tgtWhere
         val place = tgtPlace
@@ -701,14 +705,14 @@ class AppViewModel @Inject constructor(
     fun sourceRules(id: String): List<Rule> = validationUseCases.source.rules(id)
 
     /** Jobs of the downloaded property (the server's and the ones run on this device), newest first. */
-    val propJobs: List<ValJob> get() = jobs.value.forProperty(state.prop)
+    val propJobs: List<ValJob> get() = jobs.value.forProperty(currentProp)
 
-    fun lastRun(sourceId: String): Long? = jobs.value.lastRun(state.prop, sourceId)
+    fun lastRun(sourceId: String): Long? = jobs.value.lastRun(currentProp, sourceId)
 
     /** Assets a run with [sheet]'s settings would cover. */
     fun scopeAssets(sheet: RunSheet): List<Asset> {
         jobs.value // "New or changed" depends on the last run and on edits: recompose when either changes.
-        return validationUseCases.selectTargets(sheet.scope, sheet.chosen, sheet.sourceId, state.prop, assets)
+        return validationUseCases.selectTargets(sheet.scope, sheet.chosen, sheet.sourceId, currentProp, assets)
     }
 
     // Side-menu pages always return to the Assets tab. It is also selected on open, so the
@@ -764,7 +768,7 @@ class AppViewModel @Inject constructor(
     private fun startJob(sourceId: String, ids: List<String>, label: String) {
         flash("Validation started · runs in the background")
         validationUseCases.start(
-            sourceId, ids, label, state.prop,
+            sourceId, ids, label, currentProp,
             inputs = { assetUseCases.checkInput(assets) },
             onDone = { j -> flash("${j.title} finished · ${j.failed} failed · ${j.passed} passed") },
         )
@@ -963,11 +967,18 @@ class AppViewModel @Inject constructor(
     }
 
     // Property Settings: which ways of adding assets the phone offers for this property.
-    fun onboardingOn(t: Tab): Boolean = t.channel?.let { it !in onboardingOff.value[state.prop].orEmpty() } ?: true
+    fun onboardingOn(t: Tab): Boolean = t.channel?.let { it !in onboardingOff.value[currentProp].orEmpty() } ?: true
 
     fun setOnboarding(t: Tab, on: Boolean) {
         val channel = t.channel ?: return
-        propertyUseCases.setOnboarding(state.prop, channel, on)
-        flash((if (t == Tab.BT) "Bluetooth" else "Wi-Fi") + " onboarding " + if (on) "on" else "off")
+        val prop = currentProp
+        viewModelScope.launch {
+            try {
+                propertyUseCases.setOnboarding(prop, channel, on)
+                flash((if (t == Tab.BT) "Bluetooth" else "Wi-Fi") + " onboarding " + if (on) "on" else "off")
+            } catch (e: OnlineException) {
+                flash(e.error.toUiText())
+            }
+        }
     }
 }

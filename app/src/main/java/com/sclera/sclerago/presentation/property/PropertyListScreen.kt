@@ -84,7 +84,7 @@ fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel(
     }
     Box(Modifier.fillMaxSize()) {
         PropertyListContent(
-            state, app.state.prop, app.propName,
+            state, app.currentProp, app.propName,
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
             onAdd = vm::openAdd, onImport = vm::openImport,
         )

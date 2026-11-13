@@ -439,4 +439,12 @@
     <string name="data_error_name_taken">Это имя уже используется. Выберите другое.</string>
     <string name="data_error_in_use">Это нельзя удалить, пока в нём остаются этажи, места или активы.</string>
     <string name="data_error_failed">Не удалось сохранить изменение. Повторите попытку.</string>
+    <string name="online_error_offline">Вы не в сети. Подключитесь к интернету и повторите попытку.</string>
+    <string name="online_error_session">Сеанс завершён. Войдите снова.</string>
+    <string name="online_error_forbidden">У вас нет разрешения на это действие.</string>
+    <string name="online_error_not_found">Этого больше нет. Обновите страницу и повторите попытку.</string>
+    <string name="online_error_conflict">Это конфликтует с уже существующими данными. Проверьте и повторите попытку.</string>
+    <string name="online_error_invalid">Некоторые значения не приняты. Проверьте их и повторите попытку.</string>
+    <string name="online_error_unavailable">Sclera ещё готовит это. Повторите попытку через минуту.</string>
+    <string name="online_error_server">На сервере Sclera произошла ошибка. Повторите попытку.</string>
 </resources>

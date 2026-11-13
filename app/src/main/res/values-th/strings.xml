@@ -406,4 +406,12 @@
     <string name="data_error_name_taken">ชื่อนี้ถูกใช้แล้ว โปรดเลือกชื่ออื่น</string>
     <string name="data_error_in_use">ไม่สามารถลบได้ตราบใดที่ยังมีชั้น สถานที่ หรือแอสเซ็ตอยู่</string>
     <string name="data_error_failed">ไม่สามารถบันทึกการเปลี่ยนแปลงได้ โปรดลองอีกครั้ง</string>
+    <string name="online_error_offline">คุณออฟไลน์อยู่ เชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง</string>
+    <string name="online_error_session">เซสชันของคุณสิ้นสุดแล้ว โปรดลงชื่อเข้าใช้อีกครั้ง</string>
+    <string name="online_error_forbidden">คุณไม่มีสิทธิ์ทำสิ่งนี้</string>
+    <string name="online_error_not_found">สิ่งนี้ไม่มีอยู่แล้ว รีเฟรชหน้าแล้วลองอีกครั้ง</string>
+    <string name="online_error_conflict">สิ่งนี้ขัดแย้งกับสิ่งที่มีอยู่แล้ว ตรวจสอบแล้วลองอีกครั้ง</string>
+    <string name="online_error_invalid">ไม่ยอมรับค่าบางค่า ตรวจสอบแล้วลองอีกครั้ง</string>
+    <string name="online_error_unavailable">Sclera ยังเตรียมข้อมูลนี้อยู่ ลองอีกครั้งในอีกสักครู่</string>
+    <string name="online_error_server">เซิร์ฟเวอร์ Sclera เกิดข้อผิดพลาด โปรดลองอีกครั้ง</string>
 </resources>

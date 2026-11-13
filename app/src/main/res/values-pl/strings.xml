@@ -439,4 +439,12 @@
     <string name="data_error_name_taken">Ta nazwa jest już tu używana. Wybierz inną.</string>
     <string name="data_error_in_use">Nie można tego usunąć, dopóki zawiera piętra, lokalizacje lub zasoby.</string>
     <string name="data_error_failed">Nie udało się zapisać zmiany. Spróbuj ponownie.</string>
+    <string name="online_error_offline">Jesteś offline. Połącz się z internetem i spróbuj ponownie.</string>
+    <string name="online_error_session">Twoja sesja się zakończyła. Zaloguj się ponownie.</string>
+    <string name="online_error_forbidden">Nie masz uprawnień do wykonania tej czynności.</string>
+    <string name="online_error_not_found">Ten element już nie istnieje. Odśwież stronę i spróbuj ponownie.</string>
+    <string name="online_error_conflict">To koliduje z czymś, co już istnieje. Sprawdź i spróbuj ponownie.</string>
+    <string name="online_error_invalid">Niektóre wartości nie zostały zaakceptowane. Sprawdź je i spróbuj ponownie.</string>
+    <string name="online_error_unavailable">Sclera jeszcze to przygotowuje. Spróbuj ponownie za chwilę.</string>
+    <string name="online_error_server">Na serwerze Sclera coś poszło nie tak. Spróbuj ponownie.</string>
 </resources>

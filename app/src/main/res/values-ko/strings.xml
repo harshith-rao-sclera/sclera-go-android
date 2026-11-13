@@ -406,4 +406,12 @@
     <string name="data_error_name_taken">이미 사용 중인 이름입니다. 다른 이름을 선택하세요.</string>
     <string name="data_error_in_use">층, 위치 또는 자산이 남아 있는 동안에는 삭제할 수 없습니다.</string>
     <string name="data_error_failed">변경 사항을 저장하지 못했습니다. 다시 시도해 주세요.</string>
+    <string name="online_error_offline">오프라인 상태입니다. 인터넷에 연결한 후 다시 시도하세요.</string>
+    <string name="online_error_session">세션이 종료되었습니다. 다시 로그인하세요.</string>
+    <string name="online_error_forbidden">이 작업을 수행할 권한이 없습니다.</string>
+    <string name="online_error_not_found">더 이상 존재하지 않습니다. 페이지를 새로 고치고 다시 시도하세요.</string>
+    <string name="online_error_conflict">이미 있는 항목과 충돌합니다. 확인한 후 다시 시도하세요.</string>
+    <string name="online_error_invalid">일부 값이 허용되지 않았습니다. 확인한 후 다시 시도하세요.</string>
+    <string name="online_error_unavailable">Sclera가 아직 준비 중입니다. 잠시 후 다시 시도하세요.</string>
+    <string name="online_error_server">Sclera 서버에서 문제가 발생했습니다. 다시 시도하세요.</string>
 </resources>

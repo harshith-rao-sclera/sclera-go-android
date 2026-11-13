@@ -101,7 +101,7 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
 
     // The lists show the current property, narrowed by the location tab; a selection belongs to the page it was made on.
     LaunchedEffect(vm.locationFilter) { list.setScope(vm.locationFilter) }
-    LaunchedEffect(s.tab, s.prop, vm.showDetail, s.adminPage, s.valOpen, s.cfgOpen) { list.clearSelection() }
+    LaunchedEffect(s.tab, vm.currentProp, vm.showDetail, s.adminPage, s.valOpen, s.cfgOpen) { list.clearSelection() }
     LaunchedEffect(list) { list.notices.collect { vm.flash(it) } }
 
     // Shake the phone (two firm shakes) to jump straight to the camera.
@@ -248,7 +248,7 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
         when (s.sheet) {
             Sheet.PROP -> PropertySheet(vm)
             Sheet.LOC -> LocationPicker(
-                vm.state.prop, vm.propName, s.specSel, vm::closeLoc,
+                vm.currentProp, vm.propName, s.specSel, vm::closeLoc,
                 onPick = { r ->
                     if (s.sheetFor == SheetFor.BULK) {
                         list.assignSelected(vm.locValue(r), r.label)

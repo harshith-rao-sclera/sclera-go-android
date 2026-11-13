@@ -439,4 +439,12 @@
     <string name="data_error_name_taken">Це ім’я вже використовується. Виберіть інше.</string>
     <string name="data_error_in_use">Це не можна видалити, доки в ньому залишаються поверхи, місця або активи.</string>
     <string name="data_error_failed">Не вдалося зберегти зміну. Спробуйте ще раз.</string>
+    <string name="online_error_offline">Ви не в мережі. Підключіться до інтернету й повторіть спробу.</string>
+    <string name="online_error_session">Сеанс завершено. Увійдіть знову.</string>
+    <string name="online_error_forbidden">У вас немає дозволу на цю дію.</string>
+    <string name="online_error_not_found">Цього більше немає. Оновіть сторінку й повторіть спробу.</string>
+    <string name="online_error_conflict">Це суперечить тому, що вже існує. Перевірте й повторіть спробу.</string>
+    <string name="online_error_invalid">Деякі значення не прийнято. Перевірте їх і повторіть спробу.</string>
+    <string name="online_error_unavailable">Sclera ще готує це. Повторіть спробу за хвилину.</string>
+    <string name="online_error_server">На сервері Sclera сталася помилка. Повторіть спробу.</string>
 </resources>

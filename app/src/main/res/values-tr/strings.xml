@@ -429,4 +429,12 @@
     <string name="data_error_name_taken">Bu ad burada zaten kullanılıyor. Başka bir ad seçin.</string>
     <string name="data_error_in_use">Katlar, konumlar veya varlıklar içerdiği sürece bu silinemez.</string>
     <string name="data_error_failed">Değişiklik kaydedilemedi. Lütfen tekrar deneyin.</string>
+    <string name="online_error_offline">Çevrimdışısınız. İnternete bağlanıp tekrar deneyin.</string>
+    <string name="online_error_session">Oturumunuz sona erdi. Lütfen tekrar oturum açın.</string>
+    <string name="online_error_forbidden">Bunu yapma izniniz yok.</string>
+    <string name="online_error_not_found">Bu artık mevcut değil. Sayfayı yenileyip tekrar deneyin.</string>
+    <string name="online_error_conflict">Bu, zaten var olan bir şeyle çakışıyor. Kontrol edip tekrar deneyin.</string>
+    <string name="online_error_invalid">Bazı değerler kabul edilmedi. Kontrol edip tekrar deneyin.</string>
+    <string name="online_error_unavailable">Sclera bunu hâlâ hazırlıyor. Birazdan tekrar deneyin.</string>
+    <string name="online_error_server">Sclera sunucusunda bir sorun oluştu. Lütfen tekrar deneyin.</string>
 </resources>

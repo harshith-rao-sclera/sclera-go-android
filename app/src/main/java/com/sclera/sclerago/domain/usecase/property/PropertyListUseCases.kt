@@ -8,13 +8,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
-/** Every property with its asset count, updated when either changes. */
+/** Every property with its asset count, updated when either changes. Only the downloaded assets are counted, by the property they belong to; the others have none here. */
 class ObservePropertySummariesUseCase @Inject constructor(
     private val properties: PropertyRepository,
     private val assets: AssetRepository,
 ) {
     operator fun invoke(): Flow<List<PropertySummary>> =
-        combine(properties.properties, assets.catalog) { list, catalog -> list.map { PropertySummary(it, catalog.assets.size) } }
+        combine(properties.properties, assets.catalog) { list, catalog ->
+            val counts = catalog.assets.groupingBy { it.propertyId }.eachCount()
+            list.map { PropertySummary(it, counts[it.id] ?: 0) }
+        }
 }
 
 /** The properties whose name contains [query] (case-insensitive, surrounding blanks ignored); all when it is blank. */

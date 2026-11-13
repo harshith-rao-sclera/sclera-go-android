@@ -449,4 +449,12 @@
     <string name="data_error_name_taken">هذا الاسم مستخدم بالفعل هنا. اختر اسمًا آخر.</string>
     <string name="data_error_in_use">لا يمكن إزالة هذا ما دام يحتوي على طوابق أو مواقع أو أصول.</string>
     <string name="data_error_failed">تعذّر حفظ التغيير. حاول مرة أخرى.</string>
+    <string name="online_error_offline">أنت غير متصل. اتصل بالإنترنت وحاول مرة أخرى.</string>
+    <string name="online_error_session">انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.</string>
+    <string name="online_error_forbidden">ليست لديك صلاحية للقيام بذلك.</string>
+    <string name="online_error_not_found">لم يعد هذا موجودًا. حدّث الصفحة وحاول مرة أخرى.</string>
+    <string name="online_error_conflict">يتعارض هذا مع عنصر موجود بالفعل. تحقق منه وحاول مرة أخرى.</string>
+    <string name="online_error_invalid">لم يتم قبول بعض القيم. تحقق منها وحاول مرة أخرى.</string>
+    <string name="online_error_unavailable">لا يزال Sclera يجهّز هذا. حاول مرة أخرى بعد قليل.</string>
+    <string name="online_error_server">حدث خطأ في خادم Sclera. يرجى المحاولة مرة أخرى.</string>
 </resources>

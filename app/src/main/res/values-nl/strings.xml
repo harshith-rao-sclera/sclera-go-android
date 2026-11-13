@@ -429,4 +429,12 @@
     <string name="data_error_name_taken">Die naam wordt hier al gebruikt. Kies een andere naam.</string>
     <string name="data_error_in_use">Dit kan niet worden verwijderd zolang er nog verdiepingen, locaties of assets in zitten.</string>
     <string name="data_error_failed">De wijziging kon niet worden opgeslagen. Probeer het opnieuw.</string>
+    <string name="online_error_offline">Je bent offline. Maak verbinding met internet en probeer het opnieuw.</string>
+    <string name="online_error_session">Je sessie is beëindigd. Meld je opnieuw aan.</string>
+    <string name="online_error_forbidden">Je hebt hiervoor geen toestemming.</string>
+    <string name="online_error_not_found">Dit bestaat niet meer. Vernieuw de pagina en probeer het opnieuw.</string>
+    <string name="online_error_conflict">Dit botst met iets dat al bestaat. Controleer het en probeer het opnieuw.</string>
+    <string name="online_error_invalid">Sommige waarden zijn niet geaccepteerd. Controleer ze en probeer het opnieuw.</string>
+    <string name="online_error_unavailable">Sclera is dit nog aan het voorbereiden. Probeer het zo meteen opnieuw.</string>
+    <string name="online_error_server">Er is iets misgegaan op de Sclera-server. Probeer het opnieuw.</string>
 </resources>

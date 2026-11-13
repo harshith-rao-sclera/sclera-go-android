@@ -429,4 +429,12 @@
     <string name="data_error_name_taken">Dieser Name wird hier bereits verwendet. Wähle einen anderen.</string>
     <string name="data_error_in_use">Das kann nicht entfernt werden, solange es noch Etagen, Standorte oder Assets enthält.</string>
     <string name="data_error_failed">Die Änderung konnte nicht gespeichert werden. Bitte versuche es erneut.</string>
+    <string name="online_error_offline">Du bist offline. Verbinde dich mit dem Internet und versuche es erneut.</string>
+    <string name="online_error_session">Deine Sitzung ist beendet. Bitte melde dich erneut an.</string>
+    <string name="online_error_forbidden">Dafür fehlt dir die Berechtigung.</string>
+    <string name="online_error_not_found">Das gibt es nicht mehr. Aktualisiere die Seite und versuche es erneut.</string>
+    <string name="online_error_conflict">Das steht im Konflikt mit etwas, das bereits existiert. Prüfe es und versuche es erneut.</string>
+    <string name="online_error_invalid">Einige Werte wurden nicht akzeptiert. Prüfe sie und versuche es erneut.</string>
+    <string name="online_error_unavailable">Sclera bereitet das noch vor. Versuche es gleich noch einmal.</string>
+    <string name="online_error_server">Auf dem Sclera-Server ist etwas schiefgelaufen. Bitte versuche es erneut.</string>
 </resources>

@@ -406,4 +406,12 @@
     <string name="data_error_name_taken">Tên này đã được dùng ở đây. Hãy chọn tên khác.</string>
     <string name="data_error_in_use">Không thể xóa khi vẫn còn tầng, vị trí hoặc tài sản bên trong.</string>
     <string name="data_error_failed">Không thể lưu thay đổi. Vui lòng thử lại.</string>
+    <string name="online_error_offline">Bạn đang ngoại tuyến. Hãy kết nối internet và thử lại.</string>
+    <string name="online_error_session">Phiên của bạn đã kết thúc. Vui lòng đăng nhập lại.</string>
+    <string name="online_error_forbidden">Bạn không có quyền thực hiện việc này.</string>
+    <string name="online_error_not_found">Mục này không còn tồn tại. Hãy làm mới trang và thử lại.</string>
+    <string name="online_error_conflict">Mục này xung đột với một mục đã có. Hãy kiểm tra và thử lại.</string>
+    <string name="online_error_invalid">Một số giá trị không được chấp nhận. Hãy kiểm tra và thử lại.</string>
+    <string name="online_error_unavailable">Sclera vẫn đang chuẩn bị mục này. Hãy thử lại sau giây lát.</string>
+    <string name="online_error_server">Máy chủ Sclera gặp sự cố. Vui lòng thử lại.</string>
 </resources>

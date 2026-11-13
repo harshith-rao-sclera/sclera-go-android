@@ -406,4 +406,12 @@
     <string name="data_error_name_taken">該名稱已被使用。請選擇其他名稱。</string>
     <string name="data_error_in_use">只要其中還有樓層、位置或資產，就無法刪除。</string>
     <string name="data_error_failed">無法儲存變更。請再試一次。</string>
+    <string name="online_error_offline">你已離線。請連線到網際網路後再試一次。</string>
+    <string name="online_error_session">你的工作階段已結束。請重新登入。</string>
+    <string name="online_error_forbidden">你沒有執行此操作的權限。</string>
+    <string name="online_error_not_found">此項目已不存在。請重新整理頁面後再試一次。</string>
+    <string name="online_error_conflict">這與已存在的內容衝突。請檢查後再試一次。</string>
+    <string name="online_error_invalid">部分值未被接受。請檢查後再試一次。</string>
+    <string name="online_error_unavailable">Sclera 仍在準備中。請稍後再試。</string>
+    <string name="online_error_server">Sclera 伺服器發生問題。請再試一次。</string>
 </resources>

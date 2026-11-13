@@ -406,4 +406,12 @@
     <string name="data_error_name_taken">その名前はすでに使われています。別の名前を選んでください。</string>
     <string name="data_error_in_use">フロア、ロケーション、またはアセットが残っている間は削除できません。</string>
     <string name="data_error_failed">変更を保存できませんでした。もう一度お試しください。</string>
+    <string name="online_error_offline">オフラインです。インターネットに接続してもう一度お試しください。</string>
+    <string name="online_error_session">セッションが終了しました。もう一度サインインしてください。</string>
+    <string name="online_error_forbidden">この操作を行う権限がありません。</string>
+    <string name="online_error_not_found">これはすでに存在しません。ページを更新してもう一度お試しください。</string>
+    <string name="online_error_conflict">すでにあるものと競合しています。内容を確認してもう一度お試しください。</string>
+    <string name="online_error_invalid">一部の値が受け付けられませんでした。確認してもう一度お試しください。</string>
+    <string name="online_error_unavailable">Sclera がまだ準備中です。しばらくしてからもう一度お試しください。</string>
+    <string name="online_error_server">Sclera サーバーで問題が発生しました。もう一度お試しください。</string>
 </resources>
