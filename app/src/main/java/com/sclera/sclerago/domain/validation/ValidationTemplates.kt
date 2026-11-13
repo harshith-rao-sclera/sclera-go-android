@@ -47,16 +47,16 @@ enum class ValScope(val title: String, val sub: String) {
 
 data class Finding(val rule: String, val outcome: RuleOutcome, val message: String?)
 
-data class AssetResult(val assetId: Int, val assetName: String, val outcome: RuleOutcome, val findings: List<Finding>)
+data class AssetResult(val assetId: String, val assetName: String, val outcome: RuleOutcome, val findings: List<Finding>)
 
 /** One validation run ("Recent jobs"). Results are filled in when the background run finishes. */
 data class ValJob(
-    val id: Int,
+    val id: String,
     val title: String,
     val sourceId: String,
     val checks: Int,
     val scopeLabel: String,
-    val assetIds: List<Int>,
+    val assetIds: List<String>,
     val startedAt: Long,
     val prop: String,
     val running: Boolean = true,
@@ -79,7 +79,7 @@ private fun fromCheck(index: Int, failAs: RuleOutcome = RuleOutcome.FAIL): (Rule
 }
 
 /** Stable pseudo-random 0..99 per asset and rule, so simulated AI results don't change between runs. */
-private fun roll(c: RuleCtx, salt: String) = ((c.asset.id * 7919 + salt.hashCode()).absoluteValue % 100)
+private fun roll(c: RuleCtx, salt: String) = ((c.asset.id.hashCode() * 7919 + salt.hashCode()).absoluteValue % 100)
 
 private fun v(c: RuleCtx, k: String) = c.input.values[k].orEmpty().trim()
 

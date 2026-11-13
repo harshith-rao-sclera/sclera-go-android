@@ -4,6 +4,7 @@ import com.sclera.sclerago.data.repository.ValidationRepositoryImpl
 import com.sclera.sclerago.domain.validation.DEFAULT_SAVED
 import com.sclera.sclerago.domain.validation.ValJob
 import com.sclera.sclerago.testutil.FakeRetainedLifecycle
+import com.sclera.sclerago.testutil.SequentialIdGenerator
 import com.sclera.sclerago.testutil.asset
 import com.sclera.sclerago.testutil.checkInput
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,7 +21,7 @@ import org.junit.Test
 class ValidationRepositoryTest {
     private val dispatcher = StandardTestDispatcher()
     private val lifecycle = FakeRetainedLifecycle()
-    private val repo = ValidationRepositoryImpl(lifecycle, dispatcher)
+    private val repo = ValidationRepositoryImpl(lifecycle, dispatcher, SequentialIdGenerator())
     private val assets = listOf(asset(1) to checkInput(mapOf("name" to "Pump 1")), asset(2, "Pump 2") to checkInput())
 
     @Test
@@ -36,7 +37,7 @@ class ValidationRepositoryTest {
     @Test
     fun instantJob_finishesAtOnceAndReportsResults() {
         var done: ValJob? = null
-        repo.start("quick", listOf(1), "All assets", "p1", { assets }, 5L, instant = true) { done = it }
+        repo.start("quick", listOf("1"), "All assets", "p1", { assets }, 5L, instant = true) { done = it }
         val job = repo.jobs.value.single()
         assertFalse(job.running)
         assertEquals(1, job.results.size)
@@ -46,7 +47,7 @@ class ValidationRepositoryTest {
 
     @Test
     fun backgroundJob_runsThenFinishes() = runTest(dispatcher) {
-        repo.start("quick", listOf(1, 2), "All", "p1", { assets }, 0L, instant = false) {}
+        repo.start("quick", listOf("1", "2"), "All", "p1", { assets }, 0L, instant = false) {}
         assertTrue(repo.jobs.value.single().running)
         advanceUntilIdle()
         assertFalse(repo.jobs.value.single().running)
@@ -55,8 +56,8 @@ class ValidationRepositoryTest {
 
     @Test
     fun newestJobComesFirst() {
-        repo.start("quick", listOf(1), "a", "p1", { assets }, 1L, instant = true) {}
-        repo.start("specs", listOf(1), "b", "p1", { assets }, 2L, instant = true) {}
+        repo.start("quick", listOf("1"), "a", "p1", { assets }, 1L, instant = true) {}
+        repo.start("specs", listOf("1"), "b", "p1", { assets }, 2L, instant = true) {}
         assertEquals(listOf("specs", "quick"), repo.jobs.value.map { it.sourceId })
     }
 
@@ -81,18 +82,18 @@ class ValidationRepositoryTest {
 
     @Test
     fun clear_dropsJobsAndRestoresDefaults() {
-        repo.start("quick", listOf(1), "a", "p1", { assets }, 1L, instant = true) {}
+        repo.start("quick", listOf("1"), "a", "p1", { assets }, 1L, instant = true) {}
         repo.delete("sv1")
         repo.clear()
         assertTrue(repo.jobs.value.isEmpty())
         assertEquals(DEFAULT_SAVED, repo.saved.value)
-        repo.start("quick", listOf(1), "a", "p1", { assets }, 1L, instant = true) {}
-        assertEquals(1, repo.jobs.value.single().id)
+        repo.start("quick", listOf("1"), "a", "p1", { assets }, 1L, instant = true) {}
+        assertEquals("1", repo.jobs.value.single().id)
     }
 
     @Test
     fun clearingTheActivity_cancelsPendingJobs() = runTest(dispatcher) {
-        repo.start("quick", listOf(1), "a", "p1", { assets }, 1L, instant = false) {}
+        repo.start("quick", listOf("1"), "a", "p1", { assets }, 1L, instant = false) {}
         lifecycle.clear()
         advanceUntilIdle()
         assertTrue(repo.jobs.value.single().running)

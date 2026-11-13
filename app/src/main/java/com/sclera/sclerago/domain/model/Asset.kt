@@ -48,7 +48,7 @@ fun typeOf(name: String?): AssetType {
 }
 
 data class Asset(
-    val id: Int,
+    val id: String,
     val name: String,
     val detail: String,
     val loc: String?,
@@ -56,11 +56,20 @@ data class Asset(
     val src: Source,
     val st: Status,
     val type: AssetType,
-    val prop: String = "p1",
+    val propertyId: String,
     /** Photos and videos attached to this asset (from the camera or the gallery). */
     val media: List<Media> = emptyList(),
     /** When the asset was last added or edited (epoch millis); null for sample assets nobody has touched. */
     val updatedAt: Long? = null,
+    val buildingId: String? = null,
+    val floorId: String? = null,
+    val locationId: String? = null,
+    val masterFormatId: String? = null,
+    val needsReview: Boolean = false,
+    val aiSuggestion: Boolean = false,
+    val validated: Boolean = false,
+    /** Server row version, bumped on each synced edit. */
+    val version: Int = 1,
 )
 
 /**

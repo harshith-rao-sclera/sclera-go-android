@@ -21,6 +21,7 @@ import com.sclera.sclerago.domain.usecase.asset.ObserveAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SaveAssetDetailsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
 import com.sclera.sclerago.testutil.asset
+import com.sclera.sclerago.testutil.SequentialIdGenerator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -32,12 +33,12 @@ class AssetUseCasesTest {
     private val repo = AssetRepositoryImpl()
     private val place = AssetPlace("p1", "loc1", "Building A")
     private val photo = Media("m1", "content://m1", video = false, createdAt = 0L)
-    private fun assetNow(id: Int) = repo.catalog.value.assetsIn("p1").first { it.id == id }
+    private fun assetNow(id: String) = repo.catalog.value.assetsIn("p1").first { it.id == id }
 
     @Test
     fun observeAndDetails_readTheRepository() {
         assertEquals(repo.catalog, ObserveAssetsUseCase(repo)())
-        assertNull(GetAssetDetailsUseCase(repo)(-5))
+        assertNull(GetAssetDetailsUseCase(repo)("missing"))
     }
 
     @Test
@@ -65,25 +66,24 @@ class AssetUseCasesTest {
     @Test
     fun attachMedia_ignoresEmptyOrInvalidRequests() {
         val attach = AttachMediaUseCase(repo)
-        assertFalse(attach(1, emptyList()))
-        assertFalse(attach(-1, listOf(photo)))
-        assertTrue(attach(1, listOf(photo)))
-        assertEquals(1, repo.catalog.value.mediaAdded[1]?.size)
+        assertFalse(attach("a1", emptyList()))
+        assertFalse(attach("", listOf(photo)))
+        assertTrue(attach("a1", listOf(photo)))
+        assertEquals(1, repo.catalog.value.mediaAdded["a1"]?.size)
     }
 
     @Test
     fun addAssets_buildsWithConsecutiveIds() {
-        val add = AddAssetsUseCase(repo)
+        val add = AddAssetsUseCase(repo, SequentialIdGenerator())
         assertTrue(add(0) { _, _ -> error("not called") }.isEmpty())
         val made = add(3) { id, i -> asset(id, "New $i") }
-        assertEquals(made.map { it.id }, listOf(100, 101, 102))
-        assertEquals(103, repo.catalog.value.nextId)
+        assertEquals(made.map { it.id }, listOf("1", "2", "3"))
         assertEquals("New 0", repo.catalog.value.assets.first().name)
     }
 
     @Test
     fun create_manual() {
-        val create = CreateAssetUseCase(repo)
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator())
         val r = create("Pump A", "", emptyList(), mapOf("make" to "Acme"), submit = true, place, emptyList(), null, Source.MANUAL)
         assertEquals(CreateAssetUseCase.Via.MANUAL, r.via)
         val a = assetNow(r.id)
@@ -96,7 +96,7 @@ class AssetUseCasesTest {
 
     @Test
     fun create_fromCameraShots() {
-        val create = CreateAssetUseCase(repo)
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator())
         val video = photo.copy(video = true, durationMs = 65_000)
         val r = create("", "Added manually", listOf(photo), emptyMap(), false, place, listOf(video), null, Source.MANUAL)
         assertEquals(CreateAssetUseCase.Via.CAMERA, r.via)
@@ -110,7 +110,7 @@ class AssetUseCasesTest {
 
     @Test
     fun create_fromAScannedDevice_linksIt() {
-        val create = CreateAssetUseCase(repo)
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator())
         val device = Device("net:1", "Printer", "10.0.0.5 · HP", 3, false, AssetType.COMPUTER)
         val r = create("", "", emptyList(), emptyMap(), false, place, emptyList(), device, Source.WIFI)
         assertEquals(CreateAssetUseCase.Via.SCAN, r.via)
@@ -125,7 +125,7 @@ class AssetUseCasesTest {
 
     @Test
     fun matchDevices_findsAssetsThatMentionTheDevice() {
-        val create = CreateAssetUseCase(repo)
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator())
         val made = asset(id = 500, name = "Router 1", src = Source.WIFI).copy(detail = "10.0.0.5 · edge").also { repo.add(listOf(it)) }
         val devices = listOf(
             Device("net:a", "R", "10.0.0.5 · HP", 2, false),
@@ -137,16 +137,16 @@ class AssetUseCasesTest {
         assertEquals(made.id, matched["net:a"])
         assertNull(matched["net:b"])
         assertNull(matched["net:c"])
-        repo.linkDevice("net:c", 1)
-        assertEquals(1, MatchDevicesUseCase(repo)(devices, Source.WIFI, all)["net:c"])
+        repo.linkDevice("net:c", "a1")
+        assertEquals("a1", MatchDevicesUseCase(repo)(devices, Source.WIFI, all)["net:c"])
     }
 
     @Test
     fun buildCheckInput_combinesFieldsDetailsAndConfig() {
         val config = AssetConfigRepositoryImpl()
         val build = BuildCheckInputUseCase(repo, config)
-        repo.saveDetails(1, mapOf("make" to "Acme"))
-        val input = build(assetNow(1))
+        repo.saveDetails("a1", mapOf("make" to "Acme"))
+        val input = build(assetNow("a1"))
         assertEquals("Acme", input.values["make"])
         assertEquals("Generic", build(asset(901)).values["sys"])
         assertTrue(input.hasLocation)

@@ -40,7 +40,7 @@ data class AssetListScope(val property: String = "p1", val location: LocationFil
 data class AssetListState(
     val lists: Map<Tab, AssetListData> = emptyMap(),
     /** Only ids that are still in the current property count as selected. */
-    val picked: Set<Int> = emptySet(),
+    val picked: Set<String> = emptySet(),
     val query: String = "",
     val searchOpen: Boolean = false,
     val confirmDelete: Boolean = false,
@@ -62,7 +62,7 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
     val notices: SharedFlow<UiText> = message.asSharedFlow()
 
     private data class Ui(
-        val picked: Set<Int> = emptySet(),
+        val picked: Set<String> = emptySet(),
         val query: String = "",
         val searchOpen: Boolean = false,
         val confirmDelete: Boolean = false,
@@ -91,7 +91,7 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
 
     // ---- Selection
 
-    fun toggle(id: Int) = ui.update { it.copy(picked = useCases.toggleSelection(it.picked, id)) }
+    fun toggle(id: String) = ui.update { it.copy(picked = useCases.toggleSelection(it.picked, id)) }
     fun clearSelection() = ui.update { if (it.picked.isEmpty()) it else it.copy(picked = emptySet()) }
 
     /** Picks everything [tab] shows, or clears the selection when all of it is already picked. */

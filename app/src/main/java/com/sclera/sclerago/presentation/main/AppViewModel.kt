@@ -78,7 +78,7 @@ enum class CfgPage { BUILDING, FIELDS, GEO, SETTINGS }
 enum class AdminPage { PROPERTIES, PEOPLE }
 
 /** The "Run validation" sheet: what to check (a template or saved validation id) and which assets. */
-data class RunSheet(val sourceId: String = "quick", val scope: ValScope = ValScope.ALL, val chosen: Set<Int> = emptySet())
+data class RunSheet(val sourceId: String = "quick", val scope: ValScope = ValScope.ALL, val chosen: Set<String> = emptySet())
 
 /** Creating or editing a saved validation. [id] is null for a new one. */
 data class SavedEditor(val id: String?, val name: String, val ruleIds: List<String>, val description: String = "")
@@ -113,7 +113,7 @@ data class UiState(
     val prop: String = "p1",
     val propQ: String = "",
     val pv: Preview? = null,
-    val assetId: Int? = null,
+    val assetId: String? = null,
     val newAsset: Boolean = false,
     /** Scanned device the new-asset form was opened from (null = added manually). */
     val newDevice: Device? = null,
@@ -139,7 +139,7 @@ data class UiState(
     val valPicker: Boolean = false,
     /** Template / saved validation whose list of checks is shown. */
     val valChecksFor: String? = null,
-    val valReview: Int? = null,
+    val valReview: String? = null,
     val valEditor: SavedEditor? = null,
     val valConfirmDelete: String? = null,
     // ---- Configuration page
@@ -254,7 +254,7 @@ class AppViewModel @Inject constructor(
             val d = state.newDevice
             val cam = state.newMedia.firstOrNull()
             Asset(
-                -1, d?.let { deviceName(it) } ?: cam?.let { captureName(it) } ?: "", d?.sub ?: "", tgtLoc, tgtWhere,
+                "", d?.let { deviceName(it) } ?: cam?.let { captureName(it) } ?: "", d?.sub ?: "", tgtLoc, tgtWhere,
                 state.newSrc, Status.DRAFT, d?.type ?: AssetType.GENERIC, state.prop,
                 media = state.newMedia,
             )
@@ -487,7 +487,7 @@ class AppViewModel @Inject constructor(
     fun pickLoc(r: LocPick) {
         val v = locValue(r)
         val detail = detailAsset
-        if (state.sheetFor == SheetFor.ASSET && detail != null && detail.id > 0) {
+        if (state.sheetFor == SheetFor.ASSET && detail != null && detail.id.isNotEmpty()) {
             set { copy(sheet = Sheet.NONE) }
             assetUseCases.assignLocation(listOf(detail.id), v)
         } else set {
@@ -526,7 +526,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun openAsset(id: Int) = set { copy(assetId = id, newAsset = false) }
+    fun openAsset(id: String) = set { copy(assetId = id, newAsset = false) }
 
     fun openNew() = set { copy(newAsset = true, newDevice = null, newSrc = Source.MANUAL, newMedia = emptyList(), assetId = null) }
     fun closeDetail() {
@@ -578,7 +578,7 @@ class AppViewModel @Inject constructor(
         return created.via
     }
 
-    fun deleteAsset(id: Int) {
+    fun deleteAsset(id: String) {
         assetUseCases.delete(listOf(id))
         set { copy(assetId = null) }
         flash(UiText.Res(R.string.asset_deleted))
@@ -725,7 +725,7 @@ class AppViewModel @Inject constructor(
     }
     fun openPicker() = set { copy(valPicker = true) }
     fun closePicker() = set { copy(valPicker = false) }
-    fun toggleChosen(id: Int) = set {
+    fun toggleChosen(id: String) = set {
         val sh = valSheet ?: return@set this
         copy(valSheet = sh.copy(chosen = if (id in sh.chosen) sh.chosen - id else sh.chosen + id))
     }
@@ -755,7 +755,7 @@ class AppViewModel @Inject constructor(
     /** Starts a validation job; it runs in the background and fills in its results when done. */
     private fun startJob(
         sourceId: String,
-        ids: List<Int>,
+        ids: List<String>,
         label: String,
         startedAt: Long = System.currentTimeMillis(),
         instant: Boolean = false,
@@ -770,7 +770,7 @@ class AppViewModel @Inject constructor(
     }
 
     fun openChecks(id: String?) = set { copy(valChecksFor = id) }
-    fun openReview(jobId: Int?) = set { copy(valReview = jobId) }
+    fun openReview(jobId: String?) = set { copy(valReview = jobId) }
 
     // New validation page: name, description and its steps (checks, run in order).
     fun newSaved() = set { copy(valEditor = SavedEditor(null, "", emptyList())) }
@@ -825,8 +825,8 @@ class AppViewModel @Inject constructor(
         val h = 3_600_000L
         startJob("dups", assets.map { it.id }, "All assets", now - 74 * h, instant = true)
         startJob("full", assets.map { it.id }, "All assets", now - 50 * h, instant = true)
-        startJob("quick", listOf(1, 2), "2 chosen assets", now - 21 * h, instant = true)
-        startJob("quick", listOf(1), "1 chosen asset", now - 20 * h, instant = true)
+        startJob("quick", listOf("a1", "a2"), "2 chosen assets", now - 21 * h, instant = true)
+        startJob("quick", listOf("a1"), "1 chosen asset", now - 20 * h, instant = true)
     }
 
     // ---------- Configuration ----------

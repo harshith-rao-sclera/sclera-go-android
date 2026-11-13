@@ -102,13 +102,13 @@ class AssetDetailViewModel @Inject constructor(
         combine(target, form, useCases.observe(), observeConfig()) { t, f, catalog, config ->
             if (t == null) return@combine AssetDetailState()
             val asset = if (t.isNew) t.asset
-            else catalog.assetsIn(t.asset.prop).firstOrNull { it.id == t.asset.id } ?: return@combine AssetDetailState()
+            else catalog.assetsIn(t.asset.propertyId).firstOrNull { it.id == t.asset.id } ?: return@combine AssetDetailState()
             val details = if (t.isNew) null else useCases.details(asset.id)
             val saved = useCases.formValues(asset.name, t.isNew, details, config.fields, t.prefill) +
                 catalog.savedDetails[asset.id].orEmpty()
             val base = AssetDetailState(
                 asset = asset, isNew = t.isNew,
-                code = if (t.isNew) null else details?.code ?: "SCL-000${400 + asset.id}",
+                code = if (t.isNew) null else details?.code ?: "SCL-%06d".format((asset.id.hashCode() and 0x7fffffff) % 1_000_000),
                 saved = saved, edits = f.edits, fields = config.fields, details = details,
                 media = asset.media + f.newPicks, newPicks = f.newPicks, savedFlash = f.savedFlash,
                 aiFilled = f.aiFilled, aiBusy = f.aiBusy, aiNotice = f.aiNotice,

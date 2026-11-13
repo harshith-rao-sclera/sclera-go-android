@@ -37,7 +37,7 @@ class SelectValidationTargetsUseCase @Inject constructor(
     private val validation: ValidationRepository,
     private val assets: AssetRepository,
 ) {
-    operator fun invoke(scope: ValScope, chosen: Set<Int>, sourceId: String, prop: String, all: List<Asset>): List<Asset> = when (scope) {
+    operator fun invoke(scope: ValScope, chosen: Set<String>, sourceId: String, prop: String, all: List<Asset>): List<Asset> = when (scope) {
         ValScope.ALL -> all
         ValScope.CHOOSE -> all.filter { it.id in chosen }
         ValScope.CHANGED -> {
@@ -52,7 +52,7 @@ class SelectValidationTargetsUseCase @Inject constructor(
 class StartValidationUseCase @Inject constructor(private val repo: ValidationRepository) {
     operator fun invoke(
         sourceId: String,
-        ids: List<Int>,
+        ids: List<String>,
         label: String,
         prop: String,
         inputs: () -> List<Pair<Asset, CheckInput>>,

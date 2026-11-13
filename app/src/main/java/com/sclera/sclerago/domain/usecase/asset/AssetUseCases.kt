@@ -16,6 +16,8 @@ import com.sclera.sclerago.domain.model.timeLabel
 import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
+import com.sclera.sclerago.domain.system.IdGenerator
+import com.sclera.sclerago.domain.system.next
 import com.sclera.sclerago.domain.validation.CheckInput
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -26,44 +28,43 @@ class ObserveAssetsUseCase @Inject constructor(private val repo: AssetRepository
 
 /** Code and reference fields an existing asset came with (null for assets added here). */
 class GetAssetDetailsUseCase @Inject constructor(private val repo: AssetRepository) {
-    operator fun invoke(id: Int): AssetDetails? = repo.details(id)
+    operator fun invoke(id: String): AssetDetails? = repo.details(id)
 }
 
 class SetAssetStatusUseCase @Inject constructor(private val repo: AssetRepository) {
-    operator fun invoke(ids: Collection<Int>, status: Status) = repo.setStatus(ids, status)
+    operator fun invoke(ids: Collection<String>, status: Status) = repo.setStatus(ids, status)
 }
 
 /** Keeps the values from an asset's details form and, when given, moves it to [status]. */
 class SaveAssetDetailsUseCase @Inject constructor(private val repo: AssetRepository) {
-    operator fun invoke(id: Int, values: Map<String, String>, status: Status? = null) {
+    operator fun invoke(id: String, values: Map<String, String>, status: Status? = null) {
         repo.saveDetails(id, values)
         if (status != null) repo.setStatus(listOf(id), status)
     }
 }
 
 class DeleteAssetsUseCase @Inject constructor(private val repo: AssetRepository) {
-    operator fun invoke(ids: Collection<Int>) = repo.delete(ids)
+    operator fun invoke(ids: Collection<String>) = repo.delete(ids)
 }
 
 class AssignLocationUseCase @Inject constructor(private val repo: AssetRepository) {
-    operator fun invoke(ids: Collection<Int>, location: LocValue) = repo.assignLocation(ids, location)
+    operator fun invoke(ids: Collection<String>, location: LocValue) = repo.assignLocation(ids, location)
 }
 
 /** Adds photos / videos to an existing asset; false when there is nothing to add. */
 class AttachMediaUseCase @Inject constructor(private val repo: AssetRepository) {
-    operator fun invoke(assetId: Int, media: List<Media>): Boolean {
-        if (media.isEmpty() || assetId < 0) return false
+    operator fun invoke(assetId: String, media: List<Media>): Boolean {
+        if (media.isEmpty() || assetId.isBlank()) return false
         repo.attachMedia(assetId, media)
         return true
     }
 }
 
 /** Adds [count] assets, built by [build] from each one's new id and index; returns them. */
-class AddAssetsUseCase @Inject constructor(private val repo: AssetRepository) {
-    operator fun invoke(count: Int, build: (id: Int, index: Int) -> Asset): List<Asset> {
+class AddAssetsUseCase @Inject constructor(private val repo: AssetRepository, private val ids: IdGenerator) {
+    operator fun invoke(count: Int, build: (id: String, index: Int) -> Asset): List<Asset> {
         if (count <= 0) return emptyList()
-        val first = repo.newIds(count)
-        val made = List(count) { build(first + it, it) }
+        val made = List(count) { build(ids.next(), it) }
         repo.add(made)
         return made
     }
@@ -76,10 +77,10 @@ data class AssetPlace(val prop: String, val loc: String?, val where: String)
  * Creates an asset from the details form. It comes from camera shots ([captures]), a scanned
  * [device], or is added by hand, and keeps what that source knows unless the form says better.
  */
-class CreateAssetUseCase @Inject constructor(private val repo: AssetRepository) {
+class CreateAssetUseCase @Inject constructor(private val repo: AssetRepository, private val ids: IdGenerator) {
     enum class Via { CAMERA, SCAN, MANUAL }
 
-    data class Created(val id: Int, val via: Via, val source: Source)
+    data class Created(val id: String, val via: Via, val source: Source)
 
     operator fun invoke(
         name: String,
@@ -92,7 +93,7 @@ class CreateAssetUseCase @Inject constructor(private val repo: AssetRepository) 
         device: Device?,
         deviceSource: Source,
     ): Created {
-        val id = repo.newIds(1)
+        val id = ids.next()
         val st = if (submit) Status.SUBMITTED else Status.DRAFT
         if (values.isNotEmpty()) repo.saveDetails(id, values)
         val formDetail = detail.takeUnless { it.isBlank() || it == "Added manually" }
@@ -124,7 +125,7 @@ class CreateAssetUseCase @Inject constructor(private val repo: AssetRepository) 
  */
 class MatchDevicesUseCase @Inject constructor(private val repo: AssetRepository) {
     /** Device id → the id of its asset among [assets], or null. */
-    operator fun invoke(devices: List<Device>, src: Source, assets: List<Asset>): Map<String, Int?> {
+    operator fun invoke(devices: List<Device>, src: Source, assets: List<Asset>): Map<String, String?> {
         val catalog = repo.catalog.value
         val texts = assets.filter { it.src == src }.map { it.id to keys(it, catalog).joinToString("\n") }
         return devices.associate { d -> d.id to match(d, assets, texts, catalog) }
@@ -135,7 +136,7 @@ class MatchDevicesUseCase @Inject constructor(private val repo: AssetRepository)
         return listOf(a.detail) + listOf("ble", "ip", "label", "note").mapNotNull { f[it] }
     }
 
-    private fun match(d: Device, assets: List<Asset>, texts: List<Pair<Int, String>>, catalog: AssetCatalog): Int? {
+    private fun match(d: Device, assets: List<Asset>, texts: List<Pair<String, String>>, catalog: AssetCatalog): String? {
         catalog.deviceAsset[d.id]?.takeIf { id -> assets.any { it.id == id } }?.let { return it }
         val key = scanKey(d)
         return texts.firstOrNull { (_, text) -> mentions(text, key) }?.first

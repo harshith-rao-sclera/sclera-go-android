@@ -104,11 +104,11 @@ class ValidationRulesTest {
     @Test
     fun valJob_countsItsResults() {
         val results = listOf(
-            AssetResult(1, "a", RuleOutcome.PASS, emptyList()),
-            AssetResult(2, "b", RuleOutcome.FAIL, emptyList()),
-            AssetResult(3, "c", RuleOutcome.LOOK, emptyList()),
+            AssetResult("1", "a", RuleOutcome.PASS, emptyList()),
+            AssetResult("2", "b", RuleOutcome.FAIL, emptyList()),
+            AssetResult("3", "c", RuleOutcome.LOOK, emptyList()),
         )
-        val job = ValJob(1, "t", "quick", 1, "All", listOf(1, 2, 3), 0L, "p1", running = false, results = results)
+        val job = ValJob("1", "t", "quick", 1, "All", listOf("1", "2", "3"), 0L, "p1", running = false, results = results)
         assertEquals(listOf(1, 1, 1), listOf(job.passed, job.failed, job.look))
     }
 }

@@ -28,7 +28,7 @@ interface ValidationRepository {
      */
     fun start(
         sourceId: String,
-        ids: List<Int>,
+        ids: List<String>,
         label: String,
         prop: String,
         inputs: () -> List<Pair<Asset, CheckInput>>,

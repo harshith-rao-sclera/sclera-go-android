@@ -46,7 +46,7 @@ class AssetDetailViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun vm() = AssetDetailViewModel(assetUseCases(repo, config, autofill), ObserveAssetConfigUseCase(config))
-    private fun seed(id: Int): Asset = repo.catalog.value.assetsIn("p1").first { it.id == id }
+    private fun seed(id: Int): Asset = repo.catalog.value.assetsIn("p1").first { it.id == "a$id" }
     private fun AssetDetailViewModel.openSeed(id: Int) = open(seed(id), isNew = false)
     private val photo = Media("m1", "content://m1", video = false, createdAt = 0L)
 
@@ -55,7 +55,7 @@ class AssetDetailViewModelTest {
         val vm = vm()
         vm.openSeed(2)
         val s = vm.state.value
-        assertEquals(2, s.asset?.id)
+        assertEquals("a2", s.asset?.id)
         assertEquals("SCL-000421", s.code)
         assertEquals("KSB", s.value("make"))
         assertEquals(0, s.dirtyCount)
@@ -102,7 +102,7 @@ class AssetDetailViewModelTest {
         assertTrue(notices.isEmpty())
         vm.edit("make", "Grundfos")
         vm.save()
-        assertEquals("Grundfos", repo.catalog.value.savedDetails[2]?.get("make"))
+        assertEquals("Grundfos", repo.catalog.value.savedDetails["a2"]?.get("make"))
         assertEquals(Status.DRAFT, seed(2).st)
         assertEquals(0, vm.state.value.dirtyCount)
         assertTrue(vm.state.value.savedFlash)
@@ -119,7 +119,7 @@ class AssetDetailViewModelTest {
         vm.edit("serial", "S-1")
         vm.submit()
         assertEquals(Status.SUBMITTED, seed(2).st)
-        assertEquals("S-1", repo.catalog.value.savedDetails[2]?.get("serial"))
+        assertEquals("S-1", repo.catalog.value.savedDetails["a2"]?.get("serial"))
         val s = vm.state.value
         assertTrue(s.locked)
         vm.edit("serial", "S-2")
@@ -171,7 +171,7 @@ class AssetDetailViewModelTest {
         vm.attach(emptyList())
         vm.attach(listOf(photo))
         assertEquals(before + 1, vm.state.value.media.size)
-        assertEquals(listOf(photo), repo.catalog.value.mediaAdded[2])
+        assertEquals(listOf(photo), repo.catalog.value.mediaAdded["a2"])
         assertEquals(listOf<UiText>(UiText.Plural(R.plurals.items_added_to_asset, 1)), notices)
         job.cancel()
     }
@@ -179,7 +179,7 @@ class AssetDetailViewModelTest {
     @Test
     fun attach_toANewAsset_waitsInTheFormUntilItIsCreated() {
         val vm = vm()
-        vm.open(seed(2).copy(id = -1), isNew = true)
+        vm.open(seed(2).copy(id = ""), isNew = true)
         assertNull(vm.state.value.code)
         assertNull(vm.state.value.checks)
         vm.attach(listOf(photo))
@@ -227,7 +227,7 @@ class AssetDetailViewModelTest {
     fun assetDeletedElsewhere_clearsTheState() {
         val vm = vm()
         vm.openSeed(2)
-        repo.delete(listOf(2))
+        repo.delete(listOf("a2"))
         assertNull(vm.state.value.asset)
     }
 }

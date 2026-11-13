@@ -3,6 +3,8 @@ package com.sclera.sclerago.data.repository
 import com.sclera.sclerago.di.MainDispatcher
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.repository.UserDataCleaner
+import com.sclera.sclerago.domain.system.IdGenerator
+import com.sclera.sclerago.domain.system.next
 import com.sclera.sclerago.domain.repository.ValidationRepository
 import com.sclera.sclerago.domain.validation.CheckInput
 import com.sclera.sclerago.domain.validation.DEFAULT_SAVED
@@ -33,6 +35,7 @@ import javax.inject.Inject
 class ValidationRepositoryImpl @Inject constructor(
     lifecycle: ActivityRetainedLifecycle,
     @MainDispatcher dispatcher: CoroutineDispatcher,
+    private val idGen: IdGenerator,
 ) : ValidationRepository, UserDataCleaner {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -46,8 +49,6 @@ class ValidationRepositoryImpl @Inject constructor(
     private val savedState = MutableStateFlow(DEFAULT_SAVED)
     override val saved: StateFlow<List<SavedValidation>> = savedState.asStateFlow()
 
-    private var nextJobId = 1
-
     override fun sourceName(id: String): String =
         TEMPLATES.firstOrNull { it.id == id }?.name ?: savedState.value.firstOrNull { it.id == id }?.name ?: "Validation"
 
@@ -56,7 +57,7 @@ class ValidationRepositoryImpl @Inject constructor(
 
     override fun start(
         sourceId: String,
-        ids: List<Int>,
+        ids: List<String>,
         label: String,
         prop: String,
         inputs: () -> List<Pair<Asset, CheckInput>>,
@@ -65,7 +66,7 @@ class ValidationRepositoryImpl @Inject constructor(
         onDone: (ValJob) -> Unit,
     ) {
         val rules = sourceRules(sourceId)
-        val id = nextJobId++
+        val id = idGen.next()
         jobState.value = listOf(ValJob(id, sourceName(sourceId), sourceId, rules.size, label, ids, startedAt, prop)) + jobState.value
         fun finish() {
             val all = inputs()
@@ -96,7 +97,6 @@ class ValidationRepositoryImpl @Inject constructor(
     override fun clear() {
         jobState.value = emptyList()
         savedState.value = DEFAULT_SAVED
-        nextJobId = 1
     }
 
     override fun delete(id: String) {

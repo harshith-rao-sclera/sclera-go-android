@@ -10,22 +10,20 @@ data class LocValue(val loc: String?, val where: String)
  */
 data class AssetCatalog(
     val assets: List<Asset> = emptyList(),
-    val deleted: Set<Int> = emptySet(),
-    val statusOverride: Map<Int, Status> = emptyMap(),
-    val locationOverride: Map<Int, LocValue> = emptyMap(),
-    val savedDetails: Map<Int, Map<String, String>> = emptyMap(),
-    val mediaAdded: Map<Int, List<Media>> = emptyMap(),
-    val touched: Map<Int, Long> = emptyMap(),
+    val deleted: Set<String> = emptySet(),
+    val statusOverride: Map<String, Status> = emptyMap(),
+    val locationOverride: Map<String, LocValue> = emptyMap(),
+    val savedDetails: Map<String, Map<String, String>> = emptyMap(),
+    val mediaAdded: Map<String, List<Media>> = emptyMap(),
+    val touched: Map<String, Long> = emptyMap(),
     /** Scanned device id → the asset made from it. */
-    val deviceAsset: Map<String, Int> = emptyMap(),
+    val deviceAsset: Map<String, String> = emptyMap(),
     /** Scanned devices that have been made into assets. */
     val addedDevices: Set<String> = emptySet(),
-    /** The id the next new asset gets. */
-    val nextId: Int = 100,
 ) {
     /** [prop]'s assets as they are now, with every edit applied. */
     fun assetsIn(prop: String): List<Asset> = assets
-        .filter { it.id !in deleted && it.prop == prop }
+        .filter { it.id !in deleted && it.propertyId == prop }
         .map { a ->
             var x = a
             locationOverride[a.id]?.let { x = x.copy(loc = it.loc, where = it.where) }
@@ -37,5 +35,5 @@ data class AssetCatalog(
         }
 
     /** How many assets [prop] has, any status. */
-    fun countIn(prop: String): Int = assets.count { it.id !in deleted && it.prop == prop }
+    fun countIn(prop: String): Int = assets.count { it.id !in deleted && it.propertyId == prop }
 }

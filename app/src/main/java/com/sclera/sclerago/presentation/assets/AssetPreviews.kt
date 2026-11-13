@@ -32,7 +32,7 @@ internal val SamplePhotos = listOf(
  * values, the Validation tab's checks, and any [edits] typed on top.
  */
 internal fun sampleDetailState(
-    id: Int = 2,
+    id: String = "a2",
     edits: Map<String, String> = emptyMap(),
     media: List<Media> = SamplePhotos,
     status: Status? = null,
@@ -84,7 +84,7 @@ private fun DetailNewPreview() = ScleraTheme { AssetDetailScreen(sampleDetailSta
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
-private fun DetailSubmittedPreview() = ScleraTheme { AssetDetailScreen(sampleDetailState(id = 4), AssetDetailActions()) }
+private fun DetailSubmittedPreview() = ScleraTheme { AssetDetailScreen(sampleDetailState(id = "a4"), AssetDetailActions()) }
 
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)

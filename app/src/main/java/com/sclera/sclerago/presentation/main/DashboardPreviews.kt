@@ -26,9 +26,9 @@ private const val TABLET_PORTRAIT = "spec:width=800dp,height=1280dp,dpi=240"
 private const val TABLET_LANDSCAPE = "spec:width=1280dp,height=800dp,dpi=240"
 
 /** The dashboard's list for the sample assets, filtered by [query]; used by the previews and the UI tests. */
-internal fun sampleAssetList(query: String = "", picked: Set<Int> = emptySet()): AssetListBinding {
+internal fun sampleAssetList(query: String = "", picked: Set<String> = emptySet()): AssetListBinding {
     val data: AssetListData = BuildAssetListUseCase()(
-        SEED_ASSETS.filter { it.prop == "p1" }, AssetListQuery(sources = null, location = LocationFilter.All, text = query),
+        SEED_ASSETS.filter { it.propertyId == "p1" }, AssetListQuery(sources = null, location = LocationFilter.All, text = query),
     )
     return AssetListBinding(data, picked, query, onChip = {}, onToggle = {}, onOpen = {})
 }
@@ -42,8 +42,8 @@ internal fun DashboardSample(
     list: AssetListBinding,
     selected: LocFilter = LocFilter.ALL,
     searchOpen: Boolean = false,
-    onOpen: (Int) -> Unit = {},
-    onToggle: (Int) -> Unit = {},
+    onOpen: (String) -> Unit = {},
+    onToggle: (String) -> Unit = {},
     onSearchOpenChange: (Boolean) -> Unit = {},
     onQuery: (String) -> Unit = {},
 ) {
@@ -78,7 +78,7 @@ private fun DashboardPreview() = ScleraTheme { DashboardSample(sampleAssetList()
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
-private fun DashboardSelectingPreview() = ScleraTheme { DashboardSample(sampleAssetList(picked = setOf(1, 2))) }
+private fun DashboardSelectingPreview() = ScleraTheme { DashboardSample(sampleAssetList(picked = setOf("a1", "a2"))) }
 
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)

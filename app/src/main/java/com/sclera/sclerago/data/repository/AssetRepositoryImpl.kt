@@ -26,39 +26,34 @@ class AssetRepositoryImpl @Inject constructor() : AssetRepository, UserDataClean
         state.value = state.value.f()
     }
 
-    private fun AssetCatalog.touch(ids: Collection<Int>): AssetCatalog {
+    private fun AssetCatalog.touch(ids: Collection<String>): AssetCatalog {
         val now = System.currentTimeMillis()
         return copy(touched = touched + ids.associateWith { now })
     }
 
-    override fun newIds(count: Int): Int {
-        val first = state.value.nextId
-        set { copy(nextId = nextId + count) }
-        return first
-    }
 
     override fun add(assets: List<Asset>) = set { copy(assets = assets + this.assets).touch(assets.map { it.id }) }
 
-    override fun setStatus(ids: Collection<Int>, status: Status) =
+    override fun setStatus(ids: Collection<String>, status: Status) =
         set { copy(statusOverride = statusOverride + ids.associateWith { status }).touch(ids) }
 
-    override fun saveDetails(id: Int, values: Map<String, String>) =
+    override fun saveDetails(id: String, values: Map<String, String>) =
         set { copy(savedDetails = savedDetails + (id to values)).touch(listOf(id)) }
 
-    override fun delete(ids: Collection<Int>) = set { copy(deleted = deleted + ids) }
+    override fun delete(ids: Collection<String>) = set { copy(deleted = deleted + ids) }
 
-    override fun assignLocation(ids: Collection<Int>, location: LocValue) =
+    override fun assignLocation(ids: Collection<String>, location: LocValue) =
         set { copy(locationOverride = locationOverride + ids.associateWith { location }).touch(ids) }
 
-    override fun attachMedia(id: Int, media: List<Media>) =
+    override fun attachMedia(id: String, media: List<Media>) =
         set { copy(mediaAdded = mediaAdded + (id to (mediaAdded[id].orEmpty() + media))).touch(listOf(id)) }
 
-    override fun linkDevice(deviceId: String, assetId: Int) =
+    override fun linkDevice(deviceId: String, assetId: String) =
         set { copy(deviceAsset = deviceAsset + (deviceId to assetId), addedDevices = addedDevices + deviceId) }
 
     override fun clear() {
         state.value = AssetCatalog(assets = SEED_ASSETS)
     }
 
-    override fun details(id: Int): AssetDetails? = DETAILS[id]
+    override fun details(id: String): AssetDetails? = DETAILS[id]
 }

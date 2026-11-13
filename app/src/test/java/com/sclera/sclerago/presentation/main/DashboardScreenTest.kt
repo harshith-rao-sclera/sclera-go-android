@@ -36,13 +36,13 @@ class DashboardScreenTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
     private fun str(id: Int, vararg args: Any) = context.getString(id, *args)
-    private val assets = SEED_ASSETS.filter { it.prop == "p1" }
+    private val assets = SEED_ASSETS.filter { it.propertyId == "p1" }
     private val pumps = assets.filter { "pump" in "${it.name} ${it.detail}".lowercase() }
 
     // ---- the list
 
     private fun checkList() {
-        val opened = mutableListOf<Int>()
+        val opened = mutableListOf<String>()
         compose.setContent { ScleraTheme { DashboardSample(sampleAssetList(), onOpen = { opened += it }) } }
         compose.onNodeWithTag(DashTags.location(LocFilter.ALL)).assertIsDisplayed().assertTextContains("Test 861")
         compose.onNodeWithTag(DashTags.location(LocFilter.NONE)).assertTextContains(str(R.string.dash_unmapped))

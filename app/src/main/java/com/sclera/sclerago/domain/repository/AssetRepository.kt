@@ -15,27 +15,25 @@ import kotlinx.coroutines.flow.StateFlow
 interface AssetRepository {
     val catalog: StateFlow<AssetCatalog>
 
-    /** Reserves [count] new asset ids and returns the first; the rest follow it. */
-    fun newIds(count: Int): Int
 
     /** Adds [assets] in front of the others (newest first). */
     fun add(assets: List<Asset>)
 
-    fun setStatus(ids: Collection<Int>, status: Status)
+    fun setStatus(ids: Collection<String>, status: Status)
 
     /** Keeps the values from an asset's details form. */
-    fun saveDetails(id: Int, values: Map<String, String>)
+    fun saveDetails(id: String, values: Map<String, String>)
 
-    fun delete(ids: Collection<Int>)
+    fun delete(ids: Collection<String>)
 
-    fun assignLocation(ids: Collection<Int>, location: LocValue)
+    fun assignLocation(ids: Collection<String>, location: LocValue)
 
     /** Adds photos / videos / documents to an asset. */
-    fun attachMedia(id: Int, media: List<Media>)
+    fun attachMedia(id: String, media: List<Media>)
 
     /** Remembers that the scanned device [deviceId] was made into the asset [assetId]. */
-    fun linkDevice(deviceId: String, assetId: Int)
+    fun linkDevice(deviceId: String, assetId: String)
 
     /** Code and reference fields an existing asset came with; null for assets added here. */
-    fun details(id: Int): AssetDetails?
+    fun details(id: String): AssetDetails?
 }
