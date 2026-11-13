@@ -66,6 +66,11 @@ class AdcSyncController @Inject constructor(
     }
 
     private fun launchRun(restart: Boolean) {
+        if (bridge.usesTestDatabase()) {
+            _state.value = SyncState.Ready
+            invalidations.emitAll()
+            return
+        }
         val credentials = credentialsProvider.credentials.value ?: return
         _state.value = SyncState.Downloading()
         tokenJob?.cancel()

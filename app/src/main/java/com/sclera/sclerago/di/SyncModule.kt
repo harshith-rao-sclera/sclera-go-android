@@ -9,6 +9,8 @@ import com.sclera.sclerago.data.sync.SyncDataCleaner
 import com.sclera.sclerago.domain.repository.UserDataCleaner
 import com.sclera.sclerago.domain.sync.OfflineSync
 import dagger.Binds
+import com.sclera.sclerago.data.sync.TestDatabase
+import dagger.BindsOptionalOf
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,6 +25,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class SyncModule {
     @Binds @Singleton abstract fun offlineSync(impl: AdcSyncController): OfflineSync
+    /** Absent in release; the debug source set binds it so a local test database can replace the sync. */
+    @BindsOptionalOf abstract fun testDatabase(): TestDatabase
     @Binds @IntoSet abstract fun clearSync(impl: SyncDataCleaner): UserDataCleaner
 
     companion object {

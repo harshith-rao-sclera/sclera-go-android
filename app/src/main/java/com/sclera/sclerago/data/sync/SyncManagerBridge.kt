@@ -12,6 +12,7 @@ import com.sclera.sclerago.utility.Utility
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.requery.android.database.sqlite.SQLiteDatabase
 import org.json.JSONObject
+import java.util.Optional
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,11 +33,19 @@ data class EngineSnapshot(
  * so the rest of the app talks to this class instead of to globals.
  */
 @Singleton
-class SyncManagerBridge @Inject constructor(@ApplicationContext private val context: Context) {
+class SyncManagerBridge @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val testDatabase: Optional<TestDatabase>,
+) {
     private val lock = Any()
 
-    /** The engine's open SQLite connection; null until the first download has finished or after a wipe. */
-    fun connection(): SQLiteDatabase? = SyncUtils.dbInstance?.dbConnection?.takeIf { it.isOpen }
+    private fun testConnection(): SQLiteDatabase? = testDatabase.orElse(null)?.connection()
+
+    /** True when a debug test database is present: it is read instead of the engine's, and no sync runs. */
+    fun usesTestDatabase(): Boolean = testConnection() != null
+
+    /** The test database when present, else the engine's open connection; null until the first download has finished or after a wipe. */
+    fun connection(): SQLiteDatabase? = testConnection() ?: SyncUtils.dbInstance?.dbConnection?.takeIf { it.isOpen }
 
     fun snapshot(): EngineSnapshot {
         val engine = SyncUtils.dbInstance ?: return EngineSnapshot()
