@@ -5,7 +5,6 @@ import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.OPTION_KINDS
-import com.sclera.sclerago.domain.model.ValueRule
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -37,9 +36,7 @@ private val SECTION_BY_KEY = mapOf(
 fun DbRow.toFieldCfg(): FieldCfg? {
     val kind = KIND_BY_TYPE[string("type")] ?: return null
     val key = FieldKeys.toApp(string("key").orEmpty())
-    val checks = DbJson.obj(string("checks"))
-    val format = checks["format"] as? JsonObject
-    val dates = (format?.get("dates") as? JsonPrimitive)?.contentOrNull
+    val checks = readChecks(string("checks"), kind)
     return FieldCfg(
         key = key,
         label = string("name").orEmpty(),
@@ -52,14 +49,10 @@ fun DbRow.toFieldCfg(): FieldCfg? {
         options = DbJson.stringList(string("options")),
         defaultValue = string("default_value").orEmpty(),
         tooltip = string("help_text").orEmpty(),
-        flagEmpty = (checks["highlight_empty"] as? JsonPrimitive)?.contentOrNull == "true",
-        rule = when (dates) {
-            "past" -> ValueRule.PAST
-            "future" -> ValueRule.FUTURE
-            else -> ValueRule.NONE
-        },
-        min = (format?.get("min") as? JsonPrimitive)?.contentOrNull.orEmpty(),
-        max = (format?.get("max") as? JsonPrimitive)?.contentOrNull.orEmpty(),
+        flagEmpty = checks.flagEmpty,
+        rule = checks.rule,
+        min = checks.min,
+        max = checks.max,
     )
 }
 
@@ -85,30 +78,3 @@ fun FieldCfg.optionsJson(existing: String? = null): String? {
     return JsonArray(options.map { label -> old[label] ?: buildJsonObject { put("label", label) } }).toString()
 }
 
-/**
- * The `checks` column text for this field: [existing] with the highlight-empty flag and the date and number limits
- * set from the field. Other checks the server keeps there (a format kind and pattern) are left as they are.
- */
-fun FieldCfg.mergeChecks(existing: String?): String {
-    val old = DbJson.obj(existing)
-    val oldFormat = old["format"] as? JsonObject ?: JsonObject(emptyMap())
-    val dates = when (rule) {
-        ValueRule.PAST -> "past"
-        ValueRule.FUTURE -> "future"
-        else -> null
-    }
-    val format = buildJsonObject {
-        oldFormat.filterKeys { it !in LIMIT_KEYS }.forEach { (k, v) -> put(k, v) }
-        dates?.let { put("dates", it) }
-        min.toDoubleOrNull()?.let { put("min", it) }
-        max.toDoubleOrNull()?.let { put("max", it) }
-    }
-    return buildJsonObject {
-        old.filterKeys { it != "format" && it != "highlight_empty" }.forEach { (k, v) -> put(k, v) }
-        if (flagEmpty) put("highlight_empty", true)
-        if (format.isNotEmpty()) put("format", format)
-    }.toString()
-}
-
-/** The keys of a `checks.format` that a [FieldCfg] sets itself. */
-private val LIMIT_KEYS = setOf("dates", "min", "max")
