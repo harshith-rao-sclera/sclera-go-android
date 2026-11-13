@@ -1,6 +1,5 @@
 package com.sclera.sclerago.presentation.main
 
-import com.sclera.sclerago.presentation.common.plural
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -15,14 +14,27 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -33,12 +45,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.model.UserSession
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.endBorder
@@ -52,8 +73,7 @@ import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.services.media.MediaLoader
-
-private val Wash = Color(0x80272A2F)
+import java.util.Locale
 
 /** What a section row shows on its right edge. */
 private sealed interface Trailing {
@@ -62,45 +82,94 @@ private sealed interface Trailing {
     data object Soon : Trailing
 }
 
+/** Test tags of the side menu. */
+object MenuTags {
+    const val SIGN_OUT = "menu_sign_out"
+    const val SIGN_OUT_CONFIRM = "menu_sign_out_confirm"
+    const val SWITCH = "menu_switch"
+    fun item(item: MenuItem) = "menu_item_${item.name.lowercase()}"
+}
+
+/** The menu row for the page that is showing: a side-menu page, Validation, Configuration, or else the assets. */
+internal fun activeMenuItem(adminPage: AdminPage?, validationOpen: Boolean, configurationOpen: Boolean): MenuItem = when {
+    adminPage == AdminPage.PROPERTIES -> MenuItem.PROPERTY
+    adminPage == AdminPage.PEOPLE -> MenuItem.USERS
+    validationOpen -> MenuItem.VALIDATION
+    configurationOpen -> MenuItem.CONFIGURATION
+    else -> MenuItem.ASSETS
+}
+
 /**
  * Side menu opened from the header's menu button: profile, Property / Users, the current property
  * with the app's sections under it, and Sign out pinned to the bottom.
  */
 @Composable
 fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
-    val open = vm.state.menuOpen
-    BackHandler(enabled = open, onBack = vm::closeMenu)
-    val session = (sessionVm.authState.collectAsState().value as? AuthState.SignedIn)?.session
+    val auth by sessionVm.authState.collectAsStateWithLifecycle()
+    val s = vm.state
+    SideMenuPanel(
+        open = s.menuOpen,
+        session = (auth as? AuthState.SignedIn)?.session,
+        propertyName = vm.propName,
+        assetCount = vm.assets.size,
+        validationCount = vm.propJobs.size,
+        active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen),
+        onClose = vm::closeMenu,
+        onPick = vm::pickMenu,
+        onSwitch = vm::switchPropertyFromMenu,
+        onSignOut = sessionVm::logout,
+    )
+}
+
+/** The menu itself, stateless apart from its folded sections and the sign-out question. */
+@Composable
+internal fun SideMenuPanel(
+    open: Boolean,
+    session: UserSession?,
+    propertyName: String,
+    assetCount: Int,
+    validationCount: Int,
+    active: MenuItem,
+    onClose: () -> Unit,
+    onPick: (MenuItem) -> Unit,
+    onSwitch: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    BackHandler(enabled = open, onBack = onClose)
     val name = session?.displayName.orEmpty()
     var confirmSignOut by remember { mutableStateOf(false) }
     var sectionsOpen by rememberSaveable { mutableStateOf(true) }
 
     if (confirmSignOut) {
+        val email = session?.email
         AlertDialog(
             onDismissRequest = { confirmSignOut = false },
             containerColor = C.Surface,
-            title = { Txt("Sign out?", 19, 700) },
+            title = { Txt(stringResource(R.string.menu_sign_out_title), 19, 700) },
             text = {
                 Txt(
-                    "You'll need to sign in again with ${session?.email ?: "your email"} to use Sclera Go.",
+                    if (email != null) stringResource(R.string.menu_sign_out_message, email) else stringResource(R.string.menu_sign_out_message_generic),
                     14, 400, C.Muted, maxLines = 4,
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    confirmSignOut = false
-                    vm.closeMenu()
-                    sessionVm.logout()
-                }) { Txt("Sign out", 15, 700, C.Red) }
+                TextButton(
+                    onClick = {
+                        confirmSignOut = false
+                        onClose()
+                        onSignOut()
+                    },
+                    Modifier.testTag(MenuTags.SIGN_OUT_CONFIRM),
+                ) { Txt(stringResource(R.string.menu_sign_out), 15, 700, C.Red) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmSignOut = false }) { Txt("Cancel", 15, 600, C.Text) }
+                TextButton(onClick = { confirmSignOut = false }) { Txt(stringResource(R.string.action_cancel), 15, 600, C.Text) }
             },
         )
     }
 
     AnimatedVisibility(open, enter = fadeIn(tween(220)), exit = fadeOut(tween(200))) {
-        Box(Modifier.fillMaxSize().background(Backdrop).noRippleClick(vm::closeMenu))
+        Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onClose))
     }
     AnimatedVisibility(
         open,
@@ -125,15 +194,18 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
                         }
                         session?.email?.let { Txt(it, 12, 400, C.Muted) }
                     }
-                    RoundButton(38.dp, C.Btn, vm::closeMenu) { LineIcon(Icons.Close, 16.dp, C.Text, 3f) }
+                    val closeLabel = stringResource(R.string.action_close)
+                    RoundButton(38.dp, C.Btn, onClose, Modifier.semantics { contentDescription = closeLabel }) {
+                        LineIcon(Icons.Close, 16.dp, C.Text, 3f)
+                    }
                 }
 
                 // Top-level destinations
-                TopRow("Property list", Icons.Buildings) { vm.pickMenu(MenuItem.PROPERTY) }
-                TopRow("Users", Icons.Users) { vm.pickMenu(MenuItem.USERS) }
+                TopRow(MenuItem.PROPERTY, stringResource(R.string.property_list_title), Icons.Buildings, active, onPick)
+                TopRow(MenuItem.USERS, stringResource(R.string.menu_users), Icons.Users, active, onPick)
 
                 // Current property and its sections
-                Column(Modifier.fillMaxWidth().clip(r(14)).background(Wash).border(1.dp, C.Border, r(14))) {
+                Column(Modifier.fillMaxWidth().clip(r(14)).background(C.CardWash).border(1.dp, C.Border, r(14))) {
                     val chevron by animateFloatAsState(if (sectionsOpen) 0f else -90f, tween(200), label = "chevron")
                     Row(
                         Modifier.fillMaxWidth().padding(12.dp),
@@ -149,27 +221,27 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
                                 LineIcon(Icons.Buildings, 20.dp, C.Yellow, 1.8f)
                             }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Txt("CURRENT PROPERTY", 10, 600, C.Muted, spacing = 0.4f)
-                                Txt(vm.propName, 15, 700)
-                                Txt(plural(vm.assets.size, "asset", "assets"), 12, 400, C.Muted)
+                                Txt(stringResource(R.string.menu_current_property).uppercase(Locale.getDefault()), 10, 600, C.Muted, spacing = 0.4f)
+                                Txt(propertyName, 15, 700)
+                                Txt(pluralStringResource(R.plurals.asset_count, assetCount, assetCount), 12, 400, C.Muted)
                             }
                         }
-                        Pill("Switch", vm::switchPropertyFromMenu, height = 34.dp, hPad = 10.dp, size = 12)
+                        Pill(stringResource(R.string.menu_switch), onSwitch, Modifier.testTag(MenuTags.SWITCH), height = 34.dp, hPad = 10.dp, size = 12)
                         Box(Modifier.width(22.dp).clickable { sectionsOpen = !sectionsOpen }, contentAlignment = Alignment.Center) {
                             LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 3f, Modifier.rotate(chevron))
                         }
                     }
                     AnimatedVisibility(sectionsOpen, enter = expandVertically(), exit = shrinkVertically()) {
                         Column(Modifier.topBorder(C.Border).padding(start = 12.dp, end = 8.dp)) {
-                            SectionRow("Assets", Icons.Box, Trailing.Count(vm.assets.size), first = true) { vm.pickMenu(MenuItem.ASSETS) }
+                            SectionRow(MenuItem.ASSETS, stringResource(R.string.label_assets), Icons.Box, Trailing.Count(assetCount), active, onPick, first = true)
                             SectionRow(
-                                "Validation", Icons.ShieldCheck,
-                                vm.propJobs.size.let { if (it > 0) Trailing.Count(it) else Trailing.Open },
-                            ) { vm.pickMenu(MenuItem.VALIDATION) }
-                            SectionRow("Configuration", Icons.Sliders, Trailing.Open) { vm.pickMenu(MenuItem.CONFIGURATION) }
-                            SectionRow("Audit", Icons.Clipboard, Trailing.Soon) { vm.pickMenu(MenuItem.AUDIT) }
-                            SectionRow("Survey", Icons.Survey, Trailing.Soon) { vm.pickMenu(MenuItem.SURVEY) }
-                            SectionRow("Integration", Icons.Link, Trailing.Soon) { vm.pickMenu(MenuItem.INTEGRATION) }
+                                MenuItem.VALIDATION, stringResource(R.string.menu_validation), Icons.ShieldCheck,
+                                if (validationCount > 0) Trailing.Count(validationCount) else Trailing.Open, active, onPick,
+                            )
+                            SectionRow(MenuItem.CONFIGURATION, stringResource(R.string.menu_configuration), Icons.Sliders, Trailing.Open, active, onPick)
+                            SectionRow(MenuItem.AUDIT, stringResource(R.string.menu_audit), Icons.Clipboard, Trailing.Soon, active, onPick)
+                            SectionRow(MenuItem.SURVEY, stringResource(R.string.menu_survey), Icons.Survey, Trailing.Soon, active, onPick)
+                            SectionRow(MenuItem.INTEGRATION, stringResource(R.string.menu_integration), Icons.Link, Trailing.Soon, active, onPick)
                         }
                     }
                 }
@@ -179,21 +251,19 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
             Box(Modifier.fillMaxWidth().topBorder(C.Border).navigationBarsPadding().padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 14.dp)) {
                 Row(
                     Modifier.fillMaxWidth().height(48.dp).clip(r(14)).background(C.Red.copy(alpha = 0.12f))
-                        .border(1.dp, C.Red.copy(alpha = 0.35f), r(14)).clickable { confirmSignOut = true },
+                        .border(1.dp, C.Red.copy(alpha = 0.35f), r(14)).testTag(MenuTags.SIGN_OUT)
+                        .clickable(role = Role.Button) { confirmSignOut = true },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     LineIcon(Icons.SignOut, 19.dp, C.Red, 2.2f)
                     Spacer(Modifier.width(8.dp))
-                    Txt("Sign out", 15, 600, C.Red)
+                    Txt(stringResource(R.string.menu_sign_out), 15, 600, C.Red)
                 }
             }
         }
     }
 }
-
-/** Dims the screen behind the open menu. */
-private val Backdrop = Color(0xB808090A)
 
 private const val AVATAR_PX = 138
 
@@ -214,7 +284,7 @@ private fun Avatar(name: String, url: String?) {
     }
 }
 
-private fun initials(name: String): String {
+internal fun initials(name: String): String {
     val parts = name.substringBefore('@').split(' ', '.', '_', '-').filter { it.isNotBlank() }
     return listOfNotNull(parts.firstOrNull(), parts.drop(1).lastOrNull())
         .joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
@@ -229,10 +299,11 @@ private fun IconBox(icon: Ico) {
 
 /** Property list / Users: a card of its own. */
 @Composable
-private fun TopRow(label: String, icon: Ico, onClick: () -> Unit) {
+private fun TopRow(item: MenuItem, label: String, icon: Ico, active: MenuItem, onPick: (MenuItem) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(14)).background(Wash).border(1.dp, C.Border, r(14))
-            .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(14)).background(C.CardWash).border(1.dp, C.Border, r(14))
+            .semantics { selected = item == active }.testTag(MenuTags.item(item))
+            .clickable(role = Role.Button) { onPick(item) }.padding(horizontal = 12.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -244,9 +315,18 @@ private fun TopRow(label: String, icon: Ico, onClick: () -> Unit) {
 
 /** A section of the current property; rows after the first are separated by a line right of the icon. */
 @Composable
-private fun SectionRow(label: String, icon: Ico, trailing: Trailing, first: Boolean = false, onClick: () -> Unit) {
+private fun SectionRow(
+    item: MenuItem,
+    label: String,
+    icon: Ico,
+    trailing: Trailing,
+    active: MenuItem,
+    onPick: (MenuItem) -> Unit,
+    first: Boolean = false,
+) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onClick),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { selected = item == active }.testTag(MenuTags.item(item))
+            .clickable(role = Role.Button) { onPick(item) },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -262,7 +342,7 @@ private fun SectionRow(label: String, icon: Ico, trailing: Trailing, first: Bool
                 }
                 Trailing.Open -> LineIcon(Icons.ChevronRight, 14.dp, C.Dim, 2.6f)
                 Trailing.Soon -> Box(Modifier.clip(CircleShape).background(C.Raised).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                    Txt("Soon", 10, 600, C.Muted)
+                    Txt(stringResource(R.string.menu_soon), 10, 600, C.Muted)
                 }
             }
         }
