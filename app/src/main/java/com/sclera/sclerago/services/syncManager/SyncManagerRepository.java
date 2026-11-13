@@ -1,11 +1,11 @@
-package com.example.sclerago.services.syncManager;
+package com.sclera.sclerago.services.syncManager;
 
 import android.annotation.SuppressLint;
 import android.database.Cursor;
 
-import com.example.sclerago.services.syncManager.enums.SyncMode;
-import com.example.sclerago.services.syncManager.utils.SyncUtils;
-import com.example.sclerago.utility.firebaseUtils.Utility;
+import com.sclera.sclerago.services.syncManager.enums.SyncMode;
+import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
+import com.sclera.sclerago.utility.Utility;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

@@ -13,6 +13,7 @@ import com.sclera.sclerago.presentation.login.LoginScreen
 import com.sclera.sclerago.presentation.main.ScleraApp
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.ScleraTheme
+import com.sclera.sclerago.utility.Utility
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

@@ -1,4 +1,4 @@
-package com.example.sclerago.services.syncManager.enums;
+package com.sclera.sclerago.services.syncManager.enums;
 
 public enum OfflineFeatures {
     ADMIN,

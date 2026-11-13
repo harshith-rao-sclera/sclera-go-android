@@ -20,7 +20,7 @@ while (<$log>) {
   next unless m{^e: file:///(.+?\.kt):\d+:\d+ Unresolved reference '(\w+)'};
   my ($file, $name) = ($1, $2); $file =~ s{^.*?(app/src/)}{$1};
   my $own = $pkgOf{$file} // '';
-  if ($name eq 'R') { $need{$file}{'com.example.sclerago.R'} = 1; next }
+  if ($name eq 'R') { $need{$file}{'com.sclera.sclerago.R'} = 1; next }
   my @p = grep { $_ ne $own } sort keys %{ $idx{$name} // {} };
   if (@p == 1) { $need{$file}{"$p[0].$name"} = 1 }
   elsif (@p > 1) { my @pp = grep { /presentation/ } @p; if (@pp == 1) { $need{$file}{"$pp[0].$name"} = 1 } else { print "AMBIGUOUS $file $name: @p\n" } }

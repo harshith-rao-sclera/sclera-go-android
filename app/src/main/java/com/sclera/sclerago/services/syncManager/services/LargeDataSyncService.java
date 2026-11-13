@@ -1,6 +1,6 @@
-package com.example.sclerago.services.syncManager.services;
+package com.sclera.sclerago.services.syncManager.services;
 
-import static com.example.sclerago.services.syncManager.constants.SyncConfigTables.*;
+import static com.sclera.sclerago.services.syncManager.constants.SyncConfigTables.*;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
@@ -9,7 +9,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.example.sclerago.services.syncManager.SyncManager;
+import com.sclera.sclerago.services.syncManager.SyncManager;
 
 import java.io.IOException;
 
