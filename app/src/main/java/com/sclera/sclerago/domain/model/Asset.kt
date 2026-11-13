@@ -59,6 +59,8 @@ data class Asset(
     val prop: String = "p1",
     /** Photos and videos attached to this asset (from the camera or the gallery). */
     val media: List<Media> = emptyList(),
+    /** When the asset was last added or edited (epoch millis); null for sample assets nobody has touched. */
+    val updatedAt: Long? = null,
 )
 
 /**

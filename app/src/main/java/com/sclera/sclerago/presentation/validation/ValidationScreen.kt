@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.model.icon
 import com.sclera.sclerago.domain.validation.ACROSS_RULES
@@ -190,7 +191,7 @@ fun ValidationScreen(vm: AppViewModel) {
             s.toastOn,
             Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp),
             enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut(),
-        ) { Toast(s.toast) }
+        ) { Toast(s.toast.asString()) }
     }
 }
 

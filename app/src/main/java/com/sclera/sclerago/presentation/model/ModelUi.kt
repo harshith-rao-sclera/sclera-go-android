@@ -69,3 +69,29 @@ val AssetType.icon: Ico
         AssetType.SENSOR -> Icons.Sensor
         AssetType.GENERIC -> Icons.Box
     }
+
+// ---------------------------------------------------------------- Text
+
+/** The status as the user reads it (the domain's [Status.label] is English only). */
+@get:androidx.annotation.StringRes
+val Status.labelRes: Int
+    get() = when (this) {
+        Status.AI -> com.sclera.sclerago.R.string.status_ai
+        Status.VALIDATED -> com.sclera.sclerago.R.string.status_validated
+        Status.SUBMITTED -> com.sclera.sclerago.R.string.status_submitted
+        Status.DRAFT -> com.sclera.sclerago.R.string.status_draft
+        Status.INPUT -> com.sclera.sclerago.R.string.status_input
+        Status.EXCEPTION -> com.sclera.sclerago.R.string.status_exception
+    }
+
+/** "via Camera", "Added manually", ... for each way of onboarding. */
+@get:androidx.annotation.StringRes
+val Source.viaRes: Int
+    get() = when (this) {
+        Source.CAMERA -> com.sclera.sclerago.R.string.source_camera
+        Source.BT -> com.sclera.sclerago.R.string.source_bt
+        Source.WIFI -> com.sclera.sclerago.R.string.source_wifi
+        Source.AP -> com.sclera.sclerago.R.string.source_ap
+        Source.FILE -> com.sclera.sclerago.R.string.source_file
+        Source.MANUAL -> com.sclera.sclerago.R.string.source_manual
+    }

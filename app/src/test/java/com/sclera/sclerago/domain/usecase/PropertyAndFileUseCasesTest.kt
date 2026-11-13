@@ -11,6 +11,7 @@ import com.sclera.sclerago.domain.usecase.media.WritePropertyTemplateUseCase
 import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.ObserveOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertiesUseCase
+import com.sclera.sclerago.domain.usecase.property.PropertyProblem
 import com.sclera.sclerago.domain.usecase.property.SetOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.propertyProblem
 import com.sclera.sclerago.domain.model.ImportedFile
@@ -29,9 +30,9 @@ class PropertyAndFileUseCasesTest {
     @Test
     fun propertyProblem_explainsWhatIsWrong() {
         val existing = listOf(Property("p1", "Tower", false))
-        assertEquals("Enter the property name.", propertyProblem(" ", "Office", existing))
-        assertEquals("Choose the property type.", propertyProblem("A", "", existing))
-        assertEquals("There is already a property called tower.", propertyProblem(" tower ", "Office", existing))
+        assertEquals(PropertyProblem.NAME_REQUIRED, propertyProblem(" ", "Office", existing))
+        assertEquals(PropertyProblem.TYPE_REQUIRED, propertyProblem("A", "", existing))
+        assertEquals(PropertyProblem.DUPLICATE, propertyProblem(" tower ", "Office", existing))
         assertNull(propertyProblem("New", "Office", existing))
     }
 
@@ -40,7 +41,7 @@ class PropertyAndFileUseCasesTest {
         val add = AddPropertyUseCase(repo)
         val before = repo.properties.value.size
         val bad = add(Property("x", " ", true)) as AddPropertyUseCase.Result.Invalid
-        assertEquals("Enter the property name.", bad.message)
+        assertEquals(PropertyProblem.NAME_REQUIRED, bad.problem)
         val ok = add(Property("x", " Depot ", true)) as AddPropertyUseCase.Result.Added
         assertEquals("Depot", ok.property.name)
         assertTrue(ok.property.id.startsWith("p"))

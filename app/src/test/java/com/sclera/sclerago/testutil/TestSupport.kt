@@ -50,3 +50,14 @@ class CountingCleaner(private val fails: Boolean = false) : UserDataCleaner {
         if (fails) error("boom")
     }
 }
+
+/** Ids "prefix-1", "prefix-2", ... so tests can predict them. */
+class SequentialIdGenerator : com.sclera.sclerago.domain.system.IdGenerator {
+    private var n = 0
+    override fun next(prefix: String): String = "$prefix-${++n}"
+}
+
+/** A clock the test moves by hand. */
+class FakeTimeProvider(var now: Long = 1_700_000_000_000L) : com.sclera.sclerago.domain.system.TimeProvider {
+    override fun nowMillis(): Long = now
+}

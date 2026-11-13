@@ -22,9 +22,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
@@ -35,13 +37,9 @@ import com.sclera.sclerago.presentation.theme.Txt
 // Building blocks shared by Property list and People and access, as drawn in the
 // "Sclera VDMS Mobile" design canvas.
 
-internal val SheetBg = Color(0xFF1B1D21)
-internal val SheetHandleColor = Color(0xFF45464C)
-internal val TintText = Color(0xFFD8CFA8)
-internal val PrimaryOffBg = Color(0xFF5C4A10)
-internal val PrimaryOffFg = Color(0xFFC9B57A)
-internal val CardWash = Color(0x80272A2F)
-internal val DangerBg = Color(0xFF2A1919)
+/** Opacity of a field that can't be edited right now (the design's locked and waiting fields). */
+private const val DimmedAlpha = 0.55f
+
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
 /** A 24×24 stroke icon from an SVG path (used for the per-permission icons). */
@@ -71,24 +69,25 @@ internal fun SubPageBar(title: String, property: String, onBack: () -> Unit) {
     }
 }
 
+/** Page title (22 by default) with an optional count or description under it. */
 @Composable
-internal fun PageHeading(title: String, sub: String?) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Txt(title, 24, 700)
+internal fun PageHeading(title: String, sub: String?, modifier: Modifier = Modifier, titleSize: Int = 22, gap: Dp = 2.dp) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
+        Txt(title, titleSize, 700)
         sub?.let { Txt(it, 13, 400, C.Muted, maxLines = 4) }
     }
 }
 
-/** Tile with an icon, a number and what it counts. */
+/** Tile with a tinted icon, a number and what it counts (the 2-up tiles of the list pages). */
 @Composable
 internal fun StatCard(icon: Ico, tint: Color, value: String, label: String, modifier: Modifier = Modifier) {
     Row(
-        modifier.clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16)).padding(12.dp),
+        modifier.clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(r(12)).background(tint.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
-            LineIcon(icon, 18.dp, tint, 1.9f)
+        Box(Modifier.size(36.dp).clip(r(10)).background(tint.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+            LineIcon(icon, 16.dp, tint, 1.9f)
         }
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Txt(value, 20, 700)
@@ -97,37 +96,29 @@ internal fun StatCard(icon: Ico, tint: Color, value: String, label: String, modi
     }
 }
 
-/** Yellow floating button with a plus and a label, bottom-right. */
+/** Two [StatCard]s side by side, equal width. */
 @Composable
-internal fun AdminFab(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier.navigationBarsPadding().padding(end = 12.dp, bottom = 24.dp).height(48.dp).fabShadow(r(24)).clip(r(24))
-            .background(C.Yellow).clickable(onClick = onClick).padding(start = 14.dp, end = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        LineIcon(Icons.Plus, 18.dp, C.OnYellow, 2.4f)
-        Txt(label, 14, 700, C.OnYellow)
-    }
+internal fun StatRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
 }
 
 /** Rounded label in [color] with an icon (permissions, groups, asset counts); [small] for compact rows. */
 @Composable
-internal fun ColorChip(label: String, color: Color, icon: Ico?, small: Boolean = false) {
+internal fun ColorChip(label: String, color: Color, icon: Ico?, small: Boolean = false, iconSize: Dp = if (small) 11.dp else 12.dp) {
     Row(
         Modifier.clip(CircleShape).background(color.copy(alpha = 0.15f)).border(1.dp, color.copy(alpha = 0.3f), CircleShape)
             .padding(horizontal = if (small) 8.dp else 10.dp, vertical = if (small) 3.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(if (small) 4.dp else 5.dp),
     ) {
-        icon?.let { LineIcon(it, if (small) 11.dp else 12.dp, color, 2.2f) }
+        icon?.let { LineIcon(it, iconSize, color, 2.2f) }
         Txt(label, if (small) 11 else 12, 600, color)
     }
 }
 
 /** Small tinted label ("2 chosen", "Needs all properties", "None yet"). */
 @Composable
-internal fun TintChip(text: String, bg: Color = C.YTintBg, fg: Color = TintText) {
+internal fun TintChip(text: String, bg: Color = C.YTintBg, fg: Color = C.TintText) {
     Box(Modifier.clip(CircleShape).background(bg).padding(horizontal = 8.dp, vertical = 3.dp)) { Txt(text, 11, 600, fg) }
 }
 
@@ -185,22 +176,24 @@ internal fun ChoiceSheet(
     selected: String?,
     onPick: (String) -> Unit,
     onClose: () -> Unit,
+    /** Options that are shown but can't be picked. */
+    disabled: Set<String> = emptySet(),
 ) {
     BackHandler(onBack = onClose)
-    Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
+    Box(Modifier.fillMaxSize().background(C.Overlay).noRippleClick(onClose)) {
         Column(
-            sheetFrame(SheetBg, radius = 28.dp, heightFraction = 0.85f)
+            sheetFrame(C.SheetBg, radius = 28.dp, heightFraction = 0.85f)
                 .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (!isTablet()) Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
+            if (!isTablet()) Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(C.SheetHandle))
             Txt(title, 17, 700)
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 options.forEach { (name, sub) ->
                     val on = name == selected
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(r(14)).background(if (on) C.YTintBg else Color(0x99272A2F))
-                            .border(1.dp, if (on) C.YTintBd else C.Border, r(14)).clickable { onPick(name) }
+                        Modifier.fillMaxWidth().heightIn(min = 64.dp).alpha(if (name in disabled) DimmedAlpha else 1f).clip(r(14)).background(if (on) C.YTintBg else C.FieldRowWash)
+                            .border(1.dp, if (on) C.YTintBd else C.Border, r(14)).clickable(enabled = name !in disabled) { onPick(name) }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -233,19 +226,20 @@ internal fun FormSheet(
     onPrimary: () -> Unit,
     leadingIcon: Ico? = null,
     progress: Float? = null,
-    bodyBackground: Color = SheetBg,
+    bodyBackground: Color = C.SheetBg,
     bodyPadding: PaddingValues = PaddingValues(16.dp),
     bodySpacing: Dp = 18.dp,
+    primaryModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onClose)
-    Box(Modifier.fillMaxSize().background(Color(0x99000000)).noRippleClick(onClose)) {
+    Box(Modifier.fillMaxSize().background(C.Overlay).noRippleClick(onClose)) {
         Column(
-            (if (isTablet()) sheetFrame(SheetBg, radius = 28.dp, heightFraction = 0.9f, fill = true)
-            else Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(SheetBg)
+            (if (isTablet()) sheetFrame(C.SheetBg, radius = 28.dp, heightFraction = 0.9f, fill = true)
+            else Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(C.SheetBg)
                 .noRippleClick { }.navigationBarsPadding()).imePadding(),
         ) {
-            if (!isTablet()) Box(Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(SheetHandleColor))
+            if (!isTablet()) Box(Modifier.padding(top = 6.dp).align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(C.SheetHandle))
             Row(
                 Modifier.fillMaxWidth().then(if (progress == null) Modifier.bottomBorder(C.Border) else Modifier).padding(16.dp, 14.dp),
                 verticalAlignment = Alignment.Top,
@@ -275,7 +269,7 @@ internal fun FormSheet(
             )
             error?.let {
                 Row(
-                    Modifier.fillMaxWidth().background(DangerBg).padding(horizontal = 16.dp, vertical = 10.dp),
+                    Modifier.fillMaxWidth().background(C.DangerBg).padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -287,10 +281,10 @@ internal fun FormSheet(
                 Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Pill("Cancel", onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 15, weight = 600)
+                Pill(stringResource(R.string.action_cancel), onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 15, weight = 600)
                 Pill(
-                    primary, onPrimary, Modifier.weight(1f),
-                    bg = if (primaryEnabled) C.Yellow else PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else PrimaryOffFg,
+                    primary, onPrimary, Modifier.weight(1f).then(primaryModifier),
+                    bg = if (primaryEnabled) C.Yellow else C.PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else C.PrimaryOffFg,
                     height = 50.dp, size = 15, weight = 700,
                 )
             }
@@ -331,7 +325,7 @@ internal fun FormGroup(
 @Composable
 internal fun InlineField(label: String, required: Boolean = false, dim: Boolean = false, input: @Composable RowScope.() -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (dim) 0.45f else 1f).padding(horizontal = 12.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (dim) DimmedAlpha else 1f).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -344,18 +338,33 @@ internal fun InlineField(label: String, required: Boolean = false, dim: Boolean 
 }
 
 @Composable
-internal fun RowScope.InlineInput(value: String, onChange: (String) -> Unit, placeholder: String, enabled: Boolean = true, keyboard: KeyboardType = KeyboardType.Text) {
-    PlainField(value, onChange, placeholder, Modifier.weight(1f), size = 15, readOnly = !enabled, keyboard = keyboard)
+internal fun RowScope.InlineInput(
+    value: String,
+    onChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    keyboard: KeyboardType = KeyboardType.Text,
+) {
+    PlainField(value, onChange, placeholder, Modifier.weight(1f).then(modifier), size = 15, readOnly = !enabled, keyboard = keyboard)
 }
 
 @Composable
-internal fun RowScope.InlineSelect(value: String, placeholder: String, enabled: Boolean = true, chevron: Boolean = true, onClick: () -> Unit) {
+internal fun RowScope.InlineSelect(
+    value: String,
+    placeholder: String,
+    enabled: Boolean = true,
+    chevron: Boolean = true,
+    upDown: Boolean = false,
+    onClick: () -> Unit,
+) {
     Row(
         Modifier.weight(1f).heightIn(min = 44.dp).clickable(enabled = enabled, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Txt(value.ifEmpty { placeholder }, 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
-        if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
+        if (chevron && upDown) LineIcon(Icons.ChevronUpDown, 12.dp, C.Yellow, 2.4f)
+        else if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
     }
 }
 

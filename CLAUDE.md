@@ -224,6 +224,15 @@ Rules live in `app/src/main/keepRules/rules.keep` (wired in the `release` build 
   that sends data off the device without approval.
 - Don't send personal data to external services (analytics, crash tools, AI helpers) without approval;
   strip identifiers first.
+- **Telemetry (Firebase Crashlytics, Analytics, Performance; approved):** collection is on in **release only**
+  (`telemetryEnabled` manifest placeholder), advertising id and ad personalisation are off. Code reaches it
+  only through `domain/telemetry` (`AnalyticsTracker`, `CrashReporter`); never call Firebase from screens,
+  ViewModels or use cases. Events are the fixed `AnalyticsEvent` list with parameters that pass
+  `TelemetryParams.sanitise`; crash reports carry a short snake_case code, never a message or cause. Never
+  send an email, name, user id, token, location, access code, SSID/MAC or file name, and never call
+  `setUserId`. A new event or a new Firebase product is a reviewed change; update the privacy policy with it.
+  `app/google-services.json` holds Firebase client identifiers (not secrets): keep the API key restricted to
+  the app's package and signing certificates in the Google Cloud console.
 
 ### MASVS-RESILIENCE (decide per risk)
 - For a hardened release consider root/emulator/debugger detection, certificate pinning and tamper checks

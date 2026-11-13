@@ -2,7 +2,11 @@ package com.sclera.sclerago.presentation.assets
 
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.formatDuration
-import com.sclera.sclerago.presentation.common.plural
+import com.sclera.sclerago.R
+import com.sclera.sclerago.presentation.common.asString
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.sclera.sclerago.presentation.main.rememberAssetListBinding
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -52,20 +56,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sclera.sclerago.presentation.components.Capsule
-import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.MediaImage
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.SegHeader
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.r
-import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.main.Preview
-import com.sclera.sclerago.presentation.main.ReviewItem
 import com.sclera.sclerago.presentation.main.Sheet
 import com.sclera.sclerago.presentation.main.Tab
 import com.sclera.sclerago.presentation.theme.C
@@ -388,18 +389,17 @@ private fun ModePill(label: String, on: Boolean, onClick: () -> Unit) {
 @Composable
 private fun CameraReview(vm: AppViewModel) {
     val rev = vm.camReview
-    val on = rev.count { it.on }
     ReviewScreen(
-        sub = plural(rev.size, "item", "items") + " · each becomes a draft asset",
-        addLabel = "Add more", onAdd = vm::backToCam,
+        sub = pluralStringResource(R.plurals.review_items_sub, rev.size, rev.size),
+        addLabel = stringResource(R.string.review_add_more), onAdd = vm::backToCam,
         items = rev, onToggle = vm::toggleRev,
-        goLabel = if (on > 0) "Onboard " + plural(on, "asset", "assets") else "Select items to onboard",
-        goEnabled = on > 0, onDiscard = vm::discardCam, onGo = vm::onboardCam,
+        onDiscard = vm::discardCam, onGo = vm::onboardCam,
     ) { ri ->
         val m = ri.media
+        val sub = ri.sub.asString()
         Box(
             Modifier.size(56.dp).clip(r(10)).clickable {
-                if (m != null) vm.showPreview(Preview(ri.name, ri.sub, Color.Black, plate = false, video = m.video, media = m))
+                if (m != null) vm.showPreview(Preview(ri.name, sub, Color.Black, plate = false, video = m.video, media = m))
             },
             contentAlignment = Alignment.Center,
         ) {
@@ -444,13 +444,11 @@ private fun FileWaiting(vm: AppViewModel) {
 @Composable
 private fun FileReview(vm: AppViewModel) {
     val rev = vm.fileReview
-    val on = rev.count { it.on }
     ReviewScreen(
-        sub = plural(rev.size, "file", "files") + " selected · each becomes a draft asset",
-        addLabel = "Add files", onAdd = vm::backToFiles,
+        sub = pluralStringResource(R.plurals.review_files_sub, rev.size, rev.size),
+        addLabel = stringResource(R.string.review_add_files), onAdd = vm::backToFiles,
         items = rev, onToggle = vm::toggleRev,
-        goLabel = if (on > 0) "Onboard " + plural(on, "asset", "assets") else "Select items to onboard",
-        goEnabled = on > 0, onDiscard = vm::discardFile, onGo = vm::onboardFile,
+        onDiscard = vm::discardFile, onGo = vm::onboardFile,
     ) { ri ->
         Box(Modifier.size(52.dp).background(C.Raised, r(10)), contentAlignment = Alignment.Center) {
             Txt(ri.ext, 12, 800, ri.extColor)
@@ -464,70 +462,11 @@ private fun FileReview(vm: AppViewModel) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SubList(vm: AppViewModel, tab: Tab, label: String, onOpen: () -> Unit, labelIcon: Ico? = null) {
-    LazyColumn(Modifier.fillMaxSize()) {
-        assetList(vm.listFor(tab), vm.pickedIds, { vm.setStatusFilter(tab, it.status) }, vm::togglePick, vm::openAsset) {
+    val list = rememberAssetListBinding(vm, tab)
+    LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        assetList(list) {
             SegHeader(listOf("Assets", label), 0, icons = listOf(null, labelIcon)) { if (it == 1) onOpen() }
         }
     }
 }
 
-@Composable
-private fun ReviewScreen(
-    sub: String,
-    addLabel: String,
-    onAdd: () -> Unit,
-    items: List<ReviewItem>,
-    onToggle: (String) -> Unit,
-    goLabel: String,
-    goEnabled: Boolean,
-    onDiscard: () -> Unit,
-    onGo: () -> Unit,
-    thumb: @Composable (ReviewItem) -> Unit,
-) {
-    Column(Modifier.fillMaxSize()) {
-        LazyColumn(
-            Modifier.weight(1f),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item(key = "head") {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt("Review & onboard", 18, 700)
-                        Txt(sub, 12, 400, C.Muted)
-                    }
-                    Pill(addLabel, onAdd)
-                }
-            }
-            items(items, key = { it.id }) { ri ->
-                Row(
-                    Modifier.fillMaxWidth().clip(r(14)).background(C.Surface)
-                        .border(1.dp, if (ri.on) C.YTintBd else C.Border, r(14))
-                        .padding(start = 10.dp, top = 10.dp, bottom = 10.dp, end = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    thumb(ri)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(ri.name, 15, 600)
-                        Txt(ri.sub, 12, 400, C.Muted)
-                        Txt(if (ri.ready) "Ready to onboard" else "Will need input", 12, 600, if (ri.ready) C.Green else C.Orange)
-                    }
-                    Box(Modifier.size(44.dp).clip(r(10)).clickable { onToggle(ri.id) }, contentAlignment = Alignment.Center) {
-                        CheckBox(ri.on)
-                    }
-                }
-            }
-        }
-        Row(
-            Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Pill("Discard", onDiscard, height = 48.dp, hPad = 18.dp, size = 14)
-            Pill(
-                goLabel, onGo, Modifier.weight(1f), bg = if (goEnabled) C.Yellow else C.Raised,
-                fg = if (goEnabled) C.OnYellow else C.Muted, height = 48.dp, size = 15, weight = 700,
-            )
-        }
-    }
-}

@@ -29,15 +29,20 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
 
 val Capsule = RoundedCornerShape(percent = 50)
@@ -120,8 +125,9 @@ fun RoundButton(
 }
 
 @Composable
-fun CloseButton(onClick: () -> Unit, size: Dp = 44.dp, iconSize: Dp = 18.dp, bg: Color = C.Btn) {
-    RoundButton(size, bg, onClick) { LineIcon(Icons.Close, iconSize, C.Text, 2.6f) }
+fun CloseButton(onClick: () -> Unit, size: Dp = 48.dp, iconSize: Dp = 18.dp, bg: Color = C.Btn) {
+    val label = stringResource(R.string.action_close)
+    RoundButton(size, bg, onClick, Modifier.semantics { contentDescription = label }) { LineIcon(Icons.Close, iconSize, C.Text, 2.6f) }
 }
 
 @Composable
@@ -214,7 +220,7 @@ fun PlainField(
         cursorBrush = SolidColor(C.Yellow),
         textStyle = TextStyle(
             color = C.Text, fontSize = size.sp, fontWeight = FontWeight(weight),
-            fontFamily = if (mono) androidx.compose.ui.text.font.FontFamily.Monospace else null,
+            fontFamily = if (mono) androidx.compose.ui.text.font.FontFamily.Monospace else ScleraFonts.Inter,
         ),
         decorationBox = { inner ->
             Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) {
@@ -306,10 +312,10 @@ fun ActionDock(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leading()
-        onValidate?.let { DockAction("Validate", Icons.ShieldCheck, C.Purple, it) }
-        DockAction("Assign", Icons.UserPlus, C.Cyan, onAssign)
-        onSubmit?.let { DockAction("Submit", Icons.Upload, C.Blue, it) }
-        DockAction("Delete", Icons.Trash, C.Red, onDelete)
+        onValidate?.let { DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it) }
+        DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, onAssign)
+        onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it) }
+        DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete)
     }
 }
 
@@ -333,10 +339,10 @@ fun ActionCard(
     ) {
         val item = Modifier.weight(1f)
         // Validate stays in place but greyed out when the asset is already validated.
-        DockAction("Validate", Icons.ShieldCheck, C.Purple, onValidate ?: {}, item.alpha(if (onValidate != null) 1f else 0.35f), enabled = onValidate != null)
-        DockAction("Assign", Icons.UserPlus, C.Cyan, onAssign, item)
-        onSubmit?.let { DockAction("Submit", Icons.Upload, C.Blue, it, item) }
-        DockAction("Delete", Icons.Trash, C.Red, onDelete, item)
+        DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, onValidate ?: {}, item.alpha(if (onValidate != null) 1f else 0.35f), enabled = onValidate != null)
+        DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, onAssign, item)
+        onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item) }
+        DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, item)
     }
 }
 
