@@ -92,6 +92,10 @@ data class AssetDetails(
     val code: String,
     val fields: Map<String, String>,
     val lowConfidence: String? = null,
+    /** Per field key: how sure a reader was, 0..1. */
+    val confidence: Map<String, Double> = emptyMap(),
+    /** Per field key: the web page a looked-up answer came from. */
+    val sources: Map<String, String> = emptyMap(),
 )
 
 val SYSTEM_TYPES = listOf("Generic", "Mechanical", "Electrical", "HVAC", "Fire safety", "IT & network", "Security", "Audio-visual")
