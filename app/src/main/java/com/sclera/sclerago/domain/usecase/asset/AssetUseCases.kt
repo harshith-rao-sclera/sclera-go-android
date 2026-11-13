@@ -8,6 +8,7 @@ import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.captureName
@@ -19,6 +20,7 @@ import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.next
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.validation.CheckInput
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -32,30 +34,45 @@ class GetAssetDetailsUseCase @Inject constructor(private val repo: AssetReposito
     suspend operator fun invoke(id: String): AssetDetails? = repo.details(id)
 }
 
-class SetAssetStatusUseCase @Inject constructor(private val repo: AssetRepository) {
-    suspend operator fun invoke(ids: Collection<String>, status: Status) = repo.setStatus(ids, status)
+/** Moves assets to [status]: signing off needs the Validate permission, everything else Collect. */
+class SetAssetStatusUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(ids: Collection<String>, status: Status) {
+        guard.requireOffline(permissionFor(status))
+        repo.setStatus(ids, status)
+    }
 }
 
+private fun permissionFor(status: Status) = if (status == Status.VALIDATED) Permission.VALIDATE else Permission.COLLECT
+
 /** Keeps the values from an asset's details form and, when given, moves it to [status]. */
-class SaveAssetDetailsUseCase @Inject constructor(private val repo: AssetRepository) {
+class SaveAssetDetailsUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(id: String, values: Map<String, String>, status: Status? = null) {
+        guard.requireOffline(Permission.COLLECT)
+        if (status != null) guard.requireOffline(permissionFor(status))
         repo.saveDetails(id, values)
         if (status != null) repo.setStatus(listOf(id), status)
     }
 }
 
-class DeleteAssetsUseCase @Inject constructor(private val repo: AssetRepository) {
-    suspend operator fun invoke(ids: Collection<String>) = repo.delete(ids)
+class DeleteAssetsUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(ids: Collection<String>) {
+        guard.requireOffline(Permission.COLLECT)
+        repo.delete(ids)
+    }
 }
 
-class AssignLocationUseCase @Inject constructor(private val repo: AssetRepository) {
-    suspend operator fun invoke(ids: Collection<String>, location: LocValue) = repo.assignLocation(ids, location)
+class AssignLocationUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(ids: Collection<String>, location: LocValue) {
+        guard.requireOffline(Permission.COLLECT)
+        repo.assignLocation(ids, location)
+    }
 }
 
 /** Adds photos / videos to an existing asset; false when there is nothing to add. */
-class AttachMediaUseCase @Inject constructor(private val repo: AssetRepository) {
+class AttachMediaUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(assetId: String, media: List<Media>): Boolean {
         if (media.isEmpty() || assetId.isBlank()) return false
+        guard.requireOffline(Permission.COLLECT)
         repo.attachMedia(assetId, media)
         return true
     }
@@ -63,9 +80,14 @@ class AttachMediaUseCase @Inject constructor(private val repo: AssetRepository) 
 
 
 /** Adds [count] assets, built by [build] from each one's new id and index; returns them. */
-class AddAssetsUseCase @Inject constructor(private val repo: AssetRepository, private val ids: IdGenerator) {
+class AddAssetsUseCase @Inject constructor(
+    private val repo: AssetRepository,
+    private val ids: IdGenerator,
+    private val guard: PermissionGuard,
+) {
     suspend operator fun invoke(count: Int, build: (id: String, index: Int) -> Asset): List<Asset> {
         if (count <= 0) return emptyList()
+        guard.requireOffline(Permission.COLLECT)
         val made = List(count) { build(ids.next(), it) }
         repo.add(made.map { NewAsset(it) })
         return made
@@ -79,7 +101,11 @@ data class AssetPlace(val prop: String, val loc: String?, val where: String, val
  * Creates an asset from the details form. It comes from camera shots ([captures]), a scanned
  * [device], or is added by hand, and keeps what that source knows unless the form says better.
  */
-class CreateAssetUseCase @Inject constructor(private val repo: AssetRepository, private val ids: IdGenerator) {
+class CreateAssetUseCase @Inject constructor(
+    private val repo: AssetRepository,
+    private val ids: IdGenerator,
+    private val guard: PermissionGuard,
+) {
     enum class Via { CAMERA, SCAN, MANUAL }
 
     data class Created(val id: String, val via: Via, val source: Source)
@@ -102,6 +128,7 @@ class CreateAssetUseCase @Inject constructor(private val repo: AssetRepository, 
         device: Device?,
         deviceSource: Source,
     ): Created {
+        guard.requireOffline(Permission.COLLECT)
         val id = ids.next()
         val st = if (submit) Status.SUBMITTED else Status.DRAFT
         val formDetail = detail.takeUnless { it.isBlank() || it == "Added manually" }

@@ -64,17 +64,21 @@ class ValidateGroupUseCase @Inject constructor(private val repo: AccessRepositor
 }
 
 /** Adds ([Person.id] empty, an invitation) or updates a person; returns why it can't instead, or null when saved. Throws [OnlineException]. */
-class SavePersonUseCase @Inject constructor(private val repo: AccessRepository) {
+class SavePersonUseCase @Inject constructor(private val repo: AccessRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(p: Person): PersonProblem? {
         personProblem(p, repo.people.value, repo.groups.value.firstOrNull { it.id == p.groupId })?.let { return it }
+        guard.requireOnline(Permission.MANAGE_ACCESS)
         repo.savePerson(p.copy(email = p.email.trim(), propertyIds = if (p.allProperties) emptySet() else p.propertyIds))
         return null
     }
 }
 
 /** Takes away all of a person's access. Throws [OnlineException]. */
-class RemovePersonUseCase @Inject constructor(private val repo: AccessRepository) {
-    suspend operator fun invoke(p: Person) = repo.removePerson(p.id)
+class RemovePersonUseCase @Inject constructor(private val repo: AccessRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(p: Person) {
+        guard.requireOnline(Permission.MANAGE_ACCESS)
+        repo.removePerson(p.id)
+    }
 }
 
 /**
@@ -92,10 +96,11 @@ class CountPeopleGivenAllPropertiesUseCase @Inject constructor(private val repo:
  * Locked groups (Admins) keep their name and every permission; people in a group that now needs
  * every property get every property (see [CountPeopleGivenAllPropertiesUseCase]). Throws [OnlineException].
  */
-class SaveGroupUseCase @Inject constructor(private val repo: AccessRepository) {
+class SaveGroupUseCase @Inject constructor(private val repo: AccessRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(g: Group): GroupProblem? {
         val groups = repo.groups.value
         groupProblem(g, groups)?.let { return it }
+        guard.requireOnline(Permission.MANAGE_ACCESS)
         val clean = g.copy(
             name = if (g.locked) groups.firstOrNull { it.id == g.id }?.name ?: g.name.trim() else g.name.trim(),
             description = g.description.trim(),
@@ -116,9 +121,14 @@ class CanDeleteGroupUseCase @Inject constructor(private val repo: AccessReposito
 }
 
 /** Deletes a group if it can be deleted; returns whether it was. Throws [OnlineException]. */
-class DeleteGroupUseCase @Inject constructor(private val repo: AccessRepository, private val canDelete: CanDeleteGroupUseCase) {
+class DeleteGroupUseCase @Inject constructor(
+    private val repo: AccessRepository,
+    private val canDelete: CanDeleteGroupUseCase,
+    private val guard: PermissionGuard,
+) {
     suspend operator fun invoke(g: Group): Boolean {
         if (!canDelete(g)) return false
+        guard.requireOnline(Permission.MANAGE_ACCESS)
         repo.deleteGroup(g.id)
         return true
     }

@@ -766,12 +766,16 @@ class AppViewModel @Inject constructor(
 
     /** Starts a validation job; it runs in the background and fills in its results when done. */
     private fun startJob(sourceId: String, ids: List<String>, label: String) {
-        flash("Validation started · runs in the background")
-        validationUseCases.start(
-            sourceId, ids, label, currentProp,
-            inputs = { assetUseCases.checkInput(assets) },
-            onDone = { j -> flash("${j.title} finished · ${j.failed} failed · ${j.passed} passed") },
-        )
+        try {
+            validationUseCases.start(
+                sourceId, ids, label, currentProp,
+                inputs = { assetUseCases.checkInput(assets) },
+                onDone = { j -> flash("${j.title} finished · ${j.failed} failed · ${j.passed} passed") },
+            )
+            flash("Validation started · runs in the background")
+        } catch (e: DataException) {
+            flash(e.error.toUiText())
+        }
     }
 
     fun openChecks(id: String?) = set { copy(valChecksFor = id) }

@@ -3,9 +3,11 @@ package com.sclera.sclerago.domain.usecase.property
 import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
@@ -35,7 +37,7 @@ class ValidatePropertyUseCase @Inject constructor(private val repo: PropertyRepo
 }
 
 /** Adds a property from the Add New Property form (online only). */
-class AddPropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
+class AddPropertyUseCase @Inject constructor(private val repo: PropertyRepository, private val guard: PermissionGuard) {
     sealed interface Result {
         data class Added(val property: Property) : Result
         data class Invalid(val problem: PropertyProblem, val name: String) : Result
@@ -45,6 +47,7 @@ class AddPropertyUseCase @Inject constructor(private val repo: PropertyRepositor
     suspend operator fun invoke(draft: Property): Result {
         val clean = draft.name.trim()
         propertyProblem(clean, draft.type, repo.properties.value)?.let { return Result.Invalid(it, clean) }
+        if (!guard.allows(Permission.MANAGE_PROPERTIES)) return Result.Failed(OnlineError.Forbidden)
         return try {
             Result.Added(repo.add(draft.copy(name = clean, gps = false)))
         } catch (e: OnlineException) {
@@ -59,9 +62,12 @@ class ObserveOnboardingUseCase @Inject constructor(private val repo: OnboardingR
 }
 
 /** Property Settings: switches Bluetooth or Wi-Fi onboarding on or off for a property. */
-class SetOnboardingUseCase @Inject constructor(private val repo: OnboardingRepository) {
+class SetOnboardingUseCase @Inject constructor(private val repo: OnboardingRepository, private val guard: PermissionGuard) {
     /** Throws [OnlineException] (the switch lives on the server). */
-    suspend operator fun invoke(prop: String, channel: OnboardingChannel, enabled: Boolean) = repo.setEnabled(prop, channel, enabled)
+    suspend operator fun invoke(prop: String, channel: OnboardingChannel, enabled: Boolean) {
+        guard.requireOnline(Permission.CONFIGURE)
+        repo.setEnabled(prop, channel, enabled)
+    }
 }
 
 /** The property use cases, for injecting as one. */
