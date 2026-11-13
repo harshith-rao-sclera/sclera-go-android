@@ -122,4 +122,5 @@
         <item quantity="many">%1$d أصلًا</item>
         <item quantity="other">%1$d أصل</item>
     </plurals>
+    <string name="launch_logo_description">شعار Sclera Go</string>
 </resources>

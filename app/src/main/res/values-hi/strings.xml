@@ -114,4 +114,5 @@
         <item quantity="one">%1$d एसेट</item>
         <item quantity="other">%1$d एसेट</item>
     </plurals>
+    <string name="launch_logo_description">Sclera Go लोगो</string>
 </resources>

@@ -112,4 +112,5 @@
     <plurals name="asset_count">
         <item quantity="other">%1$d tài sản</item>
     </plurals>
+    <string name="launch_logo_description">Biểu trưng Sclera Go</string>
 </resources>

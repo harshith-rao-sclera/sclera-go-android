@@ -116,4 +116,5 @@
         <item quantity="many">%1$d d’actifs</item>
         <item quantity="other">%1$d actifs</item>
     </plurals>
+    <string name="launch_logo_description">Logo Sclera Go</string>
 </resources>

@@ -114,4 +114,5 @@
         <item quantity="one">%1$d varlık</item>
         <item quantity="other">%1$d varlık</item>
     </plurals>
+    <string name="launch_logo_description">Sclera Go logosu</string>
 </resources>

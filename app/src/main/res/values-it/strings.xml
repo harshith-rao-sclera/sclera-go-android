@@ -116,4 +116,5 @@
         <item quantity="many">%1$d di risorse</item>
         <item quantity="other">%1$d risorse</item>
     </plurals>
+    <string name="launch_logo_description">Logo di Sclera Go</string>
 </resources>

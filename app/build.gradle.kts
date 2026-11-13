@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.exifinterface)
     // Bluetooth / Wi-Fi / access point scanning (scan/ package)
     implementation(libs.core.ktx)
+    implementation(libs.core.splashscreen)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     // Dependency injection

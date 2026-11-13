@@ -120,4 +120,5 @@
         <item quantity="other">%1$d assets</item>
     </plurals>
     <string name="property_import_format" translatable="false">.xlsx</string>
+    <string name="launch_logo_description">Sclera Go logo</string>
 </resources>

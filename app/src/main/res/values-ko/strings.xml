@@ -112,4 +112,5 @@
     <plurals name="asset_count">
         <item quantity="other">자산 %1$d개</item>
     </plurals>
+    <string name="launch_logo_description">Sclera Go 로고</string>
 </resources>

@@ -7,6 +7,7 @@ lifecycle = "2.10.0"
 camerax = "1.6.2"
 exifinterface = "1.4.2"
 coreKtx = "1.17.0"
+coreSplashscreen = "1.0.1"
 serialization = "1.9.0"
 coroutines = "1.10.2"
 webkit = "1.18.0"
@@ -46,6 +47,7 @@ camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", versi
 camera-video = { group = "androidx.camera", name = "camera-video", version.ref = "camerax" }
 camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
+core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

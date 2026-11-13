@@ -114,4 +114,5 @@
         <item quantity="one">%1$d asset</item>
         <item quantity="other">%1$d assets</item>
     </plurals>
+    <string name="launch_logo_description">Sclera Go-logo</string>
 </resources>
