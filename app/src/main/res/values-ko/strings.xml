@@ -402,4 +402,8 @@
     <string name="sync_failed_server">서버에서 문제가 발생했습니다. 잠시 후 다시 시도하세요.</string>
     <string name="sync_failed_storage">기기의 저장 공간이 부족합니다. 공간을 확보한 후 다시 시도하세요.</string>
     <string name="sync_retry">다시 시도</string>
+    <string name="data_error_not_ready">데이터가 아직 준비되지 않았습니다. 다운로드가 끝날 때까지 기다려 주세요.</string>
+    <string name="data_error_name_taken">이미 사용 중인 이름입니다. 다른 이름을 선택하세요.</string>
+    <string name="data_error_in_use">층, 위치 또는 자산이 남아 있는 동안에는 삭제할 수 없습니다.</string>
+    <string name="data_error_failed">변경 사항을 저장하지 못했습니다. 다시 시도해 주세요.</string>
 </resources>

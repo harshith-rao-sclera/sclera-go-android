@@ -402,4 +402,8 @@
     <string name="sync_failed_server">サーバー側で問題が発生しました。しばらくしてからもう一度お試しください。</string>
     <string name="sync_failed_storage">この端末の空き容量が足りません。容量を空けてから、もう一度お試しください。</string>
     <string name="sync_retry">再試行</string>
+    <string name="data_error_not_ready">データの準備がまだできていません。ダウンロードが完了するまでお待ちください。</string>
+    <string name="data_error_name_taken">その名前はすでに使われています。別の名前を選んでください。</string>
+    <string name="data_error_in_use">フロア、ロケーション、またはアセットが残っている間は削除できません。</string>
+    <string name="data_error_failed">変更を保存できませんでした。もう一度お試しください。</string>
 </resources>

@@ -7,7 +7,7 @@ import com.sclera.sclerago.domain.validation.SavedValidation
 import com.sclera.sclerago.domain.validation.ValJob
 import kotlinx.coroutines.flow.StateFlow
 
-/** Validation jobs that ran (or are running) and the user's saved validations. */
+/** Validation jobs (those the server ran and those run on this device) and the user's saved validations. */
 interface ValidationRepository {
     /** Every job, all properties, newest first. */
     val jobs: StateFlow<List<ValJob>>
@@ -22,23 +22,21 @@ interface ValidationRepository {
     fun sourceRules(id: String): List<Rule>
 
     /**
-     * Starts a job running [sourceId]'s rules on the assets [ids] of [prop]. It runs in the background
-     * (or at once when [instant]); [inputs] is read when it finishes, so it checks the assets as they
-     * are then, and [onDone] gets the finished job.
+     * Starts a job running [sourceId]'s rules on the assets [ids] of [prop], on this device and in the
+     * background; [inputs] is read when it finishes, so it checks the assets as they are then, and [onDone]
+     * gets the finished job. (The server's own full run is not available offline.)
      */
     fun start(
         sourceId: String,
         ids: List<String>,
         label: String,
         prop: String,
-        inputs: () -> List<Pair<Asset, CheckInput>>,
-        startedAt: Long,
-        instant: Boolean,
+        inputs: suspend () -> List<Pair<Asset, CheckInput>>,
         onDone: (ValJob) -> Unit,
     )
 
-    /** Saves a new validation ([id] null) or updates one; returns its id, or null if it isn't complete. */
-    fun save(id: String?, name: String, description: String, ruleIds: List<String>): String?
+    /** Saves a new validation ([id] null) or updates one; returns its id, or null if it isn't complete. Throws [com.sclera.sclerago.domain.model.DataException] (NAME_TAKEN when another validation has the name). */
+    suspend fun save(id: String?, name: String, description: String, ruleIds: List<String>): String?
 
-    fun delete(id: String)
+    suspend fun delete(id: String)
 }

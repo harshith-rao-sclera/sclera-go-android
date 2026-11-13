@@ -435,4 +435,8 @@
     <string name="sync_failed_server">Сталася помилка з нашого боку. Спробуйте ще раз за мить.</string>
     <string name="sync_failed_storage">На пристрої недостатньо вільного місця. Звільніть пам’ять і спробуйте ще раз.</string>
     <string name="sync_retry">Спробувати знову</string>
+    <string name="data_error_not_ready">Дані ще не готові. Зачекайте завершення завантаження.</string>
+    <string name="data_error_name_taken">Це ім’я вже використовується. Виберіть інше.</string>
+    <string name="data_error_in_use">Це не можна видалити, доки в ньому залишаються поверхи, місця або активи.</string>
+    <string name="data_error_failed">Не вдалося зберегти зміну. Спробуйте ще раз.</string>
 </resources>

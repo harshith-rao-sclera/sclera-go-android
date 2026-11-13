@@ -3,9 +3,9 @@ package com.sclera.sclerago.presentation.assets
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import com.sclera.sclerago.data.local.DEFAULT_FIELDS
-import com.sclera.sclerago.data.local.DETAILS
-import com.sclera.sclerago.data.local.SEED_ASSETS
+import com.sclera.sclerago.presentation.preview.SAMPLE_FIELDS
+import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.BuildFormValuesUseCase
@@ -38,20 +38,20 @@ internal fun sampleDetailState(
     status: Status? = null,
     isNew: Boolean = false,
 ): AssetDetailState {
-    val seed = SEED_ASSETS.first { it.id == id }.copy(updatedAt = SampleUpdatedAt, media = media)
+    val seed = SAMPLE_ASSETS.first { it.id == id }.copy(updatedAt = SampleUpdatedAt, media = media)
     val asset = status?.let { seed.copy(st = it) } ?: seed
-    val details = if (isNew) null else DETAILS[id]
-    val saved = BuildFormValuesUseCase { 0L }(asset.name, isNew, details, DEFAULT_FIELDS, emptyMap())
+    val details = if (isNew) null else SAMPLE_DETAILS[id]
+    val saved = BuildFormValuesUseCase { 0L }(asset.name, isNew, details, SAMPLE_FIELDS, emptyMap())
     val base = AssetDetailState(
-        asset = asset, isNew = isNew, code = details?.code, saved = saved, edits = edits, fields = DEFAULT_FIELDS,
+        asset = asset, isNew = isNew, code = details?.code, saved = saved, edits = edits, fields = SAMPLE_FIELDS,
         details = details, media = media, newPicks = if (isNew) media else emptyList(),
     )
     if (isNew) return base
     val low = base.lowConfidenceKey
     val input = AssetCheckInput(
         base.values, asset.loc != null, asset.where, media.size, base.fromCamera, minPhotos = 1,
-        requiredKeys = DEFAULT_FIELDS.filter { it.required }.map { it.key }.toSet(),
-        lowConfidenceKey = low, lowConfidenceLabel = DEFAULT_FIELDS.firstOrNull { it.key == low }?.label.orEmpty(),
+        requiredKeys = SAMPLE_FIELDS.filter { it.required }.map { it.key }.toSet(),
+        lowConfidenceKey = low, lowConfidenceLabel = SAMPLE_FIELDS.firstOrNull { it.key == low }?.label.orEmpty(),
     )
     return base.copy(checks = EvaluateAssetChecksUseCase()(input))
 }

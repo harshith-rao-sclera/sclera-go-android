@@ -14,7 +14,7 @@ class ObservePropertySummariesUseCase @Inject constructor(
     private val assets: AssetRepository,
 ) {
     operator fun invoke(): Flow<List<PropertySummary>> =
-        combine(properties.properties, assets.catalog) { list, catalog -> list.map { PropertySummary(it, catalog.countIn(it.id)) } }
+        combine(properties.properties, assets.catalog) { list, catalog -> list.map { PropertySummary(it, catalog.assets.size) } }
 }
 
 /** The properties whose name contains [query] (case-insensitive, surrounding blanks ignored); all when it is blank. */

@@ -430,4 +430,8 @@
     <string name="sync_failed_server">Qualcosa è andato storto da parte nostra. Riprova tra un momento.</string>
     <string name="sync_failed_storage">Non c’è abbastanza spazio libero su questo dispositivo. Libera spazio e riprova.</string>
     <string name="sync_retry">Riprova</string>
+    <string name="data_error_not_ready">I dati non sono ancora pronti. Attendi la fine del download.</string>
+    <string name="data_error_name_taken">Questo nome è già in uso qui. Scegline un altro.</string>
+    <string name="data_error_in_use">Non può essere rimosso finché contiene piani, posizioni o asset.</string>
+    <string name="data_error_failed">Non è stato possibile salvare la modifica. Riprova.</string>
 </resources>

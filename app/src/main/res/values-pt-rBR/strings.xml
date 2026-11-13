@@ -430,4 +430,8 @@
     <string name="sync_failed_server">Algo deu errado do nosso lado. Tente novamente em instantes.</string>
     <string name="sync_failed_storage">Não há espaço livre suficiente neste dispositivo. Libere armazenamento e tente novamente.</string>
     <string name="sync_retry">Tentar novamente</string>
+    <string name="data_error_not_ready">Os dados ainda não estão prontos. Aguarde o fim do download.</string>
+    <string name="data_error_name_taken">Esse nome já está em uso aqui. Escolha outro.</string>
+    <string name="data_error_in_use">Não é possível remover enquanto ainda contiver andares, locais ou ativos.</string>
+    <string name="data_error_failed">Não foi possível salvar a alteração. Tente novamente.</string>
 </resources>

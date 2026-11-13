@@ -435,4 +435,8 @@
     <string name="sync_failed_server">На нашей стороне произошла ошибка. Повторите попытку чуть позже.</string>
     <string name="sync_failed_storage">На устройстве недостаточно свободного места. Освободите память и повторите попытку.</string>
     <string name="sync_retry">Повторить</string>
+    <string name="data_error_not_ready">Данные ещё не готовы. Дождитесь окончания загрузки.</string>
+    <string name="data_error_name_taken">Это имя уже используется. Выберите другое.</string>
+    <string name="data_error_in_use">Это нельзя удалить, пока в нём остаются этажи, места или активы.</string>
+    <string name="data_error_failed">Не удалось сохранить изменение. Повторите попытку.</string>
 </resources>

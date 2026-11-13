@@ -425,4 +425,8 @@
     <string name="sync_failed_server">Bizim tarafımızda bir sorun oluştu. Lütfen biraz sonra tekrar deneyin.</string>
     <string name="sync_failed_storage">Bu cihazda yeterli boş alan yok. Biraz yer açıp tekrar deneyin.</string>
     <string name="sync_retry">Tekrar dene</string>
+    <string name="data_error_not_ready">Veriler henüz hazır değil. İndirmenin bitmesini bekleyin.</string>
+    <string name="data_error_name_taken">Bu ad burada zaten kullanılıyor. Başka bir ad seçin.</string>
+    <string name="data_error_in_use">Katlar, konumlar veya varlıklar içerdiği sürece bu silinemez.</string>
+    <string name="data_error_failed">Değişiklik kaydedilemedi. Lütfen tekrar deneyin.</string>
 </resources>

@@ -430,4 +430,8 @@
     <string name="sync_failed_server">Un problème est survenu de notre côté. Veuillez réessayer dans un instant.</string>
     <string name="sync_failed_storage">Il n’y a pas assez d’espace libre sur cet appareil. Libérez de l’espace et réessayez.</string>
     <string name="sync_retry">Réessayer</string>
+    <string name="data_error_not_ready">Les données ne sont pas encore prêtes. Attendez la fin du téléchargement.</string>
+    <string name="data_error_name_taken">Ce nom est déjà utilisé ici. Choisissez-en un autre.</string>
+    <string name="data_error_in_use">Impossible de le supprimer tant qu’il contient des étages, des emplacements ou des actifs.</string>
+    <string name="data_error_failed">La modification n’a pas pu être enregistrée. Veuillez réessayer.</string>
 </resources>

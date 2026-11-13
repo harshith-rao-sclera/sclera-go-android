@@ -402,4 +402,8 @@
     <string name="sync_failed_server">Terjadi masalah di pihak kami. Silakan coba lagi sebentar lagi.</string>
     <string name="sync_failed_storage">Ruang kosong di perangkat ini tidak cukup. Kosongkan penyimpanan dan coba lagi.</string>
     <string name="sync_retry">Coba lagi</string>
+    <string name="data_error_not_ready">Data belum siap. Tunggu hingga unduhan selesai.</string>
+    <string name="data_error_name_taken">Nama itu sudah digunakan di sini. Pilih nama lain.</string>
+    <string name="data_error_in_use">Ini tidak dapat dihapus selama masih berisi lantai, lokasi, atau aset.</string>
+    <string name="data_error_failed">Perubahan tidak dapat disimpan. Silakan coba lagi.</string>
 </resources>

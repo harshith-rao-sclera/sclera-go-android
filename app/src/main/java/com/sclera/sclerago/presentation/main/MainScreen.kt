@@ -100,7 +100,7 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
     }
 
     // The lists show the current property, narrowed by the location tab; a selection belongs to the page it was made on.
-    LaunchedEffect(s.prop, vm.locationFilter) { list.setScope(s.prop, vm.locationFilter) }
+    LaunchedEffect(vm.locationFilter) { list.setScope(vm.locationFilter) }
     LaunchedEffect(s.tab, s.prop, vm.showDetail, s.adminPage, s.valOpen, s.cfgOpen) { list.clearSelection() }
     LaunchedEffect(list) { list.notices.collect { vm.flash(it) } }
 

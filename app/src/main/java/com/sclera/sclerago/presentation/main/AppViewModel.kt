@@ -13,6 +13,7 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.BuildingInfo
+import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
@@ -48,13 +49,13 @@ import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.validation.ValidationUseCases
 import com.sclera.sclerago.domain.usecase.validation.forProperty
 import com.sclera.sclerago.domain.usecase.validation.lastRun
-import com.sclera.sclerago.domain.validation.CheckInput
 import com.sclera.sclerago.domain.validation.Rule
 import com.sclera.sclerago.domain.validation.SavedValidation
 import com.sclera.sclerago.domain.validation.TEMPLATES
 import com.sclera.sclerago.domain.validation.ValJob
 import com.sclera.sclerago.domain.validation.ValScope
 import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.common.toUiText
 import com.sclera.sclerago.presentation.common.observedIn
 import com.sclera.sclerago.presentation.model.viaRes
 import com.sclera.sclerago.presentation.common.plural
@@ -104,10 +105,10 @@ data class UiState(
     /** Bluetooth / Network: true = "Scan" segment, false = "Assets" segment. */
     val btScan: Boolean = true,
     val netScan: Boolean = true,
-    val specLocs: List<String> = listOf("location1"),
-    val specPath: List<String> = listOf("building 1", "floor 1", "location1"),
-    val specWhere: String = "location1 · floor 1",
-    val specSel: String = "l1",
+    val specLocs: List<String> = emptyList(),
+    val specPath: List<String> = emptyList(),
+    val specWhere: String = "",
+    val specSel: String = "",
     val sheet: Sheet = Sheet.NONE,
     val sheetFor: SheetFor = SheetFor.FILTER,
     val prop: String = "p1",
@@ -199,10 +200,21 @@ class AppViewModel @Inject constructor(
     private val catalog = assetUseCases.observe().observedIn(viewModelScope)
     private val propertyFlow = propertyUseCases.observe().observedIn(viewModelScope)
     private val onboardingOff = propertyUseCases.observeOnboarding().observedIn(viewModelScope)
-    private val trees = locationUseCases.observeTrees().observedIn(viewModelScope)
+    private val tree = locationUseCases.observeTree().observedIn(viewModelScope)
     private val assetConfig = configUseCases.observe().observedIn(viewModelScope)
     private val jobs = validationUseCases.observeJobs().observedIn(viewModelScope)
     private val saved = validationUseCases.observeSaved().observedIn(viewModelScope)
+
+    /** Makes a change to the offline data in the background; when it is refused or fails the user is told why (never the details). */
+    private fun write(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (e: DataException) {
+                flash(e.error.toUiText())
+            }
+        }
+    }
 
     private var toastJob: Job? = null
     fun flash(msg: UiText) {
@@ -219,8 +231,8 @@ class AppViewModel @Inject constructor(
 
     // ---------- Derived data ----------
 
-    /** The current property's assets, with every edit applied. */
-    val assets: List<Asset> get() = catalog.value.assetsIn(state.prop)
+    /** The assets of the downloaded property: the one database is the property being worked on, whichever sample property is picked. */
+    val assets: List<Asset> get() = catalog.value.assets
 
     val properties: List<Property> get() = propertyFlow.value
 
@@ -232,22 +244,15 @@ class AppViewModel @Inject constructor(
             LocFilter.NONE -> LocationFilter.Unmapped
         }
 
+    /** Where new assets go: the location chosen in the filter (its name, its "where" text and its id), else nowhere. */
     private val tgtLoc: String?
-        get() = when (state.loc) {
-            LocFilter.SPEC -> if (state.specLocs.size == 1) state.specLocs[0] else state.specPath.last()
-            LocFilter.NONE -> null
-            LocFilter.ALL -> "location1"
-        }
-    private val tgtWhere: String
-        get() = when (state.loc) {
-            LocFilter.SPEC -> state.specWhere
-            LocFilter.NONE -> ""
-            LocFilter.ALL -> "location1 · floor 1"
-        }
+        get() = if (state.loc == LocFilter.SPEC) state.specLocs.singleOrNull() ?: state.specPath.lastOrNull() else null
+    private val tgtWhere: String get() = if (state.loc == LocFilter.SPEC) state.specWhere else ""
+    private val tgtPlace: String? get() = if (state.loc == LocFilter.SPEC) state.specSel.ifEmpty { null } else null
 
     val propName: String get() = (properties.firstOrNull { it.id == state.prop } ?: properties[0]).name
-    /** The location tab path, or null when the current property has none chosen yet. */
-    val specPathShown: List<String>? get() = if (state.prop != "p1") null else state.specPath
+    /** The location tab path, or null when no location is chosen yet. */
+    val specPathShown: List<String>? get() = state.specPath.takeIf { it.isNotEmpty() }
 
     val detailAsset: Asset?
         get() = if (state.newAsset) {
@@ -289,9 +294,8 @@ class AppViewModel @Inject constructor(
 
     fun propRows(): List<Pair<Property, String>> {
         val ql = state.propQ.trim().lowercase()
-        val c = catalog.value
+        val n = catalog.value.assets.size
         return properties.filter { ql.isEmpty() || it.name.lowercase().contains(ql) }.map { p ->
-            val n = c.countIn(p.id)
             p to if (n > 0) plural(n, "asset", "assets") + (if (p.gps) " · 5 buildings" else "") else "No assets yet"
         }
     }
@@ -429,7 +433,7 @@ class AppViewModel @Inject constructor(
         val cur = state.loc
         when (f) {
             LocFilter.ALL -> if (cur == LocFilter.ALL) openProp() else set { copy(loc = LocFilter.ALL, assetId = null) }
-            LocFilter.SPEC -> if (cur == LocFilter.SPEC) openLocFilter() else set { copy(loc = LocFilter.SPEC, assetId = null) }
+            LocFilter.SPEC -> if (cur == LocFilter.SPEC || state.specLocs.isEmpty()) openLocFilter() else set { copy(loc = LocFilter.SPEC, assetId = null) }
             LocFilter.NONE -> set { copy(loc = LocFilter.NONE, assetId = null) }
         }
     }
@@ -489,7 +493,7 @@ class AppViewModel @Inject constructor(
         val detail = detailAsset
         if (state.sheetFor == SheetFor.ASSET && detail != null && detail.id.isNotEmpty()) {
             set { copy(sheet = Sheet.NONE) }
-            assetUseCases.assignLocation(listOf(detail.id), v)
+            write { assetUseCases.assignLocation(listOf(detail.id), v) }
         } else set {
             copy(
                 sheet = Sheet.NONE, loc = LocFilter.SPEC, specLocs = r.locs, specPath = r.path.ifEmpty { listOf(r.label) },
@@ -499,7 +503,7 @@ class AppViewModel @Inject constructor(
     }
 
     /** What a picked location gives an asset. */
-    fun locValue(r: LocPick) = LocValue(if (r.locs.size == 1) r.locs[0] else r.label, r.where)
+    fun locValue(r: LocPick) = LocValue(if (r.locs.size == 1) r.locs[0] else r.label, r.where, r.id)
 
     fun setBtScan(scan: Boolean) {
         set { copy(btScan = scan) }
@@ -553,35 +557,36 @@ class AppViewModel @Inject constructor(
         submit: Boolean = false,
     ): CreateAssetUseCase.Via {
         val s = state
-        val created = assetUseCases.create(
-            name, detail, media, values, submit,
-            place = AssetPlace(s.prop, tgtLoc, tgtWhere),
-            captures = s.newMedia, device = s.newDevice, deviceSource = s.newSrc,
-        )
+        val via = assetUseCases.create.viaFor(s.newMedia, s.newDevice)
+        val place = AssetPlace(s.prop, tgtLoc, tgtWhere, tgtPlace)
         val savedAs = UiText.Res(if (submit) R.string.asset_added_submitted else R.string.asset_added_draft)
-        when (created.via) {
+        when (via) {
             // From the Camera tab: stay on the camera for the next one.
-            CreateAssetUseCase.Via.CAMERA -> {
-                set { copy(newAsset = false, newMedia = emptyList()) }
-                flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(Source.CAMERA.viaRes))))
-            }
+            CreateAssetUseCase.Via.CAMERA -> set { copy(newAsset = false, newMedia = emptyList()) }
             // From a scan: stay on the scan.
-            CreateAssetUseCase.Via.SCAN -> {
-                set { copy(newAsset = false, newDevice = null) }
-                flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(created.source.viaRes))))
-            }
-            CreateAssetUseCase.Via.MANUAL -> {
-                set { copy(newAsset = false, tab = Tab.ASSETS) }
-                flash(savedAs)
+            CreateAssetUseCase.Via.SCAN -> set { copy(newAsset = false, newDevice = null) }
+            CreateAssetUseCase.Via.MANUAL -> set { copy(newAsset = false, tab = Tab.ASSETS) }
+        }
+        write {
+            val created = assetUseCases.create(
+                name, detail, media, values, submit, place,
+                captures = s.newMedia, device = s.newDevice, deviceSource = s.newSrc,
+            )
+            when (created.via) {
+                CreateAssetUseCase.Via.CAMERA -> flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(Source.CAMERA.viaRes))))
+                CreateAssetUseCase.Via.SCAN -> flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(created.source.viaRes))))
+                CreateAssetUseCase.Via.MANUAL -> flash(savedAs)
             }
         }
-        return created.via
+        return via
     }
 
     fun deleteAsset(id: String) {
-        assetUseCases.delete(listOf(id))
         set { copy(assetId = null) }
-        flash(UiText.Res(R.string.asset_deleted))
+        write {
+            assetUseCases.delete(listOf(id))
+            flash(UiText.Res(R.string.asset_deleted))
+        }
     }
 
     fun showPreview(p: Preview) = set { copy(pv = p) }
@@ -625,14 +630,7 @@ class AppViewModel @Inject constructor(
         val prop = state.prop
         val loc = tgtLoc
         val where = tgtWhere
-        val made = assetUseCases.add(picked.size) { id, i ->
-            val r = picked[i]
-            val m = r.media!!
-            Asset(
-                id, r.name, (if (m.video) "Video ${m.durationText}" else "Photo") + " · captured " + timeLabel(m.createdAt).take(5),
-                loc, where, Source.CAMERA, Status.INPUT, AssetType.GENERIC, prop, listOf(m),
-            )
-        }
+        val place = tgtPlace
         val used = picked.map { it.id }.toSet()
         set {
             copy(
@@ -640,7 +638,17 @@ class AppViewModel @Inject constructor(
                 captures = captures.filter { it.id !in used },
             )
         }
-        flash(UiText.Plural(R.plurals.assets_added_details, made.size))
+        write {
+            val made = assetUseCases.add(picked.size) { id, i ->
+                val r = picked[i]
+                val m = r.media!!
+                Asset(
+                    id, r.name, (if (m.video) "Video ${m.durationText}" else "Photo") + " · captured " + timeLabel(m.createdAt).take(5),
+                    loc, where, Source.CAMERA, Status.INPUT, AssetType.GENERIC, prop, listOf(m), locationId = place,
+                )
+            }
+            flash(UiText.Plural(R.plurals.assets_added_details, made.size))
+        }
     }
 
     // ---------- Files ----------
@@ -672,18 +680,18 @@ class AppViewModel @Inject constructor(
         val prop = state.prop
         val loc = tgtLoc
         val where = tgtWhere
-        val made = assetUseCases.add(picked.size) { id, i ->
-            val r = picked[i]
-            Asset(id, r.name, r.file, loc, where, Source.FILE, Status.INPUT, typeOf(r.name), prop)
-        }
+        val place = tgtPlace
         set { copy(revOff = emptySet(), revFile = false, fileOpen = false, importFiles = emptyList()) }
-        flash(UiText.Plural(R.plurals.assets_imported_details, made.size))
+        write {
+            val made = assetUseCases.add(picked.size) { id, i ->
+                val r = picked[i]
+                Asset(id, r.name, r.file, loc, where, Source.FILE, Status.INPUT, typeOf(r.name), prop, locationId = place)
+            }
+            flash(UiText.Plural(R.plurals.assets_imported_details, made.size))
+        }
     }
 
     // ---------- Validation ----------
-
-    /** The values and facts the validation rules look at for one asset (same as its Validation tab). */
-    fun checkInputFor(a: Asset): CheckInput = assetUseCases.checkInput(a)
 
     /** The user's saved validations. */
     val savedVals: List<SavedValidation> get() = saved.value
@@ -692,7 +700,7 @@ class AppViewModel @Inject constructor(
 
     fun sourceRules(id: String): List<Rule> = validationUseCases.source.rules(id)
 
-    /** Jobs for the current property, newest first. */
+    /** Jobs of the downloaded property (the server's and the ones run on this device), newest first. */
     val propJobs: List<ValJob> get() = jobs.value.forProperty(state.prop)
 
     fun lastRun(sourceId: String): Long? = jobs.value.lastRun(state.prop, sourceId)
@@ -753,19 +761,12 @@ class AppViewModel @Inject constructor(
     fun runOnAll(sourceId: String) = startJob(sourceId, assets.map { it.id }, "All assets")
 
     /** Starts a validation job; it runs in the background and fills in its results when done. */
-    private fun startJob(
-        sourceId: String,
-        ids: List<String>,
-        label: String,
-        startedAt: Long = System.currentTimeMillis(),
-        instant: Boolean = false,
-    ) {
-        if (!instant) flash("Validation started · runs in the background")
+    private fun startJob(sourceId: String, ids: List<String>, label: String) {
+        flash("Validation started · runs in the background")
         validationUseCases.start(
             sourceId, ids, label, state.prop,
-            inputs = { assets.map { it to checkInputFor(it) } },
-            startedAt = startedAt, instant = instant,
-            onDone = { j -> if (!instant) flash("${j.title} finished · ${j.failed} failed · ${j.passed} passed") },
+            inputs = { assetUseCases.checkInput(assets) },
+            onDone = { j -> flash("${j.title} finished · ${j.failed} failed · ${j.passed} passed") },
         )
     }
 
@@ -794,16 +795,20 @@ class AppViewModel @Inject constructor(
     /** Saves the validation; with [run], also runs it on all assets. */
     fun saveEditor(run: Boolean = false) {
         val e = state.valEditor ?: return
-        val id = validationUseCases.save(e.id, e.name, e.description, e.ruleIds) ?: return
-        set { copy(valEditor = null) }
-        if (run) runOnAll(id) else flash(if (e.id == null) "Validation saved" else "Validation updated")
+        write {
+            val id = validationUseCases.save(e.id, e.name, e.description, e.ruleIds) ?: return@write
+            set { copy(valEditor = null) }
+            if (run) runOnAll(id) else flash(if (e.id == null) "Validation saved" else "Validation updated")
+        }
     }
     fun askDeleteSaved(id: String?) = set { copy(valConfirmDelete = id) }
     fun deleteSaved() {
         val id = state.valConfirmDelete ?: return
-        validationUseCases.delete(id)
         set { copy(valConfirmDelete = null) }
-        flash("Validation deleted")
+        write {
+            validationUseCases.delete(id)
+            flash("Validation deleted")
+        }
     }
 
     init {
@@ -819,16 +824,6 @@ class AppViewModel @Inject constructor(
         state = UiState()
     }
 
-    init {
-        // A few earlier runs so "Recent jobs" isn't empty on first open.
-        val now = System.currentTimeMillis()
-        val h = 3_600_000L
-        startJob("dups", assets.map { it.id }, "All assets", now - 74 * h, instant = true)
-        startJob("full", assets.map { it.id }, "All assets", now - 50 * h, instant = true)
-        startJob("quick", listOf("a1", "a2"), "2 chosen assets", now - 21 * h, instant = true)
-        startJob("quick", listOf("a1"), "1 chosen asset", now - 20 * h, instant = true)
-    }
-
     // ---------- Configuration ----------
 
     fun openConfig() = set {
@@ -839,55 +834,45 @@ class AppViewModel @Inject constructor(
     /** Switches the Configuration tab (Building info / Asset fields / Geofencing / Property Settings). */
     fun cfgGo(page: CfgPage) = set { copy(cfgPage = page) }
 
-    // Building info: the property's building → floor → location tree (also used by the location picker).
-    fun treeFor(prop: String = state.prop): List<LocNode> {
-        trees.value // recompose when a tree is edited
-        return locationUseCases.tree(prop)
-    }
+    // Building info: the downloaded property's building → floor → location tree (also used by the location picker).
+    fun treeFor(): List<LocNode> = tree.value
 
-    fun addBuilding(name: String): String {
-        val id = locationUseCases.addBuilding(state.prop, name)
+    /** Adds a building (with its details when given); [onAdded] gets its id. */
+    fun addBuilding(name: String, info: BuildingInfo? = null, onAdded: (String) -> Unit = {}) = write {
+        onAdded(locationUseCases.addBuilding(name, info))
         flash("Building added")
-        return id
     }
 
-    fun addFloor(buildingId: String, name: String): String {
-        val id = locationUseCases.addFloor(state.prop, buildingId, name)
+    /** Adds a floor to a building; [onAdded] gets its id. */
+    fun addFloor(buildingId: String, name: String, onAdded: (String) -> Unit = {}) = write {
+        onAdded(locationUseCases.addFloor(buildingId, name))
         flash("Floor added")
-        return id
-    }
-
-    /** Add building sheet: a new building with its details. Returns its id. */
-    fun addBuilding(name: String, info: BuildingInfo): String {
-        val id = locationUseCases.addBuilding(state.prop, name, info)
-        flash("Building added")
-        return id
     }
 
     /** Edit building sheet. */
-    fun saveBuilding(id: String, name: String, info: BuildingInfo) {
-        locationUseCases.saveBuilding(state.prop, id, name, info)
+    fun saveBuilding(id: String, name: String, info: BuildingInfo) = write {
+        locationUseCases.saveBuilding(id, name, info)
         flash("Building saved")
     }
 
     /** Edit floors sheet: the building's floors in their new order, with names, types and codes; missing ones are removed. */
-    fun saveFloors(buildingId: String, floors: List<LocNode>) {
-        locationUseCases.saveFloors(state.prop, buildingId, floors)
+    fun saveFloors(buildingId: String, floors: List<LocNode>) = write {
+        locationUseCases.saveFloors(buildingId, floors)
         flash("Floors saved")
     }
 
-    fun renameNode(id: String, name: String) {
-        locationUseCases.rename(state.prop, id, name)
+    fun renameNode(id: String, name: String) = write {
+        locationUseCases.rename(id, name)
         flash("Renamed")
     }
 
-    fun deleteNodes(ids: Set<String>, what: String) {
-        if (locationUseCases.delete(state.prop, ids)) flash("$what deleted")
+    fun deleteNodes(ids: Set<String>, what: String) = write {
+        if (locationUseCases.delete(ids)) flash("$what deleted")
     }
 
     /** Adds one location, or several at once (bulk: one name per line; codes get -1, -2, … when given). */
-    fun addLocations(floorId: String, names: List<String>, type: String, code: String) {
-        val n = locationUseCases.addLocations(state.prop, floorId, names, type, code)
+    fun addLocations(floorId: String, names: List<String>, type: String, code: String) = write {
+        val n = locationUseCases.addLocations(floorId, names, type, code)
         if (n > 0) flash(plural(n, "location", "locations") + " added")
     }
 
@@ -896,9 +881,8 @@ class AppViewModel @Inject constructor(
      * CSV or Excel file. Buildings and floors are matched by name; locations already there are left alone.
      */
     fun importBuildings(uri: Uri) {
-        val prop = state.prop
-        viewModelScope.launch {
-            when (val r = locationUseCases.importBuildings(prop, uri.toString())) {
+        write {
+            when (val r = locationUseCases.importBuildings(uri.toString())) {
                 ImportBuildingsUseCase.Result.Unreadable -> flash("Couldn’t read that file")
                 ImportBuildingsUseCase.Result.NothingFound -> flash("No buildings found · use columns Building, Floor, Location, Type, Code")
                 is ImportBuildingsUseCase.Result.Imported ->
@@ -907,8 +891,8 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun updateLocation(id: String, name: String, type: String, code: String) {
-        locationUseCases.updateLocation(state.prop, id, name, type, code)
+    fun updateLocation(id: String, name: String, type: String, code: String) = write {
+        locationUseCases.updateLocation(id, name, type, code)
         flash("Location saved")
     }
 
@@ -919,36 +903,36 @@ class AppViewModel @Inject constructor(
     val requiredFields: List<Pair<String, String>> get() = assetConfig.value.requiredFields
     val minPhotos: Int get() = assetConfig.value.minPhotos
 
-    fun toggleFieldVisible(key: String) {
+    fun toggleFieldVisible(key: String) = write {
         if (configUseCases.toggleVisible(key) == ToggleFieldVisibleUseCase.Result.MANDATORY) flash("Mandatory fields are always visible")
     }
-    fun toggleFieldRequired(key: String) = configUseCases.toggleRequired(key)
-    fun addField(label: String, kind: FieldKind, required: Boolean) {
+    fun toggleFieldRequired(key: String) = write { configUseCases.toggleRequired(key) }
+    fun addField(label: String, kind: FieldKind, required: Boolean) = write {
         if (configUseCases.addField(label, kind, required)) flash("Field added")
     }
-    fun removeField(key: String) {
+    fun removeField(key: String) = write {
         configUseCases.removeField(key)
         flash("Field removed")
     }
 
-    fun setPhotoLimits(id: String, min: Int, max: Int) = configUseCases.setPhotoLimits(id, min, max)
-    fun addPhotoReq(name: String, hint: String) {
+    fun setPhotoLimits(id: String, min: Int, max: Int) = write { configUseCases.setPhotoLimits(id, min, max) }
+    fun addPhotoReq(name: String, hint: String) = write {
         if (configUseCases.addPhotoReq(name, hint)) flash("Photo type added")
     }
-    fun removePhotoReq(id: String) = configUseCases.removePhotoReq(id)
+    fun removePhotoReq(id: String) = write { configUseCases.removePhotoReq(id) }
 
-    fun setGeoEnforce(on: Boolean) = configUseCases.setGeoEnforce(on)
+    fun setGeoEnforce(on: Boolean) = write { configUseCases.setGeoEnforce(on) }
 
     /** How many choices a dropdown field offers ("Generic" / "Select" placeholders not counted). */
     fun optionCount(f: FieldCfg): Int = f.optionCount
 
     /** Field sheet: saves the whole field (mandatory makes it visible; the name field stays mandatory). */
-    fun saveField(f: FieldCfg) {
+    fun saveField(f: FieldCfg) = write {
         if (configUseCases.saveField(f)) flash("Field saved")
     }
 
     /** Add field sheet: adds the fields set up there, under More details. */
-    fun addFields(list: List<FieldCfg>) {
+    fun addFields(list: List<FieldCfg>) = write {
         val n = configUseCases.addFields(list)
         if (n > 0) flash(plural(n, "field", "fields") + " added")
     }
@@ -958,7 +942,7 @@ class AppViewModel @Inject constructor(
      * field already here are skipped. [onReady] gets the new fields to review.
      */
     fun importFields(uri: Uri, onReady: (List<FieldCfg>) -> Unit) {
-        viewModelScope.launch {
+        write {
             when (val r = configUseCases.importFields(uri.toString())) {
                 ImportFieldsUseCase.Result.Unreadable -> flash("Couldn’t read that file")
                 ImportFieldsUseCase.Result.NothingNew -> flash("No new fields in that file · every column is already a field")
@@ -968,12 +952,12 @@ class AppViewModel @Inject constructor(
     }
 
     /** Checks sheet: what validation looks for in the field. */
-    fun setFieldChecks(key: String, flagEmpty: Boolean, rule: ValueRule, min: String, max: String) {
+    fun setFieldChecks(key: String, flagEmpty: Boolean, rule: ValueRule, min: String, max: String) = write {
         configUseCases.setChecks(key, flagEmpty, rule, min, max)
         flash("Checks saved")
     }
 
-    fun setFieldOptions(key: String, options: List<String>) {
+    fun setFieldOptions(key: String, options: List<String>) = write {
         configUseCases.setOptions(key, options)
         flash("Options saved")
     }

@@ -433,4 +433,8 @@
     <string name="sync_failed_server">Something went wrong on our side. Please try again in a moment.</string>
     <string name="sync_failed_storage">There isn’t enough free space on this device. Free up some storage and try again.</string>
     <string name="sync_retry">Try again</string>
+    <string name="data_error_not_ready">The data is not ready yet. Wait for the download to finish.</string>
+    <string name="data_error_name_taken">That name is already used here. Choose another one.</string>
+    <string name="data_error_in_use">This cannot be removed while it still contains floors, locations or assets.</string>
+    <string name="data_error_failed">The change could not be saved. Please try again.</string>
 </resources>

@@ -425,4 +425,8 @@
     <string name="sync_failed_server">Auf unserer Seite ist etwas schiefgelaufen. Bitte versuche es gleich noch einmal.</string>
     <string name="sync_failed_storage">Auf diesem Gerät ist nicht genug Speicherplatz frei. Gib Speicher frei und versuche es erneut.</string>
     <string name="sync_retry">Erneut versuchen</string>
+    <string name="data_error_not_ready">Die Daten sind noch nicht bereit. Warte, bis der Download abgeschlossen ist.</string>
+    <string name="data_error_name_taken">Dieser Name wird hier bereits verwendet. Wähle einen anderen.</string>
+    <string name="data_error_in_use">Das kann nicht entfernt werden, solange es noch Etagen, Standorte oder Assets enthält.</string>
+    <string name="data_error_failed">Die Änderung konnte nicht gespeichert werden. Bitte versuche es erneut.</string>
 </resources>

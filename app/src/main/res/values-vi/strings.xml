@@ -402,4 +402,8 @@
     <string name="sync_failed_server">Đã xảy ra sự cố ở phía chúng tôi. Vui lòng thử lại sau giây lát.</string>
     <string name="sync_failed_storage">Thiết bị không còn đủ dung lượng trống. Hãy giải phóng bộ nhớ và thử lại.</string>
     <string name="sync_retry">Thử lại</string>
+    <string name="data_error_not_ready">Dữ liệu chưa sẵn sàng. Hãy chờ quá trình tải xuống hoàn tất.</string>
+    <string name="data_error_name_taken">Tên này đã được dùng ở đây. Hãy chọn tên khác.</string>
+    <string name="data_error_in_use">Không thể xóa khi vẫn còn tầng, vị trí hoặc tài sản bên trong.</string>
+    <string name="data_error_failed">Không thể lưu thay đổi. Vui lòng thử lại.</string>
 </resources>

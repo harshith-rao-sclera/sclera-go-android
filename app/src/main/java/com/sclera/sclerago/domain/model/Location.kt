@@ -19,15 +19,7 @@ data class LocNode(
 /** What the location picker hands back on Confirm. */
 data class LocPick(val id: String, val label: String, val locs: List<String>, val where: String, val path: List<String>)
 
-// ---------------------------------------------------------------- Location tree edits
-
-/** Returns the tree with [f] applied to the node [id] (null from [f] removes it). */
-fun List<LocNode>.mapNode(id: String, f: (LocNode) -> LocNode?): List<LocNode> = mapNotNull { n ->
-    if (n.id == id) f(n) else n.copy(kids = n.kids?.mapNode(id, f))
-}
-
-fun List<LocNode>.removeNodes(ids: Set<String>): List<LocNode> =
-    filter { it.id !in ids }.map { it.copy(kids = it.kids?.removeNodes(ids)) }
+// ---------------------------------------------------------------- Location tree
 
 fun List<LocNode>.findNode(id: String): LocNode? {
     forEach { n ->
@@ -69,6 +61,12 @@ val COUNTRIES = listOf(
 )
 
 val REGIONS = listOf("Asia Pacific", "Middle East", "Africa", "Europe", "North America", "Latin America")
+
+/** A location to add on a floor (Add locations sheet). */
+data class NewLocation(val name: String, val type: String = "", val code: String = "")
+
+/** One row of an imported buildings sheet: names of a building, optionally its floor and a location on it. */
+data class PlaceRow(val building: String, val floor: String = "", val location: String = "", val type: String = "", val code: String = "")
 
 /** One step of the way to a place: a building, a floor of it or a location on it. */
 data class PathStep(val id: String, val name: String, val kind: NodeKind)

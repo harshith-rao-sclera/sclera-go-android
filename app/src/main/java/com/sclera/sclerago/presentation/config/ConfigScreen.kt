@@ -222,7 +222,7 @@ private fun BuildingInfo(vm: AppViewModel) {
                     onPick = { fId = it },
                     menu = buildList {
                         if (building != null) add(MenuAct(Icons.PlusCircle, "Add floor") {
-                            nameAsk = NameAsk("Add floor", "", "Floor name, e.g. Level 2") { n -> fId = vm.addFloor(building.id, n) }
+                            nameAsk = NameAsk("Add floor", "", "Floor name, e.g. Level 2") { n -> vm.addFloor(building.id, n) { fId = it } }
                         })
                         if (building != null && floors.isNotEmpty()) add(MenuAct(Icons.Pencil, "Edit floors") { floorsSheet = true })
                     },
@@ -292,7 +292,7 @@ private fun BuildingInfo(vm: AppViewModel) {
     buildingSheet?.let { id ->
         val b = if (id.isEmpty()) null else tree.firstOrNull { it.id == id }
         EditBuildingSheet(b, onClose = { buildingSheet = null }) { n, info ->
-            if (b == null) { bId = vm.addBuilding(n, info); fId = null } else vm.saveBuilding(b.id, n, info)
+            if (b == null) { vm.addBuilding(n, info) { bId = it; fId = null } } else vm.saveBuilding(b.id, n, info)
             buildingSheet = null
         }
     }

@@ -1,15 +1,8 @@
 package com.sclera.sclerago.data.repository
 
-import com.sclera.sclerago.data.local.DEFAULT_FIELDS
-import com.sclera.sclerago.data.local.DEFAULT_PHOTO_REQS
 import com.sclera.sclerago.data.local.PROPERTIES
-import com.sclera.sclerago.data.local.locationTree
-import com.sclera.sclerago.domain.model.AssetConfig
-import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.Property
-import com.sclera.sclerago.domain.repository.AssetConfigRepository
-import com.sclera.sclerago.domain.repository.LocationRepository
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
@@ -19,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
-// In-memory property data, starting from the samples, until it comes from the Sclera API.
+// In-memory property data, starting from the samples, until the properties come from the Sclera API.
 
 @ActivityRetainedScoped
 class PropertyRepositoryImpl @Inject constructor() : PropertyRepository, UserDataCleaner {
@@ -32,40 +25,6 @@ class PropertyRepositoryImpl @Inject constructor() : PropertyRepository, UserDat
 
     override fun clear() {
         state.value = PROPERTIES
-    }
-}
-
-@ActivityRetainedScoped
-class LocationRepositoryImpl @Inject constructor() : LocationRepository, UserDataCleaner {
-    private val state = MutableStateFlow(emptyMap<String, List<LocNode>>())
-    override val trees: StateFlow<Map<String, List<LocNode>>> = state.asStateFlow()
-    private var nodeSeq = 1
-
-    override fun tree(prop: String): List<LocNode> = state.value[prop] ?: locationTree(prop)
-
-    override fun edit(prop: String, f: (List<LocNode>) -> List<LocNode>) {
-        state.value = state.value + (prop to f(tree(prop)))
-    }
-
-    override fun newNodeId(prefix: String): String = "$prefix-n${nodeSeq++}"
-
-    override fun clear() {
-        state.value = emptyMap()
-        nodeSeq = 1
-    }
-}
-
-@ActivityRetainedScoped
-class AssetConfigRepositoryImpl @Inject constructor() : AssetConfigRepository, UserDataCleaner {
-    private val state = MutableStateFlow(AssetConfig(DEFAULT_FIELDS, DEFAULT_PHOTO_REQS))
-    override val config: StateFlow<AssetConfig> = state.asStateFlow()
-
-    override fun update(f: (AssetConfig) -> AssetConfig) {
-        state.value = f(state.value)
-    }
-
-    override fun clear() {
-        state.value = AssetConfig(DEFAULT_FIELDS, DEFAULT_PHOTO_REQS)
     }
 }
 

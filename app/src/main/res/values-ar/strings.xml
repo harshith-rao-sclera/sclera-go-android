@@ -445,4 +445,8 @@
     <string name="sync_failed_server">حدث خطأ من جانبنا. يُرجى المحاولة مرة أخرى بعد قليل.</string>
     <string name="sync_failed_storage">لا توجد مساحة كافية على هذا الجهاز. أخلِ بعض المساحة وحاول مرة أخرى.</string>
     <string name="sync_retry">حاول مرة أخرى</string>
+    <string name="data_error_not_ready">البيانات ليست جاهزة بعد. انتظر حتى ينتهي التنزيل.</string>
+    <string name="data_error_name_taken">هذا الاسم مستخدم بالفعل هنا. اختر اسمًا آخر.</string>
+    <string name="data_error_in_use">لا يمكن إزالة هذا ما دام يحتوي على طوابق أو مواقع أو أصول.</string>
+    <string name="data_error_failed">تعذّر حفظ التغيير. حاول مرة أخرى.</string>
 </resources>

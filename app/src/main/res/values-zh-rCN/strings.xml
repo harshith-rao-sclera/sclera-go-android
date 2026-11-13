@@ -402,4 +402,8 @@
     <string name="sync_failed_server">我们这边出了点问题。请稍后重试。</string>
     <string name="sync_failed_storage">此设备的可用空间不足。请释放一些存储空间后重试。</string>
     <string name="sync_retry">重试</string>
+    <string name="data_error_not_ready">数据尚未准备好。请等待下载完成。</string>
+    <string name="data_error_name_taken">该名称已被使用。请选择其他名称。</string>
+    <string name="data_error_in_use">只要其中还有楼层、位置或资产，就无法删除。</string>
+    <string name="data_error_failed">无法保存更改。请重试。</string>
 </resources>

@@ -402,4 +402,8 @@
     <string name="sync_failed_server">เกิดข้อผิดพลาดจากฝั่งเรา โปรดลองอีกครั้งในอีกสักครู่</string>
     <string name="sync_failed_storage">พื้นที่ว่างในอุปกรณ์ไม่เพียงพอ โปรดเพิ่มพื้นที่จัดเก็บแล้วลองอีกครั้ง</string>
     <string name="sync_retry">ลองอีกครั้ง</string>
+    <string name="data_error_not_ready">ข้อมูลยังไม่พร้อม โปรดรอให้ดาวน์โหลดเสร็จสิ้น</string>
+    <string name="data_error_name_taken">ชื่อนี้ถูกใช้แล้ว โปรดเลือกชื่ออื่น</string>
+    <string name="data_error_in_use">ไม่สามารถลบได้ตราบใดที่ยังมีชั้น สถานที่ หรือแอสเซ็ตอยู่</string>
+    <string name="data_error_failed">ไม่สามารถบันทึกการเปลี่ยนแปลงได้ โปรดลองอีกครั้ง</string>
 </resources>

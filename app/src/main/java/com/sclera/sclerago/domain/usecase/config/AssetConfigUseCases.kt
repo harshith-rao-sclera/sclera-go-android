@@ -17,13 +17,13 @@ class ObserveAssetConfigUseCase @Inject constructor(private val repo: AssetConfi
     operator fun invoke(): StateFlow<AssetConfig> = repo.config
 }
 
-private fun AssetConfigRepository.updateFields(f: (List<FieldCfg>) -> List<FieldCfg>) = update { it.copy(fields = f(it.fields)) }
+private suspend fun AssetConfigRepository.updateFields(f: (List<FieldCfg>) -> List<FieldCfg>) = update { it.copy(fields = f(it.fields)) }
 
 /** Shows or hides a field on the asset form. Mandatory and locked fields always stay visible. */
 class ToggleFieldVisibleUseCase @Inject constructor(private val repo: AssetConfigRepository) {
     enum class Result { CHANGED, UNCHANGED, MANDATORY }
 
-    operator fun invoke(key: String): Result {
+    suspend operator fun invoke(key: String): Result {
         val f = repo.config.value.fields.firstOrNull { it.key == key } ?: return Result.UNCHANGED
         if (f.locked) return Result.UNCHANGED
         if (f.required && f.visible) return Result.MANDATORY
@@ -34,14 +34,14 @@ class ToggleFieldVisibleUseCase @Inject constructor(private val repo: AssetConfi
 
 /** Makes a field mandatory (and so visible) or optional. Locked fields stay mandatory. */
 class ToggleFieldRequiredUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(key: String) = repo.updateFields { l ->
+    suspend operator fun invoke(key: String) = repo.updateFields { l ->
         l.map { f -> if (f.key != key || f.locked) f else f.copy(required = !f.required, visible = f.visible || !f.required) }
     }
 }
 
 /** Adds a custom field under More details; false when it has no name. */
 class AddFieldUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(label: String, kind: FieldKind, required: Boolean): Boolean {
+    suspend operator fun invoke(label: String, kind: FieldKind, required: Boolean): Boolean {
         val l = label.trim()
         if (l.isEmpty()) return false
         val key = "cf_" + System.currentTimeMillis()
@@ -52,12 +52,12 @@ class AddFieldUseCase @Inject constructor(private val repo: AssetConfigRepositor
 
 /** Removes a custom field (built-in ones stay). */
 class RemoveFieldUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(key: String) = repo.updateFields { l -> l.filter { it.key != key || !it.custom } }
+    suspend operator fun invoke(key: String) = repo.updateFields { l -> l.filter { it.key != key || !it.custom } }
 }
 
 /** Field sheet: saves the whole field (mandatory makes it visible; the name field stays mandatory). False when it has no name. */
 class SaveFieldUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(f: FieldCfg): Boolean {
+    suspend operator fun invoke(f: FieldCfg): Boolean {
         if (f.label.isBlank()) return false
         val clean = f.copy(
             label = f.label.trim(), defaultValue = f.defaultValue.trim(), tooltip = f.tooltip.trim(),
@@ -70,7 +70,7 @@ class SaveFieldUseCase @Inject constructor(private val repo: AssetConfigReposito
 
 /** Add field sheet: adds the fields set up there under More details, skipping names already used. Returns how many. */
 class AddFieldsUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(list: List<FieldCfg>): Int {
+    suspend operator fun invoke(list: List<FieldCfg>): Int {
         val have = repo.config.value.fields.map { it.label.lowercase() }.toSet()
         val add = list.filter { it.label.isNotBlank() && it.label.trim().lowercase() !in have }
             .map { it.copy(label = it.label.trim(), section = FieldSection.MORE, custom = true, visible = it.visible || it.required) }
@@ -124,13 +124,13 @@ class ImportFieldsUseCase @Inject constructor(
 
 /** Checks sheet: what validation looks for in the field. */
 class SetFieldChecksUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(key: String, flagEmpty: Boolean, rule: ValueRule, min: String, max: String) = repo.updateFields { l ->
+    suspend operator fun invoke(key: String, flagEmpty: Boolean, rule: ValueRule, min: String, max: String) = repo.updateFields { l ->
         l.map { if (it.key == key) it.copy(flagEmpty = flagEmpty, rule = rule, min = min.trim(), max = max.trim()) else it }
     }
 }
 
 class SetFieldOptionsUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(key: String, options: List<String>) {
+    suspend operator fun invoke(key: String, options: List<String>) {
         val clean = options.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
         repo.updateFields { l -> l.map { if (it.key == key) it.copy(options = clean) else it } }
     }
@@ -138,7 +138,7 @@ class SetFieldOptionsUseCase @Inject constructor(private val repo: AssetConfigRe
 
 /** How many photos of a kind are needed (0–9) and allowed (at least 1, at least the minimum). */
 class SetPhotoLimitsUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(id: String, min: Int, max: Int) = repo.update { c ->
+    suspend operator fun invoke(id: String, min: Int, max: Int) = repo.update { c ->
         c.copy(photoReqs = c.photoReqs.map {
             if (it.id != id) it else {
                 val mn = min.coerceIn(0, 9)
@@ -150,7 +150,7 @@ class SetPhotoLimitsUseCase @Inject constructor(private val repo: AssetConfigRep
 
 /** Adds a kind of photo; false when it has no name. */
 class AddPhotoReqUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(name: String, hint: String): Boolean {
+    suspend operator fun invoke(name: String, hint: String): Boolean {
         if (name.isBlank()) return false
         repo.update { it.copy(photoReqs = it.photoReqs + PhotoReq("p" + System.currentTimeMillis(), name.trim(), hint.trim(), 0, 1)) }
         return true
@@ -158,11 +158,11 @@ class AddPhotoReqUseCase @Inject constructor(private val repo: AssetConfigReposi
 }
 
 class RemovePhotoReqUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(id: String) = repo.update { c -> c.copy(photoReqs = c.photoReqs.filter { it.id != id }) }
+    suspend operator fun invoke(id: String) = repo.update { c -> c.copy(photoReqs = c.photoReqs.filter { it.id != id }) }
 }
 
 class SetGeoEnforceUseCase @Inject constructor(private val repo: AssetConfigRepository) {
-    operator fun invoke(on: Boolean) = repo.update { it.copy(geoEnforce = on) }
+    suspend operator fun invoke(on: Boolean) = repo.update { it.copy(geoEnforce = on) }
 }
 
 /** The asset configuration use cases, for injecting as one. */

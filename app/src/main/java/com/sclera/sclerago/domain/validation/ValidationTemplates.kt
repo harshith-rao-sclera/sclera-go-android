@@ -233,10 +233,6 @@ val TEMPLATES = listOf(
     ),
 )
 
-val DEFAULT_SAVED = listOf(
-    SavedValidation("sv1", "Field Validation", listOf("mandatory", "placeholders", "related", "location", "photo")),
-)
-
 /** Runs [rules] over [targets]; [all] is every asset in the property (for duplicate checks). */
 fun runValidation(rules: List<Rule>, targets: List<Pair<Asset, CheckInput>>, all: List<Pair<Asset, CheckInput>>): List<AssetResult> =
     targets.map { (a, input) ->

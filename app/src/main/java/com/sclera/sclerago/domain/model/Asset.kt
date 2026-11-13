@@ -73,6 +73,13 @@ data class Asset(
 )
 
 /**
+ * An asset to add. [asset] carries its media and, in [Asset.locationId], the id of the place it goes (a building,
+ * floor or location); [values] are the details form answers to keep with it; [deviceId] is the scanned device it was
+ * made from, if any.
+ */
+data class NewAsset(val asset: Asset, val values: Map<String, String> = emptyMap(), val deviceId: String? = null)
+
+/**
  * One device found by a Bluetooth, Wi-Fi network or access point scan, as a scan page row.
  * Built from the real scan results in scan/ScanRows.kt; [lvl] is 1–4 signal bars.
  * [type] is the asset type the device would become (from what the scan identified); it picks the

@@ -435,4 +435,8 @@
     <string name="sync_failed_server">משהו השתבש מצידנו. נסו שוב בעוד רגע.</string>
     <string name="sync_failed_storage">אין מספיק מקום פנוי במכשיר. פנו מקום באחסון ונסו שוב.</string>
     <string name="sync_retry">נסו שוב</string>
+    <string name="data_error_not_ready">הנתונים עדיין לא מוכנים. המתן לסיום ההורדה.</string>
+    <string name="data_error_name_taken">השם הזה כבר בשימוש כאן. בחר שם אחר.</string>
+    <string name="data_error_in_use">אי אפשר להסיר את זה כל עוד יש בו קומות, מיקומים או נכסים.</string>
+    <string name="data_error_failed">לא ניתן היה לשמור את השינוי. נסה שוב.</string>
 </resources>
