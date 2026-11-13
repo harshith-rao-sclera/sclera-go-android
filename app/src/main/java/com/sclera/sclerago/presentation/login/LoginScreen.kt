@@ -90,6 +90,7 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.toUiText
 import com.sclera.sclerago.presentation.components.CloseButton
+import com.sclera.sclerago.presentation.components.isTablet
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -154,9 +155,6 @@ fun LoginScreen(reason: AuthError?, vm: LoginViewModel = hiltViewModel()) {
 }
 
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-private val FieldBorder = Color(0xFF3A3D44)
-private val IconGrey = Color(0xFF8B8F97)
-
 /** Red line under the email field (design: "Sign in" artboard). */
 @Composable
 private fun FieldError(message: String) {
@@ -169,9 +167,6 @@ private fun FieldError(message: String) {
         Txt(message, 13, 500, C.Red, Modifier.weight(1f), maxLines = 3)
     }
 }
-
-/** Shortest screen side from which the login uses the tablet layout (portrait and landscape). */
-private val TabletMinSide = 600.dp
 
 /**
  * Email step. Phones follow the "Sign in" artboard of the Sclera VDMS Mobile design: building photo
@@ -186,8 +181,8 @@ private fun EmailStep(
     onEmailChange: (String) -> Unit,
     onContinue: () -> Unit,
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize().background(C.Bg)) {
-        if (minOf(maxWidth, maxHeight) >= TabletMinSide) {
+    Box(Modifier.fillMaxSize().background(C.Bg)) {
+        if (isTablet()) {
             TabletEmailStep(email, error, onEmailChange, onContinue)
         } else {
             PhoneEmailStep(email, error, onEmailChange, onContinue)
@@ -211,7 +206,7 @@ private fun PhoneEmailStep(
             Box(
                 Modifier.fillMaxSize().background(
                     Brush.verticalGradient(
-                        0f to Color(0x8C000000), 0.35f to Color(0x0D000000), 0.6f to Color(0x1A000000), 1f to Color(0xD9141518),
+                        0f to C.shade(0.55f), 0.35f to C.shade(0.05f), 0.6f to C.shade(0.1f), 1f to C.Bg.copy(alpha = 0.85f),
                     ),
                 ),
             )
@@ -234,7 +229,6 @@ private fun PhoneEmailStep(
 }
 
 private val CardShape = RoundedCornerShape(28.dp)
-private val CardBorder = Color(0x14FFFFFF)
 
 /**
  * Tablet sign-in ("Sign in (iPad landscape / portrait)" artboards): photo fills the screen, tagline
@@ -252,14 +246,14 @@ private fun TabletEmailStep(
             painterResource(R.drawable.login_bg), contentDescription = null,
             modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop,
         )
-        Box(Modifier.fillMaxSize().background(Color(0x59000000)))
+        Box(Modifier.fillMaxSize().background(C.shade(0.35f)))
         Text(
             stringResource(R.string.login_tagline),
             Modifier.align(Alignment.BottomStart).navigationBarsPadding()
                 .padding(start = 48.dp, end = 48.dp, bottom = 48.dp).testTag(LoginTags.TAGLINE),
             style = TextStyle(
                 color = Color.White, fontSize = 46.sp, fontWeight = FontWeight.Bold, lineHeight = 53.sp,
-                shadow = Shadow(Color(0x66000000), offset = Offset(0f, 4f), blurRadius = 20f),
+                shadow = Shadow(C.shade(0.4f), offset = Offset(0f, 4f), blurRadius = 20f),
             ),
             maxLines = 3,
         )
@@ -273,8 +267,8 @@ private fun TabletEmailStep(
             ) {
                 Column(
                     Modifier.widthIn(max = 500.dp).fillMaxWidth()
-                        .shadow(40.dp, CardShape, spotColor = Color(0x80000000), ambientColor = Color(0x80000000))
-                        .clip(CardShape).background(C.Bg).border(1.dp, CardBorder, CardShape)
+                        .shadow(40.dp, CardShape, spotColor = C.shade(0.5f), ambientColor = C.shade(0.5f))
+                        .clip(CardShape).background(C.Bg).border(1.dp, C.frost(0.08f), CardShape)
                         .padding(44.dp),
                 ) {
                     Brand(logoHeight = 40.dp, textSize = 22, gap = 12.dp)
@@ -349,14 +343,14 @@ private fun SignInForm(
                             .background(C.Surface, r(14))
                             .border(
                                 if (focused) 1.5.dp else 1.dp,
-                                when { error != null -> C.Red; focused -> C.Yellow; else -> FieldBorder },
+                                when { error != null -> C.Red; focused -> C.Yellow; else -> C.Border2 },
                                 r(14),
                             )
                             .padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        LineIcon(Icons.Mail, 18.dp, IconGrey, 1.8f)
+                        LineIcon(Icons.Mail, 18.dp, C.IconGrey, 1.8f)
                         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                             if (email.isEmpty()) Txt(stringResource(R.string.login_email_hint), size.controlText, 400, C.Dim)
                             inner()
@@ -382,9 +376,9 @@ private fun SignInForm(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
-            LineIcon(Icons.Lock, size.noteIcon, IconGrey, 2.4f)
+            LineIcon(Icons.Lock, size.noteIcon, C.IconGrey, 2.4f)
             Spacer(Modifier.width(6.dp))
-            Txt(stringResource(R.string.login_sso_note), size.note, 400, IconGrey)
+            Txt(stringResource(R.string.login_sso_note), size.note, 400, C.IconGrey)
         }
     }
 }
