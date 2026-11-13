@@ -193,6 +193,31 @@ cases for the matching MASVS category. Treat security as part of "done", not a l
 - Parse untrusted data with safe APIs; avoid `Runtime.exec`, reflection on user input and dynamic code
   loading; handle every exception without leaking details to the user or logs.
 
+#### Code obfuscation (R8)
+Rules live in `app/src/main/keepRules/rules.keep` (wired in the `release` build type with
+`proguard-android-optimize.txt`). Keep them in this file, not scattered across modules.
+- **Always on in release:** `isMinifyEnabled = true` and `isShrinkResources = true`. Never disable them
+  to work around a crash; fix the keep rule instead.
+- **Rename everything by default.** Keep the global obfuscation settings: `-repackageclasses ''` (package
+  names don't leak the architecture) and `-allowaccessmodification`. Don't add `-dontobfuscate`,
+  `-dontoptimize` or a broad `-keep class com.sclera.sclerago.** { *; }`.
+- **Keep rules are narrow and justified.** Keep only what is reached by reflection, serialization,
+  JNI or a `@JavascriptInterface` (name the exact class/members, with a comment saying why). Prefer
+  `-keepclassmembers` / `-keepnames` with an `allowshrinking` modifier over `-keep`. Don't add
+  library-wide keeps when the library ships its own consumer rules.
+- **Strip logs:** `-assumenosideeffects` removes `Log.v/d/i/w` in release. Don't rely on obfuscation
+  to hide sensitive data: tokens, keys and secrets never go in code, strings or `BuildConfig`
+  (obfuscation does not encrypt string literals).
+- **Stack traces:** keep `SourceFile,LineNumberTable` with `-renamesourcefileattribute SourceFile`.
+  Archive `build/outputs/mapping/release/mapping.txt` (and upload it to the crash tool) for every
+  released `versionCode`; without it crashes can't be read.
+- **Verify every release build:** run the release variant (or `./gradlew :app:assembleRelease`), sign in
+  and exercise login, scans, imports and sharing. Any new reflection-based library, JavaScript
+  interface, `@Serializable` model or Retrofit model needs its keep rule added and tested in the same change.
+- MASTG check: decompile the release APK; class and method names are unreadable, no debug symbols,
+  no `Log.d/i/w` calls left. Hardening beyond R8 (string encryption, anti-tamper) is decided under
+  MASVS-RESILIENCE, not added ad hoc.
+
 ### MASVS-PRIVACY
 - Collect only what a feature needs; say why in the permission rationale and the privacy policy.
   Photos and location are used only to onboard assets, with no hidden collection and no third-party SDK
