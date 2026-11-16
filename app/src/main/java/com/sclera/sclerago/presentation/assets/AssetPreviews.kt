@@ -3,7 +3,7 @@ package com.sclera.sclerago.presentation.assets
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import com.sclera.sclerago.data.local.DEFAULT_FIELDS
+import com.sclera.sclerago.presentation.preview.SAMPLE_FIELDS
 import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.domain.model.Media
@@ -32,7 +32,7 @@ internal val SamplePhotos = listOf(
  * values, the Validation tab's checks, and any [edits] typed on top.
  */
 internal fun sampleDetailState(
-    id: Int = 2,
+    id: String = "a2",
     edits: Map<String, String> = emptyMap(),
     media: List<Media> = SamplePhotos,
     status: Status? = null,
@@ -41,17 +41,17 @@ internal fun sampleDetailState(
     val seed = SAMPLE_ASSETS.first { it.id == id }.copy(updatedAt = SampleUpdatedAt, media = media)
     val asset = status?.let { seed.copy(st = it) } ?: seed
     val details = if (isNew) null else SAMPLE_DETAILS[id]
-    val saved = BuildFormValuesUseCase { 0L }(asset.name, isNew, details, DEFAULT_FIELDS, emptyMap())
+    val saved = BuildFormValuesUseCase { 0L }(asset.name, isNew, details, SAMPLE_FIELDS, emptyMap())
     val base = AssetDetailState(
-        asset = asset, isNew = isNew, code = details?.code, saved = saved, edits = edits, fields = DEFAULT_FIELDS,
+        asset = asset, isNew = isNew, code = details?.code, saved = saved, edits = edits, fields = SAMPLE_FIELDS,
         details = details, media = media, newPicks = if (isNew) media else emptyList(),
     )
     if (isNew) return base
     val low = base.lowConfidenceKey
     val input = AssetCheckInput(
         base.values, asset.loc != null, asset.where, media.size, base.fromCamera, minPhotos = 1,
-        requiredKeys = DEFAULT_FIELDS.filter { it.required }.map { it.key }.toSet(),
-        lowConfidenceKey = low, lowConfidenceLabel = DEFAULT_FIELDS.firstOrNull { it.key == low }?.label.orEmpty(),
+        requiredKeys = SAMPLE_FIELDS.filter { it.required }.map { it.key }.toSet(),
+        lowConfidenceKey = low, lowConfidenceLabel = SAMPLE_FIELDS.firstOrNull { it.key == low }?.label.orEmpty(),
     )
     return base.copy(checks = EvaluateAssetChecksUseCase()(input))
 }
@@ -84,7 +84,7 @@ private fun DetailNewPreview() = ScleraTheme { AssetDetailScreen(sampleDetailSta
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
-private fun DetailSubmittedPreview() = ScleraTheme { AssetDetailScreen(sampleDetailState(id = 4), AssetDetailActions()) }
+private fun DetailSubmittedPreview() = ScleraTheme { AssetDetailScreen(sampleDetailState(id = "a4"), AssetDetailActions()) }
 
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)

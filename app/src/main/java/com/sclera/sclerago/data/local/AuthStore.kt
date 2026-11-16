@@ -5,7 +5,6 @@ import com.sclera.sclerago.data.mapper.avatarFromUserInfo
 import com.sclera.sclerago.data.mapper.jwtPayload
 import com.sclera.sclerago.data.mapper.nameFromUserInfo
 import com.sclera.sclerago.data.mapper.organisationFromUserInfo
-import com.sclera.sclerago.data.mapper.organisationIdFromMe
 import com.sclera.sclerago.data.mapper.roleFromClaims
 import com.sclera.sclerago.data.mapper.roleFromUserInfo
 import com.sclera.sclerago.data.remote.AuthConfig
@@ -20,8 +19,6 @@ data class AuthSession(
     val expiresAt: Long,
     /** The `data` object of `/sclera/api/userInfo` as JSON text; null until it has been fetched. */
     val userInfo: String? = null,
-    /** The ADC `/api/v1/me` response as JSON text (user id, organisation, group, permissions); null until fetched. */
-    val me: String? = null,
 ) {
     fun tokenValid(now: Long = System.currentTimeMillis()): Boolean =
         accessToken != null && (expiresAt == 0L || expiresAt - now > AuthConfig.TOKEN_REFRESH_MARGIN_MS)
@@ -43,12 +40,6 @@ data class AuthSession(
     val avatarUrl: String?
         get() = info?.let(::avatarFromUserInfo)
 
-    private val meJson: JSONObject? get() = me?.let { runCatching { JSONObject(it) }.getOrNull() }
-
-    /** The user's organisation id from `/me` (e.g. "85161001"); null until it has been fetched. */
-    val organisationId: String?
-        get() = meJson?.let(::organisationIdFromMe)
-
     /** Name from the user details, else the JWT, falling back to the email (as getUser() in the 2.0 frontend). */
     val displayName: String
         get() = info?.let(::nameFromUserInfo)
@@ -68,10 +59,10 @@ class AuthStore(context: Context, private val cipher: SecretCipher) {
         val email = readText(KEY_EMAIL) ?: return null
         val sessionId = readText(KEY_SESSION) ?: return null
         val session = AuthSession(
-            email, sessionId, readText(KEY_TOKEN), prefs.getLong(KEY_EXPIRES, 0L), readText(KEY_USER_INFO), readText(KEY_ME),
+            email, sessionId, readText(KEY_TOKEN), prefs.getLong(KEY_EXPIRES, 0L), readText(KEY_USER_INFO),
         )
         // Values from older versions were plain text: encrypt them now.
-        if (listOf(KEY_EMAIL, KEY_SESSION, KEY_TOKEN, KEY_USER_INFO, KEY_ME).any(::isPlain)) save(session)
+        if (isPlain(KEY_EMAIL) || isPlain(KEY_SESSION) || isPlain(KEY_TOKEN) || isPlain(KEY_USER_INFO)) save(session)
         return session
     }
 
@@ -82,7 +73,6 @@ class AuthStore(context: Context, private val cipher: SecretCipher) {
             .putString(KEY_TOKEN, session.accessToken?.let(::seal))
             .putLong(KEY_EXPIRES, session.expiresAt)
             .putString(KEY_USER_INFO, session.userInfo?.let(::seal))
-            .putString(KEY_ME, session.me?.let(::seal))
             .apply()
     }
 
@@ -105,6 +95,5 @@ class AuthStore(context: Context, private val cipher: SecretCipher) {
         const val KEY_TOKEN = "access_token"
         const val KEY_EXPIRES = "expires_at"
         const val KEY_USER_INFO = "user_info"
-        const val KEY_ME = "me"
     }
 }

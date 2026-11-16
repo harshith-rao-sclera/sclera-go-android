@@ -11,8 +11,6 @@ data class UserSession(
     val organisation: String? = null,
     /** Profile photo URL; null when the user has none. */
     val avatarUrl: String? = null,
-    /** The user's organisation id (from `/me`); its properties are the ones the app shows. Null until loaded. */
-    val organisationId: String? = null,
 )
 
 sealed interface AuthState {

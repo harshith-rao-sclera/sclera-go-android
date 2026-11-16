@@ -1,16 +1,14 @@
 package com.sclera.sclerago.domain.usecase.property
 
-import com.sclera.sclerago.domain.model.AuthError
-import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.OnboardingChannel
+import com.sclera.sclerago.domain.model.OnlineError
+import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Property
-import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /** Why a property can't be added. */
@@ -28,44 +26,33 @@ class ObservePropertiesUseCase @Inject constructor(private val repo: PropertyRep
     operator fun invoke(): StateFlow<List<Property>> = repo.properties
 }
 
-/** Adds a property from the Add New Property form. */
-class AddPropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
+/** Loads the properties from the server again (what is shown stays when it fails; throws [OnlineException]). */
+class RefreshPropertiesUseCase @Inject constructor(private val repo: PropertyRepository) {
+    suspend operator fun invoke() = repo.refresh()
+}
+
+/** Why [draft] can't be added as it is, or null when it can (the Add form's checks, against the properties as they are now). */
+class ValidatePropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
+    operator fun invoke(draft: Property): PropertyProblem? = propertyProblem(draft.name.trim(), draft.type, repo.properties.value)
+}
+
+/** Adds a property from the Add New Property form (online only). */
+class AddPropertyUseCase @Inject constructor(private val repo: PropertyRepository, private val guard: PermissionGuard) {
     sealed interface Result {
         data class Added(val property: Property) : Result
         data class Invalid(val problem: PropertyProblem, val name: String) : Result
+        data class Failed(val error: OnlineError) : Result
     }
 
-    operator fun invoke(draft: Property): Result {
+    suspend operator fun invoke(draft: Property): Result {
         val clean = draft.name.trim()
         propertyProblem(clean, draft.type, repo.properties.value)?.let { return Result.Invalid(it, clean) }
-        val p = draft.copy(id = "p${System.currentTimeMillis()}", name = clean, gps = false)
-        repo.add(p)
-        return Result.Added(p)
-    }
-}
-
-/**
- * Keeps the saved properties in step with the signed-in user's organisation: loads every page of its
- * properties whenever the organisation becomes known or changes, until the caller's scope ends. A failed
- * load (offline, server error) keeps the saved list; an error that ends the session has already signed out.
- */
-class SyncPropertiesUseCase @Inject constructor(
-    private val auth: AuthRepository,
-    private val repo: PropertyRepository,
-) {
-    suspend operator fun invoke() {
-        auth.state
-            .map { (it as? AuthState.SignedIn)?.session?.organisationId }
-            .distinctUntilChanged()
-            .collectLatest { orgId ->
-                if (orgId != null) {
-                    try {
-                        repo.refresh(orgId)
-                    } catch (_: AuthError) {
-                        // Keep what is saved; the next sign-in or app start tries again.
-                    }
-                }
-            }
+        if (!guard.allows(Permission.MANAGE_PROPERTIES)) return Result.Failed(OnlineError.Forbidden)
+        return try {
+            Result.Added(repo.add(draft.copy(name = clean, gps = false)))
+        } catch (e: OnlineException) {
+            Result.Failed(e.error)
+        }
     }
 }
 
@@ -75,15 +62,20 @@ class ObserveOnboardingUseCase @Inject constructor(private val repo: OnboardingR
 }
 
 /** Property Settings: switches Bluetooth or Wi-Fi onboarding on or off for a property. */
-class SetOnboardingUseCase @Inject constructor(private val repo: OnboardingRepository) {
-    operator fun invoke(prop: String, channel: OnboardingChannel, enabled: Boolean) = repo.setEnabled(prop, channel, enabled)
+class SetOnboardingUseCase @Inject constructor(private val repo: OnboardingRepository, private val guard: PermissionGuard) {
+    /** Throws [OnlineException] (the switch lives on the server). */
+    suspend operator fun invoke(prop: String, channel: OnboardingChannel, enabled: Boolean) {
+        guard.requireOnline(Permission.CONFIGURE)
+        repo.setEnabled(prop, channel, enabled)
+    }
 }
 
 /** The property use cases, for injecting as one. */
 class PropertyUseCases @Inject constructor(
     val observe: ObservePropertiesUseCase,
     val add: AddPropertyUseCase,
-    val sync: SyncPropertiesUseCase,
+    val validate: ValidatePropertyUseCase,
+    val refresh: RefreshPropertiesUseCase,
     val observeOnboarding: ObserveOnboardingUseCase,
     val setOnboarding: SetOnboardingUseCase,
     val summaries: ObservePropertySummariesUseCase,

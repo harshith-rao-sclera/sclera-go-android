@@ -5,12 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
+import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** How an asset got onboarded, for each bottom tab's list; the Assets tab shows them all. */
@@ -33,14 +36,14 @@ internal val Tab.sources: Set<Source>?
         Tab.ASSETS -> null
     }
 
-/** Which property's assets, narrowed to which location, the lists are showing now. */
-data class AssetListScope(val property: String = "", val location: LocationFilter = LocationFilter.All)
+/** Which location the lists narrow the downloaded property's assets to. */
+data class AssetListScope(val location: LocationFilter = LocationFilter.All)
 
 /** What the asset lists show: one list per tab, the selection, the search and the pending bulk delete. */
 data class AssetListState(
     val lists: Map<Tab, AssetListData> = emptyMap(),
     /** Only ids that are still in the current property count as selected. */
-    val picked: Set<Int> = emptySet(),
+    val picked: Set<String> = emptySet(),
     val query: String = "",
     val searchOpen: Boolean = false,
     val confirmDelete: Boolean = false,
@@ -62,7 +65,7 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
     val notices: SharedFlow<UiText> = message.asSharedFlow()
 
     private data class Ui(
-        val picked: Set<Int> = emptySet(),
+        val picked: Set<String> = emptySet(),
         val query: String = "",
         val searchOpen: Boolean = false,
         val confirmDelete: Boolean = false,
@@ -70,15 +73,15 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
     )
 
     val state: StateFlow<AssetListState> = combine(useCases.observe(), scope, ui) { catalog, sc, u ->
-        val assets = catalog.assetsIn(sc.property)
+        val assets = catalog.assets
         val lists = Tab.entries.associateWith { tab ->
             useCases.buildList(assets, AssetListQuery(tab.sources, sc.location, u.query, u.statusFilter[tab]))
         }
         AssetListState(lists, u.picked.filterTo(HashSet()) { id -> assets.any { it.id == id } }, u.query, u.searchOpen, u.confirmDelete)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState())
 
-    fun setScope(property: String, location: LocationFilter) {
-        scope.value = AssetListScope(property, location)
+    fun setScope(location: LocationFilter) {
+        scope.value = AssetListScope(location)
     }
 
     fun setStatusFilter(tab: Tab, status: Status?) = ui.update { it.copy(statusFilter = it.statusFilter + (tab to status)) }
@@ -91,7 +94,7 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
 
     // ---- Selection
 
-    fun toggle(id: Int) = ui.update { it.copy(picked = useCases.toggleSelection(it.picked, id)) }
+    fun toggle(id: String) = ui.update { it.copy(picked = useCases.toggleSelection(it.picked, id)) }
     fun clearSelection() = ui.update { if (it.picked.isEmpty()) it else it.copy(picked = emptySet()) }
 
     /** Picks everything [tab] shows, or clears the selection when all of it is already picked. */
@@ -108,9 +111,11 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
     private fun changeStatus(status: Status, plural: Int) {
         val ids = state.value.picked
         if (ids.isEmpty()) return
-        useCases.setStatus(ids, status)
         ui.update { it.copy(picked = emptySet()) }
-        message.tryEmit(UiText.Plural(plural, ids.size))
+        write {
+            useCases.setStatus(ids, status)
+            message.emit(UiText.Plural(plural, ids.size))
+        }
     }
 
     fun askDelete() = ui.update { it.copy(confirmDelete = true) }
@@ -120,8 +125,10 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
         val ids = state.value.picked
         ui.update { it.copy(picked = emptySet(), confirmDelete = false) }
         if (ids.isEmpty()) return
-        useCases.delete(ids)
-        message.tryEmit(UiText.Plural(R.plurals.assets_deleted, ids.size))
+        write {
+            useCases.delete(ids)
+            message.emit(UiText.Plural(R.plurals.assets_deleted, ids.size))
+        }
     }
 
     /** Gives the selected assets [location], labelled [label] in the message. */
@@ -129,7 +136,20 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
         val ids = state.value.picked
         ui.update { it.copy(picked = emptySet()) }
         if (ids.isEmpty()) return
-        useCases.assignLocation(ids, location)
-        message.tryEmit(UiText.Plural(R.plurals.assets_assigned, ids.size, listOf(ids.size, label)))
+        write {
+            useCases.assignLocation(ids, location)
+            message.emit(UiText.Plural(R.plurals.assets_assigned, ids.size, listOf(ids.size, label)))
+        }
+    }
+
+    /** Makes a change to the offline data in the background; when it is refused or fails the user is told why. */
+    private fun write(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (e: DataException) {
+                message.emit(e.error.toUiText())
+            }
+        }
     }
 }

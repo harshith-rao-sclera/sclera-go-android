@@ -13,7 +13,10 @@ import com.sclera.sclerago.domain.usecase.property.ImportFileProblem
 import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyProblem
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
+import com.sclera.sclerago.domain.model.OnlineError
+import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -52,6 +55,9 @@ class PropertyViewModel @Inject constructor(
     private val flags = MutableStateFlow(Flags())
     private val online = MutableStateFlow(downloads.isOnline())
 
+    private data class Flags(val addOpen: Boolean = false, val importOpen: Boolean = false, val notice: UiText? = null)
+    private var adding = false
+
     /** Failed downloads already told about, so each failure is announced once. */
     private val announcedFailures = mutableSetOf<String>()
 
@@ -71,6 +77,14 @@ class PropertyViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.Eagerly, PropertyListState())
 
     init {
+        // Properties are read from the server whenever the list opens; offline the saved list stays.
+        viewModelScope.launch {
+            try {
+                useCases.refresh()
+            } catch (e: OnlineException) {
+                if (e.error != OnlineError.Offline) flags.update { it.copy(notice = e.error.toUiText()) }
+            }
+        }
         downloads.refresh()
         viewModelScope.launch {
             downloads.observe().collect { d ->
@@ -84,8 +98,6 @@ class PropertyViewModel @Inject constructor(
             }
         }
     }
-
-    private data class Flags(val addOpen: Boolean = false, val importOpen: Boolean = false, val notice: UiText? = null)
 
     fun setQuery(value: String) {
         query.value = value
@@ -116,13 +128,24 @@ class PropertyViewModel @Inject constructor(
         }
     }
 
-    /** Adds [draft]; returns why it can't be added, or null once it is (the sheet closes and a notice is set). */
-    fun addProperty(draft: Property): UiText? = when (val r = useCases.add(draft)) {
-        is AddPropertyUseCase.Result.Invalid -> r.problem.toUiText(r.name)
-        is AddPropertyUseCase.Result.Added -> {
-            flags.update { it.copy(addOpen = false, notice = UiText.Res(R.string.property_added, listOf(r.property.name))) }
-            null
+    /**
+     * Adds [draft]; returns why it can't be added, or null when it is on its way: the sheet closes and a notice is set
+     * when the server has created it, or the notice says why not (the sheet stays open).
+     */
+    fun addProperty(draft: Property): UiText? {
+        useCases.validate(draft)?.let { return it.toUiText(draft.name.trim()) }
+        if (adding) return null
+        adding = true
+        viewModelScope.launch {
+            when (val r = useCases.add(draft)) {
+                is AddPropertyUseCase.Result.Added ->
+                    flags.update { it.copy(addOpen = false, notice = UiText.Res(R.string.property_added, listOf(r.property.name))) }
+                is AddPropertyUseCase.Result.Invalid -> flags.update { it.copy(notice = r.problem.toUiText(r.name)) }
+                is AddPropertyUseCase.Result.Failed -> flags.update { it.copy(notice = r.error.toUiText()) }
+            }
+            adding = false
         }
+        return null
     }
 
     /** Why the picked file can't be imported, or null when it can. */

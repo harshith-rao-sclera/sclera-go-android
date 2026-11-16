@@ -57,7 +57,7 @@ fun PropertySheet(vm: AppViewModel) {
             SearchField(s.propQ, vm::setPropQ, "Search properties")
             LazyColumn(Modifier.heightIn(max = 330.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items(rows, key = { it.first.id }) { (p, sub) ->
-                    val on = p.id == s.prop
+                    val on = p.id == vm.currentProp
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(r(12)).background(if (on) C.YTintBg else Color.Transparent)
                             .clickable { vm.pickProp(p.id) }.padding(horizontal = 10.dp, vertical = 6.dp),

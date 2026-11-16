@@ -41,11 +41,11 @@ class BuildAssetListUseCase @Inject constructor() {
 
 /** Picks or un-picks one asset in a selection. */
 class ToggleSelectionUseCase @Inject constructor() {
-    operator fun invoke(picked: Set<Int>, id: Int): Set<Int> = if (id in picked) picked - id else picked + id
+    operator fun invoke(picked: Set<String>, id: String): Set<String> = if (id in picked) picked - id else picked + id
 }
 
 /** "Select all" / "Clear all": everything visible is picked, or (when it all already is) nothing. */
 class SelectAllUseCase @Inject constructor() {
-    operator fun invoke(picked: Set<Int>, visible: List<Int>): Set<Int> =
+    operator fun invoke(picked: Set<String>, visible: List<String>): Set<String> =
         if (visible.isNotEmpty() && picked.containsAll(visible)) emptySet() else picked + visible
 }

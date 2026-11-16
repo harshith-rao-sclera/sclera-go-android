@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.OnlineError
+import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.system.TimeProvider
@@ -14,7 +16,9 @@ import com.sclera.sclerago.domain.usecase.access.AccessUseCases
 import com.sclera.sclerago.domain.usecase.access.GroupProblem
 import com.sclera.sclerago.domain.usecase.access.PersonProblem
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
+import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.observedIn
+import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -40,6 +44,8 @@ data class AccessState(
     val personToRemove: Person? = null,
     /** Group edit waiting for the user to agree that its people get every property. */
     val groupToConfirm: Group? = null,
+    /** Why the last change could not be made (shown once, then consumed). */
+    val notice: UiText? = null,
 )
 
 /** A person in the list: who, their group, and when they were last seen. */
@@ -84,6 +90,8 @@ class AccessViewModel @Inject constructor(
         viewModelScope.launch {
             observeAuthState().collect { if (it is AuthState.SignedOut) state = AccessState() }
         }
+        // People and groups are read from the server whenever the page opens; offline the saved copy stays.
+        viewModelScope.launch { online(quietWhenOffline = true) { useCases.refresh() } }
     }
 
     private val groupList = useCases.observeGroups().observedIn(viewModelScope)
@@ -92,8 +100,16 @@ class AccessViewModel @Inject constructor(
     val groups: List<Group> get() = groupList.value
     val people: List<Person> get() = peopleList.value
 
-    /** Seeds the list with the signed-in user as an admin the first time the screen opens. */
-    fun ensureSeeded(currentEmail: String?) = useCases.seedSignedInUser(currentEmail)
+    /** Runs a call to the server; when it fails the user is told why (never the server's own text). Returns whether it worked. */
+    private suspend fun online(quietWhenOffline: Boolean = false, block: suspend () -> Unit): Boolean = try {
+        block()
+        true
+    } catch (e: OnlineException) {
+        if (!(quietWhenOffline && e.error == OnlineError.Offline)) set { copy(notice = e.error.toUiText()) }
+        false
+    }
+
+    fun consumeNotice() = set { copy(notice = null) }
 
     fun setTab(t: AccessTab) = set { copy(tab = t, query = "", groupFilter = null, pickedGroups = emptySet()) }
     fun setGroupFilter(p: Permission?) = set { copy(groupFilter = p) }
@@ -147,17 +163,22 @@ class AccessViewModel @Inject constructor(
     /** Why [p] can't be saved yet, or null. */
     fun personProblem(p: Person): PersonProblem? = useCases.validatePerson(p)
 
-    /** Saves [p]; returns why it can't be saved instead, or null once it is (the form closes). */
+    /** Saves [p]; returns why it can't be saved instead, or null when it is on its way (the form closes once the server has it). */
     fun savePerson(p: Person): PersonProblem? {
-        useCases.savePerson(p)?.let { return it }
-        set { copy(personForm = null) }
+        useCases.validatePerson(p)?.let { return it }
+        viewModelScope.launch {
+            var problem: PersonProblem? = null
+            if (online { problem = useCases.savePerson(p) } && problem == null) set { copy(personForm = null) }
+        }
         return null
     }
 
     fun askRemovePerson(p: Person?) = set { copy(personToRemove = p) }
     fun removePerson(p: Person) {
-        useCases.removePerson(p)
-        set { copy(personToRemove = null, personForm = null) }
+        viewModelScope.launch {
+            val removed = online { useCases.removePerson(p) }
+            set { copy(personToRemove = null, personForm = if (removed) null else personForm) }
+        }
     }
 
     // ---- Groups
@@ -195,8 +216,11 @@ class AccessViewModel @Inject constructor(
     fun cancelGroupConfirm() = set { copy(groupToConfirm = null) }
 
     private fun commitGroup(g: Group): GroupProblem? {
-        useCases.saveGroup(g)?.let { return it }
-        set { copy(groupForm = null, groupToConfirm = null) }
+        useCases.validateGroup(g)?.let { return it }
+        viewModelScope.launch {
+            var problem: GroupProblem? = null
+            if (online { problem = useCases.saveGroup(g) } && problem == null) set { copy(groupForm = null, groupToConfirm = null) }
+        }
         return null
     }
 
@@ -229,10 +253,16 @@ class AccessViewModel @Inject constructor(
 
     /** Deletes every ticked group that can still be deleted, then ends the selection. */
     fun deletePicked() {
-        pickedGroups.forEach { useCases.deleteGroup(it) }
-        set { copy(pickedGroups = emptySet(), confirmDeletePicked = false) }
+        val doomed = pickedGroups
+        viewModelScope.launch {
+            doomed.forEach { online { useCases.deleteGroup(it) } }
+            set { copy(pickedGroups = emptySet(), confirmDeletePicked = false) }
+        }
     }
     fun deleteGroup(g: Group) {
-        if (useCases.deleteGroup(g)) set { copy(confirmDelete = null, groupForm = null) }
+        viewModelScope.launch {
+            online { useCases.deleteGroup(g) }
+            set { copy(confirmDelete = null, groupForm = null) }
+        }
     }
 }

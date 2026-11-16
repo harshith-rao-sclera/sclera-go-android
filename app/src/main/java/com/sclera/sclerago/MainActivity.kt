@@ -15,6 +15,7 @@ import com.sclera.sclerago.presentation.launch.LaunchViewModel
 import com.sclera.sclerago.presentation.login.LoginScreen
 import com.sclera.sclerago.presentation.main.ScleraApp
 import com.sclera.sclerago.presentation.session.SessionViewModel
+import com.sclera.sclerago.presentation.sync.SyncGate
 import com.sclera.sclerago.presentation.theme.ScleraTheme
 import com.sclera.sclerago.services.syncManager.SyncManagerService
 import com.sclera.sclerago.utility.Utility
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
                     // Any session-ending error (expired, blocked, signed in elsewhere) flips this to SignedOut.
                     when (val auth = session.authState.collectAsStateWithLifecycle().value) {
                         is AuthState.SignedOut -> LoginScreen(reason = auth.reason)
-                        is AuthState.SignedIn -> ScleraApp()
+                        is AuthState.SignedIn -> SyncGate { ScleraApp() }
                     }
                 }
             }
