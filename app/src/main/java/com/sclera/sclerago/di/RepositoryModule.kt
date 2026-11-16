@@ -13,6 +13,7 @@ import com.sclera.sclerago.data.repository.LocalAutofillRepository
 import com.sclera.sclerago.data.repository.LocationRepositoryImpl
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
+import com.sclera.sclerago.data.repository.SyncManagerPropertyDownloads
 import com.sclera.sclerago.data.repository.ValidationRepositoryImpl
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
@@ -21,6 +22,7 @@ import com.sclera.sclerago.domain.repository.AutofillRepository
 import com.sclera.sclerago.domain.repository.FileRepository
 import com.sclera.sclerago.domain.repository.LocationRepository
 import com.sclera.sclerago.domain.repository.OnboardingRepository
+import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
 import com.sclera.sclerago.domain.repository.ValidationRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
@@ -64,6 +66,7 @@ abstract class RepositoryModule {
 abstract class PropertyDataModule {
     @Binds abstract fun propertyStore(impl: GlobalConfigPropertyStore): PropertyStore
     @Binds abstract fun propertyRemote(impl: AdcPropertyRemoteSource): PropertyRemoteSource
+    @Binds abstract fun propertyDownloads(impl: SyncManagerPropertyDownloads): PropertyDownloadRepository
 }
 
 /** Device files (photos, documents, spreadsheets). */

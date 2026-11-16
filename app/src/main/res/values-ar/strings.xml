@@ -35,6 +35,12 @@
     <string name="label_assets">الأصول</string>
     <string name="property_import_strip">الاستيراد من جدول بيانات</string>
     <string name="property_none_match">لا توجد عقارات تطابق “%1$s”.</string>
+    <string name="property_download">تنزيل %1$s</string>
+    <string name="property_downloading">جارٍ تنزيل %1$s</string>
+    <string name="property_downloaded">تم التنزيل</string>
+    <string name="property_download_size">%1$s / %2$s ميغابايت</string>
+    <string name="property_download_failed">تعذّر تنزيل %1$s. حاول مرة أخرى.</string>
+    <string name="property_download_offline">أنت غير متصل. اتصل بالإنترنت لتنزيل عقار.</string>
     <string name="property_added">تمت إضافة %1$s</string>
     <string name="property_import_notice">تم رفع “%1$s” · الاستيراد غير متصل بالخادم بعد</string>
     <string name="property_problem_name">أدخل اسم العقار.</string>

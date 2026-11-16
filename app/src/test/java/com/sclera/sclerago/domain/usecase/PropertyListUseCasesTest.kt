@@ -3,7 +3,8 @@ package com.sclera.sclerago.domain.usecase
 import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
-import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
+import com.sclera.sclerago.testutil.FakePropertyRepository
+import com.sclera.sclerago.testutil.SAMPLE_PROPERTIES
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.PropertySummary
 import com.sclera.sclerago.domain.usecase.property.FilterPropertySummariesUseCase
@@ -19,7 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PropertyListUseCasesTest {
-    private val properties = PropertyRepositoryImpl()
+    private val properties = FakePropertyRepository(SAMPLE_PROPERTIES)
     private val assets = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
 
     @Test

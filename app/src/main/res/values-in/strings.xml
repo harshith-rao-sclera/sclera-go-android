@@ -35,6 +35,12 @@
     <string name="label_assets">Aset</string>
     <string name="property_import_strip">Impor dari spreadsheet</string>
     <string name="property_none_match">Tidak ada properti yang cocok dengan “%1$s”.</string>
+    <string name="property_download">Unduh %1$s</string>
+    <string name="property_downloading">Mengunduh %1$s</string>
+    <string name="property_downloaded">Telah diunduh</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">Tidak dapat mengunduh %1$s. Coba lagi.</string>
+    <string name="property_download_offline">Anda sedang offline. Sambungkan untuk mengunduh properti.</string>
     <string name="property_added">%1$s ditambahkan</string>
     <string name="property_import_notice">“%1$s” diunggah · impor belum terhubung ke server</string>
     <string name="property_problem_name">Masukkan nama properti.</string>

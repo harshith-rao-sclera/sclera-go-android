@@ -35,6 +35,12 @@
     <string name="label_assets">एसेट</string>
     <string name="property_import_strip">स्प्रेडशीट से आयात करें</string>
     <string name="property_none_match">“%1$s” से मेल खाती कोई संपत्ति नहीं है।</string>
+    <string name="property_download">%1$s डाउनलोड करें</string>
+    <string name="property_downloading">%1$s डाउनलोड हो रही है</string>
+    <string name="property_downloaded">डाउनलोड हो गई</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">%1$s डाउनलोड नहीं हो सकी। फिर से कोशिश करें।</string>
+    <string name="property_download_offline">आप ऑफ़लाइन हैं। प्रॉपर्टी डाउनलोड करने के लिए कनेक्ट करें।</string>
     <string name="property_added">%1$s जोड़ी गई</string>
     <string name="property_import_notice">“%1$s” अपलोड हो गई · आयात अभी सर्वर से जुड़ा नहीं है</string>
     <string name="property_problem_name">संपत्ति का नाम दर्ज करें।</string>

@@ -35,6 +35,12 @@
     <string name="label_assets">Actifs</string>
     <string name="property_import_strip">Importer depuis un tableur</string>
     <string name="property_none_match">Aucune propriété ne correspond à « %1$s ».</string>
+    <string name="property_download">Télécharger %1$s</string>
+    <string name="property_downloading">Téléchargement de %1$s</string>
+    <string name="property_downloaded">Téléchargé</string>
+    <string name="property_download_size">%1$s / %2$s Mo</string>
+    <string name="property_download_failed">Impossible de télécharger %1$s. Réessayez.</string>
+    <string name="property_download_offline">Vous êtes hors ligne. Connectez-vous pour télécharger une propriété.</string>
     <string name="property_added">%1$s ajoutée</string>
     <string name="property_import_notice">« %1$s » envoyé · l’import n’est pas encore connecté au serveur</string>
     <string name="property_problem_name">Saisissez le nom de la propriété.</string>

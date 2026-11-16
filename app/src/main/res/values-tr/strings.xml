@@ -35,6 +35,12 @@
     <string name="label_assets">Varlıklar</string>
     <string name="property_import_strip">Elektronik tablodan içe aktar</string>
     <string name="property_none_match">“%1$s” ile eşleşen mülk yok.</string>
+    <string name="property_download">%1$s indir</string>
+    <string name="property_downloading">%1$s indiriliyor</string>
+    <string name="property_downloaded">İndirildi</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">%1$s indirilemedi. Tekrar deneyin.</string>
+    <string name="property_download_offline">Çevrimdışısınız. Bir mülkü indirmek için bağlanın.</string>
     <string name="property_added">%1$s eklendi</string>
     <string name="property_import_notice">“%1$s” yüklendi · içe aktarma henüz sunucuya bağlı değil</string>
     <string name="property_problem_name">Mülk adını girin.</string>

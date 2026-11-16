@@ -35,6 +35,12 @@
     <string name="label_assets">資産</string>
     <string name="property_import_strip">スプレッドシートからインポート</string>
     <string name="property_none_match">「%1$s」に一致する物件はありません。</string>
+    <string name="property_download">%1$s をダウンロード</string>
+    <string name="property_downloading">%1$s をダウンロード中</string>
+    <string name="property_downloaded">ダウンロード済み</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">%1$s をダウンロードできませんでした。もう一度お試しください。</string>
+    <string name="property_download_offline">オフラインです。物件をダウンロードするには接続してください。</string>
     <string name="property_added">%1$s を追加しました</string>
     <string name="property_import_notice">「%1$s」をアップロードしました · インポートはまだサーバーに接続されていません</string>
     <string name="property_problem_name">物件名を入力してください。</string>

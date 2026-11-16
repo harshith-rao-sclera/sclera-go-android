@@ -35,6 +35,12 @@
     <string name="label_assets">Activos</string>
     <string name="property_import_strip">Importar desde hoja de cálculo</string>
     <string name="property_none_match">Ninguna propiedad coincide con “%1$s”.</string>
+    <string name="property_download">Descargar %1$s</string>
+    <string name="property_downloading">Descargando %1$s</string>
+    <string name="property_downloaded">Descargado</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">No se pudo descargar %1$s. Inténtalo de nuevo.</string>
+    <string name="property_download_offline">Sin conexión. Conéctate para descargar una propiedad.</string>
     <string name="property_added">%1$s añadida</string>
     <string name="property_import_notice">“%1$s” subido · la importación aún no está conectada al servidor</string>
     <string name="property_problem_name">Introduce el nombre de la propiedad.</string>

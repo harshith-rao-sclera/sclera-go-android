@@ -5,7 +5,6 @@ import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import com.sclera.sclerago.R
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
-import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.usecase.media.WritePropertyTemplateUseCase
 import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
@@ -17,7 +16,16 @@ import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.property.SetOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
 import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.domain.model.PropertyDownload
+import com.sclera.sclerago.domain.model.PropertyDownloads
+import com.sclera.sclerago.domain.usecase.property.SyncPropertiesUseCase
+import com.sclera.sclerago.testutil.FakeAuthRepository
 import com.sclera.sclerago.testutil.FakeFileRepository
+import com.sclera.sclerago.testutil.FakeNetworkMonitor
+import com.sclera.sclerago.testutil.FakePropertyDownloads
+import com.sclera.sclerago.testutil.FakePropertyRepository
+import com.sclera.sclerago.testutil.SAMPLE_PROPERTIES
+import com.sclera.sclerago.testutil.propertyDownloadUseCases
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -35,9 +43,11 @@ import java.io.ByteArrayOutputStream
 /** ViewModel → use cases → the real in-memory repositories. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PropertyViewModelTest {
-    private val properties = PropertyRepositoryImpl()
+    private val properties = FakePropertyRepository(SAMPLE_PROPERTIES)
     private val assets = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
     private val files = FakeFileRepository()
+    private val downloads = FakePropertyDownloads(PropertyDownloads(downloadedId = "p1"))
+    private val network = FakeNetworkMonitor()
     private lateinit var vm: PropertyViewModel
 
     @Before
@@ -47,10 +57,12 @@ class PropertyViewModelTest {
         vm = PropertyViewModel(
             PropertyUseCases(
                 ObservePropertiesUseCase(properties), AddPropertyUseCase(properties),
+                SyncPropertiesUseCase(FakeAuthRepository(), properties),
                 ObserveOnboardingUseCase(onboarding), SetOnboardingUseCase(onboarding),
                 ObservePropertySummariesUseCase(properties, assets), FilterPropertySummariesUseCase(), ValidateImportFileUseCase(),
             ),
             WritePropertyTemplateUseCase(files),
+            propertyDownloadUseCases(downloads, network),
         )
     }
 
@@ -137,6 +149,51 @@ class PropertyViewModelTest {
     fun writeSample_asksTheFileRepositoryForTheTemplate() {
         vm.writeSample(ByteArrayOutputStream())
         assertTrue(files.templateWritten)
+    }
+
+    // ---- Downloads
+
+    @Test
+    fun opening_rereadsWhichPropertyIsDownloaded_andShowsIt() {
+        assertEquals(1, downloads.refreshes)
+        assertEquals("p1", vm.state.value.downloads.downloadedId)
+        assertTrue(vm.state.value.online)
+    }
+
+    @Test
+    fun download_startsIt_andTheRowShowsItRunning() {
+        vm.download("p5")
+        assertEquals(listOf("p5"), downloads.started)
+        assertTrue(vm.state.value.downloads.active["p5"] is PropertyDownload.Running)
+        assertNull(vm.state.value.notice)
+    }
+
+    @Test
+    fun download_offline_isRefusedAndSaysWhy() {
+        network.online = false
+        vm.download("p5")
+        assertTrue(downloads.started.isEmpty())
+        assertFalse(vm.state.value.online)
+        assertEquals(UiText.Res(R.string.property_download_offline), vm.state.value.notice)
+    }
+
+    @Test
+    fun checkConnection_followsTheNetwork() {
+        network.online = false
+        vm.checkConnection()
+        assertFalse(vm.state.value.online)
+        network.online = true
+        vm.checkConnection()
+        assertTrue(vm.state.value.online)
+    }
+
+    @Test
+    fun aFailedDownload_isAnnouncedOnceByName() {
+        downloads.flow.value = downloads.flow.value.copy(active = mapOf("p5" to PropertyDownload.Failed))
+        assertEquals(UiText.Res(R.string.property_download_failed, listOf("Harbour Point Office Tower")), vm.state.value.notice)
+        vm.consumeNotice()
+        downloads.flow.value = downloads.flow.value.copy(active = mapOf("p5" to PropertyDownload.Failed, "p6" to PropertyDownload.Running(0.5f, 1.0, 2.0)))
+        assertNull(vm.state.value.notice) // the same failure isn't announced twice
     }
 
     @Test

@@ -35,6 +35,12 @@
     <string name="label_assets">자산</string>
     <string name="property_import_strip">스프레드시트에서 가져오기</string>
     <string name="property_none_match">“%1$s”와(과) 일치하는 시설이 없습니다.</string>
+    <string name="property_download">%1$s 다운로드</string>
+    <string name="property_downloading">%1$s 다운로드 중</string>
+    <string name="property_downloaded">다운로드됨</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">%1$s을(를) 다운로드하지 못했습니다. 다시 시도하세요.</string>
+    <string name="property_download_offline">오프라인 상태입니다. 속성을 다운로드하려면 연결하세요.</string>
     <string name="property_added">%1$s 추가됨</string>
     <string name="property_import_notice">“%1$s” 업로드됨 · 가져오기는 아직 서버에 연결되지 않았습니다</string>
     <string name="property_problem_name">시설 이름을 입력하세요.</string>

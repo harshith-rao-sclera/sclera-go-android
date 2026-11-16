@@ -35,6 +35,12 @@
     <string name="label_assets">Ativos</string>
     <string name="property_import_strip">Importar de planilha</string>
     <string name="property_none_match">Nenhuma propriedade corresponde a “%1$s”.</string>
+    <string name="property_download">Baixar %1$s</string>
+    <string name="property_downloading">Baixando %1$s</string>
+    <string name="property_downloaded">Baixado</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">Não foi possível baixar %1$s. Tente novamente.</string>
+    <string name="property_download_offline">Você está off-line. Conecte-se para baixar um imóvel.</string>
     <string name="property_added">%1$s adicionada</string>
     <string name="property_import_notice">“%1$s” enviado · a importação ainda não está conectada ao servidor</string>
     <string name="property_problem_name">Informe o nome da propriedade.</string>

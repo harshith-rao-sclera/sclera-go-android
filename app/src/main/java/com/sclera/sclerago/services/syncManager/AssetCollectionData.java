@@ -14,6 +14,8 @@ public class AssetCollectionData {
     String refreshToken;
     String sessionId;
     String cloudUrl;
+    /** The property whose offline data to download (Property list → download). */
+    String propertyId;
 
     public AssetCollectionData(String id, String url, String email, String organisationId, String role, String accessToken, String sessionUrl, String refreshToken, String sessionId, String cloudUrl) {
         this.id = id;
@@ -29,6 +31,14 @@ public class AssetCollectionData {
     }
 
     public AssetCollectionData() {
+    }
+
+    public String getPropertyId() {
+        return propertyId;
+    }
+
+    public void setPropertyId(String propertyId) {
+        this.propertyId = propertyId;
     }
 
     public String getId() {

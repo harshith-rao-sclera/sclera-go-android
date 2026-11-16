@@ -35,6 +35,12 @@
     <string name="label_assets">Assets</string>
     <string name="property_import_strip">Aus Tabelle importieren</string>
     <string name="property_none_match">Keine Standorte passen zu „%1$s“.</string>
+    <string name="property_download">%1$s herunterladen</string>
+    <string name="property_downloading">%1$s wird heruntergeladen</string>
+    <string name="property_downloaded">Heruntergeladen</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">%1$s konnte nicht heruntergeladen werden. Versuche es erneut.</string>
+    <string name="property_download_offline">Du bist offline. Stelle eine Verbindung her, um eine Liegenschaft herunterzuladen.</string>
     <string name="property_added">%1$s hinzugefügt</string>
     <string name="property_import_notice">„%1$s“ hochgeladen · Der Import ist noch nicht mit dem Server verbunden</string>
     <string name="property_problem_name">Geben Sie den Standortnamen ein.</string>

@@ -24,6 +24,8 @@ data class Property(
     val contact: Contact = Contact(),
     val notes: String = "",
     val availability: Availability = Availability(),
+    /** Its data is downloaded on this device for working offline (the sync manager holds one property at a time). */
+    val downloaded: Boolean = false,
 )
 
 val PROPERTY_TYPES = listOf("Office", "Warehouse", "Hospital", "Retail", "Residential", "Industrial", "Campus", "Other")

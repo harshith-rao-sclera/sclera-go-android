@@ -35,6 +35,12 @@
     <string name="label_assets">Risorse</string>
     <string name="property_import_strip">Importa da foglio di calcolo</string>
     <string name="property_none_match">Nessuna proprietà corrisponde a “%1$s”.</string>
+    <string name="property_download">Scarica %1$s</string>
+    <string name="property_downloading">Download di %1$s in corso</string>
+    <string name="property_downloaded">Scaricato</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">Impossibile scaricare %1$s. Riprova.</string>
+    <string name="property_download_offline">Sei offline. Connettiti per scaricare una proprietà.</string>
     <string name="property_added">%1$s aggiunta</string>
     <string name="property_import_notice">“%1$s” caricato · l’importazione non è ancora collegata al server</string>
     <string name="property_problem_name">Inserisci il nome della proprietà.</string>

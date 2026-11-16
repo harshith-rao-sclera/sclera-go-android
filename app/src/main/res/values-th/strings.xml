@@ -35,6 +35,12 @@
     <string name="label_assets">สินทรัพย์</string>
     <string name="property_import_strip">นำเข้าจากสเปรดชีต</string>
     <string name="property_none_match">ไม่มีสถานที่ที่ตรงกับ “%1$s”</string>
+    <string name="property_download">ดาวน์โหลด %1$s</string>
+    <string name="property_downloading">กำลังดาวน์โหลด %1$s</string>
+    <string name="property_downloaded">ดาวน์โหลดแล้ว</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">ดาวน์โหลด %1$s ไม่ได้ โปรดลองอีกครั้ง</string>
+    <string name="property_download_offline">คุณออฟไลน์อยู่ เชื่อมต่อเพื่อดาวน์โหลดพร็อพเพอร์ตี้</string>
     <string name="property_added">เพิ่ม %1$s แล้ว</string>
     <string name="property_import_notice">อัปโหลด “%1$s” แล้ว · การนำเข้ายังไม่ได้เชื่อมต่อกับเซิร์ฟเวอร์</string>
     <string name="property_problem_name">ป้อนชื่อสถานที่</string>

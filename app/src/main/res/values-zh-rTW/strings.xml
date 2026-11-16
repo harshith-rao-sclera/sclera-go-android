@@ -35,6 +35,12 @@
     <string name="label_assets">資產</string>
     <string name="property_import_strip">從試算表匯入</string>
     <string name="property_none_match">沒有符合「%1$s」的物業。</string>
+    <string name="property_download">下載 %1$s</string>
+    <string name="property_downloading">正在下載 %1$s</string>
+    <string name="property_downloaded">已下載</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">無法下載 %1$s，請再試一次。</string>
+    <string name="property_download_offline">你目前離線。請連線以下載物業。</string>
     <string name="property_added">已新增 %1$s</string>
     <string name="property_import_notice">已上傳「%1$s」· 匯入尚未連線到伺服器</string>
     <string name="property_problem_name">請輸入物業名稱。</string>

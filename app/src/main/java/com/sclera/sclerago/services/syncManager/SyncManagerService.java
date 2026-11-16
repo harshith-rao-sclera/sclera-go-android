@@ -66,8 +66,24 @@ public class SyncManagerService {
             String orgId = "ORG_987654";
             String sessionId = "498d14e5-7a15-4f1c-8a9b-12f7339f632c";
             String sessionUrl = "https://app.example.com/session/SES_123456789";
-            String propertyId = "01a1cec7-04a1-7979-95ee-44f8531ec489";
+            // The property chosen on the Property list (download button), else the one this was started with.
+            String propertyId = assetCollectionData.getPropertyId() != null ? assetCollectionData.getPropertyId() : "01a1cec7-04a1-7979-95ee-44f8531ec489";
             String cloudUrl = "https://cloud.example.com";
+
+            // Another property was downloaded before: the sync holds one property's database at a time, so stop
+            // it and drop that database; the code below then starts a new sync that downloads this property.
+            SyncManager running = SyncUtils.dbInstance;
+            if (running != null && running.propertyId != null && !running.propertyId.equals(propertyId)) {
+                running.setContinueDataSync(false);
+                running.setContinueImageSync(false);
+                running.setContinueLargeFileSync(false);
+                running.closeConnection();
+                String dbName = OfflineFeatures.ASSET_DATA_COLLECTION.toString();
+                Utility.context.deleteDatabase(dbName + ".db");
+                Utility.context.getDatabasePath(dbName + ".zip").delete();
+                SyncUtils.getSharedPrefs(Utility.context).edit().putInt("adc_sync_status", 0).remove("adc_sync_timestamp").apply();
+                SyncUtils.dbInstance = null;
+            }
 
             SyncManager.token = token;
             SyncManager.sessionId = sessionId;

@@ -35,6 +35,12 @@
     <string name="label_assets">Активы</string>
     <string name="property_import_strip">Импорт из таблицы</string>
     <string name="property_none_match">Нет объектов, соответствующих «%1$s».</string>
+    <string name="property_download">Скачать %1$s</string>
+    <string name="property_downloading">Скачивание: %1$s</string>
+    <string name="property_downloaded">Скачано</string>
+    <string name="property_download_size">%1$s / %2$s МБ</string>
+    <string name="property_download_failed">Не удалось скачать %1$s. Повторите попытку.</string>
+    <string name="property_download_offline">Нет подключения. Подключитесь, чтобы скачать объект.</string>
     <string name="property_added">Добавлено: %1$s</string>
     <string name="property_import_notice">«%1$s» загружен · импорт пока не подключён к серверу</string>
     <string name="property_problem_name">Введите название объекта.</string>

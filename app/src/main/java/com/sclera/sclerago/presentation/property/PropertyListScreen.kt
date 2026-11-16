@@ -1,5 +1,16 @@
 package com.sclera.sclerago.presentation.property
 
+import java.util.Locale
+import java.text.NumberFormat
+import kotlinx.coroutines.delay
+import com.sclera.sclerago.domain.model.PropertyDownload
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -64,6 +75,9 @@ object PropertyTags {
     const val EMPTY = "property_empty"
     const val COUNT = "property_count"
     fun row(id: String) = "property_row_$id"
+    fun download(id: String) = "property_download_$id"
+    fun progress(id: String) = "property_progress_$id"
+    fun done(id: String) = "property_done_$id"
 }
 
 /** Property list (side menu): counts, import, search, open a property, add one. */
@@ -72,6 +86,13 @@ fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel(
     val state by vm.state.collectAsStateWithLifecycle()
     BackHandler(onBack = app::closeAdmin)
     DisposableEffect(Unit) { onDispose(vm::reset) }
+    // Offline, properties that aren't downloaded fade out; check the connection while the page is shown.
+    LaunchedEffect(Unit) {
+        while (true) {
+            vm.checkConnection()
+            delay(CONNECTION_CHECK_MS)
+        }
+    }
     val notice = state.notice?.asString()
     LaunchedEffect(notice) {
         if (notice != null) {
@@ -83,7 +104,7 @@ fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel(
         PropertyListContent(
             state, app.state.prop,
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
-            onAdd = vm::openAdd, onImport = vm::openImport,
+            onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download,
         )
         AnimatedVisibility(
             app.state.toastOn && !state.addOpen,
@@ -105,6 +126,7 @@ internal fun PropertyListContent(
     onOpen: (String) -> Unit,
     onAdd: () -> Unit,
     onImport: () -> Unit,
+    onDownload: (String) -> Unit = {},
 ) {
     val gutter = pageGutter()
     Box(Modifier.fillMaxSize().background(C.Bg)) {
@@ -117,7 +139,12 @@ internal fun PropertyListContent(
             ) {
                 item { Header(state, onImport) }
                 items(state.rows, key = { it.property.id }) { row ->
-                    PropertyCard(row.property.id, row.property.name, row.property.id == currentId) { onOpen(row.property.id) }
+                    val id = row.property.id
+                    PropertyCard(
+                        id, row.property.name, current = id == currentId,
+                        download = state.downloads.active[id], downloaded = id == state.downloads.downloadedId, online = state.online,
+                        onClick = { onOpen(id) }, onDownload = { onDownload(id) },
+                    )
                 }
                 if (state.rows.isEmpty()) item {
                     Txt(
@@ -159,21 +186,95 @@ private fun Header(state: PropertyListState, onImport: () -> Unit) {
     }
 }
 
-/** A property: round building icon and name. The current one is marked for accessibility only. */
+/**
+ * A property: round building icon and name, then where its offline data is: a download button, the download's
+ * progress (percent, MB and a yellow edge along the bottom), a tick when it has just finished, or the chevron once
+ * it is downloaded. Offline, a property that isn't downloaded is faded and can't be opened. The current property
+ * is marked for accessibility only.
+ */
 @Composable
-private fun PropertyCard(id: String, name: String, current: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))
+private fun PropertyCard(
+    id: String,
+    name: String,
+    current: Boolean,
+    download: PropertyDownload?,
+    downloaded: Boolean,
+    online: Boolean,
+    onClick: () -> Unit,
+    onDownload: () -> Unit,
+) {
+    val running = download as? PropertyDownload.Running
+    val faint = !online && !downloaded && running == null
+    Box(
+        Modifier.fillMaxWidth().alpha(if (faint) FaintAlpha else 1f).clip(r(12)).background(C.Surface)
+            .border(1.dp, if (faint) Color.Transparent else C.Border, r(12))
             .semantics { selected = current }.testTag(PropertyTags.row(id))
-            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+            .clickable(enabled = !faint, role = Role.Button, onClick = onClick),
     ) {
-        Box(
-            Modifier.size(40.dp).clip(CircleShape).background(C.Raised).border(1.dp, C.Border, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Building, 17.dp, C.Muted, 1.9f) }
-        Txt(name, 14, 600, modifier = Modifier.weight(1f), maxLines = 2)
-        LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(C.Raised).border(1.dp, C.Border, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) { LineIcon(Icons.Building, 17.dp, C.Muted, 1.9f) }
+            Txt(name, 14, 600, modifier = Modifier.weight(1f), maxLines = 2)
+            when {
+                running != null -> DownloadProgress(name, running, Modifier.testTag(PropertyTags.progress(id)))
+                download is PropertyDownload.Finished -> {
+                    val done = stringResource(R.string.property_downloaded)
+                    Box(
+                        Modifier.size(48.dp).semantics { contentDescription = done }.testTag(PropertyTags.done(id)),
+                        contentAlignment = Alignment.Center,
+                    ) { LineIcon(Icons.Check, 22.dp, C.Green, 2.8f) }
+                }
+                downloaded -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
+                }
+                faint -> Unit
+                else -> {
+                    val label = stringResource(R.string.property_download, name)
+                    Box(
+                        Modifier.size(48.dp).clip(CircleShape).semantics { contentDescription = label }
+                            .testTag(PropertyTags.download(id)).clickable(role = Role.Button, onClick = onDownload),
+                        contentAlignment = Alignment.Center,
+                    ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
+                }
+            }
+        }
+        // How far the download has got, as a yellow edge along the bottom of the card.
+        if (running != null) {
+            Box(Modifier.align(Alignment.BottomStart).fillMaxWidth(running.fraction).height(3.dp).background(C.Yellow))
+        }
     }
 }
+
+/** "42%" over "5.2 / 12.4 MB" (the size once the server has sent it), read out as "Downloading <name>". */
+@Composable
+private fun DownloadProgress(name: String, d: PropertyDownload.Running, modifier: Modifier) {
+    val label = stringResource(R.string.property_downloading, name)
+    val locale = Locale.getDefault()
+    Column(
+        modifier.widthIn(min = 78.dp).padding(end = 6.dp).semantics(mergeDescendants = true) {
+            contentDescription = label
+            progressBarRangeInfo = ProgressBarRangeInfo(d.fraction, 0f..1f)
+        },
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
+        Txt(NumberFormat.getPercentInstance(locale).format(d.fraction.toDouble()), 13, 700, C.Yellow)
+        if (d.totalMb > 0) {
+            val done = String.format(locale, "%.1f", d.downloadedMb)
+            val total = String.format(locale, "%.1f", d.totalMb)
+            Txt(stringResource(R.string.property_download_size, done, total), 11, 400, C.Muted)
+        }
+    }
+}
+
+/** How faded a property that can't be used offline looks (as in the design). */
+private const val FaintAlpha = 0.26f
+
+/** How often the page re-checks the connection while it is shown. */
+private const val CONNECTION_CHECK_MS = 3_000L

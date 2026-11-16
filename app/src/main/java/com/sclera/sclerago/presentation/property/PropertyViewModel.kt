@@ -4,10 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.domain.model.PropertyDownload
+import com.sclera.sclerago.domain.model.PropertyDownloads
 import com.sclera.sclerago.domain.model.PropertySummary
 import com.sclera.sclerago.domain.usecase.media.WritePropertyTemplateUseCase
 import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.ImportFileProblem
+import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyProblem
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.presentation.common.UiText
@@ -18,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.io.OutputStream
 import javax.inject.Inject
 
@@ -31,21 +35,28 @@ data class PropertyListState(
     val addOpen: Boolean = false,
     val importOpen: Boolean = false,
     val notice: UiText? = null,
+    /** The downloaded property and the downloads under way. */
+    val downloads: PropertyDownloads = PropertyDownloads(),
+    /** Offline, properties that aren't downloaded are faded and can't be opened or downloaded. */
+    val online: Boolean = true,
 )
 
-/** Property list screen: search, add and import. Opening a property is the caller's (navigation) job. */
+/** Property list screen: search, add, import and download. Opening a property is the caller's (navigation) job. */
 @HiltViewModel
 class PropertyViewModel @Inject constructor(
     private val useCases: PropertyUseCases,
     private val writeTemplate: WritePropertyTemplateUseCase,
+    private val downloads: PropertyDownloadUseCases,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val flags = MutableStateFlow(Flags())
+    private val online = MutableStateFlow(downloads.isOnline())
 
-    private data class Flags(val addOpen: Boolean = false, val importOpen: Boolean = false, val notice: UiText? = null)
+    /** Failed downloads already told about, so each failure is announced once. */
+    private val announcedFailures = mutableSetOf<String>()
 
     val state: StateFlow<PropertyListState> =
-        combine(useCases.summaries(), query, flags) { all, q, f ->
+        combine(useCases.summaries(), query, flags, downloads.observe(), online) { all, q, f, d, on ->
             PropertyListState(
                 query = q,
                 rows = useCases.filter(all, q),
@@ -54,8 +65,27 @@ class PropertyViewModel @Inject constructor(
                 addOpen = f.addOpen,
                 importOpen = f.importOpen,
                 notice = f.notice,
+                downloads = d,
+                online = on,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, PropertyListState())
+
+    init {
+        downloads.refresh()
+        viewModelScope.launch {
+            downloads.observe().collect { d ->
+                val failed = d.active.filterValues { it is PropertyDownload.Failed }.keys
+                announcedFailures.retainAll(failed)
+                (failed - announcedFailures).firstOrNull()?.let { id ->
+                    announcedFailures += id
+                    val name = state.value.properties.firstOrNull { it.id == id }?.name ?: id
+                    flags.update { it.copy(notice = UiText.Res(R.string.property_download_failed, listOf(name))) }
+                }
+            }
+        }
+    }
+
+    private data class Flags(val addOpen: Boolean = false, val importOpen: Boolean = false, val notice: UiText? = null)
 
     fun setQuery(value: String) {
         query.value = value
@@ -72,6 +102,19 @@ class PropertyViewModel @Inject constructor(
     }
 
     fun consumeNotice() = flags.update { it.copy(notice = null) }
+
+    /** Re-checks the connection (the screen calls this every few seconds while it is shown). */
+    fun checkConnection() {
+        online.value = downloads.isOnline()
+    }
+
+    /** Download button: fetches [propertyId]'s data for working offline. Offline it can't, and says so. */
+    fun download(propertyId: String) {
+        if (!downloads.start(propertyId)) {
+            online.value = false
+            flags.update { it.copy(notice = UiText.Res(R.string.property_download_offline)) }
+        }
+    }
 
     /** Adds [draft]; returns why it can't be added, or null once it is (the sheet closes and a notice is set). */
     fun addProperty(draft: Property): UiText? = when (val r = useCases.add(draft)) {

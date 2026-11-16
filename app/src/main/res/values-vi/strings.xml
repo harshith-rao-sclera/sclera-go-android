@@ -35,6 +35,12 @@
     <string name="label_assets">Tài sản</string>
     <string name="property_import_strip">Nhập từ bảng tính</string>
     <string name="property_none_match">Không có cơ sở nào khớp với “%1$s”.</string>
+    <string name="property_download">Tải xuống %1$s</string>
+    <string name="property_downloading">Đang tải xuống %1$s</string>
+    <string name="property_downloaded">Đã tải xuống</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">Không thể tải xuống %1$s. Hãy thử lại.</string>
+    <string name="property_download_offline">Bạn đang ngoại tuyến. Hãy kết nối để tải xuống tài sản.</string>
     <string name="property_added">Đã thêm %1$s</string>
     <string name="property_import_notice">Đã tải lên “%1$s” · tính năng nhập chưa được kết nối với máy chủ</string>
     <string name="property_problem_name">Nhập tên cơ sở.</string>

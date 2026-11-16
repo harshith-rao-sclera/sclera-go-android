@@ -40,6 +40,12 @@
     <string name="label_assets">Assets</string>
     <string name="property_import_strip">Import from spreadsheet</string>
     <string name="property_none_match">No properties match “%1$s”.</string>
+    <string name="property_download">Download %1$s</string>
+    <string name="property_downloading">Downloading %1$s</string>
+    <string name="property_downloaded">Downloaded</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">Couldn’t download %1$s. Try again.</string>
+    <string name="property_download_offline">You’re offline. Connect to download a property.</string>
     <string name="property_added">%1$s added</string>
     <string name="property_import_notice">“%1$s” uploaded · importing isn’t connected to the server yet</string>
     <string name="property_problem_name">Enter the property name.</string>

@@ -35,6 +35,12 @@
     <string name="label_assets">Assets</string>
     <string name="property_import_strip">Importeren uit spreadsheet</string>
     <string name="property_none_match">Geen locaties gevonden voor “%1$s”.</string>
+    <string name="property_download">%1$s downloaden</string>
+    <string name="property_downloading">%1$s wordt gedownload</string>
+    <string name="property_downloaded">Gedownload</string>
+    <string name="property_download_size">%1$s / %2$s MB</string>
+    <string name="property_download_failed">%1$s kon niet worden gedownload. Probeer het opnieuw.</string>
+    <string name="property_download_offline">Je bent offline. Maak verbinding om een object te downloaden.</string>
     <string name="property_added">%1$s toegevoegd</string>
     <string name="property_import_notice">“%1$s” geüpload · importeren is nog niet met de server verbonden</string>
     <string name="property_problem_name">Voer de locatienaam in.</string>
