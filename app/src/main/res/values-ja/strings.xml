@@ -392,4 +392,27 @@
     <string name="dash_clear_search_text">検索テキストを消去</string>
     <string name="detail_add_photo">写真を追加</string>
     <string name="detail_voice_fill">音声でフィールドを入力</string>
+    <string name="sync_title">データをダウンロードしています</string>
+    <string name="sync_subtitle">初回のみの処理です。完了するまでアプリを開いたままにしてください。</string>
+    <string name="sync_progress_description">ダウンロードの進行状況</string>
+    <string name="sync_progress_mb">%1$.1f MB / %2$.1f MB</string>
+    <string name="sync_failed_title">データをダウンロードできませんでした</string>
+    <string name="sync_failed_no_network">オフラインです。インターネットに接続して、もう一度お試しください。</string>
+    <string name="sync_failed_session">セッションが終了しました。続行するには、もう一度サインインしてください。</string>
+    <string name="sync_failed_server">サーバー側で問題が発生しました。しばらくしてからもう一度お試しください。</string>
+    <string name="sync_failed_storage">この端末の空き容量が足りません。容量を空けてから、もう一度お試しください。</string>
+    <string name="sync_retry">再試行</string>
+    <string name="data_error_not_ready">データの準備がまだできていません。ダウンロードが完了するまでお待ちください。</string>
+    <string name="data_error_name_taken">その名前はすでに使われています。別の名前を選んでください。</string>
+    <string name="data_error_in_use">フロア、ロケーション、またはアセットが残っている間は削除できません。</string>
+    <string name="data_error_failed">変更を保存できませんでした。もう一度お試しください。</string>
+    <string name="online_error_offline">オフラインです。インターネットに接続してもう一度お試しください。</string>
+    <string name="online_error_session">セッションが終了しました。もう一度サインインしてください。</string>
+    <string name="online_error_forbidden">この操作を行う権限がありません。</string>
+    <string name="online_error_not_found">これはすでに存在しません。ページを更新してもう一度お試しください。</string>
+    <string name="online_error_conflict">すでにあるものと競合しています。内容を確認してもう一度お試しください。</string>
+    <string name="online_error_invalid">一部の値が受け付けられませんでした。確認してもう一度お試しください。</string>
+    <string name="online_error_unavailable">Sclera がまだ準備中です。しばらくしてからもう一度お試しください。</string>
+    <string name="online_error_server">Sclera サーバーで問題が発生しました。もう一度お試しください。</string>
+    <string name="detail_ai_sync_first">先にこの資産を同期してから、AI 自動入力をもう一度お試しください。</string>
 </resources>

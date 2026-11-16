@@ -392,4 +392,27 @@
     <string name="dash_clear_search_text">Hapus teks pencarian</string>
     <string name="detail_add_photo">Tambah foto</string>
     <string name="detail_voice_fill">Isi kolom dengan suara</string>
+    <string name="sync_title">Mengunduh data Anda</string>
+    <string name="sync_subtitle">Ini hanya terjadi pada pertama kali. Biarkan aplikasi tetap terbuka sampai selesai.</string>
+    <string name="sync_progress_description">Kemajuan unduhan</string>
+    <string name="sync_progress_mb">%1$.1f MB dari %2$.1f MB</string>
+    <string name="sync_failed_title">Tidak dapat mengunduh data Anda</string>
+    <string name="sync_failed_no_network">Anda sedang offline. Hubungkan ke internet dan coba lagi.</string>
+    <string name="sync_failed_session">Sesi Anda telah berakhir. Masuk lagi untuk melanjutkan.</string>
+    <string name="sync_failed_server">Terjadi masalah di pihak kami. Silakan coba lagi sebentar lagi.</string>
+    <string name="sync_failed_storage">Ruang kosong di perangkat ini tidak cukup. Kosongkan penyimpanan dan coba lagi.</string>
+    <string name="sync_retry">Coba lagi</string>
+    <string name="data_error_not_ready">Data belum siap. Tunggu hingga unduhan selesai.</string>
+    <string name="data_error_name_taken">Nama itu sudah digunakan di sini. Pilih nama lain.</string>
+    <string name="data_error_in_use">Ini tidak dapat dihapus selama masih berisi lantai, lokasi, atau aset.</string>
+    <string name="data_error_failed">Perubahan tidak dapat disimpan. Silakan coba lagi.</string>
+    <string name="online_error_offline">Anda sedang offline. Hubungkan ke internet dan coba lagi.</string>
+    <string name="online_error_session">Sesi Anda telah berakhir. Silakan masuk lagi.</string>
+    <string name="online_error_forbidden">Anda tidak memiliki izin untuk melakukan ini.</string>
+    <string name="online_error_not_found">Ini sudah tidak ada. Muat ulang halaman dan coba lagi.</string>
+    <string name="online_error_conflict">Ini bertentangan dengan sesuatu yang sudah ada. Periksa dan coba lagi.</string>
+    <string name="online_error_invalid">Beberapa nilai tidak diterima. Periksa dan coba lagi.</string>
+    <string name="online_error_unavailable">Sclera masih menyiapkannya. Coba lagi sebentar lagi.</string>
+    <string name="online_error_server">Terjadi kesalahan pada server Sclera. Silakan coba lagi.</string>
+    <string name="detail_ai_sync_first">Sinkronkan aset ini terlebih dahulu, lalu coba isi otomatis AI lagi.</string>
 </resources>

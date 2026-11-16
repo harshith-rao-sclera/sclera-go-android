@@ -422,4 +422,27 @@
     <string name="dash_clear_search_text">Effacer le texte de recherche</string>
     <string name="detail_add_photo">Ajouter une photo</string>
     <string name="detail_voice_fill">Remplir les champs à la voix</string>
+    <string name="sync_title">Téléchargement de vos données</string>
+    <string name="sync_subtitle">Cela n’arrive qu’une seule fois. Gardez l’application ouverte jusqu’à la fin.</string>
+    <string name="sync_progress_description">Progression du téléchargement</string>
+    <string name="sync_progress_mb">%1$.1f Mo sur %2$.1f Mo</string>
+    <string name="sync_failed_title">Impossible de télécharger vos données</string>
+    <string name="sync_failed_no_network">Vous êtes hors ligne. Connectez-vous à Internet et réessayez.</string>
+    <string name="sync_failed_session">Votre session a expiré. Reconnectez-vous pour continuer.</string>
+    <string name="sync_failed_server">Un problème est survenu de notre côté. Veuillez réessayer dans un instant.</string>
+    <string name="sync_failed_storage">Il n’y a pas assez d’espace libre sur cet appareil. Libérez de l’espace et réessayez.</string>
+    <string name="sync_retry">Réessayer</string>
+    <string name="data_error_not_ready">Les données ne sont pas encore prêtes. Attendez la fin du téléchargement.</string>
+    <string name="data_error_name_taken">Ce nom est déjà utilisé ici. Choisissez-en un autre.</string>
+    <string name="data_error_in_use">Impossible de le supprimer tant qu’il contient des étages, des emplacements ou des actifs.</string>
+    <string name="data_error_failed">La modification n’a pas pu être enregistrée. Veuillez réessayer.</string>
+    <string name="online_error_offline">Vous êtes hors ligne. Connectez-vous à internet et réessayez.</string>
+    <string name="online_error_session">Votre session est terminée. Veuillez vous reconnecter.</string>
+    <string name="online_error_forbidden">Vous n’avez pas l’autorisation de faire cela.</string>
+    <string name="online_error_not_found">Cet élément n’existe plus. Actualisez la page et réessayez.</string>
+    <string name="online_error_conflict">Cela entre en conflit avec un élément existant. Vérifiez et réessayez.</string>
+    <string name="online_error_invalid">Certaines valeurs n’ont pas été acceptées. Vérifiez-les et réessayez.</string>
+    <string name="online_error_unavailable">Sclera prépare encore cela. Réessayez dans un instant.</string>
+    <string name="online_error_server">Un problème est survenu sur le serveur Sclera. Veuillez réessayer.</string>
+    <string name="detail_ai_sync_first">Synchronisez d\'abord cet actif, puis réessayez le remplissage automatique par IA.</string>
 </resources>

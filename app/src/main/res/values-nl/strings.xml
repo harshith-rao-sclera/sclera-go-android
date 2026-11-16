@@ -417,4 +417,27 @@
     <string name="dash_clear_search_text">Zoektekst wissen</string>
     <string name="detail_add_photo">Foto toevoegen</string>
     <string name="detail_voice_fill">Velden met spraak invullen</string>
+    <string name="sync_title">Je gegevens worden gedownload</string>
+    <string name="sync_subtitle">Dit gebeurt alleen de eerste keer. Laat de app open tot het klaar is.</string>
+    <string name="sync_progress_description">Downloadvoortgang</string>
+    <string name="sync_progress_mb">%1$.1f MB van %2$.1f MB</string>
+    <string name="sync_failed_title">Je gegevens konden niet worden gedownload</string>
+    <string name="sync_failed_no_network">Je bent offline. Maak verbinding met internet en probeer het opnieuw.</string>
+    <string name="sync_failed_session">Je sessie is beëindigd. Meld je opnieuw aan om door te gaan.</string>
+    <string name="sync_failed_server">Er ging iets mis aan onze kant. Probeer het zo meteen opnieuw.</string>
+    <string name="sync_failed_storage">Er is niet genoeg vrije ruimte op dit apparaat. Maak opslagruimte vrij en probeer het opnieuw.</string>
+    <string name="sync_retry">Opnieuw proberen</string>
+    <string name="data_error_not_ready">De gegevens zijn nog niet klaar. Wacht tot de download klaar is.</string>
+    <string name="data_error_name_taken">Die naam wordt hier al gebruikt. Kies een andere naam.</string>
+    <string name="data_error_in_use">Dit kan niet worden verwijderd zolang er nog verdiepingen, locaties of assets in zitten.</string>
+    <string name="data_error_failed">De wijziging kon niet worden opgeslagen. Probeer het opnieuw.</string>
+    <string name="online_error_offline">Je bent offline. Maak verbinding met internet en probeer het opnieuw.</string>
+    <string name="online_error_session">Je sessie is beëindigd. Meld je opnieuw aan.</string>
+    <string name="online_error_forbidden">Je hebt hiervoor geen toestemming.</string>
+    <string name="online_error_not_found">Dit bestaat niet meer. Vernieuw de pagina en probeer het opnieuw.</string>
+    <string name="online_error_conflict">Dit botst met iets dat al bestaat. Controleer het en probeer het opnieuw.</string>
+    <string name="online_error_invalid">Sommige waarden zijn niet geaccepteerd. Controleer ze en probeer het opnieuw.</string>
+    <string name="online_error_unavailable">Sclera is dit nog aan het voorbereiden. Probeer het zo meteen opnieuw.</string>
+    <string name="online_error_server">Er is iets misgegaan op de Sclera-server. Probeer het opnieuw.</string>
+    <string name="detail_ai_sync_first">Synchroniseer dit object eerst en probeer AI-automatisch invullen daarna opnieuw.</string>
 </resources>

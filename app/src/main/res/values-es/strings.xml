@@ -422,4 +422,27 @@
     <string name="dash_clear_search_text">Borrar texto de búsqueda</string>
     <string name="detail_add_photo">Añadir foto</string>
     <string name="detail_voice_fill">Rellenar campos por voz</string>
+    <string name="sync_title">Descargando tus datos</string>
+    <string name="sync_subtitle">Esto solo ocurre la primera vez. Mantén la app abierta hasta que termine.</string>
+    <string name="sync_progress_description">Progreso de la descarga</string>
+    <string name="sync_progress_mb">%1$.1f MB de %2$.1f MB</string>
+    <string name="sync_failed_title">No se pudieron descargar tus datos</string>
+    <string name="sync_failed_no_network">No tienes conexión. Conéctate a internet e inténtalo de nuevo.</string>
+    <string name="sync_failed_session">Tu sesión ha terminado. Inicia sesión de nuevo para continuar.</string>
+    <string name="sync_failed_server">Algo salió mal por nuestra parte. Inténtalo de nuevo en un momento.</string>
+    <string name="sync_failed_storage">No hay suficiente espacio libre en este dispositivo. Libera almacenamiento e inténtalo de nuevo.</string>
+    <string name="sync_retry">Reintentar</string>
+    <string name="data_error_not_ready">Los datos aún no están listos. Espera a que termine la descarga.</string>
+    <string name="data_error_name_taken">Ese nombre ya se usa aquí. Elige otro.</string>
+    <string name="data_error_in_use">No se puede eliminar mientras contenga plantas, ubicaciones o activos.</string>
+    <string name="data_error_failed">No se pudo guardar el cambio. Inténtalo de nuevo.</string>
+    <string name="online_error_offline">Estás sin conexión. Conéctate a internet e inténtalo de nuevo.</string>
+    <string name="online_error_session">Tu sesión ha terminado. Inicia sesión de nuevo.</string>
+    <string name="online_error_forbidden">No tienes permiso para hacer esto.</string>
+    <string name="online_error_not_found">Esto ya no existe. Actualiza la página e inténtalo de nuevo.</string>
+    <string name="online_error_conflict">Esto entra en conflicto con algo que ya existe. Revísalo e inténtalo de nuevo.</string>
+    <string name="online_error_invalid">Algunos valores no se aceptaron. Revísalos e inténtalo de nuevo.</string>
+    <string name="online_error_unavailable">Sclera todavía lo está preparando. Inténtalo de nuevo en un momento.</string>
+    <string name="online_error_server">Algo salió mal en el servidor de Sclera. Inténtalo de nuevo.</string>
+    <string name="detail_ai_sync_first">Sincroniza primero este activo y vuelve a probar el autocompletado con IA.</string>
 </resources>

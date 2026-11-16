@@ -417,4 +417,27 @@
     <string name="dash_clear_search_text">खोज टेक्स्ट साफ़ करें</string>
     <string name="detail_add_photo">फ़ोटो जोड़ें</string>
     <string name="detail_voice_fill">आवाज़ से फ़ील्ड भरें</string>
+    <string name="sync_title">आपका डेटा डाउनलोड हो रहा है</string>
+    <string name="sync_subtitle">यह केवल पहली बार होता है। पूरा होने तक ऐप खुला रखें।</string>
+    <string name="sync_progress_description">डाउनलोड की प्रगति</string>
+    <string name="sync_progress_mb">%2$.1f MB में से %1$.1f MB</string>
+    <string name="sync_failed_title">आपका डेटा डाउनलोड नहीं हो सका</string>
+    <string name="sync_failed_no_network">आप ऑफ़लाइन हैं। इंटरनेट से कनेक्ट करें और फिर से प्रयास करें।</string>
+    <string name="sync_failed_session">आपका सत्र समाप्त हो गया है। जारी रखने के लिए फिर से साइन इन करें।</string>
+    <string name="sync_failed_server">हमारी ओर से कुछ गड़बड़ हुई। कृपया थोड़ी देर में फिर से प्रयास करें।</string>
+    <string name="sync_failed_storage">इस डिवाइस पर पर्याप्त खाली जगह नहीं है। कुछ स्टोरेज खाली करें और फिर से प्रयास करें।</string>
+    <string name="sync_retry">फिर से प्रयास करें</string>
+    <string name="data_error_not_ready">डेटा अभी तैयार नहीं है। डाउनलोड पूरा होने तक प्रतीक्षा करें।</string>
+    <string name="data_error_name_taken">यह नाम यहाँ पहले से उपयोग में है। कोई दूसरा नाम चुनें।</string>
+    <string name="data_error_in_use">जब तक इसमें मंज़िलें, स्थान या एसेट मौजूद हैं, इसे हटाया नहीं जा सकता।</string>
+    <string name="data_error_failed">बदलाव सहेजा नहीं जा सका। कृपया फिर से प्रयास करें।</string>
+    <string name="online_error_offline">आप ऑफ़लाइन हैं। इंटरनेट से कनेक्ट करें और फिर से कोशिश करें।</string>
+    <string name="online_error_session">आपका सत्र समाप्त हो गया है। कृपया फिर से साइन इन करें।</string>
+    <string name="online_error_forbidden">आपको ऐसा करने की अनुमति नहीं है।</string>
+    <string name="online_error_not_found">यह अब मौजूद नहीं है। पेज को रिफ़्रेश करें और फिर से कोशिश करें।</string>
+    <string name="online_error_conflict">यह पहले से मौजूद किसी चीज़ से टकराता है। जाँचें और फिर से कोशिश करें।</string>
+    <string name="online_error_invalid">कुछ मान स्वीकार नहीं किए गए। उन्हें जाँचें और फिर से कोशिश करें।</string>
+    <string name="online_error_unavailable">Sclera अभी इसे तैयार कर रहा है। थोड़ी देर में फिर से कोशिश करें।</string>
+    <string name="online_error_server">Sclera सर्वर पर कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।</string>
+    <string name="detail_ai_sync_first">पहले इस एसेट को सिंक करें, फिर AI ऑटोफ़िल दोबारा आज़माएँ।</string>
 </resources>

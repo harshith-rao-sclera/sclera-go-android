@@ -40,7 +40,7 @@ fun AssetDetailRoute(
     onBack: () -> Unit,
     onChangeLoc: () -> Unit,
     onCreate: (name: String, detail: String, media: List<Media>, values: Map<String, String>, submit: Boolean) -> Unit,
-    onDelete: (Int) -> Unit,
+    onDelete: (String) -> Unit,
     onNotice: (UiText) -> Unit,
     vm: AssetDetailViewModel = hiltViewModel(),
 ) {

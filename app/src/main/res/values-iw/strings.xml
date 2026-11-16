@@ -427,4 +427,27 @@
     <string name="dash_clear_search_text">ניקוי טקסט החיפוש</string>
     <string name="detail_add_photo">הוספת תמונה</string>
     <string name="detail_voice_fill">מילוי שדות בקול</string>
+    <string name="sync_title">הנתונים שלך מורדים</string>
+    <string name="sync_subtitle">זה קורה רק בפעם הראשונה. השאירו את האפליקציה פתוחה עד לסיום.</string>
+    <string name="sync_progress_description">התקדמות ההורדה</string>
+    <string name="sync_progress_mb">%1$.1f MB מתוך %2$.1f MB</string>
+    <string name="sync_failed_title">לא ניתן היה להוריד את הנתונים שלך</string>
+    <string name="sync_failed_no_network">אין חיבור לאינטרנט. התחברו לאינטרנט ונסו שוב.</string>
+    <string name="sync_failed_session">ההתחברות שלך פגה. התחברו שוב כדי להמשיך.</string>
+    <string name="sync_failed_server">משהו השתבש מצידנו. נסו שוב בעוד רגע.</string>
+    <string name="sync_failed_storage">אין מספיק מקום פנוי במכשיר. פנו מקום באחסון ונסו שוב.</string>
+    <string name="sync_retry">נסו שוב</string>
+    <string name="data_error_not_ready">הנתונים עדיין לא מוכנים. המתן לסיום ההורדה.</string>
+    <string name="data_error_name_taken">השם הזה כבר בשימוש כאן. בחר שם אחר.</string>
+    <string name="data_error_in_use">אי אפשר להסיר את זה כל עוד יש בו קומות, מיקומים או נכסים.</string>
+    <string name="data_error_failed">לא ניתן היה לשמור את השינוי. נסה שוב.</string>
+    <string name="online_error_offline">אתם לא מחוברים לאינטרנט. התחברו לאינטרנט ונסו שוב.</string>
+    <string name="online_error_session">ההתחברות שלכם הסתיימה. התחברו שוב.</string>
+    <string name="online_error_forbidden">אין לכם הרשאה לבצע פעולה זו.</string>
+    <string name="online_error_not_found">הפריט הזה כבר לא קיים. רעננו את הדף ונסו שוב.</string>
+    <string name="online_error_conflict">זה מתנגש עם משהו שכבר קיים. בדקו ונסו שוב.</string>
+    <string name="online_error_invalid">חלק מהערכים לא התקבלו. בדקו אותם ונסו שוב.</string>
+    <string name="online_error_unavailable">Sclera עדיין מכין את זה. נסו שוב בעוד רגע.</string>
+    <string name="online_error_server">משהו השתבש בשרת של Sclera. נסו שוב.</string>
+    <string name="detail_ai_sync_first">סנכרנו את הנכס הזה קודם ואז נסו שוב את המילוי האוטומטי של הבינה המלאכותית.</string>
 </resources>

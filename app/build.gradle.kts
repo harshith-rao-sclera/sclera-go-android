@@ -30,11 +30,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // The asset data collection API: QA for debug builds; release builds read `ADC_API_URL_RELEASE` from
+    // gradle.properties (the production URL is not agreed yet, so it falls back to QA). Always https, ends in "/".
+    val adcQaApiUrl = "https://adc.vdms163.qa-gateway.scleravdms.com/api/v1/"
+    val adcReleaseApiUrl = (providers.gradleProperty("ADC_API_URL_RELEASE").orNull ?: adcQaApiUrl)
+        .also { require(it.startsWith("https://")) { "ADC_API_URL_RELEASE must be an https URL" } }
+        .let { if (it.endsWith("/")) it else "$it/" }
+
     buildTypes {
         debug {
             // The QA environment, and the coverage data the unit-test report is built from.
             buildConfigField("String", "ACCOUNTS_URL", "\"https://qa-accounts.sclera.com\"")
             buildConfigField("String", "APP_URL", "\"https://qa-app.sclera.com\"")
+            buildConfigField("String", "ADC_API_URL", "\"$adcQaApiUrl\"")
             enableUnitTestCoverage = true
         }
         release {
@@ -42,6 +50,7 @@ android {
             // Production.
             buildConfigField("String", "ACCOUNTS_URL", "\"https://accounts.sclera.com\"")
             buildConfigField("String", "APP_URL", "\"https://app.sclera.com\"")
+            buildConfigField("String", "ADC_API_URL", "\"$adcReleaseApiUrl\"")
             // R8: shrink, optimize and obfuscate the whole app (AGP 9.0 has no stable `optimization {}` DSL).
             isMinifyEnabled = true
             isShrinkResources = true

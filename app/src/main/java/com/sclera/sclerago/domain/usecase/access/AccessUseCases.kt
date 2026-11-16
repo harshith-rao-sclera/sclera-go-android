@@ -1,12 +1,10 @@
 package com.sclera.sclerago.domain.usecase.access
 
-import com.sclera.sclerago.domain.model.ADMINS_ID
 import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.repository.AccessRepository
-import com.sclera.sclerago.domain.system.IdGenerator
-import com.sclera.sclerago.domain.system.TimeProvider
 import com.sclera.sclerago.domain.usecase.auth.ValidateEmailUseCase
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -49,6 +47,11 @@ class ObservePeopleUseCase @Inject constructor(private val repo: AccessRepositor
     operator fun invoke(): StateFlow<List<Person>> = repo.people
 }
 
+/** Loads groups and people from the server again (what is shown stays when it fails; throws [OnlineException]). */
+class RefreshAccessUseCase @Inject constructor(private val repo: AccessRepository) {
+    suspend operator fun invoke() = repo.refresh()
+}
+
 /** Whether [p] could be saved as drafted, against the people and groups as they are now. */
 class ValidatePersonUseCase @Inject constructor(private val repo: AccessRepository) {
     operator fun invoke(p: Person): PersonProblem? =
@@ -60,34 +63,22 @@ class ValidateGroupUseCase @Inject constructor(private val repo: AccessRepositor
     operator fun invoke(g: Group): GroupProblem? = groupProblem(g, repo.groups.value)
 }
 
-/** Puts the signed-in user in as an admin the first time People and access opens. */
-class SeedSignedInUserUseCase @Inject constructor(
-    private val repo: AccessRepository,
-    private val ids: IdGenerator,
-    private val time: TimeProvider,
-) {
-    operator fun invoke(currentEmail: String?) {
-        if (repo.people.value.isNotEmpty() || currentEmail.isNullOrBlank()) return
-        repo.setPeople(listOf(Person(ids.next("u"), currentEmail, ADMINS_ID, allProperties = true, lastSeenAt = time.nowMillis())))
-    }
-}
-
-/** Adds ([Person.id] empty) or updates a person; returns why it can't instead, or null when saved. */
-class SavePersonUseCase @Inject constructor(private val repo: AccessRepository, private val ids: IdGenerator) {
-    operator fun invoke(p: Person): PersonProblem? {
-        val people = repo.people.value
-        personProblem(p, people, repo.groups.value.firstOrNull { it.id == p.groupId })?.let { return it }
-        val clean = p.copy(email = p.email.trim(), propertyIds = if (p.allProperties) emptySet() else p.propertyIds)
-        repo.setPeople(
-            if (clean.id.isEmpty()) people + clean.copy(id = ids.next("u"))
-            else people.map { if (it.id == clean.id) clean else it },
-        )
+/** Adds ([Person.id] empty, an invitation) or updates a person; returns why it can't instead, or null when saved. Throws [OnlineException]. */
+class SavePersonUseCase @Inject constructor(private val repo: AccessRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(p: Person): PersonProblem? {
+        personProblem(p, repo.people.value, repo.groups.value.firstOrNull { it.id == p.groupId })?.let { return it }
+        guard.requireOnline(Permission.MANAGE_ACCESS)
+        repo.savePerson(p.copy(email = p.email.trim(), propertyIds = if (p.allProperties) emptySet() else p.propertyIds))
         return null
     }
 }
 
-class RemovePersonUseCase @Inject constructor(private val repo: AccessRepository) {
-    operator fun invoke(p: Person) = repo.setPeople(repo.people.value.filterNot { it.id == p.id })
+/** Takes away all of a person's access. Throws [OnlineException]. */
+class RemovePersonUseCase @Inject constructor(private val repo: AccessRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(p: Person) {
+        guard.requireOnline(Permission.MANAGE_ACCESS)
+        repo.removePerson(p.id)
+    }
 }
 
 /**
@@ -103,23 +94,22 @@ class CountPeopleGivenAllPropertiesUseCase @Inject constructor(private val repo:
 /**
  * Adds ([Group.id] empty) or updates a group; returns why it can't instead, or null when saved.
  * Locked groups (Admins) keep their name and every permission; people in a group that now needs
- * every property get every property (see [CountPeopleGivenAllPropertiesUseCase]).
+ * every property get every property (see [CountPeopleGivenAllPropertiesUseCase]). Throws [OnlineException].
  */
-class SaveGroupUseCase @Inject constructor(private val repo: AccessRepository, private val ids: IdGenerator) {
-    operator fun invoke(g: Group): GroupProblem? {
+class SaveGroupUseCase @Inject constructor(private val repo: AccessRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(g: Group): GroupProblem? {
         val groups = repo.groups.value
         groupProblem(g, groups)?.let { return it }
+        guard.requireOnline(Permission.MANAGE_ACCESS)
         val clean = g.copy(
             name = if (g.locked) groups.firstOrNull { it.id == g.id }?.name ?: g.name.trim() else g.name.trim(),
             description = g.description.trim(),
             permissions = if (g.locked) Permission.entries.toSet() else g.permissions,
         )
-        repo.setGroups(
-            if (clean.id.isEmpty()) groups + clean.copy(id = ids.next("g"))
-            else groups.map { if (it.id == clean.id) clean else it },
-        )
+        val saved = repo.saveGroup(clean)
         if (clean.needsAllProperties) {
-            repo.setPeople(repo.people.value.map { if (it.groupId == clean.id) it.copy(allProperties = true, propertyIds = emptySet()) else it })
+            repo.people.value.filter { it.groupId == saved.id && !it.allProperties }
+                .forEach { repo.savePerson(it.copy(allProperties = true, propertyIds = emptySet())) }
         }
         return null
     }
@@ -130,11 +120,16 @@ class CanDeleteGroupUseCase @Inject constructor(private val repo: AccessReposito
     operator fun invoke(g: Group): Boolean = !g.locked && repo.people.value.none { it.groupId == g.id }
 }
 
-/** Deletes a group if it can be deleted; returns whether it was. */
-class DeleteGroupUseCase @Inject constructor(private val repo: AccessRepository, private val canDelete: CanDeleteGroupUseCase) {
-    operator fun invoke(g: Group): Boolean {
+/** Deletes a group if it can be deleted; returns whether it was. Throws [OnlineException]. */
+class DeleteGroupUseCase @Inject constructor(
+    private val repo: AccessRepository,
+    private val canDelete: CanDeleteGroupUseCase,
+    private val guard: PermissionGuard,
+) {
+    suspend operator fun invoke(g: Group): Boolean {
         if (!canDelete(g)) return false
-        repo.setGroups(repo.groups.value.filterNot { it.id == g.id })
+        guard.requireOnline(Permission.MANAGE_ACCESS)
+        repo.deleteGroup(g.id)
         return true
     }
 }
@@ -143,9 +138,9 @@ class DeleteGroupUseCase @Inject constructor(private val repo: AccessRepository,
 class AccessUseCases @Inject constructor(
     val observeGroups: ObserveGroupsUseCase,
     val observePeople: ObservePeopleUseCase,
+    val refresh: RefreshAccessUseCase,
     val validatePerson: ValidatePersonUseCase,
     val validateGroup: ValidateGroupUseCase,
-    val seedSignedInUser: SeedSignedInUserUseCase,
     val savePerson: SavePersonUseCase,
     val removePerson: RemovePersonUseCase,
     val countGivenAllProperties: CountPeopleGivenAllPropertiesUseCase,

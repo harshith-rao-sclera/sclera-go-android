@@ -392,4 +392,27 @@
     <string name="dash_clear_search_text">ล้างข้อความค้นหา</string>
     <string name="detail_add_photo">เพิ่มรูปภาพ</string>
     <string name="detail_voice_fill">กรอกช่องด้วยเสียง</string>
+    <string name="sync_title">กำลังดาวน์โหลดข้อมูลของคุณ</string>
+    <string name="sync_subtitle">จะเกิดขึ้นเฉพาะครั้งแรกเท่านั้น โปรดเปิดแอปค้างไว้จนกว่าจะเสร็จ</string>
+    <string name="sync_progress_description">ความคืบหน้าในการดาวน์โหลด</string>
+    <string name="sync_progress_mb">%1$.1f MB จาก %2$.1f MB</string>
+    <string name="sync_failed_title">ไม่สามารถดาวน์โหลดข้อมูลของคุณได้</string>
+    <string name="sync_failed_no_network">คุณออฟไลน์อยู่ เชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง</string>
+    <string name="sync_failed_session">เซสชันของคุณสิ้นสุดแล้ว โปรดลงชื่อเข้าใช้อีกครั้งเพื่อดำเนินการต่อ</string>
+    <string name="sync_failed_server">เกิดข้อผิดพลาดจากฝั่งเรา โปรดลองอีกครั้งในอีกสักครู่</string>
+    <string name="sync_failed_storage">พื้นที่ว่างในอุปกรณ์ไม่เพียงพอ โปรดเพิ่มพื้นที่จัดเก็บแล้วลองอีกครั้ง</string>
+    <string name="sync_retry">ลองอีกครั้ง</string>
+    <string name="data_error_not_ready">ข้อมูลยังไม่พร้อม โปรดรอให้ดาวน์โหลดเสร็จสิ้น</string>
+    <string name="data_error_name_taken">ชื่อนี้ถูกใช้แล้ว โปรดเลือกชื่ออื่น</string>
+    <string name="data_error_in_use">ไม่สามารถลบได้ตราบใดที่ยังมีชั้น สถานที่ หรือแอสเซ็ตอยู่</string>
+    <string name="data_error_failed">ไม่สามารถบันทึกการเปลี่ยนแปลงได้ โปรดลองอีกครั้ง</string>
+    <string name="online_error_offline">คุณออฟไลน์อยู่ เชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง</string>
+    <string name="online_error_session">เซสชันของคุณสิ้นสุดแล้ว โปรดลงชื่อเข้าใช้อีกครั้ง</string>
+    <string name="online_error_forbidden">คุณไม่มีสิทธิ์ทำสิ่งนี้</string>
+    <string name="online_error_not_found">สิ่งนี้ไม่มีอยู่แล้ว รีเฟรชหน้าแล้วลองอีกครั้ง</string>
+    <string name="online_error_conflict">สิ่งนี้ขัดแย้งกับสิ่งที่มีอยู่แล้ว ตรวจสอบแล้วลองอีกครั้ง</string>
+    <string name="online_error_invalid">ไม่ยอมรับค่าบางค่า ตรวจสอบแล้วลองอีกครั้ง</string>
+    <string name="online_error_unavailable">Sclera ยังเตรียมข้อมูลนี้อยู่ ลองอีกครั้งในอีกสักครู่</string>
+    <string name="online_error_server">เซิร์ฟเวอร์ Sclera เกิดข้อผิดพลาด โปรดลองอีกครั้ง</string>
+    <string name="detail_ai_sync_first">ซิงค์สินทรัพย์นี้ก่อน แล้วลองกรอกอัตโนมัติด้วย AI อีกครั้ง</string>
 </resources>
