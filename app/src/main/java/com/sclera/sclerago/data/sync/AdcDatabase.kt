@@ -27,9 +27,17 @@ class AdcDatabase @Inject constructor(
     private val pending = mutableSetOf<String>()
     private val knownColumns = ConcurrentHashMap.newKeySet<String>()
 
+    /**
+     * The connection the running transaction began on. Its reads and writes stay on it even when another property is
+     * selected meanwhile, so one transaction never lands in two properties' databases. Only the thread holding [lock]
+     * (the one running the transaction) uses it; other threads read the selected property's database as usual.
+     */
+    private var pinned: SQLiteDatabase? = null
+
     val isOpen: Boolean get() = bridge.connection() != null
 
-    private fun db(): SQLiteDatabase = bridge.connection() ?: throw IllegalStateException("The offline database is not open")
+    private fun db(): SQLiteDatabase =
+        pinned?.takeIf { lock.isHeldByCurrentThread } ?: bridge.connection() ?: throw IllegalStateException("The offline database is not open")
 
     fun hasTable(name: String): Boolean =
         query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", listOf(name)).isNotEmpty()
@@ -68,12 +76,17 @@ class AdcDatabase @Inject constructor(
         db().delete(table, where, whereArgs.map { it.toString() }.toTypedArray())
     }
 
-    /** Runs [block] as one transaction (rolled back if it throws); observers are told once, after it commits. */
+    /**
+     * Runs [block] as one transaction (rolled back if it throws), all of it on the database it began on; observers
+     * are told once, after it commits.
+     */
     fun <T> inTransaction(block: AdcDatabase.() -> T): T = lock.withLock {
         val conn = db()
+        // Begun before anything is recorded, so a connection closed by a property switch leaves no state behind.
+        conn.beginTransaction()
+        pinned = conn
         depth++
         var committed = false
-        conn.beginTransaction()
         try {
             val result = block()
             conn.setTransactionSuccessful()
@@ -83,6 +96,7 @@ class AdcDatabase @Inject constructor(
             conn.endTransaction()
             depth--
             if (depth == 0) {
+                pinned = null
                 val changed = pending.toSet()
                 pending.clear()
                 if (committed) invalidations.emit(changed)

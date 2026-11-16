@@ -46,9 +46,12 @@ public class SyncManagerRepository {
                     String cloudUrl = cursor.getString(cursor.getColumnIndex(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_CLOUD_URL));
                     String propertyId = cursor.getString(cursor.getColumnIndex(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID));
 
-                    if (SyncUtils.dbInstance == null) {
+                    if (SyncManager.isValidPropertyId(propertyId) && !SyncUtils.adcInstances.containsKey(propertyId)) {
                         SyncManager syncManager = new SyncManager(user, url, token, sessionId, sessionUrl, orgId, Utility.context, propertyId);
-                        SyncUtils.dbInstance = syncManager;
+                        SyncUtils.adcInstances.put(propertyId, syncManager);
+                        if (SyncUtils.dbInstance == null) {
+                            SyncUtils.dbInstance = syncManager;
+                        }
                         SyncManager.userId = userId;
                         SyncManager.cloudUrl = cloudUrl;
                         if (role != null) {

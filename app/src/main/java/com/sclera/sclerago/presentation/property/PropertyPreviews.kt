@@ -28,14 +28,15 @@ private fun PropertyListPreview() {
     }
 }
 
-/** One property downloading (percent, MB and the bottom edge), one unzipping (icon and the sliding edge), one downloaded. */
+/** One property downloading (percent, MB and the bottom edge), one unzipping (icon and the sliding edge), two downloaded. */
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun PropertyListDownloadsPreview() {
     val downloads = PropertyDownloads(
-        downloadedId = "p1",
+        currentId = "p1",
+        downloadedIds = setOf("p1", "p4"),
         active = mapOf("p2" to PropertyDownload.Running(0.42f, 5.2, 12.4), "p3" to PropertyDownload.Unpacking),
         restored = true,
     )
@@ -54,6 +55,28 @@ private fun PropertyListNoMatchPreview() {
             PropertyListState(query = "zzz", propertyTotal = 4), "p1",
             onBack = {}, onQuery = {}, onOpen = {}, onAdd = {}, onImport = {},
         )
+    }
+}
+
+/** First open with nothing saved: a loader (and no count) until the server answers. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun PropertyListLoadingPreview() {
+    ScleraTheme {
+        PropertyListContent(PropertyListState(loading = true), "", onBack = {}, onQuery = {}, onOpen = {}, onAdd = {}, onImport = {})
+    }
+}
+
+/** The server answered with no properties. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun PropertyListEmptyPreview() {
+    ScleraTheme {
+        PropertyListContent(PropertyListState(), "", onBack = {}, onQuery = {}, onOpen = {}, onAdd = {}, onImport = {})
     }
 }
 

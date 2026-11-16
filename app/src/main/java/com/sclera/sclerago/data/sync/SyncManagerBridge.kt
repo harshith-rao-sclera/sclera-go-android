@@ -1,17 +1,18 @@
 package com.sclera.sclerago.data.sync
 
 import android.content.Context
+import com.sclera.sclerago.BuildConfig
 import com.sclera.sclerago.data.remote.AuthConfig
 import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper
 import com.sclera.sclerago.services.syncManager.SyncManager
 import com.sclera.sclerago.services.syncManager.SyncManagerService
 import com.sclera.sclerago.services.syncManager.constants.SyncConfigTables
-import com.sclera.sclerago.services.syncManager.enums.OfflineFeatures
 import com.sclera.sclerago.services.syncManager.utils.SyncUtils
 import com.sclera.sclerago.utility.Utility
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.requery.android.database.sqlite.SQLiteDatabase
 import org.json.JSONObject
+import java.net.URI
 import java.util.Optional
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,11 +47,30 @@ class SyncManagerBridge @Inject constructor(
     /** True when a debug test database is present: it is read instead of the engine's, and no sync runs. */
     fun usesTestDatabase(): Boolean = testConnection() != null
 
-    /** The test database when present, else the engine's open connection; null until the first download has finished or after a wipe. */
-    fun connection(): SQLiteDatabase? = testConnection() ?: SyncUtils.dbInstance?.dbConnection?.takeIf { it.isOpen }
+    /** The property the app works on: [connection] reads its database. Every downloaded property keeps syncing. */
+    @Volatile
+    private var selected: String? = null
 
-    fun snapshot(): EngineSnapshot {
-        val engine = SyncUtils.dbInstance ?: return EngineSnapshot()
+    /** The test database when present, else the selected property's open connection; null until it has been opened or after a wipe. */
+    fun connection(): SQLiteDatabase? =
+        testConnection() ?: selected?.let { SyncUtils.adcInstances[it] }?.dbConnection?.takeIf { it.isOpen }
+
+    /** Makes [propertyId] (null: none) the property the app reads, like choosing the vdms for inspection. */
+    fun select(propertyId: String?) {
+        selected = propertyId
+        pointEngineAtSelected()
+    }
+
+    fun isSelected(propertyId: String): Boolean = selected == propertyId
+
+    /** The engine's own "current instance" follows the selected property once its engine exists. */
+    private fun pointEngineAtSelected() {
+        val id = selected ?: return
+        SyncUtils.adcInstances[id]?.let { SyncUtils.dbInstance = it }
+    }
+
+    fun snapshot(propertyId: String): EngineSnapshot {
+        val engine = SyncUtils.adcInstances[propertyId] ?: return EngineSnapshot()
         val conn = engine.dbConnection?.takeIf { it.isOpen }
         return EngineSnapshot(
             hasInstance = true,
@@ -70,23 +90,24 @@ class SyncManagerBridge @Inject constructor(
         ).use { it.moveToFirst() && !it.isNull(0) }
     }.getOrDefault(false)
 
-    /** True when the device is too full for the download the engine was told about. */
-    fun storageLow(): Boolean = runCatching { SyncUtils.checkStorage(MODULE) }.getOrDefault(false)
+    /** True when the device is too full for the download [propertyId]'s engine was told about. */
+    fun storageLow(propertyId: String): Boolean = runCatching {
+        SyncUtils.adcInstances[propertyId]?.let { SyncUtils.checkStorage(it.totalFileSizeMB) } ?: false
+    }.getOrDefault(false)
 
     /**
-     * Hands the signed-in user and [propertyId] to the engine, which downloads that property's database and starts
-     * syncing on its own threads. Blocking but short.
+     * Hands the signed-in user and [propertyId] to the engine, which downloads that property's database (or reopens
+     * it) and keeps it syncing on its own threads, alongside the other properties. Blocking but short.
      */
     fun begin(credentials: SyncCredentials, propertyId: String) = synchronized(lock) {
         Utility.context = context
         // A different user's data on this device is dropped before the new user's download starts.
         SyncManagerService.deleteDatabaseIfWrongUser(credentials.email)
-        // So is another property's: the engine holds one property's database at a time.
-        dropOtherProperty(propertyId)
+        deleteLeftovers(propertyId)
         val config = JSONObject()
             .put("propertyId", propertyId)
             .put("id", credentials.userId)
-            .put("url", AuthConfig.APP_URL)
+            .put("url", ENGINE_URL)
             .put("email", credentials.email)
             .put("organisationId", credentials.organisationId)
             .put("role", credentials.role)
@@ -95,72 +116,55 @@ class SyncManagerBridge @Inject constructor(
             .put("sessionId", credentials.sessionId)
             .put("cloudUrl", AuthConfig.APP_URL)
         SyncManagerService.initAssetDataSync(config)
+        pointEngineAtSelected()
     }
 
-    /** Starts over with a fresh engine instance (a failed one cannot be reused cleanly). */
+    /** Starts [propertyId] over with a fresh engine instance (a failed one cannot be reused cleanly); the others carry on. */
     fun restart(credentials: SyncCredentials, propertyId: String) = synchronized(lock) {
-        // Dropped first while the engine still says which property it held, so its data isn't kept for another one.
-        dropOtherProperty(propertyId)
-        SyncUtils.dbInstance?.let { runCatching { it.closeConnection() } }
-        SyncUtils.dbInstance = null
+        SyncManagerService.closeAssetDataSync(propertyId)
         begin(credentials, propertyId)
     }
 
     /**
-     * Stops the engine and deletes the downloaded database when it belongs to a property other than [propertyId]
-     * (or to one it can't name), so a new engine never opens another property's data as its own.
+     * Deletes what no engine is working on and can't be opened: unfinished downloads of properties that aren't
+     * syncing, and the legacy single database. Downloaded properties and running engines are kept.
      */
-    private fun dropOtherProperty(propertyId: String) {
-        val running = SyncUtils.dbInstance
-        val held = running?.propertyId ?: storedPropertyId()
-        val hasDatabase = context.getDatabasePath("$NAME.db").exists() || context.getDatabasePath("$NAME.zip").exists()
-        if (held == propertyId || (running == null && !hasDatabase)) return
-        running?.let {
-            it.setContinueDataSync(false)
-            it.setContinueImageSync(false)
-            it.setContinueLargeFileSync(false)
-            runCatching { it.closeConnection() }
-        }
-        SyncUtils.dbInstance = null
-        listOf("$NAME.db", "$NAME.zip").forEach { context.deleteDatabase(it) }
-        SyncUtils.getSharedPrefs(context).edit().remove(STATUS_KEY).remove("adc_sync_timestamp").remove("adc_total_images").apply()
+    private fun deleteLeftovers(propertyId: String) {
+        SyncUtils.deleteAssetDataCollectionData(context, downloadedProperties() + SyncUtils.adcInstances.keys + propertyId)
     }
 
-    /** The property the engine last saved in its config table, or null when there is none (or no such column yet). */
-    private fun storedPropertyId(): String? {
-        if (!context.getDatabasePath(GLOBAL_DB).exists()) return null
-        return runCatching {
-            GlobalConfigDatabaseHelper.initializeInstance(context).globalDB.rawQuery(
-                "SELECT ${GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID} FROM ${GlobalConfigDatabaseHelper.TABLE_NAME_ASSET_CONFIG} LIMIT 1",
-                null,
-            ).use { if (it.moveToFirst() && !it.isNull(0)) it.getString(0) else null }
-        }.getOrNull()
-    }
+    /** The properties whose data is fully downloaded on this device. */
+    fun downloadedProperties(): Set<String> =
+        runCatching { SyncUtils.downloadedAssetDataCollectionProperties(context).toSet() }.getOrDefault(emptySet())
 
-    /** Gives the engine a refreshed token, session or organisation so its next request is accepted. */
+    /** Gives every engine a refreshed token, session or organisation so their next requests are accepted. */
     fun updateCredentials(credentials: SyncCredentials) {
-        val engine = SyncUtils.dbInstance ?: return
+        if (SyncUtils.adcInstances.isEmpty()) return
         SyncManager.token = credentials.accessToken
         SyncManager.sessionId = credentials.sessionId
-        engine.orgId = credentials.organisationId
+        SyncUtils.adcInstances.values.forEach { it.orgId = credentials.organisationId }
         SyncUtils.updateToken(credentials.accessToken)
         SyncUtils.updateSessionId(credentials.sessionId)
     }
 
+    /** Tells [listener] about changes pulled into the selected property's database; the others' aren't on screen. */
     fun setTablesChangedListener(listener: (Set<String>) -> Unit) {
-        SyncUtils.tablesChangedListener = SyncUtils.TablesChangedListener { listener(it) }
+        SyncUtils.tablesChangedListener = SyncUtils.TablesChangedListener { propertyId, tables ->
+            if (propertyId == selected) listener(tables)
+        }
     }
 
     /** True when the engine holds or has stored anything for a user. */
-    fun hasLocalData(): Boolean = SyncUtils.dbInstance != null ||
-        context.getDatabasePath("$NAME.db").exists() || context.getDatabasePath("$NAME.zip").exists() ||
-        SyncUtils.getSharedPrefs(context).contains(STATUS_KEY)
+    fun hasLocalData(): Boolean = SyncUtils.dbInstance != null || SyncUtils.adcInstances.isNotEmpty() ||
+        SyncUtils.hasAssetDataCollectionData(context)
 
-    /** Stops the engine and removes everything it stored: the downloaded database, the config rows and the static credentials. */
+    /** Stops every engine and removes everything they stored: each property's database, the config rows and the static credentials. */
     fun wipe() = synchronized(lock) {
-        SyncUtils.dbInstance?.let { runCatching { it.closeConnection() } }
+        selected = null
+        runCatching { SyncManagerService.closeAllAssetDataSyncs() }
+        SyncUtils.adcInstances.clear()
         SyncUtils.dbInstance = null
-        listOf("$NAME.db", "$NAME.zip").forEach { context.deleteDatabase(it) }
+        SyncUtils.deleteAssetDataCollectionData(context, emptySet())
         if (context.getDatabasePath(GLOBAL_DB).exists()) {
             runCatching {
                 val helper = GlobalConfigDatabaseHelper.initializeInstance(context)
@@ -169,7 +173,6 @@ class SyncManagerBridge @Inject constructor(
                     .forEach { helper.globalDB.execSQL("DELETE FROM $it") }
             }
         }
-        SyncUtils.getSharedPrefs(context).edit().remove(STATUS_KEY).remove("adc_sync_timestamp").remove("adc_total_images").apply()
         SyncManager.token = null
         SyncManager.sessionId = null
         SyncManager.sessionUrl = null
@@ -182,12 +185,15 @@ class SyncManagerBridge @Inject constructor(
     }
 
     private companion object {
-        const val MODULE = "asset-data-collection"
-        val NAME = OfflineFeatures.ASSET_DATA_COLLECTION.toString()
         const val GLOBAL_DB = "global_config.db"
-        const val STATUS_KEY = "adc_sync_status"
 
         /** Accounts endpoint the engine POSTs (with the session cookie) to get a new access token after a 401. */
         const val SESSION_URL = AuthConfig.SCLERA_API + "/token"
+
+        /**
+         * The ADC host alone (`https://adc.…`): the engine adds `/adc-offline-sync/api/v1/…` itself, so the
+         * `/api/v1/` that [BuildConfig.ADC_API_URL] ends in would double the path and every sync call would 404.
+         */
+        val ENGINE_URL: String = URI(BuildConfig.ADC_API_URL).let { "${it.scheme}://${it.rawAuthority}" }
     }
 }

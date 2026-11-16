@@ -16,6 +16,7 @@ import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.repository.UserDataCleaner
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -71,11 +72,21 @@ class PropertyStore @Inject constructor(
         }
     }
 
-    /** Loads the properties again. Throws [OnlineException]; the list shown before stays. */
+    /** Loads the properties again; returns once they are published. Throws [OnlineException]; the list shown before stays. */
     suspend fun refresh() {
         offlineJob?.cancel()
         if (offlineTableReady()) {
-            offlineJob = scope.launch { offline.propertiesFlow().collect { list -> publish(list.map { PropertyRecord(it, emptySet()) }) } }
+            val firstPublished = CompletableDeferred<Unit>()
+            val job = scope.launch {
+                offline.propertiesFlow().collect { list ->
+                    publish(list.map { PropertyRecord(it, emptySet()) })
+                    firstPublished.complete(Unit)
+                }
+            }
+            // Also released when reading stops early (failed or replaced), so a caller never waits forever.
+            job.invokeOnCompletion { firstPublished.complete(Unit) }
+            offlineJob = job
+            firstPublished.await()
             return
         }
         val user = session.user.value

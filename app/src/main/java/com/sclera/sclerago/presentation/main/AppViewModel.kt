@@ -265,8 +265,8 @@ class AppViewModel @Inject constructor(
     private val tgtWhere: String get() = if (state.loc == LocFilter.SPEC) state.specWhere else ""
     private val tgtPlace: String? get() = if (state.loc == LocFilter.SPEC) state.specSel.ifEmpty { null } else null
 
-    /** The property being worked on: the recently used one (downloaded last); empty until a property is downloaded. */
-    val currentProp: String get() = downloadFlow.value.downloadedId.orEmpty()
+    /** The property being worked on: the downloaded one opened last; empty until a property is downloaded. */
+    val currentProp: String get() = downloadFlow.value.currentId.orEmpty()
 
     /** A property is downloaded, so its assets, sections and side-menu card can show. */
     val hasProperty: Boolean get() = currentProp.isNotEmpty()
@@ -494,9 +494,13 @@ class AppViewModel @Inject constructor(
     /** Back to the assets; without a downloaded property there are none, so the Property list stays. */
     fun closeAdmin() = set { copy(adminPage = if (hasProperty) null else AdminPage.PROPERTIES) }
 
-    /** Opening the downloaded property from the list shows its assets (other properties are downloaded first). */
+    /**
+     * Opening a downloaded property from the list makes it the current one and shows its assets (properties that
+     * aren't downloaded are downloaded first).
+     */
     fun openPropertyFromList(id: String) {
-        if (id != currentProp) return
+        if (id !in downloadFlow.value.downloadedIds) return
+        if (id != currentProp) downloads.open(id)
         closeAdmin()
         goTab(Tab.ASSETS)
     }
@@ -907,7 +911,7 @@ class AppViewModel @Inject constructor(
         }
         // A location belongs to its property: when the property changes, the one chosen is forgotten.
         viewModelScope.launch {
-            downloads.observe().map { it.downloadedId }.distinctUntilChanged().collect {
+            downloads.observe().map { it.currentId }.distinctUntilChanged().collect {
                 set { copy(loc = LocFilter.ALL, specLocs = emptyList(), specPath = emptyList(), specWhere = "", specSel = "", assetId = null) }
                 if (state.tab !in navTabs) goTab(Tab.ASSETS)
             }
@@ -920,7 +924,9 @@ class AppViewModel @Inject constructor(
      */
     private fun openRecentProperty() {
         viewModelScope.launch {
-            if (downloads.observe().first { it.restored }.downloadedId == null) openAdmin(AdminPage.PROPERTIES) else downloads.resume()
+            if (downloads.observe().first { it.restored }.currentId == null) openAdmin(AdminPage.PROPERTIES)
+            // Every downloaded property syncs again, the current one included.
+            downloads.resume()
         }
     }
 

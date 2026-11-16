@@ -611,7 +611,7 @@ public class DataSyncService {
             //isPullingChanges = false;
         } finally {
             dbConnection.execSQL("PRAGMA foreign_keys=ON;");
-            SyncUtils.notifyTablesChanged(changedTables);
+            SyncUtils.notifyTablesChanged(syncManager.propertyId, changedTables);
         }
     }
 

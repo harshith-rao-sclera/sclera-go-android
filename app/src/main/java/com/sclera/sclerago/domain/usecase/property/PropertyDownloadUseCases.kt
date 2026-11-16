@@ -22,7 +22,12 @@ class StartPropertyDownloadUseCase @Inject constructor(
     }
 }
 
-/** Reopens the recently used property's offline data when the app starts signed in. */
+/** Switches to a downloaded property; it is already on the device, so this works offline too. */
+class OpenDownloadedPropertyUseCase @Inject constructor(private val repo: PropertyDownloadRepository) {
+    operator fun invoke(propertyId: String) = repo.open(propertyId)
+}
+
+/** Restarts the sync of every downloaded property (and reopens the current one) when the app starts signed in. */
 class ResumePropertyDownloadUseCase @Inject constructor(private val repo: PropertyDownloadRepository) {
     operator fun invoke() = repo.resume()
 }
@@ -36,6 +41,7 @@ class IsDeviceOnlineUseCase @Inject constructor(private val network: NetworkMoni
 class PropertyDownloadUseCases @Inject constructor(
     val observe: ObservePropertyDownloadsUseCase,
     val start: StartPropertyDownloadUseCase,
+    val open: OpenDownloadedPropertyUseCase,
     val resume: ResumePropertyDownloadUseCase,
     val isOnline: IsDeviceOnlineUseCase,
 )

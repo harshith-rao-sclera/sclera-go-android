@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +84,7 @@ object PropertyTags {
     const val ADD = "property_add"
     const val IMPORT = "property_import"
     const val EMPTY = "property_empty"
+    const val LOADING = "property_loading"
     const val COUNT = "property_count"
     fun row(id: String) = "property_row_$id"
     fun download(id: String) = "property_download_$id"
@@ -153,11 +155,11 @@ internal fun PropertyListContent(
                 items(state.rows, key = { it.property.id }) { row ->
                     val id = row.property.id
                     val download = state.downloads.active[id]
-                    val downloaded = id == state.downloads.downloadedId
+                    val downloaded = id in state.downloads.downloadedIds
                     PropertyCard(
                         id, row.property.name, current = id == currentId,
                         download = download, downloaded = downloaded, online = state.online,
-                        // The downloaded property opens; another one is downloaded first (one property's data at a time).
+                        // A downloaded property opens (offline too); another one is downloaded first.
                         onClick = {
                             when {
                                 downloaded -> onOpen(id)
@@ -167,12 +169,18 @@ internal fun PropertyListContent(
                         onDownload = { onDownload(id) },
                     )
                 }
-                if (state.rows.isEmpty()) item {
-                    Txt(
-                        stringResource(R.string.property_none_match, state.query.trim()), 13, 400, C.Muted,
-                        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 30.dp).testTag(PropertyTags.EMPTY),
-                        maxLines = 3, align = TextAlign.Center,
-                    )
+                when {
+                    // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
+                    state.loading -> item { ListLoader() }
+                    state.rows.isEmpty() -> item {
+                        val text = if (state.query.isBlank()) stringResource(R.string.property_none)
+                        else stringResource(R.string.property_none_match, state.query.trim())
+                        Txt(
+                            text, 13, 400, C.Muted,
+                            Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 30.dp).testTag(PropertyTags.EMPTY),
+                            maxLines = 3, align = TextAlign.Center,
+                        )
+                    }
                 }
             }
         }
@@ -190,13 +198,28 @@ internal fun PropertyListContent(
     }
 }
 
+/** Spinner and "Loading properties…" while the first server read runs (read out as one line). */
+@Composable
+private fun ListLoader() {
+    Column(
+        Modifier.fillMaxWidth().padding(top = 40.dp).semantics(mergeDescendants = true) {}.testTag(PropertyTags.LOADING),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CircularProgressIndicator(Modifier.size(28.dp), color = C.Yellow, strokeWidth = 2.5.dp)
+        Txt(stringResource(R.string.property_loading), 13, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
+    }
+}
+
 /** The Properties / Assets tiles and the import strip (the app bar already names the page). */
 @Composable
 private fun Header(state: PropertyListState, onImport: () -> Unit) {
     Column(Modifier.padding(bottom = 7.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         StatRow {
             StatCard(
-                Icons.Building, C.Yellow, state.propertyTotal.toString(), stringResource(R.string.label_properties),
+                // No count until the properties are known, rather than a 0 that jumps.
+                Icons.Building, C.Yellow, if (state.loading) "–" else state.propertyTotal.toString(),
+                stringResource(R.string.label_properties),
                 Modifier.weight(1f).testTag(PropertyTags.COUNT), valueSize = 17, labelSize = 11,
             )
         }

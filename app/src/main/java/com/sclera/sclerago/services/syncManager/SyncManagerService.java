@@ -2,20 +2,22 @@ package com.sclera.sclerago.services.syncManager;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.util.Log;
 
-import com.sclera.sclerago.services.syncManager.enums.OfflineFeatures;
 import com.sclera.sclerago.services.syncManager.enums.SyncMode;
 import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
 import com.sclera.sclerago.utility.Utility;
 
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import io.requery.android.database.sqlite.SQLiteDatabase;
 
 public class SyncManagerService {
+    private static final String TAG = "SyncManagerService";
 
     public static void deleteDatabaseIfWrongUser(String currentUser) {
         try {
@@ -25,16 +27,9 @@ public class SyncManagerService {
                 String existingUser = assetDataCursor.getString(0);
 
                 if (!existingUser.equals(currentUser)) {
-                    if (SyncUtils.dbInstance != null) {
-                        SyncUtils.dbInstance.closeConnection();
-                    }
-                    boolean deleted = Utility.context.deleteDatabase(OfflineFeatures.ASSET_DATA_COLLECTION + ".db") ||
-                            Utility.context.deleteDatabase(OfflineFeatures.ASSET_DATA_COLLECTION + ".zip");
-                    if (!deleted) {
-                        System.out.println("Error deleting the database");
-                    }
+                    closeAllAssetDataSyncs();
+                    SyncUtils.deleteAssetDataCollectionData(Utility.context, null);
                     GlobalConfigDatabaseHelper.initializeInstance(Utility.context).dropTablesForAssetDataCollection(existingUser);
-                    SyncUtils.dbInstance = null;
                 }
 
                 assetDataCursor.close();
@@ -59,6 +54,12 @@ public class SyncManagerService {
             String cloudUrl = assetCollectionData.getCloudUrl();
             String propertyId = assetCollectionData.getPropertyId();
 
+            // The property id names the property's database file, so anything else is refused.
+            if (!SyncManager.isValidPropertyId(propertyId)) {
+                Log.w(TAG, "Asset data sync not started: invalid property id");
+                return;
+            }
+
             SyncManager.token = token;
             SyncManager.sessionId = sessionId;
             SyncManager.sessionUrl = sessionUrl;
@@ -82,23 +83,24 @@ public class SyncManagerService {
             values.put(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_CLOUD_URL, cloudUrl);
             values.put(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID, propertyId);
 
-            SyncManager currentInstance;
             GlobalConfigDatabaseHelper.initializeInstance(Utility.context).globalDB.insertWithOnConflict(GlobalConfigDatabaseHelper.TABLE_NAME_ASSET_CONFIG, null, values, SQLiteDatabase.CONFLICT_REPLACE);
 
-            if (SyncUtils.dbInstance != null && SyncUtils.dbInstance.isSynced == 2) {
-                currentInstance = SyncUtils.dbInstance;
+            // One engine (and database) per property, like inspection's per vdms id; they all keep syncing.
+            SyncManager currentInstance = SyncUtils.adcInstances.get(propertyId);
+            boolean existing = currentInstance != null;
+            if (existing) {
                 currentInstance.setOrgId(orgId);
-                SyncUtils.dbInstance = currentInstance;
             } else {
-                if (SyncUtils.dbInstance != null) {
-                    currentInstance = SyncUtils.dbInstance;
-                    currentInstance.setOrgId(orgId);
-                    SyncUtils.dbInstance = currentInstance;
-                } else {
-                    currentInstance = new SyncManager(user, url, token, sessionId, sessionUrl, orgId, Utility.context, propertyId);
-                    SyncUtils.dbInstance = currentInstance;
-                }
+                currentInstance = new SyncManager(user, url, token, sessionId, sessionUrl, orgId, Utility.context, propertyId);
+                SyncUtils.adcInstances.put(propertyId, currentInstance);
+            }
+            // The app chooses which property it works on (as it chooses the vdms for inspection); the first one is
+            // current until then.
+            if (SyncUtils.dbInstance == null) {
+                SyncUtils.dbInstance = currentInstance;
+            }
 
+            if (!existing || currentInstance.isSynced != 2) {
                 if (currentInstance.progress == 0) {
                     ExecutorService executorService = Executors.newSingleThreadExecutor();
                     SyncManager finalCurrentInstance = currentInstance;
@@ -118,6 +120,44 @@ public class SyncManagerService {
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
+        }
+    }
+
+    /**
+     * Stops the asset data sync of {@code propertyId}. Its database and sync status stay on the device, so opening
+     * the property again reuses a finished download.
+     */
+    public static void closeAssetDataSync(String propertyId) {
+        if (propertyId == null) {
+            return;
+        }
+        SyncManager instance = SyncUtils.adcInstances.remove(propertyId);
+        if (instance != null) {
+            try {
+                instance.closeConnection();
+            } catch (Exception e) {
+                Log.w(TAG, "Error closing asset data sync");
+            }
+        }
+        if (SyncUtils.dbInstance != null && propertyId.equals(SyncUtils.dbInstance.propertyId)) {
+            SyncUtils.dbInstance = null;
+        }
+    }
+
+    /** Stops the asset data sync of every property (on sign-out or when another user signs in). */
+    public static void closeAllAssetDataSyncs() {
+        for (String propertyId : new ArrayList<>(SyncUtils.adcInstances.keySet())) {
+            closeAssetDataSync(propertyId);
+        }
+        // An engine started before it was registered by property (or without one) is stopped too.
+        SyncManager current = SyncUtils.dbInstance;
+        if (current != null) {
+            try {
+                current.closeConnection();
+            } catch (Exception e) {
+                Log.w(TAG, "Error closing asset data sync");
+            }
+            SyncUtils.dbInstance = null;
         }
     }
 }

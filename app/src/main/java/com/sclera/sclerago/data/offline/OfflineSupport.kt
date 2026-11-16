@@ -7,14 +7,31 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transform
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Most ids bound to one `IN (...)` list; longer lists are queried in chunks. */
 private const val MAX_IN_ARGS = 400
 
-/** Loads straight away and again whenever one of [tables] changes (changes arriving while loading are merged), on [io]. */
+/**
+ * Loads straight away and again whenever one of [tables] changes (changes arriving while loading are merged), on [io].
+ * A load that fails (say the property was switched and its connection closed mid-query) is skipped: the last value
+ * stays and the next change loads again, so the screen's data never stops updating.
+ */
 internal fun <T> AdcDatabase.watch(io: CoroutineDispatcher, vararg tables: String, load: () -> T): Flow<T> =
-    observe(*tables).map { load() }.distinctUntilChanged().conflate().flowOn(io)
+    observe(*tables).transform {
+        val loaded = try {
+            Loaded(load())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+        if (loaded != null) emit(loaded.value)
+    }.distinctUntilChanged().conflate().flowOn(io)
+
+/** A load's result, so a failed load (null) is told apart from one that found nothing (a null [value]). */
+private class Loaded<T>(val value: T)
 
 /** [block]'s result, or [empty] when the offline database is not open yet. */
 internal inline fun <T> AdcDatabase.whenOpen(empty: T, block: () -> T): T = if (isOpen) block() else empty

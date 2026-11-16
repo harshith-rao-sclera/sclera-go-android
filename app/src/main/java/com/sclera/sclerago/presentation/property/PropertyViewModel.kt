@@ -42,6 +42,8 @@ data class PropertyListState(
     val downloads: PropertyDownloads = PropertyDownloads(),
     /** Offline, properties that aren't downloaded are faded and can't be opened or downloaded. */
     val online: Boolean = true,
+    /** The properties are being read from the server and none are saved on the device yet: a loader shows instead of the list. */
+    val loading: Boolean = false,
 )
 
 /** Property list screen: search, add, import and download. Opening a property is the caller's (navigation) job. */
@@ -55,7 +57,13 @@ class PropertyViewModel @Inject constructor(
     private val flags = MutableStateFlow(Flags())
     private val online = MutableStateFlow(downloads.isOnline())
 
-    private data class Flags(val addOpen: Boolean = false, val importOpen: Boolean = false, val notice: UiText? = null)
+    /** [refreshing]: the server read started when the list opened hasn't finished yet. */
+    private data class Flags(
+        val addOpen: Boolean = false,
+        val importOpen: Boolean = false,
+        val notice: UiText? = null,
+        val refreshing: Boolean = true,
+    )
     private var adding = false
 
     /** Failed downloads already told about, so each failure is announced once. */
@@ -73,6 +81,8 @@ class PropertyViewModel @Inject constructor(
                 notice = f.notice,
                 downloads = d,
                 online = on,
+                // Saved properties show straight away; only an empty list waits for the server.
+                loading = f.refreshing && all.isEmpty(),
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, PropertyListState())
 
@@ -83,6 +93,8 @@ class PropertyViewModel @Inject constructor(
                 useCases.refresh()
             } catch (e: OnlineException) {
                 if (e.error != OnlineError.Offline) flags.update { it.copy(notice = e.error.toUiText()) }
+            } finally {
+                flags.update { it.copy(refreshing = false) }
             }
         }
         viewModelScope.launch {
@@ -109,7 +121,8 @@ class PropertyViewModel @Inject constructor(
     /** Back to a fresh list (called when the screen is left). */
     fun reset() {
         query.value = ""
-        flags.value = Flags()
+        // The server read runs once per screen model, so whether it has finished is kept.
+        flags.update { Flags(refreshing = it.refreshing) }
     }
 
     fun consumeNotice() = flags.update { it.copy(notice = null) }

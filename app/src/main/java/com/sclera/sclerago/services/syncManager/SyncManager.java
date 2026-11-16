@@ -61,6 +61,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import io.requery.android.database.sqlite.SQLiteDatabase;
 import io.requery.android.database.sqlite.SQLiteStatement;
@@ -117,6 +118,38 @@ public class SyncManager {
     public int initialCloudSyncStatus = 0b00000;
     private static final String KEY_PULL_IMAGES = "_pull_images_enabled";
     private static final String KEY_DATA_SYNC     = "_data_sync_enabled";
+
+    // Asset data collection keeps one database per property, the way inspection keeps one per vdms id.
+    /** Every ADC database file starts with this (the legacy single database was named exactly this). */
+    public static final String ADC_DB_PREFIX = OfflineFeatures.ASSET_DATA_COLLECTION.toString();
+    /** Every ADC preference key starts with this (the legacy single-database keys did too). */
+    public static final String ADC_PREF_PREFIX = "adc_";
+    /** Property ids become file names, so only plain id characters are accepted. */
+    private static final Pattern PROPERTY_ID = Pattern.compile("[A-Za-z0-9_-]{1,128}");
+
+    public static boolean isValidPropertyId(String propertyId) {
+        return propertyId != null && PROPERTY_ID.matcher(propertyId).matches();
+    }
+
+    /** The database name (without extension) holding the ADC data of {@code propertyId}. */
+    public static String adcDatabaseName(String propertyId) {
+        if (!isValidPropertyId(propertyId)) {
+            throw new IllegalArgumentException("Invalid property id");
+        }
+        return ADC_DB_PREFIX + "_" + propertyId;
+    }
+
+    public static String adcStatusKey(String propertyId) {
+        return ADC_PREF_PREFIX + propertyId + "_sync_status";
+    }
+
+    public static String adcTimestampKey(String propertyId) {
+        return ADC_PREF_PREFIX + propertyId + "_sync_timestamp";
+    }
+
+    public static String adcTotalImagesKey(String propertyId) {
+        return ADC_PREF_PREFIX + propertyId + "_total_images";
+    }
 
     // connections
     private final OkHttpClient client = new OkHttpClient.Builder()
@@ -327,10 +360,10 @@ public class SyncManager {
         this.appContext = appContext;
         this.feature = OfflineFeatures.ASSET_DATA_COLLECTION;
         this.dbConnection = null;
-        editor = SyncUtils.getSharedPrefs(appContext).edit();
-        this.isSynced = sharedPrefs.getInt("adc_sync_status", 0);
-        this.totalImages = sharedPrefs.getInt("adc_total_images", 0);
         this.propertyId = propertyId;
+        editor = SyncUtils.getSharedPrefs(appContext).edit();
+        this.isSynced = sharedPrefs.getInt(adcStatusKey(propertyId), 0);
+        this.totalImages = sharedPrefs.getInt(adcTotalImagesKey(propertyId), 0);
     }
 
     public void startConnection() {
@@ -484,12 +517,8 @@ public class SyncManager {
             editor.apply();
         }
 
-        if (feature.equals(OfflineFeatures.ASSET_DATA_COLLECTION)) {
-            editor.remove("adc_total_images");
-            editor.remove("adc_sync_status");
-            editor.remove("adc_sync_timestamp");
-            editor.apply();
-        }
+        // ADC keeps the property's sync status on close, so a downloaded property reopens without downloading again.
+        // Its database and status are removed by SyncUtils.deleteAssetDataCollectionData.
 
         client.dispatcher().executorService().shutdown();
         client.connectionPool().evictAll();
@@ -537,9 +566,9 @@ public class SyncManager {
         String statusKey;
         String timestampKey;
         if (feature.equals(OfflineFeatures.ASSET_DATA_COLLECTION)) {
-            dbName = OfflineFeatures.ASSET_DATA_COLLECTION.toString();
-            statusKey = "adc_sync_status";
-            timestampKey = "adc_sync_timestamp";
+            dbName = adcDatabaseName(propertyId);
+            statusKey = adcStatusKey(propertyId);
+            timestampKey = adcTimestampKey(propertyId);
         } else {
             dbName = vdmsID;
             statusKey = vdmsID + "_sync_status";
@@ -646,14 +675,7 @@ public class SyncManager {
                     totalFileSizeMB = (double) fileSize / (1024 * 1024);
                     totalFileSizeMB = Math.round(totalFileSizeMB * 100.0) / 100.0;
 
-                    String moduleType;
-                    if (feature.equals(OfflineFeatures.ASSET_DATA_COLLECTION)) {
-                        moduleType = "asset-data-collection";
-                    } else {
-                        moduleType = "vdms";
-                    }
-
-                    if (SyncUtils.checkStorage(moduleType)) {
+                    if (SyncUtils.checkStorage(totalFileSizeMB)) {
                         progress = 0;
                         formattedRemainingTime = "";
                         isSynced = 3;

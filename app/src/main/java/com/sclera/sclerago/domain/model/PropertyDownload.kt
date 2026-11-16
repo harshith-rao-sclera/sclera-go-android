@@ -19,11 +19,13 @@ sealed interface PropertyDownload {
 val PropertyDownload?.inProgress: Boolean get() = this is PropertyDownload.Running || this is PropertyDownload.Unpacking
 
 /**
- * The offline data on this device: the recently used property ([downloadedId]: the last one downloaded, which the
- * app opens on; the sync manager holds one property at a time) and the downloads under way or just ended ([active]).
+ * The offline data on this device: the properties downloaded ([downloadedIds]), the one being worked on
+ * ([currentId]: the last one opened, which the app opens on and keeps syncing) and the downloads under way or just
+ * ended ([active]).
  */
 data class PropertyDownloads(
-    val downloadedId: String? = null,
+    val currentId: String? = null,
+    val downloadedIds: Set<String> = emptySet(),
     val active: Map<String, PropertyDownload> = emptyMap(),
     /** False until the saved recent property has been read, so the start screen isn't chosen too early. */
     val restored: Boolean = false,

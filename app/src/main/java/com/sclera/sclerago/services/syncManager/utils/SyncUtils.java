@@ -39,6 +39,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,6 +57,9 @@ public class SyncUtils {
     public static ConcurrentMap<String, SyncManager> dbInstances = new ConcurrentHashMap<>();
     public static ConcurrentMap<String, Integer> syncMap = new ConcurrentHashMap<>();
     public static ConcurrentMap<String, String> imageProgressMap = new ConcurrentHashMap<>();
+    /** Asset data collection engines by property id (one database each), like {@link #dbInstances} by vdms id. */
+    public static ConcurrentMap<String, SyncManager> adcInstances = new ConcurrentHashMap<>();
+    /** The asset data collection engine of the property the app has open (also held in {@link #adcInstances}). */
     public static SyncManager dbInstance;
     public static String currentVDMS;
     public static String userData;
@@ -74,17 +78,20 @@ public class SyncUtils {
 
     public static String assetDataImageProgress;
 
-    /** Told (from a sync thread) which tables a batch of pulled changes touched, so the app can re-query them. */
+    /**
+     * Told (from a sync thread) which tables a batch of pulled changes touched in which property's database
+     * ({@code propertyId}, null for inspection), so the app can re-query them.
+     */
     public interface TablesChangedListener {
-        void onTablesChanged(Set<String> tables);
+        void onTablesChanged(String propertyId, Set<String> tables);
     }
 
     public static volatile TablesChangedListener tablesChangedListener;
 
-    public static void notifyTablesChanged(Set<String> tables) {
+    public static void notifyTablesChanged(String propertyId, Set<String> tables) {
         TablesChangedListener listener = tablesChangedListener;
         if (listener != null && tables != null && !tables.isEmpty()) {
-            listener.onTablesChanged(tables);
+            listener.onTablesChanged(propertyId, tables);
         }
     }
 
@@ -172,7 +179,7 @@ public class SyncUtils {
 
         if (feature.equals(OfflineFeatures.ASSET_DATA_COLLECTION)) {
             requestBuilder.addHeader("userid", SyncManager.userId)
-                    .addHeader("scleraorgid", SyncUtils.dbInstance.getOrgId())
+                    .addHeader("scleraorgid", syncManager.getOrgId())
                     .addHeader("PropertyId", syncManager.propertyId);
         }
 
@@ -206,7 +213,7 @@ public class SyncUtils {
 
         if (feature.equals(OfflineFeatures.ASSET_DATA_COLLECTION)) {
             requestBuilder.addHeader("userid", SyncManager.userId)
-                    .addHeader("scleraorgid", SyncUtils.dbInstance.getOrgId())
+                    .addHeader("scleraorgid", syncManager.getOrgId())
                     .addHeader("PropertyId", syncManager.propertyId);
         }
 
@@ -261,15 +268,10 @@ public class SyncUtils {
         }
     }
 
-    public static boolean checkStorage(String moduleType) {
+    /** True when the device has too little space left for a download of {@code totalFileMB}. */
+    public static boolean checkStorage(double totalFileMB) {
         StatFs stat = new StatFs(Environment.getDataDirectory().getPath());
         long availableBytes = stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
-        double totalFileMB;
-        if (moduleType.equals("asset-data-collection")) {
-            totalFileMB = SyncUtils.dbInstance.totalFileSizeMB;
-        } else {
-            totalFileMB = SyncUtils.dbInstance.totalFileSizeMB;
-        }
         thresholdMB = totalFileMB * 1.4;
         long thresholdBytes = (long) (thresholdMB * 1024 * 1024);
         return availableBytes < thresholdBytes;
@@ -323,8 +325,8 @@ public class SyncUtils {
         }
     }
 
-    public static int getTotalImagesInDB() {
-        try (Cursor cursor = SyncUtils.dbInstance.getDbConnection().rawQuery("SELECT COUNT(*) FROM " +
+    public static int getTotalImagesInDB(SyncManager syncManager) {
+        try (Cursor cursor = syncManager.getDbConnection().rawQuery("SELECT COUNT(*) FROM " +
                 multimediaTable + " WHERE media_changes IS NULL", null)) {
             if (cursor.moveToFirst()) {
                 return cursor.getInt(0);
@@ -529,6 +531,88 @@ public class SyncUtils {
                 .replace("https://", "wss://")
                 .replace("http://", "ws://")
                 .replace("/adc-offline-sync", "");
+    }
+
+    /**
+     * Deletes the asset data collection databases (and their zips) and sync preferences of every property not in
+     * {@code keepPropertyIds}, and always the legacy single database (null or empty deletes everything).
+     */
+    public static void deleteAssetDataCollectionData(Context context, Collection<String> keepPropertyIds) {
+        Set<String> keepFiles = new HashSet<>();
+        Set<String> keepKeys = new HashSet<>();
+        if (keepPropertyIds != null) {
+            for (String id : keepPropertyIds) {
+                if (!SyncManager.isValidPropertyId(id)) {
+                    continue;
+                }
+                String name = SyncManager.adcDatabaseName(id);
+                keepFiles.add(name + ".db");
+                keepFiles.add(name + ".zip");
+                keepKeys.add(SyncManager.adcStatusKey(id));
+                keepKeys.add(SyncManager.adcTimestampKey(id));
+                keepKeys.add(SyncManager.adcTotalImagesKey(id));
+            }
+        }
+
+        for (String file : assetDataCollectionFiles(context)) {
+            if (!keepFiles.contains(file)) {
+                context.deleteDatabase(file);
+            }
+        }
+
+        SharedPreferences prefs = getSharedPrefs(context);
+        SharedPreferences.Editor editor = prefs.edit();
+        for (String key : prefs.getAll().keySet()) {
+            if (key.startsWith(SyncManager.ADC_PREF_PREFIX) && !keepKeys.contains(key)) {
+                editor.remove(key);
+            }
+        }
+        editor.apply();
+    }
+
+    /** True when any property's asset data collection database, zip or sync status is stored on the device. */
+    public static boolean hasAssetDataCollectionData(Context context) {
+        if (!assetDataCollectionFiles(context).isEmpty()) {
+            return true;
+        }
+        for (String key : getSharedPrefs(context).getAll().keySet()) {
+            if (key.startsWith(SyncManager.ADC_PREF_PREFIX) && key.endsWith("_sync_status")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The properties whose asset data collection database is fully downloaded on the device (sync status 2). */
+    public static Set<String> downloadedAssetDataCollectionProperties(Context context) {
+        Set<String> ids = new HashSet<>();
+        SharedPreferences prefs = getSharedPrefs(context);
+        String prefix = SyncManager.ADC_DB_PREFIX + "_";
+        for (String file : assetDataCollectionFiles(context)) {
+            if (!file.startsWith(prefix) || !file.endsWith(".db")) {
+                continue;
+            }
+            String id = file.substring(prefix.length(), file.length() - ".db".length());
+            if (SyncManager.isValidPropertyId(id) && prefs.getInt(SyncManager.adcStatusKey(id), 0) == 2) {
+                ids.add(id);
+            }
+        }
+        return ids;
+    }
+
+    /** The asset data collection database and zip files in the app's databases folder. */
+    private static Set<String> assetDataCollectionFiles(Context context) {
+        Set<String> files = new HashSet<>();
+        String[] names = context.databaseList();
+        if (names == null) {
+            return files;
+        }
+        for (String name : names) {
+            if (name.startsWith(SyncManager.ADC_DB_PREFIX) && (name.endsWith(".db") || name.endsWith(".zip"))) {
+                files.add(name);
+            }
+        }
+        return files;
     }
 
     public static boolean tableExists(String tableName, SQLiteDatabase dbConnection) {

@@ -475,7 +475,7 @@ public class ImageSyncService {
                     if (syncManager.getFeature().equals(OfflineFeatures.ADMIN)) {
                         syncManager.getEditor().putInt(syncManager.getVdmsID() + "_total_images", totalImages);
                     } else if (syncManager.getFeature().equals(OfflineFeatures.ASSET_DATA_COLLECTION)) {
-                        syncManager.getEditor().putInt("adc_total_images", totalImages);
+                        syncManager.getEditor().putInt(SyncManager.adcTotalImagesKey(syncManager.propertyId), totalImages);
                     }
 
                     syncManager.getEditor().apply();
@@ -1053,7 +1053,7 @@ public class ImageSyncService {
             System.out.println(e.getMessage());
         }
 
-        if (!hasContent || SyncUtils.getTotalImagesInDB() == totalImages) {
+        if (!hasContent || SyncUtils.getTotalImagesInDB(syncManager) == totalImages) {
             setSyncStatus(2);
             if (syncManager.getFeature().equals(OfflineFeatures.ADMIN) && SyncUtils.checkSyncStatus(syncManager.getVdmsID()) == 1) {
                 imageProgressMap.put(syncManager.getVdmsID(), "100");

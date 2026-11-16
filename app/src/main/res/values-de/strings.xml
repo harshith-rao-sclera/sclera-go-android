@@ -35,6 +35,8 @@
     <string name="label_assets">Assets</string>
     <string name="property_import_strip">Aus Tabelle importieren</string>
     <string name="property_none_match">Keine Standorte passen zu „%1$s“.</string>
+    <string name="property_loading">Standorte werden geladen…</string>
+    <string name="property_none">Noch keine Standorte.</string>
     <string name="property_download">%1$s herunterladen</string>
     <string name="property_downloading">%1$s wird heruntergeladen</string>
     <string name="property_unpacking">%1$s wird entpackt</string>

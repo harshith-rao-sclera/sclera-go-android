@@ -2,19 +2,28 @@ package com.sclera.sclerago.domain.sync
 
 import kotlinx.coroutines.flow.StateFlow
 
-/** Keeps the offline copy of one property's data downloaded and in step with the server. */
+/**
+ * Keeps offline copies of properties' data on the device, each in step with the server (one database and sync per
+ * property, as inspection has one per vdms). The app reads the [select]ed property's data.
+ */
 interface OfflineSync {
-    /** Where the latest [download] stands. */
-    val state: StateFlow<SyncState>
+    /** Where each property handed to [download] stands. */
+    val states: StateFlow<Map<String, SyncState>>
 
     /**
-     * Downloads [propertyId]'s data and keeps it in sync, replacing another property's data on the device.
-     * Does nothing while that property is already downloading; after [SyncState.Failed] it starts over.
-     * [state] is [SyncState.Downloading] (or already settled) when this returns.
+     * Downloads [propertyId]'s data (or reopens it when it is on the device) and keeps it in sync alongside the other
+     * properties. Does nothing while that property is already downloading; after [SyncState.Failed] it starts over.
+     * Its state is [SyncState.Downloading] (or already settled) when this returns.
      */
     fun download(propertyId: String)
 
-    /** Stops syncing; what was downloaded stays on the device until the user data is wiped. */
+    /** Makes [propertyId] (null: none) the property whose data the app reads; the others keep syncing. */
+    fun select(propertyId: String?)
+
+    /** The properties whose data is fully downloaded on the device. Blocking but short. */
+    fun downloadedProperties(): Set<String>
+
+    /** Stops following every property; what was downloaded stays on the device until the user data is wiped. */
     fun stop()
 }
 

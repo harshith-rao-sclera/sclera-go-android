@@ -35,6 +35,8 @@
     <string name="label_assets">Активы</string>
     <string name="property_import_strip">Импорт из таблицы</string>
     <string name="property_none_match">Нет объектов, соответствующих «%1$s».</string>
+    <string name="property_loading">Загрузка объектов…</string>
+    <string name="property_none">Объектов пока нет.</string>
     <string name="property_download">Скачать %1$s</string>
     <string name="property_downloading">Скачивание: %1$s</string>
     <string name="property_unpacking">Распаковка: %1$s</string>

@@ -35,6 +35,8 @@
     <string name="label_assets">الأصول</string>
     <string name="property_import_strip">الاستيراد من جدول بيانات</string>
     <string name="property_none_match">لا توجد عقارات تطابق “%1$s”.</string>
+    <string name="property_loading">جارٍ تحميل العقارات…</string>
+    <string name="property_none">لا توجد عقارات بعد.</string>
     <string name="property_download">تنزيل %1$s</string>
     <string name="property_downloading">جارٍ تنزيل %1$s</string>
     <string name="property_unpacking">جارٍ فك ضغط %1$s</string>
