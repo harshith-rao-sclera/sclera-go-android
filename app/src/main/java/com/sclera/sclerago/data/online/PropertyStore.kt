@@ -8,6 +8,7 @@ import com.sclera.sclerago.data.mapper.toRecord
 import com.sclera.sclerago.data.offline.PropertyOfflineSource
 import com.sclera.sclerago.data.remote.adc.AdcApi
 import com.sclera.sclerago.data.remote.adc.AdcJson
+import com.sclera.sclerago.data.remote.adc.PhotoRulesDto
 import com.sclera.sclerago.data.remote.adc.PropertyDto
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.di.ApplicationScope
@@ -54,6 +55,11 @@ class PropertyStore @Inject constructor(
 
     /** Property id → ways of adding assets switched off there. */
     val disabled: StateFlow<Map<String, Set<OnboardingChannel>>> = _disabled
+
+    private val _photoRules = MutableStateFlow(emptyMap<String, PhotoRulesDto>())
+
+    /** Property id → its photo rules (its settings' `photoRules`), as last loaded from the server. */
+    val photoRules: StateFlow<Map<String, PhotoRulesDto>> = _photoRules
 
     init {
         scope.launch {
@@ -113,6 +119,7 @@ class PropertyStore @Inject constructor(
         offlineJob?.cancel()
         dtos = emptyList()
         publish(emptyList())
+        _photoRules.value = emptyMap()
     }
 
     private suspend fun offlineTableReady(): Boolean =
@@ -123,12 +130,14 @@ class PropertyStore @Inject constructor(
         runCatching { AdcJson.decodeFromString(LIST, text) }.getOrNull()?.let {
             dtos = it
             publish(it.map(PropertyDto::toRecord))
+            _photoRules.value = it.associate { p -> p.id to p.settings.photoRules }
         }
     }
 
     private suspend fun setDtos(list: List<PropertyDto>) {
         dtos = list
         publish(list.map(PropertyDto::toRecord))
+        _photoRules.value = list.associate { it.id to it.settings.photoRules }
         withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(LIST, list)) } }
     }
 

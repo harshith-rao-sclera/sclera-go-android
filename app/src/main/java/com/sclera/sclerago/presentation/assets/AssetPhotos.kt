@@ -2,7 +2,6 @@ package com.sclera.sclerago.presentation.assets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,15 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -37,7 +28,6 @@ import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.MediaFull
 import com.sclera.sclerago.presentation.components.MediaImage
 import com.sclera.sclerago.presentation.components.RoundButton
-import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.noRippleClick
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Ico
@@ -48,9 +38,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 
 /** Test tags of the asset photos. */
 object PhotoTags {
-    const val ADD = "detail-photo-add"
     const val VIEWER = "detail-photo-viewer"
-    const val EMPTY = "detail-photo-empty"
     fun tile(index: Int) = "detail-photo-$index"
 }
 
@@ -62,70 +50,21 @@ private fun Media.title(): String = when {
     else -> stringResource(R.string.detail_photo)
 }
 
-/** The asset real photos, videos and documents, then the dashed button that adds more (unless the asset is locked). */
+/** One attachment as a square tile ([modifier] sets its size): the picture (or a document's type), a video's length, and an expand mark. */
 @Composable
-fun PhotoStrip(
-    media: List<Media>,
-    locked: Boolean,
-    onOpen: (Int) -> Unit,
-    onTakePhoto: () -> Unit,
-    onPickGallery: () -> Unit,
-    onPickFiles: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var menu by remember { mutableStateOf(false) }
-    Row(
-        modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        media.forEachIndexed { i, m ->
-            val title = m.title()
-            Box(
-                Modifier.size(76.dp).testTag(PhotoTags.tile(i)).clip(r(12)).background(C.Raised)
-                    .semantics { contentDescription = title }.clickable { onOpen(i) },
-            ) {
-                if (m.isDoc) Txt(m.ext, 11, 800, C.Yellow, Modifier.align(Alignment.Center))
-                else MediaImage(m, Modifier.fillMaxSize(), maxPx = 240)
-                if (m.video) Txt(
-                    stringResource(R.string.detail_video_badge, m.durationText), 9, 700, C.White,
-                    Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp), spacing = 0.4f,
-                )
-                Box(
-                    Modifier.align(Alignment.TopEnd).padding(5.dp).size(18.dp).background(C.shade(0.55f), r(5)),
-                    contentAlignment = Alignment.Center,
-                ) { LineIcon(Icons.Expand, 11.dp, C.White, 2.6f) }
-            }
-        }
-        if (!locked) Box {
-            Column(
-                Modifier.size(76.dp).testTag(PhotoTags.ADD).clip(r(12)).background(C.ImportStrip).dashedBorder(C.YTintBd, 1.5.dp, 12.dp)
-                    .clickable { menu = true },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-            ) {
-                LineIcon(Icons.Plus, 20.dp, C.Yellow, 2.4f)
-                Txt(stringResource(R.string.detail_add_photo), 10, 700, C.Yellow)
-            }
-            DropdownMenu(menu, { menu = false }, containerColor = C.Raised) {
-                listOf(
-                    Triple(Icons.Camera, R.string.detail_menu_camera, onTakePhoto),
-                    Triple(Icons.Gallery, R.string.detail_menu_gallery, onPickGallery),
-                    Triple(Icons.FileDoc, R.string.detail_menu_files, onPickFiles),
-                ).forEach { (icon, label, go) ->
-                    DropdownMenuItem(
-                        text = { Txt(stringResource(label), 13, 500) },
-                        leadingIcon = { LineIcon(icon, 18.dp, C.Yellow, 2.2f) },
-                        onClick = { menu = false; go() },
-                    )
-                }
-            }
-        }
-        if (media.isEmpty()) {
-            Txt(
-                stringResource(R.string.detail_no_photos), 12, 400, C.Muted,
-                Modifier.align(Alignment.CenterVertically).widthIn(max = 220.dp).testTag(PhotoTags.EMPTY), maxLines = 3,
-            )
-        }
+internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val title = m.title()
+    Box(modifier.clip(r(12)).background(C.Raised).semantics { contentDescription = title }.clickable(onClick = onOpen)) {
+        if (m.isDoc) Txt(m.ext, 11, 800, C.Yellow, Modifier.align(Alignment.Center))
+        else MediaImage(m, Modifier.fillMaxSize(), maxPx = 240)
+        if (m.video) Txt(
+            stringResource(R.string.detail_video_badge, m.durationText), 9, 700, C.White,
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp), spacing = 0.4f,
+        )
+        Box(
+            Modifier.align(Alignment.TopEnd).padding(5.dp).size(18.dp).background(C.shade(0.55f), r(5)),
+            contentAlignment = Alignment.Center,
+        ) { LineIcon(Icons.Expand, 11.dp, C.White, 2.6f) }
     }
 }
 

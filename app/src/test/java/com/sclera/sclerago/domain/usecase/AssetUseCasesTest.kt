@@ -1,15 +1,18 @@
 package com.sclera.sclerago.domain.usecase
 
-import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
-import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
-import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
-import com.sclera.sclerago.data.repository.AssetRepositoryImpl
+import com.sclera.sclerago.domain.model.AccessState
 import com.sclera.sclerago.domain.model.AssetType
+import com.sclera.sclerago.domain.model.CurrentAccess
+import com.sclera.sclerago.domain.model.DataError
+import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.repository.CurrentAccessRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.usecase.asset.AddAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetPlace
 import com.sclera.sclerago.domain.usecase.asset.AssignLocationUseCase
@@ -22,83 +25,132 @@ import com.sclera.sclerago.domain.usecase.asset.MatchDevicesUseCase
 import com.sclera.sclerago.domain.usecase.asset.ObserveAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SaveAssetDetailsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
-import com.sclera.sclerago.testutil.asset
+import com.sclera.sclerago.testutil.InMemoryAssetConfig
+import com.sclera.sclerago.testutil.InMemoryAssetRepository
 import com.sclera.sclerago.testutil.SequentialIdGenerator
+import com.sclera.sclerago.testutil.allowAllGuard
+import com.sclera.sclerago.testutil.asset
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class AssetUseCasesTest {
-    private val repo = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
-    private val place = AssetPlace("p1", "loc1", "Building A")
+    private val repo = InMemoryAssetRepository()
+    private val guard = allowAllGuard()
+    private val place = AssetPlace("p1", "loc1", "Building A", placeId = "l-1")
     private val photo = Media("m1", "content://m1", video = false, createdAt = 0L)
-    private fun assetNow(id: String) = repo.catalog.value.assetsIn("p1").first { it.id == id }
+    private fun assetNow(id: String) = repo.catalog.value.assets.first { it.id == id }
+
+    /** A signed-in user whose group can do only [permissions]. */
+    private fun guardFor(vararg permissions: Permission) = PermissionGuard(
+        object : CurrentAccessRepository {
+            override val state: StateFlow<AccessState> = MutableStateFlow(
+                AccessState.Loaded(
+                    CurrentAccess(
+                        userId = "u", email = "u@x.com", name = null, role = null, organisationId = "org", groupId = "g",
+                        groupName = "G", permissions = permissions.toSet(), allProperties = true, canManageProperties = false,
+                    ),
+                ),
+            )
+        },
+    )
+
+    private suspend fun assertForbidden(block: suspend () -> Unit) {
+        try {
+            block()
+            fail("expected FORBIDDEN")
+        } catch (e: DataException) {
+            assertEquals(DataError.FORBIDDEN, e.error)
+        }
+    }
 
     @Test
-    fun observeAndDetails_readTheRepository() {
+    fun observeAndDetails_readTheRepository() = runTest {
         assertEquals(repo.catalog, ObserveAssetsUseCase(repo)())
         assertNull(GetAssetDetailsUseCase(repo)("missing"))
+        assertNotNull(GetAssetDetailsUseCase(repo)("a2"))
     }
 
     @Test
-    fun statusLocationAndDelete_editTheCatalog() {
-        val id = repo.catalog.value.assetsIn("p1").first().id
-        SetAssetStatusUseCase(repo)(listOf(id), Status.SUBMITTED)
+    fun statusLocationAndDelete_editTheCatalog() = runTest {
+        val id = repo.catalog.value.assets.first().id
+        SetAssetStatusUseCase(repo, guard)(listOf(id), Status.SUBMITTED)
         assertEquals(Status.SUBMITTED, assetNow(id).st)
-        AssignLocationUseCase(repo)(listOf(id), LocValue("lx", "lx · floor 2"))
+        AssignLocationUseCase(repo, guard)(listOf(id), LocValue("lx", "lx · floor 2", "l-9"))
         assertEquals("lx", assetNow(id).loc)
-        assertTrue(repo.catalog.value.touched.containsKey(id))
-        DeleteAssetsUseCase(repo)(listOf(id))
-        assertTrue(repo.catalog.value.assetsIn("p1").none { it.id == id })
+        assertEquals("l-9", assetNow(id).locationId)
+        DeleteAssetsUseCase(repo, guard)(listOf(id))
+        assertTrue(repo.catalog.value.assets.none { it.id == id })
     }
 
     @Test
-    fun saveDetails_keepsValuesAndOptionallyMovesStatus() {
-        val id = repo.catalog.value.assetsIn("p1").first().id
-        val save = SaveAssetDetailsUseCase(repo)
-        save(id, mapOf("name" to "Renamed"))
+    fun signingOff_needsValidate_whileOtherChangesNeedCollect() = runTest {
+        val collector = guardFor(Permission.COLLECT)
+        val id = repo.catalog.value.assets.first().id
+        SetAssetStatusUseCase(repo, collector)(listOf(id), Status.SUBMITTED)
+        assertForbidden { SetAssetStatusUseCase(repo, collector)(listOf(id), Status.VALIDATED) }
+        assertForbidden { SaveAssetDetailsUseCase(repo, collector)(id, mapOf("name" to "X"), Status.VALIDATED) }
+        assertEquals(Status.SUBMITTED, assetNow(id).st)
+        val viewer = guardFor()
+        assertForbidden { DeleteAssetsUseCase(repo, viewer)(listOf(id)) }
+        assertForbidden { AssignLocationUseCase(repo, viewer)(listOf(id), LocValue("l", "l")) }
+        assertTrue(repo.catalog.value.assets.any { it.id == id })
+    }
+
+    @Test
+    fun saveDetails_keepsValuesAndOptionallyMovesStatus() = runTest {
+        val id = repo.catalog.value.assets.first().id
+        val save = SaveAssetDetailsUseCase(repo, guard)
+        save(id, mapOf("name" to "Renamed", "make" to "Acme"))
         assertEquals("Renamed", assetNow(id).name)
+        assertEquals("Acme", repo.details[id]?.fields?.get("make"))
         save(id, mapOf("name" to "Again"), Status.VALIDATED)
         assertEquals(Status.VALIDATED, assetNow(id).st)
     }
 
     @Test
-    fun attachMedia_ignoresEmptyOrInvalidRequests() {
-        val attach = AttachMediaUseCase(repo)
+    fun attachMedia_ignoresEmptyOrInvalidRequests() = runTest {
+        val attach = AttachMediaUseCase(repo, guard)
+        val before = assetNow("a1").media.size
         assertFalse(attach("a1", emptyList()))
         assertFalse(attach("", listOf(photo)))
         assertTrue(attach("a1", listOf(photo)))
-        assertEquals(1, repo.catalog.value.mediaAdded["a1"]?.size)
+        assertEquals(before + 1, assetNow("a1").media.size)
     }
 
     @Test
-    fun addAssets_buildsWithConsecutiveIds() {
-        val add = AddAssetsUseCase(repo, SequentialIdGenerator())
+    fun addAssets_buildsWithConsecutiveIds() = runTest {
+        val add = AddAssetsUseCase(repo, SequentialIdGenerator(), guard)
         assertTrue(add(0) { _, _ -> error("not called") }.isEmpty())
         val made = add(3) { id, i -> asset(id, "New $i") }
-        assertEquals(made.map { it.id }, listOf("1", "2", "3"))
+        assertEquals(listOf("1", "2", "3"), made.map { it.id })
         assertEquals("New 0", repo.catalog.value.assets.first().name)
     }
 
     @Test
-    fun create_manual() {
-        val create = CreateAssetUseCase(repo, SequentialIdGenerator())
+    fun create_manual() = runTest {
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard)
         val r = create("Pump A", "", emptyList(), mapOf("make" to "Acme"), submit = true, place, emptyList(), null, Source.MANUAL)
         assertEquals(CreateAssetUseCase.Via.MANUAL, r.via)
         val a = assetNow(r.id)
         assertEquals(Status.SUBMITTED, a.st)
         assertEquals("Added manually", a.detail)
         assertEquals(AssetType.PUMP, a.type)
+        assertEquals("l-1", a.locationId)
         assertEquals("Untitled asset", assetNow(create("", "", emptyList(), emptyMap(), false, place, emptyList(), null, Source.MANUAL).id).name)
-        assertEquals(mapOf("make" to "Acme"), repo.catalog.value.savedDetails[r.id])
+        assertEquals(mapOf("make" to "Acme"), repo.details[r.id]?.fields)
     }
 
     @Test
-    fun create_fromCameraShots() {
-        val create = CreateAssetUseCase(repo, SequentialIdGenerator())
+    fun create_fromCameraShots() = runTest {
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard)
         val video = photo.copy(video = true, durationMs = 65_000)
         val r = create("", "Added manually", listOf(photo), emptyMap(), false, place, listOf(video), null, Source.MANUAL)
         assertEquals(CreateAssetUseCase.Via.CAMERA, r.via)
@@ -111,8 +163,8 @@ class AssetUseCasesTest {
     }
 
     @Test
-    fun create_fromAScannedDevice_linksIt() {
-        val create = CreateAssetUseCase(repo, SequentialIdGenerator())
+    fun create_fromAScannedDevice_linksIt() = runTest {
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard)
         val device = Device("net:1", "Printer", "10.0.0.5 · HP", 3, false, AssetType.COMPUTER)
         val r = create("", "", emptyList(), emptyMap(), false, place, emptyList(), device, Source.WIFI)
         assertEquals(CreateAssetUseCase.Via.SCAN, r.via)
@@ -126,35 +178,41 @@ class AssetUseCasesTest {
     }
 
     @Test
-    fun matchDevices_findsAssetsThatMentionTheDevice() {
-        val create = CreateAssetUseCase(repo, SequentialIdGenerator())
-        val made = asset(id = 500, name = "Router 1", src = Source.WIFI).copy(detail = "10.0.0.5 · edge").also { repo.add(listOf(it)) }
+    fun create_withoutCollect_isRefused() = runTest {
+        assertForbidden { CreateAssetUseCase(repo, SequentialIdGenerator(), guardFor())("A", "", emptyList(), emptyMap(), false, place, emptyList(), null, Source.MANUAL) }
+    }
+
+    @Test
+    fun matchDevices_findsAssetsThatMentionTheDevice_orWereMadeFromIt() = runTest {
+        val made = asset(id = 500, name = "Router 1", src = Source.WIFI).copy(detail = "10.0.0.5 · edge")
+        repo.add(listOf(com.sclera.sclerago.domain.model.NewAsset(made)))
         val devices = listOf(
             Device("net:a", "R", "10.0.0.5 · HP", 2, false),
             Device("net:b", "R", "10.0.0.55 · HP", 2, false),
             Device("net:c", "R", "10.9.9.9", 2, false),
         )
-        val all = repo.catalog.value.assetsIn("p1")
+        val all = repo.catalog.value.assets
         val matched = MatchDevicesUseCase(repo)(devices, Source.WIFI, all)
         assertEquals(made.id, matched["net:a"])
-        assertNull(matched["net:b"])
+        assertNull(matched["net:b"]) // 10.0.0.55 is not 10.0.0.5
         assertNull(matched["net:c"])
-        repo.linkDevice("net:c", "a1")
+        // An asset made from the device is matched even though its text doesn't mention it.
+        repo.catalog.value = repo.catalog.value.copy(deviceAsset = mapOf("net:c" to "a1"))
         assertEquals("a1", MatchDevicesUseCase(repo)(devices, Source.WIFI, all)["net:c"])
     }
 
     @Test
-    fun buildCheckInput_combinesFieldsDetailsAndConfig() {
-        val config = AssetConfigRepositoryImpl()
+    fun buildCheckInput_combinesFieldsDetailsAndConfig() = runTest {
+        val config = InMemoryAssetConfig()
         val build = BuildCheckInputUseCase(repo, config)
         repo.saveDetails("a1", mapOf("make" to "Acme"))
-        val input = build(assetNow("a1"))
+        val inputs = build(listOf(assetNow("a1"), asset(901), asset(900, loc = null)))
+        val (_, input) = inputs[0]
         assertEquals("Acme", input.values["make"])
-        assertEquals("Generic", build(asset(901)).values["sys"])
+        assertEquals("Generic", inputs[1].second.values["sys"])
         assertTrue(input.hasLocation)
-        assertTrue(input.fromCamera)
         assertEquals(config.config.value.requiredFields, input.required)
-        val noLoc = build(asset(900, loc = null))
+        val noLoc = inputs[2].second
         assertFalse(noLoc.hasLocation)
         assertNotNull(noLoc.values["name"])
     }

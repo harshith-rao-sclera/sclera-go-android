@@ -82,12 +82,24 @@ fun AssetDetailRoute(
                 state.newPicks, state.values, submit,
             )
         },
-        onValidate = vm::validate,
+        onValidate = { vm.revalidate(false) },
         onDelete = { onDelete(asset.id) },
-        onAutofill = vm::autofill,
+        onAutofill = vm::openAi,
+        ai = AiDialogActions(
+            onClose = vm::closeAi, onIdentity = vm::editAiIdentity, onLookUp = vm::lookUp, onChangeModel = vm::changeAiModel,
+            onToggle = vm::toggleAiPick, onEdit = vm::editAiPick, onApply = vm::applyAi,
+        ),
         onTakePhoto = { camOpen = true },
         onPickGallery = { galleryPick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
         onPickFiles = { filePick.launch(arrayOf("*/*")) },
+        onCommentChange = vm::editComment,
+        onPostComment = vm::postComment,
+        onRevalidate = vm::revalidate,
+        onRemoveWebPage = vm::removeWebPage,
+        onAddPhoto = { kind, camera ->
+            vm.choosePhotoKind(kind)
+            if (camera) camOpen = true else galleryPick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        },
     )
     AssetDetailScreen(state, actions)
 

@@ -26,11 +26,12 @@ private const val TABLET_PORTRAIT = "spec:width=800dp,height=1280dp,dpi=240"
 private const val TABLET_LANDSCAPE = "spec:width=1280dp,height=800dp,dpi=240"
 
 /** The dashboard's list for the sample assets, filtered by [query]; used by the previews and the UI tests. */
-internal fun sampleAssetList(query: String = "", picked: Set<String> = emptySet()): AssetListBinding {
+internal fun sampleAssetList(query: String = "", picked: Set<String> = emptySet(), loading: Boolean = false): AssetListBinding {
     val data: AssetListData = BuildAssetListUseCase()(
-        SAMPLE_ASSETS.filter { it.propertyId == "p1" }, AssetListQuery(sources = null, location = LocationFilter.All, text = query),
+        if (loading) emptyList() else SAMPLE_ASSETS.filter { it.propertyId == "p1" },
+        AssetListQuery(sources = null, location = LocationFilter.All, text = query),
     )
-    return AssetListBinding(data, picked, query, onChip = {}, onToggle = {}, onOpen = {})
+    return AssetListBinding(data, picked, query, onChip = {}, onToggle = {}, onOpen = {}, loading = loading)
 }
 
 /**
@@ -47,7 +48,7 @@ internal fun DashboardSample(
     onSearchOpenChange: (Boolean) -> Unit = {},
     onQuery: (String) -> Unit = {},
 ) {
-    val binding = AssetListBinding(list.data, list.picked, list.query, list.onChip, onToggle, onOpen)
+    val binding = AssetListBinding(list.data, list.picked, list.query, list.onChip, onToggle, onOpen, list.loading)
     Column(Modifier.fillMaxSize().background(C.Bg)) {
         DashboardHeader("Test 861", listOf("building 1", "floor 1", "location1"), selected, {}, {}, {})
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -73,6 +74,13 @@ internal fun DashboardSample(
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun DashboardPreview() = ScleraTheme { DashboardSample(sampleAssetList()) }
+
+/** Just after a property is opened: a loader until its data is open. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun DashboardLoadingPreview() = ScleraTheme { DashboardSample(sampleAssetList(loading = true)) }
 
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)

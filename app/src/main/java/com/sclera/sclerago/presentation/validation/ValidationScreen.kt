@@ -245,7 +245,7 @@ private fun AiBadge() {
 @Composable
 private fun TemplateCard(t: ValidationTemplate, onRun: () -> Unit, onChoose: () -> Unit, onChecks: () -> Unit) {
     Column(
-        Modifier.width(272.dp).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(14.dp),
+        Modifier.width(272.dp).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -269,7 +269,7 @@ private fun TemplateCard(t: ValidationTemplate, onRun: () -> Unit, onChoose: () 
 private fun SavedCard(sv: SavedValidation, lastRun: Long?, onRun: () -> Unit, onDelete: () -> Unit) {
     Column(
         Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
-            .border(1.dp, C.Border, r(14)).padding(14.dp),
+            .border(1.dp, C.Border, r(14)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -333,7 +333,7 @@ private fun StatusChip(running: Boolean) {
 private fun JobRow(j: ValJob, onReview: () -> Unit) {
     Column(
         Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
-            .border(1.dp, C.Border, r(14)).clickable(enabled = !j.running, onClick = onReview).padding(14.dp),
+            .border(1.dp, C.Border, r(14)).clickable(enabled = !j.running, onClick = onReview).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -377,7 +377,7 @@ internal fun OptionCard(
     Column(
         modifier.clip(r(12)).background(if (selected) C.YTintBg else C.Bg)
             .border(if (selected) 1.5.dp else 1.dp, if (selected) C.Yellow else C.Border2, r(12))
-            .clickable(onClick = onClick).padding(12.dp),
+            .clickable(onClick = onClick).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -833,7 +833,7 @@ private fun JobReview(j: ValJob, vm: AppViewModel) {
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 24.dp)) {
             item(key = "summary") {
                 Column(
-                    Modifier.padding(12.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(14.dp),
+                    Modifier.padding(12.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Txt("${j.passed} of ${j.results.size} assets pass every rule", 14, 700, maxLines = 2)

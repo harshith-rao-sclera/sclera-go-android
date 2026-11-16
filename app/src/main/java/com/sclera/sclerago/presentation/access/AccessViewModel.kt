@@ -71,6 +71,8 @@ data class AccessListState(
     val peopleTotal: Int = 0,
     val groupsTotal: Int = 0,
     val nowMillis: Long = 0,
+    /** The tab's list is being read from the server and nothing is saved on the device yet: a loader shows instead. */
+    val loading: Boolean = false,
 )
 
 /** People and access: who is in which group, for which properties. */
@@ -85,13 +87,22 @@ class AccessViewModel @Inject constructor(
 
     private fun set(f: AccessState.() -> AccessState) { state = state.f() }
 
+    /** The server read started when the page opened hasn't finished yet (worked or not). */
+    private var refreshing by mutableStateOf(true)
+
     init {
         // When the session ends, close every form and clear the search.
         viewModelScope.launch {
             observeAuthState().collect { if (it is AuthState.SignedOut) state = AccessState() }
         }
         // People and groups are read from the server whenever the page opens; offline the saved copy stays.
-        viewModelScope.launch { online(quietWhenOffline = true) { useCases.refresh() } }
+        viewModelScope.launch {
+            try {
+                online(quietWhenOffline = true) { useCases.refresh() }
+            } finally {
+                refreshing = false
+            }
+        }
     }
 
     private val groupList = useCases.observeGroups().observedIn(viewModelScope)
@@ -148,6 +159,8 @@ class AccessViewModel @Inject constructor(
             peopleTotal = people.size,
             groupsTotal = groups.size,
             nowMillis = now,
+            // Saved people and groups show straight away; only an empty tab waits for the server.
+            loading = refreshing && (if (state.tab == AccessTab.PEOPLE) people.isEmpty() else groups.isEmpty()),
         )
     }
 

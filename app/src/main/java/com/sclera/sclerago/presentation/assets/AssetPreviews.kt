@@ -9,8 +9,6 @@ import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.BuildFormValuesUseCase
-import com.sclera.sclerago.domain.usecase.asset.EvaluateAssetChecksUseCase
-import com.sclera.sclerago.domain.validation.AssetCheckInput
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.main.ReviewItem
 import com.sclera.sclerago.presentation.theme.ScleraTheme
@@ -29,7 +27,7 @@ internal val SamplePhotos = listOf(
 
 /**
  * The details of seed asset [id] as the screen shows them (the Pump from the design by default): the form
- * values, the Validation tab's checks, and any [edits] typed on top.
+ * values and any [edits] typed on top.
  */
 internal fun sampleDetailState(
     id: String = "a2",
@@ -42,25 +40,11 @@ internal fun sampleDetailState(
     val asset = status?.let { seed.copy(st = it) } ?: seed
     val details = if (isNew) null else SAMPLE_DETAILS[id]
     val saved = BuildFormValuesUseCase { 0L }(asset.name, isNew, details, SAMPLE_FIELDS, emptyMap())
-    val base = AssetDetailState(
-        asset = asset, isNew = isNew, code = details?.code, saved = saved, edits = edits, fields = SAMPLE_FIELDS,
+    return AssetDetailState(
+        asset = asset, isNew = isNew, saved = saved, edits = edits, fields = SAMPLE_FIELDS,
         details = details, media = media, newPicks = if (isNew) media else emptyList(),
     )
-    if (isNew) return base
-    val low = base.lowConfidenceKey
-    val input = AssetCheckInput(
-        base.values, asset.loc != null, asset.where, media.size, base.fromCamera, minPhotos = 1,
-        requiredKeys = SAMPLE_FIELDS.filter { it.required }.map { it.key }.toSet(),
-        lowConfidenceKey = low, lowConfidenceLabel = SAMPLE_FIELDS.firstOrNull { it.key == low }?.label.orEmpty(),
-    )
-    return base.copy(checks = EvaluateAssetChecksUseCase()(input))
 }
-
-/** Asset 2 as seeded: no JACS code (one failed check) and a speed read with low confidence (a warning), as in the design. */
-internal fun sampleFailingState() = sampleDetailState()
-
-/** Asset 2 with the JACS code set and the speed reviewed: every check passes. */
-internal fun samplePassingState() = sampleDetailState(edits = mapOf("jacs" to "[JACS code 1]", "speed" to "2900 RPM (checked)"))
 
 internal val SampleReviewItems = listOf(
     ReviewItem("a", "Asset from photo 14:02:31", UiText.Res(com.sclera.sclerago.R.string.review_photo_sub), ready = false, on = true),
@@ -85,23 +69,6 @@ private fun DetailNewPreview() = ScleraTheme { AssetDetailScreen(sampleDetailSta
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun DetailSubmittedPreview() = ScleraTheme { AssetDetailScreen(sampleDetailState(id = "a4"), AssetDetailActions()) }
-
-@Preview(name = "Phone", device = PHONE)
-@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
-@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
-@Composable
-private fun ChecksFailingPreview() = ScleraTheme { ChecksPage(sampleFailingState()) }
-
-@Preview(name = "Phone", device = PHONE)
-@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
-@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
-@Composable
-private fun ChecksPassingPreview() = ScleraTheme { ChecksPage(samplePassingState()) }
-
-@Composable
-private fun ChecksPage(state: AssetDetailState) {
-    AssetChecksPanel(checkNotNull(state.checks), onFix = {}, onValidate = {})
-}
 
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)

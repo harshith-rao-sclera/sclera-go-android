@@ -46,24 +46,6 @@ class AuthStoreTest {
     }
 
     @Test
-    fun save_withMe_roundTripsAndGivesTheOrganisationId() {
-        val me = """{"userId":"u-1","organisationId":"85161001","groupName":"Admins","permissions":["collect"]}"""
-        val session = AuthSession("a@b.com", "sid-1", "token-1", 0L, userInfo = """{"role":"admin"}""", me = me)
-        store.save(session)
-        val loaded = store.load()!!
-        assertEquals(session, loaded)
-        assertEquals("85161001", loaded.organisationId)
-        assertEquals("85161001", loaded.toDomain().organisationId)
-    }
-
-    @Test
-    fun organisationId_isNullWithoutOrWithUnreadableMe() {
-        assertNull(AuthSession("a@b.com", "s", null, 0L).organisationId)
-        assertNull(AuthSession("a@b.com", "s", null, 0L, me = "not json").organisationId)
-        assertNull(AuthSession("a@b.com", "s", null, 0L, me = """{"organisationId":null}""").organisationId)
-    }
-
-    @Test
     fun save_withoutToken_roundTrips() {
         val session = AuthSession("a@b.com", "sid-1", null, 0L)
         store.save(session)
@@ -87,9 +69,9 @@ class AuthStoreTest {
 
     @Test
     fun values_areEncryptedAtRest() {
-        store.save(AuthSession("a@b.com", "sid-secret", "token-secret", 5L, userInfo = """{"name":"Ada"}""", me = """{"organisationId":"org-secret"}"""))
+        store.save(AuthSession("a@b.com", "sid-secret", "token-secret", 5L, userInfo = """{"name":"Ada"}"""))
         val all = prefs.all.values.filterIsInstance<String>().joinToString("|")
-        listOf("a@b.com", "sid-secret", "token-secret", "Ada", "org-secret").forEach { assertFalse("$it is stored in plain text", all.contains(it)) }
+        listOf("a@b.com", "sid-secret", "token-secret", "Ada").forEach { assertFalse("$it is stored in plain text", all.contains(it)) }
         assertTrue(prefs.getString("access_token", "")!!.startsWith("enc1:"))
     }
 

@@ -47,7 +47,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.sclera.sclerago.domain.model.ASSET_TYPES
 import com.sclera.sclerago.domain.model.BUILDING_TYPES
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.COUNTRIES
@@ -55,12 +54,9 @@ import com.sclera.sclerago.domain.model.DATE_DISPLAY
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
-import com.sclera.sclerago.domain.model.JACS_CODES
 import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.OPTION_KINDS
 import com.sclera.sclerago.domain.model.REGIONS
-import com.sclera.sclerago.domain.model.SUB_TYPES
-import com.sclera.sclerago.domain.model.SYSTEM_TYPES
 import com.sclera.sclerago.domain.model.TIME_DISPLAY
 import com.sclera.sclerago.domain.model.ValueRule
 import com.sclera.sclerago.domain.model.findNode
@@ -336,7 +332,7 @@ private fun BuildingCard(building: LocNode?, menu: List<MenuAct>) {
     Box {
         Row(
             Modifier.fillMaxWidth().clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16))
-                .clickable { open = true }.padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
+                .clickable { open = true }.padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -1221,15 +1217,6 @@ private fun KindTile(k: FieldKind, modifier: Modifier, onClick: () -> Unit) {
     }
 }
 
-/** The fixed choices of the classification dropdowns. */
-private fun fixedChoices(key: String): List<String> = when (key) {
-    "sys" -> SYSTEM_TYPES
-    "typ" -> ASSET_TYPES
-    "sub" -> SUB_TYPES
-    "jacs" -> JACS_CODES.map { it.first }.filter { it.isNotEmpty() }
-    else -> emptyList()
-}
-
 /**
  * One field's setup: name, options (dropdowns), default value, tooltip, visible / mandatory, display
  * format (dates, times) and checks. [draft] fields are being added (Submit), the rest edited (Save).
@@ -1298,7 +1285,7 @@ private fun FieldSheet(
                     }
                 }
             }
-            DefaultValueInput(cur, if (ownOptions) cur.options else fixedChoices(f.key)) { cur = cur.copy(defaultValue = it) }
+            DefaultValueInput(cur, cur.options) { cur = cur.copy(defaultValue = it) }
             LabeledInput("Tooltip", cur.tooltip, { cur = cur.copy(tooltip = it) }, "Help shown next to the field", singleLine = false, minLines = 3)
             CfgCard {
                 if (!draft) ToggleRow("Visible", "Shown on the asset form", cur.visible, enabled = !f.locked && !cur.required) { cur = cur.copy(visible = it) }

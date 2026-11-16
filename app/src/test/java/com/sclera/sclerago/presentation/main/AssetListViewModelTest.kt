@@ -1,11 +1,9 @@
 package com.sclera.sclerago.presentation.main
 
-import com.sclera.sclerago.presentation.preview.SAMPLE_PROPERTY_ID
 import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
-import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sclera.sclerago.R
-import com.sclera.sclerago.data.repository.AssetRepositoryImpl
+import com.sclera.sclerago.testutil.InMemoryAssetRepository
 import com.sclera.sclerago.domain.model.EmptyReason
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.LocationFilter
@@ -32,7 +30,8 @@ import org.junit.runner.RunWith
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
 class AssetListViewModelTest {
-    private val repo = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
+    // The offline database holds one property: the sample property "p1".
+    private val repo = InMemoryAssetRepository(SAMPLE_ASSETS.filter { it.propertyId == "p1" })
 
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -41,8 +40,8 @@ class AssetListViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     /** The list view model on the sample property (the app's starts with no property until they load). */
-    private fun vm() = AssetListViewModel(assetUseCases(repo)).apply { setScope(SAMPLE_PROPERTY_ID, LocationFilter.All) }
-    private fun catalogIds() = repo.catalog.value.assetsIn("p1").map { it.id }
+    private fun vm() = AssetListViewModel(assetUseCases(repo))
+    private fun catalogIds() = repo.catalog.value.assets.map { it.id }
     private fun AssetListViewModel.ids(tab: Tab = Tab.ASSETS) = state.value.lists.getValue(tab).items.map { it.id }
 
     @Test
@@ -52,7 +51,7 @@ class AssetListViewModelTest {
         assertTrue(vm.ids(Tab.BT).isNotEmpty())
         assertTrue(vm.state.value.lists.getValue(Tab.BT).items.all { it.src == Source.BT })
         assertTrue(vm.state.value.lists.getValue(Tab.NET).items.all { it.src == Source.WIFI || it.src == Source.AP })
-        vm.setScope("p2", LocationFilter.All)
+        repo.catalog.value = repo.catalog.value.copy(assets = emptyList()) // another property opened, with none of these
         assertTrue(vm.ids().isEmpty())
         assertEquals(EmptyReason.ASSETS_TAB, vm.state.value.lists.getValue(Tab.ASSETS).empty)
     }
@@ -60,9 +59,9 @@ class AssetListViewModelTest {
     @Test
     fun locationFilter_narrowsTheLists() {
         val vm = vm()
-        vm.setScope("p1", LocationFilter.Unmapped)
+        vm.setScope(LocationFilter.Unmapped)
         assertTrue(vm.state.value.lists.getValue(Tab.ASSETS).items.all { it.loc == null })
-        vm.setScope("p1", LocationFilter.Specific(listOf("location2")))
+        vm.setScope(LocationFilter.Specific(listOf("location2")))
         assertTrue(vm.state.value.lists.getValue(Tab.ASSETS).items.all { it.loc == "location2" })
     }
 
@@ -90,7 +89,7 @@ class AssetListViewModelTest {
         val vm = vm()
         vm.setStatusFilter(Tab.ASSETS, Status.DRAFT)
         assertTrue(vm.state.value.lists.getValue(Tab.ASSETS).items.all { it.st == Status.DRAFT })
-        assertEquals(repo.catalog.value.assetsIn("p1").count { it.src == Source.BT }, vm.ids(Tab.BT).size)
+        assertEquals(repo.catalog.value.assets.count { it.src == Source.BT }, vm.ids(Tab.BT).size)
         vm.setStatusFilter(Tab.ASSETS, null)
         assertEquals(catalogIds().toSet(), vm.ids().toSet())
     }
@@ -115,7 +114,7 @@ class AssetListViewModelTest {
     fun selectionOfAssetsThatLeftTheProperty_isDropped() {
         val vm = vm()
         vm.toggle(vm.ids().first())
-        vm.setScope("p2", LocationFilter.All)
+        repo.catalog.value = repo.catalog.value.copy(assets = emptyList()) // another property opened, with none of these
         assertTrue(vm.state.value.picked.isEmpty())
     }
 
@@ -128,11 +127,11 @@ class AssetListViewModelTest {
         vm.toggle(a)
         vm.toggle(b)
         vm.validateSelected()
-        assertEquals(Status.VALIDATED, repo.catalog.value.assetsIn("p1").first { it.id == a }.st)
+        assertEquals(Status.VALIDATED, repo.catalog.value.assets.first { it.id == a }.st)
         assertTrue(vm.state.value.picked.isEmpty())
         vm.toggle(c)
         vm.submitSelected()
-        assertEquals(Status.SUBMITTED, repo.catalog.value.assetsIn("p1").first { it.id == c }.st)
+        assertEquals(Status.SUBMITTED, repo.catalog.value.assets.first { it.id == c }.st)
         assertEquals(listOf(UiText.Plural(R.plurals.assets_validated, 2), UiText.Plural(R.plurals.assets_submitted, 1)), notices)
         // Nothing selected: nothing happens, nothing is said.
         vm.validateSelected()
@@ -169,7 +168,7 @@ class AssetListViewModelTest {
         val target = vm.ids().first()
         vm.toggle(target)
         vm.assignSelected(LocValue("lx", "lx · floor 2"), "Plant room")
-        val moved = repo.catalog.value.assetsIn("p1").first { it.id == target }
+        val moved = repo.catalog.value.assets.first { it.id == target }
         assertEquals("lx", moved.loc)
         assertEquals(listOf<UiText>(UiText.Plural(R.plurals.assets_assigned, 1, listOf(1, "Plant room"))), notices)
         assertTrue(vm.state.value.picked.isEmpty())

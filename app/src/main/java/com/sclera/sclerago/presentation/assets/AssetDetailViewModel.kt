@@ -4,22 +4,42 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FormEntry
+import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.MasterFormat
+import kotlinx.coroutines.Job
+import com.sclera.sclerago.domain.model.UNCLASSIFIED
+import com.sclera.sclerago.domain.model.SpecLookup
+import com.sclera.sclerago.domain.model.SURE_ENOUGH
+import com.sclera.sclerago.domain.model.LookupStatus
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.PhotoKind
+import com.sclera.sclerago.domain.model.missingRequiredFields
+import com.sclera.sclerago.domain.model.photoCounts
+import com.sclera.sclerago.domain.model.photosShort
+import com.sclera.sclerago.domain.model.PhotoRule
+import com.sclera.sclerago.domain.model.PlaceNames
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.usecase.asset.AssetFormUseCases
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
+import com.sclera.sclerago.domain.usecase.asset.CanEditAssetUseCase
 import com.sclera.sclerago.domain.usecase.config.ObserveAssetConfigUseCase
-import com.sclera.sclerago.domain.validation.AssetCheckInput
-import com.sclera.sclerago.domain.validation.AssetChecks
+import com.sclera.sclerago.domain.validation.AssetValidation
+import com.sclera.sclerago.domain.validation.COMMENT_MAX_LENGTH
+import com.sclera.sclerago.domain.validation.CommentProblem
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,7 +47,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -38,8 +62,16 @@ import javax.inject.Inject
 data class AssetDetailState(
     val asset: Asset? = null,
     val isNew: Boolean = false,
-    /** The asset code (null for a new one, which has none yet). */
-    val code: String? = null,
+    /** The names of the building, floor and location the asset is filed under. */
+    val place: PlaceNames = PlaceNames(),
+    /** The asset type catalogue the System details dropdowns offer. */
+    val formats: List<MasterFormat> = emptyList(),
+    /** The property's photo rules, which the Media tab's photo cards follow. */
+    val photoRules: List<PhotoRule> = emptyList(),
+    /** The rows of the Info tab's Asset fields, in the server's order (photo, video and voice memo fields included). */
+    val fieldRows: List<FormEntry> = emptyList(),
+    /** The Documents tab: the file it was read from, the pages its values came from, its model's manuals. */
+    val documents: List<AssetDocument> = emptyList(),
     /** Values as last saved (what the form started from). */
     val saved: Map<String, String> = emptyMap(),
     /** Values typed since, by field key. */
@@ -50,21 +82,40 @@ data class AssetDetailState(
     val media: List<Media> = emptyList(),
     /** Picks made while the asset is new (kept until it is created). */
     val newPicks: List<Media> = emptyList(),
-    /** The Validation tab checks (none for a new asset). */
-    val checks: AssetChecks? = null,
+    /** The asset's validation as the server works it out from the synced runs (null: never validated, or new). */
+    val validation: AssetValidation? = null,
+    /** The asset is being validated again at the server. */
+    val validating: Boolean = false,
+    /** The asset's comments and history, newest first (none for a new asset). */
+    val activity: List<AssetActivity> = emptyList(),
+    /** The comment being typed in the Comments tab, why it can't be posted (if so), and whether it is being posted. */
+    val commentDraft: String = "",
+    val commentError: UiText? = null,
+    val commentPosting: Boolean = false,
     val savedFlash: Boolean = false,
-    /** Fields AI filled in (cleared when the user edits one). */
-    val aiFilled: Set<String> = emptySet(),
+    /** The AI suggestions dialog while it is open (null: closed). */
+    val ai: AiDialogState? = null,
+    /** A spec look-up is running, shown or not (the AI button spins). */
     val aiBusy: Boolean = false,
-    val aiNotice: UiText? = null,
+    /** The signed-in user may change this asset (the server lets only admins change a submitted or validated one). */
+    val canEdit: Boolean = true,
 ) {
     val values: Map<String, String> get() = saved + edits
     fun value(key: String): String = edits[key] ?: saved[key].orEmpty()
     fun dirty(key: String): Boolean = key in edits && edits[key] != saved[key].orEmpty()
     val dirtyCount: Int get() = edits.keys.count { dirty(it) }
 
-    /** A submitted asset is read-only (until a recollect is requested). */
-    val locked: Boolean get() = !isNew && asset?.st == Status.SUBMITTED
+    /** Read-only: submitted or validated, for anyone but an admin (until a recollect is requested). */
+    val locked: Boolean get() = !isNew && !canEdit
+
+    /** The mandatory fields still empty in the form. */
+    val missingRequired: List<FieldCfg> get() = missingRequiredFields(fields, values)
+
+    /** How many more photos of each kind the property's photo rules ask for. */
+    val photosNeeded: Map<PhotoKind, Int> get() = photosShort(photoRules, photoCounts(media))
+
+    /** Submitting would keep the asset as submitted, not an exception: no mandatory field empty and enough photos. */
+    val complete: Boolean get() = missingRequired.isEmpty() && photosNeeded.isEmpty()
     val fromCamera: Boolean get() = asset?.src == Source.CAMERA
 
     /** The field the nameplate reading was unsure about, until its value is changed. */
@@ -76,25 +127,61 @@ data class AssetDetailState(
         }
 }
 
+/** Where the AI suggestions dialog is: loading, asking for the model, searching, showing suggestions, or failed. */
+enum class AiPhase { LOADING, IDENTIFY, SEARCHING, RESULTS, ERROR }
+
+/** One suggested value: ticked to be saved, and its (editable) text. */
+data class AiPick(val on: Boolean, val value: String)
+
+/** The AI suggestions dialog: the manufacturer and model to look up, the look-up and its suggestions by field key. */
+data class AiDialogState(
+    val phase: AiPhase,
+    val make: String = "",
+    val model: String = "",
+    val lookup: SpecLookup? = null,
+    val picks: Map<String, AiPick> = emptyMap(),
+    /** When the shown search started (for its progress). */
+    val startedAt: Long? = null,
+    val error: UiText? = null,
+    val applying: Boolean = false,
+)
+
 /**
- * One asset details screen: the form edits, Save / Submit / Validate, photos, the Validation tab checks
- * and the AI autofill. Creating a new asset and deleting one change what is on screen, so the host of
+ * One asset details screen: the form edits, Save / Submit / Validate, photos, the asset's validation (and
+ * validating it again at the server) and the AI suggestions. Creating a new asset and deleting one change what is on screen, so the host of
  * the screen does those (with the values from [AssetDetailState]).
  */
 @HiltViewModel
 class AssetDetailViewModel @Inject constructor(
     private val useCases: AssetUseCases,
     observeConfig: ObserveAssetConfigUseCase,
+    private val formData: AssetFormUseCases,
+    private val canEditAsset: CanEditAssetUseCase,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
+
+    /** What the open asset's tabs read from the property's data besides the asset itself ([fields] null: use the standard ones). */
+    private data class FromDb(
+        val activity: List<AssetActivity> = emptyList(),
+        val fields: List<FieldCfg>? = null,
+        val formats: List<MasterFormat> = emptyList(),
+        val tree: List<LocNode> = emptyList(),
+        val validation: AssetValidation? = null,
+        val photoRules: List<PhotoRule> = emptyList(),
+        val rows: List<FormEntry>? = null,
+        val documents: List<AssetDocument> = emptyList(),
+    )
 
     private data class Form(
         val edits: Map<String, String> = emptyMap(),
         val savedFlash: Boolean = false,
-        val aiFilled: Set<String> = emptySet(),
-        val aiBusy: Boolean = false,
-        val aiNotice: UiText? = null,
+        val ai: AiDialogState? = null,
+        val aiOpen: Boolean = false,
         val newPicks: List<Media> = emptyList(),
+        val commentDraft: String = "",
+        val commentProblem: CommentProblem? = null,
+        val commentPosting: Boolean = false,
+        val validating: Boolean = false,
     )
 
     private val target = MutableStateFlow<Target?>(null)
@@ -104,84 +191,98 @@ class AssetDetailViewModel @Inject constructor(
     /** Messages to flash after saving, submitting, validating or adding media. */
     val notices: SharedFlow<UiText> = message.asSharedFlow()
 
+    /**
+     * The open asset's comments and history and its fields (the standard ones plus its own), with the type catalogue and
+     * the place tree; a new asset has no activity or fields of its own yet.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val fromDb: Flow<FromDb> = target
+        .map { t -> t?.takeIf { !it.isNew }?.asset?.id }
+        .distinctUntilChanged()
+        .flatMapLatest { id ->
+            val log = if (id == null) flowOf(emptyList()) else useCases.activity(id)
+            val fields: Flow<List<FieldCfg>?> = if (id == null) flowOf(null) else formData.fields(id)
+            val validation: Flow<AssetValidation?> = if (id == null) flowOf(null) else formData.validation(id)
+            val docs: Flow<List<AssetDocument>> = if (id == null) flowOf(emptyList()) else formData.documents(id)
+            val checksAndDocs = combine(validation, docs) { v, d -> v to d }
+            val property = combine(formData.formats(), formData.placeTree(), formData.photoRules()) { m, tree, rules -> Triple(m, tree, rules) }
+            val rows: Flow<List<FormEntry>?> = if (id == null) flowOf(null) else formData.fieldRows(id)
+            combine(log, fields, checksAndDocs, property, rows) { a, f, (v, d), (m, tree, rules), r -> FromDb(a, f, m, tree, v, rules, r, d) }
+        }
+
     val state: StateFlow<AssetDetailState> =
-        combine(target, form, useCases.observe(), observeConfig()) { t, f, catalog, config ->
+        combine(target, form, useCases.observe(), observeConfig(), fromDb) { t, f, catalog, config, db ->
             if (t == null) return@combine AssetDetailState()
             val asset = if (t.isNew) t.asset
             else catalog.assets.firstOrNull { it.id == t.asset.id } ?: return@combine AssetDetailState()
             val details = if (t.isNew) null else useCases.details(asset.id)
-            val saved = useCases.formValues(asset.name, t.isNew, details, config.fields, t.prefill)
-            val base = AssetDetailState(
+            val fields = db.fields ?: config.fields
+            val saved = useCases.formValues(asset.name, t.isNew, details, fields, t.prefill)
+            AssetDetailState(
                 asset = asset, isNew = t.isNew,
-                code = if (t.isNew) null else details?.code ?: "SCL-%06d".format((asset.id.hashCode() and 0x7fffffff) % 1_000_000),
-                saved = saved, edits = f.edits, fields = config.fields, details = details,
+                place = formData.placeNames(db.tree, asset.buildingId, asset.floorId, asset.locationId),
+                formats = db.formats, photoRules = db.photoRules,
+                fieldRows = db.rows ?: fields.filter { it.visible }.map { FormEntry.Input(it.key) },
+                documents = if (t.isNew) emptyList() else db.documents,
+                saved = saved, edits = f.edits, fields = fields, details = details,
                 media = asset.media + f.newPicks, newPicks = f.newPicks, savedFlash = f.savedFlash,
-                aiFilled = f.aiFilled, aiBusy = f.aiBusy, aiNotice = f.aiNotice,
+                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase == AiPhase.SEARCHING,
+                activity = if (t.isNew) emptyList() else db.activity,
+                commentDraft = f.commentDraft, commentError = f.commentProblem?.problemText(), commentPosting = f.commentPosting,
+                validation = if (t.isNew) null else db.validation, validating = f.validating,
+                canEdit = t.isNew || canEditAsset(asset.st),
             )
-            if (t.isNew) base
-            else base.copy(checks = useCases.evaluateChecks(checkInput(base, config.requiredFields.map { it.first }, config.minPhotos)))
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetDetailState())
-
-    private fun checkInput(s: AssetDetailState, requiredKeys: List<String>, minPhotos: Int): AssetCheckInput {
-        val asset = checkNotNull(s.asset)
-        val lowKey = s.lowConfidenceKey
-        return AssetCheckInput(
-            values = s.values, hasLocation = asset.loc != null, locationLabel = asset.where,
-            photoCount = s.media.size, fromCamera = s.fromCamera, minPhotos = minPhotos,
-            requiredKeys = requiredKeys.toSet(), lowConfidenceKey = lowKey,
-            lowConfidenceLabel = s.fields.firstOrNull { it.key == lowKey }?.label ?: lowKey.orEmpty(),
-        )
-    }
 
     /** Shows [asset]; does nothing when that asset is already open, so edits survive recomposition. */
     fun open(asset: Asset, isNew: Boolean, prefill: Map<String, String> = emptyMap()) {
         val current = target.value
         if (current != null && current.asset.id == asset.id && current.isNew == isNew) return
+        aiJob?.cancel()
         form.value = Form()
         target.value = Target(asset, isNew, prefill)
     }
 
     fun close() {
+        aiJob?.cancel()
         target.value = null
         form.value = Form()
     }
 
     fun edit(key: String, value: String) {
-        if (state.value.locked) return
-        form.update { it.copy(edits = it.edits + (key to value), savedFlash = false, aiFilled = it.aiFilled - key) }
+        val s = state.value
+        if (s.locked) return
+        // A new system or asset type also resets the types below it that the catalogue doesn't file under it.
+        val changes = if (key in CLASS_KEYS) formData.reclassify(s.formats, s.values, key, value) else mapOf(key to value)
+        form.update { it.copy(edits = it.edits + changes, savedFlash = false) }
     }
 
     fun discardEdits() = form.update { it.copy(edits = emptyMap()) }
 
-    /** Keeps the edits and (back) moves the asset to Draft. */
+    /** Keeps the edits; the asset keeps its status, as the server's edit does. */
     fun save() {
         val s = state.value
         val id = s.asset?.id ?: return
         if (s.dirtyCount == 0) return
         write {
-            useCases.saveDetails(id, s.values, Status.DRAFT)
+            useCases.saveDetails(id, s.values)
             clearEditsOnceRefreshed(s)
             form.update { it.copy(savedFlash = true) }
-            message.emit(UiText.Res(R.string.asset_saved_draft))
+            message.emit(UiText.Res(R.string.asset_changes_saved))
         }
     }
 
-    /** Keeps the edits and locks the asset as Submitted. */
+    /**
+     * Keeps the edits and submits the asset, as the server's submit: with a mandatory field empty or too few photos it
+     * becomes an exception (the screen asks first).
+     */
     fun submit() {
         val s = state.value
         val id = s.asset?.id ?: return
         write {
-            useCases.saveDetails(id, s.values, Status.SUBMITTED)
+            useCases.saveDetails(id, s.values, Status.SUBMITTED, s.photoRules)
             clearEditsOnceRefreshed(s)
-            message.emit(UiText.Res(R.string.asset_submitted_notice))
-        }
-    }
-
-    fun validate() {
-        val id = state.value.asset?.id ?: return
-        write {
-            useCases.setStatus(listOf(id), Status.VALIDATED)
-            message.emit(UiText.Res(R.string.asset_validated_notice))
+            message.emit(UiText.Res(if (s.complete) R.string.asset_submitted_notice else R.string.asset_exception_notice))
         }
     }
 
@@ -202,49 +303,235 @@ class AssetDetailViewModel @Inject constructor(
         }
     }
 
+    /** The kind of photo the next photos added are (a Media tab card's Add); null: other photos. */
+    private var photoKind: PhotoKind? = null
+
+    fun choosePhotoKind(kind: PhotoKind?) {
+        photoKind = kind
+    }
+
     /** Photos, videos or documents added to the asset (kept in the form until a new asset is created). */
-    fun attach(media: List<Media>) {
+    fun attach(picked: List<Media>) {
         val s = state.value
         val asset = s.asset ?: return
-        if (media.isEmpty()) return
+        if (picked.isEmpty()) return
+        // Photos added from a photo card are of that card's kind; videos and files never are.
+        val kind = photoKind.also { photoKind = null }
+        val media = picked.map { if (!it.video && !it.isDoc && !it.audio) it.copy(category = kind) else it }
         if (s.isNew) form.update { it.copy(newPicks = it.newPicks + media) }
         else write {
             if (useCases.attachMedia(asset.id, media)) message.emit(UiText.Plural(R.plurals.items_added_to_asset, media.size))
         }
     }
 
-    /** Fills the empty fields with suggestions found online; the result (or why it could not be done) is shown for a moment. */
-    fun autofill() {
+    /** The running look-up of the open asset (it keeps going when the dialog is closed). */
+    private var aiJob: Job? = null
+
+    private fun setAi(f: (AiDialogState) -> AiDialogState) = form.update { it.copy(ai = it.ai?.let(f)) }
+
+    /**
+     * Opens the AI suggestions dialog as the web does: a look-up still running is followed, one that finished with values
+     * for still-empty fields is shown, else a new one starts when the model is known, else it asks for the model.
+     */
+    fun openAi() {
         val s = state.value
         val asset = s.asset ?: return
-        if (form.value.aiBusy || s.locked) return
-        form.update { it.copy(aiBusy = true, aiNotice = null) }
-        viewModelScope.launch {
-            val fills = try {
-                useCases.autofill(asset, s.values)
+        if (s.isNew || s.locked) return
+        form.update { it.copy(aiOpen = true) }
+        if (form.value.ai?.phase == AiPhase.SEARCHING || form.value.ai?.phase == AiPhase.RESULTS) return
+        form.update { it.copy(ai = AiDialogState(AiPhase.LOADING, s.value("make"), s.value("model"))) }
+        aiJob?.cancel()
+        aiJob = viewModelScope.launch {
+            try {
+                val latest = formData.lookups.latest(asset.id)
+                latest?.typed?.let { t -> setAi { it.copy(make = t["make"] ?: it.make, model = t["model"] ?: it.model) } }
+                when {
+                    latest != null && latest.status.waiting -> follow(asset.id, latest)
+                    latest != null && latest.status == LookupStatus.COMPLETED && fillable(latest).isNotEmpty() -> show(latest)
+                    s.value("model").isNotBlank() -> runLookup()
+                    else -> setAi { it.copy(phase = AiPhase.IDENTIFY) }
+                }
             } catch (e: OnlineException) {
-                form.update { it.copy(aiBusy = false, aiNotice = e.error.autofillText()) }
-                delay(NOTICE_MS)
-                form.update { it.copy(aiNotice = null) }
-                return@launch
+                setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
             }
-            form.update {
-                it.copy(
-                    edits = it.edits + fills, aiFilled = it.aiFilled + fills.keys, savedFlash = false, aiBusy = false,
-                    aiNotice = if (fills.isEmpty()) UiText.Res(R.string.detail_ai_nothing) else UiText.Plural(R.plurals.ai_filled, fills.size),
-                )
+        }
+    }
+
+    /** Closes the dialog; a look-up still running carries on and says when it is done. */
+    fun closeAi() = form.update { it.copy(aiOpen = false) }
+
+    fun editAiIdentity(make: String, model: String) = setAi { it.copy(make = make, model = model) }
+
+    /** Starts (again) a look-up with the manufacturer and model typed in the dialog. */
+    fun lookUp() {
+        aiJob?.cancel()
+        aiJob = viewModelScope.launch { runLookup() }
+    }
+
+    /** Back to typing the manufacturer and model. */
+    fun changeAiModel() = setAi { it.copy(phase = AiPhase.IDENTIFY, error = null) }
+
+    fun toggleAiPick(key: String) = setAi { d -> d.copy(picks = d.picks + (key to (d.picks[key] ?: return@setAi d).let { it.copy(on = !it.on) })) }
+
+    /** Editing a suggested value ticks it. */
+    fun editAiPick(key: String, value: String) = setAi { it.copy(picks = it.picks + (key to AiPick(true, value))) }
+
+    /** Saves the ticked suggestions (and the manufacturer / model typed) to the asset, as the web's Apply. */
+    fun applyAi() {
+        val s = state.value
+        val asset = s.asset ?: return
+        val d = form.value.ai ?: return
+        val update = typedIdentity(d) + d.picks.filterValues { it.on && it.value.isNotBlank() }.mapValues { it.value.value.trim() }
+        if (update.isEmpty() || d.applying) return
+        setAi { it.copy(applying = true) }
+        write {
+            try {
+                useCases.saveDetails(asset.id, s.saved + update)
+                form.update { it.copy(edits = it.edits - update.keys, ai = null, aiOpen = false) }
+                message.emit(UiText.Plural(R.plurals.ai_filled_on, update.size, listOf(update.size, s.value("name").ifBlank { asset.name })))
+            } finally {
+                setAi { it.copy(applying = false) }
             }
-            delay(NOTICE_MS)
-            form.update { it.copy(aiNotice = null) }
+        }
+    }
+
+    /** The manufacturer and model typed in the dialog that differ from the saved ones (sent with the look-up, saved on Apply). */
+    private fun typedIdentity(d: AiDialogState): Map<String, String> {
+        val s = state.value
+        return buildMap {
+            d.make.trim().takeIf { it.isNotEmpty() && it != s.value("make") }?.let { put("make", it) }
+            d.model.trim().takeIf { it.isNotEmpty() && it != s.value("model") }?.let { put("model", it) }
+        }
+    }
+
+    private suspend fun runLookup() {
+        val asset = state.value.asset ?: return
+        val d = form.value.ai ?: return
+        setAi { it.copy(phase = AiPhase.SEARCHING, error = null, startedAt = System.currentTimeMillis()) }
+        try {
+            follow(asset.id, formData.lookups.start(asset.id, typedIdentity(d)))
+        } catch (e: OnlineException) {
+            // The server refuses a look-up without a model (422): ask for it.
+            if (e.error == OnlineError.Invalid) setAi { it.copy(phase = AiPhase.IDENTIFY, error = UiText.Res(R.string.ai_need_model)) }
+            else setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
+        }
+    }
+
+    private suspend fun follow(assetId: String, lookup: SpecLookup) {
+        setAi { it.copy(phase = AiPhase.SEARCHING, startedAt = it.startedAt ?: lookup.createdAt ?: System.currentTimeMillis()) }
+        val done = try {
+            formData.lookups.follow(assetId, lookup)
+        } catch (e: OnlineException) {
+            setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
+            return
+        }
+        show(done)
+        // Closed meanwhile: say how it went, as the web's toast does.
+        if (!form.value.aiOpen) message.emit(doneText(done, state.value.value("name").ifBlank { state.value.asset?.name.orEmpty() }))
+    }
+
+    private suspend fun show(lookup: SpecLookup) {
+        if (lookup.status == LookupStatus.FAILED) {
+            setAi { it.copy(phase = AiPhase.ERROR, error = lookup.statusDetail?.let { d -> UiText.Raw(d) } ?: UiText.Res(R.string.ai_failed)) }
+            return
+        }
+        val picks = fillable(lookup).mapValues { (k, v) -> AiPick((lookup.confidence[k] ?: 1.0) >= SURE_ENOUGH, v) }
+        setAi { it.copy(phase = AiPhase.RESULTS, lookup = lookup, picks = picks) }
+        if (!lookup.seen && form.value.aiOpen) {
+            try {
+                formData.lookups.seen(lookup.id)
+            } catch (_: OnlineException) {
+                // Only tidies the asset's "ready" mark at the server.
+            }
+        }
+    }
+
+    /** The suggestions for fields that are still empty (the web offers nothing else). */
+    private fun fillable(lookup: SpecLookup): Map<String, String> =
+        lookup.values.filterKeys { k -> state.value.value(k).let { it.isBlank() || (k in CLASS_KEYS && it == UNCLASSIFIED) } }
+
+    private fun doneText(lookup: SpecLookup, name: String): UiText {
+        val n = fillable(lookup).size
+        return when {
+            lookup.status == LookupStatus.FAILED -> UiText.Res(R.string.ai_done_failed, listOf(name, lookup.statusDetail.orEmpty()))
+            n > 0 -> UiText.Plural(R.plurals.ai_done_found, n, listOf(name, n))
+            else -> UiText.Res(R.string.ai_done_nothing, listOf(name, lookup.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.ai_nothing_new)))
         }
     }
 
     /** A new asset, or one not synced yet, is not known to the server: it has to be synced before it can be looked up. */
-    private fun OnlineError.autofillText(): UiText =
+    private fun OnlineError.aiText(): UiText =
         if (this == OnlineError.NotFound) UiText.Res(R.string.detail_ai_sync_first) else toUiText()
 
+    /**
+     * Validates the asset again at the server ([fromStart]: every step, else from its first step to look at), as the web's
+     * Revalidate does, then says how it went once the results have synced (or that they will show when they have).
+     */
+    fun revalidate(fromStart: Boolean = false) {
+        val s = state.value
+        val id = s.asset?.id ?: return
+        if (s.isNew || form.value.validating) return
+        val before = s.validation
+        form.update { it.copy(validating = true) }
+        viewModelScope.launch {
+            try {
+                formData.revalidate(id, fromStart)
+                // The new result is read from the phone's data once the sync has brought it.
+                val after = withTimeoutOrNull(REFRESH_MS * SYNC_WAITS) { state.first { it.validation != null && it.validation != before }.validation }
+                message.emit(after?.let(::validatedText) ?: UiText.Res(R.string.val_done_sync))
+            } catch (e: OnlineException) {
+                message.emit(e.error.toUiText())
+            } finally {
+                form.update { it.copy(validating = false) }
+            }
+        }
+    }
+
+    /** The web's message after validating: where the first problem is, or that every step passed. */
+    private fun validatedText(v: AssetValidation): UiText {
+        val first = v.firstProblem ?: return UiText.Res(R.string.val_done_passed)
+        val step = v.steps[first - 1]
+        return UiText.Res(R.string.val_done_problem, listOf(UiText.Res(outcomeRes(step.outcome)), first, stepNameText(step.rule)))
+    }
+
+    /** Takes a web page off the asset (after the confirmation), as the web's remove on a document does. */
+    fun removeWebPage(documentId: String) = write {
+        formData.removeWebPage(documentId)
+        message.emit(UiText.Res(R.string.doc_removed))
+    }
+
+    fun editComment(text: String) = form.update { it.copy(commentDraft = text, commentProblem = null) }
+
+    /** Posts the typed comment: the box empties once it is kept, or says what is wrong with it. */
+    fun postComment() {
+        val s = state.value
+        val id = s.asset?.id ?: return
+        val draft = form.value.commentDraft
+        if (s.isNew || form.value.commentPosting) return
+        form.update { it.copy(commentPosting = true) }
+        viewModelScope.launch {
+            try {
+                val problem = useCases.addComment(id, draft)
+                form.update { it.copy(commentDraft = if (problem == null) "" else it.commentDraft, commentProblem = problem) }
+                if (problem == null) message.emit(UiText.Res(R.string.detail_comment_added))
+            } catch (e: DataException) {
+                message.emit(e.error.toUiText())
+            } finally {
+                form.update { it.copy(commentPosting = false) }
+            }
+        }
+    }
+
+    private fun CommentProblem.problemText(): UiText = when (this) {
+        CommentProblem.EMPTY -> UiText.Res(R.string.detail_comment_empty)
+        CommentProblem.TOO_LONG -> UiText.Res(R.string.detail_comment_too_long, listOf(COMMENT_MAX_LENGTH))
+    }
+
     private companion object {
-        const val NOTICE_MS = 2600L
         const val REFRESH_MS = 1000L
+        val CLASS_KEYS = setOf("sys", "typ", "sub")
+
+        /** How many [REFRESH_MS] to wait for a new validation to sync before saying it will show later. */
+        const val SYNC_WAITS = 15L
     }
 }

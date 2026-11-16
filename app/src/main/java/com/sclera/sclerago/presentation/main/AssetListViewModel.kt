@@ -47,6 +47,8 @@ data class AssetListState(
     val query: String = "",
     val searchOpen: Boolean = false,
     val confirmDelete: Boolean = false,
+    /** The property's data is still being opened, so the assets aren't known yet: the lists show a loader. */
+    val loading: Boolean = false,
 ) {
     val selecting: Boolean get() = picked.isNotEmpty()
 }
@@ -77,8 +79,11 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
         val lists = Tab.entries.associateWith { tab ->
             useCases.buildList(assets, AssetListQuery(tab.sources, sc.location, u.query, u.statusFilter[tab]))
         }
-        AssetListState(lists, u.picked.filterTo(HashSet()) { id -> assets.any { it.id == id } }, u.query, u.searchOpen, u.confirmDelete)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState())
+        AssetListState(
+            lists, u.picked.filterTo(HashSet()) { id -> assets.any { it.id == id } }, u.query, u.searchOpen, u.confirmDelete,
+            loading = !catalog.loaded,
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState(loading = true))
 
     fun setScope(location: LocationFilter) {
         scope.value = AssetListScope(location)

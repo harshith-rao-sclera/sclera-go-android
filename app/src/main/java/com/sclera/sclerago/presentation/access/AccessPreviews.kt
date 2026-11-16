@@ -62,6 +62,20 @@ private fun PeoplePreview() = Page(SamplePeopleList)
 @Composable
 private fun GroupsPreview() = Page(SampleGroupsList)
 
+/** First open with nothing saved: a loader (and no counts) until the server answers. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun PeopleLoadingPreview() = Page(AccessListState(loading = true))
+
+/** The server answered with no groups. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun GroupsEmptyPreview() = Page(AccessListState(tab = AccessTab.GROUPS))
+
 /** Two groups ticked for deleting: the dock (× · 2 selected · Select all 3 · Delete) replaces the buttons. */
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)

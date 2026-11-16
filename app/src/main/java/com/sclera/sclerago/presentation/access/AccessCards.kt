@@ -91,7 +91,7 @@ private fun RowCard(
             .combinedClickable(
                 role = Role.Button, onClick = onClick,
                 onLongClick = onLongClick?.let { { haptics.performHapticFeedback(HapticFeedbackType.LongPress); it() } },
-            ).padding(horizontal = 12.dp, vertical = 10.dp),
+            ).padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) { content() }

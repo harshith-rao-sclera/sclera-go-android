@@ -21,6 +21,9 @@ class PermissionGuard @Inject constructor(private val access: CurrentAccessRepos
         AccessState.Loading, is AccessState.Failed -> true
     }
 
+    /** The user is known to be in the Admins group (false until the access has been fetched). */
+    fun isAdmin(): Boolean = (access.state.value as? AccessState.Loaded)?.access?.isAdmin == true
+
     /** For changes to the offline data. Throws [DataException] ([DataError.FORBIDDEN]). */
     fun requireOffline(permission: Permission) {
         if (!allows(permission)) throw DataException(DataError.FORBIDDEN)

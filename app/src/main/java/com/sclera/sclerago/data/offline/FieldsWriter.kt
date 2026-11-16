@@ -56,7 +56,7 @@ class FieldsWriter(
     }
 
     private fun AdcDatabase.hasAnswers(key: String): Boolean =
-        hasTable("asset_values") && query(FIELD_ANSWERS.replace("%LIVE%", notRemoved("assets", "a")), listOf(likeContains("\"$key\":")))
+        hasTable("asset_values") && query(withAnswers(FIELD_ANSWERS).replace("%LIVE%", notRemoved("assets", "a")), listOf(likeContains("\"$key\":")))
             .any { DbJson.stringMap(it.string("v"))[key].orEmpty().isNotBlank() }
 
     private fun AdcDatabase.insert(f: FieldCfg, position: Int, now: String) {

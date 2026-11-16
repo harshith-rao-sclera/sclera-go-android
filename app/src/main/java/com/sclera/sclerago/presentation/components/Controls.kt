@@ -5,12 +5,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -35,11 +38,24 @@ internal fun PageBar(title: String, sub: String?, onBack: () -> Unit, property: 
     }
 }
 
+/** A list's first load: spinner over [text] (e.g. "Loading properties…"), read out as one line. */
+@Composable
+internal fun ListLoader(text: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier.fillMaxWidth().padding(top = 40.dp).semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CircularProgressIndicator(Modifier.size(28.dp), color = C.Yellow, strokeWidth = 2.5.dp)
+        Txt(text, 13, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
+    }
+}
+
 @Composable
 internal fun EmptyNote(text: String) {
     Txt(
         text, 12, 400, C.Muted,
-        Modifier.padding(horizontal = 12.dp).fillMaxWidth().dashedBorder(C.Border2, 1.dp, 12.dp).padding(16.dp),
+        Modifier.padding(horizontal = 12.dp).fillMaxWidth().dashedBorder(C.Border2, 1.dp, 12.dp).padding(12.dp),
         maxLines = 3,
     )
 }

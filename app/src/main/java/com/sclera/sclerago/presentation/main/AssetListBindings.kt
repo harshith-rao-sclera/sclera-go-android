@@ -24,5 +24,6 @@ fun rememberAssetListBinding(app: AppViewModel, tab: Tab, list: AssetListViewMod
         onChip = { list.setStatusFilter(tab, it.status) },
         onToggle = list::toggle,
         onOpen = { id -> if (s.selecting) list.toggle(id) else app.openAsset(id) },
+        loading = s.loading,
     )
 }

@@ -1,8 +1,8 @@
 package com.sclera.sclerago.domain.usecase
 
 import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
-import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
-import com.sclera.sclerago.data.repository.AssetRepositoryImpl
+import com.sclera.sclerago.domain.model.AssetCatalog
+import com.sclera.sclerago.testutil.FakeCatalogRepository
 import com.sclera.sclerago.testutil.FakePropertyRepository
 import com.sclera.sclerago.testutil.SAMPLE_PROPERTIES
 import com.sclera.sclerago.domain.model.Property
@@ -21,13 +21,13 @@ import org.junit.Test
 
 class PropertyListUseCasesTest {
     private val properties = FakePropertyRepository(SAMPLE_PROPERTIES)
-    private val assets = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
+    private val assets = FakeCatalogRepository(AssetCatalog(SAMPLE_ASSETS))
 
     @Test
     fun summaries_pairEveryPropertyWithItsAssetCount() = runTest {
         val summaries = ObservePropertySummariesUseCase(properties, assets)().first()
         assertEquals(properties.properties.value, summaries.map { it.property })
-        summaries.forEach { assertEquals(assets.catalog.value.countIn(it.property.id), it.assets) }
+        summaries.forEach { s -> assertEquals(SAMPLE_ASSETS.count { it.propertyId == s.property.id }, s.assets) }
         assertTrue("the seeded current property has assets", summaries.first { it.property.id == "p1" }.assets > 0)
     }
 

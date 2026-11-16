@@ -53,6 +53,9 @@ class LocalAssetFileStore @Inject constructor(@ApplicationContext private val co
         media.filter { it.owned }.forEach { m -> runCatching { Uri.parse(m.uri).takeIf(::ownFile)?.path?.let { File(it).delete() } } }
     }
 
+    override fun keyFor(id: String): String? =
+        runCatching { dir.listFiles { f -> f.isFile && f.name.startsWith(safe(id) + ".") }?.firstOrNull()?.name }.getOrNull()
+
     override fun uriFor(objectPath: String): String {
         val file = localKey(objectPath)?.let { File(dir, safe(it)) }?.takeIf { it.isFile }
         return file?.let { Uri.fromFile(it).toString() } ?: objectPath

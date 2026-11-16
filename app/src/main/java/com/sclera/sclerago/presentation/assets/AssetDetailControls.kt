@@ -10,17 +10,17 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -31,10 +31,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -64,7 +66,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 @Composable
 fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
     Row(
-        modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border2, r(14)).padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border2, r(14)).padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         content = content,
@@ -75,7 +77,7 @@ fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
 @Composable
 fun SubmittedCard(onRecollect: () -> Unit, modifier: Modifier) {
     Column(
-        modifier.fillMaxWidth().clip(r(14)).background(Status.SUBMITTED.chipBg).border(1.dp, Status.SUBMITTED.chipBd, r(14)).padding(14.dp),
+        modifier.fillMaxWidth().clip(r(14)).background(Status.SUBMITTED.chipBg).border(1.dp, Status.SUBMITTED.chipBd, r(14)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -92,55 +94,68 @@ fun SubmittedCard(onRecollect: () -> Unit, modifier: Modifier) {
 }
 
 /** The asset status, how it was onboarded and when it was last changed (when that is known). */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StatusLine(asset: Asset, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
-    FlowRow(
+    // One line: the status, how it was added and when it was updated; the last one shortens before anything wraps.
+    Row(
         modifier.testTag(DetailTags.STATUS_LINE),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         val st = asset.st
         Box(
-            Modifier.clip(Capsule).background(st.chipBg).border(1.dp, st.chipBd, Capsule).padding(horizontal = 10.dp, vertical = 4.dp),
-        ) { Txt(stringResource(st.labelRes), 11, 700, st.chipFg) }
+            Modifier.clip(Capsule).background(st.chipBg).border(1.dp, st.chipBd, Capsule).padding(horizontal = 8.dp, vertical = 4.dp),
+        ) { Txt(stringResource(st.labelRes), 10, 700, st.chipFg) }
         InfoChip(stringResource(asset.src.viaRes))
-        asset.updatedAt?.let { InfoChip(stringResource(R.string.detail_updated, formatDayAndTime(it, locale))) }
+        asset.updatedAt?.let { InfoChip(stringResource(R.string.detail_updated, formatDayAndTime(it, locale)), Modifier.weight(1f, fill = false)) }
     }
 }
 
 @Composable
-private fun InfoChip(text: String) {
-    Box(Modifier.clip(Capsule).background(C.Raised).padding(horizontal = 10.dp, vertical = 4.dp)) { Txt(text, 11, 600, C.Soft) }
+private fun InfoChip(text: String, modifier: Modifier = Modifier) {
+    Box(modifier.clip(Capsule).background(C.Raised).padding(horizontal = 8.dp, vertical = 4.dp)) { Txt(text, 10, 600, C.Soft) }
 }
 
-/** An Info / Validation tab; [fails] is the failed-check badge (null = none shown, 0 = a tick). */
+/**
+ * One tab of the asset details: its icon above its name, with a small badge on the icon. [fails] is the Validation
+ * tab's failed-check badge (null = none shown, 0 = a tick); [count] how many items the tab lists (shown when above 0).
+ */
 @Composable
-fun DetailTab(label: String, icon: Ico, selected: Boolean, fails: Int?, modifier: Modifier, onClick: () -> Unit) {
+fun DetailTab(label: String, icon: Ico, selected: Boolean, fails: Int?, modifier: Modifier, count: Int? = null, onClick: () -> Unit) {
     val fg = if (selected) C.Yellow else C.Muted
-    Box(modifier.fillMaxHeight().clickable(onClick = onClick)) {
-        Row(
+    Box(modifier.fillMaxHeight().selectable(selected, role = Role.Tab, onClick = onClick).padding(horizontal = 2.dp)) {
+        Column(
             Modifier.align(Alignment.Center),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            LineIcon(icon, 15.dp, fg, 2.4f)
-            Txt(label, 14, if (selected) 700 else 500, fg)
-            when {
-                fails == null -> {}
-                fails > 0 -> Box(
-                    Modifier.heightIn(min = 18.dp).widthIn(min = 18.dp).background(C.Red, Capsule).padding(horizontal = 5.dp),
+            Box {
+                Box(
+                    Modifier.size(26.dp).background(if (selected) C.YTintBg else Color.Transparent, CircleShape),
                     contentAlignment = Alignment.Center,
-                ) { Txt(fails.toString(), 10, 800, C.OnYellow) }
-                else -> Box(Modifier.size(18.dp).background(C.Green, CircleShape), contentAlignment = Alignment.Center) {
-                    LineIcon(Icons.Check, 11.dp, C.OnYellow, 3.6f)
+                ) { LineIcon(icon, 16.dp, fg, 2.4f) }
+                val badge = Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-3).dp).heightIn(min = 15.dp).widthIn(min = 15.dp)
+                when {
+                    // A plain count (documents, media, comments): only when there is something to count.
+                    fails == null -> if (count != null && count > 0) {
+                        Box(badge.background(C.Btn, Capsule).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
+                            Txt(count.toString(), 9, 700, fg)
+                        }
+                    }
+                    fails > 0 -> Box(badge.background(C.Red, Capsule).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
+                        Txt(fails.toString(), 9, 800, C.OnYellow)
+                    }
+                    else -> Box(badge.background(C.Green, CircleShape), contentAlignment = Alignment.Center) {
+                        LineIcon(Icons.Check, 9.dp, C.OnYellow, 3.6f)
+                    }
                 }
             }
+            Txt(label, 11, if (selected) 700 else 500, fg, maxLines = 1)
         }
         if (selected) {
             Box(
-                Modifier.align(Alignment.BottomCenter).padding(horizontal = 24.dp).fillMaxWidth().height(3.dp)
+                Modifier.align(Alignment.BottomCenter).padding(horizontal = 8.dp).fillMaxWidth().height(3.dp)
                     .background(C.Yellow, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)),
             )
         }

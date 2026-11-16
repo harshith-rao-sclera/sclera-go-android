@@ -14,7 +14,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sclera.sclerago.R
 import com.sclera.sclerago.data.local.AndroidNetworkMonitor
 import com.sclera.sclerago.data.local.AuthStore
-import com.sclera.sclerago.data.remote.AdcApi
 import com.sclera.sclerago.data.remote.AuthApi
 import com.sclera.sclerago.data.remote.AuthConfigSso
 import com.sclera.sclerago.testutil.testCipher
@@ -42,7 +41,7 @@ class LoginScreenTest {
 
     /** What Hilt builds in the app (see di/AppModule); the test host activity isn't a Hilt entry point. */
     private fun loginViewModel(): LoginViewModel {
-        val repository = AuthRepositoryImpl(AuthStore(context, testCipher()), AuthApi(AuthApi.service()), AdcApi(AdcApi.service()))
+        val repository = AuthRepositoryImpl(AuthStore(context, testCipher()), AuthApi(AuthApi.service()))
             .also { it.restore() }
         return LoginViewModel(
             CompleteLoginUseCase(repository),

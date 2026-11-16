@@ -14,7 +14,10 @@ data class AssetFilter(
     val text: String = "",
 )
 
-/** How many assets there are, per app [Status], and how many are drafted with the AI flag and how many carry the validated flag. */
+/**
+ * How many assets there are, per app [Status], how many carry the AI flag (whatever their status, as the server's
+ * `aiFillable`) and how many carry the validated flag.
+ */
 data class AssetSummary(
     val total: Int,
     val byStatus: Map<Status, Int>,

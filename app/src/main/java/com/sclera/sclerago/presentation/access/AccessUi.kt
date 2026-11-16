@@ -21,6 +21,7 @@ object AccessTags {
     const val LIST = "access_list"
     const val FAB_ADD = "access_add"
     const val EMPTY = "access_empty"
+    const val LOADING = "access_loading"
     const val TILE_PEOPLE = "access_tile_people"
     const val TILE_GROUPS = "access_tile_groups"
     const val TAB_PEOPLE = "access_tab_people"

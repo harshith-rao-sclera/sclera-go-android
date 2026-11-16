@@ -54,8 +54,8 @@ object DashTags {
 }
 
 /** The top bar height of the design (menu and logo row), and the height of the location tab row under it. */
-private val TopRowHeight = 59.dp
-private val TabRowHeight = 49.dp
+private val TopRowHeight = 50.dp
+private val TabRowHeight = 44.dp
 
 /**
  * The dashboard header: the menu button and the logo, then the three location tabs (the property,
@@ -75,7 +75,6 @@ fun DashboardHeader(
     val menuLabel = stringResource(R.string.dash_menu)
     Column(
         modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Box(Modifier.fillMaxWidth().height(TopRowHeight)) {
             Box(Modifier.align(Alignment.Center).readableWidth().fillMaxHeight()) {
@@ -148,7 +147,7 @@ private fun RowScope.LocCell(
     ) {
         Row(
             Modifier.weight(1f).fillMaxHeight().testTag(DashTags.location(filter)).clickable { onPick(filter) }
-                .padding(start = 6.dp, end = if (on && onChevron != null) 0.dp else 6.dp),
+                .padding(start = 10.dp, end = if (on && onChevron != null) 0.dp else 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
         ) {

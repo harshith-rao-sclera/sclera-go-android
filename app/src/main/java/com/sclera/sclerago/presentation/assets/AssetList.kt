@@ -52,6 +52,7 @@ import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.readableWidth
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -65,6 +66,7 @@ import kotlinx.coroutines.launch
 /** Test tags of the asset list. */
 object AssetListTags {
     const val EMPTY = "asset-list-empty"
+    const val LOADING = "asset-list-loading"
     fun row(id: String) = "asset-row-$id"
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
 }
@@ -92,7 +94,13 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
             Modifier.readableWidth().testTag(AssetListTags.row(a.id)),
         )
     }
-    if (data.items.isEmpty()) item(key = "empty") { EmptyCard(data.empty, list.query, Modifier.readableWidth()) }
+    when {
+        // Just after a property is opened its data is still being opened: a loader, not "no assets" that fills suddenly.
+        list.loading -> item(key = "loading") {
+            ListLoader(stringResource(R.string.assets_loading), Modifier.readableWidth().testTag(AssetListTags.LOADING))
+        }
+        data.items.isEmpty() -> item(key = "empty") { EmptyCard(data.empty, list.query, Modifier.readableWidth()) }
+    }
     item(key = "pad") { Spacer(Modifier.height(160.dp)) }
 }
 
@@ -101,7 +109,7 @@ private fun StatusChips(chips: List<StatusCount>, onChip: (StatusCount) -> Unit)
     val state = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val step = with(LocalDensity.current) { 180.dp.toPx() }
-    Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp)) {
+    Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp)) {
         LazyRow(
             state = state,
             contentPadding = PaddingValues(start = 12.dp, end = 48.dp, bottom = 2.dp),
@@ -126,7 +134,7 @@ private fun StatusChips(chips: List<StatusCount>, onChip: (StatusCount) -> Unit)
 private fun EdgeFade(left: Boolean, description: String, modifier: Modifier, onClick: () -> Unit) {
     val stops = listOf(C.Bg, C.Bg.copy(alpha = 0.8f), Color.Transparent)
     Box(
-        modifier.width(52.dp).height(34.dp)
+        modifier.width(52.dp).height(30.dp)
             .background(Brush.horizontalGradient(if (left) stops else stops.reversed()))
             .padding(horizontal = 6.dp),
         contentAlignment = if (left) Alignment.CenterStart else Alignment.CenterEnd,
@@ -143,18 +151,18 @@ private fun Chip(c: StatusCount, onClick: () -> Unit) {
     val bd = if (c.selected) C.Yellow else C.ChipBd
     val fg = if (c.selected) C.Yellow else C.Soft
     Row(
-        Modifier.testTag(AssetListTags.chip(c.status)).height(32.dp).clip(Capsule).background(bg).border(1.dp, bd, Capsule)
-            .clickable(onClick = onClick).padding(horizontal = 10.dp),
+        Modifier.testTag(AssetListTags.chip(c.status)).height(28.dp).clip(Capsule).background(bg).border(1.dp, bd, Capsule)
+            .clickable(onClick = onClick).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        c.status?.let { LineIcon(it.icon, 12.dp, it.color, 2.8f) }
-        Txt(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), 11, 600, fg)
-        Txt(c.count.toString(), 10, 700, fg.copy(alpha = 0.8f))
+        c.status?.let { LineIcon(it.icon, 11.dp, it.color, 2.8f) }
+        Txt(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), 10, 600, fg)
+        Txt(c.count.toString(), 9, 700, fg.copy(alpha = 0.8f))
     }
 }
 
-/** One asset: its type, name and detail, and how it was onboarded, whether it has a location, and its status. */
+/** One asset: its type icon, name and asset type, and how it was onboarded, whether it has a location, and its status. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AssetRow(
@@ -176,7 +184,7 @@ fun AssetRow(
     val icBd by animateColorAsState(if (picked) C.Yellow else if (selMode) C.RadioOff else C.Raised, label = "icbd")
     val cardBd by animateColorAsState(if (picked) C.YTintBd else C.Border, label = "cardbd")
     Row(
-        modifier.padding(horizontal = 4.dp, vertical = 1.5.dp).height(IntrinsicSize.Min)
+        modifier.padding(horizontal = 8.dp, vertical = 1.5.dp).height(IntrinsicSize.Min)
             .clip(r(12)).background(rowBg).border(1.dp, cardBd, r(12)),
     ) {
         Box(
@@ -199,7 +207,8 @@ fun AssetRow(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(a.name, 14, 600)
-                Txt(a.detail, 11, 400, C.Muted)
+                // Its asset type from the property's catalogue ("-" while it isn't classified), and nothing else.
+                Txt(a.assetTypeName ?: stringResource(R.string.detail_value_none), 11, 400, C.Muted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
                 LineIcon(a.src.icon, 18.dp, a.src.color, 2f)
@@ -238,4 +247,6 @@ class AssetListBinding(
     val onChip: (StatusCount) -> Unit,
     val onToggle: (String) -> Unit,
     val onOpen: (String) -> Unit,
+    /** The property's data is still being opened: a loader shows instead of the rows or the empty card. */
+    val loading: Boolean = false,
 )

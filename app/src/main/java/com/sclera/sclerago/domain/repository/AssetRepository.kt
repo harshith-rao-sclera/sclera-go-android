@@ -5,6 +5,7 @@ import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
+import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
 import kotlinx.coroutines.flow.StateFlow
 
@@ -19,10 +20,16 @@ interface AssetRepository {
     suspend fun add(assets: List<NewAsset>)
 
     /**
-     * Moves assets to [status]. Submitting follows the server's rule: an asset with a mandatory field empty becomes an
-     * exception when [allowExceptions] and stays as it is otherwise; one already submitted or validated is left alone.
+     * Moves assets to [status]. Submitting follows the server's rule: an asset with a mandatory field empty, or fewer
+     * photos of a kind than [photoRules] ask for, becomes an exception when [allowExceptions] and stays as it is
+     * otherwise; one already submitted or validated is left alone.
      */
-    suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean = true)
+    suspend fun setStatus(
+        ids: Collection<String>,
+        status: Status,
+        allowExceptions: Boolean = true,
+        photoRules: List<PhotoRule> = emptyList(),
+    )
 
     /** Keeps the values from an asset's details form. */
     suspend fun saveDetails(id: String, values: Map<String, String>)

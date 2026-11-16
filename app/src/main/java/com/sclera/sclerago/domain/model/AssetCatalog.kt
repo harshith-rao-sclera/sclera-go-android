@@ -17,6 +17,11 @@ data class AssetCatalog(
     val deviceAsset: Map<String, String> = emptyMap(),
     /** Asset id → its BLE tag, IP address, label and notes, one per line. */
     val scanText: Map<String, String> = emptyMap(),
+    /**
+     * The assets were read from the property's open database. False while it is still being opened (just after the
+     * property is opened, switched to or reopened): the assets aren't known yet, rather than there being none.
+     */
+    val loaded: Boolean = true,
 ) {
     /** Scanned devices that have been made into assets. */
     val addedDevices: Set<String> get() = deviceAsset.keys

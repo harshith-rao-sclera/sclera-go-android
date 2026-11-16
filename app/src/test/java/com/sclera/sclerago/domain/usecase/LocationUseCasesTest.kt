@@ -1,145 +1,204 @@
 package com.sclera.sclerago.domain.usecase
 
-import com.sclera.sclerago.presentation.preview.sampleLocationTree
-import com.sclera.sclerago.data.repository.LocationRepositoryImpl
+import com.sclera.sclerago.domain.model.AccessState
 import com.sclera.sclerago.domain.model.BuildingInfo
+import com.sclera.sclerago.domain.model.CurrentAccess
+import com.sclera.sclerago.domain.model.DataError
+import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.NewLocation
 import com.sclera.sclerago.domain.model.NodeKind
+import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.PlaceRow
 import com.sclera.sclerago.domain.model.findNode
-import com.sclera.sclerago.domain.model.mapNode
-import com.sclera.sclerago.domain.model.removeNodes
+import com.sclera.sclerago.domain.repository.CurrentAccessRepository
+import com.sclera.sclerago.domain.repository.LocationRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.usecase.location.AddBuildingUseCase
 import com.sclera.sclerago.domain.usecase.location.AddFloorUseCase
 import com.sclera.sclerago.domain.usecase.location.AddLocationsUseCase
 import com.sclera.sclerago.domain.usecase.location.DeleteLocationNodesUseCase
-import com.sclera.sclerago.domain.usecase.location.GetLocationTreeUseCase
 import com.sclera.sclerago.domain.usecase.location.ImportBuildingsUseCase
-import com.sclera.sclerago.domain.usecase.location.ObserveLocationTreesUseCase
+import com.sclera.sclerago.domain.usecase.location.ObserveLocationTreeUseCase
 import com.sclera.sclerago.domain.usecase.location.RenameLocationNodeUseCase
 import com.sclera.sclerago.domain.usecase.location.SaveBuildingUseCase
 import com.sclera.sclerago.domain.usecase.location.SaveFloorsUseCase
 import com.sclera.sclerago.domain.usecase.location.UpdateLocationUseCase
 import com.sclera.sclerago.testutil.FakeFileRepository
+import com.sclera.sclerago.testutil.allowAllGuard
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
+/**
+ * Configuration → Building info: what the use cases hand the repository (trimmed, numbered, parsed) and that they
+ * refuse users who can't configure. The tree itself is built by the offline database.
+ */
 class LocationUseCasesTest {
-    private val repo = LocationRepositoryImpl(::sampleLocationTree)
-    private val prop = "px"
-    private fun tree() = GetLocationTreeUseCase(repo)(prop)
+    /** Records every call; [rows] is what the last import was given. */
+    private class RecordingLocations : LocationRepository {
+        override val tree: StateFlow<List<LocNode>> = MutableStateFlow(emptyList())
+        val calls = mutableListOf<String>()
+        var savedInfo: BuildingInfo? = null
+        var floors: List<LocNode> = emptyList()
+        var locations: List<NewLocation> = emptyList()
+        var rows: List<PlaceRow> = emptyList()
+        var deleted: Set<String> = emptySet()
 
-    private fun buildingWithFloor(): Pair<String, String> {
-        val b = AddBuildingUseCase(repo)(prop, " Tower ", BuildingInfo(address1 = " 1 High St ", accessCode = " 1234 "))
-        val f = AddFloorUseCase(repo)(prop, b, " Level 1 ")
-        return b to f
+        override suspend fun addBuilding(name: String, info: BuildingInfo?): String {
+            calls += "addBuilding $name"
+            savedInfo = info
+            return "b-1"
+        }
+
+        override suspend fun addFloor(buildingId: String, name: String): String {
+            calls += "addFloor $buildingId $name"
+            return "f-1"
+        }
+
+        override suspend fun saveBuilding(id: String, name: String, info: BuildingInfo) {
+            calls += "saveBuilding $id $name"
+            savedInfo = info
+        }
+
+        override suspend fun saveFloors(buildingId: String, floors: List<LocNode>) {
+            this.floors = floors
+        }
+
+        override suspend fun renameNode(id: String, name: String) {
+            calls += "rename $id $name"
+        }
+
+        override suspend fun updateLocation(id: String, name: String, type: String, code: String) {
+            calls += "update $id $name|$type|$code"
+        }
+
+        override suspend fun deleteNodes(ids: Set<String>) {
+            deleted = ids
+        }
+
+        override suspend fun addLocations(floorId: String, locations: List<NewLocation>): Int {
+            this.locations = locations
+            return locations.size
+        }
+
+        override suspend fun importRows(rows: List<PlaceRow>): Int {
+            this.rows = rows
+            return rows.size
+        }
+    }
+
+    private val repo = RecordingLocations()
+    private val guard = allowAllGuard()
+
+    /** A signed-in user whose group can't configure. */
+    private val noConfigure = PermissionGuard(
+        object : CurrentAccessRepository {
+            override val state: StateFlow<AccessState> = MutableStateFlow(
+                AccessState.Loaded(
+                    CurrentAccess(
+                        userId = "u", email = "u@x.com", name = null, role = null, organisationId = "org", groupId = "g",
+                        groupName = "Collectors", permissions = setOf(Permission.COLLECT), allProperties = true, canManageProperties = false,
+                    ),
+                ),
+            )
+        },
+    )
+
+    @Test
+    fun observe_exposesTheRepositoryTree() = assertEquals(repo.tree, ObserveLocationTreeUseCase(repo)())
+
+    @Test
+    fun addBuildingAndFloor_trimTheNamesAndDetails() = runTest {
+        val b = AddBuildingUseCase(repo, guard)(" Tower ", BuildingInfo(address1 = " 1 High St ", accessCode = " 1234 "))
+        assertEquals("b-1", b)
+        assertEquals("1 High St", repo.savedInfo?.address1)
+        assertEquals("1234", repo.savedInfo?.accessCode)
+        assertEquals("f-1", AddFloorUseCase(repo, guard)(b, " Level 1 "))
+        assertEquals(listOf("addBuilding Tower", "addFloor b-1 Level 1"), repo.calls)
     }
 
     @Test
-    fun addBuildingAndFloor_buildTheTree() {
-        val (b, f) = buildingWithFloor()
-        val building = tree().findNode(b)!!
-        assertEquals("Tower", building.name)
-        assertEquals("1 High St", building.info?.address1)
-        assertEquals("1234", building.info?.accessCode)
-        assertEquals("Level 1", tree().findNode(f)?.name)
-        assertEquals(NodeKind.FLOOR, tree().findNode(f)?.kind)
-        assertEquals(repo.trees, ObserveLocationTreesUseCase(repo)())
-        assertNotNull(repo.trees.value[prop])
+    fun saveBuilding_renameAndUpdate_trimWhatTheyAreGiven() = runTest {
+        SaveBuildingUseCase(repo, guard)("b-1", " Tower B ", BuildingInfo(city = " Leeds "))
+        assertEquals("Leeds", repo.savedInfo?.city)
+        RenameLocationNodeUseCase(repo, guard)("f-1", " L1 ")
+        UpdateLocationUseCase(repo, guard)("l-1", " Boiler ", " Room ", " B ")
+        assertEquals(listOf("saveBuilding b-1 Tower B", "rename f-1 L1", "update l-1 Boiler|Room|B"), repo.calls)
     }
 
     @Test
-    fun nodeIds_areUnique() = assertTrue(repo.newNodeId("b") != repo.newNodeId("b"))
-
-    @Test
-    fun saveBuildingAndRename() {
-        val (b, f) = buildingWithFloor()
-        SaveBuildingUseCase(repo)(prop, b, " Tower B ", BuildingInfo(city = " Leeds "))
-        assertEquals("Tower B", tree().findNode(b)?.name)
-        assertEquals("Leeds", tree().findNode(b)?.info?.city)
-        RenameLocationNodeUseCase(repo)(prop, f, " L1 ")
-        assertEquals("L1", tree().findNode(f)?.name)
-    }
-
-    @Test
-    fun saveFloors_reordersRenamesAndRemovesMissingOnes() {
-        val (b, f1) = buildingWithFloor()
-        val f2 = AddFloorUseCase(repo)(prop, b, "Level 2")
-        val f3 = AddFloorUseCase(repo)(prop, b, "Level 3")
-        SaveFloorsUseCase(repo)(
-            prop, b,
-            listOf(
-                LocNode(f3, " Roof ", NodeKind.FLOOR, type = " T ", code = " R "),
-                LocNode(f1, "Ground", NodeKind.FLOOR),
-                LocNode("unknown", "Ghost", NodeKind.FLOOR),
-            ),
+    fun saveFloors_trimsEveryFloor_inTheGivenOrder() = runTest {
+        SaveFloorsUseCase(repo, guard)(
+            "b-1",
+            listOf(LocNode("f3", " Roof ", NodeKind.FLOOR, type = " T ", code = " R "), LocNode("f1", "Ground", NodeKind.FLOOR)),
         )
-        val kids = tree().findNode(b)!!.kids!!
-        assertEquals(listOf("Roof", "Ground"), kids.map { it.name })
-        assertEquals("R", kids.first().code)
-        assertNull(tree().findNode(f2))
+        assertEquals(listOf("Roof", "Ground"), repo.floors.map { it.name })
+        assertEquals("T", repo.floors.first().type)
+        assertEquals("R", repo.floors.first().code)
     }
 
     @Test
-    fun addLocations_numbersCodesWhenSeveralAreAdded() {
-        val (_, f) = buildingWithFloor()
-        val add = AddLocationsUseCase(repo)
-        assertEquals(0, add(prop, f, listOf(" ", ""), "", ""))
-        assertEquals(2, add(prop, f, listOf(" Plant ", "Store", ""), " Room ", " P "))
-        assertEquals(1, add(prop, f, listOf("Lift"), "", " L "))
-        val kids = tree().findNode(f)!!.kids!!
-        assertEquals(listOf("Plant", "Store", "Lift"), kids.map { it.name })
-        assertEquals(listOf("P-1", "P-2", "L"), kids.map { it.code })
-        assertEquals("Room", kids.first().type)
+    fun addLocations_skipsBlankNames_andNumbersCodesWhenSeveralAreAdded() = runTest {
+        val add = AddLocationsUseCase(repo, guard)
+        assertEquals(0, add("f-1", listOf(" ", ""), "", ""))
+        assertEquals(2, add("f-1", listOf(" Plant ", "Store", ""), " Room ", " P "))
+        assertEquals(listOf(NewLocation("Plant", "Room", "P-1"), NewLocation("Store", "Room", "P-2")), repo.locations)
+        assertEquals(1, add("f-1", listOf("Lift"), "", " L "))
+        assertEquals(listOf(NewLocation("Lift", "", "L")), repo.locations) // a single location keeps its code as typed
     }
 
     @Test
-    fun updateLocation_andDeleteNodes() {
-        val (b, f) = buildingWithFloor()
-        AddLocationsUseCase(repo)(prop, f, listOf("Plant"), "", "")
-        val loc = tree().findNode(f)!!.kids!!.single()
-        UpdateLocationUseCase(repo)(prop, loc.id, " Boiler ", " Room ", " B ")
-        assertEquals(Triple("Boiler", "Room", "B"), tree().findNode(loc.id)!!.let { Triple(it.name, it.type, it.code) })
-        val delete = DeleteLocationNodesUseCase(repo)
-        assertEquals(false, delete(prop, emptySet()))
-        assertTrue(delete(prop, setOf(loc.id)))
-        assertNull(tree().findNode(loc.id))
-        assertTrue(delete(prop, setOf(b)))
-        assertNull(tree().findNode(f))
+    fun deleteNodes_nothingToDelete_isFalse() = runTest {
+        val delete = DeleteLocationNodesUseCase(repo, guard)
+        assertFalse(delete(emptySet()))
+        assertTrue(delete(setOf("l-1", "f-1")))
+        assertEquals(setOf("l-1", "f-1"), repo.deleted)
     }
 
     @Test
-    fun treeHelpers_workOnNestedNodes() {
-        val tree = listOf(LocNode("b", "B", NodeKind.BUILDING, listOf(LocNode("f", "F", NodeKind.FLOOR, listOf(LocNode("l", "L", NodeKind.LOCATION))))))
-        assertEquals("L", tree.findNode("l")?.name)
-        assertNull(tree.findNode("zzz"))
-        assertEquals("X", tree.mapNode("l") { it.copy(name = "X") }.findNode("l")?.name)
-        assertNull(tree.mapNode("f") { null }.findNode("l"))
-        assertNull(tree.removeNodes(setOf("l")).findNode("l"))
-    }
-
-    @Test
-    fun importBuildings_createsMissingNodesAndSkipsExistingOnes() = runTest {
+    fun importBuildings_readsTheSheet_skippingTheHeaderAndRowsWithoutABuilding() = runTest {
         val files = FakeFileRepository()
-        val import = ImportBuildingsUseCase(repo, files)
-        assertEquals(ImportBuildingsUseCase.Result.Unreadable, import(prop, "u"))
+        val import = ImportBuildingsUseCase(repo, files, guard)
+        assertEquals(ImportBuildingsUseCase.Result.Unreadable, import("u"))
         files.sheet = listOf(listOf("Building", "Floor", "Location"), listOf("", "F", "L"))
-        assertEquals(ImportBuildingsUseCase.Result.NothingFound, import(prop, "u"))
+        assertEquals(ImportBuildingsUseCase.Result.NothingFound, import("u"))
         files.sheet = listOf(
             listOf("Building", "Floor", "Location", "Type", "Code"),
-            listOf("Tower", "L1", "Plant", "Room", "P1"),
-            listOf("tower", "l1", "plant"),
-            listOf("tower", "L2"),
+            listOf(" Tower ", "L1", "Plant", "Room", "P1"),
+            listOf("Tower", "L2"),
             listOf("Annex"),
+            listOf("", "orphan floor"),
         )
-        // 4 rows read: building+floor+location (3), floor L2 (1), building Annex (1)
-        assertEquals(ImportBuildingsUseCase.Result.Imported(4, 5), import(prop, "u"))
-        val tower = tree().first { it.name == "Tower" }
-        assertEquals(listOf("L1", "L2"), tower.kids!!.map { it.name })
-        assertEquals("P1", tower.kids!!.first().kids!!.single().code)
-        assertEquals(ImportBuildingsUseCase.Result.Imported(4, 0), import(prop, "u"))
+        assertEquals(ImportBuildingsUseCase.Result.Imported(3, 3), import("u"))
+        assertEquals(
+            listOf(PlaceRow("Tower", "L1", "Plant", "Room", "P1"), PlaceRow("Tower", "L2"), PlaceRow("Annex")),
+            repo.rows,
+        )
+    }
+
+    @Test
+    fun withoutConfigurePermission_changesAreRefused() = runTest {
+        try {
+            AddBuildingUseCase(repo, noConfigure)("Tower")
+            fail("expected Forbidden")
+        } catch (e: DataException) {
+            assertEquals(DataError.FORBIDDEN, e.error)
+        }
+        assertTrue(repo.calls.isEmpty())
+    }
+
+    @Test
+    fun findNode_searchesNestedNodes() {
+        val tree = listOf(LocNode("b", "B", NodeKind.BUILDING, listOf(LocNode("f", "F", NodeKind.FLOOR, listOf(LocNode("l", "L", NodeKind.LOCATION))))))
+        assertEquals("L", tree.findNode("l")?.name)
+        assertEquals(NodeKind.FLOOR, tree.findNode("f")?.kind)
+        assertNull(tree.findNode("zzz"))
     }
 }

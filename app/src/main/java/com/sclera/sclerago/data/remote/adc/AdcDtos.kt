@@ -103,4 +103,5 @@ data class MeDto(
     val permissions: List<String> = emptyList(),
     val allProperties: Boolean = false,
     val canManageProperties: Boolean = false,
+    val isAdmin: Boolean = false,
 )

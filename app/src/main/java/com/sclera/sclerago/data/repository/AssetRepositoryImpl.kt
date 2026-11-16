@@ -8,6 +8,7 @@ import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
+import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.repository.AssetRepository
 import kotlinx.coroutines.CoroutineScope
@@ -29,14 +30,14 @@ class AssetRepositoryImpl @Inject constructor(
     @ApplicationScope scope: CoroutineScope,
 ) : AssetRepository {
     override val catalog: StateFlow<AssetCatalog> =
-        combine(source.listFlow(), source.deviceLinksFlow(), source.scanTextFlow()) { assets, devices, scanText ->
-            AssetCatalog(assets, devices, scanText)
-        }.stateIn(scope, SharingStarted.Eagerly, AssetCatalog())
+        combine(source.listReadFlow(), source.deviceLinksFlow(), source.scanTextFlow()) { read, devices, scanText ->
+            AssetCatalog(read.assets, devices, scanText, loaded = read.open)
+        }.stateIn(scope, SharingStarted.Eagerly, AssetCatalog(loaded = false))
 
     override suspend fun add(assets: List<NewAsset>) = writer.add(assets)
 
-    override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean) =
-        writer.setStatus(ids, status, allowExceptions)
+    override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean, photoRules: List<PhotoRule>) =
+        writer.setStatus(ids, status, allowExceptions, photoRules)
 
     override suspend fun saveDetails(id: String, values: Map<String, String>) = writer.saveDetails(id, values)
 

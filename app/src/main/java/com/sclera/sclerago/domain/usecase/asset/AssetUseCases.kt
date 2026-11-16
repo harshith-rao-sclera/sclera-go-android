@@ -1,27 +1,37 @@
 package com.sclera.sclerago.domain.usecase.asset
 
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AssetType
+import com.sclera.sclerago.domain.model.DataError
+import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.captureName
+import com.sclera.sclerago.domain.model.isLockedFor
 import com.sclera.sclerago.domain.model.mentions
 import com.sclera.sclerago.domain.model.scanKey
 import com.sclera.sclerago.domain.model.timeLabel
 import com.sclera.sclerago.domain.model.typeOf
+import com.sclera.sclerago.domain.repository.AssetActivityRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.next
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.validation.CheckInput
+import com.sclera.sclerago.domain.validation.CommentProblem
+import com.sclera.sclerago.domain.validation.checkComment
+import com.sclera.sclerago.domain.validation.commentText
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
@@ -29,29 +39,65 @@ class ObserveAssetsUseCase @Inject constructor(private val repo: AssetRepository
     operator fun invoke(): StateFlow<AssetCatalog> = repo.catalog
 }
 
+/** An asset's comments and history, newest first, again whenever they change. */
+class ObserveAssetActivityUseCase @Inject constructor(private val repo: AssetActivityRepository) {
+    operator fun invoke(assetId: String): Flow<List<AssetActivity>> = repo.observe(assetId)
+}
+
+/**
+ * Comments on an asset, as the server allows: anyone who can collect or validate (else [DataException] FORBIDDEN),
+ * with text that passes [checkComment]. Returns the problem with [text] and posts nothing, or null once it is posted.
+ */
+class AddCommentUseCase @Inject constructor(private val repo: AssetActivityRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(assetId: String, text: String): CommentProblem? {
+        if (!guard.allows(Permission.COLLECT) && !guard.allows(Permission.VALIDATE)) throw DataException(DataError.FORBIDDEN)
+        checkComment(text)?.let { return it }
+        repo.addComment(assetId, commentText(text))
+        return null
+    }
+}
+
 /** The code and fields of an asset (null when it is not there). */
 class GetAssetDetailsUseCase @Inject constructor(private val repo: AssetRepository) {
     suspend operator fun invoke(id: String): AssetDetails? = repo.details(id)
 }
 
-/** Moves assets to [status]: signing off needs the Validate permission, everything else Collect. */
+/**
+ * Moves assets to [status]: signing off needs the Validate permission, everything else Collect. Submitting counts the
+ * property's [photoRules] as the server does (too few photos of a kind makes an exception, like an empty mandatory field).
+ */
 class SetAssetStatusUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(ids: Collection<String>, status: Status, allowExceptions: Boolean = true) {
+    suspend operator fun invoke(
+        ids: Collection<String>,
+        status: Status,
+        allowExceptions: Boolean = true,
+        photoRules: List<PhotoRule> = emptyList(),
+    ) {
         guard.requireOffline(permissionFor(status))
-        repo.setStatus(ids, status, allowExceptions)
+        repo.setStatus(ids, status, allowExceptions, photoRules)
     }
 }
 
 private fun permissionFor(status: Status) = if (status == Status.VALIDATED) Permission.VALIDATE else Permission.COLLECT
 
-/** Keeps the values from an asset's details form and, when given, moves it to [status]. */
+/**
+ * Keeps the values from an asset's details form and, when given, moves it to [status] (submitting counts [photoRules]).
+ * As the server, a submitted or validated asset can only be changed by an admin (else [DataException] FORBIDDEN).
+ */
 class SaveAssetDetailsUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(id: String, values: Map<String, String>, status: Status? = null) {
+    suspend operator fun invoke(id: String, values: Map<String, String>, status: Status? = null, photoRules: List<PhotoRule> = emptyList()) {
         guard.requireOffline(Permission.COLLECT)
         if (status != null) guard.requireOffline(permissionFor(status))
+        val current = repo.catalog.value.assets.firstOrNull { it.id == id }?.st
+        if (current != null && isLockedFor(current, guard.isAdmin())) throw DataException(DataError.FORBIDDEN)
         repo.saveDetails(id, values)
-        if (status != null) repo.setStatus(listOf(id), status, allowExceptions = true)
+        if (status != null) repo.setStatus(listOf(id), status, allowExceptions = true, photoRules = photoRules)
     }
+}
+
+/** Whether the signed-in user may change an asset in [status]: only an admin may change a submitted or validated one. */
+class CanEditAssetUseCase @Inject constructor(private val guard: PermissionGuard) {
+    operator fun invoke(status: Status): Boolean = !isLockedFor(status, guard.isAdmin())
 }
 
 class DeleteAssetsUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
@@ -212,4 +258,6 @@ class AssetUseCases @Inject constructor(
     val evaluateChecks: EvaluateAssetChecksUseCase,
     val autofill: AutofillAssetUseCase,
     val formValues: BuildFormValuesUseCase,
+    val activity: ObserveAssetActivityUseCase,
+    val addComment: AddCommentUseCase,
 )

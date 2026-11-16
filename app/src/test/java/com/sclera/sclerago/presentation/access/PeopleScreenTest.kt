@@ -17,8 +17,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sclera.sclerago.R
-import com.sclera.sclerago.data.local.DEFAULT_GROUPS
-import com.sclera.sclerago.domain.model.ADMINS_ID
+
+
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
@@ -47,8 +47,8 @@ class PeopleScreenTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
     private fun str(id: Int, vararg args: Any) = context.getString(id, *args)
 
-    private val collectors = DEFAULT_GROUPS.first { it.id == "g-collectors" }
-    private val admins = DEFAULT_GROUPS.first { it.id == ADMINS_ID }
+    private val collectors = COLLECTORS
+    private val admins = ADMINS
 
     // ---- the page
 
@@ -84,7 +84,7 @@ class PeopleScreenTest {
         compose.onNodeWithTag(AccessTags.TILE_GROUPS).performClick()
         compose.onNodeWithTag(AccessTags.TAB_GROUPS).assertIsSelected()
         compose.onNodeWithContentDescription(str(R.string.access_new_group)).assertExists()
-        compose.onNodeWithTag(AccessTags.group(ADMINS_ID)).assertIsDisplayed()
+        compose.onNodeWithTag(AccessTags.group(ADMINS.id)).assertIsDisplayed()
         // Group cards have no buttons of their own: the whole card opens the group (Delete is in its sheet).
         compose.onNodeWithContentDescription(str(R.string.access_delete_group, "Collectors")).assertDoesNotExist()
         compose.onNodeWithTag(AccessTags.group("g-collectors")).performClick()
@@ -122,7 +122,7 @@ class PeopleScreenTest {
         }
         // Long-press ticks a deletable group; Admins (locked) can't be ticked.
         compose.onNodeWithTag(AccessTags.group("g-collectors")).performTouchInput { longClick() }
-        compose.onNodeWithTag(AccessTags.group(ADMINS_ID)).performTouchInput { longClick() }
+        compose.onNodeWithTag(AccessTags.group(ADMINS.id)).performTouchInput { longClick() }
         assertEquals(listOf("g-collectors"), toggled)
         compose.onNodeWithTag(AccessTags.group("g-collectors")).assertIsSelected()
         // While ticking: the dock replaces the + and search buttons, and a tap ticks instead of opening.
@@ -130,7 +130,7 @@ class PeopleScreenTest {
         compose.onNodeWithTag(AccessTags.FAB_ADD).assertDoesNotExist()
         compose.onNodeWithText(str(R.string.dash_selected, 1)).assertIsDisplayed()
         compose.onNodeWithTag(AccessTags.group("g-reviewers")).performClick()
-        compose.onNodeWithTag(AccessTags.group(ADMINS_ID)).performClick()
+        compose.onNodeWithTag(AccessTags.group(ADMINS.id)).performClick()
         assertEquals(listOf("g-collectors", "g-reviewers"), toggled)
         assertTrue(edited.isEmpty())
         compose.onNodeWithTag(AccessTags.GROUP_SELECT_ALL).assertTextContains(str(R.string.dash_select_all, 3)).performClick()
@@ -243,7 +243,7 @@ class PeopleScreenTest {
 
     @Test @Config(qualifiers = PHONE)
     fun editAdmin_isReadyWithForcedAllPropertiesText_andNoRemoveForMe() {
-        showPerson(Person("u1", "dev.admin@sclera-adc.com", ADMINS_ID, true), isMe = true)
+        showPerson(Person("u1", "dev.admin@sclera-adc.com", ADMINS.id, true), isMe = true)
         compose.onNodeWithTag(AccessTags.PERSON_PILL).assertTextContains(str(R.string.property_ready))
         compose.onNodeWithText(str(R.string.access_forced_all, "Admins")).assertExists()
         compose.onNodeWithTag(AccessTags.REMOVE).assertDoesNotExist()

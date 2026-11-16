@@ -6,6 +6,7 @@ import com.sclera.sclerago.data.mapper.FieldKeys
 import com.sclera.sclerago.data.mapper.toFieldCfg
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.FieldDef
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -14,7 +15,7 @@ import kotlinx.coroutines.withContext
 private const val STANDARD_FIELDS = "SELECT * FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '') AND %LIVE% ORDER BY position, id"
 
 private const val EFFECTIVE_FIELDS =
-    "SELECT * FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '' OR asset_id = ?) AND %LIVE% ORDER BY (asset_id IS NOT NULL AND asset_id <> ''), position, id"
+    "SELECT * FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '' OR asset_id = ?) AND %LIVE% ORDER BY (asset_id IS NOT NULL AND asset_id <> ''), position, key"
 
 /** The asset fields: the standard ones every asset has, and the extra ones a single asset carries. Reads only. */
 class FieldsOfflineSource(private val db: AdcDatabase, private val io: CoroutineDispatcher) {
@@ -31,6 +32,23 @@ class FieldsOfflineSource(private val db: AdcDatabase, private val io: Coroutine
     suspend fun effective(assetId: String): List<FieldCfg> = withContext(io) { loadEffective(assetId) }
 
     fun effectiveFlow(assetId: String): Flow<List<FieldCfg>> = db.watch(io, TABLE) { loadEffective(assetId) }
+
+    /**
+     * The rows of [assetId]'s fields in the same order, active ones only: inputs by key, and its photo, video and voice
+     * memo fields (answered in the Media tab). Key-value fields have no row, as on the web.
+     */
+    fun entriesFlow(assetId: String): Flow<List<FormEntry>> = db.watch(io, TABLE) {
+        db.whenTable(TABLE, emptyList()) {
+            db.query(EFFECTIVE_FIELDS.replace("%LIVE%", db.notRemoved(TABLE)), listOf(assetId)).mapNotNull { row ->
+                when {
+                    !row.bool("is_active") -> null
+                    row.string("type") in MEDIA_TYPES ->
+                        FormEntry.MediaField(row.string("id").orEmpty(), row.string("name").orEmpty(), row.bool("is_required"))
+                    else -> row.toFieldCfg()?.let { FormEntry.Input(it.key) }
+                }
+            }
+        }
+    }
 
     /** Field id by form key (the app's key, so manufacturer is "make") for the fields of [assetId]: the standard ones and its own. */
     suspend fun idsByKey(assetId: String): Map<String, String> = withContext(io) {
@@ -53,5 +71,6 @@ class FieldsOfflineSource(private val db: AdcDatabase, private val io: Coroutine
 
     private companion object {
         const val TABLE = "asset_fields"
+        val MEDIA_TYPES = setOf("image", "video", "voice_memo")
     }
 }

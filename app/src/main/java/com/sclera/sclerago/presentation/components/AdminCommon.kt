@@ -86,7 +86,7 @@ internal fun StatCard(
     labelSize: Int = 12,
 ) {
     Row(
-        modifier.clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier.clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -198,7 +198,7 @@ internal fun ChoiceSheet(
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 64.dp).alpha(if (name in disabled) DimmedAlpha else 1f).clip(r(14)).background(if (on) C.YTintBg else C.FieldRowWash)
                             .border(1.dp, if (on) C.YTintBd else C.Border, r(14)).clickable(enabled = name !in disabled) { onPick(name) }
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {

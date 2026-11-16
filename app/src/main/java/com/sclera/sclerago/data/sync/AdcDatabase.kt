@@ -2,10 +2,14 @@ package com.sclera.sclerago.data.sync
 
 import android.content.ContentValues
 import android.database.Cursor
+import com.sclera.sclerago.data.mapper.DbClock
 import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.MapRow
 import io.requery.android.database.sqlite.SQLiteDatabase
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
@@ -36,8 +40,46 @@ class AdcDatabase @Inject constructor(
 
     val isOpen: Boolean get() = bridge.connection() != null
 
-    private fun db(): SQLiteDatabase =
-        pinned?.takeIf { lock.isHeldByCurrentThread } ?: bridge.connection() ?: throw IllegalStateException("The offline database is not open")
+    private fun db(): SQLiteDatabase {
+        val conn = pinned?.takeIf { lock.isHeldByCurrentThread } ?: bridge.connection() ?: throw IllegalStateException("The offline database is not open")
+        if (clockOf !== conn) learnClock(conn)
+        return conn
+    }
+
+    /** The connection [DbClock] was last learnt from. */
+    @Volatile
+    private var clockOf: SQLiteDatabase? = null
+
+    /**
+     * Learns the offset the sync server wrote [conn]'s times in: rows only the server makes have ids that carry their
+     * true time (UUIDv7, milliseconds since 1970 in UTC), so their `created_at` minus that time is the offset (the most
+     * common one, to the nearest quarter of an hour). With no such rows yet, this device's offset is used.
+     */
+    private fun learnClock(conn: SQLiteDatabase) {
+        clockOf = conn
+        val gaps = mutableListOf<Long>()
+        SERVER_ONLY_TABLES.forEach { table ->
+            runCatching {
+                conn.rawQuery("SELECT id, created_at FROM $table ORDER BY id DESC LIMIT 20", emptyArray()).use { c ->
+                    while (c.moveToNext()) {
+                        val idTime = uuidV7Millis(c.getString(0)) ?: continue
+                        val local = runCatching { LocalDateTime.parse(c.getString(1).trim().replace(' ', 'T')) }.getOrNull() ?: continue
+                        gaps += local.toInstant(ZoneOffset.UTC).toEpochMilli() - idTime
+                    }
+                }
+            }
+        }
+        DbClock.offset = gaps.sorted().getOrNull(gaps.size / 2)?.let { gap ->
+            val quarters = Math.round(gap / QUARTER_HOUR_MS.toDouble())
+            runCatching { ZoneOffset.ofTotalSeconds((quarters * QUARTER_HOUR_MS / 1000).toInt()) }.getOrNull()
+        } ?: OffsetDateTime.now().offset
+    }
+
+    /** The time in a version 7 UUID's first 48 bits, or null for any other id. */
+    private fun uuidV7Millis(id: String?): Long? {
+        val hex = id?.replace("-", "")?.takeIf { it.length == 32 && it[12] == '7' } ?: return null
+        return hex.take(12).toLongOrNull(16)
+    }
 
     fun hasTable(name: String): Boolean =
         query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", listOf(name)).isNotEmpty()
@@ -113,6 +155,11 @@ class AdcDatabase @Inject constructor(
         result
     }
 }
+
+/** Tables only the server writes rows to: their ids and times tell the offset its times are in. */
+private val SERVER_ONLY_TABLES = listOf("validation_jobs", "validation_results", "lookup_jobs", "manual_jobs", "master_formats")
+
+private const val QUARTER_HOUR_MS = 15 * 60 * 1000L
 
 private fun Cursor.toRow(): DbRow = MapRow(
     (0 until columnCount).associate { i ->

@@ -44,7 +44,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -65,6 +64,7 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ImportStrip
+import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.StatCard
 import com.sclera.sclerago.presentation.components.StatRow
@@ -171,7 +171,9 @@ internal fun PropertyListContent(
                 }
                 when {
                     // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
-                    state.loading -> item { ListLoader() }
+                    state.loading -> item {
+                        ListLoader(stringResource(R.string.property_loading), Modifier.testTag(PropertyTags.LOADING))
+                    }
                     state.rows.isEmpty() -> item {
                         val text = if (state.query.isBlank()) stringResource(R.string.property_none)
                         else stringResource(R.string.property_none_match, state.query.trim())
@@ -195,19 +197,6 @@ internal fun PropertyListContent(
                 stringResource(R.string.action_search), stringResource(R.string.action_close_search),
             )
         }
-    }
-}
-
-/** Spinner and "Loading properties…" while the first server read runs (read out as one line). */
-@Composable
-private fun ListLoader() {
-    Column(
-        Modifier.fillMaxWidth().padding(top = 40.dp).semantics(mergeDescendants = true) {}.testTag(PropertyTags.LOADING),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        CircularProgressIndicator(Modifier.size(28.dp), color = C.Yellow, strokeWidth = 2.5.dp)
-        Txt(stringResource(R.string.property_loading), 13, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
     }
 }
 
@@ -257,7 +246,7 @@ private fun PropertyCard(
             .clickable(enabled = !faint, role = Role.Button, onClick = onClick),
     ) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
+            Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 10.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {

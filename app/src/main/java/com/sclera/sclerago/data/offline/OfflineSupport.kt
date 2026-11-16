@@ -44,6 +44,15 @@ internal inline fun <T> AdcDatabase.whenTable(table: String, empty: T, block: ()
 internal fun AdcDatabase.notRemoved(table: String, alias: String = table): String =
     if (hasColumn(table, "is_removed")) "$alias.is_removed = 0" else "1 = 1"
 
+/**
+ * `asset_values`' answers column, quoted: `field_values` since the server renamed it (its migration t0008: `values`
+ * is a reserved word), `values` in a database downloaded before that.
+ */
+internal fun AdcDatabase.answersColumn(): String = if (hasColumn("asset_values", "field_values")) "\"field_values\"" else "\"values\""
+
+/** [sql] with each `%ANSWERS%` as [answersColumn]. */
+internal fun AdcDatabase.withAnswers(sql: String): String = sql.replace("%ANSWERS%", answersColumn())
+
 /** "?, ?, ?" for [count] bound values. */
 internal fun placeholders(count: Int): String = List(count) { "?" }.joinToString(", ")
 

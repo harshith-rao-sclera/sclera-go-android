@@ -1,70 +1,41 @@
 package com.sclera.sclerago.testutil
 
+import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.PropertyDownload
 import com.sclera.sclerago.domain.model.PropertyDownloads
 import com.sclera.sclerago.domain.repository.NetworkMonitor
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
+import com.sclera.sclerago.domain.repository.PropertyRepository
 import com.sclera.sclerago.domain.usecase.property.IsDeviceOnlineUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertyDownloadsUseCase
+import com.sclera.sclerago.domain.usecase.property.OpenDownloadedPropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
-import com.sclera.sclerago.domain.usecase.property.RefreshPropertyDownloadsUseCase
+import com.sclera.sclerago.domain.usecase.property.ResumePropertyDownloadUseCase
 import com.sclera.sclerago.domain.usecase.property.StartPropertyDownloadUseCase
-import com.sclera.sclerago.data.local.PropertyRecord
-import com.sclera.sclerago.data.local.PropertyStore
-import com.sclera.sclerago.data.remote.PropertyRemoteSource
-import com.sclera.sclerago.domain.model.AuthError
-import com.sclera.sclerago.domain.model.Property
-import com.sclera.sclerago.domain.repository.PropertyRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** A [PropertyStore] in memory, with the same contract as the SQLite one (sorted by name, upsert by id). */
-class FakePropertyStore(initial: List<PropertyRecord> = emptyList()) : PropertyStore {
-    val rows = LinkedHashMap<String, PropertyRecord>().apply { initial.forEach { put(it.id, it) } }
-
-    override fun all(): List<PropertyRecord> = rows.values.sortedBy { it.name.lowercase() }
-
-    override fun upsert(records: List<PropertyRecord>) = records.forEach { rows[it.id] = it }
-
-    override fun replaceSynced(records: List<PropertyRecord>) {
-        rows.values.removeAll { it.isSynced }
-        records.forEach { rows[it.id] = it.copy(isSynced = true) }
-    }
-
-    override fun clear() = rows.clear()
-}
-
-/** A [PropertyRemoteSource] that returns [records], or throws [failure] when it is set. */
-class FakePropertyRemote(var records: List<PropertyRecord> = emptyList()) : PropertyRemoteSource {
-    var failure: AuthError? = null
-    val fetchedFor = mutableListOf<String>()
-
-    override suspend fun fetchAll(organisationId: String): List<PropertyRecord> {
-        fetchedFor += organisationId
-        failure?.let { throw it }
-        return records
-    }
-}
-
-/** A [PropertyRepository] that records refreshes; [failure] makes them throw. */
+/** A [PropertyRepository] in memory: [refresh] counts and throws [failure] when set; [add] gives a new property the next id. */
 class FakePropertyRepository(initial: List<Property> = emptyList()) : PropertyRepository {
     private val flow = MutableStateFlow(initial)
     override val properties: StateFlow<List<Property>> = flow
-    val refreshed = mutableListOf<String>()
-    var failure: AuthError? = null
+    var refreshes = 0
+        private set
+    var failure: Throwable? = null
+    private var next = 0
 
-    override fun add(property: Property) {
-        flow.value = flow.value + property
-    }
-
-    override suspend fun refresh(organisationId: String) {
-        refreshed += organisationId
+    override suspend fun refresh() {
+        refreshes++
         failure?.let { throw it }
     }
-}
 
-fun record(id: String, name: String, synced: Boolean = true, org: String? = "org-1") =
-    PropertyRecord(id = id, organisationId = org, name = name, isSynced = synced)
+    override suspend fun add(property: Property): Property {
+        failure?.let { throw it }
+        val saved = if (property.id.isEmpty()) property.copy(id = "new-${++next}") else property
+        flow.value = (flow.value + saved).sortedBy { it.name.lowercase() }
+        return saved
+    }
+}
 
 /** The properties the screen tests were written against (ids p1 to p7; "p1" has the sample assets). */
 val SAMPLE_PROPERTIES = listOf(
@@ -77,20 +48,28 @@ val SAMPLE_PROPERTIES = listOf(
     Property("p7", "Riverside Medical Centre", false, "Hospital"),
 )
 
-/** A [PropertyDownloadRepository] the test drives: starts are recorded, the state is set directly. */
-class FakePropertyDownloads(initial: PropertyDownloads = PropertyDownloads()) : PropertyDownloadRepository {
+/** A [PropertyDownloadRepository] the test drives: starts, opens and resumes are recorded, the state is set directly. */
+class FakePropertyDownloads(initial: PropertyDownloads = PropertyDownloads(restored = true)) : PropertyDownloadRepository {
     val flow = MutableStateFlow(initial)
     override val downloads: StateFlow<PropertyDownloads> = flow
     val started = mutableListOf<String>()
-    var refreshes = 0
+    val opened = mutableListOf<String>()
+    var resumes = 0
+        private set
 
     override fun start(propertyId: String) {
         started += propertyId
         flow.value = flow.value.copy(active = flow.value.active + (propertyId to PropertyDownload.Running(0f, 0.0, 0.0)))
     }
 
-    override fun refresh() {
-        refreshes++
+    override fun open(propertyId: String) {
+        if (propertyId !in flow.value.downloadedIds) return
+        opened += propertyId
+        flow.value = flow.value.copy(currentId = propertyId)
+    }
+
+    override fun resume() {
+        resumes++
     }
 }
 
@@ -101,5 +80,5 @@ class FakeNetworkMonitor(var online: Boolean = true) : NetworkMonitor {
 
 fun propertyDownloadUseCases(repo: PropertyDownloadRepository, network: NetworkMonitor) = PropertyDownloadUseCases(
     ObservePropertyDownloadsUseCase(repo), StartPropertyDownloadUseCase(repo, network),
-    RefreshPropertyDownloadsUseCase(repo), IsDeviceOnlineUseCase(network),
+    OpenDownloadedPropertyUseCase(repo), ResumePropertyDownloadUseCase(repo), IsDeviceOnlineUseCase(network),
 )

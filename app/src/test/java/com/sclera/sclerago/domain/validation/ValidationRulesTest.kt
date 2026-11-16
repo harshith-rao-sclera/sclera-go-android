@@ -26,7 +26,6 @@ class ValidationRulesTest {
     @Test
     fun everyTemplateAndSavedValidation_usesKnownRules() {
         TEMPLATES.forEach { t -> assertEquals(t.id, t.ruleIds.size, t.rules.size) }
-        DEFAULT_SAVED.forEach { s -> assertEquals(s.ruleIds.size, s.rules.size) }
         RULES.keys.forEach { assertTrue("no description for $it", it in RULE_DESC) }
         assertTrue(ACROSS_RULES.all { it in RULES })
     }

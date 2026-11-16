@@ -1,10 +1,8 @@
 package com.sclera.sclerago.presentation.property
 
 import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
-import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import com.sclera.sclerago.R
-import com.sclera.sclerago.data.repository.AssetRepositoryImpl
-import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
+import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.usecase.media.WritePropertyTemplateUseCase
 import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
@@ -13,14 +11,17 @@ import com.sclera.sclerago.domain.usecase.property.ObserveOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertiesUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertySummariesUseCase
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
+import com.sclera.sclerago.domain.usecase.property.RefreshPropertiesUseCase
 import com.sclera.sclerago.domain.usecase.property.SetOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
+import com.sclera.sclerago.domain.usecase.property.ValidatePropertyUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.domain.model.PropertyDownload
 import com.sclera.sclerago.domain.model.PropertyDownloads
-import com.sclera.sclerago.domain.usecase.property.SyncPropertiesUseCase
-import com.sclera.sclerago.testutil.FakeAuthRepository
+import com.sclera.sclerago.testutil.FakeCatalogRepository
 import com.sclera.sclerago.testutil.FakeFileRepository
+import com.sclera.sclerago.testutil.NoOnboarding
+import com.sclera.sclerago.testutil.allowAllGuard
 import com.sclera.sclerago.testutil.FakeNetworkMonitor
 import com.sclera.sclerago.testutil.FakePropertyDownloads
 import com.sclera.sclerago.testutil.FakePropertyRepository
@@ -44,21 +45,21 @@ import java.io.ByteArrayOutputStream
 @OptIn(ExperimentalCoroutinesApi::class)
 class PropertyViewModelTest {
     private val properties = FakePropertyRepository(SAMPLE_PROPERTIES)
-    private val assets = AssetRepositoryImpl(SAMPLE_ASSETS, SAMPLE_DETAILS)
+    private val assets = FakeCatalogRepository(AssetCatalog(SAMPLE_ASSETS))
     private val files = FakeFileRepository()
-    private val downloads = FakePropertyDownloads(PropertyDownloads(downloadedId = "p1"))
+    private val downloads = FakePropertyDownloads(PropertyDownloads(currentId = "p1", downloadedIds = setOf("p1", "p4"), restored = true))
     private val network = FakeNetworkMonitor()
     private lateinit var vm: PropertyViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        val onboarding = OnboardingRepositoryImpl()
+        val onboarding = NoOnboarding()
+        val guard = allowAllGuard()
         vm = PropertyViewModel(
             PropertyUseCases(
-                ObservePropertiesUseCase(properties), AddPropertyUseCase(properties),
-                SyncPropertiesUseCase(FakeAuthRepository(), properties),
-                ObserveOnboardingUseCase(onboarding), SetOnboardingUseCase(onboarding),
+                ObservePropertiesUseCase(properties), AddPropertyUseCase(properties, guard), ValidatePropertyUseCase(properties),
+                RefreshPropertiesUseCase(properties), ObserveOnboardingUseCase(onboarding), SetOnboardingUseCase(onboarding, guard),
                 ObservePropertySummariesUseCase(properties, assets), FilterPropertySummariesUseCase(), ValidateImportFileUseCase(),
             ),
             WritePropertyTemplateUseCase(files),
@@ -154,9 +155,10 @@ class PropertyViewModelTest {
     // ---- Downloads
 
     @Test
-    fun opening_rereadsWhichPropertyIsDownloaded_andShowsIt() {
-        assertEquals(1, downloads.refreshes)
-        assertEquals("p1", vm.state.value.downloads.downloadedId)
+    fun opening_readsThePropertiesAndShowsWhatIsDownloaded() {
+        assertEquals(1, properties.refreshes)
+        assertEquals("p1", vm.state.value.downloads.currentId)
+        assertEquals(setOf("p1", "p4"), vm.state.value.downloads.downloadedIds)
         assertTrue(vm.state.value.online)
     }
 

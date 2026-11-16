@@ -15,6 +15,8 @@ data class CurrentAccess(
     val permissions: Set<Permission>,
     val allProperties: Boolean,
     val canManageProperties: Boolean,
+    /** In the Admins group: the server lets them change submitted and validated assets (and reassign them). */
+    val isAdmin: Boolean = false,
 ) {
     /** A person with no group has no access yet: the server refuses everything for them. */
     val hasGroup: Boolean get() = groupId != null

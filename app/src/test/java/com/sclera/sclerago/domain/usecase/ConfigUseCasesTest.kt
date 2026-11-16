@@ -1,6 +1,10 @@
 package com.sclera.sclerago.domain.usecase
 
-import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
+import com.sclera.sclerago.data.local.DEFAULT_PHOTO_REQS
+import com.sclera.sclerago.domain.model.AssetConfig
+import com.sclera.sclerago.presentation.preview.SAMPLE_FIELDS
+import com.sclera.sclerago.testutil.InMemoryAssetConfig
+import com.sclera.sclerago.testutil.allowAllGuard
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
@@ -28,7 +32,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ConfigUseCasesTest {
-    private val repo = AssetConfigRepositoryImpl()
+    private val repo = InMemoryAssetConfig(AssetConfig(SAMPLE_FIELDS, DEFAULT_PHOTO_REQS))
+    private val guard = allowAllGuard()
     private val fields get() = repo.config.value.fields
     private fun field(key: String) = fields.first { it.key == key }
 
@@ -36,8 +41,8 @@ class ConfigUseCasesTest {
     fun observe_exposesTheRepositoryConfig() = assertEquals(repo.config, ObserveAssetConfigUseCase(repo)())
 
     @Test
-    fun toggleVisible_respectsLockedAndMandatoryFields() {
-        val toggle = ToggleFieldVisibleUseCase(repo)
+    fun toggleVisible_respectsLockedAndMandatoryFields() = runTest {
+        val toggle = ToggleFieldVisibleUseCase(repo, guard)
         assertEquals(ToggleFieldVisibleUseCase.Result.UNCHANGED, toggle("nope"))
         assertEquals(ToggleFieldVisibleUseCase.Result.UNCHANGED, toggle("name"))
         assertEquals(ToggleFieldVisibleUseCase.Result.MANDATORY, toggle("sys"))
@@ -48,9 +53,9 @@ class ConfigUseCasesTest {
     }
 
     @Test
-    fun toggleRequired_makesFieldsVisibleAndKeepsLockedOnes() {
-        val toggle = ToggleFieldRequiredUseCase(repo)
-        ToggleFieldVisibleUseCase(repo)("make")
+    fun toggleRequired_makesFieldsVisibleAndKeepsLockedOnes() = runTest {
+        val toggle = ToggleFieldRequiredUseCase(repo, guard)
+        ToggleFieldVisibleUseCase(repo, guard)("make")
         toggle("make")
         assertTrue(field("make").required)
         assertTrue(field("make").visible)
@@ -61,21 +66,21 @@ class ConfigUseCasesTest {
     }
 
     @Test
-    fun addAndRemoveField_onlyCustomFieldsGoAway() {
-        assertFalse(AddFieldUseCase(repo)("  ", FieldKind.TEXT, false))
-        assertTrue(AddFieldUseCase(repo)(" Colour ", FieldKind.TEXT, true))
+    fun addAndRemoveField_onlyCustomFieldsGoAway() = runTest {
+        assertFalse(AddFieldUseCase(repo, guard)("  ", FieldKind.TEXT, false))
+        assertTrue(AddFieldUseCase(repo, guard)(" Colour ", FieldKind.TEXT, true))
         val custom = fields.single { it.custom }
         assertEquals("Colour", custom.label)
         assertTrue(custom.required)
-        RemoveFieldUseCase(repo)("make")
+        RemoveFieldUseCase(repo, guard)("make")
         assertNotNull(field("make"))
-        RemoveFieldUseCase(repo)(custom.key)
+        RemoveFieldUseCase(repo, guard)(custom.key)
         assertTrue(fields.none { it.custom })
     }
 
     @Test
-    fun saveField_cleansAndEnforcesRules() {
-        val save = SaveFieldUseCase(repo)
+    fun saveField_cleansAndEnforcesRules() = runTest {
+        val save = SaveFieldUseCase(repo, guard)
         assertFalse(save(field("make").copy(label = " ")))
         assertTrue(save(field("make").copy(label = " Maker ", tooltip = " t ", options = listOf(" a ", "a", "", "b"), required = true, visible = false)))
         val f = field("make")
@@ -88,8 +93,8 @@ class ConfigUseCasesTest {
     }
 
     @Test
-    fun addFields_skipsExistingNames() {
-        val add = AddFieldsUseCase(repo)
+    fun addFields_skipsExistingNames() = runTest {
+        val add = AddFieldsUseCase(repo, guard)
         val n = add(listOf(
             FieldCfg("a", "manufacturer", FieldKind.TEXT, FieldSection.IDENT),
             FieldCfg("b", " Colour ", FieldKind.TEXT, FieldSection.IDENT, required = true, visible = false),
@@ -136,35 +141,35 @@ class ConfigUseCasesTest {
     }
 
     @Test
-    fun setChecksAndOptions_updateOneField() {
-        SetFieldChecksUseCase(repo)("make", true, ValueRule.ALNUM, " 2 ", " 9 ")
+    fun setChecksAndOptions_updateOneField() = runTest {
+        SetFieldChecksUseCase(repo, guard)("make", true, ValueRule.ALNUM, " 2 ", " 9 ")
         val f = field("make")
         assertTrue(f.flagEmpty)
         assertEquals(ValueRule.ALNUM, f.rule)
         assertEquals("2", f.min)
         assertEquals("9", f.max)
-        SetFieldOptionsUseCase(repo)("make", listOf(" x ", "x", "", "y"))
+        SetFieldOptionsUseCase(repo, guard)("make", listOf(" x ", "x", "", "y"))
         assertEquals(listOf("x", "y"), field("make").options)
     }
 
     @Test
-    fun photoRequirements_areClampedAddedAndRemoved() {
+    fun photoRequirements_areClampedAddedAndRemoved() = runTest {
         val id = repo.config.value.photoReqs.first().id
-        SetPhotoLimitsUseCase(repo)(id, 12, 0)
+        SetPhotoLimitsUseCase(repo, guard)(id, 12, 0)
         assertEquals(9 to 9, repo.config.value.photoReqs.first().let { it.min to it.max })
-        SetPhotoLimitsUseCase(repo)(id, -3, 0)
+        SetPhotoLimitsUseCase(repo, guard)(id, -3, 0)
         assertEquals(0 to 1, repo.config.value.photoReqs.first().let { it.min to it.max })
         val before = repo.config.value.photoReqs.size
-        assertFalse(AddPhotoReqUseCase(repo)(" ", "h"))
-        assertTrue(AddPhotoReqUseCase(repo)(" Plate ", " close up "))
+        assertFalse(AddPhotoReqUseCase(repo, guard)(" ", "h"))
+        assertTrue(AddPhotoReqUseCase(repo, guard)(" Plate ", " close up "))
         assertEquals(before + 1, repo.config.value.photoReqs.size)
-        RemovePhotoReqUseCase(repo)(repo.config.value.photoReqs.last().id)
+        RemovePhotoReqUseCase(repo, guard)(repo.config.value.photoReqs.last().id)
         assertEquals(before, repo.config.value.photoReqs.size)
     }
 
     @Test
-    fun geoEnforce_canBeSwitched() {
-        SetGeoEnforceUseCase(repo)(true)
+    fun geoEnforce_canBeSwitched() = runTest {
+        SetGeoEnforceUseCase(repo, guard)(true)
         assertTrue(repo.config.value.geoEnforce)
     }
 }

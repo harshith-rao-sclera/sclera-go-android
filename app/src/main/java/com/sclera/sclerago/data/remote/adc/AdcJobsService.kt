@@ -21,11 +21,19 @@ interface AdcJobsService {
         @Body body: RequestBody,
     ): Response<ResponseBody>
 
+    /** The asset's newest look-up, or `null`. */
+    @GET("properties/{property}/assets/{asset}/lookup-jobs/latest")
+    suspend fun latestLookup(@Path("property") property: String, @Path("asset") asset: String): Response<ResponseBody>
+
     @GET("properties/{property}/lookup-jobs/{job}")
     suspend fun lookup(@Path("property") property: String, @Path("job") job: String): Response<ResponseBody>
 
     @POST("properties/{property}/lookup-jobs/{job}/seen")
     suspend fun lookupSeen(@Path("property") property: String, @Path("job") job: String): Response<ResponseBody>
+
+    /** Validates one asset again: from its first failed or warning step, or every step with `{"fromStart": true}`. */
+    @POST("properties/{property}/assets/{asset}/revalidate")
+    suspend fun revalidate(@Path("property") property: String, @Path("asset") asset: String, @Body body: RequestBody): Response<ResponseBody>
 
     @POST("properties/{property}/validation-jobs")
     suspend fun startValidation(@Path("property") property: String, @Body body: RequestBody): Response<ResponseBody>

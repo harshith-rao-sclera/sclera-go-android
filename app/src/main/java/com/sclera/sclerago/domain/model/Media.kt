@@ -13,6 +13,13 @@ data class Media(
     val fileName: String? = null,
     /** Attribution for a reference photo from the internet (author · licence · source). */
     val credit: String? = null,
+    /** The kind of photo the property's photo rules count it as (null: other photos, or not a photo). */
+    val category: PhotoKind? = null,
+    /** The asset field the file answers (a photo, video or voice memo field), if any. */
+    val fieldId: String? = null,
+    /** A voice memo (audio). */
+    val audio: Boolean = false,
+    val sizeBytes: Long? = null,
 ) {
     val durationText: String get() = formatDuration(durationMs)
     val isDoc: Boolean get() = fileName != null

@@ -1,27 +1,23 @@
 package com.sclera.sclerago.presentation.access
 
 import com.sclera.sclerago.data.PROPERTY_IMPORT_COLUMNS
-import com.sclera.sclerago.data.local.DEFAULT_GROUPS
-import com.sclera.sclerago.data.repository.AccessRepositoryImpl
 import com.sclera.sclerago.data.writeSamplePropertyXlsx
 import com.sclera.sclerago.domain.model.Property
-import com.sclera.sclerago.domain.model.ADMINS_ID
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
-import com.sclera.sclerago.domain.usecase.access.AccessUseCases
-import com.sclera.sclerago.domain.usecase.access.CanDeleteGroupUseCase
-import com.sclera.sclerago.domain.usecase.access.DeleteGroupUseCase
-import com.sclera.sclerago.domain.usecase.access.ObserveGroupsUseCase
-import com.sclera.sclerago.domain.usecase.access.ObservePeopleUseCase
-import com.sclera.sclerago.domain.usecase.access.RemovePersonUseCase
-import com.sclera.sclerago.domain.usecase.access.SaveGroupUseCase
-import com.sclera.sclerago.domain.usecase.access.SavePersonUseCase
-import com.sclera.sclerago.domain.usecase.access.SeedSignedInUserUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.testutil.FakeAuthRepository
 import com.sclera.sclerago.testutil.FakeTimeProvider
+import com.sclera.sclerago.testutil.InMemoryAccessRepository
 import com.sclera.sclerago.testutil.accessUseCases
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
 import com.sclera.sclerago.domain.usecase.access.GroupProblem
 import com.sclera.sclerago.domain.usecase.access.PersonProblem
 import com.sclera.sclerago.domain.usecase.access.groupProblem
@@ -39,21 +35,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** People and access, groups and property rules (mock data). */
+/** People and access, groups and property rules, over an in-memory stand-in for the server. */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
 class AccessTest {
-    private val collectors = DEFAULT_GROUPS.first { it.name == "Collectors" }
-    private val admins = DEFAULT_GROUPS.first { it.id == ADMINS_ID }
+    private val collectors = COLLECTORS
+    private val admins = ADMINS
 
-    /** What Hilt builds in the app, over a fresh in-memory repository. */
-    private fun accessViewModel(): AccessViewModel {
-        val repo = AccessRepositoryImpl()
-        return AccessViewModel(
-            accessUseCases(repo),
-            ObserveAuthStateUseCase(FakeAuthRepository()),
-            FakeTimeProvider(),
-        )
-    }
+    @Before
+    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+
+    @After
+    fun tearDown() = Dispatchers.resetMain()
+
+    /** What Hilt builds in the app, over a fresh repository holding the default groups. */
+    private fun accessViewModel(): AccessViewModel = AccessViewModel(
+        accessUseCases(InMemoryAccessRepository(DEFAULT_GROUPS)),
+        ObserveAuthStateUseCase(FakeAuthRepository()),
+        FakeTimeProvider(),
+    )
 
     // ---- personProblem
 
@@ -78,7 +78,7 @@ class AccessTest {
 
     @Test
     fun person_groupsThatManageNeedAllProperties() {
-        val p = Person("", "a@b.com", ADMINS_ID, allProperties = false, propertyIds = setOf("p1"))
+        val p = Person("", "a@b.com", admins.id, allProperties = false, propertyIds = setOf("p1"))
         assertEquals(PersonProblem.GROUP_NEEDS_ALL_PROPERTIES, personProblem(p, emptyList(), admins))
         assertNull(personProblem(p.copy(allProperties = true), emptyList(), admins))
     }
@@ -98,7 +98,7 @@ class AccessTest {
         val vm = accessViewModel()
         assertFalse(vm.canDelete(admins))
         assertNull(vm.saveGroup(admins.copy(permissions = setOf(Permission.COLLECT))))
-        assertEquals(Permission.entries.toSet(), vm.group(ADMINS_ID)!!.permissions)
+        assertEquals(Permission.entries.toSet(), vm.group(admins.id)!!.permissions)
     }
 
     @Test
@@ -126,15 +126,6 @@ class AccessTest {
         val person = vm.people.single()
         assertTrue(person.allProperties)
         assertTrue(person.propertyIds.isEmpty())
-    }
-
-    @Test
-    fun seeding_addsSignedInUserOnce() {
-        val vm = accessViewModel()
-        vm.ensureSeeded("dev.admin@sclera.com")
-        vm.ensureSeeded("someone@else.com")
-        assertEquals(listOf("dev.admin@sclera.com"), vm.people.map { it.email })
-        assertEquals(ADMINS_ID, vm.people.single().groupId)
     }
 
     @Test

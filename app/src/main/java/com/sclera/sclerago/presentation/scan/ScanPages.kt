@@ -192,7 +192,7 @@ private fun LazyListScope.scanSection(
         val (title, sub, progress) = card()
         Column(
             Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(16)).background(C.Surface)
-                .border(1.dp, C.Border, r(16)).clickable(onClick = onToggle).padding(14.dp),
+                .border(1.dp, C.Border, r(16)).clickable(onClick = onToggle).padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

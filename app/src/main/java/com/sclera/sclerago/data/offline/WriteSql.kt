@@ -31,12 +31,16 @@ internal const val ASSET_UPDATE_PLACE = """UPDATE assets SET building_id = ?, fl
 
 internal const val ASSET_VALUES_ROW = "SELECT * FROM asset_values WHERE asset_id = ?"
 
-internal const val ASSET_VALUES_INSERT = """INSERT INTO asset_values (asset_id, confidence, sources, "values") VALUES (?, ?, ?, ?)"""
+internal const val ASSET_VALUES_INSERT = """INSERT INTO asset_values (asset_id, confidence, sources, %ANSWERS%) VALUES (?, ?, ?, ?)"""
 
-internal const val ASSET_VALUES_UPDATE = """UPDATE asset_values SET "values" = ?, confidence = ?, sources = ? WHERE asset_id = ?"""
+internal const val ASSET_VALUES_UPDATE = """UPDATE asset_values SET %ANSWERS% = ?, confidence = ?, sources = ? WHERE asset_id = ?"""
 
 internal const val ACTIVITY_INSERT = """INSERT INTO asset_activity (id, asset_id, kind, action, text, changes, created_by, version, created_at, updated_at)
     VALUES (?, ?, 'history', ?, ?, ?, ?, 1, ?, ?)"""
+
+/** A comment, as the server's `POST /assets/{id}/comments` writes it: no action or changes, just the text and who wrote it. */
+internal const val COMMENT_INSERT = """INSERT INTO asset_activity (id, asset_id, kind, action, text, changes, created_by, version, created_at, updated_at)
+    VALUES (?, ?, 'comment', NULL, ?, NULL, ?, 1, ?, ?)"""
 
 internal const val FIELD_NAMES = """SELECT id, key, name FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '' OR asset_id = ?) AND %LIVE%"""
 
@@ -48,11 +52,11 @@ internal const val PLACE_NAME_LOCATION = "SELECT name FROM locations WHERE id = 
 
 internal const val MEDIA_NEXT_POSITION = "SELECT COALESCE(MAX(position), -1) + 1 AS p FROM asset_media WHERE asset_id = ? AND %LIVE%"
 
-internal const val MEDIA_INSERT = """INSERT INTO asset_media (id, asset_id, kind, filename, content_type, size_bytes, object_path, width, height,
-    duration_seconds, position, created_by, version, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"""
-
 internal const val MEDIA_OF_ASSET = "SELECT id, object_path FROM asset_media WHERE asset_id = ? AND %LIVE%"
+
+/** How many photos of each kind an asset has (what the property's photo rules count, as the server's `photo_counts`). */
+internal const val PHOTO_COUNTS = """SELECT category, COUNT(*) AS n FROM asset_media
+    WHERE asset_id = ? AND category IS NOT NULL AND %LIVE% GROUP BY category"""
 
 /** A file the sync uploads: its row is flagged `media_changes` by the engine's trigger. The column is the one the server's image configuration names. */
 internal const val MULTIMEDIA_INSERT = """INSERT OR REPLACE INTO multimedia (id, multimedia_content, table_name, column_name, row_id, content_type, "order")
@@ -121,9 +125,9 @@ internal const val FIELD_UPDATE = """UPDATE asset_fields SET name = ?, options =
 internal const val FIELD_KEY_TAKEN = "SELECT 1 FROM asset_fields WHERE key = ? AND %LIVE%"
 internal const val FIELD_NAME_TAKEN = "SELECT 1 FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '') AND lower(name) = lower(?) AND id <> ? AND %LIVE%"
 
-/** The answers (`asset_values.values` of live assets) that may hold a field's key, to be checked in code; `%LIVE%` is for `assets a`. */
-internal const val FIELD_ANSWERS = """SELECT av."values" AS v FROM asset_values av JOIN assets a ON a.id = av.asset_id
-    WHERE av."values" LIKE ? ESCAPE '\' AND %LIVE%"""
+/** The answers (`asset_values` answers of live assets; `%ANSWERS%` is the column) that may hold a field's key, to be checked in code; `%LIVE%` is for `assets a`. */
+internal const val FIELD_ANSWERS = """SELECT av.%ANSWERS% AS v FROM asset_values av JOIN assets a ON a.id = av.asset_id
+    WHERE av.%ANSWERS% LIKE ? ESCAPE '\' AND %LIVE%"""
 
 // ---- validations
 

@@ -7,11 +7,13 @@ import com.sclera.sclerago.domain.model.EmptyReason
 import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
+import com.sclera.sclerago.domain.model.isIn
 import javax.inject.Inject
 
 /**
  * The rows and status chips of one asset list: [assets] narrowed by source, location and search text.
  * The chip counts follow those filters (so they follow the search), the rows also follow the chosen status.
+ * The "AI suggestion" chip counts every asset with the AI flag (see [isIn]), so it can overlap the other chips.
  */
 class BuildAssetListUseCase @Inject constructor() {
     operator fun invoke(assets: List<Asset>, query: AssetListQuery): AssetListData {
@@ -22,14 +24,14 @@ class BuildAssetListUseCase @Inject constructor() {
             .filter { text.isEmpty() || "${it.name} ${it.detail}".lowercase().contains(text) }
         val chosen = query.status
         val chips = listOf(StatusCount(null, base.size, chosen == null)) +
-            Status.entries.filter { it != Status.INPUT }.map { st -> StatusCount(st, base.count { it.st == st }, chosen == st) }
+            Status.entries.filter { it != Status.INPUT }.map { st -> StatusCount(st, base.count { it.isIn(st) }, chosen == st) }
         val reason = when {
             text.isNotEmpty() -> EmptyReason.SEARCH
             chosen != null -> EmptyReason.STATUS
             query.sources == null -> EmptyReason.ASSETS_TAB
             else -> EmptyReason.SOURCE_TAB
         }
-        return AssetListData(base.filter { chosen == null || it.st == chosen }, chips, reason)
+        return AssetListData(base.filter { chosen == null || it.isIn(chosen) }, chips, reason)
     }
 
     private fun inLocation(a: Asset, filter: LocationFilter) = when (filter) {

@@ -70,7 +70,16 @@ data class Asset(
     val validated: Boolean = false,
     /** Server row version, bumped on each synced edit. */
     val version: Int = 1,
+    /** Its asset type from the property's catalogue (its master format's asset type); null while it isn't classified. */
+    val assetTypeName: String? = null,
 )
+
+/**
+ * Whether a status chip or filter for [status] takes this asset. "AI suggestion" goes by the AI flag (AI could fill
+ * some of its empty fields), whatever the asset's own status, the same as the server's `aiFillable` count; every
+ * other status is the asset's own.
+ */
+fun Asset.isIn(status: Status): Boolean = if (status == Status.AI) aiSuggestion || st == Status.AI else st == status
 
 /**
  * An asset to add. [asset] carries its media and, in [Asset.locationId], the id of the place it goes (a building,
@@ -104,11 +113,3 @@ data class AssetDetails(
     /** Per field key: the web page a looked-up answer came from. */
     val sources: Map<String, String> = emptyMap(),
 )
-
-val SYSTEM_TYPES = listOf("Generic", "Mechanical", "Electrical", "HVAC", "Fire safety", "IT & network", "Security", "Audio-visual")
-val ASSET_TYPES = listOf("Generic") + AssetType.entries.filter { it != AssetType.GENERIC }.map { it.label }
-val SUB_TYPES = listOf(
-    "Generic", "Induction", "Centrifugal", "Axial", "Plug fan", "Air-cooled screw", "TP&N final distribution",
-    "BACnet/IP controller", "Outdoor bullet", "Wi-Fi 6 indoor AP", "Desktop", "VoIP desk phone", "Bluetooth speakerphone",
-)
-val JACS_CODES = listOf("" to "Select JACS code", "[JACS code 1]" to "[JACS code 1]", "[JACS code 2]" to "[JACS code 2]")

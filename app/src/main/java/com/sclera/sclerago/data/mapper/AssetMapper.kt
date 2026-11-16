@@ -58,6 +58,7 @@ fun DbRow.toAsset(
         aiSuggestion = aiSuggestion,
         validated = validated,
         version = int("version") ?: 1,
+        assetTypeName = format?.assetType?.takeIf { it.isNotBlank() },
     )
 }
 
@@ -74,7 +75,7 @@ fun DbRow.toAssetDetails(valuesRow: DbRow? = null, format: MasterFormat? = null)
             it.assetType?.let { t -> put("typ", t) }
             it.subtype?.let { t -> put("sub", t) }
         }
-        valuesRow?.let { putAll(DbJson.stringMap(it.string("values")).mapKeys { (k, _) -> FieldKeys.toApp(k) }) }
+        valuesRow?.let { putAll(DbJson.stringMap(it.answersJson()).mapKeys { (k, _) -> FieldKeys.toApp(k) }) }
     }
     val confidence = DbJson.doubleMap(valuesRow?.string("confidence")).mapKeys { (k, _) -> FieldKeys.toApp(k) }
     val sources = DbJson.stringMap(valuesRow?.string("sources")).mapKeys { (k, _) -> FieldKeys.toApp(k) }
@@ -86,6 +87,12 @@ fun DbRow.toAssetDetails(valuesRow: DbRow? = null, format: MasterFormat? = null)
         sources = sources,
     )
 }
+
+/**
+ * The answers JSON of an `asset_values` row read whole: `field_values` since the server renamed the column (t0008),
+ * `values` in a database downloaded before that.
+ */
+fun DbRow.answersJson(): String? = string("field_values") ?: string("values")
 
 /** The `assets` columns to insert or update for [this] (timestamps are left to the caller). */
 fun Asset.toAssetRow(): Map<String, Any?> {

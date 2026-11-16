@@ -11,6 +11,20 @@ data class LookupJobDto(
     val id: String,
     val status: String = "",
     val values: Map<String, JsonElement> = emptyMap(),
+    /** Why it failed. */
+    val statusDetail: String? = null,
+    /** The product the specs were found for. */
+    val product: String? = null,
+    /** One sentence on how it went. */
+    val message: String? = null,
+    /** Field id → how sure the suggestion is, 0..1. */
+    val confidence: Map<String, Double> = emptyMap(),
+    /** Field id → the web page the suggestion came from. */
+    val sources: Map<String, String> = emptyMap(),
+    /** Field id → what was typed to look the model up (manufacturer, model). */
+    val typedValues: Map<String, JsonElement> = emptyMap(),
+    val seenAt: String? = null,
+    val createdAt: String? = null,
 )
 
 /** A validation run: [status] is ready, queued, running, completed or failed. */

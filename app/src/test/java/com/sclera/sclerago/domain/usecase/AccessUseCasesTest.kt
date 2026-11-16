@@ -1,40 +1,75 @@
 package com.sclera.sclerago.domain.usecase
 
-import com.sclera.sclerago.data.repository.AccessRepositoryImpl
-import com.sclera.sclerago.domain.model.ADMINS_ID
+import com.sclera.sclerago.domain.model.AccessState
+import com.sclera.sclerago.domain.model.CurrentAccess
 import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.OnlineError
+import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
+import com.sclera.sclerago.domain.repository.CurrentAccessRepository
 import com.sclera.sclerago.domain.usecase.access.CanDeleteGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.CountPeopleGivenAllPropertiesUseCase
-import com.sclera.sclerago.domain.usecase.access.ValidateGroupUseCase
-import com.sclera.sclerago.domain.usecase.access.ValidatePersonUseCase
 import com.sclera.sclerago.domain.usecase.access.DeleteGroupUseCase
+import com.sclera.sclerago.domain.usecase.access.GroupProblem
 import com.sclera.sclerago.domain.usecase.access.ObserveGroupsUseCase
 import com.sclera.sclerago.domain.usecase.access.ObservePeopleUseCase
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import com.sclera.sclerago.domain.usecase.access.PersonProblem
+import com.sclera.sclerago.domain.usecase.access.RefreshAccessUseCase
 import com.sclera.sclerago.domain.usecase.access.RemovePersonUseCase
 import com.sclera.sclerago.domain.usecase.access.SaveGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.SavePersonUseCase
-import com.sclera.sclerago.domain.usecase.access.SeedSignedInUserUseCase
+import com.sclera.sclerago.domain.usecase.access.ValidateGroupUseCase
+import com.sclera.sclerago.domain.usecase.access.ValidatePersonUseCase
 import com.sclera.sclerago.domain.usecase.access.groupProblem
-import com.sclera.sclerago.domain.usecase.access.GroupProblem
-import com.sclera.sclerago.domain.usecase.access.PersonProblem
 import com.sclera.sclerago.domain.usecase.access.personProblem
+import com.sclera.sclerago.testutil.InMemoryAccessRepository
+import com.sclera.sclerago.testutil.allowAllGuard
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class AccessUseCasesTest {
-    private val repo = AccessRepositoryImpl()
-    private val ids = com.sclera.sclerago.testutil.SequentialIdGenerator()
-    private val time = com.sclera.sclerago.testutil.FakeTimeProvider()
+    private val repo = InMemoryAccessRepository()
+    private val guard = allowAllGuard()
     private val viewers = Group("g-v", "Viewers", "", emptySet())
     private val managers = Group("g-m", "Managers", "", setOf(Permission.MANAGE_ACCESS))
+    private val admins = Group("g-admins", "Admins", "", setOf(Permission.COLLECT), locked = true)
     private fun person(email: String = "a@b.com", group: String = "g-v", all: Boolean = true, props: Set<String> = emptySet(), id: String = "") =
         Person(id, email, group, all, props)
+
+    /** A guard for a signed-in user whose group can do only [permissions]. */
+    private fun guardFor(vararg permissions: Permission) = PermissionGuard(
+        object : CurrentAccessRepository {
+            override val state: StateFlow<AccessState> =
+                MutableStateFlow(
+                    AccessState.Loaded(
+                        CurrentAccess(
+                            userId = "u-me", email = "me@x.com", name = null, role = null, organisationId = "org-1",
+                            groupId = "g-me", groupName = "Mine", permissions = permissions.toSet(),
+                            allProperties = true, canManageProperties = false,
+                        ),
+                    ),
+                )
+        },
+    )
+
+    private suspend fun assertForbidden(block: suspend () -> Unit) {
+        try {
+            block()
+            fail("expected Forbidden")
+        } catch (e: OnlineException) {
+            assertEquals(OnlineError.Forbidden, e.error)
+        }
+    }
 
     @Test
     fun personProblem_coversEachRule() {
@@ -64,94 +99,107 @@ class AccessUseCasesTest {
     }
 
     @Test
-    fun seedSignedInUser_onlyWhenEmptyAndSignedIn() {
-        val seed = SeedSignedInUserUseCase(repo, ids, time)
-        seed(null)
-        seed(" ")
-        assertTrue(repo.people.value.isEmpty())
-        seed("me@x.com")
-        val me = repo.people.value.single()
-        assertEquals(ADMINS_ID, me.groupId)
-        assertTrue(me.allProperties)
-        assertEquals(time.now, me.lastSeenAt)
-        assertEquals("u-1", me.id)
-        seed("other@x.com")
-        assertEquals(1, repo.people.value.size)
+    fun refresh_asksTheRepository() = runTest {
+        RefreshAccessUseCase(repo)()
+        assertEquals(1, repo.refreshes)
     }
 
     @Test
-    fun savePerson_addsUpdatesAndRejects() {
+    fun savePerson_addsUpdatesAndRejects() = runTest {
         repo.setGroups(listOf(viewers, managers))
-        val save = SavePersonUseCase(repo, ids)
+        val save = SavePersonUseCase(repo, guard)
         assertEquals(PersonProblem.EMAIL_REQUIRED, save(person("")))
         assertNull(save(person(" a@b.com ", all = false, props = setOf("p1"))))
         val added = repo.people.value.single()
         assertEquals("a@b.com", added.email)
-        assertTrue(added.id == "u-1")
+        assertEquals("u-1", added.id)
+        // Access to every property drops the chosen ones.
         assertNull(save(added.copy(allProperties = true, propertyIds = setOf("p1"))))
         assertEquals(1, repo.people.value.size)
         assertTrue(repo.people.value.single().propertyIds.isEmpty())
     }
 
     @Test
-    fun removePerson_dropsThemFromTheList() {
+    fun savePerson_withoutManageAccess_isRefused() = runTest {
+        repo.setGroups(listOf(viewers))
+        assertForbidden { SavePersonUseCase(repo, guardFor(Permission.COLLECT))(person()) }
+        assertTrue(repo.people.value.isEmpty())
+    }
+
+    @Test
+    fun removePerson_dropsThemFromTheList() = runTest {
         repo.setPeople(listOf(person(id = "u1"), person("c@d.com", id = "u2")))
-        RemovePersonUseCase(repo)(repo.people.value.first())
+        RemovePersonUseCase(repo, guard)(repo.people.value.first())
         assertEquals(listOf("u2"), repo.people.value.map { it.id })
     }
 
     @Test
-    fun saveGroup_addsUpdatesAndGrantsAllPropertiesWhenNeeded() {
+    fun removePerson_withoutManageAccess_isRefused() = runTest {
+        repo.setPeople(listOf(person(id = "u1")))
+        assertForbidden { RemovePersonUseCase(repo, guardFor())(repo.people.value.first()) }
+        assertEquals(1, repo.people.value.size)
+    }
+
+    @Test
+    fun saveGroup_addsUpdatesAndGrantsAllPropertiesWhenNeeded() = runTest {
         repo.setGroups(listOf(viewers))
         repo.setPeople(listOf(person(id = "u1", all = false, props = setOf("p1"))))
-        val save = SaveGroupUseCase(repo, ids)
+        val save = SaveGroupUseCase(repo, guard)
         assertEquals(GroupProblem.NAME_REQUIRED, save(Group("", " ", "", emptySet())))
         assertNull(save(Group("", " New ", " d ", setOf(Permission.COLLECT))))
         val added = repo.groups.value.last()
         assertEquals("New", added.name)
         assertEquals("d", added.description)
-        assertTrue(added.id == "g-1")
+        assertEquals("g-1", added.id)
         assertNull(save(viewers.copy(permissions = setOf(Permission.MANAGE_PROPERTIES))))
         assertTrue(repo.people.value.single().allProperties)
         assertTrue(repo.people.value.single().propertyIds.isEmpty())
     }
 
     @Test
-    fun saveGroup_lockedGroupsKeepTheirNameAndAllPermissions() {
-        val admins = Group(ADMINS_ID, "Admins", "", setOf(Permission.COLLECT), locked = true)
+    fun saveGroup_lockedGroupsKeepTheirNameAndAllPermissions() = runTest {
         repo.setGroups(listOf(admins))
-        assertNull(SaveGroupUseCase(repo, ids)(admins.copy(name = "Renamed", permissions = emptySet())))
+        assertNull(SaveGroupUseCase(repo, guard)(admins.copy(name = "Renamed", permissions = emptySet())))
         val saved = repo.groups.value.single()
         assertEquals("Admins", saved.name)
         assertEquals(Permission.entries.toSet(), saved.permissions)
     }
 
     @Test
-    fun deleteGroup_onlyWhenUnlockedAndEmpty() {
-        val admins = Group(ADMINS_ID, "Admins", "", emptySet(), locked = true)
+    fun saveGroup_withoutManageAccess_isRefused() = runTest {
+        assertForbidden { SaveGroupUseCase(repo, guardFor(Permission.COLLECT))(Group("", "New", "", emptySet())) }
+        assertTrue(repo.groups.value.isEmpty())
+    }
+
+    @Test
+    fun deleteGroup_onlyWhenUnlockedAndEmpty() = runTest {
         repo.setGroups(listOf(admins, viewers, managers))
         repo.setPeople(listOf(person(group = "g-m", id = "u1")))
         val can = CanDeleteGroupUseCase(repo)
         assertFalse(can(admins))
         assertFalse(can(managers))
         assertTrue(can(viewers))
-        val delete = DeleteGroupUseCase(repo, can)
+        val delete = DeleteGroupUseCase(repo, can, guard)
         assertFalse(delete(managers))
         assertTrue(delete(viewers))
-        assertEquals(listOf(ADMINS_ID, "g-m"), repo.groups.value.map { it.id })
+        assertEquals(listOf("g-admins", "g-m"), repo.groups.value.map { it.id })
+    }
+
+    @Test
+    fun deleteGroup_withoutManageAccess_isRefused() = runTest {
+        repo.setGroups(listOf(viewers))
+        assertForbidden { DeleteGroupUseCase(repo, CanDeleteGroupUseCase(repo), guardFor())(viewers) }
+        assertEquals(1, repo.groups.value.size)
     }
 
     @Test
     fun groupAndPersonHelpers() {
         assertEquals(Permission.MANAGE_ACCESS, managers.topPermission)
         assertNull(viewers.topPermission)
-        assertNotNull(Group("a", "A", "", emptySet(), locked = true).topPermission)
+        assertNotNull(admins.topPermission)
         assertEquals("ada", person("ada@x.com").name)
-        repo.setGroups(listOf(viewers))
-        repo.clear()
-        assertTrue(repo.people.value.isEmpty())
-        assertTrue(repo.groups.value.isNotEmpty())
     }
+
     @Test
     fun countPeopleGivenAllProperties_onlyForNeedAllGroupsAndChosenAccess() {
         repo.setPeople(
@@ -174,14 +222,5 @@ class AccessUseCasesTest {
         assertEquals(PersonProblem.EMAIL_TAKEN, ValidatePersonUseCase(repo)(person("x@y.com")))
         assertNull(ValidatePersonUseCase(repo)(person("new@y.com")))
         assertEquals(GroupProblem.NAME_TAKEN, ValidateGroupUseCase(repo)(Group("", "VIEWERS", "", emptySet())))
-    }
-
-    @Test
-    fun signOutClearsPeopleAndRestoresDefaultGroups() {
-        repo.setPeople(listOf(person(id = "u1")))
-        repo.setGroups(listOf(viewers))
-        repo.clear()
-        assertTrue(repo.people.value.isEmpty())
-        assertTrue(repo.groups.value.size > 1)
     }
 }

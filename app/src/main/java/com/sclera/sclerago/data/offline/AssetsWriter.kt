@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
+import com.sclera.sclerago.data.mapper.answersJson
 import com.sclera.sclerago.data.mapper.formatDbTime
 import com.sclera.sclerago.data.mapper.splitAssetValues
 import com.sclera.sclerago.data.sync.AdcDatabase
@@ -12,7 +13,10 @@ import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.NodeKind
+import com.sclera.sclerago.domain.model.PhotoKind
+import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.photosShort
 import com.sclera.sclerago.domain.model.sourceToDb
 import com.sclera.sclerago.domain.model.statusToDb
 import com.sclera.sclerago.domain.system.IdGenerator
@@ -72,7 +76,7 @@ class AssetsWriter(
 
         val oldColumns = COLUMN_KEYS.associateWith { row.string(it).orEmpty() }
         val newColumns = oldColumns + split.columns.mapValues { it.value.trim() }
-        val oldExtra = DbJson.stringMap(valuesRow?.string("values"))
+        val oldExtra = DbJson.stringMap(valuesRow?.answersJson())
         val newExtra = oldExtra.toMutableMap().also { map -> split.extra.forEach { (k, v) -> if (v.isBlank()) map.remove(k) else map[k] = v } }
         val classification = classify(values, row.string("master_format_id"), row.string("jacs_code_id"), row.string("classification_source"))
 
@@ -105,15 +109,20 @@ class AssetsWriter(
     /**
      * Moves [assetIds] to [status], with the flags that go with it (see `statusToDb`); assets already there are left alone.
      * Submitting follows the server's rule (`POST /assets/bulk/submit`): only drafted or exception assets are submitted; one
-     * with a mandatory field empty becomes an exception when [allowExceptions] and is left as it is otherwise; assets that
-     * are already submitted or validated stay as they are.
+     * with a mandatory field empty, or fewer photos of a kind than [photoRules] ask for, becomes an exception when
+     * [allowExceptions] and is left as it is otherwise; assets that are already submitted or validated stay as they are.
      */
-    suspend fun setStatus(assetIds: Collection<String>, status: Status, allowExceptions: Boolean = true) = db.write(io) {
+    suspend fun setStatus(
+        assetIds: Collection<String>,
+        status: Status,
+        allowExceptions: Boolean = true,
+        photoRules: List<PhotoRule> = emptyList(),
+    ) = db.write(io) {
         val now = now()
         val required = if (status == Status.SUBMITTED) requiredKeys() else null
         assetIds.forEach { id ->
             val row = assetState(id) ?: return@forEach
-            val moved = if (required == null) status else submitTarget(row, id, required, allowExceptions) ?: return@forEach
+            val moved = if (required == null) status else submitTarget(row, id, required, photoRules, allowExceptions) ?: return@forEach
             val target = statusToDb(moved)
             val unchanged = row.string("status") == target.status && row.bool("validated") == target.validated &&
                 (target.aiSuggestion == null || row.bool("ai_suggestion") == target.aiSuggestion)
@@ -128,10 +137,16 @@ class AssetsWriter(
     }
 
     /** What submitting asset [id] makes of it, or null to leave it alone. */
-    private fun AdcDatabase.submitTarget(row: DbRow, id: String, required: RequiredKeys, allowExceptions: Boolean): Status? {
+    private fun AdcDatabase.submitTarget(
+        row: DbRow,
+        id: String,
+        required: RequiredKeys,
+        photoRules: List<PhotoRule>,
+        allowExceptions: Boolean,
+    ): Status? {
         if (row.string("status") != "drafted" && row.string("status") != "exception") return null
-        val answers = DbJson.stringMap(queryOne(ASSET_VALUES_ROW, listOf(id))?.string("values"))
-        val complete = required.missingFor(id, row, answers).isEmpty()
+        val answers = DbJson.stringMap(queryOne(ASSET_VALUES_ROW, listOf(id))?.answersJson())
+        val complete = required.missingFor(id, row, answers).isEmpty() && photosShort(photoRules, photoCounts(id)).isEmpty()
         return when {
             complete -> Status.SUBMITTED
             allowExceptions -> Status.EXCEPTION
@@ -170,7 +185,7 @@ class AssetsWriter(
             assetIds.forEach { id ->
                 if (!exists(ASSET_STATE.live("assets"), listOf(id))) return@forEach
                 query(MEDIA_OF_ASSET.live("asset_media"), listOf(id)).forEach { m ->
-                    localKey(m.string("object_path").orEmpty())?.let(keys::add)
+                    (localKey(m.string("object_path").orEmpty()) ?: files.keyFor(m.string("id").orEmpty()))?.let(keys::add)
                     if (hasTable("multimedia")) execute(MULTIMEDIA_DELETE, listOf(m.string("id").orEmpty()), setOf("multimedia"))
                 }
                 ASSET_CHILDREN.forEach { removeRows(it, "asset_id = ?", listOf(id), now) }
@@ -189,6 +204,18 @@ class AssetsWriter(
             media.forEach { insertMedia(id, it, now, created) }
         }
         files.discardOriginals(media)
+    }
+
+    /** Adds the comment [text] (already checked) to asset [assetId], written by the signed-in user; the sync pushes it. */
+    suspend fun addComment(assetId: String, text: String) = db.write(io) {
+        if (!exists(ASSET_STATE.live("assets"), listOf(assetId))) throw DataException(DataError.FAILED)
+        val now = now()
+        execute(COMMENT_INSERT, listOf(ids.next(), assetId, text, user.userId(), now, now), setOf("asset_activity"))
+    }
+
+    /** Takes the web page [documentId] off its asset (marked removed for the sync, as the server's DELETE does). */
+    suspend fun removeWebDocument(documentId: String) = db.write(io) {
+        removeRows("web_documents", "id = ? AND asset_id IS NOT NULL AND asset_id <> ''", listOf(documentId), now())
     }
 
     // ---- inside a transaction
@@ -211,7 +238,7 @@ class AssetsWriter(
             ),
             setOf("assets"),
         )
-        execute(ASSET_VALUES_INSERT, listOf(asset.id, "{}", "{}", DbJson.write(extra)), setOf("asset_values"))
+        execute(withAnswers(ASSET_VALUES_INSERT), listOf(asset.id, "{}", "{}", DbJson.write(extra)), setOf("asset_values"))
         history(asset.id, "created", "Asset created", null, now)
         asset.media.forEach { insertMedia(asset.id, it, now, created) }
     }
@@ -227,14 +254,17 @@ class AssetsWriter(
             else -> "image"
         }
         val position = queryOne(MEDIA_NEXT_POSITION.live("asset_media"), listOf(assetId))?.int("p") ?: 0
-        execute(
-            MEDIA_INSERT,
-            listOf(
-                mediaId, assetId, kind, stored.filename, stored.contentType, stored.sizeBytes, localObjectPath(stored.key),
-                stored.width, stored.height, if (media.video) media.durationMs / 1000.0 else null, position, user.userId(), now, now,
-            ),
-            setOf("asset_media"),
+        val row = linkedMapOf<String, Any?>(
+            "id" to mediaId, "asset_id" to assetId, "kind" to kind, "filename" to stored.filename, "content_type" to stored.contentType,
+            "size_bytes" to stored.sizeBytes, "width" to stored.width, "height" to stored.height,
+            "duration_seconds" to (if (media.video) media.durationMs / 1000.0 else null), "position" to position,
+            "created_by" to user.userId(), "version" to 1, "created_at" to now, "updated_at" to now,
         )
+        // Databases from before the server's t0010 still have object_path; later ones find the file by the row's id.
+        if (hasColumn("asset_media", "object_path")) row["object_path"] = localObjectPath(stored.key)
+        // Only a photo that answers no field can be of a kind the photo rules count.
+        if (kind == "image" && media.fieldId == null && media.category != null && hasColumn("asset_media", "category")) row["category"] = media.category.db
+        execute("INSERT INTO asset_media (${row.keys.joinToString()}) VALUES (${placeholders(row.size)})", row.values.toList(), setOf("asset_media"))
         if (kind != "video" && hasTable("multimedia")) {
             files.bytes(stored.key)?.let { bytes ->
                 execute(
@@ -259,14 +289,22 @@ class AssetsWriter(
         val sources = DbJson.stringMap(row?.string("sources")).filterKeys { it !in edited }
         val json = DbJson.write(values)
         if (row == null) {
-            execute(ASSET_VALUES_INSERT, listOf(assetId, DbJson.writeDoubles(confidence), DbJson.write(sources), json), setOf("asset_values"))
+            execute(withAnswers(ASSET_VALUES_INSERT), listOf(assetId, DbJson.writeDoubles(confidence), DbJson.write(sources), json), setOf("asset_values"))
         } else {
-            execute(ASSET_VALUES_UPDATE, listOf(json, DbJson.writeDoubles(confidence), DbJson.write(sources), assetId), setOf("asset_values"))
+            execute(withAnswers(ASSET_VALUES_UPDATE), listOf(json, DbJson.writeDoubles(confidence), DbJson.write(sources), assetId), setOf("asset_values"))
         }
     }
 
     private fun AdcDatabase.history(assetId: String, action: String, text: String, changes: String?, now: String) {
         execute(ACTIVITY_INSERT, listOf(ids.next(), assetId, action, text, changes, user.userId(), now, now), setOf("asset_activity"))
+    }
+
+    /** How many photos of each kind asset [id] has (none counted where the database has no photo kinds yet). */
+    private fun AdcDatabase.photoCounts(id: String): Map<PhotoKind, Int> {
+        if (!hasColumn("asset_media", "category")) return emptyMap()
+        return query(PHOTO_COUNTS.live("asset_media"), listOf(id))
+            .mapNotNull { r -> PhotoKind.of(r.string("category"))?.let { it to (r.int("n") ?: 0) } }
+            .toMap()
     }
 
     private fun AdcDatabase.assetState(id: String): DbRow? = queryOne(ASSET_STATE.live("assets"), listOf(id))

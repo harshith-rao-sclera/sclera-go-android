@@ -20,6 +20,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
+/** One read of the asset list: [open] says whether the database was open for it (when not, [assets] is empty). */
+data class AssetsRead(val open: Boolean, val assets: List<Asset>)
+
 /** Spec values shown after the make and model in an asset's one-line detail: database key to unit. */
 private val SPEC_UNITS = listOf("rated_power_kw" to "kW", "voltage" to "V", "speed" to "RPM")
 
@@ -44,8 +47,14 @@ class AssetsOfflineSource(
     suspend fun list(filter: AssetFilter = AssetFilter(), propertyId: String = ""): List<Asset> =
         withContext(io) { loadPage(filter, null, 0, propertyId) }
 
-    fun listFlow(filter: AssetFilter = AssetFilter(), propertyId: String = ""): Flow<List<Asset>> =
-        db.watch(io, *ASSET_TABLES) { loadPage(filter, null, 0, propertyId) }
+    /**
+     * Every asset [filter] keeps, read again when the asset tables change, with whether the database was open for the
+     * read (decided in the same read, so the two always match): not open yet means nothing is known, rather than no assets.
+     */
+    fun listReadFlow(filter: AssetFilter = AssetFilter()): Flow<AssetsRead> =
+        db.watch(io, *ASSET_TABLES) {
+            if (db.isOpen && db.hasTable("assets")) AssetsRead(true, loadPage(filter, null, 0, "")) else AssetsRead(false, emptyList())
+        }
 
     /** One page of [list]: [limit] assets from [offset]. */
     suspend fun page(filter: AssetFilter, limit: Int, offset: Int, propertyId: String = ""): List<Asset> =
@@ -196,8 +205,8 @@ class AssetsOfflineSource(
 
     private fun loadScanText(): Map<String, String> = db.whenTable("asset_values", emptyMap()) {
         if (!db.hasTable("assets")) return@whenTable emptyMap()
-        db.query(ALL_ASSET_VALUES.replace("%LIVE%", db.notRemoved("assets", "a"))).mapNotNull { row ->
-            val values = DbJson.stringMap(row.string("values"))
+        db.query(db.withAnswers(ALL_ASSET_VALUES).replace("%LIVE%", db.notRemoved("assets", "a"))).mapNotNull { row ->
+            val values = DbJson.stringMap(row.string("answers"))
             val text = SCAN_KEYS.mapNotNull { values[FieldKeys.toDb(it)] }.filter { it.isNotBlank() }.joinToString("\n")
             text.takeIf { it.isNotEmpty() }?.let { row.string("asset_id").orEmpty() to it }
         }.toMap()
@@ -211,10 +220,13 @@ class AssetsOfflineSource(
 
     private fun mediaFor(ids: List<String>): Map<String, List<Media>> = db.whenTable("asset_media", emptyMap()) {
         db.queryIn(MEDIA_FOR.replace("%LIVE%", db.notRemoved("asset_media")), ids)
-            .groupBy({ it.string("asset_id").orEmpty() }, { it.toMedia(files.uriFor(it.string("object_path").orEmpty())) })
+            .groupBy({ it.string("asset_id").orEmpty() }, { row ->
+                val path = row.string("object_path")?.takeIf { it.isNotBlank() } ?: files.keyFor(row.string("id").orEmpty())?.let(::localObjectPath)
+                row.toMedia(files.uriFor(path.orEmpty()))
+            })
     }
 
     private fun valuesFor(ids: List<String>): Map<String, Map<String, String>> = db.whenTable("asset_values", emptyMap()) {
-        db.queryIn(ASSET_VALUES_FOR, ids).associate { it.string("asset_id").orEmpty() to DbJson.stringMap(it.string("values")) }
+        db.queryIn(db.withAnswers(ASSET_VALUES_FOR), ids).associate { it.string("asset_id").orEmpty() to DbJson.stringMap(it.string("answers")) }
     }
 }

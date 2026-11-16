@@ -28,6 +28,12 @@ interface AssetFileStore {
 
     /** Where the file of [objectPath] can be opened: the stored file for a `local://` path that is on this device, else the path itself. */
     fun uriFor(objectPath: String): String
+
+    /**
+     * The key of the file kept for the media row [id], or null when there is none on this device. Since the server
+     * finds files by their row's id (its migration t0010 dropped `asset_media.object_path`), this is how they are found.
+     */
+    fun keyFor(id: String): String? = null
 }
 
 /** The object path stored in `asset_media` for a file kept under [key]. */

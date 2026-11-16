@@ -73,12 +73,6 @@ data class FieldCfg(
     val hasFormat: Boolean get() = rule != ValueRule.NONE || min.isNotBlank() || max.isNotBlank()
 }
 
-/** Choices for the dropdown fields that aren't covered by the classification lists. */
-val FIELD_OPTIONS: Map<String, List<String>> = mapOf(
-    "condition" to listOf("Very good", "Good", "Fair", "Poor", "Very poor"),
-    "criticality" to listOf("Low", "Medium", "High", "Critical"),
-)
-
 /** A kind of photo collected for each asset, with how many are needed and allowed. */
 data class PhotoReq(val id: String, val name: String, val hint: String, val min: Int, val max: Int)
 
@@ -96,12 +90,13 @@ data class AssetConfig(
     val minPhotos: Int get() = photoReqs.sumOf { it.min }
 }
 
-/** How many choices a dropdown field offers ("Generic" / "Select" placeholders not counted). */
-val FieldCfg.optionCount: Int
-    get() = when (key) {
-        "sys" -> SYSTEM_TYPES.size - 1
-        "typ" -> ASSET_TYPES.size - 1
-        "sub" -> SUB_TYPES.size - 1
-        "jacs" -> JACS_CODES.size - 1
-        else -> options.size
-    }
+/** How many choices a dropdown field offers (its own, as the property's data stores them). */
+val FieldCfg.optionCount: Int get() = options.size
+
+/** One row of an asset's fields, in their order: a field with an input ([key] of a [FieldCfg]), or a photo, video or voice memo field. */
+sealed interface FormEntry {
+    data class Input(val key: String) : FormEntry
+
+    /** A field answered by files kept in the Media tab ([id] is matched by `asset_media.field_id`). */
+    data class MediaField(val id: String, val name: String, val required: Boolean) : FormEntry
+}

@@ -18,10 +18,10 @@ internal const val ASSET_ORDER = "ORDER BY a.created_at DESC, a.id DESC"
 internal const val ASSET_BY_ID = "SELECT a.* FROM assets a WHERE a.id = ? AND %LIVE%"
 
 internal const val ASSET_SUMMARY = """
-    SELECT $STATUS_SQL AS st, COUNT(*) AS n, COALESCE(SUM(CASE WHEN a.status = 'drafted' THEN a.ai_suggestion ELSE 0 END), 0) AS ai, COALESCE(SUM(a.validated), 0) AS ok
+    SELECT $STATUS_SQL AS st, COUNT(*) AS n, COALESCE(SUM(a.ai_suggestion), 0) AS ai, COALESCE(SUM(a.validated), 0) AS ok
     FROM assets a WHERE %WHERE% GROUP BY st"""
 
-internal const val ASSET_VALUES_FOR = "SELECT asset_id, \"values\" FROM asset_values WHERE asset_id IN (%IN%)"
+internal const val ASSET_VALUES_FOR = "SELECT asset_id, %ANSWERS% AS answers FROM asset_values WHERE asset_id IN (%IN%)"
 
 internal const val ASSETS_BY_IDS = "SELECT a.* FROM assets a WHERE a.id IN (%IN%) AND %LIVE%"
 
@@ -32,7 +32,7 @@ internal const val DEVICE_LINKS =
     "SELECT a.id, a.source_ref FROM assets a WHERE a.source IN ('bluetooth', 'wifi') AND a.source_ref IS NOT NULL AND a.source_ref <> '' AND %LIVE%"
 
 internal const val ALL_ASSET_VALUES =
-    "SELECT v.asset_id, v.\"values\" FROM asset_values v JOIN assets a ON a.id = v.asset_id WHERE %LIVE%"
+    "SELECT v.asset_id, v.%ANSWERS% AS answers FROM asset_values v JOIN assets a ON a.id = v.asset_id WHERE %LIVE%"
 
 internal const val ASSET_VALUES_ONE = "SELECT * FROM asset_values WHERE asset_id = ?"
 
@@ -48,8 +48,13 @@ internal fun AdcDatabase.assetWhere(filter: AssetFilter, withStatus: Boolean = t
     val parts = mutableListOf(notRemoved("assets", "a"))
     val args = mutableListOf<String>()
     filter.status?.takeIf { withStatus }?.let {
-        parts += "($STATUS_SQL) = ?"
-        args += (if (it == Status.INPUT) Status.DRAFT else it).name
+        // "AI suggestion" goes by the flag whatever the status, as the server's aiFillable count does (see Asset.isIn).
+        if (it == Status.AI) {
+            parts += "a.ai_suggestion = 1"
+        } else {
+            parts += "($STATUS_SQL) = ?"
+            args += (if (it == Status.INPUT) Status.DRAFT else it).name
+        }
     }
     filter.sources?.let { sources ->
         val db = sources.map(::sourceToDb).distinct()
@@ -65,7 +70,7 @@ internal fun AdcDatabase.assetWhere(filter: AssetFilter, withStatus: Boolean = t
     if (filter.text.isNotBlank()) {
         val like = likeContains(filter.text)
         val inValues = if (hasTable("asset_values")) {
-            " OR EXISTS (SELECT 1 FROM asset_values v WHERE v.asset_id = a.id AND v.\"values\" LIKE ? ESCAPE '\\')"
+            " OR EXISTS (SELECT 1 FROM asset_values v WHERE v.asset_id = a.id AND v.${answersColumn()} LIKE ? ESCAPE '\\')"
         } else ""
         parts += "(a.name LIKE ? ESCAPE '\\' OR a.manufacturer LIKE ? ESCAPE '\\' OR a.model LIKE ? ESCAPE '\\' " +
             "OR a.serial_number LIKE ? ESCAPE '\\'$inValues)"

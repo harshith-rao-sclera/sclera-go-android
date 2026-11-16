@@ -116,7 +116,7 @@ fun BlockedCard(target: ScanService.Target, onRetry: () -> Unit) {
     val context = LocalContext.current
     Column(
         Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(16)).background(C.Surface)
-            .border(1.dp, C.Border, r(16)).padding(horizontal = 16.dp, vertical = 20.dp),
+            .border(1.dp, C.Border, r(16)).padding(horizontal = 12.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(

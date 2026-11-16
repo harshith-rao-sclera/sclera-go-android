@@ -1,6 +1,6 @@
 package com.sclera.sclerago.domain.usecase
 
-import com.sclera.sclerago.data.local.DEFAULT_FIELDS
+import com.sclera.sclerago.presentation.preview.SAMPLE_FIELDS
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
@@ -140,7 +140,7 @@ class AssetChecksUseCaseTest {
     // ---- The form's starting values
 
     private val zone = ZoneOffset.UTC
-    private val fields = DEFAULT_FIELDS + listOf(
+    private val fields = SAMPLE_FIELDS + listOf(
         FieldCfg("d1", "Installed", FieldKind.DATE, FieldSection.MORE, defaultValue = "Today"),
         FieldCfg("t1", "At", FieldKind.TIME, FieldSection.MORE, defaultValue = "Now"),
         FieldCfg("k1", "Kind", FieldKind.TEXT, FieldSection.MORE, defaultValue = "Plant"),

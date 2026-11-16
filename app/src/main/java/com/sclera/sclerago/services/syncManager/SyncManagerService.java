@@ -112,7 +112,7 @@ public class SyncManagerService {
                             finalCurrentInstance.setCurrentImageSyncMode(SyncMode.POLLING);
 
                             finalCurrentInstance.startDataSyncingService();
-//                            finalCurrentInstance.startImageSyncingService();
+                            finalCurrentInstance.startImageSyncingService();
                             finalCurrentInstance.startLargeDataSyncingService();
                         }
                     });

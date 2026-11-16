@@ -34,15 +34,25 @@ class MapRow(private val values: Map<String, Any?>) : DbRow {
     }
 }
 
-/** Epoch millis of a stored timestamp ("2026-11-12 13:32:32.581028", UTC unless it carries an offset), or null. */
+/**
+ * The offset of the times in the offline database. The sync server writes timestamps as its own local time with no
+ * offset (e.g. "2026-11-13 16:57:08" for 11:27 UTC on a server in India); [com.sclera.sclerago.data.sync.AdcDatabase]
+ * learns it from the property's data when a database is opened. Until then it is this device's offset.
+ */
+object DbClock {
+    @Volatile
+    var offset: ZoneOffset = OffsetDateTime.now().offset
+}
+
+/** Epoch millis of a stored timestamp ("2026-11-12 13:32:32.581028", in [DbClock.offset] unless it carries its own), or null. */
 fun parseDbTime(text: String?): Long? {
     val t = text?.trim()?.takeIf { it.isNotEmpty() }?.replace(' ', 'T') ?: return null
     return runCatching { OffsetDateTime.parse(t).toInstant().toEpochMilli() }.getOrNull()
-        ?: runCatching { LocalDateTime.parse(t).toInstant(ZoneOffset.UTC).toEpochMilli() }.getOrNull()
+        ?: runCatching { LocalDateTime.parse(t).toInstant(DbClock.offset).toEpochMilli() }.getOrNull()
 }
 
-/** Epoch millis as a stored timestamp ("yyyy-MM-dd HH:mm:ss.SSS", UTC), for writing timestamp columns. */
+/** Epoch millis as a stored timestamp ("yyyy-MM-dd HH:mm:ss.SSS" in [DbClock.offset], as the server writes them). */
 fun formatDbTime(millis: Long): String =
-    DB_TIME.format(LocalDateTime.ofEpochSecond(Math.floorDiv(millis, 1000L), (Math.floorMod(millis, 1000L) * 1_000_000L).toInt(), ZoneOffset.UTC))
+    DB_TIME.format(LocalDateTime.ofEpochSecond(Math.floorDiv(millis, 1000L), (Math.floorMod(millis, 1000L) * 1_000_000L).toInt(), DbClock.offset))
 
 private val DB_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")

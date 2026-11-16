@@ -35,6 +35,7 @@ import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.StatCard
@@ -177,7 +178,13 @@ internal fun PeopleContent(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 item { Header(list, onTab, onGroupFilter) }
-                if (onPeople) {
+                // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
+                if (list.loading) item {
+                    ListLoader(
+                        stringResource(if (onPeople) R.string.access_loading_people else R.string.access_loading_groups),
+                        Modifier.testTag(AccessTags.LOADING),
+                    )
+                } else if (onPeople) {
                     items(list.people, key = { it.person.id }) { row ->
                         PersonCard(row, properties) { onEditPerson(row.person) }
                     }
@@ -195,7 +202,12 @@ internal fun PeopleContent(
                             onToggle = { selection.onToggle(row.group) },
                         )
                     }
-                    if (list.groups.isEmpty()) item { EmptyText(stringResource(R.string.access_no_group_match, list.query.trim())) }
+                    if (list.groups.isEmpty()) item {
+                        EmptyText(
+                            if (list.query.isBlank() && list.groupFilter == null) stringResource(R.string.access_empty_groups)
+                            else stringResource(R.string.access_no_group_match, list.query.trim()),
+                        )
+                    }
                 }
             }
         }
@@ -235,15 +247,17 @@ internal fun PeopleContent(
 @Composable
 private fun Header(list: AccessListState, onTab: (AccessTab) -> Unit, onGroupFilter: (Permission?) -> Unit) {
     val onPeople = list.tab == AccessTab.PEOPLE
+    // No counts until the lists are known, rather than a 0 that jumps.
+    fun count(n: Int) = if (list.loading) "–" else n.toString()
     Column(Modifier.padding(top = 2.dp, bottom = 7.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         StatRow {
             StatCard(
-                Icons.Users, C.Yellow, list.peopleTotal.toString(), stringResource(R.string.access_stat_people),
+                Icons.Users, C.Yellow, count(list.peopleTotal), stringResource(R.string.access_stat_people),
                 Modifier.weight(1f).testTag(AccessTags.TILE_PEOPLE).clickable(role = Role.Tab) { onTab(AccessTab.PEOPLE) },
                 valueSize = 17, labelSize = 11,
             )
             StatCard(
-                iconOf(Permission.MANAGE_ACCESS.iconPath), GroupsPurple, list.groupsTotal.toString(), stringResource(R.string.access_stat_groups),
+                iconOf(Permission.MANAGE_ACCESS.iconPath), GroupsPurple, count(list.groupsTotal), stringResource(R.string.access_stat_groups),
                 Modifier.weight(1f).testTag(AccessTags.TILE_GROUPS).clickable(role = Role.Tab) { onTab(AccessTab.GROUPS) },
                 valueSize = 17, labelSize = 11,
             )

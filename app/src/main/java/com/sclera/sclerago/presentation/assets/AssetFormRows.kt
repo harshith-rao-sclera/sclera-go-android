@@ -33,7 +33,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.FieldCfg
-import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.bottomBorder
@@ -51,6 +50,9 @@ object DetailTags {
     fun badge(key: String) = "detail-badge-$key"
     const val TAB_INFO = "detail-tab-info"
     const val TAB_VALIDATION = "detail-tab-validation"
+    const val TAB_EMPTY = "detail-tab-empty"
+    const val COMMENT_FIELD = "detail-comment-field"
+    const val COMMENT_POST = "detail-comment-post"
     const val SAVE = "detail-save"
     const val SUBMIT = "detail-submit"
     const val STATUS_LINE = "detail-status-line"
@@ -58,24 +60,27 @@ object DetailTags {
 }
 
 /** What a field value came from, shown at the end of its row. */
-enum class FieldBadge { NONE, AI, EDITED, CHECK, OCR }
+enum class FieldBadge { NONE, EDITED, CHECK, OCR }
 
-/** The badge of the identification field [key]: AI-filled, edited, read from the nameplate with doubt (CHECK), or read from it (OCR). */
+/** The badge of the field [key]: edited, read from the nameplate with doubt (CHECK), or read from it (OCR). */
 fun AssetDetailState.badgeFor(key: String): FieldBadge = when {
-    key in aiFilled -> FieldBadge.AI
     dirty(key) -> FieldBadge.EDITED
     key == lowConfidenceKey -> FieldBadge.CHECK
     fromCamera && value(key).isNotEmpty() -> FieldBadge.OCR
     else -> FieldBadge.NONE
 }
 
-/** The configured fields (Configuration → Asset fields): which show, which are mandatory, and their labels. */
+/** The asset's fields from the property's data (`asset_fields`): which show, which are mandatory, and their names. */
 class FieldSpec(private val fields: List<FieldCfg>) {
     private fun cfg(key: String) = fields.firstOrNull { it.key == key }
     fun shown(key: String) = cfg(key)?.visible ?: true
     fun required(key: String) = cfg(key)?.let { it.required && it.visible } ?: false
-    fun label(key: String) = (cfg(key)?.label ?: key) + if (required(key)) " *" else ""
-    fun visibleIn(section: FieldSection) = fields.filter { it.section == section && it.visible && it.key != "name" }
+
+    /** The field's name, or [fallback] when the property has no such field; " *" marks a mandatory one. */
+    fun label(key: String, fallback: String = key) = (cfg(key)?.label?.takeIf { it.isNotBlank() } ?: fallback) + if (required(key)) " *" else ""
+
+    /** The fields that show, in their order, except [keys]. */
+    fun visibleExcept(keys: Set<String>) = fields.filter { it.visible && it.key !in keys }
 }
 
 /** A collapsed section one-line summary. */
@@ -93,6 +98,8 @@ fun FormSection(
     trailing: (@Composable () -> Unit)? = null,
     /** Shown on the right while the section is collapsed: what is in it, or what is missing. */
     summary: Summary? = null,
+    /** The [note] is a warning (orange), e.g. a mandatory field still empty. */
+    noteWarn: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val rot by animateFloatAsState(if (open) 0f else -90f, tween(200), label = "chev")
@@ -115,7 +122,7 @@ fun FormSection(
                 Txt(title, 14, 700, modifier = Modifier.weight(1f))
                 if (!open && summary != null) {
                     Txt(summary.text, 11, if (summary.warn) 700 else 500, if (summary.warn) C.Orange else C.Muted, mono = summary.mono)
-                } else note?.let { Txt(it, 10, 500, C.Muted) }
+                } else note?.let { Txt(it, if (noteWarn) 11 else 10, if (noteWarn) 700 else 500, if (noteWarn) C.Orange else C.Muted) }
             }
             if (open) trailing?.invoke()
         }
@@ -136,6 +143,10 @@ fun FieldRow(
     rowBg: Color = Color.Transparent,
     mono: Boolean = false,
     requester: BringIntoViewRequester? = null,
+    /** Marks the row as a mandatory field that is still empty. */
+    required: Boolean = false,
+    /** A long text (notes): the value wraps over several lines. */
+    multiLine: Boolean = false,
 ) {
     Row(
         Modifier.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
@@ -145,20 +156,33 @@ fun FieldRow(
     ) {
         Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
         PlainField(
-            value, onChange, stringResource(R.string.detail_field_hint, label.lowercase(Locale.getDefault())),
+            value, onChange, stringResource(R.string.detail_field_hint, label.removeSuffix(" *").lowercase(Locale.getDefault())),
             Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
-            size = if (mono) 13 else 14, weight = 600, mono = mono,
+            size = if (mono) 13 else 14, weight = 600, mono = mono, singleLine = !multiLine,
         )
+        if (required) Txt(stringResource(R.string.check_required), 10, 700, C.Orange)
         BadgeText(key, badge)
     }
 }
 
-/** The OCR / CHECK / AI / EDITED mark at the end of a row. */
+/** A row that only shows a value (Location details): label and value, or "-" when there is none (as the web). */
+@Composable
+fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier) {
+    Row(
+        modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        Txt(value ?: stringResource(R.string.detail_value_none), 14, 600, if (value != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = 2)
+    }
+}
+
+/** The OCR / CHECK / EDITED mark at the end of a row. */
 @Composable
 private fun BadgeText(key: String, badge: FieldBadge) {
     val (text, color) = when (badge) {
         FieldBadge.NONE -> return
-        FieldBadge.AI -> stringResource(R.string.detail_badge_ai) to C.Cyan
         FieldBadge.EDITED -> stringResource(R.string.detail_badge_edited) to C.Yellow
         FieldBadge.CHECK -> stringResource(R.string.detail_badge_check) to C.Orange
         FieldBadge.OCR -> stringResource(R.string.detail_badge_ocr) to C.Purple
@@ -183,29 +207,30 @@ fun SelectRow(
     var open by remember { mutableStateOf(false) }
     val readOnly = LocalReadOnly.current
     val shown = options.firstOrNull { it.first == value }?.second ?: value
-    Box {
-        Row(
-            Modifier.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
-                .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg).clickable(enabled = !readOnly) { open = true }
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+    Row(
+        Modifier.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
+            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg).clickable(enabled = !readOnly) { open = true }
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        // The menu hangs from the value, so it opens under it rather than over the label.
+        Box(Modifier.weight(1f)) {
             Txt(
                 shown, 14, 600, if (value.isEmpty()) C.Muted else C.Text,
-                Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
+                Modifier.fillMaxWidth().bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
             )
-            if (required) Txt(stringResource(R.string.check_required), 10, 700, C.Orange)
-            if (!readOnly) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
-        }
-        DropdownMenu(open, { open = false }, containerColor = C.Surface) {
-            options.forEach { (k, text) ->
-                DropdownMenuItem(
-                    text = { Txt(text, 14, if (k == value) 700 else 500, if (k == value) C.Yellow else C.Text) },
-                    onClick = { onChange(k); open = false },
-                )
+            DropdownMenu(open, { open = false }, containerColor = C.Surface) {
+                options.forEach { (k, text) ->
+                    DropdownMenuItem(
+                        text = { Txt(text, 14, if (k == value) 700 else 500, if (k == value) C.Yellow else C.Text) },
+                        onClick = { onChange(k); open = false },
+                    )
+                }
             }
         }
+        if (required) Txt(stringResource(R.string.check_required), 10, 700, C.Orange)
+        if (!readOnly) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
     }
 }

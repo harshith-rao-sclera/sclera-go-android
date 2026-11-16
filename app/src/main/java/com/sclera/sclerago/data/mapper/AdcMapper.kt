@@ -139,4 +139,5 @@ fun MeDto.toCurrentAccess(signedInEmail: String) = CurrentAccess(
     permissions = permissions.mapNotNull(::permissionOf).toSet(),
     allProperties = allProperties,
     canManageProperties = canManageProperties,
+    isAdmin = isAdmin,
 )
