@@ -37,6 +37,7 @@
     <string name="property_none_match">Keine Standorte passen zu „%1$s“.</string>
     <string name="property_download">%1$s herunterladen</string>
     <string name="property_downloading">%1$s wird heruntergeladen</string>
+    <string name="property_unpacking">%1$s wird entpackt</string>
     <string name="property_downloaded">Heruntergeladen</string>
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">%1$s konnte nicht heruntergeladen werden. Versuche es erneut.</string>
@@ -423,16 +424,6 @@
     <string name="dash_clear_search_text">Suchtext löschen</string>
     <string name="detail_add_photo">Foto hinzufügen</string>
     <string name="detail_voice_fill">Felder per Sprache ausfüllen</string>
-    <string name="sync_title">Deine Daten werden heruntergeladen</string>
-    <string name="sync_subtitle">Das passiert nur beim ersten Mal. Lass die App geöffnet, bis es fertig ist.</string>
-    <string name="sync_progress_description">Download-Fortschritt</string>
-    <string name="sync_progress_mb">%1$.1f MB von %2$.1f MB</string>
-    <string name="sync_failed_title">Deine Daten konnten nicht heruntergeladen werden</string>
-    <string name="sync_failed_no_network">Du bist offline. Verbinde dich mit dem Internet und versuche es erneut.</string>
-    <string name="sync_failed_session">Deine Sitzung ist abgelaufen. Melde dich erneut an, um fortzufahren.</string>
-    <string name="sync_failed_server">Auf unserer Seite ist etwas schiefgelaufen. Bitte versuche es gleich noch einmal.</string>
-    <string name="sync_failed_storage">Auf diesem Gerät ist nicht genug Speicherplatz frei. Gib Speicher frei und versuche es erneut.</string>
-    <string name="sync_retry">Erneut versuchen</string>
     <string name="data_error_not_ready">Die Daten sind noch nicht bereit. Warte, bis der Download abgeschlossen ist.</string>
     <string name="data_error_name_taken">Dieser Name wird hier bereits verwendet. Wähle einen anderen.</string>
     <string name="data_error_in_use">Das kann nicht entfernt werden, solange es noch Etagen, Standorte oder Assets enthält.</string>

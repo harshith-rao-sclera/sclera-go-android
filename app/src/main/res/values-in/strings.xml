@@ -37,6 +37,7 @@
     <string name="property_none_match">Tidak ada properti yang cocok dengan “%1$s”.</string>
     <string name="property_download">Unduh %1$s</string>
     <string name="property_downloading">Mengunduh %1$s</string>
+    <string name="property_unpacking">Mengekstrak %1$s</string>
     <string name="property_downloaded">Telah diunduh</string>
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">Tidak dapat mengunduh %1$s. Coba lagi.</string>
@@ -398,16 +399,6 @@
     <string name="dash_clear_search_text">Hapus teks pencarian</string>
     <string name="detail_add_photo">Tambah foto</string>
     <string name="detail_voice_fill">Isi kolom dengan suara</string>
-    <string name="sync_title">Mengunduh data Anda</string>
-    <string name="sync_subtitle">Ini hanya terjadi pada pertama kali. Biarkan aplikasi tetap terbuka sampai selesai.</string>
-    <string name="sync_progress_description">Kemajuan unduhan</string>
-    <string name="sync_progress_mb">%1$.1f MB dari %2$.1f MB</string>
-    <string name="sync_failed_title">Tidak dapat mengunduh data Anda</string>
-    <string name="sync_failed_no_network">Anda sedang offline. Hubungkan ke internet dan coba lagi.</string>
-    <string name="sync_failed_session">Sesi Anda telah berakhir. Masuk lagi untuk melanjutkan.</string>
-    <string name="sync_failed_server">Terjadi masalah di pihak kami. Silakan coba lagi sebentar lagi.</string>
-    <string name="sync_failed_storage">Ruang kosong di perangkat ini tidak cukup. Kosongkan penyimpanan dan coba lagi.</string>
-    <string name="sync_retry">Coba lagi</string>
     <string name="data_error_not_ready">Data belum siap. Tunggu hingga unduhan selesai.</string>
     <string name="data_error_name_taken">Nama itu sudah digunakan di sini. Pilih nama lain.</string>
     <string name="data_error_in_use">Ini tidak dapat dihapus selama masih berisi lantai, lokasi, atau aset.</string>

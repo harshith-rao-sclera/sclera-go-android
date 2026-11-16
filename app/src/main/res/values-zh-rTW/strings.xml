@@ -37,6 +37,7 @@
     <string name="property_none_match">沒有符合「%1$s」的物業。</string>
     <string name="property_download">下載 %1$s</string>
     <string name="property_downloading">正在下載 %1$s</string>
+    <string name="property_unpacking">正在解壓縮 %1$s</string>
     <string name="property_downloaded">已下載</string>
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">無法下載 %1$s，請再試一次。</string>
@@ -398,16 +399,6 @@
     <string name="dash_clear_search_text">清除搜尋文字</string>
     <string name="detail_add_photo">新增照片</string>
     <string name="detail_voice_fill">語音填寫欄位</string>
-    <string name="sync_title">正在下載您的資料</string>
-    <string name="sync_subtitle">此操作僅會在首次執行時進行。完成前請保持應用程式開啟。</string>
-    <string name="sync_progress_description">下載進度</string>
-    <string name="sync_progress_mb">%1$.1f MB / %2$.1f MB</string>
-    <string name="sync_failed_title">無法下載您的資料</string>
-    <string name="sync_failed_no_network">您已離線。請連線至網際網路後再試一次。</string>
-    <string name="sync_failed_session">您的工作階段已結束。請重新登入以繼續。</string>
-    <string name="sync_failed_server">我們這邊發生問題。請稍後再試。</string>
-    <string name="sync_failed_storage">此裝置的可用空間不足。請釋出一些儲存空間後再試一次。</string>
-    <string name="sync_retry">重試</string>
     <string name="data_error_not_ready">資料尚未準備好。請等待下載完成。</string>
     <string name="data_error_name_taken">該名稱已被使用。請選擇其他名稱。</string>
     <string name="data_error_in_use">只要其中還有樓層、位置或資產，就無法刪除。</string>

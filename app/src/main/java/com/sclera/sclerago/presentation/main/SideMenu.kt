@@ -110,7 +110,7 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
     SideMenuPanel(
         open = s.menuOpen,
         session = (auth as? AuthState.SignedIn)?.session,
-        propertyName = vm.propName,
+        propertyName = vm.propName.takeIf { vm.hasProperty },
         assetCount = vm.assets.size,
         validationCount = vm.propJobs.size,
         active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen),
@@ -126,7 +126,8 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
 internal fun SideMenuPanel(
     open: Boolean,
     session: UserSession?,
-    propertyName: String,
+    /** The downloaded property; null until one is downloaded, and then its card and sections are hidden. */
+    propertyName: String?,
     assetCount: Int,
     validationCount: Int,
     active: MenuItem,
@@ -204,8 +205,8 @@ internal fun SideMenuPanel(
                 TopRow(MenuItem.PROPERTY, stringResource(R.string.property_list_title), Icons.Buildings, active, onPick)
                 TopRow(MenuItem.USERS, stringResource(R.string.menu_users), Icons.Users, active, onPick)
 
-                // Current property and its sections
-                Column(Modifier.fillMaxWidth().clip(r(14)).background(C.CardWash).border(1.dp, C.Border, r(14))) {
+                // Current property and its sections (none until a property is downloaded)
+                if (propertyName != null) Column(Modifier.fillMaxWidth().clip(r(14)).background(C.CardWash).border(1.dp, C.Border, r(14))) {
                     val chevron by animateFloatAsState(if (sectionsOpen) 0f else -90f, tween(200), label = "chevron")
                     Row(
                         Modifier.fillMaxWidth().padding(12.dp),

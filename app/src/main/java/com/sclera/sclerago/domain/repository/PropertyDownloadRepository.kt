@@ -7,9 +7,12 @@ import kotlinx.coroutines.flow.StateFlow
 interface PropertyDownloadRepository {
     val downloads: StateFlow<PropertyDownloads>
 
-    /** Starts downloading [propertyId] (replacing the property downloaded before); does nothing while it already runs. */
+    /**
+     * Starts downloading [propertyId] (replacing the property downloaded before); does nothing while it already runs.
+     * When it finishes, it becomes the recently used property.
+     */
     fun start(propertyId: String)
 
-    /** Re-reads which property is downloaded (the offline sync may have finished on its own). */
-    fun refresh()
+    /** Reopens the recently used property's data and keeps it syncing (after sign-in or an app start); nothing when there is none. */
+    fun resume()
 }

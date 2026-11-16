@@ -32,3 +32,19 @@ private fun SideMenuPreview() {
         }
     }
 }
+
+/** Before any property is downloaded: only Property list and Users, no current property. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun SideMenuNoPropertyPreview() {
+    ScleraTheme {
+        Box(Modifier.fillMaxSize().background(C.Bg)) {
+            SideMenuPanel(
+                open = true, session = SampleSession, propertyName = null, assetCount = 0, validationCount = 0,
+                active = MenuItem.PROPERTY, onClose = {}, onPick = {}, onSwitch = {}, onSignOut = {},
+            )
+        }
+    }
+}

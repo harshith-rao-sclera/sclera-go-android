@@ -37,6 +37,7 @@
     <string name="property_none_match">Brak nieruchomości pasujących do „%1$s”.</string>
     <string name="property_download">Pobierz %1$s</string>
     <string name="property_downloading">Pobieranie: %1$s</string>
+    <string name="property_unpacking">Rozpakowywanie: %1$s</string>
     <string name="property_downloaded">Pobrano</string>
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">Nie udało się pobrać: %1$s. Spróbuj ponownie.</string>
@@ -433,16 +434,6 @@
     <string name="dash_clear_search_text">Wyczyść tekst wyszukiwania</string>
     <string name="detail_add_photo">Dodaj zdjęcie</string>
     <string name="detail_voice_fill">Wypełnij pola głosem</string>
-    <string name="sync_title">Pobieranie Twoich danych</string>
-    <string name="sync_subtitle">Dzieje się to tylko za pierwszym razem. Nie zamykaj aplikacji do zakończenia.</string>
-    <string name="sync_progress_description">Postęp pobierania</string>
-    <string name="sync_progress_mb">%1$.1f MB z %2$.1f MB</string>
-    <string name="sync_failed_title">Nie udało się pobrać Twoich danych</string>
-    <string name="sync_failed_no_network">Brak połączenia z internetem. Połącz się z siecią i spróbuj ponownie.</string>
-    <string name="sync_failed_session">Twoja sesja wygasła. Zaloguj się ponownie, aby kontynuować.</string>
-    <string name="sync_failed_server">Coś poszło nie tak po naszej stronie. Spróbuj ponownie za chwilę.</string>
-    <string name="sync_failed_storage">Na urządzeniu brakuje wolnego miejsca. Zwolnij miejsce i spróbuj ponownie.</string>
-    <string name="sync_retry">Spróbuj ponownie</string>
     <string name="data_error_not_ready">Dane nie są jeszcze gotowe. Poczekaj na zakończenie pobierania.</string>
     <string name="data_error_name_taken">Ta nazwa jest już tu używana. Wybierz inną.</string>
     <string name="data_error_in_use">Nie można tego usunąć, dopóki zawiera piętra, lokalizacje lub zasoby.</string>

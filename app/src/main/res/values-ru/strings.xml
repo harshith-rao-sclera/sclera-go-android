@@ -37,6 +37,7 @@
     <string name="property_none_match">Нет объектов, соответствующих «%1$s».</string>
     <string name="property_download">Скачать %1$s</string>
     <string name="property_downloading">Скачивание: %1$s</string>
+    <string name="property_unpacking">Распаковка: %1$s</string>
     <string name="property_downloaded">Скачано</string>
     <string name="property_download_size">%1$s / %2$s МБ</string>
     <string name="property_download_failed">Не удалось скачать %1$s. Повторите попытку.</string>
@@ -433,16 +434,6 @@
     <string name="dash_clear_search_text">Очистить текст поиска</string>
     <string name="detail_add_photo">Добавить фото</string>
     <string name="detail_voice_fill">Заполнить поля голосом</string>
-    <string name="sync_title">Загрузка ваших данных</string>
-    <string name="sync_subtitle">Это происходит только в первый раз. Не закрывайте приложение до завершения.</string>
-    <string name="sync_progress_description">Ход загрузки</string>
-    <string name="sync_progress_mb">%1$.1f МБ из %2$.1f МБ</string>
-    <string name="sync_failed_title">Не удалось загрузить ваши данные</string>
-    <string name="sync_failed_no_network">Нет подключения к интернету. Подключитесь и повторите попытку.</string>
-    <string name="sync_failed_session">Сеанс завершён. Войдите снова, чтобы продолжить.</string>
-    <string name="sync_failed_server">На нашей стороне произошла ошибка. Повторите попытку чуть позже.</string>
-    <string name="sync_failed_storage">На устройстве недостаточно свободного места. Освободите память и повторите попытку.</string>
-    <string name="sync_retry">Повторить</string>
     <string name="data_error_not_ready">Данные ещё не готовы. Дождитесь окончания загрузки.</string>
     <string name="data_error_name_taken">Это имя уже используется. Выберите другое.</string>
     <string name="data_error_in_use">Это нельзя удалить, пока в нём остаются этажи, места или активы.</string>

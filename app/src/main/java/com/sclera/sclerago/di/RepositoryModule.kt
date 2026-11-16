@@ -25,11 +25,12 @@ abstract class RepositoryModule {
     @Binds abstract fun autofill(impl: OnlineAutofillRepository): AutofillRepository
 }
 
-/** Property list → download: a property's offline data through the asset sync. */
+/** Property list → download: a property's offline data through the asset sync, and the recent property (wiped on sign-out). */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class PropertyDownloadModule {
     @Binds abstract fun propertyDownloads(impl: SyncManagerPropertyDownloads): PropertyDownloadRepository
+    @Binds @IntoSet abstract fun clearPropertyDownloads(impl: SyncManagerPropertyDownloads): UserDataCleaner
 }
 
 /** Device files (photos, documents, spreadsheets). */

@@ -47,6 +47,7 @@ import com.sclera.sclerago.domain.usecase.config.ToggleFieldVisibleUseCase
 import com.sclera.sclerago.domain.usecase.location.ImportBuildingsUseCase
 import com.sclera.sclerago.domain.usecase.location.LocationUseCases
 import com.sclera.sclerago.domain.usecase.media.FileUseCases
+import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.validation.ValidationUseCases
 import com.sclera.sclerago.domain.usecase.validation.forProperty
@@ -68,12 +69,15 @@ import com.sclera.sclerago.services.scan.ScanServiceFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class Tab { BT, NET, ASSETS, CAMERA, FILE }
 enum class LocFilter { ALL, SPEC, NONE }
-enum class Sheet { NONE, LOC, PROP }
+enum class Sheet { NONE, LOC }
 enum class SheetFor { FILTER, ASSET, BULK }
 enum class NetMode { WIFI, AP }
 enum class MenuItem { PROPERTY, USERS, ASSETS, VALIDATION, CONFIGURATION, AUDIT, SURVEY, INTEGRATION }
@@ -114,9 +118,6 @@ data class UiState(
     val specSel: String = "",
     val sheet: Sheet = Sheet.NONE,
     val sheetFor: SheetFor = SheetFor.FILTER,
-    /** The current property; empty until the properties have loaded (then the first one). */
-    val prop: String = "",
-    val propQ: String = "",
     /** Scanned devices ticked on the Bluetooth / Network scan list, to add as assets together. */
     val devPick: Set<String> = emptySet(),
     /**
@@ -200,6 +201,7 @@ class AppViewModel @Inject constructor(
     private val configUseCases: AssetConfigUseCases,
     private val validationUseCases: ValidationUseCases,
     private val fileUseCases: FileUseCases,
+    private val downloads: PropertyDownloadUseCases,
 ) : ViewModel() {
     var state by mutableStateOf(UiState())
         private set
@@ -211,6 +213,7 @@ class AppViewModel @Inject constructor(
     // The data, as the screens read it (recomposing when it changes).
     private val catalog = assetUseCases.observe().observedIn(viewModelScope)
     private val propertyFlow = propertyUseCases.observe().observedIn(viewModelScope)
+    private val downloadFlow = downloads.observe().observedIn(viewModelScope)
     private val onboardingOff = propertyUseCases.observeOnboarding().observedIn(viewModelScope)
     private val tree = locationUseCases.observeTree().observedIn(viewModelScope)
     private val assetConfig = configUseCases.observe().observedIn(viewModelScope)
@@ -262,8 +265,11 @@ class AppViewModel @Inject constructor(
     private val tgtWhere: String get() = if (state.loc == LocFilter.SPEC) state.specWhere else ""
     private val tgtPlace: String? get() = if (state.loc == LocFilter.SPEC) state.specSel.ifEmpty { null } else null
 
-    /** The property being worked on: the one picked, else the first of the list (none while the list is empty). */
-    val currentProp: String get() = properties.firstOrNull { it.id == state.prop }?.id ?: properties.firstOrNull()?.id ?: state.prop
+    /** The property being worked on: the recently used one (downloaded last); empty until a property is downloaded. */
+    val currentProp: String get() = downloadFlow.value.downloadedId.orEmpty()
+
+    /** A property is downloaded, so its assets, sections and side-menu card can show. */
+    val hasProperty: Boolean get() = currentProp.isNotEmpty()
 
     val propName: String get() = properties.firstOrNull { it.id == currentProp }?.name.orEmpty()
     /** The location tab path, or null when no location is chosen yet. */
@@ -308,15 +314,6 @@ class AppViewModel @Inject constructor(
 
     /** The asset lists are on screen and nothing covers them (so selecting and searching make sense). */
     val listInteractive: Boolean get() = listy && !showDetail && !sheetOpen
-
-    fun propRows(): List<Pair<Property, String>> {
-        val ql = state.propQ.trim().lowercase()
-        val n = catalog.value.assets.size
-        return properties.filter { ql.isEmpty() || it.name.lowercase().contains(ql) }.map { p ->
-            val buildings = if (p.id == currentProp) tree.value.size else 0
-            p to if (n > 0) plural(n, "asset", "assets") + (if (buildings > 0) " · " + plural(buildings, "building", "buildings") else "") else "No assets yet"
-        }
-    }
 
     // ---------- Scanning: the scans themselves live in services/scan/ScanService ----------
 
@@ -467,12 +464,13 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun openProp() = set { copy(sheet = Sheet.PROP) }
+    /** Another property is chosen (and downloaded) on the Property list. */
+    fun openProp() = openAdmin(AdminPage.PROPERTIES)
 
     // Side menu
     fun openMenu() = set { copy(menuOpen = true) }
     fun closeMenu() = set { copy(menuOpen = false) }
-    fun switchPropertyFromMenu() = set { copy(menuOpen = false, sheet = Sheet.PROP) }
+    fun switchPropertyFromMenu() = openAdmin(AdminPage.PROPERTIES)
     fun pickMenu(item: MenuItem) {
         closeMenu()
         when (item) {
@@ -493,30 +491,14 @@ class AppViewModel @Inject constructor(
     fun openAdmin(page: AdminPage) = set {
         copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, assetId = null, newAsset = false)
     }
-    fun closeAdmin() = set { copy(adminPage = null) }
+    /** Back to the assets; without a downloaded property there are none, so the Property list stays. */
+    fun closeAdmin() = set { copy(adminPage = if (hasProperty) null else AdminPage.PROPERTIES) }
 
-    /** Opening a property from the list makes it the current one and shows its assets. */
+    /** Opening the downloaded property from the list shows its assets (other properties are downloaded first). */
     fun openPropertyFromList(id: String) {
+        if (id != currentProp) return
         closeAdmin()
-        pickProp(id)
         goTab(Tab.ASSETS)
-    }
-    fun closeProp() = set { copy(sheet = Sheet.NONE, propQ = "") }
-    fun setPropQ(v: String) = set { copy(propQ = v) }
-    fun pickProp(id: String) {
-        val changed = id != currentProp
-        set {
-            // A location belongs to its property: switching forgets the one chosen.
-            val keep = !changed
-            copy(
-                prop = id, sheet = Sheet.NONE, loc = LocFilter.ALL, assetId = null, propQ = "",
-                specLocs = if (keep) specLocs else emptyList(), specPath = if (keep) specPath else emptyList(),
-                specWhere = if (keep) specWhere else "", specSel = if (keep) specSel else "",
-            )
-        }
-        // The new property may not onboard over the tab that's open.
-        if (state.tab !in navTabs) goTab(Tab.ASSETS)
-        if (changed) flash(UiText.Res(R.string.property_showing, listOf(propName)))
     }
 
     fun openLocFilter() = set { copy(sheet = Sheet.LOC, sheetFor = SheetFor.FILTER) }
@@ -919,7 +901,26 @@ class AppViewModel @Inject constructor(
     init {
         // When the session ends, forget everything on screen so the next user starts clean.
         viewModelScope.launch {
-            observeAuthState().collect { if (it is AuthState.SignedOut) resetForNewSession() }
+            observeAuthState().map { it is AuthState.SignedIn }.distinctUntilChanged().collect { signedIn ->
+                if (signedIn) openRecentProperty() else resetForNewSession()
+            }
+        }
+        // A location belongs to its property: when the property changes, the one chosen is forgotten.
+        viewModelScope.launch {
+            downloads.observe().map { it.downloadedId }.distinctUntilChanged().collect {
+                set { copy(loc = LocFilter.ALL, specLocs = emptyList(), specPath = emptyList(), specWhere = "", specSel = "", assetId = null) }
+                if (state.tab !in navTabs) goTab(Tab.ASSETS)
+            }
+        }
+    }
+
+    /**
+     * After sign-in: the app opens on the recently used property's assets and reopens its data, or on the Property
+     * list when no property has been downloaded yet.
+     */
+    private fun openRecentProperty() {
+        viewModelScope.launch {
+            if (downloads.observe().first { it.restored }.downloadedId == null) openAdmin(AdminPage.PROPERTIES) else downloads.resume()
         }
     }
 

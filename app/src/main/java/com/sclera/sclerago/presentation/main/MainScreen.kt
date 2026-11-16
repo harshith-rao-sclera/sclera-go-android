@@ -50,7 +50,6 @@ import com.sclera.sclerago.presentation.components.CapturePreview
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.PermissionSheet
-import com.sclera.sclerago.presentation.components.PropertySheet
 import com.sclera.sclerago.presentation.components.ShakeEffect
 import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.readableWidth
@@ -254,7 +253,6 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
         }
 
         when (s.sheet) {
-            Sheet.PROP -> PropertySheet(vm)
             Sheet.LOC -> LocationPicker(
                 vm.currentProp, vm.propName, s.specSel, vm::closeLoc,
                 onPick = { r ->

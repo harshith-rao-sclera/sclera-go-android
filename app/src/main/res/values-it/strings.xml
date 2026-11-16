@@ -37,6 +37,7 @@
     <string name="property_none_match">Nessuna proprietà corrisponde a “%1$s”.</string>
     <string name="property_download">Scarica %1$s</string>
     <string name="property_downloading">Download di %1$s in corso</string>
+    <string name="property_unpacking">Decompressione di %1$s in corso</string>
     <string name="property_downloaded">Scaricato</string>
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">Impossibile scaricare %1$s. Riprova.</string>
@@ -428,16 +429,6 @@
     <string name="dash_clear_search_text">Cancella testo di ricerca</string>
     <string name="detail_add_photo">Aggiungi foto</string>
     <string name="detail_voice_fill">Compila i campi a voce</string>
-    <string name="sync_title">Download dei tuoi dati in corso</string>
-    <string name="sync_subtitle">Succede solo la prima volta. Tieni l’app aperta fino al termine.</string>
-    <string name="sync_progress_description">Avanzamento del download</string>
-    <string name="sync_progress_mb">%1$.1f MB di %2$.1f MB</string>
-    <string name="sync_failed_title">Impossibile scaricare i tuoi dati</string>
-    <string name="sync_failed_no_network">Sei offline. Connettiti a internet e riprova.</string>
-    <string name="sync_failed_session">La tua sessione è scaduta. Accedi di nuovo per continuare.</string>
-    <string name="sync_failed_server">Qualcosa è andato storto da parte nostra. Riprova tra un momento.</string>
-    <string name="sync_failed_storage">Non c’è abbastanza spazio libero su questo dispositivo. Libera spazio e riprova.</string>
-    <string name="sync_retry">Riprova</string>
     <string name="data_error_not_ready">I dati non sono ancora pronti. Attendi la fine del download.</string>
     <string name="data_error_name_taken">Questo nome è già in uso qui. Scegline un altro.</string>
     <string name="data_error_in_use">Non può essere rimosso finché contiene piani, posizioni o asset.</string>

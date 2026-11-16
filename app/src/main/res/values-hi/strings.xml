@@ -37,6 +37,7 @@
     <string name="property_none_match">“%1$s” से मेल खाती कोई संपत्ति नहीं है।</string>
     <string name="property_download">%1$s डाउनलोड करें</string>
     <string name="property_downloading">%1$s डाउनलोड हो रही है</string>
+    <string name="property_unpacking">%1$s अनज़िप हो रही है</string>
     <string name="property_downloaded">डाउनलोड हो गई</string>
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">%1$s डाउनलोड नहीं हो सकी। फिर से कोशिश करें।</string>
@@ -423,16 +424,6 @@
     <string name="dash_clear_search_text">खोज टेक्स्ट साफ़ करें</string>
     <string name="detail_add_photo">फ़ोटो जोड़ें</string>
     <string name="detail_voice_fill">आवाज़ से फ़ील्ड भरें</string>
-    <string name="sync_title">आपका डेटा डाउनलोड हो रहा है</string>
-    <string name="sync_subtitle">यह केवल पहली बार होता है। पूरा होने तक ऐप खुला रखें।</string>
-    <string name="sync_progress_description">डाउनलोड की प्रगति</string>
-    <string name="sync_progress_mb">%2$.1f MB में से %1$.1f MB</string>
-    <string name="sync_failed_title">आपका डेटा डाउनलोड नहीं हो सका</string>
-    <string name="sync_failed_no_network">आप ऑफ़लाइन हैं। इंटरनेट से कनेक्ट करें और फिर से प्रयास करें।</string>
-    <string name="sync_failed_session">आपका सत्र समाप्त हो गया है। जारी रखने के लिए फिर से साइन इन करें।</string>
-    <string name="sync_failed_server">हमारी ओर से कुछ गड़बड़ हुई। कृपया थोड़ी देर में फिर से प्रयास करें।</string>
-    <string name="sync_failed_storage">इस डिवाइस पर पर्याप्त खाली जगह नहीं है। कुछ स्टोरेज खाली करें और फिर से प्रयास करें।</string>
-    <string name="sync_retry">फिर से प्रयास करें</string>
     <string name="data_error_not_ready">डेटा अभी तैयार नहीं है। डाउनलोड पूरा होने तक प्रतीक्षा करें।</string>
     <string name="data_error_name_taken">यह नाम यहाँ पहले से उपयोग में है। कोई दूसरा नाम चुनें।</string>
     <string name="data_error_in_use">जब तक इसमें मंज़िलें, स्थान या एसेट मौजूद हैं, इसे हटाया नहीं जा सकता।</string>

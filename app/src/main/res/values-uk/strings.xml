@@ -37,6 +37,7 @@
     <string name="property_none_match">Немає об’єктів, що відповідають «%1$s».</string>
     <string name="property_download">Завантажити %1$s</string>
     <string name="property_downloading">Завантаження: %1$s</string>
+    <string name="property_unpacking">Розпакування: %1$s</string>
     <string name="property_downloaded">Завантажено</string>
     <string name="property_download_size">%1$s / %2$s МБ</string>
     <string name="property_download_failed">Не вдалося завантажити %1$s. Спробуйте ще раз.</string>
@@ -433,16 +434,6 @@
     <string name="dash_clear_search_text">Очистити текст пошуку</string>
     <string name="detail_add_photo">Додати фото</string>
     <string name="detail_voice_fill">Заповнити поля голосом</string>
-    <string name="sync_title">Завантаження ваших даних</string>
-    <string name="sync_subtitle">Це відбувається лише вперше. Не закривайте застосунок, доки не завершиться.</string>
-    <string name="sync_progress_description">Хід завантаження</string>
-    <string name="sync_progress_mb">%1$.1f МБ із %2$.1f МБ</string>
-    <string name="sync_failed_title">Не вдалося завантажити ваші дані</string>
-    <string name="sync_failed_no_network">Немає підключення до інтернету. Підключіться й спробуйте ще раз.</string>
-    <string name="sync_failed_session">Сеанс завершено. Увійдіть знову, щоб продовжити.</string>
-    <string name="sync_failed_server">Сталася помилка з нашого боку. Спробуйте ще раз за мить.</string>
-    <string name="sync_failed_storage">На пристрої недостатньо вільного місця. Звільніть пам’ять і спробуйте ще раз.</string>
-    <string name="sync_retry">Спробувати знову</string>
     <string name="data_error_not_ready">Дані ще не готові. Зачекайте завершення завантаження.</string>
     <string name="data_error_name_taken">Це ім’я вже використовується. Виберіть інше.</string>
     <string name="data_error_in_use">Це не можна видалити, доки в ньому залишаються поверхи, місця або активи.</string>

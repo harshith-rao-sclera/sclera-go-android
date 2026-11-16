@@ -157,6 +157,11 @@ object Icons {
     val Mail = Ico(s(rect(3f, 5f, 18f, 14f, 2f)), s("M4 7l8 6 8-6"))
     val ArrowRight = Ico(s("M5 12h14M13 6l6 6-6 6"))
     val Download = Ico(s("M12 4v11M7 10l5 5 5-5"), s("M5 20h14"))
+    /** A zipped file (page with a zipper and its pull): a download being unpacked. */
+    val Unzip = Ico(
+        s("M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"), s("M14 3v5h5"),
+        s("M10 5h1M12 7h1M10 9h1M12 11h1"), s(rect(9.5f, 14f, 4f, 4.5f, 1f)),
+    )
     val SignOut = Ico(s("M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"), s("M14 8l4 4-4 4M18 12H9"))
     val UserPlus = Ico(s(circle(9f, 8f, 4f)), s("M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1"), s("M19 8v6M16 11h6"))
     val Upload = Ico(s("M12 15V4M7 9l5-5 5 5"), s("M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"))

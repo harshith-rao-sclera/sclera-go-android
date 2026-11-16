@@ -4,6 +4,16 @@ import java.util.Locale
 import java.text.NumberFormat
 import kotlinx.coroutines.delay
 import com.sclera.sclerago.domain.model.PropertyDownload
+import com.sclera.sclerago.domain.model.inProgress
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -78,13 +88,15 @@ object PropertyTags {
     fun download(id: String) = "property_download_$id"
     fun progress(id: String) = "property_progress_$id"
     fun done(id: String) = "property_done_$id"
+    fun unpacking(id: String) = "property_unpacking_$id"
 }
 
 /** Property list (side menu): counts, import, search, open a property, add one. */
 @Composable
 fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    BackHandler(onBack = app::closeAdmin)
+    // Until a property is downloaded this is the app's first page, so Back leaves the app.
+    BackHandler(enabled = app.hasProperty, onBack = app::closeAdmin)
     DisposableEffect(Unit) { onDispose(vm::reset) }
     // Offline, properties that aren't downloaded fade out; check the connection while the page is shown.
     LaunchedEffect(Unit) {
@@ -140,10 +152,19 @@ internal fun PropertyListContent(
                 item { Header(state, onImport) }
                 items(state.rows, key = { it.property.id }) { row ->
                     val id = row.property.id
+                    val download = state.downloads.active[id]
+                    val downloaded = id == state.downloads.downloadedId
                     PropertyCard(
                         id, row.property.name, current = id == currentId,
-                        download = state.downloads.active[id], downloaded = id == state.downloads.downloadedId, online = state.online,
-                        onClick = { onOpen(id) }, onDownload = { onDownload(id) },
+                        download = download, downloaded = downloaded, online = state.online,
+                        // The downloaded property opens; another one is downloaded first (one property's data at a time).
+                        onClick = {
+                            when {
+                                downloaded -> onOpen(id)
+                                !download.inProgress -> onDownload(id)
+                            }
+                        },
+                        onDownload = { onDownload(id) },
                     )
                 }
                 if (state.rows.isEmpty()) item {
@@ -204,7 +225,8 @@ private fun PropertyCard(
     onDownload: () -> Unit,
 ) {
     val running = download as? PropertyDownload.Running
-    val faint = !online && !downloaded && running == null
+    val unpacking = download is PropertyDownload.Unpacking
+    val faint = !online && !downloaded && !download.inProgress
     Box(
         Modifier.fillMaxWidth().alpha(if (faint) FaintAlpha else 1f).clip(r(12)).background(C.Surface)
             .border(1.dp, if (faint) Color.Transparent else C.Border, r(12))
@@ -223,6 +245,13 @@ private fun PropertyCard(
             Txt(name, 14, 600, modifier = Modifier.weight(1f), maxLines = 2)
             when {
                 running != null -> DownloadProgress(name, running, Modifier.testTag(PropertyTags.progress(id)))
+                unpacking -> {
+                    val label = stringResource(R.string.property_unpacking, name)
+                    Box(
+                        Modifier.size(48.dp).semantics { contentDescription = label }.testTag(PropertyTags.unpacking(id)),
+                        contentAlignment = Alignment.Center,
+                    ) { LineIcon(Icons.Unzip, 22.dp, C.Yellow, 2f) }
+                }
                 download is PropertyDownload.Finished -> {
                     val done = stringResource(R.string.property_downloaded)
                     Box(
@@ -248,6 +277,8 @@ private fun PropertyCard(
         if (running != null) {
             Box(Modifier.align(Alignment.BottomStart).fillMaxWidth(running.fraction).height(3.dp).background(C.Yellow))
         }
+        // Unpacking takes an unknown time: a yellow piece slides along the same bottom edge until it is done.
+        if (unpacking) EndlessEdge(Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -272,6 +303,23 @@ private fun DownloadProgress(name: String, d: PropertyDownload.Running, modifier
         }
     }
 }
+
+/** A 3dp edge with a yellow piece sliding across it again and again (progress of unknown length). */
+@Composable
+private fun EndlessEdge(modifier: Modifier) {
+    val slide by rememberInfiniteTransition(label = "unpacking").animateFloat(
+        initialValue = -EdgePiece, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(EDGE_SWEEP_MS, easing = LinearEasing), RepeatMode.Restart),
+        label = "unpacking-edge",
+    )
+    BoxWithConstraints(modifier.fillMaxWidth().height(3.dp)) {
+        Box(Modifier.offset(x = maxWidth * slide).width(maxWidth * EdgePiece).height(3.dp).background(C.Yellow))
+    }
+}
+
+/** Share of the card's width the sliding piece takes, and how long one sweep lasts. */
+private const val EdgePiece = 0.35f
+private const val EDGE_SWEEP_MS = 1_100
 
 /** How faded a property that can't be used offline looks (as in the design). */
 private const val FaintAlpha = 0.26f

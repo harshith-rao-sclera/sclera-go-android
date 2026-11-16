@@ -1,126 +1,157 @@
 package com.sclera.sclerago.data.repository
 
+import com.sclera.sclerago.data.local.EncryptedCache
 import com.sclera.sclerago.di.IoDispatcher
 import com.sclera.sclerago.domain.model.PropertyDownload
 import com.sclera.sclerago.domain.model.PropertyDownloads
+import com.sclera.sclerago.domain.model.inProgress
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
-import com.sclera.sclerago.domain.system.TimeProvider
-import com.sclera.sclerago.services.syncManager.SyncManager
-import com.sclera.sclerago.services.syncManager.SyncManagerService
-import com.sclera.sclerago.services.syncManager.utils.SyncUtils
-import kotlinx.coroutines.CancellationException
+import com.sclera.sclerago.domain.repository.UserDataCleaner
+import com.sclera.sclerago.domain.sync.OfflineSync
+import com.sclera.sclerago.domain.sync.SyncState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.json.JSONObject
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** The asset sync's state of one property, as [SyncManager] reports it (it has no callbacks, so it is polled). */
-data class SyncSnapshot(val propertyId: String?, val status: Int, val progress: Int, val downloadedMb: Double, val totalMb: Double)
-
-/** The sync manager calls, behind an interface so the polling can be tested without the real sync. */
-interface AssetSync {
-    /** The running sync's state; null before asset sync has been started. */
-    fun snapshot(): SyncSnapshot?
-
-    /** Downloads [propertyId]'s offline data through `initAssetDataSync()`. */
-    fun download(propertyId: String)
-}
-
-/** [AssetSync] over the legacy [SyncManagerService] / [SyncManager] (one property's database at a time). */
-class LegacyAssetSync @Inject constructor() : AssetSync {
-    override fun snapshot(): SyncSnapshot? = SyncUtils.dbInstance?.let {
-        SyncSnapshot(it.propertyId, it.isSynced, it.progress, it.totalMBDownloaded, it.totalFileSizeMB)
-    }
-
-    override fun download(propertyId: String) {
-        // Downloads the property's database and keeps it in sync (switching from another property if needed).
-        SyncManagerService.initAssetDataSync(JSONObject().put("propertyId", propertyId))
-    }
-}
-
 /**
- * Property downloads through the asset sync: [start] hands the property to `initAssetDataSync()` and then
- * follows the sync's progress until it has the database (done) or gives up (failed).
+ * Property downloads through the offline sync: [start] hands the property to [OfflineSync] (which calls the
+ * engine's `initAssetDataSync()` with its id) and follows its state until the database is on the device or it fails.
+ * The device holds one property's data at a time, so starting another property replaces the downloaded one.
+ *
+ * The property downloaded last is the recently used one: its id is kept ([EncryptedCache], wiped on sign-out) so the
+ * app opens on it next time, and [resume] reopens its data then.
  */
 @Singleton
-class SyncManagerPropertyDownloads internal constructor(
-    private val sync: AssetSync,
-    private val time: TimeProvider,
-    io: CoroutineDispatcher,
-) : PropertyDownloadRepository {
-
-    @Inject constructor(sync: LegacyAssetSync, time: TimeProvider, @IoDispatcher io: CoroutineDispatcher) :
-        this(sync as AssetSync, time, io)
-
+class SyncManagerPropertyDownloads @Inject constructor(
+    private val sync: OfflineSync,
+    private val cache: EncryptedCache,
+    @IoDispatcher io: CoroutineDispatcher,
+) : PropertyDownloadRepository, UserDataCleaner {
     private val scope = CoroutineScope(SupervisorJob() + io)
     private val state = MutableStateFlow(PropertyDownloads())
     override val downloads: StateFlow<PropertyDownloads> = state.asStateFlow()
 
-    override fun refresh() {
-        scope.launch { state.update { it.copy(downloadedId = downloadedNow() ?: it.downloadedId) } }
-    }
+    private var following: Job? = null
 
-    override fun start(propertyId: String) {
-        if (state.value.active[propertyId] is PropertyDownload.Running) return
-        set(propertyId, PropertyDownload.Running(0f, 0.0, 0.0))
+    /** The property handed to the sync last (being downloaded, reopened or open). */
+    private var current: String? = null
+
+    init {
         scope.launch {
-            try {
-                sync.download(propertyId)
-                follow(propertyId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                set(propertyId, PropertyDownload.Failed)
-            }
+            val saved = cache.read(RECENT)?.takeIf { it.isNotBlank() }
+            state.update { it.copy(downloadedId = it.downloadedId ?: saved, restored = true) }
         }
     }
 
-    private suspend fun follow(propertyId: String) {
-        val startedAt = time.nowMillis()
-        while (true) {
-            delay(POLL_MS)
-            val s = sync.snapshot()?.takeIf { it.propertyId == propertyId }
-            when {
-                s?.status == SYNCED -> {
-                    state.update { it.copy(downloadedId = propertyId) }
-                    set(propertyId, PropertyDownload.Finished)
-                    delay(FINISHED_SHOWN_MS)
-                    state.update { it.copy(active = it.active - propertyId) }
-                    return
-                }
-                s?.status == FAILED -> {
-                    set(propertyId, PropertyDownload.Failed)
-                    return
-                }
-                // The sync never got going (no account yet, or it failed before reporting anything).
-                (s == null || s.status == NOT_STARTED) && time.nowMillis() - startedAt > START_TIMEOUT_MS -> {
-                    set(propertyId, PropertyDownload.Failed)
-                    return
-                }
-                s != null -> set(propertyId, PropertyDownload.Running((s.progress / 100f).coerceIn(0f, 1f), s.downloadedMb, s.totalMb))
-            }
+    @Synchronized
+    override fun start(propertyId: String) {
+        if (propertyId == current && state.value.active[propertyId].inProgress) return
+        following?.cancel()
+        val previous = current
+        current = propertyId
+        // Another property's data is dropped by this download, so it is no longer the recent one.
+        val replacing = state.value.downloadedId != propertyId
+        state.update { s ->
+            s.copy(
+                downloadedId = s.downloadedId.takeIf { !replacing },
+                active = s.active - setOfNotNull(previous) + (propertyId to PropertyDownload.Running(0f, 0.0, 0.0)),
+            )
+        }
+        sync.download(propertyId)
+        following = scope.launch {
+            if (replacing) save("")
+            follow(propertyId, quiet = false)
         }
     }
 
-    private fun downloadedNow(): String? = sync.snapshot()?.takeIf { it.status == SYNCED }?.propertyId
+    override fun resume() {
+        scope.launch {
+            val id = state.first { it.restored }.downloadedId ?: return@launch
+            reopen(id)
+        }
+    }
+
+    @Synchronized
+    private fun reopen(propertyId: String) {
+        if (current != null) return
+        current = propertyId
+        // The engine reuses the database already on the device (or downloads it again if it is gone).
+        sync.download(propertyId)
+        following = scope.launch { follow(propertyId, quiet = true) }
+    }
+
+    /** Follows the sync for [propertyId]; [quiet] (reopening at start) shows no progress and no failure. */
+    private suspend fun follow(propertyId: String, quiet: Boolean) {
+        // The engine never got going (no account yet, or it failed before reporting a size).
+        val started = withTimeoutOrNull(START_TIMEOUT_MS) {
+            sync.state.first { it !is SyncState.Downloading || it.totalMb != null }
+        }
+        if (started == null) {
+            if (!quiet) set(propertyId, PropertyDownload.Failed)
+            return
+        }
+        val end = sync.state.first { s ->
+            val busy = s is SyncState.Downloading || s is SyncState.Unpacking
+            if (busy && !quiet) show(propertyId, s)
+            !busy
+        }
+        when (end) {
+            SyncState.Ready -> {
+                state.update { it.copy(downloadedId = propertyId) }
+                save(propertyId)
+                if (quiet) return
+                set(propertyId, PropertyDownload.Finished)
+                delay(FINISHED_SHOWN_MS)
+                remove(propertyId)
+            }
+            is SyncState.Failed -> if (!quiet) set(propertyId, PropertyDownload.Failed)
+            // Stopped (signed out): nothing to show any more.
+            else -> remove(propertyId)
+        }
+    }
+
+    @Synchronized
+    override fun clear() {
+        following?.cancel()
+        following = null
+        current = null
+        state.value = PropertyDownloads(restored = true)
+    }
+
+    private fun show(propertyId: String, s: SyncState) {
+        val d = when (s) {
+            is SyncState.Downloading -> {
+                val fraction = ((s.progressPercent ?: 0) / 100f).coerceIn(0f, 1f)
+                PropertyDownload.Running(fraction, s.downloadedMb ?: 0.0, s.totalMb ?: 0.0)
+            }
+            SyncState.Unpacking -> PropertyDownload.Unpacking
+            else -> return
+        }
+        set(propertyId, d)
+    }
+
+    /** Keeps [propertyId] as the recent property ("" forgets it). Not kept, the app just opens on the property list. */
+    private fun save(propertyId: String) {
+        runCatching { cache.write(RECENT, propertyId) }
+    }
 
     private fun set(propertyId: String, d: PropertyDownload) = state.update { it.copy(active = it.active + (propertyId to d)) }
 
-    internal companion object {
-        // SyncManager.isSynced: 0 not started, 1 downloading, 2 has the database, 3 failed, 4 unzipping.
-        const val NOT_STARTED = 0
-        const val SYNCED = 2
-        const val FAILED = 3
+    private fun remove(propertyId: String) = state.update { it.copy(active = it.active - propertyId) }
 
-        const val POLL_MS = 250L
+    private companion object {
+        const val RECENT = "recent_property"
         const val FINISHED_SHOWN_MS = 1_400L
         const val START_TIMEOUT_MS = 30_000L
     }

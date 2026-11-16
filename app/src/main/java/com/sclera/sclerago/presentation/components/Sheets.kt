@@ -29,61 +29,11 @@ import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
-import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.main.Preview
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
 private val SheetShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
-
-// ---------------------------------------------------------------- Property
-
-@Composable
-fun PropertySheet(vm: AppViewModel) {
-    val s = vm.state
-    val rows = vm.propRows()
-    BackHandler(onBack = vm::closeProp)
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(vm::closeProp)) {
-        Column(
-            sheetFrame(C.Surface).imePadding()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 22.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Txt("Select property", 17, 700, modifier = Modifier.weight(1f))
-                CloseButton(vm::closeProp)
-            }
-            SearchField(s.propQ, vm::setPropQ, "Search properties")
-            LazyColumn(Modifier.heightIn(max = 330.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(rows, key = { it.first.id }) { (p, sub) ->
-                    val on = p.id == vm.currentProp
-                    Row(
-                        Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(r(12)).background(if (on) C.YTintBg else Color.Transparent)
-                            .clickable { vm.pickProp(p.id) }.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Box(Modifier.size(36.dp).background(C.Raised, r(10)), contentAlignment = Alignment.Center) {
-                            LineIcon(Icons.Property, 19.dp, if (on) C.Yellow else C.Muted)
-                        }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Txt(p.name, 14, if (on) 700 else 500, if (on) C.Yellow else C.Text)
-                            Txt(sub, 11, 400, C.Muted)
-                        }
-                        if (p.gps) {
-                            Box(
-                                Modifier.clip(r(6)).background(C.YTintBg).border(1.dp, C.YTintBd, r(6)).padding(horizontal = 6.dp, vertical = 2.dp),
-                            ) { Txt("GPS", 10, 700, C.Yellow, spacing = 0.4f) }
-                        }
-                        RadioDot(on)
-                    }
-                }
-                if (rows.isEmpty()) item { Txt("No property matches that name.", 13, 400, C.Muted, Modifier.padding(12.dp, 4.dp)) }
-            }
-        }
-    }
-}
 
 // ---------------------------------------------------------------- Location picker
 

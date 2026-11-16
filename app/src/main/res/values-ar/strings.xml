@@ -37,6 +37,7 @@
     <string name="property_none_match">لا توجد عقارات تطابق “%1$s”.</string>
     <string name="property_download">تنزيل %1$s</string>
     <string name="property_downloading">جارٍ تنزيل %1$s</string>
+    <string name="property_unpacking">جارٍ فك ضغط %1$s</string>
     <string name="property_downloaded">تم التنزيل</string>
     <string name="property_download_size">%1$s / %2$s ميغابايت</string>
     <string name="property_download_failed">تعذّر تنزيل %1$s. حاول مرة أخرى.</string>
@@ -443,16 +444,6 @@
     <string name="dash_clear_search_text">مسح نص البحث</string>
     <string name="detail_add_photo">إضافة صورة</string>
     <string name="detail_voice_fill">تعبئة الحقول بالصوت</string>
-    <string name="sync_title">جارٍ تنزيل بياناتك</string>
-    <string name="sync_subtitle">يحدث هذا في المرة الأولى فقط. أبقِ التطبيق مفتوحًا حتى ينتهي.</string>
-    <string name="sync_progress_description">تقدم التنزيل</string>
-    <string name="sync_progress_mb">%1$.1f ميغابايت من %2$.1f ميغابايت</string>
-    <string name="sync_failed_title">تعذّر تنزيل بياناتك</string>
-    <string name="sync_failed_no_network">أنت غير متصل بالإنترنت. اتصل بالإنترنت وحاول مرة أخرى.</string>
-    <string name="sync_failed_session">انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.</string>
-    <string name="sync_failed_server">حدث خطأ من جانبنا. يُرجى المحاولة مرة أخرى بعد قليل.</string>
-    <string name="sync_failed_storage">لا توجد مساحة كافية على هذا الجهاز. أخلِ بعض المساحة وحاول مرة أخرى.</string>
-    <string name="sync_retry">حاول مرة أخرى</string>
     <string name="data_error_not_ready">البيانات ليست جاهزة بعد. انتظر حتى ينتهي التنزيل.</string>
     <string name="data_error_name_taken">هذا الاسم مستخدم بالفعل هنا. اختر اسمًا آخر.</string>
     <string name="data_error_in_use">لا يمكن إزالة هذا ما دام يحتوي على طوابق أو مواقع أو أصول.</string>

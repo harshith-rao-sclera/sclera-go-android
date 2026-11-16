@@ -3,6 +3,8 @@ package com.sclera.sclerago.presentation.property
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.domain.model.PropertyDownload
+import com.sclera.sclerago.domain.model.PropertyDownloads
 import com.sclera.sclerago.domain.model.PropertySummary
 import com.sclera.sclerago.presentation.theme.ScleraTheme
 
@@ -23,6 +25,22 @@ internal val SamplePropertyState = PropertyListState(
 private fun PropertyListPreview() {
     ScleraTheme {
         PropertyListContent(SamplePropertyState, "p1", onBack = {}, onQuery = {}, onOpen = {}, onAdd = {}, onImport = {})
+    }
+}
+
+/** One property downloading (percent, MB and the bottom edge), one unzipping (icon and the sliding edge), one downloaded. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun PropertyListDownloadsPreview() {
+    val downloads = PropertyDownloads(
+        downloadedId = "p1",
+        active = mapOf("p2" to PropertyDownload.Running(0.42f, 5.2, 12.4), "p3" to PropertyDownload.Unpacking),
+        restored = true,
+    )
+    ScleraTheme {
+        PropertyListContent(SamplePropertyState.copy(downloads = downloads), "p1", onBack = {}, onQuery = {}, onOpen = {}, onAdd = {}, onImport = {})
     }
 }
 

@@ -15,14 +15,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * [OfflineSync] on top of the Java sync engine: starts it with the signed-in user's credentials, turns its
- * progress fields into [SyncState] by polling while it downloads, and keeps its token fresh.
+ * [OfflineSync] on top of the Java sync engine: starts it for a property with the signed-in user's credentials,
+ * turns its progress fields into [SyncState] by polling while it downloads, and keeps its token fresh.
  */
 @Singleton
 class AdcSyncController @Inject constructor(
@@ -38,22 +40,19 @@ class AdcSyncController @Inject constructor(
 
     private var runJob: Job? = null
     private var tokenJob: Job? = null
+    private var propertyId: String? = null
 
     init {
         bridge.setTablesChangedListener(invalidations::emit)
     }
 
     @Synchronized
-    override fun start() {
-        if (runJob?.isActive == true) return
-        launchRun(restart = false)
-    }
-
-    @Synchronized
-    override fun retry() {
-        if (_state.value !is SyncState.Failed) return
+    override fun download(propertyId: String) {
+        if (propertyId == this.propertyId && runJob?.isActive == true) return
+        val restart = _state.value is SyncState.Failed
         runJob?.cancel()
-        launchRun(restart = true)
+        this.propertyId = propertyId
+        launchRun(propertyId, restart)
     }
 
     @Synchronized
@@ -62,21 +61,27 @@ class AdcSyncController @Inject constructor(
         tokenJob?.cancel()
         runJob = null
         tokenJob = null
+        propertyId = null
         _state.value = SyncState.NotStarted
     }
 
-    private fun launchRun(restart: Boolean) {
+    private fun launchRun(propertyId: String, restart: Boolean) {
         if (bridge.usesTestDatabase()) {
             _state.value = SyncState.Ready
             invalidations.emitAll()
             return
         }
-        val credentials = credentialsProvider.credentials.value ?: return
         _state.value = SyncState.Downloading()
-        tokenJob?.cancel()
-        tokenJob = scope.launch(io) { pushRefreshedCredentials() }
+        if (tokenJob?.isActive != true) tokenJob = scope.launch(io) { pushRefreshedCredentials() }
         runJob = scope.launch(io) {
-            if (restart) bridge.restart(credentials) else bridge.begin(credentials)
+            // Right after an app start the session may still be loading.
+            val credentials = withTimeoutOrNull(CREDENTIALS_WAIT_MS) { credentialsProvider.credentials.filterNotNull().first() }
+            if (credentials == null) {
+                _state.value = SyncState.Failed(SyncFailure.SESSION_EXPIRED)
+                return@launch
+            }
+            // The engine drops the previous property's database itself when the property changes.
+            if (restart) bridge.restart(credentials, propertyId) else bridge.begin(credentials, propertyId)
             watchEngine()
         }
     }
@@ -105,6 +110,8 @@ class AdcSyncController @Inject constructor(
         !s.hasInstance -> SyncState.Failed(failureReason())
         s.readable -> SyncState.Ready
         s.status == ENGINE_FAILED -> SyncState.Failed(failureReason())
+        // Unzipping, then (synced but not readable yet) pulling the table configuration.
+        s.status == ENGINE_UNZIPPING || s.status == ENGINE_SYNCED -> SyncState.Unpacking
         s.totalMb > 0.0 -> SyncState.Downloading(s.progressPercent.takeIf { it > 0 }, s.downloadedMb, s.totalMb)
         else -> SyncState.Downloading()
     }
@@ -118,6 +125,9 @@ class AdcSyncController @Inject constructor(
 
     private companion object {
         const val POLL_MS = 500L
+        const val CREDENTIALS_WAIT_MS = 10_000L
+        const val ENGINE_SYNCED = 2
         const val ENGINE_FAILED = 3
+        const val ENGINE_UNZIPPING = 4
     }
 }

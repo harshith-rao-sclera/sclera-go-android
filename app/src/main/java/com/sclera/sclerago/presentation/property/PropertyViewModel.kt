@@ -85,7 +85,6 @@ class PropertyViewModel @Inject constructor(
                 if (e.error != OnlineError.Offline) flags.update { it.copy(notice = e.error.toUiText()) }
             }
         }
-        downloads.refresh()
         viewModelScope.launch {
             downloads.observe().collect { d ->
                 val failed = d.active.filterValues { it is PropertyDownload.Failed }.keys

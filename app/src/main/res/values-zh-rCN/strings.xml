@@ -37,6 +37,7 @@
     <string name="property_none_match">没有与“%1$s”匹配的物业。</string>
     <string name="property_download">下载 %1$s</string>
     <string name="property_downloading">正在下载 %1$s</string>
+    <string name="property_unpacking">正在解压 %1$s</string>
     <string name="property_downloaded">已下载</string>
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">无法下载 %1$s，请重试。</string>
@@ -398,16 +399,6 @@
     <string name="dash_clear_search_text">清除搜索文字</string>
     <string name="detail_add_photo">添加照片</string>
     <string name="detail_voice_fill">语音填写字段</string>
-    <string name="sync_title">正在下载您的数据</string>
-    <string name="sync_subtitle">此操作仅在首次运行时进行。请在完成前保持应用打开。</string>
-    <string name="sync_progress_description">下载进度</string>
-    <string name="sync_progress_mb">%1$.1f MB / %2$.1f MB</string>
-    <string name="sync_failed_title">无法下载您的数据</string>
-    <string name="sync_failed_no_network">您已离线。请连接互联网后重试。</string>
-    <string name="sync_failed_session">您的会话已结束。请重新登录以继续。</string>
-    <string name="sync_failed_server">我们这边出了点问题。请稍后重试。</string>
-    <string name="sync_failed_storage">此设备的可用空间不足。请释放一些存储空间后重试。</string>
-    <string name="sync_retry">重试</string>
     <string name="data_error_not_ready">数据尚未准备好。请等待下载完成。</string>
     <string name="data_error_name_taken">该名称已被使用。请选择其他名称。</string>
     <string name="data_error_in_use">只要其中还有楼层、位置或资产，就无法删除。</string>

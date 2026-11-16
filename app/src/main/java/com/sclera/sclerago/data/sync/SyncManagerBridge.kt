@@ -19,6 +19,8 @@ import javax.inject.Singleton
 /** What the Java sync engine reports about itself at one moment. */
 data class EngineSnapshot(
     val hasInstance: Boolean = false,
+    /** The property whose data the engine holds or is downloading. */
+    val propertyId: String? = null,
     /** The engine's own status: 0 none, 1 downloading, 2 synced, 3 failed, 4 unzipping. */
     val status: Int = 0,
     val progressPercent: Int = 0,
@@ -52,6 +54,7 @@ class SyncManagerBridge @Inject constructor(
         val conn = engine.dbConnection?.takeIf { it.isOpen }
         return EngineSnapshot(
             hasInstance = true,
+            propertyId = engine.propertyId,
             status = engine.isSynced,
             progressPercent = engine.progress,
             totalMb = engine.totalFileSizeMB,
@@ -70,12 +73,18 @@ class SyncManagerBridge @Inject constructor(
     /** True when the device is too full for the download the engine was told about. */
     fun storageLow(): Boolean = runCatching { SyncUtils.checkStorage(MODULE) }.getOrDefault(false)
 
-    /** Hands the signed-in user to the engine, which downloads the database and starts syncing on its own threads. Blocking but short. */
-    fun begin(credentials: SyncCredentials) = synchronized(lock) {
+    /**
+     * Hands the signed-in user and [propertyId] to the engine, which downloads that property's database and starts
+     * syncing on its own threads. Blocking but short.
+     */
+    fun begin(credentials: SyncCredentials, propertyId: String) = synchronized(lock) {
         Utility.context = context
         // A different user's data on this device is dropped before the new user's download starts.
         SyncManagerService.deleteDatabaseIfWrongUser(credentials.email)
+        // So is another property's: the engine holds one property's database at a time.
+        dropOtherProperty(propertyId)
         val config = JSONObject()
+            .put("propertyId", propertyId)
             .put("id", credentials.userId)
             .put("url", AuthConfig.APP_URL)
             .put("email", credentials.email)
@@ -89,10 +98,43 @@ class SyncManagerBridge @Inject constructor(
     }
 
     /** Starts over with a fresh engine instance (a failed one cannot be reused cleanly). */
-    fun restart(credentials: SyncCredentials) = synchronized(lock) {
+    fun restart(credentials: SyncCredentials, propertyId: String) = synchronized(lock) {
+        // Dropped first while the engine still says which property it held, so its data isn't kept for another one.
+        dropOtherProperty(propertyId)
         SyncUtils.dbInstance?.let { runCatching { it.closeConnection() } }
         SyncUtils.dbInstance = null
-        begin(credentials)
+        begin(credentials, propertyId)
+    }
+
+    /**
+     * Stops the engine and deletes the downloaded database when it belongs to a property other than [propertyId]
+     * (or to one it can't name), so a new engine never opens another property's data as its own.
+     */
+    private fun dropOtherProperty(propertyId: String) {
+        val running = SyncUtils.dbInstance
+        val held = running?.propertyId ?: storedPropertyId()
+        val hasDatabase = context.getDatabasePath("$NAME.db").exists() || context.getDatabasePath("$NAME.zip").exists()
+        if (held == propertyId || (running == null && !hasDatabase)) return
+        running?.let {
+            it.setContinueDataSync(false)
+            it.setContinueImageSync(false)
+            it.setContinueLargeFileSync(false)
+            runCatching { it.closeConnection() }
+        }
+        SyncUtils.dbInstance = null
+        listOf("$NAME.db", "$NAME.zip").forEach { context.deleteDatabase(it) }
+        SyncUtils.getSharedPrefs(context).edit().remove(STATUS_KEY).remove("adc_sync_timestamp").remove("adc_total_images").apply()
+    }
+
+    /** The property the engine last saved in its config table, or null when there is none (or no such column yet). */
+    private fun storedPropertyId(): String? {
+        if (!context.getDatabasePath(GLOBAL_DB).exists()) return null
+        return runCatching {
+            GlobalConfigDatabaseHelper.initializeInstance(context).globalDB.rawQuery(
+                "SELECT ${GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID} FROM ${GlobalConfigDatabaseHelper.TABLE_NAME_ASSET_CONFIG} LIMIT 1",
+                null,
+            ).use { if (it.moveToFirst() && !it.isNull(0)) it.getString(0) else null }
+        }.getOrNull()
     }
 
     /** Gives the engine a refreshed token, session or organisation so its next request is accepted. */

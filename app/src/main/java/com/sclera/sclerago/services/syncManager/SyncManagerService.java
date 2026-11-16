@@ -47,43 +47,17 @@ public class SyncManagerService {
     public static void initAssetDataSync(JSONObject jsonObject) {
         try {
             AssetCollectionData assetCollectionData = SyncUtils.objectMapper.readValue(jsonObject.toString(), AssetCollectionData.class);
-//            String user = assetCollectionData.getEmail();
-//            String userId = assetCollectionData.getId();
-//            String role = assetCollectionData.getRole();
-//            String url = assetCollectionData.getUrl();
-//
-//            String token = assetCollectionData.getAccessToken();
-//            String orgId = assetCollectionData.getOrganisationId();
-//            String sessionId = assetCollectionData.getSessionId();
-//            String sessionUrl = assetCollectionData.getSessionUrl();
-//            String cloudUrl = assetCollectionData.getCloudUrl();
+            String user = assetCollectionData.getEmail();
+            String userId = assetCollectionData.getId();
+            String role = assetCollectionData.getRole();
+            String url = assetCollectionData.getUrl();
 
-            String user = "john.doe@example.com";
-            String userId = "USR_123456";
-            String role = "ADMIN";
-            String url = "https://adc.vdms163.qa-gateway.scleravdms.com";
-            String token = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJyZ2oxUUc2MWFERHVPSXRFWURGbHBXajllQzNUZ2YwZ3gwSHBMSkdFQlhnIn0.eyJleHAiOjE3OTQ1NjEwNDEsImlhdCI6MTc5NDU1ODM0MSwiYXV0aF90aW1lIjoxNzk0NTUwNjA3LCJqdGkiOiIwZmM5ZmNmYy1iOTE5LTRmMDMtYWMyYi00MzI4YTRkZWU1MGQiLCJpc3MiOiJodHRwczovL3FhLWFjY291bnRzLnNjbGVyYS5jb20vYXV0aC9yZWFsbXMvU2NsZXJhIiwic3ViIjoiNTc5NGM3NDUtMTY5Mi00YzYzLThiMWUtZWJmYTg5OGEzMWIyIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic2NsZXJhIiwibm9uY2UiOiJXZEZneFlFOWFDcEdXdmpNclRtNF9DZFpRb1BJbTZEQk1jNFJSNXVUbWhVIiwic2Vzc2lvbl9zdGF0ZSI6IjQ5OGQxNGU1LTdhMTUtNGYxYy04YTliLTEyZjczMzlmNjMyYyIsInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyJdfSwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCBvZmZsaW5lX2FjY2VzcyIsInNpZCI6IjQ5OGQxNGU1LTdhMTUtNGYxYy04YTliLTEyZjczMzlmNjMyYyIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoibWFzdGVyIFVzZXIgQnJpamVzaCIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hc3RlcnVzZXIuYnJpamVzaEBzY2xlcmEuY29tIiwibG9jYWxlIjoiRU4iLCJnaXZlbl9uYW1lIjoibWFzdGVyIFVzZXIgQnJpamVzaCIsImVtYWlsIjoibWFzdGVydXNlci5icmlqZXNoQHNjbGVyYS5jb20ifQ.ZkJExuMtlbbC-DcYcJGZNV5uDsAs201SN52b56siMuR1kiqQr15TIr2KXg7eJxqyvTiLHQ9GdmOzVDC15sD_WRcE_5I8k8OoMeV-TJvca6rtaU0vCVCDmv2CrTouDe0hj6XMOLNkKeRtGD0nn6CtjJZ6-KkhTmokddsDfeLgXVHifxFh0I6Hh6JKPiC9OEr3WAY1NbkoqIi_gSSdJYycTi-XSHOXykbOE8iLVK0dKZ5sRHmzP2NCjBEs2eOxmcO3a96LaNE-kdxhmIbR2rslO_wYLgffccsXPCh30zUgZOJIRkeCtZAiCtN0mmri_h1Y9KvA0lBpLjr9DTsuKYJ-cA";
-            String orgId = "ORG_987654";
-            String sessionId = "498d14e5-7a15-4f1c-8a9b-12f7339f632c";
-            String sessionUrl = "https://app.example.com/session/SES_123456789";
-            // The property chosen on the Property list (download button), else the one this was started with.
-            String propertyId = assetCollectionData.getPropertyId() != null ? assetCollectionData.getPropertyId() : "01a1cec7-04a1-7979-95ee-44f8531ec489";
-            String cloudUrl = "https://cloud.example.com";
-
-            // Another property was downloaded before: the sync holds one property's database at a time, so stop
-            // it and drop that database; the code below then starts a new sync that downloads this property.
-            SyncManager running = SyncUtils.dbInstance;
-            if (running != null && running.propertyId != null && !running.propertyId.equals(propertyId)) {
-                running.setContinueDataSync(false);
-                running.setContinueImageSync(false);
-                running.setContinueLargeFileSync(false);
-                running.closeConnection();
-                String dbName = OfflineFeatures.ASSET_DATA_COLLECTION.toString();
-                Utility.context.deleteDatabase(dbName + ".db");
-                Utility.context.getDatabasePath(dbName + ".zip").delete();
-                SyncUtils.getSharedPrefs(Utility.context).edit().putInt("adc_sync_status", 0).remove("adc_sync_timestamp").apply();
-                SyncUtils.dbInstance = null;
-            }
+            String token = assetCollectionData.getAccessToken();
+            String orgId = assetCollectionData.getOrganisationId();
+            String sessionId = assetCollectionData.getSessionId();
+            String sessionUrl = assetCollectionData.getSessionUrl();
+            String cloudUrl = assetCollectionData.getCloudUrl();
+            String propertyId = assetCollectionData.getPropertyId();
 
             SyncManager.token = token;
             SyncManager.sessionId = sessionId;
