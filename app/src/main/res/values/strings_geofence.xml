@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration → Geofencing (search, Satellite, enforce, fence list, drawing bar). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="cfg_geo_search">Search address</string>
+    <string name="cfg_geo_satellite">Satellite</string>
+    <string name="cfg_geo_map">Map</string>
+    <string name="cfg_geo_enforce_title">Enforce location restriction</string>
+    <string name="cfg_geo_enforce_hint">When on, assets can only be collected inside the fences.</string>
+    <string name="cfg_geo_fence_name">Fence %1$d</string>
+    <plurals name="cfg_geo_corners">
+        <item quantity="one">%1$d corner</item>
+        <item quantity="other">%1$d corners</item>
+    </plurals>
+    <string name="cfg_geo_delete_fence_cd">Delete fence %1$d</string>
+    <string name="cfg_geo_draw_fence">Draw fence</string>
+    <string name="cfg_geo_corner_hint">Drag a corner to move it. Tap the small handle on a side to add a corner, or tap a corner, then Remove corner.</string>
+    <string name="cfg_geo_remove_corner">Remove corner</string>
+    <plurals name="cfg_geo_drawing">
+        <item quantity="one">%1$d corner · keep tapping, then Finish.</item>
+        <item quantity="other">%1$d corners · keep tapping, then Finish.</item>
+    </plurals>
+</resources>

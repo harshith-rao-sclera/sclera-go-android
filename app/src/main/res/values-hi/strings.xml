@@ -33,7 +33,6 @@
     <string name="property_add_fab">संपत्ति जोड़ें</string>
     <string name="label_properties">संपत्तियाँ</string>
     <string name="label_assets">एसेट</string>
-    <string name="property_import_strip">स्प्रेडशीट से आयात करें</string>
     <string name="property_none_match">“%1$s” से मेल खाती कोई संपत्ति नहीं है।</string>
     <string name="property_loading">संपत्तियाँ लोड हो रही हैं…</string>
     <string name="property_none">अभी कोई संपत्ति नहीं है।</string>
@@ -44,11 +43,6 @@
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">%1$s डाउनलोड नहीं हो सकी। फिर से कोशिश करें।</string>
     <string name="property_download_offline">आप ऑफ़लाइन हैं। प्रॉपर्टी डाउनलोड करने के लिए कनेक्ट करें।</string>
-    <string name="property_added">%1$s जोड़ी गई</string>
-    <string name="property_import_notice">“%1$s” अपलोड हो गई · आयात अभी सर्वर से जुड़ा नहीं है</string>
-    <string name="property_problem_name">संपत्ति का नाम दर्ज करें।</string>
-    <string name="property_problem_type">संपत्ति का प्रकार चुनें।</string>
-    <string name="property_problem_duplicate">%1$s नाम की संपत्ति पहले से मौजूद है।</string>
     <string name="import_title">आयात</string>
     <string name="import_choose_file">फ़ाइल चुनने के लिए टैप करें</string>
     <string name="import_choose_different">दूसरी फ़ाइल चुनने के लिए टैप करें</string>
@@ -63,26 +57,18 @@
     <string name="import_sample_download">नमूना फ़ॉर्मैट डाउनलोड करें</string>
     <string name="import_proceed">आगे बढ़ें</string>
     <string name="property_add_title">नई संपत्ति जोड़ें</string>
-    <string name="property_add_sub">नाम और प्रकार आवश्यक हैं।</string>
     <string name="property_add_primary">जोड़ें</string>
     <string name="property_group_details">संपत्ति का विवरण</string>
-    <string name="property_group_address">पता</string>
     <string name="property_group_contact">मुख्य संपर्क</string>
     <string name="property_group_notes">टिप्पणियाँ</string>
     <string name="property_group_availability">उपलब्धता</string>
-    <string name="property_ready">तैयार</string>
-    <string name="property_required_count">%1$d आवश्यक</string>
-    <string name="property_notes_none">अभी तक नहीं</string>
-    <string name="property_notes_added">जोड़ी गई</string>
     <string name="property_notes_hint">टिप्पणियाँ दर्ज करें</string>
     <string name="field_name">नाम</string>
-    <string name="field_type">प्रकार</string>
     <string name="field_country">देश</string>
     <string name="field_state">राज्य</string>
     <string name="field_region">क्षेत्र</string>
     <string name="field_city">शहर</string>
     <string name="field_email">ईमेल</string>
-    <string name="field_phone">फ़ोन</string>
     <string name="field_address_line1">पता पंक्ति 1</string>
     <string name="field_address_line2">पता पंक्ति 2</string>
     <string name="field_start_time">प्रारंभ समय</string>
@@ -90,11 +76,7 @@
     <string name="field_access_code">एक्सेस कोड</string>
     <string name="property_name_hint">संपत्ति का नाम दर्ज करें</string>
     <string name="property_select_type">प्रकार चुनें</string>
-    <string name="property_select_country">देश चुनें</string>
-    <string name="property_select_state">राज्य चुनें</string>
     <string name="property_select_region">क्षेत्र चुनें</string>
-    <string name="property_choose_country_first">पहले देश चुनें</string>
-    <string name="property_no_states">इस देश के लिए कोई राज्य नहीं है</string>
     <string name="property_enter_city">शहर दर्ज करें</string>
     <string name="field_address_line1_hint">पता पंक्ति 1 दर्ज करें</string>
     <string name="field_address_line2_hint">पता पंक्ति 2 दर्ज करें</string>
@@ -104,7 +86,6 @@
     <string name="field_access_code_hint">एक्सेस कोड दर्ज करें</string>
     <string name="menu_users">उपयोगकर्ता</string>
     <string name="menu_current_property">वर्तमान संपत्ति</string>
-    <string name="menu_switch">बदलें</string>
     <string name="menu_soon">जल्द आ रहा है</string>
     <string name="menu_validation">सत्यापन</string>
     <string name="menu_configuration">कॉन्फ़िगरेशन</string>
@@ -115,6 +96,7 @@
     <string name="menu_sign_out_title">साइन आउट करें?</string>
     <string name="menu_sign_out_message">Sclera Go का उपयोग करने के लिए आपको %1$s से फिर साइन इन करना होगा।</string>
     <string name="menu_sign_out_message_generic">Sclera Go का उपयोग करने के लिए आपको फिर साइन इन करना होगा।</string>
+    <string name="menu_sign_out_sync_warning">इस फ़ोन पर जो कुछ भी अभी सिंक नहीं हुआ है, वह खो जाएगा। साइन आउट करने से पहले पक्का करें कि आपके सभी बदलाव सिंक हो गए हैं।</string>
     <plurals name="property_count">
         <item quantity="one">%1$d संपत्ति</item>
         <item quantity="other">%1$d संपत्तियाँ</item>
@@ -129,65 +111,35 @@
     <string name="access_tab_people">उपयोगकर्ता (%1$d)</string>
     <string name="access_tab_groups">समूह (%1$d)</string>
     <string name="access_search_people">लोग खोजें</string>
-    <string name="access_search_groups">समूह खोजें</string>
     <string name="access_add_person">व्यक्ति जोड़ें</string>
     <string name="access_new_group">नया समूह</string>
-    <string name="access_empty_people">अभी किसी के पास एक्सेस नहीं है।</string>
-    <string name="access_no_person_match">“%1$s” से कोई मेल नहीं खाता।</string>
-    <string name="access_no_group_match">“%1$s” से मेल खाता कोई समूह नहीं है।</string>
-    <string name="access_loading_people">उपयोगकर्ता लोड हो रहे हैं…</string>
-    <string name="access_loading_groups">समूह लोड हो रहे हैं…</string>
-    <string name="access_empty_groups">अभी कोई समूह नहीं है।</string>
     <string name="access_all_properties">सभी संपत्तियाँ</string>
-    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">केवल देखें</string>
     <string name="access_edit_group">%1$s संपादित करें</string>
     <string name="access_delete_group">%1$s हटाएँ</string>
     <string name="access_delete_title">%1$s हटाएँ?</string>
-    <string name="access_delete_message">समूह हटा दिया जाएगा। इसे पहले जैसा नहीं किया जा सकता।</string>
     <string name="access_title">उपयोगकर्ता और एक्सेस</string>
-    <plurals name="access_delete_groups_title">
-        <item quantity="one">यह समूह हटाएँ?</item>
-        <item quantity="other">%1$d समूह हटाएँ?</item>
-    </plurals>
-    <plurals name="access_delete_groups_message">
-        <item quantity="one">समूह हटा दिया जाएगा। इसे पहले जैसा नहीं किया जा सकता।</item>
-        <item quantity="other">ये समूह हटा दिए जाएँगे। इसे पहले जैसा नहीं किया जा सकता।</item>
-    </plurals>
     <string name="access_action_delete">हटाएँ</string>
-    <string name="access_remove_title">%1$s को हटाएँ?</string>
-    <string name="access_remove_message">%1$s का Sclera का एक्सेस खत्म हो जाएगा।</string>
-    <string name="access_action_remove">हटाएँ</string>
-    <string name="access_remove_person">%1$s को हटाएँ</string>
     <string name="access_person_add_title">व्यक्ति जोड़ें</string>
     <string name="access_person_add_sub">पहली बार साइन इन करने पर उन्हें यह एक्सेस मिल जाएगा।</string>
     <string name="access_action_add">जोड़ें</string>
     <string name="access_action_save">सहेजें</string>
     <string name="access_section_person">व्यक्ति</string>
-    <string name="access_section_property_access">संपत्ति एक्सेस</string>
     <string name="access_field_email">ईमेल</string>
     <string name="access_field_group">समूह</string>
-    <string name="access_field_access">एक्सेस</string>
     <string name="access_choose_group">समूह चुनें</string>
-    <string name="access_all">सभी</string>
     <string name="access_n_chosen">%1$d चुनी गईं</string>
     <string name="access_scope_chosen">चुनी हुई संपत्तियाँ</string>
     <string name="access_scope_all_desc">हर संपत्ति, बाद में जोड़ी गई संपत्तियों सहित।</string>
     <string name="access_scope_chosen_desc">नई संपत्तियाँ तब तक शामिल नहीं होतीं जब तक आप उन्हें यहाँ नहीं जोड़ते।</string>
-    <string name="access_forced_all">%1$s समूह की अनुमतियों के लिए सभी संपत्तियाँ ज़रूरी हैं।</string>
     <string name="access_group_new_sub">चुनें कि इस समूह के लोग क्या कर सकते हैं। कुछ भी न चुनने पर वे केवल देख सकते हैं।</string>
-    <string name="access_group_edit_sub">चुनें कि इस समूह के लोग क्या कर सकते हैं।</string>
     <string name="access_group_locked_sub">%1$s के लोगों के पास हमेशा सभी अनुमतियाँ होती हैं।</string>
     <string name="access_action_add_group">समूह जोड़ें</string>
     <string name="access_group_details">समूह का विवरण</string>
     <string name="access_field_name">नाम</string>
     <string name="access_field_description">विवरण</string>
-    <string name="access_group_name_hint">समूह का नाम</string>
-    <string name="access_group_desc_hint">यह समूह किसलिए है</string>
     <string name="access_what_they_can_do">वे क्या कर सकते हैं</string>
-    <string name="access_locked">लॉक</string>
     <string name="access_needs_all">सभी संपत्तियाँ ज़रूरी</string>
-    <string name="access_locked_notice">ये अनुमतियाँ %1$s के लिए लॉक हैं।</string>
     <string name="access_perm_collect">एकत्र करें</string>
     <string name="access_perm_collect_desc">एसेट जोड़ें, संपादित करें और हटाएँ; फ़ाइलें और मीडिया अपलोड करें; फ़ाइलों से पढ़े गए एसेट की समीक्षा करें; जमा करें।</string>
     <string name="access_perm_validate">सत्यापित करें</string>
@@ -199,14 +151,8 @@
     <string name="access_perm_manage_access">एक्सेस प्रबंधित करें</string>
     <string name="access_perm_manage_access_desc">समूह बनाएँ, लोगों को समूहों में रखें और चुनें कि कौन-सी संपत्ति कौन खोल सकता है। सभी संपत्तियों का एक्सेस ज़रूरी है।</string>
     <string name="access_problem_email_required">उनका ईमेल पता दर्ज करें।</string>
-    <string name="access_problem_email_invalid">मान्य ईमेल पता दर्ज करें।</string>
-    <string name="access_problem_email_taken">%1$s के पास पहले से एक्सेस है।</string>
     <string name="access_problem_group_required">एक समूह चुनें।</string>
-    <string name="access_problem_no_property">कम से कम एक संपत्ति चुनें, या उन्हें सभी संपत्तियाँ दें।</string>
     <string name="access_problem_group_name">समूह को एक नाम दें।</string>
-    <string name="access_problem_group_taken">%1$s नाम का समूह पहले से मौजूद है।</string>
-    <string name="access_elevate_title">सभी संपत्तियाँ दें?</string>
-    <string name="access_elevate_confirm">एक्सेस दें</string>
     <plurals name="access_property_count">
         <item quantity="one">%1$d संपत्ति</item>
         <item quantity="other">%1$d संपत्तियाँ</item>
@@ -214,10 +160,6 @@
     <plurals name="access_person_count">
         <item quantity="one">%1$d व्यक्ति</item>
         <item quantity="other">%1$d लोग</item>
-    </plurals>
-    <plurals name="access_elevate_notice">
-        <item quantity="one">इस समूह के %1$d व्यक्ति को सभी संपत्तियों का एक्सेस मिल जाएगा।</item>
-        <item quantity="other">इस समूह के %1$d लोगों को सभी संपत्तियों का एक्सेस मिल जाएगा।</item>
     </plurals>
     <string name="action_validate">सत्यापित करें</string>
     <string name="action_assign">असाइन करें</string>
@@ -330,8 +272,6 @@
     <string name="val_step_consistent">सुसंगत</string>
     <string name="val_step_verified">पुष्ट</string>
     <string name="val_quality">डेटा गुणवत्ता %1$d/100</string>
-    <string name="val_runs_many">%1$d सत्यापन, नवीनतम %2$s</string>
-    <string name="val_run_one">%1$s, %2$s</string>
     <string name="val_every_step_from">%1$d सत्यापनों के सभी चरण, हर एक अपने नवीनतम परिणाम के साथ: %2$s।</string>
     <string name="val_starts_here">यहाँ से शुरू</string>
     <string name="val_suggested">सुझाव: %1$s</string>
@@ -359,10 +299,18 @@
     <string name="media_other">अन्य फ़ोटो</string>
     <string name="media_other_hint">फ़ोटो नियमों में नहीं गिनी जातीं</string>
     <string name="media_none">अभी कोई नहीं।</string>
-    <string name="media_files">वीडियो, वॉइस मेमो और फ़ाइलें</string>
-    <string name="media_add_file">फ़ाइल जोड़ें</string>
     <string name="media_tag_video">वीडियो</string>
     <string name="media_tag_audio">वॉइस मेमो</string>
+    <string name="media_record_memo">मेमो रिकॉर्ड करें</string>
+    <string name="memo_starting">माइक्रोफ़ोन शुरू हो रहा है…</string>
+    <string name="memo_recording">रिकॉर्डिंग हो रही है… हो जाने पर रोकें और सहेजें पर टैप करें।</string>
+    <string name="memo_stop_save">रोकें और सहेजें</string>
+    <string name="memo_no_permission">वॉइस मेमो रिकॉर्ड करने के लिए माइक्रोफ़ोन की अनुमति दें।</string>
+    <string name="memo_failed">रिकॉर्डिंग शुरू नहीं हो सकी। फिर कोशिश करें।</string>
+    <string name="memo_too_short">यह मेमो रखने के लिए बहुत छोटा था।</string>
+    <string name="memo_play">चलाएं</string>
+    <string name="memo_pause">रोकें</string>
+    <string name="memo_not_on_device">यह मेमो अभी इस फ़ोन पर नहीं है, इसलिए इसे ऑफ़लाइन नहीं चलाया जा सकता।</string>
     <string name="media_tag_file">फ़ाइल</string>
     <string name="ai_title">AI सुझाव</string>
     <string name="ai_subtitle">मॉडल के प्रकाशित स्पेसिफ़िकेशन से %1$s के खाली फ़ील्ड भरता है। जब तक आप लागू नहीं करते, कुछ भी सेव नहीं होता।</string>
@@ -381,7 +329,6 @@
     <string name="ai_step_match">मानों को इस एसेट के फ़ील्ड से मिलाया जा रहा है</string>
     <string name="ai_wait_short">यह वेब पर खोजता है, इसलिए इसमें एक मिनट तक लग सकता है।</string>
     <string name="ai_wait_long">अभी भी खोज जारी है। कुछ मॉडल ढूँढ़ने में ज़्यादा समय लगता है।</string>
-    <string name="ai_can_close">आप इसे बंद कर सकते हैं: खोज जारी रहेगी, और पूरी होने पर आपको सूचना मिलेगी।</string>
     <string name="ai_close_note">बंद करने से खोज नहीं रुकती।</string>
     <string name="ai_close_keep">बंद करें और काम जारी रखें</string>
     <string name="ai_try_again">फिर से कोशिश करें</string>
@@ -389,11 +336,8 @@
     <string name="ai_nothing_else">इस एसेट के लिए प्रकाशित स्पेसिफ़िकेशन से भरने को और कुछ नहीं है। आपने जो लिखा है उसे सेव करने के लिए लागू करें।</string>
     <string name="ai_also_saves">आपने जो लिखा है वह भी सेव करता है: %1$s।</string>
     <string name="ai_sure">%1$d%% निश्चित</string>
-    <string name="ai_nothing_ticked">कुछ भी चुना नहीं गया</string>
     <string name="ai_change_model">मॉडल बदलें</string>
     <string name="ai_look_again">फिर से खोजें</string>
-    <string name="ai_apply">लागू करें</string>
-    <string name="ai_saving">सेव हो रहा है…</string>
     <string name="ai_need_model">पहले मॉडल जोड़ें: स्पेसिफ़िकेशन निर्माता और मॉडल के आधार पर खोजे जाते हैं।</string>
     <string name="ai_failed">स्पेसिफ़िकेशन नहीं खोजे जा सके। फिर से कोशिश करें।</string>
     <string name="ai_done_failed">%1$s के स्पेसिफ़िकेशन नहीं खोजे जा सके। %2$s</string>
@@ -424,7 +368,6 @@
     <string name="detail_name_hint">एसेट का नाम</string>
     <string name="detail_saved">सहेजा गया</string>
     <string name="detail_menu_camera">फ़ोटो या वीडियो लें</string>
-    <string name="detail_menu_gallery">गैलरी से अपलोड करें</string>
     <string name="detail_menu_files">फ़ाइलों से अपलोड करें</string>
     <string name="detail_photo">फ़ोटो</string>
     <string name="detail_video">वीडियो</string>
@@ -458,7 +401,6 @@
     <string name="detail_next">अगली फ़ोटो</string>
     <string name="check_banner_passed">सभी जाँचें पास हुईं</string>
     <string name="check_banner_failed_sub">इस एसेट को सत्यापित करने से पहले ज़रूरी जाँचें ठीक करें।</string>
-    <string name="check_required">आवश्यक</string>
     <string name="check_note_required">एसेट सत्यापित करने से पहले ज़रूरी</string>
     <string name="check_note_low_confidence">%1$s कम भरोसे से पढ़ा गया — नेमप्लेट से मिलाकर देखें</string>
     <plurals name="assets_validated">
@@ -544,16 +486,8 @@
         <item quantity="one">%1$d और %2$s फ़ोटो</item>
         <item quantity="other">%1$d और %2$s फ़ोटो</item>
     </plurals>
-    <plurals name="ai_will_fill">
-        <item quantity="one">%1$d फ़ील्ड भरा जाएगा</item>
-        <item quantity="other">%1$d फ़ील्ड भरे जाएँगे</item>
-    </plurals>
     <plurals name="ai_done_found">
         <item quantity="one">%1$s के स्पेसिफ़िकेशन मिले: %2$d सुझाव तैयार है।</item>
         <item quantity="other">%1$s के स्पेसिफ़िकेशन मिले: %2$d सुझाव तैयार हैं।</item>
-    </plurals>
-    <plurals name="ai_filled_on">
-        <item quantity="one">%2$s पर %1$d फ़ील्ड भरा गया</item>
-        <item quantity="other">%2$s पर %1$d फ़ील्ड भरे गए</item>
     </plurals>
 </resources>

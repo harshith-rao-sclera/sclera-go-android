@@ -2,7 +2,6 @@ package com.sclera.sclerago.domain.repository
 
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.Media
-import java.io.OutputStream
 
 /** Photos, videos, documents and spreadsheets on the device, by content URI. */
 interface FileRepository {
@@ -18,6 +17,6 @@ interface FileRepository {
     /** The rows of a CSV or Excel file; null when it can't be read. */
     suspend fun readSheet(uri: String): List<List<String>>?
 
-    /** Writes the sample spreadsheet for importing properties. */
-    fun writePropertyImportTemplate(out: OutputStream)
+    /** Writes [bytes] to the document [uri] the user picked to save to; false when it can't be written. */
+    suspend fun writeFile(uri: String, bytes: ByteArray): Boolean
 }

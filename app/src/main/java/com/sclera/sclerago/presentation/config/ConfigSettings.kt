@@ -1,6 +1,8 @@
 package com.sclera.sclerago.presentation.config
 
 import com.sclera.sclerago.presentation.components.pageGutter
+import androidx.compose.ui.res.stringResource
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.FieldKind
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -50,6 +52,10 @@ internal fun FieldKind.icon(): Ico = when (this) {
     FieldKind.YESNO -> Icons.Toggles
     FieldKind.TIME -> Icons.Clock
     FieldKind.URL -> Icons.Globe
+    FieldKind.IMAGE -> Icons.Gallery
+    FieldKind.VIDEO -> Icons.Video
+    FieldKind.VOICE_MEMO -> Icons.Mic
+    FieldKind.KEY_VALUE -> Icons.Table
 }
 
 internal val FieldKind.shown: String get() = if (this == FieldKind.TEXTAREA) "Text area" else label
@@ -99,7 +105,7 @@ internal fun SheetButtons(yes: String, enabled: Boolean, onNo: () -> Unit, no: S
 // ---------------------------------------------------------------- Property Settings tab
 
 @Composable
-fun PropertySettingsPage(vm: AppViewModel) {
+fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
     val bt = vm.onboardingOn(Tab.BT)
     val net = vm.onboardingOn(Tab.NET)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(horizontal = 4.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -117,8 +123,26 @@ fun PropertySettingsPage(vm: AppViewModel) {
                     11, 400, C.Muted, maxLines = 3,
                 )
             }
-            OnboardRow(Icons.Bluetooth, "Bluetooth onboarding", "People can add assets by finding them over Bluetooth on their phone.", bt) { vm.setOnboarding(Tab.BT, it) }
-            OnboardRow(Icons.Wifi, "Wi-Fi onboarding", "People can add assets by finding them on the Wi-Fi network.", net) { vm.setOnboarding(Tab.NET, it) }
+            OnboardRow(Icons.Bluetooth, "Bluetooth onboarding", "People can add assets by finding them over Bluetooth on their phone.", bt, vm.onboardingSaving(Tab.BT)) { vm.setOnboarding(Tab.BT, it) }
+            OnboardRow(Icons.Wifi, "Wi-Fi onboarding", "People can add assets by finding them on the Wi-Fi network.", net, vm.onboardingSaving(Tab.NET)) { vm.setOnboarding(Tab.NET, it) }
+        }
+        // AI in validation: a property setting at the server; unknown until the settings are read (then it can't be changed).
+        val ai = cfg.aiValidation
+        CfgCard {
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Txt(stringResource(R.string.cfg_validation_title), 13, 700)
+                Txt(
+                    when {
+                        ai != null -> stringResource(R.string.cfg_ai_validation_hint)
+                        cfg.photos.load == LoadState.LOADING -> stringResource(R.string.cfg_loading)
+                        else -> stringResource(R.string.cfg_settings_load_failed)
+                    },
+                    11, 400, C.Muted, maxLines = 3,
+                )
+            }
+            OnboardRow(Icons.Sparkles, stringResource(R.string.cfg_ai_validation), stringResource(R.string.cfg_ai_validation_row), ai == true, cfg.aiSaving) {
+                if (ai != null) cfg.setAiValidation(it)
+            }
         }
         Txt("ON THE PHONE", 10, 700, C.Muted, Modifier.padding(start = 12.dp, top = 6.dp), spacing = 0.6f)
         CfgCard {
@@ -140,9 +164,11 @@ fun PropertySettingsPage(vm: AppViewModel) {
 }
 
 @Composable
-private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, onChange: (Boolean) -> Unit) {
+private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, busy: Boolean = false, onChange: (Boolean) -> Unit) {
+    // While its save is on its way the row is dimmed and takes no taps, as the web's switch.
     Row(
-        Modifier.fillMaxWidth().topBorder(C.Border).clickable { onChange(!on) }.padding(horizontal = 12.dp, vertical = 9.dp),
+        Modifier.fillMaxWidth().topBorder(C.Border).clickable(enabled = !busy) { onChange(!on) }.alpha(if (busy) 0.6f else 1f)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -151,6 +177,6 @@ private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, onCh
             Txt(title, 12, 700)
             Txt(body, 11, 400, C.Muted, maxLines = 2)
         }
-        OnOffSwitch(on, onChange)
+        OnOffSwitch(on) { if (!busy) onChange(it) }
     }
 }

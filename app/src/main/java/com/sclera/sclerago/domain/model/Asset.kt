@@ -72,6 +72,8 @@ data class Asset(
     val version: Int = 1,
     /** Its asset type from the property's catalogue (its master format's asset type); null while it isn't classified. */
     val assetTypeName: String? = null,
+    /** Sent back to be collected again (by a reviewer), and still drafted: the web's "Recollect" badge and filter. */
+    val recollect: Boolean = false,
 )
 
 /**

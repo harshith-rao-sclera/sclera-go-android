@@ -1,8 +1,6 @@
 package com.sclera.sclerago.services.syncManager.services;
 
 
-import static com.sclera.sclerago.services.syncManager.utils.SyncUtils.replaceUrl;
-
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -47,6 +45,10 @@ public class WebSocketClientService extends WebSocketListener {
     private int fixedRetryCount = 0;
     private static final int FIXED_RETRY_LIMIT = 5; // First phase: 5 times every 10s
 
+    /** Set by {@link #stop()}: the engine is closed, so this service never connects or reconnects again. */
+    private volatile boolean stopped = false;
+    private volatile WebSocket socket;
+
     public void setDataSyncService(DataSyncService dataSyncService) {
         this.dataSyncService = dataSyncService;
     }
@@ -61,17 +63,33 @@ public class WebSocketClientService extends WebSocketListener {
     }
 
     private void connectToWS() {
+        // After sign-out the user's details are cleared; connecting then would send empty headers (and crash OkHttp).
+        if (stopped || !hasCredentials()) {
+            Log.w(TAG, "WebSocket not connected: sync stopped or no signed-in user");
+            return;
+        }
         websocketClient = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
+                    // Read once and checked here too: sign-out can clear the details at any moment. An
+                    // IOException reaches onFailure instead of crashing the dispatcher thread.
+                    String token = SyncManager.token;
+                    String userId = SyncManager.userId;
+                    String orgId = syncManager.getOrgId();
+                    String role = SyncManager.role;
+                    String user = SyncManager.user;
+                    String propertyId = syncManager.propertyId;
+                    if (stopped || token == null || userId == null || orgId == null || role == null || user == null
+                            || propertyId == null) {
+                        throw new IOException("Sync stopped or no signed-in user");
+                    }
                     Request original = chain.request();
                     Request requestWithHeaders = original.newBuilder()
-                            .addHeader("Authorization", "Bearer " + SyncManager.token)
-                            .addHeader("userid", SyncManager.userId)
-                            .addHeader("scleraorgid", syncManager.getOrgId())
-                            .addHeader("role", SyncManager.role)
-                            .addHeader("userEmail", SyncManager.user)
-                            .addHeader("Inspection-Version", syncManager.inspectionVersion)
-                            .addHeader("X-Tenant-ID", syncManager.getVdmsID())
+                            .addHeader("Authorization", "Bearer " + token)
+                            .addHeader("userid", userId)
+                            .addHeader("scleraorgid", orgId)
+                            .addHeader("role", role)
+                            .addHeader("userEmail", user)
+                            .addHeader("PropertyId", propertyId)
                             .method(original.method(), original.body())
                             .build();
                     return chain.proceed(requestWithHeaders);
@@ -80,17 +98,44 @@ public class WebSocketClientService extends WebSocketListener {
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .build();
 
-        String url = replaceUrl(syncManager.getSyncURL()) + "/websocket/sync";
+        String url = syncManager.getSyncURL() + "/websocket/sync";
         Request request = new Request.Builder()
                 .url(url)
                 .build();
 
         // Start the WebSocket connection
-        websocketClient.newWebSocket(request, this);
+        socket = websocketClient.newWebSocket(request, this);
+    }
+
+    /** Every value the connection's headers need; OkHttp refuses a null header value. */
+    private boolean hasCredentials() {
+        return SyncManager.token != null && SyncManager.userId != null && SyncManager.role != null
+                && SyncManager.user != null && syncManager.getOrgId() != null && syncManager.propertyId != null;
+    }
+
+    /**
+     * Closes the connection for good when the engine is closed (sign-out, another user, or the property restarted):
+     * cancels the socket and any pending reconnect, so nothing reconnects with the cleared user details.
+     */
+    public void stop() {
+        stopped = true;
+        retryExecutor.shutdownNow();
+        WebSocket current = socket;
+        if (current != null) {
+            current.cancel();
+        }
+        stopProcessor();
+        if (websocketClient != null) {
+            websocketClient.dispatcher().executorService().shutdown();
+        }
     }
 
     @Override
     public void onOpen(@NonNull WebSocket webSocket, @NonNull Response response) {
+        if (stopped) {
+            webSocket.cancel();
+            return;
+        }
         Log.d(TAG, "WebSocket connected for syncing");
         syncManager.setWsConnected(true);
         retryAttempts = 0;
@@ -265,6 +310,9 @@ public class WebSocketClientService extends WebSocketListener {
     }
 
     private void scheduleReconnect() {
+        if (stopped) {
+            return;
+        }
         if (retryExecutor.isShutdown() || retryExecutor.isTerminated()) {
             retryExecutor = Executors.newSingleThreadScheduledExecutor();
         }

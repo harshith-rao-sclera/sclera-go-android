@@ -33,7 +33,6 @@
     <string name="property_add_fab">إضافة عقار</string>
     <string name="label_properties">العقارات</string>
     <string name="label_assets">الأصول</string>
-    <string name="property_import_strip">الاستيراد من جدول بيانات</string>
     <string name="property_none_match">لا توجد عقارات تطابق “%1$s”.</string>
     <string name="property_loading">جارٍ تحميل العقارات…</string>
     <string name="property_none">لا توجد عقارات بعد.</string>
@@ -44,11 +43,6 @@
     <string name="property_download_size">%1$s / %2$s ميغابايت</string>
     <string name="property_download_failed">تعذّر تنزيل %1$s. حاول مرة أخرى.</string>
     <string name="property_download_offline">أنت غير متصل. اتصل بالإنترنت لتنزيل عقار.</string>
-    <string name="property_added">تمت إضافة %1$s</string>
-    <string name="property_import_notice">تم رفع “%1$s” · الاستيراد غير متصل بالخادم بعد</string>
-    <string name="property_problem_name">أدخل اسم العقار.</string>
-    <string name="property_problem_type">اختر نوع العقار.</string>
-    <string name="property_problem_duplicate">يوجد عقار باسم %1$s بالفعل.</string>
     <string name="import_title">استيراد</string>
     <string name="import_choose_file">انقر لاختيار ملف</string>
     <string name="import_choose_different">انقر لاختيار ملف آخر</string>
@@ -63,26 +57,18 @@
     <string name="import_sample_download">تنزيل الصيغة النموذجية</string>
     <string name="import_proceed">متابعة</string>
     <string name="property_add_title">إضافة عقار جديد</string>
-    <string name="property_add_sub">الاسم والنوع مطلوبان.</string>
     <string name="property_add_primary">إضافة</string>
     <string name="property_group_details">تفاصيل العقار</string>
-    <string name="property_group_address">العنوان</string>
     <string name="property_group_contact">جهة الاتصال الرئيسية</string>
     <string name="property_group_notes">ملاحظات</string>
     <string name="property_group_availability">التوفر</string>
-    <string name="property_ready">جاهز</string>
-    <string name="property_required_count">%1$d مطلوب</string>
-    <string name="property_notes_none">لا شيء بعد</string>
-    <string name="property_notes_added">تمت الإضافة</string>
     <string name="property_notes_hint">أدخل الملاحظات</string>
     <string name="field_name">الاسم</string>
-    <string name="field_type">النوع</string>
     <string name="field_country">الدولة</string>
     <string name="field_state">الولاية</string>
     <string name="field_region">المنطقة</string>
     <string name="field_city">المدينة</string>
     <string name="field_email">البريد الإلكتروني</string>
-    <string name="field_phone">الهاتف</string>
     <string name="field_address_line1">سطر العنوان 1</string>
     <string name="field_address_line2">سطر العنوان 2</string>
     <string name="field_start_time">وقت البدء</string>
@@ -90,11 +76,7 @@
     <string name="field_access_code">رمز الدخول</string>
     <string name="property_name_hint">أدخل اسم العقار</string>
     <string name="property_select_type">اختر النوع</string>
-    <string name="property_select_country">اختر الدولة</string>
-    <string name="property_select_state">اختر الولاية</string>
     <string name="property_select_region">اختر المنطقة</string>
-    <string name="property_choose_country_first">اختر دولة أولاً</string>
-    <string name="property_no_states">لا توجد ولايات لهذه الدولة</string>
     <string name="property_enter_city">أدخل المدينة</string>
     <string name="field_address_line1_hint">أدخل سطر العنوان 1</string>
     <string name="field_address_line2_hint">أدخل سطر العنوان 2</string>
@@ -104,7 +86,6 @@
     <string name="field_access_code_hint">أدخل رمز الدخول</string>
     <string name="menu_users">المستخدمون</string>
     <string name="menu_current_property">العقار الحالي</string>
-    <string name="menu_switch">تبديل</string>
     <string name="menu_soon">قريبًا</string>
     <string name="menu_validation">التحقق</string>
     <string name="menu_configuration">الإعدادات</string>
@@ -115,6 +96,7 @@
     <string name="menu_sign_out_title">تسجيل الخروج؟</string>
     <string name="menu_sign_out_message">ستحتاج إلى تسجيل الدخول مرة أخرى باستخدام %1$s لاستخدام Sclera Go.</string>
     <string name="menu_sign_out_message_generic">ستحتاج إلى تسجيل الدخول مرة أخرى لاستخدام Sclera Go.</string>
+    <string name="menu_sign_out_sync_warning">سيُفقد أي شيء على هذا الهاتف لم تتم مزامنته بعد. تأكد من مزامنة جميع تغييراتك قبل تسجيل الخروج.</string>
     <plurals name="property_count">
         <item quantity="zero">%1$d عقار</item>
         <item quantity="one">عقار واحد</item>
@@ -137,65 +119,35 @@
     <string name="access_tab_people">المستخدمون (%1$d)</string>
     <string name="access_tab_groups">المجموعات (%1$d)</string>
     <string name="access_search_people">البحث عن أشخاص</string>
-    <string name="access_search_groups">البحث عن مجموعات</string>
     <string name="access_add_person">إضافة شخص</string>
     <string name="access_new_group">مجموعة جديدة</string>
-    <string name="access_empty_people">لا أحد لديه صلاحية بعد.</string>
-    <string name="access_no_person_match">لا أحد يطابق “%1$s”.</string>
-    <string name="access_no_group_match">لا توجد مجموعة تطابق “%1$s”.</string>
-    <string name="access_loading_people">جارٍ تحميل المستخدمين…</string>
-    <string name="access_loading_groups">جارٍ تحميل المجموعات…</string>
-    <string name="access_empty_groups">لا توجد مجموعات بعد.</string>
     <string name="access_all_properties">جميع العقارات</string>
-    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">عرض فقط</string>
     <string name="access_edit_group">تعديل %1$s</string>
     <string name="access_delete_group">حذف %1$s</string>
     <string name="access_delete_title">حذف %1$s؟</string>
-    <string name="access_delete_message">ستتم إزالة المجموعة. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="access_title">المستخدمون والوصول</string>
-    <plurals name="access_delete_groups_title">
-        <item quantity="one">حذف هذه المجموعة؟</item>
-        <item quantity="other">حذف %1$d مجموعة؟</item>
-    </plurals>
-    <plurals name="access_delete_groups_message">
-        <item quantity="one">ستتم إزالة المجموعة. لا يمكن التراجع عن هذا الإجراء.</item>
-        <item quantity="other">ستتم إزالة هذه المجموعات. لا يمكن التراجع عن هذا الإجراء.</item>
-    </plurals>
     <string name="access_action_delete">حذف</string>
-    <string name="access_remove_title">إزالة %1$s؟</string>
-    <string name="access_remove_message">سيفقد %1$s صلاحية الوصول إلى Sclera.</string>
-    <string name="access_action_remove">إزالة</string>
-    <string name="access_remove_person">إزالة %1$s</string>
     <string name="access_person_add_title">إضافة شخص</string>
     <string name="access_person_add_sub">سيحصل على هذه الصلاحية عند تسجيل دخوله لأول مرة.</string>
     <string name="access_action_add">إضافة</string>
     <string name="access_action_save">حفظ</string>
     <string name="access_section_person">الشخص</string>
-    <string name="access_section_property_access">الوصول إلى العقارات</string>
     <string name="access_field_email">البريد الإلكتروني</string>
     <string name="access_field_group">المجموعة</string>
-    <string name="access_field_access">الصلاحية</string>
     <string name="access_choose_group">اختر مجموعة</string>
-    <string name="access_all">الكل</string>
     <string name="access_n_chosen">تم اختيار %1$d</string>
     <string name="access_scope_chosen">عقارات مختارة</string>
     <string name="access_scope_all_desc">كل العقارات، بما فيها التي تُضاف لاحقًا.</string>
     <string name="access_scope_chosen_desc">لا تُضاف العقارات الجديدة إلى القائمة إلا إذا أضفتها هنا.</string>
-    <string name="access_forced_all">تتطلب أذونات المجموعة %1$s الوصول إلى جميع العقارات.</string>
     <string name="access_group_new_sub">حدد ما يمكن لأعضاء هذه المجموعة فعله. بدون أي تحديد يمكنهم المشاهدة فقط.</string>
-    <string name="access_group_edit_sub">اختر ما يمكن لأعضاء هذه المجموعة فعله.</string>
     <string name="access_group_locked_sub">أعضاء %1$s لديهم دائمًا جميع الأذونات.</string>
     <string name="access_action_add_group">إضافة مجموعة</string>
     <string name="access_group_details">تفاصيل المجموعة</string>
     <string name="access_field_name">الاسم</string>
     <string name="access_field_description">الوصف</string>
-    <string name="access_group_name_hint">اسم المجموعة</string>
-    <string name="access_group_desc_hint">الغرض من هذه المجموعة</string>
     <string name="access_what_they_can_do">ما يمكنهم فعله</string>
-    <string name="access_locked">مقفل</string>
     <string name="access_needs_all">يتطلب جميع العقارات</string>
-    <string name="access_locked_notice">هذه الأذونات مقفلة للمجموعة %1$s.</string>
     <string name="access_perm_collect">الجمع</string>
     <string name="access_perm_collect_desc">إضافة الأصول وتعديلها وحذفها؛ رفع الملفات والوسائط؛ مراجعة الأصول المقروءة من الملفات؛ الإرسال.</string>
     <string name="access_perm_validate">التحقق</string>
@@ -207,14 +159,8 @@
     <string name="access_perm_manage_access">إدارة الصلاحيات</string>
     <string name="access_perm_manage_access_desc">إنشاء المجموعات وإضافة الأشخاص إليها وتحديد من يمكنه فتح أي عقار. يتطلب الوصول إلى جميع العقارات.</string>
     <string name="access_problem_email_required">أدخل بريده الإلكتروني.</string>
-    <string name="access_problem_email_invalid">أدخل عنوان بريد إلكتروني صالحًا.</string>
-    <string name="access_problem_email_taken">لدى %1$s صلاحية بالفعل.</string>
     <string name="access_problem_group_required">اختر مجموعة.</string>
-    <string name="access_problem_no_property">اختر عقارًا واحدًا على الأقل، أو امنحه جميع العقارات.</string>
     <string name="access_problem_group_name">أدخل اسمًا للمجموعة.</string>
-    <string name="access_problem_group_taken">توجد بالفعل مجموعة باسم %1$s.</string>
-    <string name="access_elevate_title">منح جميع العقارات؟</string>
-    <string name="access_elevate_confirm">منح الصلاحية</string>
     <plurals name="access_property_count">
         <item quantity="zero">%1$d عقار</item>
         <item quantity="one">عقار واحد</item>
@@ -230,14 +176,6 @@
         <item quantity="few">%1$d أشخاص</item>
         <item quantity="many">%1$d شخصًا</item>
         <item quantity="other">%1$d شخص</item>
-    </plurals>
-    <plurals name="access_elevate_notice">
-        <item quantity="zero">لا أحد في هذه المجموعة سيحصل على الوصول إلى جميع العقارات.</item>
-        <item quantity="one">سيحصل شخص واحد في هذه المجموعة على الوصول إلى جميع العقارات.</item>
-        <item quantity="two">سيحصل شخصان في هذه المجموعة على الوصول إلى جميع العقارات.</item>
-        <item quantity="few">سيحصل %1$d أشخاص في هذه المجموعة على الوصول إلى جميع العقارات.</item>
-        <item quantity="many">سيحصل %1$d شخصًا في هذه المجموعة على الوصول إلى جميع العقارات.</item>
-        <item quantity="other">سيحصل %1$d شخص في هذه المجموعة على الوصول إلى جميع العقارات.</item>
     </plurals>
     <string name="action_validate">تحقق</string>
     <string name="action_assign">تعيين</string>
@@ -350,8 +288,6 @@
     <string name="val_step_consistent">متسق</string>
     <string name="val_step_verified">موثَّق</string>
     <string name="val_quality">جودة البيانات %1$d/100</string>
-    <string name="val_runs_many">عمليات التحقق: %1$d، آخرها %2$s</string>
-    <string name="val_run_one">%1$s، %2$s</string>
     <string name="val_every_step_from">كل الخطوات من عمليات التحقق (%1$d)، ولكل منها أحدث نتيجة: %2$s.</string>
     <string name="val_starts_here">يبدأ هنا</string>
     <string name="val_suggested">مقترح: %1$s</string>
@@ -379,10 +315,18 @@
     <string name="media_other">صور أخرى</string>
     <string name="media_other_hint">لا تُحتسب ضمن قواعد الصور</string>
     <string name="media_none">لا يوجد شيء بعد.</string>
-    <string name="media_files">مقاطع الفيديو والمذكرات الصوتية والملفات</string>
-    <string name="media_add_file">إضافة ملف</string>
     <string name="media_tag_video">فيديو</string>
     <string name="media_tag_audio">مذكرة صوتية</string>
+    <string name="media_record_memo">تسجيل مذكرة</string>
+    <string name="memo_starting">جارٍ تشغيل الميكروفون…</string>
+    <string name="memo_recording">جارٍ التسجيل… اضغط على إيقاف وحفظ عند الانتهاء.</string>
+    <string name="memo_stop_save">إيقاف وحفظ</string>
+    <string name="memo_no_permission">اسمح باستخدام الميكروفون لتسجيل مذكرة صوتية.</string>
+    <string name="memo_failed">تعذّر بدء التسجيل. حاول مرة أخرى.</string>
+    <string name="memo_too_short">كانت المذكرة قصيرة جدًا للاحتفاظ بها.</string>
+    <string name="memo_play">تشغيل</string>
+    <string name="memo_pause">إيقاف مؤقت</string>
+    <string name="memo_not_on_device">هذه المذكرة ليست على هذا الهاتف بعد، لذا لا يمكن تشغيلها دون اتصال.</string>
     <string name="media_tag_file">ملف</string>
     <string name="ai_title">اقتراحات الذكاء الاصطناعي</string>
     <string name="ai_subtitle">يملأ الحقول الفارغة في %1$s من المواصفات المنشورة للطراز. لا يُحفظ شيء حتى تطبّق الاقتراحات.</string>
@@ -401,7 +345,6 @@
     <string name="ai_step_match">مطابقة القيم مع حقول هذا الأصل</string>
     <string name="ai_wait_short">يتم البحث على الويب، لذا قد يستغرق ذلك حتى دقيقة.</string>
     <string name="ai_wait_long">لا يزال البحث جاريًا. يستغرق العثور على بعض الطرازات وقتًا أطول.</string>
-    <string name="ai_can_close">يمكنك إغلاق هذا: سيستمر البحث وسيصلك إشعار عند انتهائه.</string>
     <string name="ai_close_note">الإغلاق لا يوقف البحث.</string>
     <string name="ai_close_keep">إغلاق ومتابعة العمل</string>
     <string name="ai_try_again">إعادة المحاولة</string>
@@ -409,11 +352,8 @@
     <string name="ai_nothing_else">لا يوجد شيء آخر يمكن للمواصفات المنشورة ملؤه لهذا الأصل. طبّق لحفظ ما كتبته.</string>
     <string name="ai_also_saves">يحفظ أيضًا ما كتبته: %1$s.</string>
     <string name="ai_sure">ثقة %1$d%%</string>
-    <string name="ai_nothing_ticked">لم يتم تحديد شيء</string>
     <string name="ai_change_model">تغيير الطراز</string>
     <string name="ai_look_again">البحث مرة أخرى</string>
-    <string name="ai_apply">تطبيق</string>
-    <string name="ai_saving">جارٍ الحفظ…</string>
     <string name="ai_need_model">أضف الطراز أولًا: يتم البحث عن المواصفات حسب الشركة المصنّعة والطراز.</string>
     <string name="ai_failed">تعذّر البحث عن المواصفات. حاول مرة أخرى.</string>
     <string name="ai_done_failed">تعذّر البحث عن مواصفات %1$s. %2$s</string>
@@ -444,7 +384,6 @@
     <string name="detail_name_hint">اسم الأصل</string>
     <string name="detail_saved">تم الحفظ</string>
     <string name="detail_menu_camera">التقاط صورة أو فيديو</string>
-    <string name="detail_menu_gallery">رفع من المعرض</string>
     <string name="detail_menu_files">رفع من الملفات</string>
     <string name="detail_photo">صورة</string>
     <string name="detail_video">فيديو</string>
@@ -478,7 +417,6 @@
     <string name="detail_next">الصورة التالية</string>
     <string name="check_banner_passed">اجتازت جميع الفحوصات</string>
     <string name="check_banner_failed_sub">أصلح الفحوصات المطلوبة قبل التحقق من هذا الأصل.</string>
-    <string name="check_required">مطلوب</string>
     <string name="check_note_required">مطلوب قبل أن يمكن التحقق من الأصل</string>
     <string name="check_note_low_confidence">قُرئ %1$s بثقة منخفضة — قارنه بلوحة البيانات</string>
     <plurals name="assets_validated">
@@ -572,14 +510,6 @@
         <item quantity="many">%1$d صورة إضافية من نوع %2$s</item>
         <item quantity="other">%1$d صورة إضافية من نوع %2$s</item>
     </plurals>
-    <plurals name="ai_will_fill">
-        <item quantity="zero">سيتم ملء %1$d حقل</item>
-        <item quantity="one">سيتم ملء %1$d حقل</item>
-        <item quantity="two">سيتم ملء %1$d حقلين</item>
-        <item quantity="few">سيتم ملء %1$d حقول</item>
-        <item quantity="many">سيتم ملء %1$d حقلًا</item>
-        <item quantity="other">سيتم ملء %1$d حقل</item>
-    </plurals>
     <plurals name="ai_done_found">
         <item quantity="zero">تم العثور على مواصفات %1$s: %2$d اقتراح جاهز.</item>
         <item quantity="one">تم العثور على مواصفات %1$s: %2$d اقتراح جاهز.</item>
@@ -587,13 +517,5 @@
         <item quantity="few">تم العثور على مواصفات %1$s: %2$d اقتراحات جاهزة.</item>
         <item quantity="many">تم العثور على مواصفات %1$s: %2$d اقتراحًا جاهزًا.</item>
         <item quantity="other">تم العثور على مواصفات %1$s: %2$d اقتراح جاهز.</item>
-    </plurals>
-    <plurals name="ai_filled_on">
-        <item quantity="zero">تم ملء %1$d حقل في %2$s</item>
-        <item quantity="one">تم ملء %1$d حقل في %2$s</item>
-        <item quantity="two">تم ملء %1$d حقلين في %2$s</item>
-        <item quantity="few">تم ملء %1$d حقول في %2$s</item>
-        <item quantity="many">تم ملء %1$d حقلًا في %2$s</item>
-        <item quantity="other">تم ملء %1$d حقل في %2$s</item>
     </plurals>
 </resources>

@@ -29,7 +29,9 @@ private val SPEC_UNITS = listOf("rated_power_kw" to "kW", "voltage" to "V", "spe
 /** The app's field keys a scanned device is looked up in. */
 private val SCAN_KEYS = listOf("ble", "ip", "label", "note")
 
-private val ASSET_TABLES = arrayOf("assets", "asset_values", "asset_media", "buildings", "floors", "locations", "master_formats", "asset_fields")
+private val ASSET_TABLES = arrayOf(
+    "assets", "asset_values", "asset_media", "buildings", "floors", "locations", "master_formats", "asset_fields", "validation_results",
+)
 
 /**
  * The assets of the offline database: lists with filters and paging, the status counts, one asset in full, and
@@ -42,7 +44,12 @@ class AssetsOfflineSource(
     private val places: PlacesOfflineSource,
     private val formats: MasterFormatsOfflineSource,
     private val validation: ValidationOfflineSource,
+    private val blobs: MediaBlobs,
 ) {
+    /** Whether the copies older versions of the app kept on the device have been checked against the database. */
+    @Volatile
+    private var legacyChecked = false
+
     /** Every asset [filter] keeps, newest first. */
     suspend fun list(filter: AssetFilter = AssetFilter(), propertyId: String = ""): List<Asset> =
         withContext(io) { loadPage(filter, null, 0, propertyId) }
@@ -97,42 +104,27 @@ class AssetsOfflineSource(
 
     fun activityFlow(assetId: String): Flow<List<AssetActivity>> = db.watch(io, "asset_activity") { loadActivity(assetId) }
 
-    /**
-     * One page of the assets [filter] keeps. Draft and Input needed are told apart in code (a mandatory field empty), so for
-     * those two the drafted assets are read, narrowed to the chosen status, and only then cut to the page.
-     */
+    /** One page of the assets [filter] keeps. */
     private fun loadPage(filter: AssetFilter, limit: Int?, offset: Int, propertyId: String): List<Asset> =
         db.whenTable("assets", emptyList()) {
             val where = db.assetWhere(filter)
-            val derived = filter.status == Status.DRAFT || filter.status == Status.INPUT
-            val paging = if (limit != null && !derived) " LIMIT ${limit.coerceAtLeast(0)} OFFSET ${offset.coerceAtLeast(0)}" else ""
+            val paging = if (limit != null) " LIMIT ${limit.coerceAtLeast(0)} OFFSET ${offset.coerceAtLeast(0)}" else ""
             val rows = db.query("SELECT a.* FROM assets a WHERE ${where.sql} $ASSET_ORDER$paging", where.args)
-            val assets = toAssets(rows, propertyId)
-            if (!derived) assets
-            else assets.filter { it.st == filter.status }.drop(if (limit != null) offset.coerceAtLeast(0) else 0).take(limit?.coerceAtLeast(0) ?: Int.MAX_VALUE)
+            toAssets(rows, propertyId)
         }
 
     private fun loadCount(filter: AssetFilter): Int = db.whenTable("assets", 0) {
         val where = db.assetWhere(filter)
-        if (filter.status == Status.DRAFT || filter.status == Status.INPUT) {
-            val rows = db.query("SELECT a.* FROM assets a WHERE ${where.sql}", where.args)
-            val input = inputNeeded(rows)
-            if (filter.status == Status.INPUT) input.size else rows.size - input.size
-        } else {
-            db.queryOne("SELECT COUNT(*) AS n FROM assets a WHERE ${where.sql}", where.args)?.int("n") ?: 0
-        }
+        db.queryOne("SELECT COUNT(*) AS n FROM assets a WHERE ${where.sql}", where.args)?.int("n") ?: 0
     }
 
     private fun loadSummary(filter: AssetFilter): AssetSummary = db.whenTable("assets", AssetSummary(0, emptyMap(), 0, 0)) {
         val where = db.assetWhere(filter, withStatus = false)
         val rows = db.query(ASSET_SUMMARY.replace("%WHERE%", where.sql), where.args)
-        // The drafted assets with a mandatory field empty are "Input needed", not "Draft".
-        val drafts = db.query("SELECT a.* FROM assets a WHERE ${where.sql} AND ($STATUS_SQL) = 'DRAFT'", where.args)
-        val input = inputNeeded(drafts).size
         val counts = rows.mapNotNull { r -> Status.entries.firstOrNull { it.name == r.string("st") }?.let { it to (r.int("n") ?: 0) } }.toMap()
         AssetSummary(
             total = rows.sumOf { it.int("n") ?: 0 },
-            byStatus = (counts + (Status.DRAFT to ((counts[Status.DRAFT] ?: 0) - input)) + (Status.INPUT to input)).filterValues { it > 0 },
+            byStatus = counts.filterValues { it > 0 },
             aiSuggestions = rows.sumOf { it.int("ai") ?: 0 },
             validated = rows.sumOf { it.int("ok") ?: 0 },
         )
@@ -162,29 +154,19 @@ class AssetsOfflineSource(
         val ids = rows.mapNotNull { it.string("id") }
         val media = mediaFor(ids)
         val values = valuesFor(ids)
-        val input = inputNeeded(rows, values)
+        val sentBack = sentBack(ids)
         val formatById = formats.byId()
         val index = places.index()
         return rows.map { row ->
             val id = row.string("id").orEmpty()
             val place = index.location(row.string("location_id"))
-            val asset = row.toAsset(propertyId, place, formatById[row.string("master_format_id")], media[id].orEmpty(), id in input)
+            val asset = row.toAsset(propertyId, place, formatById[row.string("master_format_id")], media[id].orEmpty())
             asset.copy(
                 detail = detailLine(asset.detail, values[id].orEmpty()),
                 where = place?.where ?: index.floorOrBuilding(asset.floorId, asset.buildingId),
+                // As the server reads it: still drafted, and its newest validation result sent it back.
+                recollect = row.string("status") == "drafted" && id in sentBack,
             )
-        }
-    }
-
-    /** The ids of the drafted (not AI) [rows] with a mandatory field still empty: their status is "Input needed". [values] are the rows' answers when already read. */
-    private fun inputNeeded(rows: List<DbRow>, values: Map<String, Map<String, String>>? = null): Set<String> {
-        val drafts = rows.filter { it.string("status") == "drafted" && !it.bool("ai_suggestion") && !it.bool("validated") }
-        val required = db.requiredKeys()
-        if (drafts.isEmpty() || required.isEmpty) return emptySet()
-        val answers = values ?: valuesFor(drafts.mapNotNull { it.string("id") })
-        return drafts.mapNotNullTo(HashSet()) { row ->
-            val id = row.string("id").orEmpty()
-            id.takeIf { required.missingFor(id, row, answers[id].orEmpty()).isNotEmpty() }
         }
     }
 
@@ -218,12 +200,26 @@ class AssetsOfflineSource(
 
     private fun spec(value: String, unit: String) = if (value.any(Char::isLetter)) value else "$value $unit"
 
+    /**
+     * The media of [ids]. Each opens from the database (its `multimedia` blob, through the media provider), the only copy
+     * of the file, whether it was added here or downloaded from the server.
+     */
     private fun mediaFor(ids: List<String>): Map<String, List<Media>> = db.whenTable("asset_media", emptyMap()) {
+        if (!legacyChecked) {
+            legacyChecked = true
+            // Files an older version kept here as well as in the database: the database's copy is the one now.
+            files.dropLegacyCopies(blobs::has)
+        }
         db.queryIn(MEDIA_FOR.replace("%LIVE%", db.notRemoved("asset_media")), ids)
-            .groupBy({ it.string("asset_id").orEmpty() }, { row ->
-                val path = row.string("object_path")?.takeIf { it.isNotBlank() } ?: files.keyFor(row.string("id").orEmpty())?.let(::localObjectPath)
-                row.toMedia(files.uriFor(path.orEmpty()))
-            })
+            .groupBy({ it.string("asset_id").orEmpty() }, { row -> row.toMedia(blobs.uri("asset_media", row.string("id").orEmpty())) })
+    }
+
+    /** Of [ids], the assets whose newest validation result sent them back to be collected again (decision "recollect"). */
+    private fun sentBack(ids: List<String>): Set<String> = db.whenTable("validation_results", emptySet()) {
+        db.queryIn(LATEST_DECISIONS.replace("%LIVE%", db.notRemoved("validation_results", "r")), ids)
+            .groupBy { it.string("asset_id").orEmpty() }
+            .filterValues { rows -> rows.first().string("decision") == "recollect" }
+            .keys
     }
 
     private fun valuesFor(ids: List<String>): Map<String, Map<String, String>> = db.whenTable("asset_values", emptyMap()) {

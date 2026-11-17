@@ -46,6 +46,7 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.EmptyReason
+import com.sclera.sclerago.domain.model.RecollectCount
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
 import com.sclera.sclerago.presentation.components.Capsule
@@ -67,6 +68,8 @@ import kotlinx.coroutines.launch
 object AssetListTags {
     const val EMPTY = "asset-list-empty"
     const val LOADING = "asset-list-loading"
+    const val INFO = "asset-list-info"
+    const val RECOLLECT = "asset-chip-RECOLLECT"
     fun row(id: String) = "asset-row-$id"
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
 }
@@ -84,7 +87,7 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
         Column(Modifier.fillMaxWidth().background(C.Bg)) {
             Column(Modifier.align(Alignment.CenterHorizontally).readableWidth()) {
                 header?.invoke()
-                StatusChips(data.chips, list.onChip)
+                StatusChips(data.chips, list.onChip, data.recollect, list.onRecollect, list.onInfo)
             }
         }
     }
@@ -105,7 +108,27 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
 }
 
 @Composable
-private fun StatusChips(chips: List<StatusCount>, onChip: (StatusCount) -> Unit) {
+private fun StatusChips(
+    chips: List<StatusCount>,
+    onChip: (StatusCount) -> Unit,
+    recollect: RecollectCount,
+    onRecollect: () -> Unit,
+    onInfo: (() -> Unit)?,
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) { ChipRow(chips, onChip, recollect, onRecollect) }
+        // The web's info button beside the list tools: the Managed Assets Summary.
+        onInfo?.let {
+            val label = stringResource(R.string.ms_button)
+            RoundButton(30.dp, C.Btn, it, Modifier.padding(end = 10.dp).semantics { contentDescription = label }.testTag(AssetListTags.INFO)) {
+                LineIcon(Icons.Info, 15.dp, C.Text, 2.2f)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChipRow(chips: List<StatusCount>, onChip: (StatusCount) -> Unit, recollect: RecollectCount, onRecollect: () -> Unit) {
     val state = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val step = with(LocalDensity.current) { 180.dp.toPx() }
@@ -116,6 +139,11 @@ private fun StatusChips(chips: List<StatusCount>, onChip: (StatusCount) -> Unit)
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             items(chips, key = { it.status?.name ?: "ALL" }) { c -> Chip(c) { onChip(c) } }
+            item(key = "RECOLLECT") {
+                ChipBox(stringResource(R.string.dash_chip_recollect), recollect.count, recollect.selected, AssetListTags.RECOLLECT, onRecollect) {
+                    LineIcon(Icons.Refresh, 11.dp, C.Orange, 2.8f)
+                }
+            }
         }
         if (state.canScrollBackward) {
             EdgeFade(left = true, stringResource(R.string.dash_chips_back), Modifier.align(Alignment.TopStart)) {
@@ -147,18 +175,26 @@ private fun EdgeFade(left: Boolean, description: String, modifier: Modifier, onC
 
 @Composable
 private fun Chip(c: StatusCount, onClick: () -> Unit) {
-    val bg = if (c.selected) C.YTintBg else C.Surface
-    val bd = if (c.selected) C.Yellow else C.ChipBd
-    val fg = if (c.selected) C.Yellow else C.Soft
+    ChipBox(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), c.count, c.selected, AssetListTags.chip(c.status), onClick) {
+        c.status?.let { LineIcon(it.icon, 11.dp, it.color, 2.8f) }
+    }
+}
+
+/** One filter chip: optional icon, label and count; yellow while [selected]. */
+@Composable
+private fun ChipBox(label: String, count: Int, selected: Boolean, tag: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
+    val bg = if (selected) C.YTintBg else C.Surface
+    val bd = if (selected) C.Yellow else C.ChipBd
+    val fg = if (selected) C.Yellow else C.Soft
     Row(
-        Modifier.testTag(AssetListTags.chip(c.status)).height(28.dp).clip(Capsule).background(bg).border(1.dp, bd, Capsule)
+        Modifier.testTag(tag).height(28.dp).clip(Capsule).background(bg).border(1.dp, bd, Capsule)
             .clickable(onClick = onClick).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        c.status?.let { LineIcon(it.icon, 11.dp, it.color, 2.8f) }
-        Txt(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), 10, 600, fg)
-        Txt(c.count.toString(), 9, 700, fg.copy(alpha = 0.8f))
+        icon()
+        Txt(label, 10, 600, fg)
+        Txt(count.toString(), 9, 700, fg.copy(alpha = 0.8f))
     }
 }
 
@@ -179,6 +215,7 @@ fun AssetRow(
         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         onToggle()
     }
+    val recollectLabel = stringResource(R.string.dash_recollect_badge)
     val rowBg by animateColorAsState(if (picked) C.PickedRow else C.Surface, label = "row")
     val icBg by animateColorAsState(if (picked) C.Yellow else C.Raised, label = "icbg")
     val icBd by animateColorAsState(if (picked) C.Yellow else if (selMode) C.RadioOff else C.Raised, label = "icbd")
@@ -211,6 +248,8 @@ fun AssetRow(
                 Txt(a.assetTypeName ?: stringResource(R.string.detail_value_none), 11, 400, C.Muted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
+                // The web's "Recollect" badge: sent back to be collected again.
+                if (a.recollect) LineIcon(Icons.Refresh, 17.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = recollectLabel })
                 LineIcon(a.src.icon, 18.dp, a.src.color, 2f)
                 if (a.loc != null) LineIcon(Icons.Pin, 18.dp, C.Yellow, 2.1f)
                 else LineIcon(Icons.Unmapped, 18.dp, C.Orange, 2.1f)
@@ -249,4 +288,11 @@ class AssetListBinding(
     val onOpen: (String) -> Unit,
     /** The property's data is still being opened: a loader shows instead of the rows or the empty card. */
     val loading: Boolean = false,
+    /** A pull to refresh is syncing the property's data. */
+    val refreshing: Boolean = false,
+    val onRefresh: () -> Unit = {},
+    /** Opens the Managed Assets Summary; null hides the info button. */
+    val onInfo: (() -> Unit)? = null,
+    /** The Recollect chip: narrows the list to assets sent back to be collected again, or turns that off. */
+    val onRecollect: () -> Unit = {},
 )

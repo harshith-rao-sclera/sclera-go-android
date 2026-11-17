@@ -42,7 +42,7 @@ internal const val ACTIVITY_INSERT = """INSERT INTO asset_activity (id, asset_id
 internal const val COMMENT_INSERT = """INSERT INTO asset_activity (id, asset_id, kind, action, text, changes, created_by, version, created_at, updated_at)
     VALUES (?, ?, 'comment', NULL, ?, NULL, ?, 1, ?, ?)"""
 
-internal const val FIELD_NAMES = """SELECT id, key, name FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '' OR asset_id = ?) AND %LIVE%"""
+internal const val FIELD_NAMES = """SELECT id, key, name FROM asset_fields WHERE (is_standard = 1 OR asset_id = ?) AND %LIVE%"""
 
 internal const val PLACE_NAME_BUILDING = "SELECT name FROM buildings WHERE id = ?"
 internal const val PLACE_NAME_FLOOR = "SELECT name FROM floors WHERE id = ?"
@@ -58,9 +58,24 @@ internal const val MEDIA_OF_ASSET = "SELECT id, object_path FROM asset_media WHE
 internal const val PHOTO_COUNTS = """SELECT category, COUNT(*) AS n FROM asset_media
     WHERE asset_id = ? AND category IS NOT NULL AND %LIVE% GROUP BY category"""
 
-/** A file the sync uploads: its row is flagged `media_changes` by the engine's trigger. The column is the one the server's image configuration names. */
+/**
+ * A file the sync uploads: its row is flagged `media_changes` by the engine's trigger. The table is the row's
+ * (`asset_media` or `documents`) and the column is the one the server's image configuration names for it.
+ */
 internal const val MULTIMEDIA_INSERT = """INSERT OR REPLACE INTO multimedia (id, multimedia_content, table_name, column_name, row_id, content_type, "order")
-    VALUES (?, ?, 'asset_media', ?, ?, ?, ?)"""
+    VALUES (?, ?, ?, ?, ?, ?, ?)"""
+
+// ---- documents
+
+/**
+ * A file uploaded for an asset, as the server's `documents` keeps it: already read (`ready`), with no drafts made from it.
+ * The file itself is found by the row's id.
+ */
+internal const val DOCUMENT_INSERT = """INSERT INTO documents (id, filename, content_type, size_bytes, kind, status, draft_count, created_by,
+    version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'ready', 0, ?, 1, ?, ?)"""
+
+/** The file an asset was read from (the server's `assets.source_document_id`). */
+internal const val ASSET_SET_SOURCE_DOCUMENT = """UPDATE assets SET source_document_id = ?, version = version + 1, updated_at = ? WHERE id = ?"""
 
 internal const val MULTIMEDIA_DELETE = "DELETE FROM multimedia WHERE table_name = 'asset_media' AND row_id = ?"
 
@@ -112,7 +127,7 @@ internal const val ASSET_AT_LOCATION = "SELECT 1 FROM assets WHERE location_id =
 
 /** The standard fields (those of no one asset) with what the diff compares. */
 internal const val STANDARD_FIELD_ROWS = """SELECT id, key, name, type, options, is_required, is_active, is_builtin, position, help_text, default_value, checks
-    FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '') AND %LIVE%"""
+    FROM asset_fields WHERE is_standard = 1 AND %LIVE%"""
 
 /** A field every asset has: standard (`is_standard`) but not built in, so it can be deleted again. */
 internal const val FIELD_INSERT = """INSERT INTO asset_fields (id, key, name, type, options, is_required, is_active, position, help_text, default_value,
@@ -123,23 +138,17 @@ internal const val FIELD_UPDATE = """UPDATE asset_fields SET name = ?, options =
     default_value = ?, checks = ?, version = version + 1, updated_at = ? WHERE id = ?"""
 
 internal const val FIELD_KEY_TAKEN = "SELECT 1 FROM asset_fields WHERE key = ? AND %LIVE%"
-internal const val FIELD_NAME_TAKEN = "SELECT 1 FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '') AND lower(name) = lower(?) AND id <> ? AND %LIVE%"
+
+/** One asset's own fields (a type's fields among them). */
+internal const val OWN_FIELDS = "SELECT * FROM asset_fields WHERE asset_id = ? AND %LIVE%"
+
+/** The names of the standard fields, which a type's field may not take. */
+internal const val STANDARD_FIELD_NAMES = "SELECT name FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '') AND %LIVE%"
+
+/** A field another type brought that the new type has too: it is the new type's field now (the server's `apply_type`). */
+internal const val FIELD_RETYPE = "UPDATE asset_fields SET master_format_id = ?, version = version + 1, updated_at = ? WHERE id = ?"
+internal const val FIELD_NAME_TAKEN = "SELECT 1 FROM asset_fields WHERE is_standard = 1 AND lower(name) = lower(?) AND id <> ? AND %LIVE%"
 
 /** The answers (`asset_values` answers of live assets; `%ANSWERS%` is the column) that may hold a field's key, to be checked in code; `%LIVE%` is for `assets a`. */
 internal const val FIELD_ANSWERS = """SELECT av.%ANSWERS% AS v FROM asset_values av JOIN assets a ON a.id = av.asset_id
     WHERE av.%ANSWERS% LIKE ? ESCAPE '\' AND %LIVE%"""
-
-// ---- validations
-
-internal const val VALIDATION_NAME_TAKEN = "SELECT 1 FROM validations WHERE lower(name) = lower(?) AND id <> ? AND %LIVE%"
-
-internal const val VALIDATION_INSERT = """INSERT INTO validations (id, name, description, rules, template_key, created_by, version, created_at, updated_at, settings)
-    VALUES (?, ?, ?, ?, NULL, ?, 1, ?, ?, '{}')"""
-
-internal const val VALIDATION_UPDATE = """UPDATE validations SET name = ?, description = ?, rules = ?, version = version + 1, updated_at = ?
-    WHERE id = ?"""
-
-internal const val VALIDATION_EXISTS = "SELECT 1 FROM validations WHERE id = ? AND %LIVE%"
-
-/** A deleted validation's jobs stay, no longer pointing at it (the foreign key's SET NULL rule). */
-internal const val JOBS_UNLINK = "UPDATE validation_jobs SET validation_id = NULL WHERE validation_id = ?"

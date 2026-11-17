@@ -8,11 +8,14 @@ import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
+import com.sclera.sclerago.domain.model.DEFAULT_PHOTO_RULES
+import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.AutofillRepository
+import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.TimeProvider
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
@@ -108,18 +111,22 @@ class InMemoryActivityRepository(initial: Map<String, List<AssetActivity>> = emp
     }
 }
 
-/** The asset configuration (fields, photo rules, geofencing) in memory. */
-class InMemoryAssetConfig(initial: AssetConfig = AssetConfig(emptyList(), emptyList())) : AssetConfigRepository {
+/** The asset fields every asset has, in memory (the app reads them from the offline database). */
+class InMemoryAssetConfig(initial: AssetConfig = AssetConfig(emptyList())) : AssetConfigRepository {
     override val config = MutableStateFlow(initial)
-    override suspend fun update(f: (AssetConfig) -> AssetConfig) {
-        config.value = f(config.value)
-    }
+}
+
+/** The property's photo rules in memory (the server's defaults unless the test sets others). */
+class FakePhotoRulesRepository(rules: List<PhotoRule> = DEFAULT_PHOTO_RULES) : PhotoRulesRepository {
+    val flow = MutableStateFlow(rules)
+    override fun rules(): Flow<List<PhotoRule>> = flow
 }
 
 /** The asset use cases over the given repositories, wired as Hilt does ([guard] lets everything through by default). */
 fun assetUseCases(
     repo: AssetRepository = InMemoryAssetRepository(),
     config: AssetConfigRepository = InMemoryAssetConfig(),
+    photoRules: PhotoRulesRepository = FakePhotoRulesRepository(),
     autofill: AutofillRepository = FakeAutofillRepository(),
     activity: AssetActivityRepository = InMemoryActivityRepository(),
     time: TimeProvider = FakeTimeProvider(),
@@ -128,7 +135,7 @@ fun assetUseCases(
 ) = AssetUseCases(
     ObserveAssetsUseCase(repo), GetAssetDetailsUseCase(repo), SetAssetStatusUseCase(repo, guard), SaveAssetDetailsUseCase(repo, guard),
     DeleteAssetsUseCase(repo, guard), AssignLocationUseCase(repo, guard), AttachMediaUseCase(repo, guard), AddAssetsUseCase(repo, ids, guard),
-    CreateAssetUseCase(repo, ids, guard), MatchDevicesUseCase(repo), BuildCheckInputUseCase(repo, config),
+    CreateAssetUseCase(repo, ids, guard), MatchDevicesUseCase(repo), BuildCheckInputUseCase(repo, config, photoRules),
     BuildAssetListUseCase(), ToggleSelectionUseCase(), SelectAllUseCase(), EvaluateAssetChecksUseCase(),
     AutofillAssetUseCase(autofill, guard), BuildFormValuesUseCase(time),
     ObserveAssetActivityUseCase(activity), AddCommentUseCase(activity, guard),

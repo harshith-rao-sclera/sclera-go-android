@@ -10,8 +10,6 @@ import com.sclera.sclerago.domain.model.PlaceNames
 import com.sclera.sclerago.domain.model.SpecLookup
 import com.sclera.sclerago.domain.model.placeNames
 import com.sclera.sclerago.domain.model.reclassify
-import com.sclera.sclerago.domain.model.OnlineError
-import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
@@ -61,12 +59,15 @@ class ObserveAssetValidationUseCase @Inject constructor(private val repo: AssetV
 }
 
 /**
- * Validates an asset again at the server, as anyone who can collect or validate may (else [OnlineException] Forbidden):
- * from its first step to look at, or every step ([fromStart]).
+ * Validates an asset again at the server, as anyone with check may (validate includes it; else
+ * [com.sclera.sclerago.domain.model.OnlineException] Forbidden): from its first step to look at, or every step ([fromStart]).
  */
 class RevalidateAssetUseCase @Inject constructor(private val repo: AssetValidationRepository, private val guard: PermissionGuard) {
+    /** The signed-in user may validate assets again (the Validate buttons show only then). */
+    fun allowed(): Boolean = guard.allows(Permission.CHECK)
+
     suspend operator fun invoke(assetId: String, fromStart: Boolean) {
-        if (!guard.allows(Permission.COLLECT) && !guard.allows(Permission.VALIDATE)) throw OnlineException(OnlineError.Forbidden)
+        guard.requireOnline(Permission.CHECK)
         repo.revalidate(assetId, fromStart)
     }
 }
@@ -132,4 +133,5 @@ class AssetFormUseCases @Inject constructor(
     val lookups: SpecLookupUseCase,
     val documents: ObserveAssetDocumentsUseCase,
     val removeWebPage: RemoveWebPageUseCase,
+    val spokenFields: ReadSpokenFieldsUseCase = ReadSpokenFieldsUseCase(),
 )

@@ -32,7 +32,6 @@ fun DbRow.toAsset(
     place: PlaceLabel? = null,
     format: MasterFormat? = null,
     media: List<Media> = emptyList(),
-    missingRequired: Boolean = false,
 ): Asset {
     val name = string("name").orEmpty()
     val validated = bool("validated")
@@ -45,7 +44,7 @@ fun DbRow.toAsset(
         loc = place?.loc ?: locationId,
         where = place?.where.orEmpty(),
         src = sourceFromDb(string("source")),
-        st = statusFromDb(string("status"), validated, aiSuggestion, missingRequired),
+        st = statusFromDb(string("status"), validated),
         type = format?.let { typeOf(it.label) }?.takeIf { it != AssetType.GENERIC } ?: typeOf(name),
         propertyId = propertyId,
         media = media,

@@ -101,5 +101,5 @@ private fun ImportSheetWithFilePreview() {
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun AddPropertySheetPreview() {
-    ScleraTheme { AddPropertySheet(existing = emptyList(), onClose = {}, onAdd = { null }) }
+    ScleraTheme { AddPropertySheet(onClose = {}, onAdd = { null }) }
 }

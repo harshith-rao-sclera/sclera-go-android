@@ -21,9 +21,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.services.media.describeAttachments
+import com.sclera.sclerago.services.media.describeDocument
 import com.sclera.sclerago.services.media.describeVisualMedia
 import kotlinx.coroutines.launch
 
@@ -36,17 +38,30 @@ import kotlinx.coroutines.launch
 fun AssetDetailRoute(
     asset: Asset,
     isNew: Boolean,
-    prefill: Map<String, String>,
     onBack: () -> Unit,
     onChangeLoc: () -> Unit,
-    onCreate: (name: String, detail: String, media: List<Media>, values: Map<String, String>, submit: Boolean) -> Unit,
+    /** [exception]: submitted with a mandatory field empty or too few photos, so it goes in as an exception. */
+    onCreate: (name: String, detail: String, media: List<Media>, values: Map<String, String>, submit: Boolean, exception: Boolean) -> Unit,
     onDelete: (String) -> Unit,
     onNotice: (UiText) -> Unit,
+    /** A place picked for this asset in the location sheet, to keep as an unsaved change; [onPlaceTaken] once kept. */
+    pickedPlace: LocValue? = null,
+    onPlaceTaken: () -> Unit = {},
+    /** Assign the asset to a person (the web's Assign asset). */
+    onAssign: () -> Unit = {},
+    /** Validate: run checks on this asset (the web's asset bar opens Run validation on it). */
+    onValidate: () -> Unit = {},
     vm: AssetDetailViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(asset.id, isNew) { vm.open(asset, isNew, prefill) }
+    LaunchedEffect(asset.id, isNew) { vm.open(asset, isNew) }
     DisposableEffect(vm) { onDispose { vm.close() } }
     LaunchedEffect(vm) { vm.notices.collect(onNotice) }
+    LaunchedEffect(pickedPlace) {
+        pickedPlace?.let {
+            vm.choosePlace(it)
+            onPlaceTaken()
+        }
+    }
     val state by vm.state.collectAsStateWithLifecycle()
     // The view model catches up one frame after the asset changes; until then there is nothing to show.
     if (state.asset?.id != asset.id) return
@@ -54,9 +69,11 @@ fun AssetDetailRoute(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     fun attach(media: List<Media>) = vm.attach(media)
+    val voice = rememberVoiceInput(onHeard = vm::heard, onFailed = onNotice)
 
     // "Add photo" opens the same camera as the Camera tab; its captures attach to this asset.
     var camOpen by remember(asset.id) { mutableStateOf(false) }
+    var memoOpen by remember(asset.id) { mutableStateOf(false) }
     var camCaps by remember(asset.id) { mutableStateOf(listOf<Media>()) }
     var camSel by remember(asset.id) { mutableStateOf(setOf<String>()) }
     var camVideo by remember(asset.id) { mutableStateOf(false) }
@@ -67,10 +84,18 @@ fun AssetDetailRoute(
     val filePick = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) scope.launch { attach(describeAttachments(context, uris)) }
     }
+    // The Documents tab takes one file: an asset has one source document.
+    val documentPick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            val doc = describeDocument(context, uri)
+            if (doc != null) vm.attachDocument(doc) else attach(describeAttachments(context, listOf(uri)))
+        }
+    }
 
     val actions = AssetDetailActions(
         onBack = onBack,
         onChangeLoc = onChangeLoc,
+        onAssign = onAssign,
         onEdit = vm::edit,
         onDiscardEdits = vm::discardEdits,
         onSave = vm::save,
@@ -79,29 +104,51 @@ fun AssetDetailRoute(
             val serial = state.value("serial")
             onCreate(
                 state.value("name"), if (serial.isNotEmpty()) "S/N $serial" else state.value("model"),
-                state.newPicks, state.values, submit,
+                state.newPicks, state.values, submit, submit && !state.complete,
             )
         },
-        onValidate = { vm.revalidate(false) },
+        onValidate = onValidate,
         onDelete = { onDelete(asset.id) },
         onAutofill = vm::openAi,
         ai = AiDialogActions(
             onClose = vm::closeAi, onIdentity = vm::editAiIdentity, onLookUp = vm::lookUp, onChangeModel = vm::changeAiModel,
             onToggle = vm::toggleAiPick, onEdit = vm::editAiPick, onApply = vm::applyAi,
         ),
+        onMic = voice::toggle,
+        voice = VoiceFillActions(
+            onToggle = vm::toggleVoicePick, onApply = vm::applyVoice, onClose = vm::closeVoice,
+            onSpeakAgain = {
+                vm.closeVoice()
+                voice.toggle()
+            },
+        ),
         onTakePhoto = { camOpen = true },
+        onRecordMemo = { memoOpen = true },
         onPickGallery = { galleryPick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
         onPickFiles = { filePick.launch(arrayOf("*/*")) },
+        onUploadDocument = { documentPick.launch(arrayOf("*/*")) },
         onCommentChange = vm::editComment,
         onPostComment = vm::postComment,
+        onCommentSheet = vm::showCommentSheet,
         onRevalidate = vm::revalidate,
         onRemoveWebPage = vm::removeWebPage,
-        onAddPhoto = { kind, camera ->
+        onSuggestType = vm::openClassify,
+        classify = ClassifyActions(
+            onClose = vm::closeClassify, onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,
+            onToggleReading = vm::toggleClassifyReading, onApply = vm::applyClassify,
+        ),
+        onAddPhoto = { kind ->
+            // What the camera takes goes to [kind]'s card (Other photos for none); photo, video and gallery are in the camera.
             vm.choosePhotoKind(kind)
-            if (camera) camOpen = true else galleryPick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            camVideo = false
+            camOpen = true
         },
     )
-    AssetDetailScreen(state, actions)
+    AssetDetailScreen(state, actions, mic = voice.state)
+
+    if (memoOpen) {
+        VoiceMemoSheet(onSaved = { memo -> attach(listOf(memo)) }, onClose = { memoOpen = false }, onFailed = onNotice)
+    }
 
     if (camOpen) {
         // The camera sits above the details, so its back button is checked first.

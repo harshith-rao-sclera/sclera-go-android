@@ -33,7 +33,11 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.Status
+import androidx.compose.ui.platform.testTag
+import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Capsule
+import com.sclera.sclerago.presentation.components.CircleFab
+import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalReadOnly
@@ -55,7 +59,7 @@ import com.sclera.sclerago.presentation.theme.Txt
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modifier: Modifier = Modifier) {
+fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modifier: Modifier = Modifier, mic: MicState = MicState()) {
     val asset = state.asset ?: return
     val isNew = state.isNew
     val locked = state.locked
@@ -103,14 +107,15 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                 ) {
                     val open = { i: Int -> preview = i }
                     when {
-                        onInfo -> AssetInfoTab(state, actions, ui, onModal = { modal = it })
-                        tab == DetailTabKind.VALIDATION -> ValidationTab(state.validation, state.validating, actions.onRevalidate)
-                        tab == DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents, locked, actions.onPickFiles) { removeDoc = it }
-                        tab == DetailTabKind.MEDIA -> MediaTab(state.media, state.photoRules, locked, open, actions.onAddPhoto, actions.onPickFiles)
-                        tab == DetailTabKind.COMMENTS -> {
-                            CommentBox(state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment)
-                            CommentList(state.activity)
+                        onInfo -> {
+                            // A step that failed or needs a look shows first; tapping it opens the Validation tab.
+                            ValidationBanner(state.validation) { chosen = DetailTabKind.VALIDATION }
+                            AssetInfoTab(state, actions, ui, onModal = { modal = it })
                         }
+                        tab == DetailTabKind.VALIDATION -> ValidationTab(state.validation, state.validating, actions.onRevalidate.takeIf { state.canCheck })
+                        tab == DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents, locked) { removeDoc = it }
+                        tab == DetailTabKind.MEDIA -> MediaTab(state.media, state.photoRules, open)
+                        tab == DetailTabKind.COMMENTS -> CommentList(state.activity)
                         tab == DetailTabKind.HISTORY -> HistoryList(state.activity)
                         else -> AssetInfoTab(state, actions, ui, onModal = { modal = it })
                     }
@@ -121,14 +126,47 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
         if (onInfo && !locked) {
             Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
                 FormFloatingButtons(
-                    aiBusy = state.aiBusy, aiNotice = null, listening = ui.listening,
-                    onAi = actions.onAutofill, onMic = { ui.listening = !ui.listening },
+                    aiBusy = state.aiBusy, aiNotice = null, listening = mic.listening, heard = mic.heard,
+                    onAi = actions.onAutofill, onMic = actions.onMic,
                     modifier = Modifier.align(Alignment.BottomEnd),
+                )
+            }
+        }
+        // Comments: the + opens the sheet a comment is written in (open on submitted assets too: the server takes comments on any asset).
+        if (!isNew && tab == DetailTabKind.COMMENTS) {
+            Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
+                CircleFab(
+                    Icons.Plus, stringResource(R.string.detail_add_comment), { actions.onCommentSheet(true) },
+                    Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp).testTag("comment-add"),
+                )
+            }
+        }
+        if (state.commentOpen) {
+            BottomSheet({ actions.onCommentSheet(false) }) {
+                SheetHeader(stringResource(R.string.detail_add_comment), null) { actions.onCommentSheet(false) }
+                Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 20.dp)) {
+                    CommentBox(state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment)
+                }
+            }
+        }
+        // Documents and Media add with floating buttons, like the other pages.
+        if (!locked && tab == DetailTabKind.DOCUMENTS) {
+            Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
+                UploadDocumentFab(actions.onUploadDocument, Modifier.align(Alignment.BottomEnd))
+            }
+        }
+        if (!locked && tab == DetailTabKind.MEDIA) {
+            Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
+                MediaFabs(
+                    state.media, state.photoRules, actions.onAddPhoto, actions.onPickFiles, actions.onRecordMemo,
+                    Modifier.align(Alignment.BottomEnd),
                 )
             }
         }
 
         state.ai?.let { AiSuggestDialog(it, state, actions.ai) }
+        state.voice?.let { VoiceFillSheet(it, state, actions.voice) }
+        state.classify?.let { ClassifySheet(it, actions.classify) }
 
         removeDoc?.let { doc ->
             ConfirmDialog(
@@ -166,7 +204,7 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                 onNo = { modal = DetailModal.NONE },
                 onYes = {
                     modal = DetailModal.NONE
-                    actions.onSubmit()
+                    if (isNew) actions.onCreate(true) else actions.onSubmit()
                 },
             )
             DetailModal.SAVE_MISSING -> ConfirmDialog(

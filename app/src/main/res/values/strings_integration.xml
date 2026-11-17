@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Integration page (side menu → Integration) and Move to managed assets (asset list), as the web's. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="int_title">Integration</string>
+    <string name="int_loading">Loading</string>
+    <string name="int_none">No integration</string>
+    <string name="int_load_failed">Unable to fetch VDMS integration</string>
+    <string name="int_view_title">View Integration</string>
+    <string name="int_add_title">Add Integration</string>
+    <string name="int_field_integration">Integration</string>
+    <string name="int_field_vdms">VDMS</string>
+    <string name="int_select">Select</string>
+    <string name="int_no_options">No options</string>
+    <string name="int_once_note">Once integrated, this property\'s VDMS can\'t be changed again.</string>
+    <string name="int_cancel">Cancel</string>
+    <string name="int_done">Done</string>
+    <string name="int_link">Link</string>
+    <string name="int_choose_vdms">Choose a VDMS to link</string>
+    <string name="int_confirm_title">Link this property to VDMS %1$s?</string>
+    <string name="int_confirm_body">Once a property is integrated with a VDMS, the integration can\'t be changed again. Assets moved to Managed Assets are managed in VDMS from then on.</string>
+    <string name="int_linked">Linked to VDMS %1$s. Its buildings, floors and locations will appear shortly.</string>
+    <string name="int_link_failed">Unable to create VDMS Integration</string>
+
+    <!-- Move to managed assets (asset list selection) -->
+    <string name="mv_action">Move</string>
+    <string name="mv_title">Move to managed assets</string>
+    <string name="mv_network_label">Network name *</string>
+    <string name="mv_assignee_label">Assignee</string>
+    <string name="mv_submit">Submit</string>
+    <string name="mv_choose_network">Choose a network</string>
+    <string name="mv_open_validated">Open the Validated filter to move validated assets</string>
+    <string name="mv_link_first">Link this property to a VDMS on the Integration page first</string>
+    <string name="mv_api_missing">This API has no Managed Assets (VDMS) support yet: update the API</string>
+    <string name="mv_check_failed">Couldn\'t check this property\'s VDMS link. Reload to try again</string>
+    <string name="mv_networks_failed">Unable to get networks</string>
+    <string name="mv_nothing_moved">Nothing was moved: only validated assets still in ADC can be moved</string>
+    <string name="mv_collections_moving">Collection(s) will be moved to managed assets in some time</string>
+    <plurals name="mv_assets_moving">
+        <item quantity="one">%1$d asset will be moved to managed assets in some time</item>
+        <item quantity="other">%1$d assets will be moved to managed assets in some time</item>
+    </plurals>
+    <string name="mv_failed">Unable to move to managed assets</string>
+
+    <!-- Recollect (asset list): assets sent back to be collected again -->
+    <string name="dash_chip_recollect">Recollect</string>
+    <string name="dash_recollect_badge">Recollect: sent back to be collected again</string>
+
+    <!-- Managed Assets Summary (asset list info button) -->
+    <string name="ms_button">Managed assets summary</string>
+    <string name="ms_title">Managed Assets Summary</string>
+    <string name="ms_moved">Moved to Managed Assets</string>
+    <string name="ms_moved_sub">Assets handed over to Managed Assets. They\'re managed there now, not in data collection.</string>
+    <string name="ms_returned">Returned from Managed Assets</string>
+    <string name="ms_returned_sub">Assets sent back to data collection to be recollected. They\'re counted here until they\'re moved again.</string>
+</resources>

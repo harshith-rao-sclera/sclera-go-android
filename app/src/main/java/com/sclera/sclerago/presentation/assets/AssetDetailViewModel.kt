@@ -8,9 +8,13 @@ import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.DataException
+import com.sclera.sclerago.domain.model.DocumentSource
+import com.sclera.sclerago.domain.model.IMAGE_KIND
+import com.sclera.sclerago.domain.model.documentKind
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.MasterFormat
 import kotlinx.coroutines.Job
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
@@ -31,6 +35,7 @@ import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.AssetFormUseCases
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CanEditAssetUseCase
+import com.sclera.sclerago.domain.usecase.asset.ClassifyAssetUseCases
 import com.sclera.sclerago.domain.usecase.config.ObserveAssetConfigUseCase
 import com.sclera.sclerago.domain.validation.AssetValidation
 import com.sclera.sclerago.domain.validation.COMMENT_MAX_LENGTH
@@ -52,6 +57,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -92,18 +98,30 @@ data class AssetDetailState(
     val commentDraft: String = "",
     val commentError: UiText? = null,
     val commentPosting: Boolean = false,
+    /** The sheet a comment is written in is open (the Comments tab's +). */
+    val commentOpen: Boolean = false,
     val savedFlash: Boolean = false,
     /** The AI suggestions dialog while it is open (null: closed). */
     val ai: AiDialogState? = null,
     /** A spec look-up is running, shown or not (the AI button spins). */
     val aiBusy: Boolean = false,
+    /** The voice fill sheet while it is open: what was heard and the values found in it (null: closed). */
+    val voice: VoiceFillState? = null,
     /** The signed-in user may change this asset (the server lets only admins change a submitted or validated one). */
     val canEdit: Boolean = true,
+    /** The signed-in user may validate the asset (the server's check permission; validate includes it). */
+    val canCheck: Boolean = true,
+    /** The "Suggest type" sheet while it is open (null: closed). */
+    val classify: ClassifyState? = null,
+    /** A building, floor or location picked for the asset and not saved yet ([place] already shows it). */
+    val pendingPlace: LocValue? = null,
 ) {
     val values: Map<String, String> get() = saved + edits
     fun value(key: String): String = edits[key] ?: saved[key].orEmpty()
     fun dirty(key: String): Boolean = key in edits && edits[key] != saved[key].orEmpty()
-    val dirtyCount: Int get() = edits.keys.count { dirty(it) }
+
+    /** Unsaved changes: the fields changed, and the place when one was picked. */
+    val dirtyCount: Int get() = edits.keys.count { dirty(it) } + if (pendingPlace != null) 1 else 0
 
     /** Read-only: submitted or validated, for anyone but an admin (until a recollect is requested). */
     val locked: Boolean get() = !isNew && !canEdit
@@ -143,8 +161,13 @@ data class AiDialogState(
     /** When the shown search started (for its progress). */
     val startedAt: Long? = null,
     val error: UiText? = null,
-    val applying: Boolean = false,
 )
+
+/** One value heard for a field ([value] as the form stores it), ticked to go into the form. */
+data class VoicePick(val on: Boolean, val value: String)
+
+/** What was said, the values found in it by field key, and how sure the recognizer was (null: it didn't say). */
+data class VoiceFillState(val said: String, val picks: Map<String, VoicePick>, val sure: Double?)
 
 /**
  * One asset details screen: the form edits, Save / Submit / Validate, photos, the asset's validation (and
@@ -157,6 +180,7 @@ class AssetDetailViewModel @Inject constructor(
     observeConfig: ObserveAssetConfigUseCase,
     private val formData: AssetFormUseCases,
     private val canEditAsset: CanEditAssetUseCase,
+    private val classifying: ClassifyAssetUseCases,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
 
@@ -174,19 +198,23 @@ class AssetDetailViewModel @Inject constructor(
 
     private data class Form(
         val edits: Map<String, String> = emptyMap(),
+        val place: LocValue? = null,
         val savedFlash: Boolean = false,
         val ai: AiDialogState? = null,
         val aiOpen: Boolean = false,
+        val voice: VoiceFillState? = null,
         val newPicks: List<Media> = emptyList(),
         val commentDraft: String = "",
         val commentProblem: CommentProblem? = null,
         val commentPosting: Boolean = false,
+        val commentOpen: Boolean = false,
         val validating: Boolean = false,
     )
 
     private val target = MutableStateFlow<Target?>(null)
     private val form = MutableStateFlow(Form())
     private val message = MutableSharedFlow<UiText>(extraBufferCapacity = 8)
+    private val classifier = AssetClassifier(classifying, viewModelScope)
 
     /** Messages to flash after saving, submitting, validating or adding media. */
     val notices: SharedFlow<UiText> = message.asSharedFlow()
@@ -210,27 +238,49 @@ class AssetDetailViewModel @Inject constructor(
             combine(log, fields, checksAndDocs, property, rows) { a, f, (v, d), (m, tree, rules), r -> FromDb(a, f, m, tree, v, rules, r, d) }
         }
 
+    /** The open asset as the catalog has it, with its details: read again when either changes, not on every keystroke. */
+    private data class Opened(val target: Target, val asset: Asset?, val details: AssetDetails?)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val opened: Flow<Opened?> = combine(target, useCases.observe()) { t, catalog -> t to catalog }
+        .mapLatest { (t, catalog) ->
+            when {
+                t == null -> null
+                t.isNew -> Opened(t, t.asset, null)
+                else -> catalog.assets.firstOrNull { it.id == t.asset.id }.let { a -> Opened(t, a, a?.let { useCases.details(it.id) }) }
+            }
+        }
+
     val state: StateFlow<AssetDetailState> =
-        combine(target, form, useCases.observe(), observeConfig(), fromDb) { t, f, catalog, config, db ->
-            if (t == null) return@combine AssetDetailState()
-            val asset = if (t.isNew) t.asset
-            else catalog.assets.firstOrNull { it.id == t.asset.id } ?: return@combine AssetDetailState()
-            val details = if (t.isNew) null else useCases.details(asset.id)
-            val fields = db.fields ?: config.fields
-            val saved = useCases.formValues(asset.name, t.isNew, details, fields, t.prefill)
+        combine(opened, form, observeConfig(), fromDb, classifier.ui) { o, f, config, db, classified ->
+            val t = o?.target ?: return@combine AssetDetailState()
+            val asset = o.asset ?: return@combine AssetDetailState()
+            val details = o.details
+            val own = db.fields ?: config.fields
+            // The chosen type's fields the asset doesn't have yet come after its own, until saving makes them.
+            val typeExtra = classified.typeFields.filter { tf -> own.none { it.label.equals(tf.label, true) } }
+            val fields = own + typeExtra
+            val saved = useCases.formValues(asset.name, t.isNew, details, own, t.prefill)
             AssetDetailState(
                 asset = asset, isNew = t.isNew,
-                place = formData.placeNames(db.tree, asset.buildingId, asset.floorId, asset.locationId),
+                // A place picked and not saved yet shows instead of the saved one.
+                place = f.place?.placeId?.let { formData.placeNames(db.tree, null, null, it) }
+                    ?: formData.placeNames(db.tree, asset.buildingId, asset.floorId, asset.locationId),
+                pendingPlace = f.place,
                 formats = db.formats, photoRules = db.photoRules,
-                fieldRows = db.rows ?: fields.filter { it.visible }.map { FormEntry.Input(it.key) },
-                documents = if (t.isNew) emptyList() else db.documents,
+                fieldRows = (db.rows ?: own.filter { it.visible }.map { FormEntry.Input(it.key) }) + typeExtra.map { FormEntry.Input(it.key) },
+                // A new asset's document is only picked so far: it shows here until the asset is created.
+                documents = if (t.isNew) f.newPicks.filter { it.sourceDocument }.map { it.toPendingDocument() } else db.documents,
                 saved = saved, edits = f.edits, fields = fields, details = details,
-                media = asset.media + f.newPicks, newPicks = f.newPicks, savedFlash = f.savedFlash,
-                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase == AiPhase.SEARCHING,
+                media = asset.media + f.newPicks.filterNot { it.sourceDocument }, newPicks = f.newPicks, savedFlash = f.savedFlash,
+                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase == AiPhase.SEARCHING, voice = f.voice,
                 activity = if (t.isNew) emptyList() else db.activity,
                 commentDraft = f.commentDraft, commentError = f.commentProblem?.problemText(), commentPosting = f.commentPosting,
+                commentOpen = f.commentOpen && !t.isNew,
                 validation = if (t.isNew) null else db.validation, validating = f.validating,
                 canEdit = t.isNew || canEditAsset(asset.st),
+                canCheck = formData.revalidate.allowed(),
+                classify = classified.sheet,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetDetailState())
 
@@ -239,12 +289,15 @@ class AssetDetailViewModel @Inject constructor(
         val current = target.value
         if (current != null && current.asset.id == asset.id && current.isNew == isNew) return
         aiJob?.cancel()
+        classifier.reset()
         form.value = Form()
         target.value = Target(asset, isNew, prefill)
+        classifier.refreshOnce()
     }
 
     fun close() {
         aiJob?.cancel()
+        classifier.reset()
         target.value = null
         form.value = Form()
     }
@@ -255,9 +308,25 @@ class AssetDetailViewModel @Inject constructor(
         // A new system or asset type also resets the types below it that the catalogue doesn't file under it.
         val changes = if (key in CLASS_KEYS) formData.reclassify(s.formats, s.values, key, value) else mapOf(key to value)
         form.update { it.copy(edits = it.edits + changes, savedFlash = false) }
+        // A new type shows its fields.
+        if (key in CLASS_KEYS) classifier.showTypeFields(s.formats, s.fields, s.values + changes)
     }
 
-    fun discardEdits() = form.update { it.copy(edits = emptyMap()) }
+    /**
+     * The building, floor or location picked for the open asset: kept as an unsaved change (written on Save, dropped
+     * on Discard), or dropped when it is where the asset already is.
+     */
+    fun choosePlace(place: LocValue) {
+        val asset = state.value.asset ?: return
+        if (state.value.locked) return
+        val current = asset.locationId ?: asset.floorId ?: asset.buildingId
+        form.update { it.copy(place = place.takeIf { p -> p.placeId != current }, savedFlash = false) }
+    }
+
+    fun discardEdits() {
+        form.update { it.copy(edits = emptyMap(), place = null) }
+        classifier.clearTypeFields()
+    }
 
     /** Keeps the edits; the asset keeps its status, as the server's edit does. */
     fun save() {
@@ -265,9 +334,13 @@ class AssetDetailViewModel @Inject constructor(
         val id = s.asset?.id ?: return
         if (s.dirtyCount == 0) return
         write {
-            useCases.saveDetails(id, s.values)
+            // The place picked goes in with the rest of the changes, only now.
+            s.pendingPlace?.let { useCases.assignLocation(listOf(id), it) }
+            // Saving makes the asset drafted with the AI flag on (Status.AI is stored that way), as saving a new one does.
+            useCases.saveDetails(id, s.values, Status.AI)
             clearEditsOnceRefreshed(s)
             form.update { it.copy(savedFlash = true) }
+            state.value.let { classifier.showTypeFields(it.formats, it.fields, it.values) }
             message.emit(UiText.Res(R.string.asset_changes_saved))
         }
     }
@@ -280,7 +353,8 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         val id = s.asset?.id ?: return
         write {
-            useCases.saveDetails(id, s.values, Status.SUBMITTED, s.photoRules)
+            s.pendingPlace?.let { useCases.assignLocation(listOf(id), it) }
+            useCases.saveDetails(id, s.values, Status.SUBMITTED)
             clearEditsOnceRefreshed(s)
             message.emit(UiText.Res(if (s.complete) R.string.asset_submitted_notice else R.string.asset_exception_notice))
         }
@@ -289,7 +363,8 @@ class AssetDetailViewModel @Inject constructor(
     /** Drops the typed edits once the screen shows what was saved, so the form does not flash the old values in between. */
     private suspend fun clearEditsOnceRefreshed(before: AssetDetailState) {
         withTimeoutOrNull(REFRESH_MS) { state.first { it.asset != before.asset || it.saved != before.saved } }
-        form.update { it.copy(edits = emptyMap()) }
+        // The picked place goes too: the asset now has it, so it shows from the asset itself.
+        form.update { it.copy(edits = emptyMap(), place = null) }
     }
 
     /** Makes a change to the offline data in the background; when it is refused or fails the user is told why. */
@@ -312,16 +387,55 @@ class AssetDetailViewModel @Inject constructor(
 
     /** Photos, videos or documents added to the asset (kept in the form until a new asset is created). */
     fun attach(picked: List<Media>) {
-        val s = state.value
-        val asset = s.asset ?: return
-        if (picked.isEmpty()) return
         // Photos added from a photo card are of that card's kind; videos and files never are.
         val kind = photoKind.also { photoKind = null }
-        val media = picked.map { if (!it.video && !it.isDoc && !it.audio) it.copy(category = kind) else it }
+        addPicked(picked.map { if (!it.video && !it.isDoc && !it.audio) it.copy(category = kind) else it })
+    }
+
+    /**
+     * The Documents tab's upload: [doc] becomes the asset's source document (kept in the form until a new asset is
+     * created). A file the server doesn't take as a document is added as an attachment instead.
+     */
+    fun attachDocument(doc: Media) {
+        photoKind = null
+        val isDocument = documentKind(doc.fileName.orEmpty(), null).let { it != null && it != IMAGE_KIND }
+        addPicked(listOf(if (isDocument) doc.copy(sourceDocument = true, category = null) else doc))
+    }
+
+    private fun addPicked(media: List<Media>) {
+        val s = state.value
+        val asset = s.asset ?: return
+        if (media.isEmpty()) return
         if (s.isNew) form.update { it.copy(newPicks = it.newPicks + media) }
         else write {
             if (useCases.attachMedia(asset.id, media)) message.emit(UiText.Plural(R.plurals.items_added_to_asset, media.size))
         }
+    }
+
+    /** Opens the "Suggest type" sheet: the server reads the asset's photos and what is typed, and suggests its type and JACS code. */
+    fun openClassify() {
+        val s = state.value
+        if (s.asset == null || s.locked) return
+        classifier.open(s.fields, s::value, s.media)
+    }
+
+    fun pickSuggestedType(masterFormatId: String) = classifier.pickType(masterFormatId)
+
+    fun pickSuggestedCode(code: String) = classifier.pickCode(code)
+
+    fun toggleClassifyReading() = classifier.toggleReading()
+
+    fun closeClassify() = classifier.close()
+
+    /** Puts the picked type (and JACS code, and what the photos said) into the form, which then shows the type's fields; nothing is saved until Save. */
+    fun applyClassify() {
+        val s = state.value
+        if (s.locked) return
+        val update = classifier.chosenValues(s::value) ?: return
+        form.update { it.copy(edits = it.edits + update, savedFlash = false) }
+        classifier.close()
+        classifier.showTypeFields(s.formats, s.fields, s.values + update)
+        message.tryEmit(UiText.Res(R.string.classify_applied))
     }
 
     /** The running look-up of the open asset (it keeps going when the dialog is closed). */
@@ -376,23 +490,42 @@ class AssetDetailViewModel @Inject constructor(
     /** Editing a suggested value ticks it. */
     fun editAiPick(key: String, value: String) = setAi { it.copy(picks = it.picks + (key to AiPick(true, value))) }
 
-    /** Saves the ticked suggestions (and the manufacturer / model typed) to the asset, as the web's Apply. */
+    /** Puts the ticked suggestions (and the manufacturer / model typed) into the form; nothing is saved until Save. */
     fun applyAi() {
-        val s = state.value
-        val asset = s.asset ?: return
         val d = form.value.ai ?: return
         val update = typedIdentity(d) + d.picks.filterValues { it.on && it.value.isNotBlank() }.mapValues { it.value.value.trim() }
-        if (update.isEmpty() || d.applying) return
-        setAi { it.copy(applying = true) }
-        write {
-            try {
-                useCases.saveDetails(asset.id, s.saved + update)
-                form.update { it.copy(edits = it.edits - update.keys, ai = null, aiOpen = false) }
-                message.emit(UiText.Plural(R.plurals.ai_filled_on, update.size, listOf(update.size, s.value("name").ifBlank { asset.name })))
-            } finally {
-                setAi { it.copy(applying = false) }
-            }
-        }
+        if (update.isEmpty()) return
+        form.update { it.copy(edits = it.edits + update, savedFlash = false, ai = null, aiOpen = false) }
+        message.tryEmit(UiText.Plural(R.plurals.ai_applied, update.size))
+    }
+
+    /**
+     * What was said by voice ([sure] is the recognizer's confidence, null when it gives none): the field values found in
+     * it open the voice fill sheet, all ticked, to put into the form.
+     */
+    fun heard(said: String, sure: Float?) {
+        val s = state.value
+        if (s.asset == null || s.locked || said.isBlank()) return
+        val found = formData.spokenFields(said, s.fields)
+        val voice = VoiceFillState(said.trim(), found.mapValues { VoicePick(true, it.value) }, sure?.takeIf { it in 0f..1f }?.toDouble())
+        form.update { it.copy(voice = voice) }
+    }
+
+    fun toggleVoicePick(key: String) = form.update { f ->
+        val v = f.voice ?: return@update f
+        val pick = v.picks[key] ?: return@update f
+        f.copy(voice = v.copy(picks = v.picks + (key to pick.copy(on = !pick.on))))
+    }
+
+    fun closeVoice() = form.update { it.copy(voice = null) }
+
+    /** Puts the ticked values heard into the form; nothing is saved until Save. */
+    fun applyVoice() {
+        val v = form.value.voice ?: return
+        val update = v.picks.filterValues { it.on }.mapValues { it.value.value }
+        if (update.isEmpty()) return
+        form.update { it.copy(edits = it.edits + update, savedFlash = false, voice = null) }
+        message.tryEmit(UiText.Plural(R.plurals.ai_applied, update.size))
     }
 
     /** The manufacturer and model typed in the dialog that differ from the saved ones (sent with the look-up, saved on Apply). */
@@ -502,7 +635,10 @@ class AssetDetailViewModel @Inject constructor(
 
     fun editComment(text: String) = form.update { it.copy(commentDraft = text, commentProblem = null) }
 
-    /** Posts the typed comment: the box empties once it is kept, or says what is wrong with it. */
+    /** The Comments tab's +: opens (true) or closes the sheet a comment is written in; the draft is kept either way. */
+    fun showCommentSheet(open: Boolean) = form.update { it.copy(commentOpen = open, commentProblem = null) }
+
+    /** Posts the typed comment: the box empties and the sheet closes once it is kept, or it says what is wrong with it. */
     fun postComment() {
         val s = state.value
         val id = s.asset?.id ?: return
@@ -512,7 +648,10 @@ class AssetDetailViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val problem = useCases.addComment(id, draft)
-                form.update { it.copy(commentDraft = if (problem == null) "" else it.commentDraft, commentProblem = problem) }
+                form.update {
+                    if (problem == null) it.copy(commentDraft = "", commentProblem = null, commentOpen = false)
+                    else it.copy(commentProblem = problem)
+                }
                 if (problem == null) message.emit(UiText.Res(R.string.detail_comment_added))
             } catch (e: DataException) {
                 message.emit(e.error.toUiText())
@@ -535,3 +674,9 @@ class AssetDetailViewModel @Inject constructor(
         const val SYNC_WAITS = 15L
     }
 }
+
+/** A document picked for a new asset, as the Documents tab lists the file an asset was read from. */
+private fun Media.toPendingDocument() = AssetDocument(
+    id = id, source = DocumentSource.SOURCE_FILE, title = fileName.orEmpty(), url = null, publisher = null,
+    hasFile = true, fileKind = documentKind(fileName.orEmpty(), null),
+)

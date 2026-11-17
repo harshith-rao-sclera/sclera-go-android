@@ -10,6 +10,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.sclera.sclerago.services.syncManager.SyncManager;
+import com.sclera.sclerago.services.syncManager.enums.OfflineFeatures;
+import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
 
 import java.io.IOException;
 
@@ -150,13 +152,23 @@ public class LargeDataSyncService {
             RequestBody streamingBody = getRequestBody(id, blobSize, chunkQueryTemplate);
 
             // Build the single POST request
-            Request request = new Request.Builder()
-                    .url(syncManager.getSyncURL() + "/api/v1/video-stream")
-                    .post(streamingBody)
+            String url = syncManager.getSyncURL() + "/api/v1/video-stream";
+            Request.Builder builder;
+            if (OfflineFeatures.ASSET_DATA_COLLECTION.equals(syncManager.getFeature())) {
+                // Asset data collection has no vdms (a null X-Tenant-ID header throws): the property is named by the
+                // same headers the image upload sends.
+                builder = SyncUtils.createPOSTRequest(url, streamingBody, syncManager.getFeature(), syncManager).newBuilder();
+            } else {
+                builder = new Request.Builder()
+                        .url(url)
+                        .post(streamingBody)
+                        .addHeader("Authorization", "Bearer " + SyncManager.token)
+                        .addHeader("X-Tenant-ID", syncManager.getVdmsID());
+            }
+            Request request = builder
                     .addHeader("key", key) // send header once
                     .addHeader("Video-Length", String.valueOf(blobSize))
-                    .addHeader("Authorization", "Bearer " + SyncManager.token)
-                    .addHeader("X-Tenant-ID", syncManager.getVdmsID())
+                    .addHeader("PropertyId", syncManager.propertyId)
                     .build();
 
             // Execute the request

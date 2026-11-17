@@ -17,6 +17,12 @@ class PropertyRepositoryImpl @Inject constructor(private val store: PropertyStor
     override suspend fun refresh() = store.refresh()
 
     override suspend fun add(property: Property): Property = store.create(property)
+
+    override suspend fun get(id: String): Property = store.fetch(id)
+
+    override suspend fun update(property: Property): Property = store.update(property)
+
+    override suspend fun delete(id: String) = store.delete(id)
 }
 
 /** Property Settings, read and changed through the [PropertyStore] (the server holds them per property). */

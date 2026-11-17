@@ -10,7 +10,6 @@ internal const val STATUS_SQL = """CASE
     WHEN a.status = 'exception' THEN 'EXCEPTION'
     WHEN a.status = 'saved' OR a.validated = 1 THEN 'VALIDATED'
     WHEN a.status = 'submitted' THEN 'SUBMITTED'
-    WHEN a.status = 'drafted' AND a.ai_suggestion = 1 THEN 'AI'
     ELSE 'DRAFT' END"""
 
 internal const val ASSET_ORDER = "ORDER BY a.created_at DESC, a.id DESC"
@@ -35,6 +34,10 @@ internal const val ALL_ASSET_VALUES =
     "SELECT v.asset_id, v.%ANSWERS% AS answers FROM asset_values v JOIN assets a ON a.id = v.asset_id WHERE %LIVE%"
 
 internal const val ASSET_VALUES_ONE = "SELECT * FROM asset_values WHERE asset_id = ?"
+
+/** The assets' validation decisions, newest first per asset (the first row of each asset is its latest). */
+internal const val LATEST_DECISIONS =
+    "SELECT r.asset_id, r.decision FROM validation_results r WHERE r.asset_id IN (%IN%) AND %LIVE% ORDER BY r.created_at DESC, r.id DESC"
 
 internal const val MEDIA_FOR = "SELECT * FROM asset_media WHERE asset_id IN (%IN%) AND %LIVE% ORDER BY position, created_at, id"
 

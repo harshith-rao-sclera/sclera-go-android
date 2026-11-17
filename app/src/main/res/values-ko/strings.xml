@@ -33,7 +33,6 @@
     <string name="property_add_fab">시설 추가</string>
     <string name="label_properties">시설</string>
     <string name="label_assets">자산</string>
-    <string name="property_import_strip">스프레드시트에서 가져오기</string>
     <string name="property_none_match">“%1$s”와(과) 일치하는 시설이 없습니다.</string>
     <string name="property_loading">시설을 불러오는 중…</string>
     <string name="property_none">아직 시설이 없습니다.</string>
@@ -44,11 +43,6 @@
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">%1$s을(를) 다운로드하지 못했습니다. 다시 시도하세요.</string>
     <string name="property_download_offline">오프라인 상태입니다. 속성을 다운로드하려면 연결하세요.</string>
-    <string name="property_added">%1$s 추가됨</string>
-    <string name="property_import_notice">“%1$s” 업로드됨 · 가져오기는 아직 서버에 연결되지 않았습니다</string>
-    <string name="property_problem_name">시설 이름을 입력하세요.</string>
-    <string name="property_problem_type">시설 유형을 선택하세요.</string>
-    <string name="property_problem_duplicate">%1$s 시설이 이미 있습니다.</string>
     <string name="import_title">가져오기</string>
     <string name="import_choose_file">탭하여 파일 선택</string>
     <string name="import_choose_different">탭하여 다른 파일 선택</string>
@@ -63,26 +57,18 @@
     <string name="import_sample_download">샘플 형식 다운로드</string>
     <string name="import_proceed">계속</string>
     <string name="property_add_title">새 시설 추가</string>
-    <string name="property_add_sub">이름과 유형은 필수입니다.</string>
     <string name="property_add_primary">추가</string>
     <string name="property_group_details">시설 세부정보</string>
-    <string name="property_group_address">주소</string>
     <string name="property_group_contact">주 연락처</string>
     <string name="property_group_notes">메모</string>
     <string name="property_group_availability">이용 가능 시간</string>
-    <string name="property_ready">준비됨</string>
-    <string name="property_required_count">%1$d개 필수</string>
-    <string name="property_notes_none">아직 없음</string>
-    <string name="property_notes_added">추가됨</string>
     <string name="property_notes_hint">메모 입력</string>
     <string name="field_name">이름</string>
-    <string name="field_type">유형</string>
     <string name="field_country">국가</string>
     <string name="field_state">주</string>
     <string name="field_region">지역</string>
     <string name="field_city">도시</string>
     <string name="field_email">이메일</string>
-    <string name="field_phone">전화번호</string>
     <string name="field_address_line1">주소 1행</string>
     <string name="field_address_line2">주소 2행</string>
     <string name="field_start_time">시작 시간</string>
@@ -90,11 +76,7 @@
     <string name="field_access_code">출입 코드</string>
     <string name="property_name_hint">시설 이름 입력</string>
     <string name="property_select_type">유형 선택</string>
-    <string name="property_select_country">국가 선택</string>
-    <string name="property_select_state">주 선택</string>
     <string name="property_select_region">지역 선택</string>
-    <string name="property_choose_country_first">먼저 국가를 선택하세요</string>
-    <string name="property_no_states">이 국가에는 주가 없습니다</string>
     <string name="property_enter_city">도시 입력</string>
     <string name="field_address_line1_hint">주소 1행 입력</string>
     <string name="field_address_line2_hint">주소 2행 입력</string>
@@ -104,7 +86,6 @@
     <string name="field_access_code_hint">출입 코드 입력</string>
     <string name="menu_users">사용자</string>
     <string name="menu_current_property">현재 시설</string>
-    <string name="menu_switch">전환</string>
     <string name="menu_soon">곧 제공</string>
     <string name="menu_validation">검증</string>
     <string name="menu_configuration">구성</string>
@@ -115,6 +96,7 @@
     <string name="menu_sign_out_title">로그아웃할까요?</string>
     <string name="menu_sign_out_message">Sclera Go를 사용하려면 %1$s(으)로 다시 로그인해야 합니다.</string>
     <string name="menu_sign_out_message_generic">Sclera Go를 사용하려면 다시 로그인해야 합니다.</string>
+    <string name="menu_sign_out_sync_warning">이 휴대폰에서 아직 동기화되지 않은 내용은 모두 사라집니다. 로그아웃하기 전에 모든 변경 사항이 동기화되었는지 확인하세요.</string>
     <plurals name="property_count">
         <item quantity="other">시설 %1$d개</item>
     </plurals>
@@ -127,63 +109,35 @@
     <string name="access_tab_people">사용자 (%1$d)</string>
     <string name="access_tab_groups">그룹 (%1$d)</string>
     <string name="access_search_people">사용자 검색</string>
-    <string name="access_search_groups">그룹 검색</string>
     <string name="access_add_person">사용자 추가</string>
     <string name="access_new_group">새 그룹</string>
-    <string name="access_empty_people">아직 접근 권한이 있는 사용자가 없습니다.</string>
-    <string name="access_no_person_match">“%1$s”와(과) 일치하는 사용자가 없습니다.</string>
-    <string name="access_no_group_match">“%1$s”와(과) 일치하는 그룹이 없습니다.</string>
-    <string name="access_loading_people">사용자를 불러오는 중…</string>
-    <string name="access_loading_groups">그룹을 불러오는 중…</string>
-    <string name="access_empty_groups">아직 그룹이 없습니다.</string>
     <string name="access_all_properties">모든 시설</string>
-    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">보기 전용</string>
     <string name="access_edit_group">%1$s 수정</string>
     <string name="access_delete_group">%1$s 삭제</string>
     <string name="access_delete_title">%1$s을(를) 삭제할까요?</string>
-    <string name="access_delete_message">그룹이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</string>
     <string name="access_title">사용자 및 액세스</string>
-    <plurals name="access_delete_groups_title">
-        <item quantity="other">그룹 %1$d개를 삭제할까요?</item>
-    </plurals>
-    <plurals name="access_delete_groups_message">
-        <item quantity="other">그룹이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</item>
-    </plurals>
     <string name="access_action_delete">삭제</string>
-    <string name="access_remove_title">%1$s을(를) 제거할까요?</string>
-    <string name="access_remove_message">%1$s은(는) Sclera에 접근할 수 없게 됩니다.</string>
-    <string name="access_action_remove">제거</string>
-    <string name="access_remove_person">%1$s 제거</string>
     <string name="access_person_add_title">사용자 추가</string>
     <string name="access_person_add_sub">처음 로그인할 때 이 접근 권한이 부여됩니다.</string>
     <string name="access_action_add">추가</string>
     <string name="access_action_save">저장</string>
     <string name="access_section_person">사용자</string>
-    <string name="access_section_property_access">시설 접근 권한</string>
     <string name="access_field_email">이메일</string>
     <string name="access_field_group">그룹</string>
-    <string name="access_field_access">접근 권한</string>
     <string name="access_choose_group">그룹 선택</string>
-    <string name="access_all">전체</string>
     <string name="access_n_chosen">%1$d개 선택됨</string>
     <string name="access_scope_chosen">선택한 시설</string>
     <string name="access_scope_all_desc">나중에 추가되는 시설을 포함한 모든 시설입니다.</string>
     <string name="access_scope_chosen_desc">새 시설은 여기에 추가하기 전까지 포함되지 않습니다.</string>
-    <string name="access_forced_all">%1$s 그룹에는 모든 시설이 필요한 권한이 있습니다.</string>
     <string name="access_group_new_sub">이 그룹의 사용자가 할 수 있는 일을 선택하세요. 아무것도 선택하지 않으면 보기만 할 수 있습니다.</string>
-    <string name="access_group_edit_sub">이 그룹의 사용자가 할 수 있는 일을 선택하세요.</string>
     <string name="access_group_locked_sub">%1$s의 사용자는 항상 모든 권한을 가집니다.</string>
     <string name="access_action_add_group">그룹 추가</string>
     <string name="access_group_details">그룹 세부정보</string>
     <string name="access_field_name">이름</string>
     <string name="access_field_description">설명</string>
-    <string name="access_group_name_hint">그룹 이름</string>
-    <string name="access_group_desc_hint">이 그룹의 용도</string>
     <string name="access_what_they_can_do">할 수 있는 일</string>
-    <string name="access_locked">잠김</string>
     <string name="access_needs_all">모든 시설 필요</string>
-    <string name="access_locked_notice">이 권한은 %1$s에 대해 잠겨 있습니다.</string>
     <string name="access_perm_collect">수집</string>
     <string name="access_perm_collect_desc">자산 추가, 수정, 삭제, 파일 및 미디어 업로드, 파일에서 읽어 온 자산 검토, 제출.</string>
     <string name="access_perm_validate">검증</string>
@@ -195,22 +149,13 @@
     <string name="access_perm_manage_access">접근 권한 관리</string>
     <string name="access_perm_manage_access_desc">그룹 생성, 사용자를 그룹에 배정, 누가 어떤 시설을 열 수 있는지 선택. 모든 시설에 대한 접근 권한이 필요합니다.</string>
     <string name="access_problem_email_required">이메일 주소를 입력하세요.</string>
-    <string name="access_problem_email_invalid">올바른 이메일 주소를 입력하세요.</string>
-    <string name="access_problem_email_taken">%1$s은(는) 이미 접근 권한이 있습니다.</string>
     <string name="access_problem_group_required">그룹을 선택하세요.</string>
-    <string name="access_problem_no_property">시설을 하나 이상 선택하거나 모든 시설을 부여하세요.</string>
     <string name="access_problem_group_name">그룹 이름을 입력하세요.</string>
-    <string name="access_problem_group_taken">%1$s이라는 그룹이 이미 있습니다.</string>
-    <string name="access_elevate_title">모든 시설을 부여할까요?</string>
-    <string name="access_elevate_confirm">접근 권한 부여</string>
     <plurals name="access_property_count">
         <item quantity="other">시설 %1$d개</item>
     </plurals>
     <plurals name="access_person_count">
         <item quantity="other">%1$d명</item>
-    </plurals>
-    <plurals name="access_elevate_notice">
-        <item quantity="other">이 그룹의 %1$d명이 모든 시설에 접근할 수 있게 됩니다.</item>
     </plurals>
     <string name="action_validate">검증</string>
     <string name="action_assign">할당</string>
@@ -323,8 +268,6 @@
     <string name="val_step_consistent">일관성</string>
     <string name="val_step_verified">확인됨</string>
     <string name="val_quality">데이터 품질 %1$d/100</string>
-    <string name="val_runs_many">검증 %1$d회, 최근 %2$s</string>
-    <string name="val_run_one">%1$s, %2$s</string>
     <string name="val_every_step_from">%1$d회 검증의 모든 단계와 각 단계의 최신 결과: %2$s.</string>
     <string name="val_starts_here">여기서 시작</string>
     <string name="val_suggested">제안: %1$s</string>
@@ -352,10 +295,18 @@
     <string name="media_other">기타 사진</string>
     <string name="media_other_hint">사진 규칙에 포함되지 않음</string>
     <string name="media_none">아직 없습니다.</string>
-    <string name="media_files">동영상, 음성 메모, 파일</string>
-    <string name="media_add_file">파일 추가</string>
     <string name="media_tag_video">동영상</string>
     <string name="media_tag_audio">음성 메모</string>
+    <string name="media_record_memo">메모 녹음</string>
+    <string name="memo_starting">마이크를 켜는 중…</string>
+    <string name="memo_recording">녹음 중… 끝나면 중지 후 저장을 탭하세요.</string>
+    <string name="memo_stop_save">중지 후 저장</string>
+    <string name="memo_no_permission">음성 메모를 녹음하려면 마이크를 허용하세요.</string>
+    <string name="memo_failed">녹음을 시작할 수 없습니다. 다시 시도하세요.</string>
+    <string name="memo_too_short">메모가 너무 짧아 저장할 수 없습니다.</string>
+    <string name="memo_play">재생</string>
+    <string name="memo_pause">일시정지</string>
+    <string name="memo_not_on_device">이 메모는 아직 이 휴대폰에 없어 오프라인으로 재생할 수 없습니다.</string>
     <string name="media_tag_file">파일</string>
     <string name="ai_title">AI 제안</string>
     <string name="ai_subtitle">모델의 공개된 사양으로 %1$s의 빈 필드를 채웁니다. 적용하기 전까지는 아무것도 저장되지 않습니다.</string>
@@ -374,7 +325,6 @@
     <string name="ai_step_match">이 자산의 필드에 값 매칭 중</string>
     <string name="ai_wait_short">웹을 검색하므로 최대 1분 정도 걸릴 수 있습니다.</string>
     <string name="ai_wait_long">아직 검색 중입니다. 일부 모델은 찾는 데 시간이 더 걸립니다.</string>
-    <string name="ai_can_close">닫아도 됩니다. 검색은 계속되며 완료되면 알림을 받게 됩니다.</string>
     <string name="ai_close_note">닫아도 검색은 중지되지 않습니다.</string>
     <string name="ai_close_keep">닫고 계속 작업</string>
     <string name="ai_try_again">다시 시도</string>
@@ -382,11 +332,8 @@
     <string name="ai_nothing_else">공개된 사양으로 이 자산에 더 채울 항목이 없습니다. 입력한 내용을 저장하려면 적용하세요.</string>
     <string name="ai_also_saves">입력한 내용도 저장합니다: %1$s.</string>
     <string name="ai_sure">%1$d%% 확신</string>
-    <string name="ai_nothing_ticked">선택된 항목 없음</string>
     <string name="ai_change_model">모델 변경</string>
     <string name="ai_look_again">다시 찾기</string>
-    <string name="ai_apply">적용</string>
-    <string name="ai_saving">저장 중…</string>
     <string name="ai_need_model">먼저 모델을 추가하세요. 사양은 제조사와 모델로 검색합니다.</string>
     <string name="ai_failed">사양을 찾을 수 없습니다. 다시 시도하세요.</string>
     <string name="ai_done_failed">%1$s의 사양을 찾을 수 없습니다. %2$s</string>
@@ -417,7 +364,6 @@
     <string name="detail_name_hint">자산 이름</string>
     <string name="detail_saved">저장됨</string>
     <string name="detail_menu_camera">사진 또는 동영상 촬영</string>
-    <string name="detail_menu_gallery">갤러리에서 업로드</string>
     <string name="detail_menu_files">파일에서 업로드</string>
     <string name="detail_photo">사진</string>
     <string name="detail_video">동영상</string>
@@ -451,7 +397,6 @@
     <string name="detail_next">다음 사진</string>
     <string name="check_banner_passed">모든 점검 통과</string>
     <string name="check_banner_failed_sub">이 자산을 검증하기 전에 필수 점검을 수정하세요.</string>
-    <string name="check_required">필수</string>
     <string name="check_note_required">자산을 검증하려면 먼저 필요합니다</string>
     <string name="check_note_low_confidence">%1$s을(를) 낮은 신뢰도로 읽었습니다 — 명판과 대조해 보세요</string>
     <plurals name="assets_validated">
@@ -520,13 +465,7 @@
     <plurals name="media_need_more">
         <item quantity="other">%2$s 사진 %1$d장 더</item>
     </plurals>
-    <plurals name="ai_will_fill">
-        <item quantity="other">필드 %1$d개가 채워집니다</item>
-    </plurals>
     <plurals name="ai_done_found">
         <item quantity="other">%1$s의 사양을 찾았습니다: 제안 %2$d개 준비됨.</item>
-    </plurals>
-    <plurals name="ai_filled_on">
-        <item quantity="other">%2$s의 필드 %1$d개를 채웠습니다</item>
     </plurals>
 </resources>

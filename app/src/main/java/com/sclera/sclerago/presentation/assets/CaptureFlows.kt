@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.MediaImage
 import com.sclera.sclerago.presentation.components.Pill
+import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.SegHeader
 import com.sclera.sclerago.presentation.components.fabShadow
@@ -463,9 +464,11 @@ private fun FileReview(vm: AppViewModel) {
 @Composable
 private fun SubList(vm: AppViewModel, tab: Tab, label: String, onOpen: () -> Unit, labelIcon: Ico? = null) {
     val list = rememberAssetListBinding(vm, tab)
-    LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        assetList(list) {
-            SegHeader(listOf("Assets", label), 0, icons = listOf(null, labelIcon)) { if (it == 1) onOpen() }
+    PullRefresh(list.refreshing, list.onRefresh, Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+            assetList(list) {
+                SegHeader(listOf("Assets", label), 0, icons = listOf(null, labelIcon)) { if (it == 1) onOpen() }
+            }
         }
     }
 }

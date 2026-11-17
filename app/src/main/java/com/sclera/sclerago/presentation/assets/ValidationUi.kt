@@ -1,6 +1,5 @@
 package com.sclera.sclerago.presentation.assets
 
-import android.text.format.DateFormat
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,20 +14,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.validation.AssetValidation
@@ -38,21 +34,22 @@ import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.StepResult
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
-import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.Pill
+import com.sclera.sclerago.presentation.components.agoText
+import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /** Test tags of the asset's validation strip and tab. */
 object ValidationTags {
     const val RUN = "validation-run"
     const val NONE = "validation-none"
+    const val BANNER = "validation-banner"
     fun step(rule: String) = "validation-step-$rule"
 }
 
@@ -81,23 +78,6 @@ private fun toneOf(o: StepOutcome?): Color = when (o) {
     else -> C.Muted
 }
 
-/** "3 min ago", "2 h ago", or the day for anything older, as the web says when a run was. */
-@Composable
-private fun agoText(at: Long?, now: Long = System.currentTimeMillis()): String {
-    if (at == null) return ""
-    val minutes = ((now - at) / 60_000).coerceAtLeast(0)
-    return when {
-        minutes < 1 -> stringResource(R.string.val_ago_now)
-        minutes < 60 -> stringResource(R.string.val_ago_min, minutes.toInt())
-        minutes < 24 * 60 -> stringResource(R.string.val_ago_hours, (minutes / 60).toInt())
-        else -> {
-            val locale = LocalConfiguration.current.locales[0]
-            DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "dMMM"), locale)
-                .format(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault()))
-        }
-    }
-}
-
 /** The run button's words: Validate, Revalidate from step n, or Revalidate. */
 @Composable
 private fun runLabel(v: AssetValidation?): String = when {
@@ -106,32 +86,65 @@ private fun runLabel(v: AssetValidation?): String = when {
     else -> stringResource(R.string.val_revalidate)
 }
 
-/** "Quick check, 5 min ago", or "3 validations, latest 5 min ago". */
-@Composable
-private fun runsLabel(v: AssetValidation): String =
-    if (v.runs.size > 1) stringResource(R.string.val_runs_many, v.runs.size, agoText(v.checkedAt))
-    else stringResource(R.string.val_run_one, v.jobName, agoText(v.checkedAt))
-
 /** A round mark of how validation stands: a tick, a cross, "!" or nothing yet. */
 @Composable
 private fun OutcomeIcon(o: StepOutcome?) {
+    Box(Modifier.size(26.dp).background(toneOf(o).copy(alpha = 0.16f), CircleShape), contentAlignment = Alignment.Center) {
+        OutcomeMark(o, 12.dp)
+    }
+}
+
+/** "1 failed", "2 to look at" or "1 failed, 2 to look at": the counts that aren't zero, as the web words them. */
+@Composable
+private fun problemCountText(v: AssetValidation): String = when {
+    v.failedCount > 0 && v.warningCount > 0 -> stringResource(R.string.val_problems_both, v.failedCount, v.warningCount)
+    v.failedCount > 0 -> stringResource(R.string.val_problems_failed, v.failedCount)
+    else -> stringResource(R.string.val_problems_look, v.warningCount)
+}
+
+/** The outcome's mark: a tick, a cross, "!" or a shield for not applicable, in the outcome's colour. */
+@Composable
+private fun OutcomeMark(o: StepOutcome?, size: Dp) {
     val color = toneOf(o)
-    Box(Modifier.size(26.dp).background(color.copy(alpha = 0.16f), CircleShape), contentAlignment = Alignment.Center) {
-        when (o) {
-            StepOutcome.PASSED -> LineIcon(Icons.Check, 13.dp, color, 3f)
-            StepOutcome.FAILED -> LineIcon(Icons.Close, 12.dp, color, 3f)
-            StepOutcome.WARNING -> Txt("!", 13, 800, color)
-            else -> LineIcon(Icons.ShieldCheck, 13.dp, color, 2.4f)
-        }
+    when (o) {
+        StepOutcome.PASSED -> LineIcon(Icons.Check, size, color, 3f)
+        StepOutcome.FAILED -> LineIcon(Icons.Close, size, color, 3f)
+        StepOutcome.WARNING -> Txt("!", size.value.toInt() + 2, 800, color)
+        else -> LineIcon(Icons.ShieldCheck, size, color, 2.4f)
     }
 }
 
 /**
- * The Validation tab, as the web's: the outcome, data quality and runs, then every step with its latest outcome (the
- * steps to look at open, showing what each found and the suggested fix), then the run buttons and what a run keeps.
+ * The Info tab's validation line when a step failed or needs a look: how many steps need attention and why, with a
+ * chevron; tapping it opens the Validation tab. Nothing shows while every step passed or none has run.
  */
 @Composable
-fun ValidationTab(validation: AssetValidation?, validating: Boolean, onRun: (fromStart: Boolean) -> Unit) {
+fun ValidationBanner(validation: AssetValidation?, onOpen: () -> Unit) {
+    val v = validation?.takeIf { it.problems.isNotEmpty() } ?: return
+    Row(
+        // A full-width strip like the Info sections under it.
+        Modifier.fillMaxWidth().testTag(ValidationTags.BANNER).background(C.Surface).topBorder(C.Border).bottomBorder(C.Border)
+            .clickable(role = Role.Button, onClick = onOpen).heightIn(min = 52.dp).padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        OutcomeIcon(v.outcome)
+        Txt(
+            stringResource(R.string.val_banner, v.problems.size, v.steps.size, problemCountText(v)),
+            13, 600, modifier = Modifier.weight(1f), maxLines = 3,
+        )
+        LineIcon(Icons.ChevronRight, 14.dp, C.Muted, 2.4f)
+    }
+}
+
+/**
+ * The Validation tab: a header with how many steps need attention (or that every step passed) and the data quality,
+ * then one card with every step in order: its mark, name and outcome, "Starts here" on the first to look at, and what
+ * each step that failed or needs a look found. Then the run buttons and what a run keeps. [onRun] is null for someone
+ * without the check permission: the run buttons are left out.
+ */
+@Composable
+fun ValidationTab(validation: AssetValidation?, validating: Boolean, onRun: ((fromStart: Boolean) -> Unit)?) {
     val v = validation
     if (v == null) {
         // Nothing has been run on it: just say so, as the web does (runs are started from the Validation page).
@@ -142,26 +155,38 @@ fun ValidationTab(validation: AssetValidation?, validating: Boolean, onRun: (fro
         )
         return
     }
-    // Summary: outcome, data quality, which runs.
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            Modifier.clip(Capsule).background(toneOf(v.outcome).copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            OutcomeIcon(v.outcome)
-            Txt(stringResource(outcomeRes(v.outcome)), 11, 800, toneOf(v.outcome))
-        }
-        Column(Modifier.weight(1f)) {
-            Txt(stringResource(R.string.val_quality, v.score), 12, 700)
-            Txt(runsLabel(v), 10, 500, C.Muted, maxLines = 2)
+    // Header: how many steps need attention, and the data quality.
+    val problems = v.problems.size
+    Row(
+        Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            Modifier.size(44.dp).clip(r(10)).background(toneOf(v.outcome).copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center,
+        ) { OutcomeMark(v.outcome, 18.dp) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Txt(
+                if (problems > 0) pluralStringResource(R.plurals.val_steps_attention, problems, problems)
+                else stringResource(R.string.val_passed_every_step),
+                16, 800, maxLines = 2,
+            )
+            Txt(stringResource(R.string.val_quality, v.score), 12, 500, C.Muted)
         }
     }
     if (v.runs.size > 1) {
         val runs = v.runs.map { "${it.jobName} ${agoText(it.checkedAt)}" }.joinToString(", ")
         Txt(stringResource(R.string.val_every_step_from, v.runs.size, runs), 11, 400, C.Soft, maxLines = 4)
     }
-    v.steps.forEachIndexed { i, step -> StepCard(i + 1, step, v, startsHere = v.firstProblem == i + 1, open = step.outcome.problem) }
-    // Actions
+    // Every step in one card.
+    Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))) {
+        v.steps.forEachIndexed { i, step ->
+            StepRow(step, v, startsHere = v.firstProblem == i + 1, divider = i > 0)
+        }
+    }
+    // Actions: only for someone who may run checks (the server's check permission).
+    if (onRun == null) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Pill(
@@ -190,40 +215,28 @@ fun ValidationTab(validation: AssetValidation?, validating: Boolean, onRun: (fro
     }
 }
 
-/** One step: its number (a tick once passed), name, "Starts here" on the first to look at, and its outcome; open, what it found. */
+/**
+ * One step in the steps card: its mark, name, outcome and "Starts here" on the first to look at; a step that failed or
+ * needs a look lists what it found underneath.
+ */
 @Composable
-private fun StepCard(number: Int, step: StepResult, v: AssetValidation, startsHere: Boolean, open: Boolean) {
-    val expandable = step.outcome.problem
-    var shown by rememberSaveable(step.rule, step.jobId) { mutableStateOf(open) }
-    Column(
-        Modifier.fillMaxWidth().testTag(ValidationTags.step(step.rule)).clip(r(12)).background(C.Surface)
-            .border(1.dp, if (startsHere) C.Yellow else C.Border, r(12)).alpha(if (step.outcome == StepOutcome.SKIPPED) 0.55f else 1f),
+private fun StepRow(step: StepResult, v: AssetValidation, startsHere: Boolean, divider: Boolean) {
+    Row(
+        Modifier.fillMaxWidth().testTag(ValidationTags.step(step.rule)).then(if (divider) Modifier.topBorder(C.Border) else Modifier)
+            .alpha(if (step.outcome == StepOutcome.SKIPPED) 0.55f else 1f).padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            Modifier.fillMaxWidth().then(if (expandable) Modifier.clickable { shown = !shown } else Modifier)
-                .heightIn(min = 48.dp).padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Box(Modifier.size(24.dp).background(toneOf(step.outcome).copy(alpha = 0.16f), CircleShape), contentAlignment = Alignment.Center) {
-                if (step.outcome == StepOutcome.PASSED) LineIcon(Icons.Check, 12.dp, C.Green, 3f) else Txt("$number", 11, 800, toneOf(step.outcome))
+        OutcomeIcon(step.outcome)
+        Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Txt(stepNameText(step.rule).asString(), 15, 800)
+                Txt(stringResource(outcomeRes(step.outcome)), 11, 700, if (step.outcome == StepOutcome.SKIPPED) C.Soft else toneOf(step.outcome))
+                if (startsHere) Txt(stringResource(R.string.val_starts_here).uppercase(Locale.getDefault()), 10, 800, C.Yellow)
             }
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Txt(stepNameText(step.rule).asString(), 14, 700)
-                    if (startsHere) {
-                        Txt(stringResource(R.string.val_starts_here), 10, 800, C.OnYellow, Modifier.background(C.Yellow, Capsule).padding(horizontal = 7.dp, vertical = 2.dp))
-                    }
-                }
-                if (v.runs.size > 1) Txt(step.jobName, 10, 500, C.Muted)
-            }
-            Txt(stringResource(outcomeRes(step.outcome)), 11, 700, if (step.outcome.problem) toneOf(step.outcome) else C.Soft)
-            if (expandable) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f, Modifier.rotate(if (shown) 180f else 0f))
-        }
-        if (expandable && shown) {
-            val issues = v.issuesFor(step)
-            Column(Modifier.fillMaxWidth().padding(start = 44.dp, end = 10.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (issues.isEmpty()) Txt(stringResource(R.string.val_no_issues), 11, 400, C.Muted)
+            if (v.runs.size > 1) Txt(step.jobName, 10, 500, C.Muted)
+            if (step.outcome.problem) {
+                val issues = v.issuesFor(step)
+                if (issues.isEmpty()) Txt(stringResource(R.string.val_no_issues), 12, 400, C.Muted)
                 issues.forEach { IssueRow(it) }
             }
         }

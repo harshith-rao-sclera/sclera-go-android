@@ -9,11 +9,13 @@ import com.sclera.sclerago.domain.usecase.access.CountPeopleGivenAllPropertiesUs
 import com.sclera.sclerago.domain.usecase.access.DeleteGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.ObserveGroupsUseCase
 import com.sclera.sclerago.domain.usecase.access.ObservePeopleUseCase
+import com.sclera.sclerago.domain.usecase.access.ObservePermissionsUseCase
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.usecase.access.RefreshAccessUseCase
 import com.sclera.sclerago.domain.usecase.access.RemovePersonUseCase
 import com.sclera.sclerago.domain.usecase.access.SaveGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.SavePersonUseCase
+import com.sclera.sclerago.domain.usecase.access.SearchDirectoryUseCase
 import com.sclera.sclerago.domain.usecase.access.ValidateGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.ValidatePersonUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,5 +78,6 @@ fun accessUseCases(repo: AccessRepository, guard: PermissionGuard = allowAllGuar
         ObserveGroupsUseCase(repo), ObservePeopleUseCase(repo), RefreshAccessUseCase(repo),
         ValidatePersonUseCase(repo), ValidateGroupUseCase(repo), SavePersonUseCase(repo, guard), RemovePersonUseCase(repo, guard),
         CountPeopleGivenAllPropertiesUseCase(repo), SaveGroupUseCase(repo, guard), canDelete, DeleteGroupUseCase(repo, canDelete, guard),
+        ObservePermissionsUseCase(repo), SearchDirectoryUseCase(repo),
     )
 }

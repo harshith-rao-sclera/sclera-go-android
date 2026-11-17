@@ -54,7 +54,6 @@ object C {
     val Scrim = Color(0xB808090A)
     val White = Color.White
     val IconGrey = Color(0xFF8B8F97)
-    val ImportStrip = Color(0xFF1A1B1E)
     val SheetBg = Color(0xFF1B1D21)
     val SheetHandle = Color(0xFF45464C)
     val TintText = Color(0xFFD8CFA8)

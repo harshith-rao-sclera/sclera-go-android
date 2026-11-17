@@ -2,44 +2,45 @@ package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.domain.model.Media
 
-/** A media file kept in the app's private storage under [key] ("<id>.<ext>"). */
-data class StoredFile(
-    val key: String,
+/** A picked, taken or recorded file, read for the offline database: its name, type, size, image size and content. */
+class PickedContent(
     val filename: String,
     val contentType: String?,
     val sizeBytes: Long,
     val width: Int?,
     val height: Int?,
+    val bytes: ByteArray,
 )
 
-/** The photo, video and document files of assets, kept in app-private storage until the sync has uploaded them. */
+/**
+ * Reads the files added to assets. Their only copy is then the offline database's ([MediaBlobs]); the app keeps none
+ * of its own.
+ */
 interface AssetFileStore {
-    /** Copies the file behind [media] into private storage as [id]; null when it can't be read, is not ours to read or is too large. */
-    fun store(media: Media, id: String): StoredFile?
+    /**
+     * The file behind [media] (a picked file's content URI, or one of the app's own captures), read whole for the
+     * database; null when it can't be read, is not ours to read, is larger than the import cap or doesn't fit in memory.
+     */
+    fun read(media: Media): PickedContent?
 
-    /** The content of a stored file, or null when it is missing or too large to upload with the data sync. */
-    fun bytes(key: String): ByteArray?
-
-    /** Deletes the stored files [keys]. */
-    fun delete(keys: Collection<String>)
-
-    /** Deletes the app's own camera files behind [media] once they have been copied in. */
+    /** Deletes the app's own camera and voice memo files behind [media] once they are in the database. */
     fun discardOriginals(media: List<Media>)
 
-    /** Where the file of [objectPath] can be opened: the stored file for a `local://` path that is on this device, else the path itself. */
-    fun uriFor(objectPath: String): String
+    /**
+     * Deletes the copies older versions of the app kept on the device of the media rows the database also holds
+     * ([held]), so each file is kept once.
+     */
+    fun dropLegacyCopies(held: (rowId: String) -> Boolean) {}
+
+    /** Deletes any copy an older version of the app kept of the media rows [rowIds] (their asset was deleted). */
+    fun forget(rowIds: Collection<String>) {}
 
     /**
-     * The key of the file kept for the media row [id], or null when there is none on this device. Since the server
-     * finds files by their row's id (its migration t0010 dropped `asset_media.object_path`), this is how they are found.
+     * The photo behind [media] to send to the server, or null when it is not an image, can't be read or is larger
+     * than [maxBytes].
      */
-    fun keyFor(id: String): String? = null
+    fun photo(media: Media, maxBytes: Long): PhotoFile? = null
 }
 
-/** The object path stored in `asset_media` for a file kept under [key]. */
-internal fun localObjectPath(key: String) = LOCAL_SCHEME + key
-
-/** The key of a `local://` object path, or null for any other path. */
-internal fun localKey(objectPath: String): String? = objectPath.removePrefix(LOCAL_SCHEME).takeIf { objectPath.startsWith(LOCAL_SCHEME) }
-
-private const val LOCAL_SCHEME = "local://"
+/** A photo's content to send in a request. */
+class PhotoFile(val filename: String, val contentType: String, val bytes: ByteArray)

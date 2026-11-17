@@ -21,9 +21,12 @@ import com.sclera.sclerago.domain.model.mentions
 import com.sclera.sclerago.domain.model.scanKey
 import com.sclera.sclerago.domain.model.timeLabel
 import com.sclera.sclerago.domain.model.typeOf
+import com.sclera.sclerago.domain.model.withDefaultKind
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
+import com.sclera.sclerago.domain.repository.LocalDataReloader
+import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.next
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
@@ -33,6 +36,7 @@ import com.sclera.sclerago.domain.validation.checkComment
 import com.sclera.sclerago.domain.validation.commentText
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class ObserveAssetsUseCase @Inject constructor(private val repo: AssetRepository) {
@@ -66,32 +70,51 @@ class GetAssetDetailsUseCase @Inject constructor(private val repo: AssetReposito
  * Moves assets to [status]: signing off needs the Validate permission, everything else Collect. Submitting counts the
  * property's [photoRules] as the server does (too few photos of a kind makes an exception, like an empty mandatory field).
  */
-class SetAssetStatusUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
+class SetAssetStatusUseCase @Inject constructor(
+    private val repo: AssetRepository,
+    private val guard: PermissionGuard,
+    private val photoRules: PhotoRulesRepository,
+) {
+    /** The signed-in user may move assets to [status] (signing off is only for reviewers; its button is hidden otherwise). */
+    fun allows(status: Status): Boolean = guard.allows(permissionFor(status))
+
     suspend operator fun invoke(
         ids: Collection<String>,
         status: Status,
         allowExceptions: Boolean = true,
-        photoRules: List<PhotoRule> = emptyList(),
     ) {
         guard.requireOffline(permissionFor(status))
-        repo.setStatus(ids, status, allowExceptions, photoRules)
+        repo.setStatus(ids, status, allowExceptions, photoRules.forMove(status))
     }
 }
 
 private fun permissionFor(status: Status) = if (status == Status.VALIDATED) Permission.VALIDATE else Permission.COLLECT
 
+/** The photo rules a move to [status] counts: the property's when submitting (as the server's submit), none otherwise. */
+private suspend fun PhotoRulesRepository.forMove(status: Status): List<PhotoRule> =
+    if (status == Status.SUBMITTED) rules().first() else emptyList()
+
+/** Still being drafted: saving such an asset gives it the AI flag of a saved draft; any other status is kept. */
+private val DRAFTING = setOf(Status.DRAFT, Status.INPUT, Status.AI)
+
 /**
  * Keeps the values from an asset's details form and, when given, moves it to [status] (submitting counts [photoRules]).
  * As the server, a submitted or validated asset can only be changed by an admin (else [DataException] FORBIDDEN).
  */
-class SaveAssetDetailsUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(id: String, values: Map<String, String>, status: Status? = null, photoRules: List<PhotoRule> = emptyList()) {
+class SaveAssetDetailsUseCase @Inject constructor(
+    private val repo: AssetRepository,
+    private val guard: PermissionGuard,
+    private val photoRules: PhotoRulesRepository,
+) {
+    suspend operator fun invoke(id: String, values: Map<String, String>, status: Status? = null) {
         guard.requireOffline(Permission.COLLECT)
         if (status != null) guard.requireOffline(permissionFor(status))
         val current = repo.catalog.value.assets.firstOrNull { it.id == id }?.st
         if (current != null && isLockedFor(current, guard.isAdmin())) throw DataException(DataError.FORBIDDEN)
         repo.saveDetails(id, values)
-        if (status != null) repo.setStatus(listOf(id), status, allowExceptions = true, photoRules = photoRules)
+        // As the server's edit: saving keeps the status of an asset that isn't a draft any more (an exception stays one).
+        val target = if (status == Status.AI && current != null && current !in DRAFTING) null else status
+        if (target != null) repo.setStatus(listOf(id), target, allowExceptions = true, photoRules = photoRules.forMove(target))
     }
 }
 
@@ -125,6 +148,11 @@ class AttachMediaUseCase @Inject constructor(private val repo: AssetRepository, 
 }
 
 
+/** Pull to refresh on the asset lists: reads the property's assets on this device again (the sync keeps them up to date). */
+class ReloadAssetsUseCase @Inject constructor(private val reloader: LocalDataReloader) {
+    operator fun invoke() = reloader.reload()
+}
+
 /** Adds [count] assets, built by [build] from each one's new id and index; returns them. */
 class AddAssetsUseCase @Inject constructor(
     private val repo: AssetRepository,
@@ -151,6 +179,7 @@ class CreateAssetUseCase @Inject constructor(
     private val repo: AssetRepository,
     private val ids: IdGenerator,
     private val guard: PermissionGuard,
+    private val photoRules: PhotoRulesRepository,
 ) {
     enum class Via { CAMERA, SCAN, MANUAL }
 
@@ -176,16 +205,18 @@ class CreateAssetUseCase @Inject constructor(
     ): Created {
         guard.requireOffline(Permission.COLLECT)
         val id = ids.next()
-        val st = if (submit) Status.SUBMITTED else Status.DRAFT
+        // As the server: an asset is created as a draft; submitting it is a move after that, by the submit rules.
+        val st = Status.DRAFT
         val formDetail = detail.takeUnless { it.isBlank() || it == "Added manually" }
         val via = viaFor(captures, device)
 
         val (asset, source) = when (via) {
             Via.CAMERA -> {
-                // From the Camera tab: the shot(s), plus anything added in the form.
+                // From the Camera tab: the shot(s), plus anything added in the form. The shots are equipment photos, so the server reads them.
                 val first = captures.first()
                 val captured = (if (first.video) "Video ${first.durationText}" else "Photo") + " · captured " + timeLabel(first.createdAt).take(5)
-                Asset(id, name.ifBlank { captureName(first) }, formDetail ?: captured, place.loc, place.where, Source.CAMERA, st, typeOf(name), place.prop, captures + media, locationId = place.placeId) to Source.CAMERA
+                val shots = captures.map { it.withDefaultKind() }
+                Asset(id, name.ifBlank { captureName(first) }, formDetail ?: captured, place.loc, place.where, Source.CAMERA, st, typeOf(name), place.prop, shots + media, locationId = place.placeId) to Source.CAMERA
             }
             Via.SCAN -> {
                 // From a scan: keep the device's own line, and the type the scan identified unless the name says what it is.
@@ -196,7 +227,10 @@ class CreateAssetUseCase @Inject constructor(
             Via.MANUAL ->
                 Asset(id, name.ifBlank { "Untitled asset" }, detail.ifBlank { "Added manually" }, place.loc, place.where, Source.MANUAL, st, typeOf(name), place.prop, media, locationId = place.placeId) to Source.MANUAL
         }
-        repo.add(listOf(NewAsset(asset, values, device?.id)))
+        // Saved (drafted) or submitted, a new asset has the AI flag on.
+        repo.add(listOf(NewAsset(asset.copy(aiSuggestion = true), values, device?.id)))
+        // With a mandatory field empty or too few photos it goes in as an exception (the screen asks about that first).
+        if (submit) repo.setStatus(listOf(id), Status.SUBMITTED, allowExceptions = true, photoRules = photoRules.forMove(Status.SUBMITTED))
         return Created(id, via, source)
     }
 }
@@ -224,16 +258,19 @@ class MatchDevicesUseCase @Inject constructor(private val repo: AssetRepository)
 class BuildCheckInputUseCase @Inject constructor(
     private val assets: AssetRepository,
     private val config: AssetConfigRepository,
+    private val photoRules: PhotoRulesRepository,
 ) {
     suspend operator fun invoke(list: List<Asset>): List<Pair<Asset, CheckInput>> {
         val details = assets.detailsFor(list.map { it.id })
         val cfg = config.config.value
+        // Photos each asset needs: the property's photo rules (its settings at the server), all kinds together.
+        val minPhotos = photoRules.rules().first().sumOf { it.min }
         return list.map { a ->
             val values = mapOf("name" to a.name, "sys" to "Generic", "typ" to "Generic", "sub" to "Generic") + details[a.id]?.fields.orEmpty()
             val fromCam = a.src == Source.CAMERA
             a to CheckInput(
                 values, a.loc != null, a.st, fromCam, a.media.size + if (fromCam && a.media.isEmpty()) 3 else 0,
-                required = cfg.requiredFields, minPhotos = cfg.minPhotos, fieldChecks = cfg.fields,
+                required = cfg.requiredFields, minPhotos = minPhotos, fieldChecks = cfg.fields,
             )
         }
     }

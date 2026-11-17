@@ -20,11 +20,14 @@ class ObservePropertySummariesUseCase @Inject constructor(
         }
 }
 
-/** The properties whose name contains [query] (case-insensitive, surrounding blanks ignored); all when it is blank. */
+/**
+ * The properties whose name contains [query] (case-insensitive, surrounding blanks ignored); all when it is blank.
+ * They keep the server's order: downloaded ones aren't moved to the top.
+ */
 class FilterPropertySummariesUseCase @Inject constructor() {
     operator fun invoke(all: List<PropertySummary>, query: String): List<PropertySummary> {
         val q = query.trim().lowercase()
-        return if (q.isEmpty()) all else all.filter { q in it.property.name.lowercase() }
+        return all.filter { q.isEmpty() || q in it.property.name.lowercase() }
     }
 }
 

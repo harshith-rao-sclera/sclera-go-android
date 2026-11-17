@@ -14,6 +14,8 @@ data class LocNode(
     val code: String = "",
     /** Buildings only: type, address, contact and access details (Configuration → Building info). */
     val info: BuildingInfo? = null,
+    /** False when the place is hidden (`is_active` off): field workers can't pick it. */
+    val active: Boolean = true,
 )
 
 /** What the location picker hands back on Confirm. */

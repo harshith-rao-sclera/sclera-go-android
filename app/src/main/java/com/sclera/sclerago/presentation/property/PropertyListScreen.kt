@@ -4,23 +4,19 @@ import java.util.Locale
 import java.text.NumberFormat
 import kotlinx.coroutines.delay
 import com.sclera.sclerago.domain.model.PropertyDownload
+import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.inProgress
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.width
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.ui.semantics.stateDescription
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -44,10 +40,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,9 +60,14 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.common.asString
-import com.sclera.sclerago.presentation.components.CircleFab
-import com.sclera.sclerago.presentation.components.ImportStrip
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.sclera.sclerago.presentation.components.FabAction
+import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.presentation.components.FabMenu
 import com.sclera.sclerago.presentation.components.ListLoader
+import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.StatCard
 import com.sclera.sclerago.presentation.components.StatRow
@@ -83,20 +86,29 @@ object PropertyTags {
     const val LIST = "property_list"
     const val ADD = "property_add"
     const val IMPORT = "property_import"
+    const val FAB = "property_fab"
+    const val SYNCED = "property_synced"
     const val EMPTY = "property_empty"
     const val LOADING = "property_loading"
     const val COUNT = "property_count"
     fun row(id: String) = "property_row_$id"
+    fun info(id: String) = "property_info_$id"
     fun download(id: String) = "property_download_$id"
     fun progress(id: String) = "property_progress_$id"
     fun done(id: String) = "property_done_$id"
     fun unpacking(id: String) = "property_unpacking_$id"
 }
 
-/** Property list (side menu): counts, import, search, open a property, add one. */
+/** Property list (side menu): counts, search, open a property (the synced ones first), add or import some. */
 @Composable
-fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel()) {
+fun PropertyListScreen(
+    app: AppViewModel,
+    vm: PropertyViewModel = hiltViewModel(),
+    importer: PropertyImportViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val canManage by vm.canManage.collectAsStateWithLifecycle()
+    val suggestions by vm.suggestions.collectAsStateWithLifecycle()
     // Until a property is downloaded this is the app's first page, so Back leaves the app.
     BackHandler(enabled = app.hasProperty, onBack = app::closeAdmin)
     DisposableEffect(Unit) { onDispose(vm::reset) }
@@ -107,6 +119,10 @@ fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel(
             delay(CONNECTION_CHECK_MS)
         }
     }
+    // What Import did (or why it couldn't), flashed like the page's own messages.
+    LaunchedEffect(importer) { importer.notices.collect { app.flash(it) } }
+    // Import opens empty each time, as the web's.
+    LaunchedEffect(state.importOpen) { if (state.importOpen) importer.reset() }
     val notice = state.notice?.asString()
     LaunchedEffect(notice) {
         if (notice != null) {
@@ -118,15 +134,41 @@ fun PropertyListScreen(app: AppViewModel, vm: PropertyViewModel = hiltViewModel(
         PropertyListContent(
             state, app.currentProp,
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
-            onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download,
+            onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onRefresh = vm::refresh,
+            canManage = canManage, onInfo = vm::openEdit,
         )
         AnimatedVisibility(
-            app.state.toastOn && !state.addOpen,
+            app.state.toastOn && !state.addOpen && state.editing == null,
             Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 72.dp),
             enter = fadeIn(), exit = fadeOut(),
         ) { Toast(app.state.toast.asString()) }
-        if (state.importOpen) ImportSheet(vm::closeImport, vm::importFile, vm::importProblem, vm::writeSample)
-        if (state.addOpen) AddPropertySheet(state.properties, vm::closeAdd, vm::addProperty)
+        if (state.importOpen) ImportSheet(importer, vm::closeImport, onImported = vm::closeImport)
+        if (state.addOpen) {
+            AddPropertySheet(
+                vm::closeAdd, vm::addProperty, state.addError,
+                suggestions, vm::suggestAddress, vm::clearSuggestions,
+            )
+        }
+        // The info button on a property: its details straight in the edit form, with Delete before Cancel (view only offline).
+        state.editing?.let { p ->
+            key(p.id) {
+                AddPropertySheet(
+                    vm::closeEdit, vm::saveEdit, state.editError,
+                    suggestions, vm::suggestAddress, vm::clearSuggestions, initial = p, onDelete = vm::askDelete,
+                    // Offline it shows the copy saved on the device, to look at only.
+                    readOnly = !state.online,
+                )
+            }
+        }
+        state.confirmDelete?.let { p ->
+            BackHandler(onBack = vm::cancelDelete)
+            ConfirmDialog(
+                Icons.Trash, C.DangerBg, C.Red,
+                stringResource(R.string.property_delete_title), stringResource(R.string.property_delete_body, p.name),
+                stringResource(R.string.action_cancel), stringResource(R.string.action_delete),
+                vm::cancelDelete, vm::deleteProperty,
+            )
+        }
     }
 }
 
@@ -141,47 +183,57 @@ internal fun PropertyListContent(
     onAdd: () -> Unit,
     onImport: () -> Unit,
     onDownload: (String) -> Unit = {},
+    onRefresh: () -> Unit = {},
+    /** Add and Import are offered only with Manage properties (as the web's "+ Property" and Import buttons). */
+    canManage: Boolean = true,
+    /** The info button on a property: opens it in the edit form. */
+    onInfo: (Property) -> Unit = {},
 ) {
     val gutter = pageGutter()
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             SubPageBar(stringResource(R.string.property_list_title), property = null, onMenu = onBack)
-            LazyColumn(
-                Modifier.weight(1f).fillMaxWidth().testTag(PropertyTags.LIST),
-                contentPadding = PaddingValues(start = gutter + 10.dp, end = gutter + 10.dp, top = 10.dp, bottom = 160.dp),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                item { Header(state, onImport) }
-                items(state.rows, key = { it.property.id }) { row ->
-                    val id = row.property.id
-                    val download = state.downloads.active[id]
-                    val downloaded = id in state.downloads.downloadedIds
-                    PropertyCard(
-                        id, row.property.name, current = id == currentId,
-                        download = download, downloaded = downloaded, online = state.online,
-                        // A downloaded property opens (offline too); another one is downloaded first.
-                        onClick = {
-                            when {
-                                downloaded -> onOpen(id)
-                                !download.inProgress -> onDownload(id)
-                            }
-                        },
-                        onDownload = { onDownload(id) },
-                    )
-                }
-                when {
-                    // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
-                    state.loading -> item {
-                        ListLoader(stringResource(R.string.property_loading), Modifier.testTag(PropertyTags.LOADING))
-                    }
-                    state.rows.isEmpty() -> item {
-                        val text = if (state.query.isBlank()) stringResource(R.string.property_none)
-                        else stringResource(R.string.property_none_match, state.query.trim())
-                        Txt(
-                            text, 13, 400, C.Muted,
-                            Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 30.dp).testTag(PropertyTags.EMPTY),
-                            maxLines = 3, align = TextAlign.Center,
+            // The first read shows its own loader, so a pull waits until it is done.
+            PullRefresh(state.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !state.loading) {
+                LazyColumn(
+                    Modifier.fillMaxSize().testTag(PropertyTags.LIST),
+                    contentPadding = PaddingValues(start = gutter + 10.dp, end = gutter + 10.dp, top = 10.dp, bottom = 160.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    item { Header(state) }
+                    items(state.rows, key = { it.property.id }) { row ->
+                        val id = row.property.id
+                        val download = state.downloads.active[id]
+                        val downloaded = id in state.downloads.downloadedIds
+                        PropertyCard(
+                            id, row.property.name, current = id == currentId,
+                            download = download, downloaded = downloaded, online = state.online,
+                            // A downloaded property opens (offline too); another one is downloaded first.
+                            onClick = {
+                                when {
+                                    downloaded -> onOpen(id)
+                                    !download.inProgress -> onDownload(id)
+                                }
+                            },
+                            onDownload = { onDownload(id) },
+                            onInfo = { onInfo(row.property) },
                         )
+                    }
+                    when {
+                        // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
+                        state.loading -> item {
+                            ListLoader(stringResource(R.string.property_loading), Modifier.testTag(PropertyTags.LOADING))
+                        }
+                        state.rows.isEmpty() -> item {
+                            val text = if (state.query.isBlank()) stringResource(R.string.property_none)
+                            else stringResource(R.string.property_none_match, state.query.trim())
+                            Txt(
+                                text, 13, 400, C.Muted,
+                                Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 30.dp).testTag(PropertyTags.EMPTY),
+                                maxLines = 3, align = TextAlign.Center,
+                            )
+                        }
                     }
                 }
             }
@@ -191,7 +243,15 @@ internal fun PropertyListContent(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            CircleFab(Icons.Plus, stringResource(R.string.property_add_fab), onAdd, Modifier.testTag(PropertyTags.ADD))
+            if (canManage) FabMenu(
+                menuOpen, { menuOpen = it },
+                listOf(
+                    FabAction(stringResource(R.string.property_fab_import), Icons.Table, PropertyTags.IMPORT, onImport),
+                    FabAction(stringResource(R.string.action_add), Icons.Pencil, PropertyTags.ADD, onAdd),
+                ),
+                stringResource(R.string.property_add_fab), stringResource(R.string.action_close),
+                Modifier.testTag(PropertyTags.FAB),
+            )
             SearchFab(
                 state.query, onQuery, stringResource(R.string.property_list_search_hint),
                 stringResource(R.string.action_search), stringResource(R.string.action_close_search),
@@ -200,21 +260,20 @@ internal fun PropertyListContent(
     }
 }
 
-/** The Properties / Assets tiles and the import strip (the app bar already names the page). */
+/** The Properties and Synced counts (the app bar already names the page). */
 @Composable
-private fun Header(state: PropertyListState, onImport: () -> Unit) {
-    Column(Modifier.padding(bottom = 7.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatRow {
-            StatCard(
-                // No count until the properties are known, rather than a 0 that jumps.
-                Icons.Building, C.Yellow, if (state.loading) "–" else state.propertyTotal.toString(),
-                stringResource(R.string.label_properties),
-                Modifier.weight(1f).testTag(PropertyTags.COUNT), valueSize = 17, labelSize = 11,
-            )
-        }
-        ImportStrip(
-            stringResource(R.string.property_import_strip), stringResource(R.string.property_import_format), onImport,
-            Modifier.testTag(PropertyTags.IMPORT), labelSize = 13, formatSize = 11,
+private fun Header(state: PropertyListState) {
+    StatRow(Modifier.padding(bottom = 10.dp)) {
+        // No counts until the properties are known, rather than a 0 that jumps.
+        StatCard(
+            Icons.Building, C.Yellow, if (state.loading) "–" else state.propertyTotal.toString(),
+            stringResource(R.string.label_properties),
+            Modifier.weight(1f).testTag(PropertyTags.COUNT), valueSize = 24, labelSize = 12, prominent = true,
+        )
+        StatCard(
+            Icons.Download, C.Green, if (state.loading) "–" else state.syncedTotal.toString(),
+            stringResource(R.string.property_synced),
+            Modifier.weight(1f).testTag(PropertyTags.SYNCED), valueSize = 24, labelSize = 12, prominent = true,
         )
     }
 }
@@ -223,7 +282,8 @@ private fun Header(state: PropertyListState, onImport: () -> Unit) {
  * A property: round building icon and name, then where its offline data is: a download button, the download's
  * progress (percent, MB and a yellow edge along the bottom), a tick when it has just finished, or the chevron once
  * it is downloaded. Offline, a property that isn't downloaded is faded and can't be opened. The current property
- * is marked for accessibility only.
+ * is washed with yellow from its start side (fading out across the card), with a faint yellow border and a yellow building, and is
+ * read out as the current property.
  */
 @Composable
 private fun PropertyCard(
@@ -235,14 +295,23 @@ private fun PropertyCard(
     online: Boolean,
     onClick: () -> Unit,
     onDownload: () -> Unit,
+    onInfo: () -> Unit = {},
 ) {
     val running = download as? PropertyDownload.Running
     val unpacking = download is PropertyDownload.Unpacking
     val faint = !online && !downloaded && !download.inProgress
+    val currentLabel = stringResource(R.string.menu_current_property)
+    // The yellow wash starts on the icon's side, which is the right in right-to-left languages.
+    val wash = listOf(C.Yellow.copy(alpha = 0.16f), C.Surface)
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val surface = if (current) Modifier.background(Brush.horizontalGradient(if (rtl) wash.reversed() else wash)) else Modifier.background(C.Surface)
     Box(
-        Modifier.fillMaxWidth().alpha(if (faint) FaintAlpha else 1f).clip(r(12)).background(C.Surface)
-            .border(1.dp, if (faint) Color.Transparent else C.Border, r(12))
-            .semantics { selected = current }.testTag(PropertyTags.row(id))
+        Modifier.fillMaxWidth().alpha(if (faint) FaintAlpha else 1f).clip(r(12)).then(surface)
+            .border(1.dp, if (faint) Color.Transparent else if (current) C.Yellow.copy(alpha = 0.3f) else C.Border, r(12))
+            .semantics {
+                selected = current
+                if (current) stateDescription = currentLabel
+            }.testTag(PropertyTags.row(id))
             .clickable(enabled = !faint, role = Role.Button, onClick = onClick),
     ) {
         Row(
@@ -251,37 +320,48 @@ private fun PropertyCard(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
-                Modifier.size(40.dp).clip(CircleShape).background(C.Raised).border(1.dp, C.Border, CircleShape),
+                Modifier.size(40.dp).clip(CircleShape).background(if (current) C.YTintBg else C.Raised)
+                    .border(1.dp, if (current) C.YTintBd else C.Border, CircleShape),
                 contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Building, 17.dp, C.Muted, 1.9f) }
+            ) { LineIcon(Icons.Building, 17.dp, if (current) C.Yellow else C.Muted, 1.9f) }
             Txt(name, 14, 600, modifier = Modifier.weight(1f), maxLines = 2)
-            when {
-                running != null -> DownloadProgress(name, running, Modifier.testTag(PropertyTags.progress(id)))
-                unpacking -> {
-                    val label = stringResource(R.string.property_unpacking, name)
-                    Box(
-                        Modifier.size(48.dp).semantics { contentDescription = label }.testTag(PropertyTags.unpacking(id)),
-                        contentAlignment = Alignment.Center,
-                    ) { LineIcon(Icons.Unzip, 22.dp, C.Yellow, 2f) }
-                }
-                download is PropertyDownload.Finished -> {
-                    val done = stringResource(R.string.property_downloaded)
-                    Box(
-                        Modifier.size(48.dp).semantics { contentDescription = done }.testTag(PropertyTags.done(id)),
-                        contentAlignment = Alignment.Center,
-                    ) { LineIcon(Icons.Check, 22.dp, C.Green, 2.8f) }
-                }
-                downloaded -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                    LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
-                }
-                faint -> Unit
-                else -> {
-                    val label = stringResource(R.string.property_download, name)
-                    Box(
-                        Modifier.size(48.dp).clip(CircleShape).semantics { contentDescription = label }
-                            .testTag(PropertyTags.download(id)).clickable(role = Role.Button, onClick = onDownload),
-                        contentAlignment = Alignment.Center,
-                    ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
+            // Property Info (the web's info icon on each property).
+            val infoLabel = stringResource(R.string.property_info_open, name)
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).semantics { contentDescription = infoLabel }
+                    .testTag(PropertyTags.info(id)).clickable(role = Role.Button, onClick = onInfo),
+                contentAlignment = Alignment.Center,
+            ) { LineIcon(Icons.Info, 18.dp, C.Muted, 2f) }
+            // Every state keeps the 48dp of the download button, so the card doesn't change size as a download runs.
+            Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+                when {
+                    running != null -> DownloadProgress(name, running, Modifier.testTag(PropertyTags.progress(id)))
+                    unpacking -> {
+                        val label = stringResource(R.string.property_unpacking, name)
+                        Box(
+                            Modifier.size(48.dp).semantics { contentDescription = label }.testTag(PropertyTags.unpacking(id)),
+                            contentAlignment = Alignment.Center,
+                        ) { CircularProgressIndicator(Modifier.size(22.dp), color = C.Yellow, strokeWidth = 2.5.dp) }
+                    }
+                    download is PropertyDownload.Finished -> {
+                        val done = stringResource(R.string.property_downloaded)
+                        Box(
+                            Modifier.size(48.dp).semantics { contentDescription = done }.testTag(PropertyTags.done(id)),
+                            contentAlignment = Alignment.Center,
+                        ) { LineIcon(Icons.Check, 22.dp, C.Green, 2.8f) }
+                    }
+                    downloaded -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
+                    }
+                    faint -> Unit
+                    else -> {
+                        val label = stringResource(R.string.property_download, name)
+                        Box(
+                            Modifier.size(48.dp).clip(CircleShape).semantics { contentDescription = label }
+                                .testTag(PropertyTags.download(id)).clickable(role = Role.Button, onClick = onDownload),
+                            contentAlignment = Alignment.Center,
+                        ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
+                    }
                 }
             }
         }
@@ -289,8 +369,6 @@ private fun PropertyCard(
         if (running != null) {
             Box(Modifier.align(Alignment.BottomStart).fillMaxWidth(running.fraction).height(3.dp).background(C.Yellow))
         }
-        // Unpacking takes an unknown time: a yellow piece slides along the same bottom edge until it is done.
-        if (unpacking) EndlessEdge(Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -315,23 +393,6 @@ private fun DownloadProgress(name: String, d: PropertyDownload.Running, modifier
         }
     }
 }
-
-/** A 3dp edge with a yellow piece sliding across it again and again (progress of unknown length). */
-@Composable
-private fun EndlessEdge(modifier: Modifier) {
-    val slide by rememberInfiniteTransition(label = "unpacking").animateFloat(
-        initialValue = -EdgePiece, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(EDGE_SWEEP_MS, easing = LinearEasing), RepeatMode.Restart),
-        label = "unpacking-edge",
-    )
-    BoxWithConstraints(modifier.fillMaxWidth().height(3.dp)) {
-        Box(Modifier.offset(x = maxWidth * slide).width(maxWidth * EdgePiece).height(3.dp).background(C.Yellow))
-    }
-}
-
-/** Share of the card's width the sliding piece takes, and how long one sweep lasts. */
-private const val EdgePiece = 0.35f
-private const val EDGE_SWEEP_MS = 1_100
 
 /** How faded a property that can't be used offline looks (as in the design). */
 private const val FaintAlpha = 0.26f

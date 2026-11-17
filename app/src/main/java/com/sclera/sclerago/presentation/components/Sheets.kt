@@ -20,8 +20,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.LocPick
 import com.sclera.sclerago.domain.model.Media
@@ -315,9 +318,14 @@ fun CapturePreview(p: Preview, onClose: () -> Unit) {
     }
 }
 
-/** A photo at full size, or a video that plays (looping, tap to pause). */
+/** A photo at full size, a video that plays (looping, tap to pause), a voice memo to play, or a document to open. */
 @Composable
 fun MediaFull(media: Media) {
+    // A voice memo keeps its file name, so it is checked before documents.
+    if (media.audio) {
+        AudioFull(media)
+        return
+    }
     if (media.isDoc) {
         DocFull(media)
         return
@@ -337,6 +345,45 @@ fun MediaFull(media: Media) {
         onRelease = { it.stopPlayback() },
         modifier = Modifier.fillMaxSize().wrapContentSize(),
     )
+}
+
+/** A voice memo: its name and length, with Play / Pause. One that isn't on this device can't be played offline. */
+@Composable
+private fun AudioFull(media: Media) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var playing by remember(media.uri) { mutableStateOf(false) }
+    val player = remember(media.uri) {
+        val uri = Uri.parse(media.uri)
+        if (uri.scheme != "file" && uri.scheme != "content") null
+        else runCatching { android.media.MediaPlayer().apply { setDataSource(context, uri); prepare() } }.getOrNull()
+    }
+    DisposableEffect(player) {
+        player?.setOnCompletionListener { playing = false }
+        onDispose { player?.release() }
+    }
+    Column(
+        Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+    ) {
+        Box(Modifier.size(84.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
+            LineIcon(Icons.Mic, 34.dp, C.Yellow, 2.2f)
+        }
+        Txt(media.fileName ?: stringResource(R.string.media_tag_audio), 15, 600, maxLines = 3)
+        if (media.durationMs > 0) Txt(media.durationText, 12, 400, C.Muted)
+        if (player == null) {
+            Txt(stringResource(R.string.memo_not_on_device), 12, 400, C.Muted, maxLines = 3)
+        } else {
+            Pill(
+                stringResource(if (playing) R.string.memo_pause else R.string.memo_play),
+                {
+                    if (playing) player.pause() else player.start()
+                    playing = !playing
+                },
+                Modifier.testTag("memo-play"), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 24.dp, size = 14, weight = 700,
+            )
+        }
+    }
 }
 
 /** An uploaded document: its type and name, with a button to open it in another app. */

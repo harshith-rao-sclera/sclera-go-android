@@ -1,5 +1,15 @@
 package com.sclera.sclerago.presentation.components
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.testTag
+import com.sclera.sclerago.presentation.theme.Txt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -106,5 +116,52 @@ fun SearchFab(
             42.dp, C.Btn, { onQueryChange(""); onOpenChange(false) },
             Modifier.semantics { contentDescription = closeDescription },
         ) { LineIcon(Icons.Close, 14.dp, C.Text, 2.6f) }
+    }
+}
+
+/** One choice of a [FabMenu]: its label, icon and what it does ([tag] is its test tag). */
+class FabAction(val label: String, val icon: Ico, val tag: String, val onClick: () -> Unit)
+
+/**
+ * A yellow + floating button that opens into its [actions] above it, each a dark pill with its label and a yellow
+ * icon; open, the + turns into an X that closes it (as does Back). Choosing an action closes it first.
+ */
+@Composable
+fun FabMenu(
+    open: Boolean,
+    onOpenChange: (Boolean) -> Unit,
+    actions: List<FabAction>,
+    openDescription: String,
+    closeDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    BackHandler(enabled = open) { onOpenChange(false) }
+    val turn by animateFloatAsState(if (open) 45f else 0f, label = "fab-menu")
+    Column(modifier, horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        AnimatedVisibility(open, enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut()) {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                actions.forEach { a ->
+                    Row(
+                        Modifier.height(48.dp).testTag(a.tag).fabShadow(Capsule).clip(Capsule).background(C.Btn).border(1.dp, C.Border2, Capsule)
+                            .clickable {
+                                onOpenChange(false)
+                                a.onClick()
+                            }
+                            .padding(start = 18.dp, end = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Txt(a.label, 14, 700)
+                        LineIcon(a.icon, 17.dp, C.Yellow, 2.2f)
+                    }
+                }
+            }
+        }
+        val description = if (open) closeDescription else openDescription
+        Box(
+            Modifier.size(FabSize).fabShadow().clip(CircleShape).background(C.Yellow)
+                .semantics { contentDescription = description }.clickable { onOpenChange(!open) },
+            contentAlignment = Alignment.Center,
+        ) { LineIcon(Icons.Plus, 24.dp, C.OnYellow, 2.8f, Modifier.rotate(turn)) }
     }
 }

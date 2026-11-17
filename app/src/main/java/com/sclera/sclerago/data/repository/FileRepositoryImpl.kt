@@ -3,7 +3,6 @@ package com.sclera.sclerago.data.repository
 import android.content.Context
 import android.net.Uri
 import com.sclera.sclerago.data.readSheet
-import com.sclera.sclerago.data.writeSamplePropertyXlsx
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.di.IoDispatcher
@@ -19,7 +18,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.OutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,5 +50,10 @@ class FileRepositoryImpl @Inject constructor(
         File(context.cacheDir, "web-photos").deleteRecursively()
     }
 
-    override fun writePropertyImportTemplate(out: OutputStream) = writeSamplePropertyXlsx(out)
+
+    override suspend fun writeFile(uri: String, bytes: ByteArray): Boolean = withContext(ioDispatcher) {
+        runCatching {
+            context.contentResolver.openOutputStream(Uri.parse(uri), "wt")?.use { it.write(bytes) } != null
+        }.getOrDefault(false)
+    }
 }

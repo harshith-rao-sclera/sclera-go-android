@@ -33,7 +33,6 @@
     <string name="property_add_fab">הוספת נכס</string>
     <string name="label_properties">נכסים</string>
     <string name="label_assets">פריטים</string>
-    <string name="property_import_strip">ייבוא מגיליון אלקטרוני</string>
     <string name="property_none_match">אין נכסים התואמים ל-“%1$s”.</string>
     <string name="property_loading">טוען נכסים…</string>
     <string name="property_none">אין עדיין נכסים.</string>
@@ -44,11 +43,6 @@
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">לא ניתן להוריד את %1$s. נסה שוב.</string>
     <string name="property_download_offline">אין חיבור. התחבר כדי להוריד נכס.</string>
-    <string name="property_added">%1$s נוסף</string>
-    <string name="property_import_notice">“%1$s” הועלה · הייבוא עדיין לא מחובר לשרת</string>
-    <string name="property_problem_name">יש להזין את שם הנכס.</string>
-    <string name="property_problem_type">יש לבחור את סוג הנכס.</string>
-    <string name="property_problem_duplicate">כבר קיים נכס בשם %1$s.</string>
     <string name="import_title">ייבוא</string>
     <string name="import_choose_file">הקש לבחירת קובץ</string>
     <string name="import_choose_different">הקש לבחירת קובץ אחר</string>
@@ -63,26 +57,18 @@
     <string name="import_sample_download">הורדת פורמט לדוגמה</string>
     <string name="import_proceed">המשך</string>
     <string name="property_add_title">הוספת נכס חדש</string>
-    <string name="property_add_sub">שם וסוג הם שדות חובה.</string>
     <string name="property_add_primary">הוספה</string>
     <string name="property_group_details">פרטי הנכס</string>
-    <string name="property_group_address">כתובת</string>
     <string name="property_group_contact">איש קשר ראשי</string>
     <string name="property_group_notes">הערות</string>
     <string name="property_group_availability">זמינות</string>
-    <string name="property_ready">מוכן</string>
-    <string name="property_required_count">נדרשים %1$d</string>
-    <string name="property_notes_none">עדיין אין</string>
-    <string name="property_notes_added">נוספו</string>
     <string name="property_notes_hint">הזן הערות</string>
     <string name="field_name">שם</string>
-    <string name="field_type">סוג</string>
     <string name="field_country">מדינה</string>
     <string name="field_state">מחוז</string>
     <string name="field_region">אזור</string>
     <string name="field_city">עיר</string>
     <string name="field_email">אימייל</string>
-    <string name="field_phone">טלפון</string>
     <string name="field_address_line1">שורת כתובת 1</string>
     <string name="field_address_line2">שורת כתובת 2</string>
     <string name="field_start_time">שעת התחלה</string>
@@ -90,11 +76,7 @@
     <string name="field_access_code">קוד גישה</string>
     <string name="property_name_hint">הזן שם נכס</string>
     <string name="property_select_type">בחר סוג</string>
-    <string name="property_select_country">בחר מדינה</string>
-    <string name="property_select_state">בחר מחוז</string>
     <string name="property_select_region">בחר אזור</string>
-    <string name="property_choose_country_first">יש לבחור קודם מדינה</string>
-    <string name="property_no_states">אין מחוזות במדינה זו</string>
     <string name="property_enter_city">הזן עיר</string>
     <string name="field_address_line1_hint">הזן שורת כתובת 1</string>
     <string name="field_address_line2_hint">הזן שורת כתובת 2</string>
@@ -104,7 +86,6 @@
     <string name="field_access_code_hint">הזן קוד גישה</string>
     <string name="menu_users">משתמשים</string>
     <string name="menu_current_property">הנכס הנוכחי</string>
-    <string name="menu_switch">החלפה</string>
     <string name="menu_soon">בקרוב</string>
     <string name="menu_validation">אימות</string>
     <string name="menu_configuration">תצורה</string>
@@ -115,6 +96,7 @@
     <string name="menu_sign_out_title">להתנתק?</string>
     <string name="menu_sign_out_message">יהיה עליך להיכנס שוב עם %1$s כדי להשתמש ב-Sclera Go.</string>
     <string name="menu_sign_out_message_generic">יהיה עליך להיכנס שוב כדי להשתמש ב-Sclera Go.</string>
+    <string name="menu_sign_out_sync_warning">כל מה שעדיין לא סונכרן בטלפון הזה יאבד. ודא שכל השינויים שלך סונכרנו לפני ההתנתקות.</string>
     <plurals name="property_count">
         <item quantity="one">נכס אחד</item>
         <item quantity="two">%1$d נכסים</item>
@@ -133,65 +115,35 @@
     <string name="access_tab_people">משתמשים (%1$d)</string>
     <string name="access_tab_groups">קבוצות (%1$d)</string>
     <string name="access_search_people">חיפוש אנשים</string>
-    <string name="access_search_groups">חיפוש קבוצות</string>
     <string name="access_add_person">הוספת אדם</string>
     <string name="access_new_group">קבוצה חדשה</string>
-    <string name="access_empty_people">עדיין לאף אחד אין גישה.</string>
-    <string name="access_no_person_match">אין אנשים התואמים ל-“%1$s”.</string>
-    <string name="access_no_group_match">אין קבוצות התואמות ל-“%1$s”.</string>
-    <string name="access_loading_people">טוען משתמשים…</string>
-    <string name="access_loading_groups">טוען קבוצות…</string>
-    <string name="access_empty_groups">אין עדיין קבוצות.</string>
     <string name="access_all_properties">כל הנכסים</string>
-    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">צפייה בלבד</string>
     <string name="access_edit_group">עריכת %1$s</string>
     <string name="access_delete_group">מחיקת %1$s</string>
     <string name="access_delete_title">למחוק את %1$s?</string>
-    <string name="access_delete_message">הקבוצה תוסר. לא ניתן לבטל פעולה זו.</string>
     <string name="access_title">משתמשים והרשאות גישה</string>
-    <plurals name="access_delete_groups_title">
-        <item quantity="one">למחוק את הקבוצה הזו?</item>
-        <item quantity="other">למחוק %1$d קבוצות?</item>
-    </plurals>
-    <plurals name="access_delete_groups_message">
-        <item quantity="one">הקבוצה תוסר. לא ניתן לבטל פעולה זו.</item>
-        <item quantity="other">הקבוצות האלה יוסרו. לא ניתן לבטל פעולה זו.</item>
-    </plurals>
     <string name="access_action_delete">מחיקה</string>
-    <string name="access_remove_title">להסיר את %1$s?</string>
-    <string name="access_remove_message">ל-%1$s לא תהיה יותר גישה ל-Sclera.</string>
-    <string name="access_action_remove">הסרה</string>
-    <string name="access_remove_person">הסרת %1$s</string>
     <string name="access_person_add_title">הוספת אדם</string>
     <string name="access_person_add_sub">הגישה תינתן להם בכניסה הראשונה.</string>
     <string name="access_action_add">הוספה</string>
     <string name="access_action_save">שמירה</string>
     <string name="access_section_person">אדם</string>
-    <string name="access_section_property_access">גישה לנכסים</string>
     <string name="access_field_email">אימייל</string>
     <string name="access_field_group">קבוצה</string>
-    <string name="access_field_access">גישה</string>
     <string name="access_choose_group">בחירת קבוצה</string>
-    <string name="access_all">הכול</string>
     <string name="access_n_chosen">נבחרו %1$d</string>
     <string name="access_scope_chosen">נכסים שנבחרו</string>
     <string name="access_scope_all_desc">כל נכס, כולל נכסים שיתווספו בהמשך.</string>
     <string name="access_scope_chosen_desc">נכסים חדשים לא נכללים עד שתוסיפו אותם כאן.</string>
-    <string name="access_forced_all">לקבוצה %1$s יש הרשאות שדורשות את כל הנכסים.</string>
     <string name="access_group_new_sub">סמנו מה האנשים בקבוצה יכולים לעשות. ללא סימון הם יכולים רק לצפות.</string>
-    <string name="access_group_edit_sub">בחרו מה האנשים בקבוצה יכולים לעשות.</string>
     <string name="access_group_locked_sub">לאנשים ב-%1$s תמיד יש את כל ההרשאות.</string>
     <string name="access_action_add_group">הוספת קבוצה</string>
     <string name="access_group_details">פרטי הקבוצה</string>
     <string name="access_field_name">שם</string>
     <string name="access_field_description">תיאור</string>
-    <string name="access_group_name_hint">שם הקבוצה</string>
-    <string name="access_group_desc_hint">למה משמשת הקבוצה</string>
     <string name="access_what_they_can_do">מה הם יכולים לעשות</string>
-    <string name="access_locked">נעול</string>
     <string name="access_needs_all">דורש את כל הנכסים</string>
-    <string name="access_locked_notice">ההרשאות האלה נעולות עבור %1$s.</string>
     <string name="access_perm_collect">איסוף</string>
     <string name="access_perm_collect_desc">הוספה, עריכה ומחיקה של נכסים; העלאת קבצים ומדיה; בדיקת נכסים שנקראו מקבצים; שליחה.</string>
     <string name="access_perm_validate">אימות</string>
@@ -203,14 +155,8 @@
     <string name="access_perm_manage_access">ניהול גישה</string>
     <string name="access_perm_manage_access_desc">יצירת קבוצות, שיוך אנשים לקבוצות ובחירה מי יכול לפתוח איזה נכס. דורש גישה לכל הנכסים.</string>
     <string name="access_problem_email_required">יש להזין את כתובת האימייל שלהם.</string>
-    <string name="access_problem_email_invalid">יש להזין כתובת אימייל תקינה.</string>
-    <string name="access_problem_email_taken">ל-%1$s כבר יש גישה.</string>
     <string name="access_problem_group_required">יש לבחור קבוצה.</string>
-    <string name="access_problem_no_property">יש לבחור נכס אחד לפחות, או לתת להם את כל הנכסים.</string>
     <string name="access_problem_group_name">יש לתת שם לקבוצה.</string>
-    <string name="access_problem_group_taken">כבר קיימת קבוצה בשם %1$s.</string>
-    <string name="access_elevate_title">לתת גישה לכל הנכסים?</string>
-    <string name="access_elevate_confirm">מתן גישה</string>
     <plurals name="access_property_count">
         <item quantity="one">נכס אחד</item>
         <item quantity="two">%1$d נכסים</item>
@@ -222,12 +168,6 @@
         <item quantity="two">%1$d אנשים</item>
         <item quantity="many">%1$d אנשים</item>
         <item quantity="other">%1$d אנשים</item>
-    </plurals>
-    <plurals name="access_elevate_notice">
-        <item quantity="one">אדם אחד בקבוצה זו יקבל גישה לכל הנכסים.</item>
-        <item quantity="two">%1$d אנשים בקבוצה זו יקבלו גישה לכל הנכסים.</item>
-        <item quantity="many">%1$d אנשים בקבוצה זו יקבלו גישה לכל הנכסים.</item>
-        <item quantity="other">%1$d אנשים בקבוצה זו יקבלו גישה לכל הנכסים.</item>
     </plurals>
     <string name="action_validate">אימות</string>
     <string name="action_assign">הקצאה</string>
@@ -340,8 +280,6 @@
     <string name="val_step_consistent">עקבי</string>
     <string name="val_step_verified">מאומת</string>
     <string name="val_quality">איכות נתונים %1$d/100</string>
-    <string name="val_runs_many">%1$d אימותים, האחרון %2$s</string>
-    <string name="val_run_one">%1$s, %2$s</string>
     <string name="val_every_step_from">כל השלבים מתוך %1$d אימותים, כל אחד עם התוצאה האחרונה שלו: %2$s.</string>
     <string name="val_starts_here">מתחיל כאן</string>
     <string name="val_suggested">הצעה: %1$s</string>
@@ -369,10 +307,18 @@
     <string name="media_other">תמונות אחרות</string>
     <string name="media_other_hint">לא נספרות בכללי התמונות</string>
     <string name="media_none">עדיין אין.</string>
-    <string name="media_files">סרטונים, הקלטות קוליות וקבצים</string>
-    <string name="media_add_file">הוספת קובץ</string>
     <string name="media_tag_video">סרטון</string>
     <string name="media_tag_audio">הקלטה קולית</string>
+    <string name="media_record_memo">הקלטת תזכורת</string>
+    <string name="memo_starting">מפעיל את המיקרופון…</string>
+    <string name="memo_recording">מקליט… הקש על עצירה ושמירה בסיום.</string>
+    <string name="memo_stop_save">עצירה ושמירה</string>
+    <string name="memo_no_permission">אפשר גישה למיקרופון כדי להקליט תזכורת קולית.</string>
+    <string name="memo_failed">לא ניתן להתחיל להקליט. נסה שוב.</string>
+    <string name="memo_too_short">התזכורת הייתה קצרה מדי לשמירה.</string>
+    <string name="memo_play">הפעלה</string>
+    <string name="memo_pause">השהיה</string>
+    <string name="memo_not_on_device">התזכורת הזו עדיין לא נמצאת בטלפון הזה, ולכן אי אפשר להפעיל אותה במצב לא מקוון.</string>
     <string name="media_tag_file">קובץ</string>
     <string name="ai_title">הצעות AI</string>
     <string name="ai_subtitle">ממלא את השדות הריקים של %1$s לפי המפרט שפורסם לדגם. שום דבר לא נשמר עד שתחילו את ההצעות.</string>
@@ -391,7 +337,6 @@
     <string name="ai_step_match">התאמת ערכים לשדות של הנכס הזה</string>
     <string name="ai_wait_short">החיפוש מתבצע באינטרנט, ולכן הוא עשוי להימשך עד דקה.</string>
     <string name="ai_wait_long">עדיין מחפש. מציאת חלק מהדגמים לוקחת יותר זמן.</string>
-    <string name="ai_can_close">אפשר לסגור את החלון: החיפוש ימשיך ותקבלו הודעה כשיסתיים.</string>
     <string name="ai_close_note">הסגירה לא עוצרת את החיפוש.</string>
     <string name="ai_close_keep">סגירה והמשך עבודה</string>
     <string name="ai_try_again">ניסיון חוזר</string>
@@ -399,11 +344,8 @@
     <string name="ai_nothing_else">אין עוד מה שהמפרט שפורסם יכול למלא בנכס הזה. החילו כדי לשמור את מה שהקלדתם.</string>
     <string name="ai_also_saves">שומר גם את מה שהקלדתם: %1$s.</string>
     <string name="ai_sure">ודאות %1$d%%</string>
-    <string name="ai_nothing_ticked">לא סומן דבר</string>
     <string name="ai_change_model">שינוי דגם</string>
     <string name="ai_look_again">חיפוש חוזר</string>
-    <string name="ai_apply">החלה</string>
-    <string name="ai_saving">שומר…</string>
     <string name="ai_need_model">הוסיפו קודם את הדגם: המפרט מחופש לפי יצרן ודגם.</string>
     <string name="ai_failed">לא ניתן היה לחפש את המפרט. נסו שוב.</string>
     <string name="ai_done_failed">לא ניתן היה לחפש מפרט עבור %1$s. %2$s</string>
@@ -434,7 +376,6 @@
     <string name="detail_name_hint">שם הנכס</string>
     <string name="detail_saved">נשמר</string>
     <string name="detail_menu_camera">צילום תמונה או וידאו</string>
-    <string name="detail_menu_gallery">העלאה מהגלריה</string>
     <string name="detail_menu_files">העלאה מקבצים</string>
     <string name="detail_photo">תמונה</string>
     <string name="detail_video">וידאו</string>
@@ -468,7 +409,6 @@
     <string name="detail_next">התמונה הבאה</string>
     <string name="check_banner_passed">כל הבדיקות עברו</string>
     <string name="check_banner_failed_sub">תקנו את הבדיקות הנדרשות לפני אימות הנכס.</string>
-    <string name="check_required">נדרש</string>
     <string name="check_note_required">נדרש לפני שאפשר לאמת את הנכס</string>
     <string name="check_note_low_confidence">‏%1$s נקרא בביטחון נמוך — השוו ללוחית הזיהוי</string>
     <plurals name="assets_validated">
@@ -556,19 +496,9 @@
         <item quantity="two">עוד %1$d תמונות %2$s</item>
         <item quantity="other">עוד %1$d תמונות %2$s</item>
     </plurals>
-    <plurals name="ai_will_fill">
-        <item quantity="one">%1$d שדה ימולא</item>
-        <item quantity="two">%1$d שדות ימולאו</item>
-        <item quantity="other">%1$d שדות ימולאו</item>
-    </plurals>
     <plurals name="ai_done_found">
         <item quantity="one">נמצא מפרט עבור %1$s: %2$d הצעה מוכנה.</item>
         <item quantity="two">נמצא מפרט עבור %1$s: %2$d הצעות מוכנות.</item>
         <item quantity="other">נמצא מפרט עבור %1$s: %2$d הצעות מוכנות.</item>
-    </plurals>
-    <plurals name="ai_filled_on">
-        <item quantity="one">מולא %1$d שדה ב־%2$s</item>
-        <item quantity="two">מולאו %1$d שדות ב־%2$s</item>
-        <item quantity="other">מולאו %1$d שדות ב־%2$s</item>
     </plurals>
 </resources>

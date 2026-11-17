@@ -33,7 +33,6 @@
     <string name="property_add_fab">Додати об’єкт</string>
     <string name="label_properties">Об’єкти</string>
     <string name="label_assets">Активи</string>
-    <string name="property_import_strip">Імпорт із таблиці</string>
     <string name="property_none_match">Немає об’єктів, що відповідають «%1$s».</string>
     <string name="property_loading">Завантаження об’єктів…</string>
     <string name="property_none">Об’єктів поки немає.</string>
@@ -44,11 +43,6 @@
     <string name="property_download_size">%1$s / %2$s МБ</string>
     <string name="property_download_failed">Не вдалося завантажити %1$s. Спробуйте ще раз.</string>
     <string name="property_download_offline">Немає підключення. Підключіться, щоб завантажити об’єкт.</string>
-    <string name="property_added">Додано: %1$s</string>
-    <string name="property_import_notice">«%1$s» завантажено · імпорт ще не підключено до сервера</string>
-    <string name="property_problem_name">Введіть назву об’єкта.</string>
-    <string name="property_problem_type">Виберіть тип об’єкта.</string>
-    <string name="property_problem_duplicate">Об’єкт із назвою %1$s уже існує.</string>
     <string name="import_title">Імпорт</string>
     <string name="import_choose_file">Торкніться, щоб вибрати файл</string>
     <string name="import_choose_different">Торкніться, щоб вибрати інший файл</string>
@@ -63,26 +57,18 @@
     <string name="import_sample_download">Завантажити формат-зразок</string>
     <string name="import_proceed">Продовжити</string>
     <string name="property_add_title">Додати новий об’єкт</string>
-    <string name="property_add_sub">Назва й тип обов’язкові.</string>
     <string name="property_add_primary">Додати</string>
     <string name="property_group_details">Відомості про об’єкт</string>
-    <string name="property_group_address">Адреса</string>
     <string name="property_group_contact">Основний контакт</string>
     <string name="property_group_notes">Нотатки</string>
     <string name="property_group_availability">Доступність</string>
-    <string name="property_ready">Готово</string>
-    <string name="property_required_count">Обов’язково: %1$d</string>
-    <string name="property_notes_none">Поки немає</string>
-    <string name="property_notes_added">Додано</string>
     <string name="property_notes_hint">Введіть нотатки</string>
     <string name="field_name">Назва</string>
-    <string name="field_type">Тип</string>
     <string name="field_country">Країна</string>
     <string name="field_state">Штат</string>
     <string name="field_region">Регіон</string>
     <string name="field_city">Місто</string>
     <string name="field_email">Ел. пошта</string>
-    <string name="field_phone">Телефон</string>
     <string name="field_address_line1">Адреса, рядок 1</string>
     <string name="field_address_line2">Адреса, рядок 2</string>
     <string name="field_start_time">Час початку</string>
@@ -90,11 +76,7 @@
     <string name="field_access_code">Код доступу</string>
     <string name="property_name_hint">Введіть назву об’єкта</string>
     <string name="property_select_type">Виберіть тип</string>
-    <string name="property_select_country">Виберіть країну</string>
-    <string name="property_select_state">Виберіть штат</string>
     <string name="property_select_region">Виберіть регіон</string>
-    <string name="property_choose_country_first">Спочатку виберіть країну</string>
-    <string name="property_no_states">Для цієї країни немає штатів</string>
     <string name="property_enter_city">Введіть місто</string>
     <string name="field_address_line1_hint">Введіть адресу, рядок 1</string>
     <string name="field_address_line2_hint">Введіть адресу, рядок 2</string>
@@ -104,7 +86,6 @@
     <string name="field_access_code_hint">Введіть код доступу</string>
     <string name="menu_users">Користувачі</string>
     <string name="menu_current_property">Поточний об’єкт</string>
-    <string name="menu_switch">Змінити</string>
     <string name="menu_soon">Незабаром</string>
     <string name="menu_validation">Перевірка</string>
     <string name="menu_configuration">Конфігурація</string>
@@ -115,6 +96,7 @@
     <string name="menu_sign_out_title">Вийти?</string>
     <string name="menu_sign_out_message">Щоб користуватися Sclera Go, потрібно знову увійти як %1$s.</string>
     <string name="menu_sign_out_message_generic">Щоб користуватися Sclera Go, потрібно знову увійти.</string>
+    <string name="menu_sign_out_sync_warning">Усе, що на цьому телефоні ще не синхронізовано, буде втрачено. Перед виходом переконайтеся, що всі зміни синхронізовано.</string>
     <plurals name="property_count">
         <item quantity="one">%1$d об’єкт</item>
         <item quantity="few">%1$d об’єкти</item>
@@ -133,65 +115,35 @@
     <string name="access_tab_people">Користувачі (%1$d)</string>
     <string name="access_tab_groups">Групи (%1$d)</string>
     <string name="access_search_people">Пошук людей</string>
-    <string name="access_search_groups">Пошук груп</string>
     <string name="access_add_person">Додати людину</string>
     <string name="access_new_group">Нова група</string>
-    <string name="access_empty_people">Поки що ні в кого немає доступу.</string>
-    <string name="access_no_person_match">Немає людей, що відповідають «%1$s».</string>
-    <string name="access_no_group_match">Немає груп, що відповідають «%1$s».</string>
-    <string name="access_loading_people">Завантаження користувачів…</string>
-    <string name="access_loading_groups">Завантаження груп…</string>
-    <string name="access_empty_groups">Груп поки немає.</string>
     <string name="access_all_properties">Усі об’єкти</string>
-    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Лише перегляд</string>
     <string name="access_edit_group">Редагувати: %1$s</string>
     <string name="access_delete_group">Видалити: %1$s</string>
     <string name="access_delete_title">Видалити %1$s?</string>
-    <string name="access_delete_message">Групу буде видалено. Цю дію не можна скасувати.</string>
     <string name="access_title">Користувачі та доступ</string>
-    <plurals name="access_delete_groups_title">
-        <item quantity="one">Видалити цю групу?</item>
-        <item quantity="other">Видалити групи: %1$d?</item>
-    </plurals>
-    <plurals name="access_delete_groups_message">
-        <item quantity="one">Групу буде видалено. Цю дію не можна скасувати.</item>
-        <item quantity="other">Ці групи буде видалено. Цю дію не можна скасувати.</item>
-    </plurals>
     <string name="access_action_delete">Видалити</string>
-    <string name="access_remove_title">Вилучити %1$s?</string>
-    <string name="access_remove_message">%1$s втратить доступ до Sclera.</string>
-    <string name="access_action_remove">Вилучити</string>
-    <string name="access_remove_person">Вилучити: %1$s</string>
     <string name="access_person_add_title">Додати людину</string>
     <string name="access_person_add_sub">Вони отримають цей доступ під час першого входу.</string>
     <string name="access_action_add">Додати</string>
     <string name="access_action_save">Зберегти</string>
     <string name="access_section_person">Людина</string>
-    <string name="access_section_property_access">Доступ до об’єктів</string>
     <string name="access_field_email">Електронна пошта</string>
     <string name="access_field_group">Група</string>
-    <string name="access_field_access">Доступ</string>
     <string name="access_choose_group">Виберіть групу</string>
-    <string name="access_all">Усі</string>
     <string name="access_n_chosen">Вибрано: %1$d</string>
     <string name="access_scope_chosen">Вибрані об’єкти</string>
     <string name="access_scope_all_desc">Кожен об’єкт, зокрема додані пізніше.</string>
     <string name="access_scope_chosen_desc">Нові об’єкти не включаються, доки ви не додасте їх тут.</string>
-    <string name="access_forced_all">Для дозволів групи %1$s потрібен доступ до всіх об’єктів.</string>
     <string name="access_group_new_sub">Позначте, що можуть робити люди в цій групі. Якщо нічого не позначено, вони можуть лише переглядати.</string>
-    <string name="access_group_edit_sub">Виберіть, що можуть робити люди в цій групі.</string>
     <string name="access_group_locked_sub">Люди в групі %1$s завжди мають усі дозволи.</string>
     <string name="access_action_add_group">Додати групу</string>
     <string name="access_group_details">Відомості про групу</string>
     <string name="access_field_name">Назва</string>
     <string name="access_field_description">Опис</string>
-    <string name="access_group_name_hint">Назва групи</string>
-    <string name="access_group_desc_hint">Призначення цієї групи</string>
     <string name="access_what_they_can_do">Що вони можуть робити</string>
-    <string name="access_locked">Заблоковано</string>
     <string name="access_needs_all">Потрібні всі об’єкти</string>
-    <string name="access_locked_notice">Ці дозволи заблоковано для %1$s.</string>
     <string name="access_perm_collect">Збір даних</string>
     <string name="access_perm_collect_desc">Додавання, редагування й видалення активів; завантаження файлів і медіа; перегляд активів, прочитаних із файлів; надсилання.</string>
     <string name="access_perm_validate">Перевірка</string>
@@ -203,14 +155,8 @@
     <string name="access_perm_manage_access">Керування доступом</string>
     <string name="access_perm_manage_access_desc">Створення груп, додавання людей до груп і вибір, хто може відкривати який об’єкт. Потрібен доступ до всіх об’єктів.</string>
     <string name="access_problem_email_required">Введіть адресу електронної пошти.</string>
-    <string name="access_problem_email_invalid">Введіть дійсну адресу електронної пошти.</string>
-    <string name="access_problem_email_taken">%1$s уже має доступ.</string>
     <string name="access_problem_group_required">Виберіть групу.</string>
-    <string name="access_problem_no_property">Виберіть щонайменше один об’єкт або надайте доступ до всіх.</string>
     <string name="access_problem_group_name">Дайте групі назву.</string>
-    <string name="access_problem_group_taken">Група з назвою %1$s уже існує.</string>
-    <string name="access_elevate_title">Надати доступ до всіх об’єктів?</string>
-    <string name="access_elevate_confirm">Надати доступ</string>
     <plurals name="access_property_count">
         <item quantity="one">%1$d об’єкт</item>
         <item quantity="few">%1$d об’єкти</item>
@@ -222,12 +168,6 @@
         <item quantity="few">%1$d людини</item>
         <item quantity="many">%1$d людей</item>
         <item quantity="other">%1$d людини</item>
-    </plurals>
-    <plurals name="access_elevate_notice">
-        <item quantity="one">%1$d людина з цієї групи отримає доступ до всіх об’єктів.</item>
-        <item quantity="few">%1$d людини з цієї групи отримають доступ до всіх об’єктів.</item>
-        <item quantity="many">%1$d людей із цієї групи отримають доступ до всіх об’єктів.</item>
-        <item quantity="other">%1$d людини з цієї групи отримають доступ до всіх об’єктів.</item>
     </plurals>
     <string name="action_validate">Перевірити</string>
     <string name="action_assign">Призначити</string>
@@ -340,8 +280,6 @@
     <string name="val_step_consistent">Узгодженість</string>
     <string name="val_step_verified">Підтвердження</string>
     <string name="val_quality">Якість даних %1$d/100</string>
-    <string name="val_runs_many">Перевірок: %1$d, остання %2$s</string>
-    <string name="val_run_one">%1$s, %2$s</string>
     <string name="val_every_step_from">Усі кроки з перевірок (%1$d), у кожного — останній результат: %2$s.</string>
     <string name="val_starts_here">Починається тут</string>
     <string name="val_suggested">Пропозиція: %1$s</string>
@@ -369,10 +307,18 @@
     <string name="media_other">Інші фото</string>
     <string name="media_other_hint">Не враховуються правилами для фото</string>
     <string name="media_none">Поки немає.</string>
-    <string name="media_files">Відео, голосові нотатки та файли</string>
-    <string name="media_add_file">Додати файл</string>
     <string name="media_tag_video">Відео</string>
     <string name="media_tag_audio">Голосова нотатка</string>
+    <string name="media_record_memo">Записати нотатку</string>
+    <string name="memo_starting">Увімкнення мікрофона…</string>
+    <string name="memo_recording">Іде запис… Коли закінчите, натисніть «Зупинити й зберегти».</string>
+    <string name="memo_stop_save">Зупинити й зберегти</string>
+    <string name="memo_no_permission">Дозвольте доступ до мікрофона, щоб записати голосову нотатку.</string>
+    <string name="memo_failed">Не вдалося почати запис. Спробуйте ще раз.</string>
+    <string name="memo_too_short">Нотатка надто коротка, щоб її зберегти.</string>
+    <string name="memo_play">Відтворити</string>
+    <string name="memo_pause">Пауза</string>
+    <string name="memo_not_on_device">Цієї нотатки ще немає на телефоні, тому її не можна відтворити офлайн.</string>
     <string name="media_tag_file">Файл</string>
     <string name="ai_title">Пропозиції ШІ</string>
     <string name="ai_subtitle">Заповнює порожні поля активу %1$s за опублікованими характеристиками моделі. Нічого не зберігається, доки ви не застосуєте.</string>
@@ -391,7 +337,6 @@
     <string name="ai_step_match">Зіставлення значень із полями цього активу</string>
     <string name="ai_wait_short">Пошук іде в інтернеті, тож може тривати до хвилини.</string>
     <string name="ai_wait_long">Пошук триває. Деякі моделі знайти складніше.</string>
-    <string name="ai_can_close">Це вікно можна закрити: пошук триватиме, і ви отримаєте сповіщення, коли він завершиться.</string>
     <string name="ai_close_note">Закриття не зупиняє пошук.</string>
     <string name="ai_close_keep">Закрити й продовжити роботу</string>
     <string name="ai_try_again">Повторити</string>
@@ -399,11 +344,8 @@
     <string name="ai_nothing_else">Опубліковані характеристики більше нічого не можуть заповнити для цього активу. Застосуйте, щоб зберегти введене.</string>
     <string name="ai_also_saves">Також збережеться введене вами: %1$s.</string>
     <string name="ai_sure">Впевненість %1$d%%</string>
-    <string name="ai_nothing_ticked">Нічого не позначено</string>
     <string name="ai_change_model">Змінити модель</string>
     <string name="ai_look_again">Шукати знову</string>
-    <string name="ai_apply">Застосувати</string>
-    <string name="ai_saving">Збереження…</string>
     <string name="ai_need_model">Спочатку вкажіть модель: характеристики шукаються за виробником і моделлю.</string>
     <string name="ai_failed">Не вдалося знайти характеристики. Повторіть спробу.</string>
     <string name="ai_done_failed">Не вдалося знайти характеристики для %1$s. %2$s</string>
@@ -434,7 +376,6 @@
     <string name="detail_name_hint">Назва активу</string>
     <string name="detail_saved">Збережено</string>
     <string name="detail_menu_camera">Зробити фото або відео</string>
-    <string name="detail_menu_gallery">Завантажити з галереї</string>
     <string name="detail_menu_files">Завантажити з файлів</string>
     <string name="detail_photo">Фото</string>
     <string name="detail_video">Відео</string>
@@ -468,7 +409,6 @@
     <string name="detail_next">Наступне фото</string>
     <string name="check_banner_passed">Усі перевірки пройдено</string>
     <string name="check_banner_failed_sub">Виправте обов’язкові перевірки, перш ніж перевіряти цей актив.</string>
-    <string name="check_required">ОБОВ’ЯЗКОВО</string>
     <string name="check_note_required">Потрібно, щоб актив можна було перевірити</string>
     <string name="check_note_low_confidence">Поле «%1$s» зчитано непевно — звірте зі шильдиком</string>
     <plurals name="assets_validated">
@@ -558,22 +498,10 @@
         <item quantity="many">ще %1$d фото «%2$s»</item>
         <item quantity="other">ще %1$d фото «%2$s»</item>
     </plurals>
-    <plurals name="ai_will_fill">
-        <item quantity="one">Буде заповнено %1$d поле</item>
-        <item quantity="few">Буде заповнено %1$d поля</item>
-        <item quantity="many">Буде заповнено %1$d полів</item>
-        <item quantity="other">Буде заповнено %1$d поля</item>
-    </plurals>
     <plurals name="ai_done_found">
         <item quantity="one">Характеристики для %1$s знайдено: готова %2$d пропозиція.</item>
         <item quantity="few">Характеристики для %1$s знайдено: готові %2$d пропозиції.</item>
         <item quantity="many">Характеристики для %1$s знайдено: готово %2$d пропозицій.</item>
         <item quantity="other">Характеристики для %1$s знайдено: готово %2$d пропозиції.</item>
-    </plurals>
-    <plurals name="ai_filled_on">
-        <item quantity="one">Заповнено %1$d поле в %2$s</item>
-        <item quantity="few">Заповнено %1$d поля в %2$s</item>
-        <item quantity="many">Заповнено %1$d полів в %2$s</item>
-        <item quantity="other">Заповнено %1$d поля в %2$s</item>
     </plurals>
 </resources>

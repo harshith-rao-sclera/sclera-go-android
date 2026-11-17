@@ -33,7 +33,6 @@
     <string name="property_add_fab">Thêm cơ sở</string>
     <string name="label_properties">Cơ sở</string>
     <string name="label_assets">Tài sản</string>
-    <string name="property_import_strip">Nhập từ bảng tính</string>
     <string name="property_none_match">Không có cơ sở nào khớp với “%1$s”.</string>
     <string name="property_loading">Đang tải cơ sở…</string>
     <string name="property_none">Chưa có cơ sở nào.</string>
@@ -44,11 +43,6 @@
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">Không thể tải xuống %1$s. Hãy thử lại.</string>
     <string name="property_download_offline">Bạn đang ngoại tuyến. Hãy kết nối để tải xuống tài sản.</string>
-    <string name="property_added">Đã thêm %1$s</string>
-    <string name="property_import_notice">Đã tải lên “%1$s” · tính năng nhập chưa được kết nối với máy chủ</string>
-    <string name="property_problem_name">Nhập tên cơ sở.</string>
-    <string name="property_problem_type">Chọn loại cơ sở.</string>
-    <string name="property_problem_duplicate">Đã có cơ sở tên %1$s.</string>
     <string name="import_title">Nhập</string>
     <string name="import_choose_file">Nhấn để chọn tệp</string>
     <string name="import_choose_different">Nhấn để chọn tệp khác</string>
@@ -63,26 +57,18 @@
     <string name="import_sample_download">Tải định dạng mẫu</string>
     <string name="import_proceed">Tiếp tục</string>
     <string name="property_add_title">Thêm cơ sở mới</string>
-    <string name="property_add_sub">Cần có tên và loại.</string>
     <string name="property_add_primary">Thêm</string>
     <string name="property_group_details">Chi tiết cơ sở</string>
-    <string name="property_group_address">Địa chỉ</string>
     <string name="property_group_contact">Liên hệ chính</string>
     <string name="property_group_notes">Ghi chú</string>
     <string name="property_group_availability">Thời gian khả dụng</string>
-    <string name="property_ready">Sẵn sàng</string>
-    <string name="property_required_count">Cần %1$d</string>
-    <string name="property_notes_none">Chưa có</string>
-    <string name="property_notes_added">Đã thêm</string>
     <string name="property_notes_hint">Nhập ghi chú</string>
     <string name="field_name">Tên</string>
-    <string name="field_type">Loại</string>
     <string name="field_country">Quốc gia</string>
     <string name="field_state">Tiểu bang</string>
     <string name="field_region">Khu vực</string>
     <string name="field_city">Thành phố</string>
     <string name="field_email">Email</string>
-    <string name="field_phone">Điện thoại</string>
     <string name="field_address_line1">Địa chỉ dòng 1</string>
     <string name="field_address_line2">Địa chỉ dòng 2</string>
     <string name="field_start_time">Giờ bắt đầu</string>
@@ -90,11 +76,7 @@
     <string name="field_access_code">Mã truy cập</string>
     <string name="property_name_hint">Nhập tên cơ sở</string>
     <string name="property_select_type">Chọn loại</string>
-    <string name="property_select_country">Chọn quốc gia</string>
-    <string name="property_select_state">Chọn tiểu bang</string>
     <string name="property_select_region">Chọn khu vực</string>
-    <string name="property_choose_country_first">Hãy chọn quốc gia trước</string>
-    <string name="property_no_states">Không có tiểu bang cho quốc gia này</string>
     <string name="property_enter_city">Nhập thành phố</string>
     <string name="field_address_line1_hint">Nhập địa chỉ dòng 1</string>
     <string name="field_address_line2_hint">Nhập địa chỉ dòng 2</string>
@@ -104,7 +86,6 @@
     <string name="field_access_code_hint">Nhập mã truy cập</string>
     <string name="menu_users">Người dùng</string>
     <string name="menu_current_property">Cơ sở hiện tại</string>
-    <string name="menu_switch">Chuyển</string>
     <string name="menu_soon">Sắp có</string>
     <string name="menu_validation">Xác thực</string>
     <string name="menu_configuration">Cấu hình</string>
@@ -115,6 +96,7 @@
     <string name="menu_sign_out_title">Đăng xuất?</string>
     <string name="menu_sign_out_message">Bạn cần đăng nhập lại bằng %1$s để dùng Sclera Go.</string>
     <string name="menu_sign_out_message_generic">Bạn cần đăng nhập lại để dùng Sclera Go.</string>
+    <string name="menu_sign_out_sync_warning">Mọi nội dung trên điện thoại này chưa được đồng bộ sẽ bị mất. Hãy đảm bảo mọi thay đổi của bạn đã được đồng bộ trước khi đăng xuất.</string>
     <plurals name="property_count">
         <item quantity="other">%1$d cơ sở</item>
     </plurals>
@@ -127,63 +109,35 @@
     <string name="access_tab_people">Người dùng (%1$d)</string>
     <string name="access_tab_groups">Nhóm (%1$d)</string>
     <string name="access_search_people">Tìm người</string>
-    <string name="access_search_groups">Tìm nhóm</string>
     <string name="access_add_person">Thêm người</string>
     <string name="access_new_group">Nhóm mới</string>
-    <string name="access_empty_people">Chưa có ai được cấp quyền truy cập.</string>
-    <string name="access_no_person_match">Không có ai khớp với “%1$s”.</string>
-    <string name="access_no_group_match">Không có nhóm nào khớp với “%1$s”.</string>
-    <string name="access_loading_people">Đang tải người dùng…</string>
-    <string name="access_loading_groups">Đang tải nhóm…</string>
-    <string name="access_empty_groups">Chưa có nhóm nào.</string>
     <string name="access_all_properties">Tất cả cơ sở</string>
-    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Chỉ xem</string>
     <string name="access_edit_group">Sửa %1$s</string>
     <string name="access_delete_group">Xóa %1$s</string>
     <string name="access_delete_title">Xóa %1$s?</string>
-    <string name="access_delete_message">Nhóm sẽ bị xóa. Không thể hoàn tác thao tác này.</string>
     <string name="access_title">Người dùng và quyền truy cập</string>
-    <plurals name="access_delete_groups_title">
-        <item quantity="other">Xóa %1$d nhóm?</item>
-    </plurals>
-    <plurals name="access_delete_groups_message">
-        <item quantity="other">Nhóm sẽ bị xóa. Không thể hoàn tác thao tác này.</item>
-    </plurals>
     <string name="access_action_delete">Xóa</string>
-    <string name="access_remove_title">Gỡ %1$s?</string>
-    <string name="access_remove_message">%1$s sẽ mất quyền truy cập Sclera.</string>
-    <string name="access_action_remove">Gỡ</string>
-    <string name="access_remove_person">Gỡ %1$s</string>
     <string name="access_person_add_title">Thêm một người</string>
     <string name="access_person_add_sub">Họ sẽ nhận quyền truy cập này vào lần đăng nhập đầu tiên.</string>
     <string name="access_action_add">Thêm</string>
     <string name="access_action_save">Lưu</string>
     <string name="access_section_person">Người</string>
-    <string name="access_section_property_access">Quyền truy cập cơ sở</string>
     <string name="access_field_email">Email</string>
     <string name="access_field_group">Nhóm</string>
-    <string name="access_field_access">Quyền truy cập</string>
     <string name="access_choose_group">Chọn một nhóm</string>
-    <string name="access_all">Tất cả</string>
     <string name="access_n_chosen">Đã chọn %1$d</string>
     <string name="access_scope_chosen">Cơ sở đã chọn</string>
     <string name="access_scope_all_desc">Mọi cơ sở, kể cả các cơ sở thêm sau này.</string>
     <string name="access_scope_chosen_desc">Cơ sở mới sẽ không được tính cho đến khi bạn thêm vào đây.</string>
-    <string name="access_forced_all">Nhóm %1$s có các quyền cần truy cập tất cả cơ sở.</string>
     <string name="access_group_new_sub">Đánh dấu những gì thành viên nhóm này có thể làm. Nếu không đánh dấu gì, họ chỉ có thể xem.</string>
-    <string name="access_group_edit_sub">Chọn những gì thành viên nhóm này có thể làm.</string>
     <string name="access_group_locked_sub">Thành viên nhóm %1$s luôn có mọi quyền.</string>
     <string name="access_action_add_group">Thêm nhóm</string>
     <string name="access_group_details">Chi tiết nhóm</string>
     <string name="access_field_name">Tên</string>
     <string name="access_field_description">Mô tả</string>
-    <string name="access_group_name_hint">Tên nhóm</string>
-    <string name="access_group_desc_hint">Nhóm này dùng để làm gì</string>
     <string name="access_what_they_can_do">Họ có thể làm gì</string>
-    <string name="access_locked">Đã khóa</string>
     <string name="access_needs_all">Cần tất cả cơ sở</string>
-    <string name="access_locked_notice">Các quyền này đã bị khóa cho %1$s.</string>
     <string name="access_perm_collect">Thu thập</string>
     <string name="access_perm_collect_desc">Thêm, sửa và xóa tài sản; tải lên tệp và phương tiện; xem lại tài sản đọc từ tệp; gửi.</string>
     <string name="access_perm_validate">Xác thực</string>
@@ -195,22 +149,13 @@
     <string name="access_perm_manage_access">Quản lý quyền truy cập</string>
     <string name="access_perm_manage_access_desc">Tạo nhóm, đưa người vào nhóm và chọn ai được mở cơ sở nào. Cần quyền truy cập tất cả cơ sở.</string>
     <string name="access_problem_email_required">Nhập địa chỉ email của họ.</string>
-    <string name="access_problem_email_invalid">Nhập địa chỉ email hợp lệ.</string>
-    <string name="access_problem_email_taken">%1$s đã có quyền truy cập.</string>
     <string name="access_problem_group_required">Chọn một nhóm.</string>
-    <string name="access_problem_no_property">Chọn ít nhất một cơ sở, hoặc cấp cho họ tất cả cơ sở.</string>
     <string name="access_problem_group_name">Đặt tên cho nhóm.</string>
-    <string name="access_problem_group_taken">Đã có nhóm tên %1$s.</string>
-    <string name="access_elevate_title">Cấp quyền truy cập tất cả cơ sở?</string>
-    <string name="access_elevate_confirm">Cấp quyền</string>
     <plurals name="access_property_count">
         <item quantity="other">%1$d cơ sở</item>
     </plurals>
     <plurals name="access_person_count">
         <item quantity="other">%1$d người</item>
-    </plurals>
-    <plurals name="access_elevate_notice">
-        <item quantity="other">%1$d người trong nhóm này sẽ có quyền truy cập tất cả cơ sở.</item>
     </plurals>
     <string name="action_validate">Xác thực</string>
     <string name="action_assign">Gán</string>
@@ -323,8 +268,6 @@
     <string name="val_step_consistent">Nhất quán</string>
     <string name="val_step_verified">Đã xác minh</string>
     <string name="val_quality">Chất lượng dữ liệu %1$d/100</string>
-    <string name="val_runs_many">%1$d lần xác thực, gần nhất %2$s</string>
-    <string name="val_run_one">%1$s, %2$s</string>
     <string name="val_every_step_from">Mọi bước từ %1$d lần xác thực, mỗi bước kèm kết quả mới nhất: %2$s.</string>
     <string name="val_starts_here">Bắt đầu từ đây</string>
     <string name="val_suggested">Đề xuất: %1$s</string>
@@ -352,10 +295,18 @@
     <string name="media_other">Ảnh khác</string>
     <string name="media_other_hint">Không được tính theo quy tắc ảnh</string>
     <string name="media_none">Chưa có.</string>
-    <string name="media_files">Video, ghi âm và tệp</string>
-    <string name="media_add_file">Thêm tệp</string>
     <string name="media_tag_video">Video</string>
     <string name="media_tag_audio">Ghi âm</string>
+    <string name="media_record_memo">Ghi âm ghi chú</string>
+    <string name="memo_starting">Đang bật micrô…</string>
+    <string name="memo_recording">Đang ghi âm… nhấn Dừng và lưu khi xong.</string>
+    <string name="memo_stop_save">Dừng và lưu</string>
+    <string name="memo_no_permission">Cho phép micrô để ghi âm ghi chú thoại.</string>
+    <string name="memo_failed">Không thể bắt đầu ghi âm. Hãy thử lại.</string>
+    <string name="memo_too_short">Ghi chú quá ngắn để lưu.</string>
+    <string name="memo_play">Phát</string>
+    <string name="memo_pause">Tạm dừng</string>
+    <string name="memo_not_on_device">Ghi chú này chưa có trên điện thoại nên không thể phát khi ngoại tuyến.</string>
     <string name="media_tag_file">Tệp</string>
     <string name="ai_title">Gợi ý AI</string>
     <string name="ai_subtitle">Điền các trường trống của %1$s từ thông số kỹ thuật đã công bố của model. Không có gì được lưu cho đến khi bạn áp dụng.</string>
@@ -374,7 +325,6 @@
     <string name="ai_step_match">Đang khớp giá trị với các trường của tài sản này</string>
     <string name="ai_wait_short">Quá trình này tìm kiếm trên web nên có thể mất tới một phút.</string>
     <string name="ai_wait_long">Vẫn đang tìm. Một số model cần nhiều thời gian hơn để tìm.</string>
-    <string name="ai_can_close">Bạn có thể đóng mục này: quá trình tìm vẫn tiếp tục và bạn sẽ nhận được thông báo khi xong.</string>
     <string name="ai_close_note">Đóng không làm dừng tìm kiếm.</string>
     <string name="ai_close_keep">Đóng và tiếp tục làm việc</string>
     <string name="ai_try_again">Thử lại</string>
@@ -382,11 +332,8 @@
     <string name="ai_nothing_else">Thông số đã công bố không thể điền thêm gì cho tài sản này. Hãy áp dụng để lưu nội dung bạn đã nhập.</string>
     <string name="ai_also_saves">Đồng thời lưu nội dung bạn đã nhập: %1$s.</string>
     <string name="ai_sure">Chắc chắn %1$d%%</string>
-    <string name="ai_nothing_ticked">Chưa chọn mục nào</string>
     <string name="ai_change_model">Đổi model</string>
     <string name="ai_look_again">Tra cứu lại</string>
-    <string name="ai_apply">Áp dụng</string>
-    <string name="ai_saving">Đang lưu…</string>
     <string name="ai_need_model">Hãy thêm model trước: thông số được tra cứu theo nhà sản xuất và model.</string>
     <string name="ai_failed">Không thể tra cứu thông số. Hãy thử lại.</string>
     <string name="ai_done_failed">Không thể tra cứu thông số cho %1$s. %2$s</string>
@@ -417,7 +364,6 @@
     <string name="detail_name_hint">Tên tài sản</string>
     <string name="detail_saved">Đã lưu</string>
     <string name="detail_menu_camera">Chụp ảnh hoặc quay video</string>
-    <string name="detail_menu_gallery">Tải lên từ thư viện</string>
     <string name="detail_menu_files">Tải lên từ tệp</string>
     <string name="detail_photo">Ảnh</string>
     <string name="detail_video">Video</string>
@@ -451,7 +397,6 @@
     <string name="detail_next">Ảnh tiếp theo</string>
     <string name="check_banner_passed">Tất cả kiểm tra đều đạt</string>
     <string name="check_banner_failed_sub">Hãy sửa các kiểm tra bắt buộc trước khi xác thực tài sản này.</string>
-    <string name="check_required">BẮT BUỘC</string>
     <string name="check_note_required">Cần có trước khi có thể xác thực tài sản</string>
     <string name="check_note_low_confidence">%1$s được đọc với độ tin cậy thấp — hãy đối chiếu với biển tên</string>
     <plurals name="assets_validated">
@@ -520,13 +465,7 @@
     <plurals name="media_need_more">
         <item quantity="other">thêm %1$d ảnh %2$s</item>
     </plurals>
-    <plurals name="ai_will_fill">
-        <item quantity="other">Sẽ điền %1$d trường</item>
-    </plurals>
     <plurals name="ai_done_found">
         <item quantity="other">Đã tìm thấy thông số cho %1$s: %2$d gợi ý sẵn sàng.</item>
-    </plurals>
-    <plurals name="ai_filled_on">
-        <item quantity="other">Đã điền %1$d trường trên %2$s</item>
     </plurals>
 </resources>

@@ -1392,7 +1392,10 @@ public class ImageSyncService {
             String imageUUID = cursor.getString(cursor.getColumnIndex(multimediaId));
             dbConnection.update(multimediaTable, imageValues, multimediaId + " = ?", new String[]{imageUUID});
         } else {
-            if (imageId == null || syncManager.inspectionVersion.equals("v1")) {
+            // Only inspection (ADMIN) has a version; asset data collection's images keep their row's id.
+            boolean inspectionV1 = OfflineFeatures.ADMIN.equals(syncManager.getFeature())
+                    && syncManager.inspectionVersion.equals("v1");
+            if (imageId == null || inspectionV1) {
                 UUID uuid = UUID.randomUUID();
                 imageId = uuid.toString();
             }

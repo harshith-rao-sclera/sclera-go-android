@@ -8,18 +8,30 @@ import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
-/** Why a property can't be added. */
-enum class PropertyProblem { NAME_REQUIRED, TYPE_REQUIRED, DUPLICATE }
+/** Why a property can't be added, as the web's Add New Property says it. */
+enum class PropertyProblem { REQUIRED_FIELDS, EMAIL_INVALID, PHONE_INVALID }
 
-/** Why a property called [name] of [type] can't be added, or null when it can. */
-fun propertyProblem(name: String, type: String, existing: List<Property>): PropertyProblem? = when {
-    name.isBlank() -> PropertyProblem.NAME_REQUIRED
-    type.isBlank() -> PropertyProblem.TYPE_REQUIRED
-    existing.any { it.name.equals(name.trim(), ignoreCase = true) } -> PropertyProblem.DUPLICATE
-    else -> null
+// The web's email and phone checks (components/helper/validateEmail.js, validatePhone.js).
+private val EMAIL = Regex("""^([A-Za-z0-9_\-.])+@([A-Za-z0-9_\-.])+\.([A-Za-z]{2,4})$""")
+private val PHONE = Regex("""(\+\d{1,3}\s?)?((\(\d{3}\)\s?)|(\d{3})(\s|-?))(\d{3}(\s|-?))(\d{4})(\s?(([E|e]xt[:|.|]?)|x|X)(\s?\d+))?""")
+
+/**
+ * Why [draft] can't be added, or null when it can: a name and a type are required, and a contact email or phone
+ * that is given must look valid (as the web checks them; the server checks the rest).
+ */
+fun propertyProblem(draft: Property): PropertyProblem? {
+    val email = draft.contact.email.trim()
+    val phone = draft.contact.phone.trim()
+    return when {
+        draft.name.isBlank() || draft.type.isBlank() -> PropertyProblem.REQUIRED_FIELDS
+        email.isNotEmpty() && !EMAIL.matches(email) -> PropertyProblem.EMAIL_INVALID
+        phone.isNotEmpty() && PHONE.find(phone) == null -> PropertyProblem.PHONE_INVALID
+        else -> null
+    }
 }
 
 class ObservePropertiesUseCase @Inject constructor(private val repo: PropertyRepository) {
@@ -31,22 +43,22 @@ class RefreshPropertiesUseCase @Inject constructor(private val repo: PropertyRep
     suspend operator fun invoke() = repo.refresh()
 }
 
-/** Why [draft] can't be added as it is, or null when it can (the Add form's checks, against the properties as they are now). */
-class ValidatePropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
-    operator fun invoke(draft: Property): PropertyProblem? = propertyProblem(draft.name.trim(), draft.type, repo.properties.value)
+/** Why [draft] can't be added as it is, or null when it can (the Add form's checks). */
+class ValidatePropertyUseCase @Inject constructor() {
+    operator fun invoke(draft: Property): PropertyProblem? = propertyProblem(draft)
 }
 
 /** Adds a property from the Add New Property form (online only). */
 class AddPropertyUseCase @Inject constructor(private val repo: PropertyRepository, private val guard: PermissionGuard) {
     sealed interface Result {
         data class Added(val property: Property) : Result
-        data class Invalid(val problem: PropertyProblem, val name: String) : Result
+        data class Invalid(val problem: PropertyProblem) : Result
         data class Failed(val error: OnlineError) : Result
     }
 
     suspend operator fun invoke(draft: Property): Result {
         val clean = draft.name.trim()
-        propertyProblem(clean, draft.type, repo.properties.value)?.let { return Result.Invalid(it, clean) }
+        propertyProblem(draft)?.let { return Result.Invalid(it) }
         if (!guard.allows(Permission.MANAGE_PROPERTIES)) return Result.Failed(OnlineError.Forbidden)
         return try {
             Result.Added(repo.add(draft.copy(name = clean, gps = false)))
@@ -54,6 +66,33 @@ class AddPropertyUseCase @Inject constructor(private val repo: PropertyRepositor
             Result.Failed(e.error)
         }
     }
+}
+
+/** Whether the user may add and import properties (Manage properties), as the web shows "+ Property" and Import only then. */
+class ObserveCanManagePropertiesUseCase @Inject constructor(private val guard: PermissionGuard) {
+    operator fun invoke(): Flow<Boolean> = guard.observe(Permission.MANAGE_PROPERTIES)
+}
+
+/** Property Info's Edit: the property as the server has it now. Throws [OnlineException]. */
+class GetPropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
+    suspend operator fun invoke(id: String): Property = repo.get(id)
+}
+
+/**
+ * Saves an edited property (Property Info → Edit → Save), with the same checks as adding one; returns why it can't be
+ * saved, or null when it was. Throws [OnlineException].
+ */
+class UpdatePropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
+    suspend operator fun invoke(property: Property): PropertyProblem? {
+        propertyProblem(property)?.let { return it }
+        repo.update(property.copy(name = property.name.trim()))
+        return null
+    }
+}
+
+/** Property Info's Delete (after its confirmation). Throws [OnlineException]. */
+class DeletePropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
+    suspend operator fun invoke(id: String) = repo.delete(id)
 }
 
 class ObserveOnboardingUseCase @Inject constructor(private val repo: OnboardingRepository) {
@@ -80,5 +119,8 @@ class PropertyUseCases @Inject constructor(
     val setOnboarding: SetOnboardingUseCase,
     val summaries: ObservePropertySummariesUseCase,
     val filter: FilterPropertySummariesUseCase,
-    val validateImport: ValidateImportFileUseCase,
+    val canManage: ObserveCanManagePropertiesUseCase,
+    val get: GetPropertyUseCase,
+    val update: UpdatePropertyUseCase,
+    val delete: DeletePropertyUseCase,
 )

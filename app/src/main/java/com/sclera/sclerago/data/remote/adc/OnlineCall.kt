@@ -49,7 +49,12 @@ class OnlineCall @Inject constructor(
         withContext(io) { send(request) }
     }
 
-    private suspend fun send(request: suspend () -> Response<ResponseBody>): String {
+    /** The raw bytes of [request]'s answer (a file, such as the property import sample). */
+    suspend fun bytes(request: suspend () -> Response<ResponseBody>): ByteArray = withContext(io) { send(request) { it.bytes() } ?: ByteArray(0) }
+
+    private suspend fun send(request: suspend () -> Response<ResponseBody>): String = send(request) { it.string() }.orEmpty()
+
+    private suspend fun <T> send(request: suspend () -> Response<ResponseBody>, read: (ResponseBody) -> T): T? {
         if (!network.isOnline()) throw OnlineException(OnlineError.Offline)
         val response = try {
             request()
@@ -59,7 +64,7 @@ class OnlineCall @Inject constructor(
             throw OnlineException(OnlineError.Offline, e)
         }
         return try {
-            if (response.isSuccessful) response.body()?.use { it.string() }.orEmpty()
+            if (response.isSuccessful) response.body()?.use(read)
             else throw OnlineException(errorFor(response.code(), response.headers()["Retry-After"], response.errorBody()?.use { it.string() }))
         } catch (e: IOException) {
             throw OnlineException(OnlineError.Offline, e)

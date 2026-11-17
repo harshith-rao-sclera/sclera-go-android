@@ -5,6 +5,7 @@ import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
 import com.sclera.sclerago.domain.model.EmptyReason
 import com.sclera.sclerago.domain.model.LocationFilter
+import com.sclera.sclerago.domain.model.RecollectCount
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
 import com.sclera.sclerago.domain.model.isIn
@@ -23,15 +24,17 @@ class BuildAssetListUseCase @Inject constructor() {
             .filter { inLocation(it, query.location) }
             .filter { text.isEmpty() || "${it.name} ${it.detail}".lowercase().contains(text) }
         val chosen = query.status
-        val chips = listOf(StatusCount(null, base.size, chosen == null)) +
+        val recollectOn = query.recollect && chosen == null
+        val chips = listOf(StatusCount(null, base.size, chosen == null && !recollectOn)) +
             Status.entries.filter { it != Status.INPUT }.map { st -> StatusCount(st, base.count { it.isIn(st) }, chosen == st) }
         val reason = when {
             text.isNotEmpty() -> EmptyReason.SEARCH
-            chosen != null -> EmptyReason.STATUS
+            chosen != null || recollectOn -> EmptyReason.STATUS
             query.sources == null -> EmptyReason.ASSETS_TAB
             else -> EmptyReason.SOURCE_TAB
         }
-        return AssetListData(base.filter { chosen == null || it.isIn(chosen) }, chips, reason)
+        val items = base.filter { (chosen == null || it.isIn(chosen)) && (!recollectOn || it.recollect) }
+        return AssetListData(items, chips, reason, RecollectCount(base.count { it.recollect }, recollectOn))
     }
 
     private fun inLocation(a: Asset, filter: LocationFilter) = when (filter) {

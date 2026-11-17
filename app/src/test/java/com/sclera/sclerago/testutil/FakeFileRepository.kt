@@ -19,6 +19,8 @@ class FakeFileRepository(var sheet: List<List<String>>? = null) : FileRepository
     }
 
     override suspend fun readSheet(uri: String): List<List<String>>? = sheet
+    override suspend fun writeFile(uri: String, bytes: ByteArray) = false
+
     override fun writePropertyImportTemplate(out: OutputStream) {
         templateWritten = true
     }

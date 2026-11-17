@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Editing the ticked assets at once (selection bar → Edit), as the web's bulk update. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <plurals name="bulk_title">
+        <item quantity="one">Edit %1$d asset</item>
+        <item quantity="other">Edit %1$d assets</item>
+    </plurals>
+    <string name="bulk_hint">Only what you fill in changes. Empty fields stay as they are on each asset.</string>
+    <string name="bulk_location">Location</string>
+    <string name="bulk_leave">Leave as is</string>
+    <string name="bulk_clear">Clear %1$s</string>
+    <string name="bulk_cancel">Cancel</string>
+    <string name="bulk_update">Update</string>
+    <string name="bulk_nothing">Fill in a field or choose a location first.</string>
+    <plurals name="bulk_updated">
+        <item quantity="one">%1$d asset updated</item>
+        <item quantity="other">%1$d assets updated</item>
+    </plurals>
+    <plurals name="bulk_skipped">
+        <item quantity="one">%1$d submitted or validated asset was left as it is: only an admin can change it</item>
+        <item quantity="other">%1$d submitted or validated assets were left as they are: only an admin can change them</item>
+    </plurals>
+</resources>

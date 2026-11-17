@@ -175,28 +175,46 @@ fun dataQuality(results: List<CheckResult>): Int {
     return (100.0 * applicable.count { it.state == CheckState.PASSED } / applicable.size).roundToInt()
 }
 
-/** Why [x] breaks [f]'s checks ("should be …"), or null if it's fine. */
+// The server's ready-made text formats (services/validation/checks.py), matched against the whole trimmed value.
+private val LETTERS_RE = Regex("\\p{L}+(?:[ .'-]\\p{L}+)*")
+private val DIGITS_RE = Regex("\\d+")
+private val ALNUM_RE = Regex("[A-Za-z0-9]+(?:[ ._/-][A-Za-z0-9]+)*")
+private val EMAIL_RE = Regex("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")
+private val PHONE_RE = Regex("\\+?[\\d ().-]{6,20}")
+
+/** The text format [rule] (with [pattern]) and why [t] breaks it, or null when it matches (or the pattern can't be read). */
+private fun textFormatProblem(rule: ValueRule, pattern: String, t: String): String? = when (rule) {
+    ValueRule.LETTERS -> if (LETTERS_RE.matches(t)) null else "should be letters only"
+    ValueRule.DIGITS -> if (DIGITS_RE.matches(t)) null else "should be digits only"
+    ValueRule.ALNUM -> if (ALNUM_RE.matches(t)) null else "should be letters and numbers"
+    ValueRule.EMAIL -> if (EMAIL_RE.matches(t)) null else "should be an email address"
+    ValueRule.PHONE -> if (PHONE_RE.matches(t)) null else "should be a phone number"
+    ValueRule.UPPERCASE -> if (t == t.uppercase()) null else "should be in capital letters"
+    // A pattern that can't be read is refused when it is saved; never fail a value on it.
+    ValueRule.PATTERN -> if (pattern.isEmpty() || runCatching { Regex(pattern).matches(t) }.getOrDefault(true)) null
+    else "doesn’t match the format set for it"
+    else -> null
+}
+
+/** Why [x] breaks [f]'s checks ("should be …"), or null if it's fine. Mirrors the server's field format checks. */
 fun fieldProblem(f: FieldCfg, x: String): String? {
     val lo = f.min.trim().toDoubleOrNull()
     val hi = f.max.trim().toDoubleOrNull()
     return when (f.kind) {
-        FieldKind.TEXT, FieldKind.TEXTAREA -> when {
-            f.rule == ValueRule.ALNUM && !Regex("^[A-Za-z0-9 ]+$").matches(x) -> "should only use letters and numbers"
-            f.rule == ValueRule.DIGITS && !x.all(Char::isDigit) -> "should only use digits"
-            f.rule == ValueRule.CODE && !Regex("^[A-Z0-9-]+$").matches(x) -> "should only use capitals, digits and dashes"
-            f.rule == ValueRule.NO_SPACES && x.any(Char::isWhitespace) -> "shouldn’t contain spaces"
-            f.rule == ValueRule.EMAIL && !Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$").matches(x) -> "isn’t an email address"
-            lo != null && x.length < lo -> "should be at least ${lo.toInt()} characters"
-            hi != null && x.length > hi -> "should be at most ${hi.toInt()} characters"
-            else -> null
+        FieldKind.TEXT, FieldKind.TEXTAREA -> {
+            val t = x.trim()
+            textFormatProblem(f.rule, f.pattern, t) ?: when {
+                lo != null && t.length < lo -> "is shorter than ${lo.toInt()} characters"
+                hi != null && t.length > hi -> "is longer than ${hi.toInt()} characters"
+                else -> null
+            }
         }
         FieldKind.NUMBER -> {
-            val n = Regex("^-?[0-9]+(?:\\.[0-9]+)?").find(x)?.value?.toDoubleOrNull() ?: return "isn’t a number"
+            val n = Regex("^-?[0-9]+(?:\\.[0-9]+)?").find(x.trim())?.value?.toDoubleOrNull() ?: return "isn’t a number"
             when {
-                f.rule == ValueRule.WHOLE && n % 1.0 != 0.0 -> "should be a whole number"
-                f.rule == ValueRule.POSITIVE && n <= 0.0 -> "should be above zero"
-                lo != null && n < lo -> "should be at least ${trimNum(lo)}"
-                hi != null && n > hi -> "should be at most ${trimNum(hi)}"
+                f.wholeNumber && n % 1.0 != 0.0 -> "should be a whole number"
+                lo != null && n < lo -> "is below its minimum of ${trimNum(lo)}"
+                hi != null && n > hi -> "is above its maximum of ${trimNum(hi)}"
                 else -> null
             }
         }
@@ -204,16 +222,16 @@ fun fieldProblem(f: FieldCfg, x: String): String? {
             val d = parseDate(x) ?: return "isn’t a date"
             val today = java.time.LocalDate.now()
             when {
-                f.rule == ValueRule.PAST && d.isAfter(today) -> "is in the future"
-                f.rule == ValueRule.FUTURE && !d.isAfter(today) -> "should be in the future"
-                lo != null && d.year < lo -> "is before ${lo.toInt()}"
-                hi != null && d.year > hi -> "is after ${hi.toInt()}"
+                f.rule == ValueRule.PAST && d.isAfter(today) -> "can’t be in the future"
+                f.rule == ValueRule.FUTURE && d.isBefore(today) -> "can’t be in the past"
                 else -> null
             }
         }
         FieldKind.URL -> if (Regex("^https?://\\S+$", RegexOption.IGNORE_CASE).matches(x)) null else "isn’t a web link (https://…)"
         FieldKind.TIME -> if (Regex("^([01]?\\d|2[0-3]):[0-5]\\d(\\s?[AaPp][Mm])?$").matches(x)) null else "isn’t a time"
         FieldKind.DROPDOWN, FieldKind.MULTI, FieldKind.CHECKBOX, FieldKind.YESNO -> null
+        // Not on the asset form (no value is typed in), so there is no format to check.
+        FieldKind.IMAGE, FieldKind.VIDEO, FieldKind.VOICE_MEMO, FieldKind.KEY_VALUE -> null
     }
 }
 

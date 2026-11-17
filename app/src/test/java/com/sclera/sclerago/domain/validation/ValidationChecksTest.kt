@@ -25,8 +25,8 @@ class ValidationChecksTest {
         fieldChecks: List<FieldCfg> = emptyList(),
     ) = CheckInput(values, hasLocation, status, fromCamera, photoCount, minPhotos = minPhotos, fieldChecks = fieldChecks)
 
-    private fun cfg(kind: FieldKind, rule: ValueRule = ValueRule.NONE, min: String = "", max: String = "") =
-        FieldCfg("f", "Field", kind, FieldSection.MORE, rule = rule, min = min, max = max)
+    private fun cfg(kind: FieldKind, rule: ValueRule = ValueRule.NONE, min: String = "", max: String = "", pattern: String = "", wholeNumber: Boolean = false) =
+        FieldCfg("f", "Field", kind, FieldSection.MORE, rule = rule, min = min, max = max, pattern = pattern, wholeNumber = wholeNumber)
 
     private fun run(index: Int, input: CheckInput) = runCheck(index, input)
 
@@ -143,11 +143,11 @@ class ValidationChecksTest {
     @Test
     fun fieldProblem_textRules() {
         assertNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.ALNUM), "abc 123"))
-        assertNotNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.ALNUM), "a-b"))
+        assertNotNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.ALNUM), "a@b"))
         assertNotNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.DIGITS), "12a"))
-        assertNotNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.CODE), "abc"))
-        assertNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.CODE), "AB-12"))
-        assertNotNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.NO_SPACES), "a b"))
+        assertNotNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.UPPERCASE), "abc"))
+        assertNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.UPPERCASE), "AB-12"))
+        assertNotNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.PATTERN, pattern = "\\S+"), "a b"))
         assertNotNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.EMAIL), "nope"))
         assertNull(fieldProblem(cfg(FieldKind.TEXT, ValueRule.EMAIL), "a@b.co"))
         assertNotNull(fieldProblem(cfg(FieldKind.TEXTAREA, min = "5"), "abc"))
@@ -158,10 +158,10 @@ class ValidationChecksTest {
     @Test
     fun fieldProblem_numberRules() {
         assertNotNull(fieldProblem(cfg(FieldKind.NUMBER), "x"))
-        assertNotNull(fieldProblem(cfg(FieldKind.NUMBER, ValueRule.WHOLE), "1.5"))
-        assertNotNull(fieldProblem(cfg(FieldKind.NUMBER, ValueRule.POSITIVE), "0"))
-        assertEquals("should be at least 5", fieldProblem(cfg(FieldKind.NUMBER, min = "5"), "2"))
-        assertEquals("should be at most 2.5", fieldProblem(cfg(FieldKind.NUMBER, max = "2.5"), "3"))
+        assertNotNull(fieldProblem(cfg(FieldKind.NUMBER, wholeNumber = true), "1.5"))
+        assertNotNull(fieldProblem(cfg(FieldKind.NUMBER, min = "1"), "0"))
+        assertEquals("is below its minimum of 5", fieldProblem(cfg(FieldKind.NUMBER, min = "5"), "2"))
+        assertEquals("is above its maximum of 2.5", fieldProblem(cfg(FieldKind.NUMBER, max = "2.5"), "3"))
         assertNull(fieldProblem(cfg(FieldKind.NUMBER, min = "1", max = "9"), "5 kW"))
     }
 
@@ -172,10 +172,8 @@ class ValidationChecksTest {
         assertNotNull(fieldProblem(cfg(FieldKind.DATE), "2024-13-45"))
         assertNull(fieldProblem(cfg(FieldKind.DATE), "31/03/2020"))
         assertNull(fieldProblem(cfg(FieldKind.DATE), "31.03.2020"))
-        assertEquals("is in the future", fieldProblem(cfg(FieldKind.DATE, ValueRule.PAST), "${year + 5}-01-01"))
-        assertEquals("should be in the future", fieldProblem(cfg(FieldKind.DATE, ValueRule.FUTURE), "2000-01-01"))
-        assertEquals("is before 2010", fieldProblem(cfg(FieldKind.DATE, min = "2010"), "2000-01-01"))
-        assertEquals("is after 2010", fieldProblem(cfg(FieldKind.DATE, max = "2010"), "2020-01-01"))
+        assertEquals("can’t be in the future", fieldProblem(cfg(FieldKind.DATE, ValueRule.PAST), "${year + 5}-01-01"))
+        assertEquals("can’t be in the past", fieldProblem(cfg(FieldKind.DATE, ValueRule.FUTURE), "2000-01-01"))
     }
 
     @Test

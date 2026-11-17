@@ -60,7 +60,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.UserSession
-import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.endBorder
 import com.sclera.sclerago.presentation.components.noRippleClick
@@ -86,16 +85,17 @@ private sealed interface Trailing {
 object MenuTags {
     const val SIGN_OUT = "menu_sign_out"
     const val SIGN_OUT_CONFIRM = "menu_sign_out_confirm"
-    const val SWITCH = "menu_switch"
+    const val SIGN_OUT_WARNING = "menu_sign_out_warning"
     fun item(item: MenuItem) = "menu_item_${item.name.lowercase()}"
 }
 
 /** The menu row for the page that is showing: a side-menu page, Validation, Configuration, or else the assets. */
-internal fun activeMenuItem(adminPage: AdminPage?, validationOpen: Boolean, configurationOpen: Boolean): MenuItem = when {
+internal fun activeMenuItem(adminPage: AdminPage?, validationOpen: Boolean, configurationOpen: Boolean, integrationOpen: Boolean = false): MenuItem = when {
     adminPage == AdminPage.PROPERTIES -> MenuItem.PROPERTY
     adminPage == AdminPage.PEOPLE -> MenuItem.USERS
     validationOpen -> MenuItem.VALIDATION
     configurationOpen -> MenuItem.CONFIGURATION
+    integrationOpen -> MenuItem.INTEGRATION
     else -> MenuItem.ASSETS
 }
 
@@ -112,11 +112,13 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
         session = (auth as? AuthState.SignedIn)?.session,
         propertyName = vm.propName.takeIf { vm.hasProperty },
         assetCount = vm.assets.size,
-        validationCount = vm.propJobs.size,
-        active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen),
+        validationCount = vm.validationRunCount,
+        showValidation = vm.canCheck,
+        showConfiguration = vm.canConfigure,
+        showIntegration = vm.canConfigure,
+        active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen, s.intOpen),
         onClose = vm::closeMenu,
         onPick = vm::pickMenu,
-        onSwitch = vm::switchPropertyFromMenu,
         onSignOut = sessionVm::logout,
     )
 }
@@ -132,8 +134,13 @@ internal fun SideMenuPanel(
     validationCount: Int,
     active: MenuItem,
     onClose: () -> Unit,
+    /** The Validation section shows only to someone who may run checks (the server's check permission). */
+    showValidation: Boolean = true,
+    /** The Configuration section shows only to someone who may configure the property (the server's configure permission), as on the web. */
+    showConfiguration: Boolean = true,
+    /** The Integration section shows only to someone who may configure the property (the server's configure permission). */
+    showIntegration: Boolean = true,
     onPick: (MenuItem) -> Unit,
-    onSwitch: () -> Unit,
     onSignOut: () -> Unit,
 ) {
     BackHandler(enabled = open, onBack = onClose)
@@ -148,10 +155,17 @@ internal fun SideMenuPanel(
             containerColor = C.Surface,
             title = { Txt(stringResource(R.string.menu_sign_out_title), 17, 700) },
             text = {
-                Txt(
-                    if (email != null) stringResource(R.string.menu_sign_out_message, email) else stringResource(R.string.menu_sign_out_message_generic),
-                    13, 400, C.Muted, maxLines = 4,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Txt(
+                        if (email != null) stringResource(R.string.menu_sign_out_message, email) else stringResource(R.string.menu_sign_out_message_generic),
+                        13, 400, C.Muted, maxLines = 4,
+                    )
+                    // Signing out deletes this device's data, so work that hasn't reached the server would be lost.
+                    Txt(
+                        stringResource(R.string.menu_sign_out_sync_warning),
+                        13, 600, C.Red, Modifier.testTag(MenuTags.SIGN_OUT_WARNING), maxLines = 5,
+                    )
+                }
             },
             confirmButton = {
                 TextButton(
@@ -227,7 +241,6 @@ internal fun SideMenuPanel(
                                 Txt(pluralStringResource(R.plurals.asset_count, assetCount, assetCount), 11, 400, C.Muted)
                             }
                         }
-                        Pill(stringResource(R.string.menu_switch), onSwitch, Modifier.testTag(MenuTags.SWITCH), height = 34.dp, hPad = 10.dp, size = 12)
                         Box(Modifier.width(22.dp).clickable { sectionsOpen = !sectionsOpen }, contentAlignment = Alignment.Center) {
                             LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 3f, Modifier.rotate(chevron))
                         }
@@ -235,14 +248,14 @@ internal fun SideMenuPanel(
                     AnimatedVisibility(sectionsOpen, enter = expandVertically(), exit = shrinkVertically()) {
                         Column(Modifier.topBorder(C.Border).padding(start = 12.dp, end = 8.dp)) {
                             SectionRow(MenuItem.ASSETS, stringResource(R.string.label_assets), Icons.Box, Trailing.Count(assetCount), active, onPick, first = true)
-                            SectionRow(
+                            if (showValidation) SectionRow(
                                 MenuItem.VALIDATION, stringResource(R.string.menu_validation), Icons.ShieldCheck,
                                 if (validationCount > 0) Trailing.Count(validationCount) else Trailing.Open, active, onPick,
                             )
-                            SectionRow(MenuItem.CONFIGURATION, stringResource(R.string.menu_configuration), Icons.Sliders, Trailing.Open, active, onPick)
+                            if (showConfiguration) SectionRow(MenuItem.CONFIGURATION, stringResource(R.string.menu_configuration), Icons.Sliders, Trailing.Open, active, onPick)
                             SectionRow(MenuItem.AUDIT, stringResource(R.string.menu_audit), Icons.Clipboard, Trailing.Soon, active, onPick)
                             SectionRow(MenuItem.SURVEY, stringResource(R.string.menu_survey), Icons.Survey, Trailing.Soon, active, onPick)
-                            SectionRow(MenuItem.INTEGRATION, stringResource(R.string.menu_integration), Icons.Link, Trailing.Soon, active, onPick)
+                            if (showIntegration) SectionRow(MenuItem.INTEGRATION, stringResource(R.string.menu_integration), Icons.Link, Trailing.Open, active, onPick)
                         }
                     }
                 }

@@ -33,7 +33,6 @@
     <string name="property_add_fab">Dodaj nieruchomość</string>
     <string name="label_properties">Nieruchomości</string>
     <string name="label_assets">Zasoby</string>
-    <string name="property_import_strip">Importuj z arkusza kalkulacyjnego</string>
     <string name="property_none_match">Brak nieruchomości pasujących do „%1$s”.</string>
     <string name="property_loading">Wczytywanie nieruchomości…</string>
     <string name="property_none">Brak nieruchomości.</string>
@@ -44,11 +43,6 @@
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">Nie udało się pobrać: %1$s. Spróbuj ponownie.</string>
     <string name="property_download_offline">Jesteś offline. Połącz się, aby pobrać nieruchomość.</string>
-    <string name="property_added">Dodano: %1$s</string>
-    <string name="property_import_notice">Przesłano „%1$s” · import nie jest jeszcze połączony z serwerem</string>
-    <string name="property_problem_name">Wpisz nazwę nieruchomości.</string>
-    <string name="property_problem_type">Wybierz typ nieruchomości.</string>
-    <string name="property_problem_duplicate">Nieruchomość o nazwie %1$s już istnieje.</string>
     <string name="import_title">Import</string>
     <string name="import_choose_file">Dotknij, aby wybrać plik</string>
     <string name="import_choose_different">Dotknij, aby wybrać inny plik</string>
@@ -63,26 +57,18 @@
     <string name="import_sample_download">Pobierz format przykładowy</string>
     <string name="import_proceed">Dalej</string>
     <string name="property_add_title">Dodaj nową nieruchomość</string>
-    <string name="property_add_sub">Nazwa i typ są wymagane.</string>
     <string name="property_add_primary">Dodaj</string>
     <string name="property_group_details">Szczegóły nieruchomości</string>
-    <string name="property_group_address">Adres</string>
     <string name="property_group_contact">Główny kontakt</string>
     <string name="property_group_notes">Notatki</string>
     <string name="property_group_availability">Dostępność</string>
-    <string name="property_ready">Gotowe</string>
-    <string name="property_required_count">Wymagane: %1$d</string>
-    <string name="property_notes_none">Brak</string>
-    <string name="property_notes_added">Dodano</string>
     <string name="property_notes_hint">Wpisz notatki</string>
     <string name="field_name">Nazwa</string>
-    <string name="field_type">Typ</string>
     <string name="field_country">Kraj</string>
     <string name="field_state">Stan</string>
     <string name="field_region">Region</string>
     <string name="field_city">Miasto</string>
     <string name="field_email">E-mail</string>
-    <string name="field_phone">Telefon</string>
     <string name="field_address_line1">Adres, wiersz 1</string>
     <string name="field_address_line2">Adres, wiersz 2</string>
     <string name="field_start_time">Godzina rozpoczęcia</string>
@@ -90,11 +76,7 @@
     <string name="field_access_code">Kod dostępu</string>
     <string name="property_name_hint">Wpisz nazwę nieruchomości</string>
     <string name="property_select_type">Wybierz typ</string>
-    <string name="property_select_country">Wybierz kraj</string>
-    <string name="property_select_state">Wybierz stan</string>
     <string name="property_select_region">Wybierz region</string>
-    <string name="property_choose_country_first">Najpierw wybierz kraj</string>
-    <string name="property_no_states">Brak stanów dla tego kraju</string>
     <string name="property_enter_city">Wpisz miasto</string>
     <string name="field_address_line1_hint">Wpisz adres, wiersz 1</string>
     <string name="field_address_line2_hint">Wpisz adres, wiersz 2</string>
@@ -104,7 +86,6 @@
     <string name="field_access_code_hint">Wpisz kod dostępu</string>
     <string name="menu_users">Użytkownicy</string>
     <string name="menu_current_property">Bieżąca nieruchomość</string>
-    <string name="menu_switch">Zmień</string>
     <string name="menu_soon">Wkrótce</string>
     <string name="menu_validation">Walidacja</string>
     <string name="menu_configuration">Konfiguracja</string>
@@ -115,6 +96,7 @@
     <string name="menu_sign_out_title">Wylogować się?</string>
     <string name="menu_sign_out_message">Aby korzystać z Sclera Go, musisz zalogować się ponownie jako %1$s.</string>
     <string name="menu_sign_out_message_generic">Aby korzystać z Sclera Go, musisz zalogować się ponownie.</string>
+    <string name="menu_sign_out_sync_warning">Wszystko na tym telefonie, co nie zostało jeszcze zsynchronizowane, zostanie utracone. Przed wylogowaniem upewnij się, że wszystkie zmiany zostały zsynchronizowane.</string>
     <plurals name="property_count">
         <item quantity="one">%1$d nieruchomość</item>
         <item quantity="few">%1$d nieruchomości</item>
@@ -133,65 +115,35 @@
     <string name="access_tab_people">Użytkownicy (%1$d)</string>
     <string name="access_tab_groups">Grupy (%1$d)</string>
     <string name="access_search_people">Szukaj osób</string>
-    <string name="access_search_groups">Szukaj grup</string>
     <string name="access_add_person">Dodaj osobę</string>
     <string name="access_new_group">Nowa grupa</string>
-    <string name="access_empty_people">Nikt nie ma jeszcze dostępu.</string>
-    <string name="access_no_person_match">Nikt nie pasuje do „%1$s”.</string>
-    <string name="access_no_group_match">Żadna grupa nie pasuje do „%1$s”.</string>
-    <string name="access_loading_people">Wczytywanie użytkowników…</string>
-    <string name="access_loading_groups">Wczytywanie grup…</string>
-    <string name="access_empty_groups">Brak grup.</string>
     <string name="access_all_properties">Wszystkie nieruchomości</string>
-    <string name="access_pair">%1$s · %2$s</string>
     <string name="access_view_only">Tylko podgląd</string>
     <string name="access_edit_group">Edytuj: %1$s</string>
     <string name="access_delete_group">Usuń: %1$s</string>
     <string name="access_delete_title">Usunąć: %1$s?</string>
-    <string name="access_delete_message">Grupa zostanie usunięta. Tej operacji nie można cofnąć.</string>
     <string name="access_title">Użytkownicy i dostęp</string>
-    <plurals name="access_delete_groups_title">
-        <item quantity="one">Usunąć tę grupę?</item>
-        <item quantity="other">Usunąć grupy: %1$d?</item>
-    </plurals>
-    <plurals name="access_delete_groups_message">
-        <item quantity="one">Grupa zostanie usunięta. Tej operacji nie można cofnąć.</item>
-        <item quantity="other">Te grupy zostaną usunięte. Tej operacji nie można cofnąć.</item>
-    </plurals>
     <string name="access_action_delete">Usuń</string>
-    <string name="access_remove_title">Usunąć: %1$s?</string>
-    <string name="access_remove_message">%1$s straci dostęp do Sclera.</string>
-    <string name="access_action_remove">Usuń</string>
-    <string name="access_remove_person">Usuń: %1$s</string>
     <string name="access_person_add_title">Dodaj osobę</string>
     <string name="access_person_add_sub">Ta osoba otrzyma ten dostęp po pierwszym zalogowaniu.</string>
     <string name="access_action_add">Dodaj</string>
     <string name="access_action_save">Zapisz</string>
     <string name="access_section_person">Osoba</string>
-    <string name="access_section_property_access">Dostęp do nieruchomości</string>
     <string name="access_field_email">E-mail</string>
     <string name="access_field_group">Grupa</string>
-    <string name="access_field_access">Dostęp</string>
     <string name="access_choose_group">Wybierz grupę</string>
-    <string name="access_all">Wszystkie</string>
     <string name="access_n_chosen">Wybrano: %1$d</string>
     <string name="access_scope_chosen">Wybrane nieruchomości</string>
     <string name="access_scope_all_desc">Każda nieruchomość, także dodana później.</string>
     <string name="access_scope_chosen_desc">Nowe nieruchomości nie są uwzględniane, dopóki ich tu nie dodasz.</string>
-    <string name="access_forced_all">Grupa %1$s ma uprawnienia, które wymagają wszystkich nieruchomości.</string>
     <string name="access_group_new_sub">Zaznacz, co mogą robić osoby w tej grupie. Bez zaznaczeń mogą tylko przeglądać.</string>
-    <string name="access_group_edit_sub">Wybierz, co mogą robić osoby w tej grupie.</string>
     <string name="access_group_locked_sub">Osoby w grupie %1$s zawsze mają wszystkie uprawnienia.</string>
     <string name="access_action_add_group">Dodaj grupę</string>
     <string name="access_group_details">Szczegóły grupy</string>
     <string name="access_field_name">Nazwa</string>
     <string name="access_field_description">Opis</string>
-    <string name="access_group_name_hint">Nazwa grupy</string>
-    <string name="access_group_desc_hint">Do czego służy ta grupa</string>
     <string name="access_what_they_can_do">Co mogą robić</string>
-    <string name="access_locked">Zablokowane</string>
     <string name="access_needs_all">Wymaga wszystkich nieruchomości</string>
-    <string name="access_locked_notice">Te uprawnienia są zablokowane dla grupy %1$s.</string>
     <string name="access_perm_collect">Zbieranie</string>
     <string name="access_perm_collect_desc">Dodawanie, edytowanie i usuwanie zasobów; przesyłanie plików i multimediów; sprawdzanie zasobów odczytanych z plików; zatwierdzanie do wysłania.</string>
     <string name="access_perm_validate">Weryfikacja</string>
@@ -203,14 +155,8 @@
     <string name="access_perm_manage_access">Zarządzanie dostępem</string>
     <string name="access_perm_manage_access_desc">Tworzenie grup, przypisywanie osób do grup i wybór, kto może otworzyć którą nieruchomość. Wymaga dostępu do wszystkich nieruchomości.</string>
     <string name="access_problem_email_required">Wpisz adres e-mail tej osoby.</string>
-    <string name="access_problem_email_invalid">Wpisz prawidłowy adres e-mail.</string>
-    <string name="access_problem_email_taken">%1$s ma już dostęp.</string>
     <string name="access_problem_group_required">Wybierz grupę.</string>
-    <string name="access_problem_no_property">Wybierz co najmniej jedną nieruchomość lub nadaj dostęp do wszystkich.</string>
     <string name="access_problem_group_name">Nadaj grupie nazwę.</string>
-    <string name="access_problem_group_taken">Grupa o nazwie %1$s już istnieje.</string>
-    <string name="access_elevate_title">Nadać dostęp do wszystkich nieruchomości?</string>
-    <string name="access_elevate_confirm">Nadaj dostęp</string>
     <plurals name="access_property_count">
         <item quantity="one">%1$d nieruchomość</item>
         <item quantity="few">%1$d nieruchomości</item>
@@ -222,12 +168,6 @@
         <item quantity="few">%1$d osoby</item>
         <item quantity="many">%1$d osób</item>
         <item quantity="other">%1$d osoby</item>
-    </plurals>
-    <plurals name="access_elevate_notice">
-        <item quantity="one">%1$d osoba w tej grupie otrzyma dostęp do wszystkich nieruchomości.</item>
-        <item quantity="few">%1$d osoby w tej grupie otrzymają dostęp do wszystkich nieruchomości.</item>
-        <item quantity="many">%1$d osób w tej grupie otrzyma dostęp do wszystkich nieruchomości.</item>
-        <item quantity="other">%1$d osoby w tej grupie otrzyma dostęp do wszystkich nieruchomości.</item>
     </plurals>
     <string name="action_validate">Zatwierdź</string>
     <string name="action_assign">Przypisz</string>
@@ -340,8 +280,6 @@
     <string name="val_step_consistent">Spójność</string>
     <string name="val_step_verified">Potwierdzenie</string>
     <string name="val_quality">Jakość danych %1$d/100</string>
-    <string name="val_runs_many">Weryfikacje: %1$d, ostatnia %2$s</string>
-    <string name="val_run_one">%1$s, %2$s</string>
     <string name="val_every_step_from">Wszystkie kroki z weryfikacji (%1$d), każdy z najnowszym wynikiem: %2$s.</string>
     <string name="val_starts_here">Zaczyna się tutaj</string>
     <string name="val_suggested">Sugestia: %1$s</string>
@@ -369,10 +307,18 @@
     <string name="media_other">Inne zdjęcia</string>
     <string name="media_other_hint">Nie liczą się do reguł dotyczących zdjęć</string>
     <string name="media_none">Jeszcze brak.</string>
-    <string name="media_files">Filmy, notatki głosowe i pliki</string>
-    <string name="media_add_file">Dodaj plik</string>
     <string name="media_tag_video">Film</string>
     <string name="media_tag_audio">Notatka głosowa</string>
+    <string name="media_record_memo">Nagraj notatkę</string>
+    <string name="memo_starting">Uruchamianie mikrofonu…</string>
+    <string name="memo_recording">Nagrywanie… po zakończeniu dotknij Zatrzymaj i zapisz.</string>
+    <string name="memo_stop_save">Zatrzymaj i zapisz</string>
+    <string name="memo_no_permission">Zezwól na użycie mikrofonu, aby nagrać notatkę głosową.</string>
+    <string name="memo_failed">Nie udało się rozpocząć nagrywania. Spróbuj ponownie.</string>
+    <string name="memo_too_short">Notatka była za krótka, aby ją zachować.</string>
+    <string name="memo_play">Odtwórz</string>
+    <string name="memo_pause">Wstrzymaj</string>
+    <string name="memo_not_on_device">Tej notatki nie ma jeszcze na tym telefonie, więc nie można jej odtworzyć offline.</string>
     <string name="media_tag_file">Plik</string>
     <string name="ai_title">Sugestie AI</string>
     <string name="ai_subtitle">Uzupełnia puste pola zasobu %1$s na podstawie opublikowanej specyfikacji modelu. Nic nie zostanie zapisane, dopóki nie zastosujesz zmian.</string>
@@ -391,7 +337,6 @@
     <string name="ai_step_match">Dopasowywanie wartości do pól tego zasobu</string>
     <string name="ai_wait_short">Wyszukiwanie odbywa się w internecie, więc może potrwać do minuty.</string>
     <string name="ai_wait_long">Wyszukiwanie nadal trwa. Niektóre modele trudniej znaleźć.</string>
-    <string name="ai_can_close">Możesz to zamknąć: wyszukiwanie będzie kontynuowane, a po jego zakończeniu otrzymasz powiadomienie.</string>
     <string name="ai_close_note">Zamknięcie nie przerywa wyszukiwania.</string>
     <string name="ai_close_keep">Zamknij i pracuj dalej</string>
     <string name="ai_try_again">Spróbuj ponownie</string>
@@ -399,11 +344,8 @@
     <string name="ai_nothing_else">Opublikowana specyfikacja nie pozwala uzupełnić niczego więcej w tym zasobie. Zastosuj, aby zapisać to, co wpisano.</string>
     <string name="ai_also_saves">Zapisuje też to, co wpisano: %1$s.</string>
     <string name="ai_sure">Pewność %1$d%%</string>
-    <string name="ai_nothing_ticked">Nic nie zaznaczono</string>
     <string name="ai_change_model">Zmień model</string>
     <string name="ai_look_again">Wyszukaj ponownie</string>
-    <string name="ai_apply">Zastosuj</string>
-    <string name="ai_saving">Zapisywanie…</string>
     <string name="ai_need_model">Najpierw dodaj model: specyfikacja jest wyszukiwana według producenta i modelu.</string>
     <string name="ai_failed">Nie udało się wyszukać specyfikacji. Spróbuj ponownie.</string>
     <string name="ai_done_failed">Nie udało się wyszukać specyfikacji dla %1$s. %2$s</string>
@@ -434,7 +376,6 @@
     <string name="detail_name_hint">Nazwa zasobu</string>
     <string name="detail_saved">Zapisano</string>
     <string name="detail_menu_camera">Zrób zdjęcie lub nagraj wideo</string>
-    <string name="detail_menu_gallery">Prześlij z galerii</string>
     <string name="detail_menu_files">Prześlij z plików</string>
     <string name="detail_photo">Zdjęcie</string>
     <string name="detail_video">Wideo</string>
@@ -468,7 +409,6 @@
     <string name="detail_next">Następne zdjęcie</string>
     <string name="check_banner_passed">Wszystkie kontrole zaliczone</string>
     <string name="check_banner_failed_sub">Popraw wymagane kontrole, zanim zatwierdzisz ten zasób.</string>
-    <string name="check_required">WYMAGANE</string>
     <string name="check_note_required">Wymagane, aby zasób można było zatwierdzić</string>
     <string name="check_note_low_confidence">Pole „%1$s” odczytano z niską pewnością — porównaj z tabliczką</string>
     <plurals name="assets_validated">
@@ -558,22 +498,10 @@
         <item quantity="many">%1$d dodatkowych zdjęć „%2$s”</item>
         <item quantity="other">%1$d dodatkowego zdjęcia „%2$s”</item>
     </plurals>
-    <plurals name="ai_will_fill">
-        <item quantity="one">Zostanie uzupełnione %1$d pole</item>
-        <item quantity="few">Zostaną uzupełnione %1$d pola</item>
-        <item quantity="many">Zostanie uzupełnionych %1$d pól</item>
-        <item quantity="other">Zostanie uzupełnione %1$d pola</item>
-    </plurals>
     <plurals name="ai_done_found">
         <item quantity="one">Znaleziono specyfikację dla %1$s: %2$d gotowa sugestia.</item>
         <item quantity="few">Znaleziono specyfikację dla %1$s: %2$d gotowe sugestie.</item>
         <item quantity="many">Znaleziono specyfikację dla %1$s: %2$d gotowych sugestii.</item>
         <item quantity="other">Znaleziono specyfikację dla %1$s: %2$d gotowej sugestii.</item>
-    </plurals>
-    <plurals name="ai_filled_on">
-        <item quantity="one">Uzupełniono %1$d pole w %2$s</item>
-        <item quantity="few">Uzupełniono %1$d pola w %2$s</item>
-        <item quantity="many">Uzupełniono %1$d pól w %2$s</item>
-        <item quantity="other">Uzupełniono %1$d pola w %2$s</item>
     </plurals>
 </resources>

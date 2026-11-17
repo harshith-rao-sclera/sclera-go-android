@@ -70,7 +70,7 @@ enum class WhenKind { DATE, TIME }
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: Boolean, required: Boolean, onChange: (String) -> Unit, rowBg: Color) {
+fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: Boolean, onChange: (String) -> Unit, rowBg: Color) {
     val readOnly = LocalReadOnly.current
     var open by remember { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
@@ -88,12 +88,11 @@ fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: B
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        FieldLabel(label, Modifier.width(92.dp))
         Txt(
             shown ?: stringResource(R.string.detail_value_none), 14, 600, if (shown != null) C.Text else C.Muted,
             Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
         )
-        if (required) Txt(stringResource(R.string.check_required), 10, 700, C.Orange)
         if (!readOnly) LineIcon(if (kind == WhenKind.DATE) Icons.Calendar else Icons.Clock, 15.dp, C.Muted, 2.2f)
     }
     if (!open) return
@@ -141,17 +140,14 @@ fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: B
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MultiCheckRow(key: String, label: String, value: String, options: List<String>, edited: Boolean, required: Boolean, onChange: (String) -> Unit, rowBg: Color) {
+fun MultiCheckRow(key: String, label: String, value: String, options: List<String>, edited: Boolean, onChange: (String) -> Unit, rowBg: Color) {
     val readOnly = LocalReadOnly.current
     val chosen = value.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     Column(
         Modifier.fillMaxWidth().testTag(DetailTags.field(key)).topBorder(C.Border).background(rowBg).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Txt(label, 12, 500, if (edited) C.Yellow else C.Muted, Modifier.weight(1f), maxLines = 2)
-            if (required) Txt(stringResource(R.string.check_required), 10, 700, C.Orange)
-        }
+        FieldLabel(label, color = if (edited) C.Yellow else C.Muted)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             options.forEach { option ->
                 val on = option in chosen

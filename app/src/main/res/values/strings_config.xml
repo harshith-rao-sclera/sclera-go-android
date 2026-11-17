@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration (side menu → Configuration): asset fields, checks, photo rules, building info, geofencing and settings. -->
+<resources>
+    <!-- Shared -->
+    <string name="cfg_cancel">Cancel</string>
+    <string name="cfg_save">Save</string>
+    <string name="cfg_saving">Saving…</string>
+    <string name="cfg_loading">Loading…</string>
+    <string name="cfg_try_again">Try again</string>
+    <string name="cfg_needs_connection">Configuration is read from and saved to Sclera, so it needs an internet connection.</string>
+    <string name="cfg_import_unreadable">Couldn’t read that file</string>
+
+    <!-- Asset fields -->
+    <string name="cfg_fields_mandatory_visible">Mandatory fields are always visible</string>
+    <plurals name="cfg_fields_added">
+        <item quantity="one">%1$d field added</item>
+        <item quantity="other">%1$d fields added</item>
+    </plurals>
+    <string name="cfg_field_saved">Field saved</string>
+    <string name="cfg_field_exists">Field already exists</string>
+    <string name="cfg_field_name_required">Enter a name for the field</string>
+    <string name="cfg_field_needs_option">Add at least one option</string>
+    <string name="cfg_field_deleted">%1$s deleted</string>
+    <string name="cfg_field_built_in">“%1$s” is a built-in field and can’t be deleted. Hide it instead.</string>
+    <string name="cfg_field_in_use">Assets have a value for “%1$s”, so it can’t be deleted. Hide the field instead.</string>
+    <string name="cfg_field_delete_title">Delete %1$s?</string>
+    <string name="cfg_field_delete_body">The %1$s field will be deleted</string>
+    <string name="cfg_option_duplicate">Option already added</string>
+    <string name="cfg_option_invalid">Enter valid option name</string>
+    <string name="cfg_import_fields_nothing_new">No new fields in that file · every column is already a field</string>
+
+    <!-- Checks -->
+    <string name="cfg_checks_pattern_label">Regular expression</string>
+    <string name="cfg_checks_pattern_placeholder">e.g. [A-Z]{2}-\\d{4}</string>
+    <string name="cfg_checks_pattern_hint">The whole value has to match, e.g. [A-Z]{2}-\\d{4} for AB-1234.</string>
+    <string name="cfg_checks_whole">Whole numbers only</string>
+    <string name="cfg_checks_remove">Remove checks</string>
+    <string name="cfg_checks_saved">Checks saved for %1$s</string>
+    <string name="cfg_checks_removed">Checks removed from %1$s</string>
+    <string name="cfg_checks_pattern_missing">Enter the pattern values must match.</string>
+    <string name="cfg_checks_pattern_invalid">That pattern isn’t a valid regular expression.</string>
+    <string name="cfg_checks_lengths_whole">Lengths are whole numbers, 0 to 10,000.</string>
+    <string name="cfg_checks_max_length_one">The longest length is at least 1.</string>
+    <string name="cfg_checks_lengths_reversed">The shortest length is longer than the longest.</string>
+    <string name="cfg_checks_range_number">The minimum and maximum must be numbers.</string>
+    <string name="cfg_checks_range_reversed">The minimum is higher than the maximum.</string>
+    <string name="cfg_rule_any_text">None (any text)</string>
+    <string name="cfg_rule_letters">Letters only</string>
+    <string name="cfg_rule_digits">Digits only</string>
+    <string name="cfg_rule_alnum">Letters and numbers</string>
+    <string name="cfg_rule_email">Email address</string>
+    <string name="cfg_rule_phone">Phone number</string>
+    <string name="cfg_rule_uppercase">Capital letters</string>
+    <string name="cfg_rule_pattern">Your own pattern</string>
+    <string name="cfg_rule_any_date">Any date</string>
+    <string name="cfg_rule_past">Not in the future</string>
+    <string name="cfg_rule_future">Not in the past</string>
+
+    <!-- Photo rules -->
+    <string name="cfg_photo_nameplate">Nameplate</string>
+    <string name="cfg_photo_nameplate_hint">The maker’s plate with model and serial number</string>
+    <string name="cfg_photo_asset">Asset</string>
+    <string name="cfg_photo_asset_hint">The equipment itself, in place</string>
+    <string name="cfg_photo_label_id">Label ID</string>
+    <string name="cfg_photo_label_id_hint">The asset tag or barcode label</string>
+    <string name="cfg_photo_none_required">Already none required</string>
+    <string name="cfg_photo_raise_max">Raise the maximum first</string>
+    <string name="cfg_photo_none_allowed">Already none allowed</string>
+    <string name="cfg_photo_below_min">Can’t be below the minimum</string>
+    <string name="cfg_photo_total_limit">%1$d photos per asset is the most</string>
+    <string name="cfg_photos_usage">Up to %1$d of %2$d photos per asset. An asset can’t be submitted until it has the minimum of each kind.</string>
+    <string name="cfg_photos_loading">Loading photo rules…</string>
+    <string name="cfg_photos_load_failed">Couldn’t load the photo rules.</string>
+
+    <!-- Building info -->
+    <string name="cfg_place_hidden">Hidden</string>
+    <string name="cfg_building_visible_hint">Field workers can pick this building and its floors.</string>
+    <string name="cfg_building_added">Building added</string>
+    <string name="cfg_building_saved">Building saved</string>
+    <string name="cfg_floor_added">Floor added</string>
+    <string name="cfg_floors_saved">Floors saved</string>
+    <string name="cfg_location_saved">Location saved</string>
+    <string name="cfg_building_exists">This building already exists</string>
+    <string name="cfg_floor_exists">This floor already exists</string>
+    <string name="cfg_location_exists">This location already exists</string>
+    <string name="cfg_building_has_floors">This building still has floors. Delete or move them first, or hide the building.</string>
+    <string name="cfg_floor_has_locations">This floor still has locations. Delete or move them first, or hide the floor.</string>
+    <string name="cfg_place_in_use">This location is still in use.</string>
+    <plurals name="cfg_locations_added">
+        <item quantity="one">%1$d location added</item>
+        <item quantity="other">%1$d locations added</item>
+    </plurals>
+    <string name="cfg_locations_added_skipped">%1$d added · %2$d already there</string>
+    <plurals name="cfg_places_deleted">
+        <item quantity="one">%1$d deleted</item>
+        <item quantity="other">%1$d deleted</item>
+    </plurals>
+    <string name="cfg_import_buildings_nothing">No buildings found · use columns Building, Floor, Location, Type, Code</string>
+    <string name="cfg_import_buildings_all_there">Everything in the file is already here</string>
+    <plurals name="cfg_import_buildings_done">
+        <item quantity="one">Imported %1$d row</item>
+        <item quantity="other">Imported %1$d rows</item>
+    </plurals>
+
+    <!-- Geofencing -->
+    <string name="cfg_geo_loading">Loading the geofence…</string>
+    <string name="cfg_geo_load_failed">Couldn’t load the geofence.</string>
+    <string name="cfg_geo_enforce_needs_fence">Draw and save a fence before enforcing it.</string>
+    <string name="cfg_geo_finish">Finish</string>
+    <string name="cfg_geo_undo">Undo</string>
+    <string name="cfg_geo_confirm_question">Are you sure you want to proceed?</string>
+    <string name="cfg_geo_confirm_enforce">Enforcing location restriction will limit asset data collection to specific geographic boundaries.</string>
+    <string name="cfg_geo_confirm_release">Disabling location restriction will allow asset data to be collected from any location beyond defined boundaries.</string>
+    <string name="cfg_geo_proceed">Proceed</string>
+    <string name="cfg_geo_enforce_done">Geofence enforced successfully</string>
+    <string name="cfg_geo_enforce_failed">Failed to update geofence settings.</string>
+    <string name="cfg_geo_need_fence">There must be at least one fence to save.</string>
+    <string name="cfg_geo_saved">Geofence saved successfully</string>
+    <string name="cfg_geo_save_failed">Unable to save geofence. Please try again.</string>
+    <string name="cfg_geo_too_many_fences">A property can have at most 50 fences.</string>
+    <string name="cfg_geo_too_few_points">Each fence needs at least 3 different corners.</string>
+    <string name="cfg_geo_too_many_points">A fence can have at most 2,000 corners.</string>
+    <string name="cfg_geo_bad_point">A fence corner isn’t a place on the map.</string>
+
+    <!-- Settings -->
+    <string name="cfg_ai_validation">AI in validation</string>
+    <string name="cfg_ai_validation_hint">When off, validation runs skip the AI checks for this property.</string>
+    <string name="cfg_settings_load_failed">Couldn’t load the property’s settings.</string>
+    <string name="cfg_setting_on">%1$s turned on</string>
+    <string name="cfg_setting_off">%1$s turned off</string>
+    <!-- Small additions to the existing screens -->
+    <string name="cfg_validation_title">Validation</string>
+    <string name="cfg_ai_validation_row">AI checks (specs, JACS ranking, AI review, photos, spelling) run when validating assets.</string>
+    <string name="cfg_checks_whole_hint">Values with decimals are flagged.</string>
+    <string name="cfg_place_visibility">Visibility</string>
+    <string name="cfg_floor_visible_hint">Field workers can pick this floor</string>
+</resources>

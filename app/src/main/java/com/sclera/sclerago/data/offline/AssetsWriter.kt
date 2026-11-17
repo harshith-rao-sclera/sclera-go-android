@@ -9,6 +9,8 @@ import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.domain.model.DataError
 import com.sclera.sclerago.domain.model.DataException
+import com.sclera.sclerago.domain.model.IMAGE_KIND
+import com.sclera.sclerago.domain.model.documentKind
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
@@ -19,6 +21,8 @@ import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.photosShort
 import com.sclera.sclerago.domain.model.sourceToDb
 import com.sclera.sclerago.domain.model.statusToDb
+import com.sclera.sclerago.domain.model.formatFor
+import com.sclera.sclerago.domain.model.typeFieldName
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.TimeProvider
 import com.sclera.sclerago.domain.system.next
@@ -41,8 +45,6 @@ private val ASSET_CHILDREN = listOf(
     "asset_values", "asset_media", "asset_activity", "asset_fields", "validation_issues", "validation_results", "lookup_jobs", "web_documents",
 )
 
-private const val GENERIC = "Generic"
-
 /**
  * Writes assets to the offline database: add, edit the details, status and place, delete and attach media. Every
  * call is one transaction, so the engine's triggers see a consistent change and push it. Rows are written the way
@@ -57,41 +59,54 @@ class AssetsWriter(
     private val places: PlacesOfflineSource,
     private val formats: MasterFormatsOfflineSource,
     private val files: AssetFileStore,
+    typeFieldsLookup: TypeFieldsLookup = TypeFieldsLookup { emptyList() },
 ) {
+    private val typeFields = TypeFieldsWriter(typeFieldsLookup, ids)
+
     /** Adds [items] with their values, media and the scanned device each was made from. */
     suspend fun add(items: List<NewAsset>) {
         if (items.isEmpty()) return
-        writeFiles { created ->
+        db.write(io) {
             val now = now()
-            items.forEach { insertAsset(it, now, created) }
+            items.forEach { insertAsset(it, now) }
         }
         files.discardOriginals(items.flatMap { it.asset.media })
     }
 
-    /** Keeps the details form [values] (app field keys) of asset [id]; nothing is written when nothing changed. */
+    /**
+     * Keeps the details form [values] (app field keys) of asset [id]; nothing is written when nothing changed. A new type
+     * brings its fields (and the old type's empty ones go), and answers to type fields not made yet ([typeAnswers]) go
+     * under the new fields' keys.
+     */
     suspend fun saveDetails(id: String, values: Map<String, String>) = db.write(io) {
         val row = assetState(id) ?: throw DataException(DataError.FAILED)
         val valuesRow = queryOne(ASSET_VALUES_ROW, listOf(id))
-        val split = splitAssetValues(values)
+        val typed = typeAnswers(values)
+        val plain = values.filterKeys { typeFieldName(it) == null }
+        val split = splitAssetValues(plain)
+        val now = now()
 
         val oldColumns = COLUMN_KEYS.associateWith { row.string(it).orEmpty() }
         val newColumns = oldColumns + split.columns.mapValues { it.value.trim() }
         val oldExtra = DbJson.stringMap(valuesRow?.answersJson())
         val newExtra = oldExtra.toMutableMap().also { map -> split.extra.forEach { (k, v) -> if (v.isBlank()) map.remove(k) else map[k] = v } }
-        val classification = classify(values, row.string("master_format_id"), row.string("jacs_code_id"), row.string("classification_source"))
+        val classification = classify(plain, row.string("master_format_id"), row.string("jacs_code_id"), row.string("classification_source"))
+        val oldFormat = row.id("master_format_id")
+        val typeChange = if (classification.formatId != oldFormat || typed.values.any { it.isNotBlank() }) {
+            with(typeFields) { applyType(id, classification.formatId, newExtra, now) }
+        } else null
+        typeChange?.let { putTypeAnswers(newExtra, typed, it) }
 
         val changes = diff(
             id,
             COLUMN_KEYS.associateWith { oldColumns.getValue(it) to newColumns.getValue(it) } +
                 (oldExtra.keys + newExtra.keys).associateWith { (oldExtra[it].orEmpty()) to (newExtra[it].orEmpty()) },
         ).toMutableList()
-        val oldFormat = row.id("master_format_id")
         if (classification.formatId != oldFormat) changes += Change("Master format", null, formatLabel(oldFormat), formatLabel(classification.formatId)) to null
         val oldJacs = row.id("jacs_code_id")
         if (classification.jacs != oldJacs) changes += Change("JACS code", null, oldJacs, classification.jacs) to null
         if (changes.isEmpty()) return@write
 
-        val now = now()
         execute(
             ASSET_UPDATE_VALUES,
             listOf(
@@ -104,6 +119,7 @@ class AssetsWriter(
         )
         if (newExtra != oldExtra) writeValues(id, valuesRow, newExtra, changedKeys = changes.map { it.second })
         history(id, "updated", "Asset updated", changesJson(changes.map { it.first }), now)
+        typeChange?.takeIf { it.changed }?.let { typeHistory(id, classification.formatId, it, now) }
     }
 
     /**
@@ -179,29 +195,31 @@ class AssetsWriter(
 
     /** Removes [assetIds] and what hangs off them (values, media and their files, history, extra fields, validation results). */
     suspend fun delete(assetIds: Collection<String>) {
-        val keys = mutableListOf<String>()
+        val mediaIds = mutableListOf<String>()
         db.write(io) {
             val now = now()
             assetIds.forEach { id ->
                 if (!exists(ASSET_STATE.live("assets"), listOf(id))) return@forEach
                 query(MEDIA_OF_ASSET.live("asset_media"), listOf(id)).forEach { m ->
-                    (localKey(m.string("object_path").orEmpty()) ?: files.keyFor(m.string("id").orEmpty()))?.let(keys::add)
-                    if (hasTable("multimedia")) execute(MULTIMEDIA_DELETE, listOf(m.string("id").orEmpty()), setOf("multimedia"))
+                    val mediaId = m.string("id").orEmpty()
+                    mediaIds += mediaId
+                    // The file's only copy is its blob here.
+                    if (hasTable("multimedia")) execute(MULTIMEDIA_DELETE, listOf(mediaId), setOf("multimedia"))
                 }
                 ASSET_CHILDREN.forEach { removeRows(it, "asset_id = ?", listOf(id), now) }
                 removeRows("assets", "id = ?", listOf(id), now)
             }
         }
-        files.delete(keys)
+        files.forget(mediaIds)
     }
 
-    /** Adds [media] to asset [id]: each file is copied into private storage and registered for upload. */
+    /** Adds [media] to asset [id]: each file goes into the database (its only copy), where the sync uploads it from. */
     suspend fun attachMedia(id: String, media: List<Media>) {
         if (media.isEmpty()) return
-        writeFiles { created ->
+        db.write(io) {
             if (!exists(ASSET_STATE.live("assets"), listOf(id))) throw DataException(DataError.FAILED)
             val now = now()
-            media.forEach { insertMedia(id, it, now, created) }
+            media.forEach { insertMedia(id, it, now) }
         }
         files.discardOriginals(media)
     }
@@ -220,13 +238,15 @@ class AssetsWriter(
 
     // ---- inside a transaction
 
-    private fun AdcDatabase.insertAsset(item: NewAsset, now: String, created: MutableList<String>) {
+    private fun AdcDatabase.insertAsset(item: NewAsset, now: String) {
         val asset = item.asset
-        val split = splitAssetValues(item.values)
+        val typed = typeAnswers(item.values)
+        val plain = item.values.filterKeys { typeFieldName(it) == null }
+        val split = splitAssetValues(plain)
         val place = placeColumns(asset.locationId ?: asset.floorId ?: asset.buildingId)
-        val classification = classify(item.values, asset.masterFormatId, null, null)
+        val classification = classify(plain, asset.masterFormatId, null, null)
         val status = statusToDb(asset.st)
-        val extra = split.extra.filterValues { it.isNotBlank() }
+        val extra = split.extra.filterValues { it.isNotBlank() }.toMutableMap()
         execute(
             ASSET_INSERT,
             listOf(
@@ -234,22 +254,39 @@ class AssetsWriter(
                 place.building, place.floor, place.location, status.status, sourceToDb(asset.src), item.deviceId, user.userId(),
                 now, now, split.columns["manufacturer"].orNull(), split.columns["model"].orNull(), split.columns["serial_number"].orNull(),
                 now, classification.source, classification.formatId, classification.jacs,
-                status.validated.bit(), (status.aiSuggestion ?: false).bit(),
+                // The status sets the AI flag where it decides it; otherwise the new asset's own flag is kept.
+                status.validated.bit(), (status.aiSuggestion ?: asset.aiSuggestion).bit(),
             ),
             setOf("assets"),
         )
+        // A new asset of a type gets the type's fields, as the server's POST /assets does.
+        val typeChange = classification.formatId?.let { with(typeFields) { applyType(asset.id, it, extra, now) } }
+        typeChange?.let { putTypeAnswers(extra, typed, it) }
         execute(withAnswers(ASSET_VALUES_INSERT), listOf(asset.id, "{}", "{}", DbJson.write(extra)), setOf("asset_values"))
         history(asset.id, "created", "Asset created", null, now)
-        asset.media.forEach { insertMedia(asset.id, it, now, created) }
+        typeChange?.takeIf { it.changed }?.let { typeHistory(asset.id, classification.formatId, it, now) }
+        asset.media.forEach { insertMedia(asset.id, it, now) }
     }
 
-    private fun AdcDatabase.insertMedia(assetId: String, media: Media, now: String, created: MutableList<String>) {
+    /**
+     * Adds [media] as a row of asset [assetId] with its file in `multimedia` (the only copy: screens read it from there
+     * through the media provider, and the sync uploads it from there). Without a `multimedia` table the file has nowhere
+     * to go, so it is refused.
+     */
+    private fun AdcDatabase.insertMedia(assetId: String, media: Media, now: String) {
+        if (!hasTable("multimedia")) throw DataException(DataError.FAILED)
         val mediaId = ids.next()
-        val stored = files.store(media, mediaId) ?: throw DataException(DataError.FAILED)
-        created += stored.key
+        val stored = files.read(media) ?: throw DataException(DataError.FAILED)
+        // A file uploaded from the Documents tab is the asset's source document, when the server takes it as a document
+        // (a photo stays a photo, which the Media tab shows).
+        if (media.sourceDocument && hasTable("documents")) {
+            documentKind(stored.filename, stored.contentType)?.takeIf { it != IMAGE_KIND }?.let { docKind ->
+                return insertDocument(assetId, mediaId, stored, docKind, now)
+            }
+        }
         val kind = when {
             media.video -> "video"
-            stored.contentType?.startsWith("audio/") == true -> "audio"
+            media.audio || stored.contentType?.startsWith("audio/") == true -> "audio"
             media.isDoc -> "document"
             else -> "image"
         }
@@ -257,30 +294,43 @@ class AssetsWriter(
         val row = linkedMapOf<String, Any?>(
             "id" to mediaId, "asset_id" to assetId, "kind" to kind, "filename" to stored.filename, "content_type" to stored.contentType,
             "size_bytes" to stored.sizeBytes, "width" to stored.width, "height" to stored.height,
-            "duration_seconds" to (if (media.video) media.durationMs / 1000.0 else null), "position" to position,
+            "duration_seconds" to (if (media.video || media.audio) media.durationMs / 1000.0 else null), "position" to position,
             "created_by" to user.userId(), "version" to 1, "created_at" to now, "updated_at" to now,
         )
-        // Databases from before the server's t0010 still have object_path; later ones find the file by the row's id.
-        if (hasColumn("asset_media", "object_path")) row["object_path"] = localObjectPath(stored.key)
         // Only a photo that answers no field can be of a kind the photo rules count.
         if (kind == "image" && media.fieldId == null && media.category != null && hasColumn("asset_media", "category")) row["category"] = media.category.db
         execute("INSERT INTO asset_media (${row.keys.joinToString()}) VALUES (${placeholders(row.size)})", row.values.toList(), setOf("asset_media"))
-        if (kind != "video" && hasTable("multimedia")) {
-            files.bytes(stored.key)?.let { bytes ->
-                execute(
-                    MULTIMEDIA_INSERT,
-                    listOf(mediaId, bytes, imageColumn(), mediaId, stored.contentType ?: "application/octet-stream", position),
-                    setOf("multimedia"),
-                )
-            }
-        }
+        queueUpload("asset_media", mediaId, stored, position)
     }
 
-    /** The column of `asset_media` the server's image configuration says holds the file; `object_path` when it says nothing. */
-    private fun AdcDatabase.imageColumn(): String {
+    /**
+     * Keeps [stored] as asset [assetId]'s source document, as the server links an asset to the file it was read from:
+     * a `documents` row [id], its file queued under the same id, and `assets.source_document_id` set to it (an asset
+     * has one, so a new upload takes the place of the last).
+     */
+    private fun AdcDatabase.insertDocument(assetId: String, id: String, stored: PickedContent, kind: String, now: String) {
+        execute(DOCUMENT_INSERT, listOf(id, stored.filename, stored.contentType, stored.sizeBytes, kind, user.userId(), now, now), setOf("documents"))
+        queueUpload("documents", id, stored, 0)
+        execute(ASSET_SET_SOURCE_DOCUMENT, listOf(id, now, assetId), setOf("assets"))
+    }
+
+    /**
+     * Keeps [stored] as the file of row [id] of [table], its only copy on the device, and so queues it for upload: the
+     * engine sends photos under 10MB with its image sync, videos and bigger files with its large-file sync.
+     */
+    private fun AdcDatabase.queueUpload(table: String, id: String, stored: PickedContent, order: Int) {
+        execute(
+            MULTIMEDIA_INSERT,
+            listOf(id, stored.bytes, table, imageColumn(table), id, stored.contentType ?: "application/octet-stream", order),
+            setOf("multimedia"),
+        )
+    }
+
+    /** The column of [table] the server's image configuration says holds the file; `object_path` when it says nothing. */
+    private fun AdcDatabase.imageColumn(table: String): String {
         if (!hasTable("global_timestamp")) return DEFAULT_IMAGE_COLUMN
         val config = DbJson.obj(queryOne(IMAGE_CONFIG)?.string("image_config"))
-        return ((config["asset_media"] as? JsonArray)?.firstOrNull() as? JsonPrimitive)?.contentOrNull ?: DEFAULT_IMAGE_COLUMN
+        return ((config[table] as? JsonArray)?.firstOrNull() as? JsonPrimitive)?.contentOrNull ?: DEFAULT_IMAGE_COLUMN
     }
 
     private fun AdcDatabase.writeValues(assetId: String, row: DbRow?, values: Map<String, String>, changedKeys: List<String?>) {
@@ -292,6 +342,24 @@ class AssetsWriter(
             execute(withAnswers(ASSET_VALUES_INSERT), listOf(assetId, DbJson.writeDoubles(confidence), DbJson.write(sources), json), setOf("asset_values"))
         } else {
             execute(withAnswers(ASSET_VALUES_UPDATE), listOf(json, DbJson.writeDoubles(confidence), DbJson.write(sources), assetId), setOf("asset_values"))
+        }
+    }
+
+    /** The server's history line for type fields added or removed (`type_fields`). */
+    private fun AdcDatabase.typeHistory(assetId: String, formatId: String?, change: TypeChange, now: String) {
+        val parts = buildList {
+            if (change.added > 0) add("added ${change.added} field(s) for ${formatLabel(formatId) ?: "its type"}")
+            if (change.removed > 0) add("removed ${change.removed} empty field(s) of its old type")
+        }
+        val text = parts.joinToString("; ").replaceFirstChar { it.uppercase() }
+        history(assetId, "type_fields", text, null, now)
+    }
+
+    /** Puts the [typed] answers (by type field name) into [answers] under the keys the asset's fields now have; blank ones are dropped. */
+    private fun putTypeAnswers(answers: MutableMap<String, String>, typed: Map<String, String>, change: TypeChange) {
+        typed.forEach { (name, value) ->
+            val key = change.keysByName[name.trim().lowercase()] ?: return@forEach
+            if (value.isBlank()) answers.remove(key) else answers[key] = value.trim()
         }
     }
 
@@ -322,13 +390,7 @@ class AssetsWriter(
 
     /** The master format and JACS code [values] choose (system, asset and sub type; "Generic" is no choice); what the asset has when they choose none. */
     private fun classify(values: Map<String, String>, formatId: String?, jacs: String?, source: String?): Classification {
-        fun pick(key: String) = values[key]?.trim()?.takeIf { it.isNotEmpty() && it != GENERIC }
-        val system = pick("sys")
-        val match = system?.let { s ->
-            formats.activeNow().firstOrNull {
-                it.systemType.equals(s, true) && it.assetType.equals(pick("typ"), true) && it.subtype.equals(pick("sub"), true)
-            }
-        }
+        val match = formats.activeNow().formatFor(values)
         val format = match?.id ?: formatId?.takeIf { it.isNotBlank() }
         val code = if ("jacs" in values) values["jacs"].orNull() else jacs?.takeIf { it.isNotBlank() }
         return Classification(format, code, if (match != null) "manual" else source?.takeIf { it.isNotBlank() })
@@ -348,16 +410,6 @@ class AssetsWriter(
     private fun formatLabel(id: String?): String? = id?.let { formats.activeNow().firstOrNull { f -> f.id == it }?.label }
 
     private fun now() = formatDbTime(time.nowMillis())
-
-    private suspend fun <T> writeFiles(block: AdcDatabase.(created: MutableList<String>) -> T): T {
-        val created = mutableListOf<String>()
-        try {
-            return db.write(io) { block(created) }
-        } catch (e: Throwable) {
-            files.delete(created)
-            throw e
-        }
-    }
 
     private fun String.live(table: String) = replace("%LIVE%", db.notRemoved(table))
 

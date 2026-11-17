@@ -19,6 +19,7 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,7 +31,13 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.presentation.components.LocalReadOnly
@@ -40,6 +47,7 @@ import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
 import java.util.Locale
 
@@ -57,6 +65,7 @@ object DetailTags {
     const val SUBMIT = "detail-submit"
     const val STATUS_LINE = "detail-status-line"
     const val LOCATION = "detail-location"
+    const val SUGGEST_TYPE = "detail-suggest-type"
 }
 
 /** What a field value came from, shown at the end of its row. */
@@ -72,7 +81,10 @@ fun AssetDetailState.badgeFor(key: String): FieldBadge = when {
 
 /** The asset's fields from the property's data (`asset_fields`): which show, which are mandatory, and their names. */
 class FieldSpec(private val fields: List<FieldCfg>) {
-    private fun cfg(key: String) = fields.firstOrNull { it.key == key }
+    /** The fields by key (the first of a key wins), so each lookup is direct however many fields there are. */
+    private val byKey: Map<String, FieldCfg> = buildMap { fields.forEach { putIfAbsent(it.key, it) } }
+
+    fun cfg(key: String): FieldCfg? = byKey[key]
     fun shown(key: String) = cfg(key)?.visible ?: true
     fun required(key: String) = cfg(key)?.let { it.required && it.visible } ?: false
 
@@ -143,8 +155,6 @@ fun FieldRow(
     rowBg: Color = Color.Transparent,
     mono: Boolean = false,
     requester: BringIntoViewRequester? = null,
-    /** Marks the row as a mandatory field that is still empty. */
-    required: Boolean = false,
     /** A long text (notes): the value wraps over several lines. */
     multiLine: Boolean = false,
 ) {
@@ -154,16 +164,32 @@ fun FieldRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        FieldLabel(label, Modifier.width(92.dp))
         PlainField(
             value, onChange, stringResource(R.string.detail_field_hint, label.removeSuffix(" *").lowercase(Locale.getDefault())),
             Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
             size = if (mono) 13 else 14, weight = 600, mono = mono, singleLine = !multiLine,
         )
-        if (required) Txt(stringResource(R.string.check_required), 10, 700, C.Orange)
         BadgeText(key, badge)
     }
 }
+
+/** A field's name; the " *" that marks a mandatory field is drawn in orange. */
+@Composable
+fun FieldLabel(label: String, modifier: Modifier = Modifier, color: Color = C.Muted) {
+    val name = label.removeSuffix(REQUIRED_MARK)
+    Text(
+        buildAnnotatedString {
+            append(name)
+            if (name != label) withStyle(SpanStyle(color = C.Orange, fontWeight = FontWeight.Bold)) { append(REQUIRED_MARK) }
+        },
+        modifier, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = ScleraFonts.Inter,
+        maxLines = 2, overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/** What [FieldSpec.label] puts after a mandatory field's name. */
+private const val REQUIRED_MARK = " *"
 
 /** A row that only shows a value (Location details): label and value, or "-" when there is none (as the web). */
 @Composable
@@ -190,7 +216,7 @@ private fun BadgeText(key: String, badge: FieldBadge) {
     Txt(text, 10, 700, color, Modifier.testTag(DetailTags.badge(key)), spacing = 0.3f)
 }
 
-/** A dropdown row: label and the chosen option; [required] flags it as missing. */
+/** A dropdown row: label and the chosen option. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SelectRow(
@@ -200,7 +226,6 @@ fun SelectRow(
     options: List<Pair<String, String>>,
     edited: Boolean,
     onChange: (String) -> Unit,
-    required: Boolean = false,
     rowBg: Color = Color.Transparent,
     requester: BringIntoViewRequester? = null,
 ) {
@@ -214,7 +239,7 @@ fun SelectRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        FieldLabel(label, Modifier.width(92.dp))
         // The menu hangs from the value, so it opens under it rather than over the label.
         Box(Modifier.weight(1f)) {
             Txt(
@@ -230,7 +255,6 @@ fun SelectRow(
                 }
             }
         }
-        if (required) Txt(stringResource(R.string.check_required), 10, 700, C.Orange)
         if (!readOnly) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
     }
 }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration → Building Info: the Add floor / Add location sheet (bulk rows each with a name, type and code). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="cfg_add_floor_title">Add floor</string>
+    <string name="cfg_add_location_title">Add location</string>
+    <string name="cfg_add_bulk">Bulk addition</string>
+    <string name="cfg_add_bulk_hint">Each row has its own name, type and code.</string>
+    <string name="cfg_add_row">+ Add row</string>
+    <string name="cfg_add_row_n">Row %1$d</string>
+    <string name="cfg_add_row_remove">Remove row %1$d</string>
+    <string name="cfg_add_name">Name *</string>
+    <string name="cfg_add_type">Type</string>
+    <string name="cfg_add_code">Code</string>
+    <string name="cfg_add_floor_name_hint">Floor name, e.g. Level 2</string>
+    <string name="cfg_add_location_name_hint">Enter location name (e.g. Lobby)</string>
+    <string name="cfg_add_floor_type_hint">e.g. Office floor, Plant floor</string>
+    <string name="cfg_add_location_type_hint">e.g. Plant room, Office</string>
+    <string name="cfg_add_code_hint">e.g. B2-PR-01</string>
+    <plurals name="cfg_add_floors_n">
+        <item quantity="one">Add %1$d floor</item>
+        <item quantity="other">Add %1$d floors</item>
+    </plurals>
+    <plurals name="cfg_add_locations_n">
+        <item quantity="one">Add %1$d location</item>
+        <item quantity="other">Add %1$d locations</item>
+    </plurals>
+    <plurals name="cfg_floors_added">
+        <item quantity="one">%1$d floor added</item>
+        <item quantity="other">%1$d floors added</item>
+    </plurals>
+</resources>

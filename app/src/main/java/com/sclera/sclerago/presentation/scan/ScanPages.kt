@@ -34,6 +34,7 @@ import com.sclera.sclerago.presentation.assets.assetList
 import com.sclera.sclerago.presentation.components.BlockedCard
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CheckBox
+import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SegHeader
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
@@ -59,27 +60,30 @@ private val NET_DOTS = listOf(Dot(54f, 44f, 6f, C.Green), Dot(150f, 84f, 6f, C.Y
 fun BluetoothPage(vm: AppViewModel) {
     val s = vm.state
     val list = rememberAssetListBinding(vm, Tab.BT)
-    LazyColumn(Modifier.fillMaxSize()) {
-        val seg: @Composable () -> Unit = {
-            SegHeader(listOf("Assets", "Scan"), if (s.btScan) 1 else 0) { vm.setBtScan(it == 1) }
-        }
-        if (!s.btScan) {
-            assetList(list, header = seg)
-        } else {
-            stickyHeader(key = "seg") { seg() }
-            scanSection(
-                on = { vm.btOn },
-                card = { vm.btCard },
-                coreIcon = Icons.Bluetooth,
-                dots = BT_DOTS,
-                onToggle = vm::toggleBt,
-                devices = vm.btDevices,
-                mono = false,
-                onOpen = vm::openDevice,
-                picks = devicePicks(vm),
-                blocked = ScanService.Target.BLUETOOTH.takeIf { vm.scanBlocked(it) },
-                onRetry = { vm.retryScan(ScanService.Target.BLUETOOTH) },
-            )
+    // Only the assets refresh; the scan side finds devices on its own.
+    PullRefresh(list.refreshing, list.onRefresh, Modifier.fillMaxSize(), enabled = !s.btScan) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            val seg: @Composable () -> Unit = {
+                SegHeader(listOf("Assets", "Scan"), if (s.btScan) 1 else 0) { vm.setBtScan(it == 1) }
+            }
+            if (!s.btScan) {
+                assetList(list, header = seg)
+            } else {
+                stickyHeader(key = "seg") { seg() }
+                scanSection(
+                    on = { vm.btOn },
+                    card = { vm.btCard },
+                    coreIcon = Icons.Bluetooth,
+                    dots = BT_DOTS,
+                    onToggle = vm::toggleBt,
+                    devices = vm.btDevices,
+                    mono = false,
+                    onOpen = vm::openDevice,
+                    picks = devicePicks(vm),
+                    blocked = ScanService.Target.BLUETOOTH.takeIf { vm.scanBlocked(it) },
+                    onRetry = { vm.retryScan(ScanService.Target.BLUETOOTH) },
+                )
+            }
         }
     }
 }
@@ -89,34 +93,36 @@ fun BluetoothPage(vm: AppViewModel) {
 fun NetworkPage(vm: AppViewModel) {
     val s = vm.state
     val list = rememberAssetListBinding(vm, Tab.NET)
-    LazyColumn(Modifier.fillMaxSize()) {
-        val head: @Composable () -> Unit = {
-            Column(Modifier.background(C.Bg)) {
-                Row(Modifier.fillMaxWidth().background(C.Strip).bottomBorder(C.Border)) {
-                    NetTab("Wi-Fi network", Icons.Wifi, s.netMode == NetMode.WIFI, Modifier.weight(1f)) { vm.setNetMode(NetMode.WIFI) }
-                    NetTab("Access points", Icons.AccessPoint, s.netMode == NetMode.AP, Modifier.weight(1f)) { vm.setNetMode(NetMode.AP) }
+    PullRefresh(list.refreshing, list.onRefresh, Modifier.fillMaxSize(), enabled = !s.netScan) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            val head: @Composable () -> Unit = {
+                Column(Modifier.background(C.Bg)) {
+                    Row(Modifier.fillMaxWidth().background(C.Strip).bottomBorder(C.Border)) {
+                        NetTab("Wi-Fi network", Icons.Wifi, s.netMode == NetMode.WIFI, Modifier.weight(1f)) { vm.setNetMode(NetMode.WIFI) }
+                        NetTab("Access points", Icons.AccessPoint, s.netMode == NetMode.AP, Modifier.weight(1f)) { vm.setNetMode(NetMode.AP) }
+                    }
+                    SegHeader(listOf("Assets", "Scan"), if (s.netScan) 1 else 0, top = 8.dp) { vm.setNetScan(it == 1) }
                 }
-                SegHeader(listOf("Assets", "Scan"), if (s.netScan) 1 else 0, top = 8.dp) { vm.setNetScan(it == 1) }
             }
-        }
-        if (!s.netScan) {
-            assetList(list, header = head)
-        } else {
-            stickyHeader(key = "head") { head() }
-            val ap = s.netMode == NetMode.AP
-            scanSection(
-                on = { vm.netOn },
-                card = { vm.netCard },
-                coreIcon = if (ap) Icons.AccessPoint else Icons.Wifi,
-                dots = NET_DOTS,
-                onToggle = vm::toggleNet,
-                devices = vm.netDevices,
-                mono = true,
-                onOpen = vm::openDevice,
-                picks = devicePicks(vm),
-                blocked = vm.netTarget.takeIf { vm.scanBlocked(it) },
-                onRetry = { vm.retryScan(vm.netTarget) },
-            )
+            if (!s.netScan) {
+                assetList(list, header = head)
+            } else {
+                stickyHeader(key = "head") { head() }
+                val ap = s.netMode == NetMode.AP
+                scanSection(
+                    on = { vm.netOn },
+                    card = { vm.netCard },
+                    coreIcon = if (ap) Icons.AccessPoint else Icons.Wifi,
+                    dots = NET_DOTS,
+                    onToggle = vm::toggleNet,
+                    devices = vm.netDevices,
+                    mono = true,
+                    onOpen = vm::openDevice,
+                    picks = devicePicks(vm),
+                    blocked = vm.netTarget.takeIf { vm.scanBlocked(it) },
+                    onRetry = { vm.retryScan(vm.netTarget) },
+                )
+            }
         }
     }
 }
@@ -242,8 +248,15 @@ private fun LazyListScope.scanSection(
     }
     items(devices, key = { it.device.id }, contentType = { "device" }) { d ->
         val picked = d.device.id in picks.picked
-        // While ticking, tapping a device that can be added ticks it; long-press starts ticking.
-        val tap = { if (picks.selecting && d.isNew) picks.toggle(d.device.id) else onOpen(d.device) }
+        // While ticking, tapping a device that can be added ticks it; long-press starts ticking. Otherwise a tap opens
+        // a device's asset; a new device is added only with its + button.
+        val tap = {
+            when {
+                picks.selecting && d.isNew -> picks.toggle(d.device.id)
+                !d.isNew -> onOpen(d.device)
+                else -> {}
+            }
+        }
         Row(
             Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(14))
                 .background(if (picked) C.PickedRow else C.Surface)

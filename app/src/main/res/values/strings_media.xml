@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asset details → Media and Documents floating buttons. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="media_add_fab">Add media</string>
+    <string name="media_add_camera">Camera</string>
+    <string name="media_add_file_fab">File</string>
+    <string name="media_videos">Videos</string>
+    <string name="media_memos_files">Voice memos and files</string>
+</resources>

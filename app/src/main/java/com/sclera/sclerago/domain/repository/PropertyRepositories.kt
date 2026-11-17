@@ -1,11 +1,8 @@
 package com.sclera.sclerago.domain.repository
 
 import com.sclera.sclerago.domain.model.AssetConfig
-import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.LocNode
-import com.sclera.sclerago.domain.model.NewLocation
 import com.sclera.sclerago.domain.model.OnboardingChannel
-import com.sclera.sclerago.domain.model.PlaceRow
 import com.sclera.sclerago.domain.model.Property
 import kotlinx.coroutines.flow.StateFlow
 
@@ -18,43 +15,26 @@ interface PropertyRepository {
 
     /** Creates [property] on the server; returns it with the id it was given. Needs a connection. */
     suspend fun add(property: Property): Property
+
+    /** The property [id] as the server has it now. Needs a connection. */
+    suspend fun get(id: String): Property
+
+    /** Saves [property]'s details on the server; returns them as saved. Needs a connection. */
+    suspend fun update(property: Property): Property
+
+    /** Deletes the property [id] on the server. Needs a connection. */
+    suspend fun delete(id: String)
 }
 
-/** The building → floor → location tree of the downloaded property (Configuration → Building info). Writes throw [com.sclera.sclerago.domain.model.DataException]. */
+/** The building → floor → location tree of the downloaded property, for the location picker (Configuration reads the server). */
 interface LocationRepository {
+    /** The places field workers can pick (hidden buildings, floors and locations left out). */
     val tree: StateFlow<List<LocNode>>
-
-    /** Adds a building, with its details when given; returns its id. */
-    suspend fun addBuilding(name: String, info: BuildingInfo?): String
-
-    /** Adds a floor to a building; returns its id. */
-    suspend fun addFloor(buildingId: String, name: String): String
-
-    suspend fun saveBuilding(id: String, name: String, info: BuildingInfo)
-
-    /** The building's floors in their new order, with names, types and codes; floors left out are removed. */
-    suspend fun saveFloors(buildingId: String, floors: List<LocNode>)
-
-    suspend fun renameNode(id: String, name: String)
-
-    suspend fun updateLocation(id: String, name: String, type: String, code: String)
-
-    /** Removes buildings, floors or locations (a node with floors, locations or assets left in it is refused). */
-    suspend fun deleteNodes(ids: Set<String>)
-
-    /** Adds [locations] to a floor; returns how many. */
-    suspend fun addLocations(floorId: String, locations: List<NewLocation>): Int
-
-    /** Adds the buildings, floors and locations of [rows] that are not there yet (matched by name); returns how many were new. */
-    suspend fun importRows(rows: List<PlaceRow>): Int
 }
 
-/** Configuration → Asset fields, photos and geofencing. Only the fields are in the offline data. */
+/** The asset fields of the downloaded property, from the offline data (Configuration changes them at the server). */
 interface AssetConfigRepository {
     val config: StateFlow<AssetConfig>
-
-    /** Applies [f] to the configuration and keeps the result. Throws [com.sclera.sclerago.domain.model.DataException]. */
-    suspend fun update(f: (AssetConfig) -> AssetConfig)
 }
 
 /** Property Settings: the ways of adding assets each property has switched off (the server keeps them). */

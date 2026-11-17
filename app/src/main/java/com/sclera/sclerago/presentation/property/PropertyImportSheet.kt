@@ -1,6 +1,5 @@
 package com.sclera.sclerago.presentation.property
 
-import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,7 +14,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,11 +34,16 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.ImportPlan
+import com.sclera.sclerago.domain.model.ImportTarget
+import com.sclera.sclerago.domain.model.MatchHow
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
+import com.sclera.sclerago.presentation.components.TintChip
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Icons
@@ -44,7 +51,6 @@ import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.services.media.formatSize
-import java.io.OutputStream
 
 private const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -53,45 +59,50 @@ object ImportTags {
     const val DROP_ZONE = "import_drop_zone"
     const val PROCEED = "import_proceed"
     const val ERROR = "import_error"
+    const val IMPORT = "import_import"
+    const val LOADING = "import_loading"
+    fun target(key: String) = "import_target_$key"
 }
 
-/** A file the user picked, before it is accepted. Name and size come from the provider, so they are checked, not trusted. */
-private data class PickedFile(val uri: Uri, val name: String, val size: Long)
-
-/** Import sheet: choose an .xlsx (checked by [problemOf]), download the sample, then proceed. */
+/**
+ * Import, as the web's on the new API: choose an .xlsx (at most 100MB; Sample Format downloads the server's sample),
+ * Proceed (the server reads it and proposes the column each detail is read from), then "Mapping Data": check or change
+ * each detail's column (the name needs one) and Import. [onImported] closes it once the rows are in.
+ */
 @Composable
-internal fun ImportSheet(
-    onClose: () -> Unit,
-    onProceed: (String) -> Unit,
-    problemOf: (name: String, size: Long) -> UiText?,
-    writeTemplate: (OutputStream) -> Unit,
-) {
+internal fun ImportSheet(vm: PropertyImportViewModel, onClose: () -> Unit, onImported: () -> Unit) {
     val context = LocalContext.current
-    var file by remember { mutableStateOf<PickedFile?>(null) }
-    var error by remember { mutableStateOf<UiText?>(null) }
-
+    val s = vm.state
     val chooser = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val picked = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
-            if (c.moveToFirst()) PickedFile(uri, c.getString(0) ?: "file", if (c.isNull(1)) -1 else c.getLong(1)) else null
-        } ?: PickedFile(uri, uri.lastPathSegment ?: "file", -1)
-        error = problemOf(picked.name, picked.size)
-        file = if (error == null) picked else null
+        val picked = runCatching {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
+                if (c.moveToFirst()) PickedSheet(uri.toString(), c.getString(0) ?: "file", if (c.isNull(1)) -1 else c.getLong(1)) else null
+            }
+        }.getOrNull() ?: PickedSheet(uri.toString(), uri.lastPathSegment ?: "file", -1)
+        vm.pick(picked)
     }
     val sampleSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(XLSX_MIME)) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        runCatching { context.contentResolver.openOutputStream(uri)?.use(writeTemplate) }
-            .onFailure { error = UiText.Res(R.string.import_error_sample) }
+        if (uri != null) vm.saveSample(uri.toString())
     }
-    ImportSheetContent(
-        file?.name, file?.size ?: -1, error, onClose,
-        onChoose = { chooser.launch(arrayOf(XLSX_MIME, "application/octet-stream")) },
-        onSample = { sampleSaver.launch("property-import-sample.xlsx") },
-        onProceed = { file?.let { onProceed(it.name) } },
-    )
+    val plan = s.plan
+    if (plan == null) {
+        ImportSheetContent(
+            s.file?.name, s.file?.size ?: -1, s.error, onClose,
+            onChoose = { chooser.launch(arrayOf(XLSX_MIME, "application/octet-stream")) },
+            onSample = { sampleSaver.launch(SAMPLE_NAME) },
+            onProceed = vm::proceed,
+            loading = s.loading,
+        )
+    } else {
+        MappingSheet(plan, s.mapping, s.incomplete, s.loading, onClose, vm::map) { vm.import(onImported) }
+    }
 }
 
-/** The sheet's layout (design "Import"): drop zone, limits, sample card and Proceed. */
+/** The name the sample is saved under, as the web's download. */
+private const val SAMPLE_NAME = "Sample Format.xlsx"
+
+/** The first step (design "Import"): drop zone, limits, sample card and Proceed; a loader while the server reads the file. */
 @Composable
 internal fun ImportSheetContent(
     fileName: String?,
@@ -101,16 +112,15 @@ internal fun ImportSheetContent(
     onChoose: () -> Unit,
     onSample: () -> Unit,
     onProceed: () -> Unit,
+    loading: Boolean = false,
 ) {
-    val closeLabel = stringResource(R.string.action_close)
     val downloadLabel = stringResource(R.string.import_sample_download)
     BottomSheet(onClose, maxHeightFraction = 0.6f, background = C.SheetBg) {
         Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Txt(stringResource(R.string.import_title), 17, 700, modifier = Modifier.weight(1f))
-                RoundButton(36.dp, C.Btn, onClose, Modifier.semantics { contentDescription = closeLabel }) {
-                    LineIcon(Icons.Close, 14.dp, C.Text, 2.6f)
-                }
+            SheetTitle(stringResource(R.string.import_title), onClose)
+            if (loading) {
+                Loader()
+                return@Column
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Column(
@@ -156,10 +166,150 @@ internal fun ImportSheetContent(
                 }
             }
             Pill(
-                stringResource(R.string.import_proceed), onProceed, Modifier.fillMaxWidth().testTag(ImportTags.PROCEED),
+                stringResource(R.string.import_proceed), { if (fileName != null) onProceed() }, Modifier.fillMaxWidth().testTag(ImportTags.PROCEED),
                 bg = if (fileName != null) C.Yellow else C.Raised, fg = if (fileName != null) C.OnYellow else C.Muted,
                 height = 46.dp, size = 14, weight = 700,
             )
         }
+    }
+}
+
+/**
+ * The second step, "Mapping Data", as the web's: how many columns were matched (and whether AI helped, what it said,
+ * and which columns won't be imported), then for each detail the column it is read from ("Heading", "AI" or "Values"
+ * while it is still the server's proposal). A required detail with no column is marked once Import is tried.
+ */
+@Composable
+private fun MappingSheet(
+    plan: ImportPlan,
+    mapping: Map<String, String>,
+    incomplete: Boolean,
+    loading: Boolean,
+    onClose: () -> Unit,
+    onMap: (target: String, heading: String?) -> Unit,
+    onImport: () -> Unit,
+) {
+    var choosingFor by remember { mutableStateOf<ImportTarget?>(null) }
+    BottomSheet(onClose, maxHeightFraction = 0.92f, background = C.SheetBg) {
+        Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SheetTitle(stringResource(R.string.import_mapping_title), onClose)
+        }
+        if (loading) {
+            Box(Modifier.padding(12.dp)) { Loader() }
+            return@BottomSheet
+        }
+        Column(
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PickerNote(plan, mapping)
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Txt(stringResource(R.string.import_source_fields), 11, 600, C.Muted, Modifier.weight(1f))
+                Txt(stringResource(R.string.import_target_fields), 11, 600, C.Muted, Modifier.weight(1f))
+            }
+            plan.targets.forEach { target ->
+                val heading = mapping[target.key]
+                val suggested = plan.suggestion.columns.firstOrNull { it.target == target.key }
+                MappingRow(
+                    target, heading, missing = incomplete && target.required && heading == null,
+                    badge = suggested?.how?.takeIf { suggested.heading == heading },
+                ) { choosingFor = target }
+            }
+        }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
+            val ready = mapping.isNotEmpty()
+            Pill(
+                stringResource(R.string.import_action), { if (ready) onImport() }, Modifier.fillMaxWidth().testTag(ImportTags.IMPORT),
+                bg = if (ready) C.Yellow else C.Raised, fg = if (ready) C.OnYellow else C.Muted, height = 46.dp, size = 14, weight = 700,
+            )
+        }
+    }
+    choosingFor?.let { target ->
+        // A column already used for another detail isn't offered again (as the web's picker); "None" clears it.
+        val usedElsewhere = mapping.filterKeys { it != target.key }.values.toSet()
+        val none = stringResource(R.string.import_none)
+        val options = listOf(none to null) + plan.suggestion.columns
+            .filter { it.heading !in usedElsewhere }
+            .map { c -> c.heading to c.samples.take(SAMPLES_SHOWN).joinToString(" · ").ifEmpty { null } }
+        ChoiceSheet(
+            target.header, options, mapping[target.key] ?: none,
+            onPick = { picked ->
+                onMap(target.key, picked.takeIf { it != none })
+                choosingFor = null
+            },
+            onClose = { choosingFor = null },
+        )
+    }
+}
+
+/** How many of a column's values show under it in the picker. */
+private const val SAMPLES_SHOWN = 3
+
+/** "4 of 6 columns matched, with help from AI. Check them before importing.", the AI's note, and the columns left out. */
+@Composable
+private fun PickerNote(plan: ImportPlan, mapping: Map<String, String>) {
+    val matched = mapping.values.toSet()
+    val total = plan.suggestion.columns.size
+    val leftOut = plan.suggestion.columns.map { it.heading }.filter { it !in matched }
+    Column(
+        Modifier.fillMaxWidth().clip(r(12)).background(C.CardWash).border(1.dp, C.Border, r(12)).padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Txt(
+            stringResource(if (plan.suggestion.aiUsed) R.string.import_matched_ai else R.string.import_matched, matched.size, total),
+            12, 500, maxLines = 3,
+        )
+        plan.suggestion.aiNote?.let { Txt(it, 11, 400, C.Muted, maxLines = 4) }
+        if (leftOut.isNotEmpty()) Txt(stringResource(R.string.import_not_imported, leftOut.joinToString(", ")), 11, 400, C.Muted, maxLines = 4)
+    }
+}
+
+/** One detail: the column it is read from (tap to change), an arrow, and the detail's name with how it was matched. */
+@Composable
+private fun MappingRow(target: ImportTarget, heading: String?, missing: Boolean, badge: MatchHow?, onChoose: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().testTag(ImportTags.target(target.key)),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            Modifier.weight(1f).heightIn(min = 48.dp).clip(r(10)).background(C.Bg)
+                .border(1.dp, if (missing) C.Red else C.Border, r(10))
+                .clickable(role = Role.Button, onClick = onChoose).padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Txt(heading ?: stringResource(R.string.import_select_field), 13, if (heading != null) 600 else 400, if (heading != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = 2)
+            LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 2.4f)
+        }
+        LineIcon(Icons.ChevronRight, 12.dp, C.Dim, 2.4f)
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Txt(target.header, 13, 600, if (missing) C.Red else C.Text, maxLines = 2)
+            if (target.required) Txt("*", 13, 600, C.Yellow)
+            badge?.let { TintChip(stringResource(it.labelRes())) }
+        }
+    }
+}
+
+private fun MatchHow.labelRes(): Int = when (this) {
+    MatchHow.HEADING -> R.string.import_how_heading
+    MatchHow.AI -> R.string.import_how_ai
+    MatchHow.VALUES -> R.string.import_how_values
+}
+
+@Composable
+private fun SheetTitle(title: String, onClose: () -> Unit) {
+    val closeLabel = stringResource(R.string.action_close)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Txt(title, 17, 700, modifier = Modifier.weight(1f))
+        RoundButton(36.dp, C.Btn, onClose, Modifier.semantics { contentDescription = closeLabel }) {
+            LineIcon(Icons.Close, 14.dp, C.Text, 2.6f)
+        }
+    }
+}
+
+@Composable
+private fun Loader() {
+    Box(Modifier.fillMaxWidth().heightIn(min = 140.dp).testTag(ImportTags.LOADING), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(Modifier.size(28.dp), color = C.Yellow, strokeWidth = 2.5.dp)
     }
 }

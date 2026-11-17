@@ -94,12 +94,12 @@ data class DetailTabItem(val kind: DetailTabKind, val fails: Int? = null, val co
  */
 fun detailTabs(state: AssetDetailState): List<DetailTabItem> {
     if (state.asset == null) return emptyList()
-    val docs = state.media.count { it.isDoc }
     return buildList {
         add(DetailTabItem(DetailTabKind.INFO))
         if (!state.isNew) add(DetailTabItem(DetailTabKind.VALIDATION))
-        add(DetailTabItem(DetailTabKind.DOCUMENTS, count = docs))
-        add(DetailTabItem(DetailTabKind.MEDIA, count = state.media.size - docs))
+        // Each tab counts what it lists: the Media tab shows attached files too, the Documents tab the asset's documents.
+        add(DetailTabItem(DetailTabKind.DOCUMENTS, count = state.documents.size))
+        add(DetailTabItem(DetailTabKind.MEDIA, count = state.media.size))
         if (!state.isNew) {
             add(DetailTabItem(DetailTabKind.COMMENTS, count = state.activity.count { it.kind == ActivityKind.COMMENT }))
             add(DetailTabItem(DetailTabKind.HISTORY))
@@ -114,15 +114,20 @@ fun shownTab(tabs: List<DetailTabItem>, chosen: DetailTabKind): DetailTabKind =
 /** The strip of tabs, each with its icon above its name; they share the width on phones and tablets alike. */
 @Composable
 fun DetailTabBar(tabs: List<DetailTabItem>, selected: DetailTabKind, onSelect: (DetailTabKind) -> Unit) {
-    Row(Modifier.fillMaxWidth().height(60.dp).background(C.Strip).bottomBorder(C.Border)) {
+    // A few tabs (a new asset's Info, Documents and Media) have room for the icon beside the label, in a lower bar.
+    val compact = tabs.size <= COMPACT_TABS
+    Row(Modifier.fillMaxWidth().height(if (compact) 44.dp else 60.dp).background(C.Strip).bottomBorder(C.Border)) {
         tabs.forEach { t ->
             DetailTab(
                 stringResource(t.kind.label), t.kind.icon, t.kind == selected, t.fails,
-                Modifier.weight(1f).testTag(t.kind.tag), count = t.count,
+                Modifier.weight(1f).testTag(t.kind.tag), count = t.count, compact = compact,
             ) { onSelect(t.kind) }
         }
     }
 }
+
+/** Up to this many tabs, each shows its icon beside its label. */
+private const val COMPACT_TABS = 3
 
 /** A document's type as the short tag on its card: PDF, XLS, DOC or TXT. */
 private fun AssetDocument.typeTag(): String = when (fileKind) {
@@ -133,17 +138,12 @@ private fun AssetDocument.typeTag(): String = when (fileKind) {
 }
 
 /**
- * The Documents tab, as the web's: Upload document, then a card per document — the file the asset was read from, the
- * web pages its applied AI suggestions came from, and its model's manuals from the manufacturer's site — each with its
- * category, what it was used for (or the model), its link and whether the PDF is kept. Tapping one opens its page.
+ * The Documents tab: a card per document — the file the asset was read from, the web pages its applied AI suggestions
+ * came from, and its model's manuals from the manufacturer's site — each with its category, what it was used for (or the
+ * model), its link and whether the PDF is kept. Tapping one opens its page. Upload document is the floating + ([UploadDocumentFab]).
  */
 @Composable
-fun DocumentsTab(documents: List<AssetDocument>, locked: Boolean, onUpload: () -> Unit, onRemove: (AssetDocument) -> Unit) {
-    if (!locked) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Pill(stringResource(R.string.doc_upload), onUpload, Modifier.testTag("doc-upload"), height = 44.dp, hPad = 16.dp, size = 13, weight = 700)
-        }
-    }
+fun DocumentsTab(documents: List<AssetDocument>, locked: Boolean, onRemove: (AssetDocument) -> Unit) {
     if (documents.isEmpty()) {
         EmptyTab(stringResource(R.string.doc_none))
         return
@@ -216,7 +216,7 @@ private fun DocumentFileStatus.labelRes() = when (this) {
 }
 
 /** A photo kind's name and what it shows, as the web words them. */
-private fun PhotoKind.nameRes() = when (this) {
+internal fun PhotoKind.nameRes() = when (this) {
     PhotoKind.NAMEPLATE -> R.string.media_kind_nameplate
     PhotoKind.ASSET -> R.string.media_kind_asset
     PhotoKind.LABEL_ID -> R.string.media_kind_label
@@ -233,20 +233,13 @@ private fun sizeText(bytes: Long): String =
     if (bytes >= 1024 * 1024) "%.1f MB".format(bytes / (1024f * 1024f)) else "${(bytes / 1024).coerceAtLeast(1)} KB"
 
 /**
- * The Media tab, as the web's: "Photos", with a card per kind of photo the property's photo rules count (how many it
- * has against what is needed or allowed, its photos and an Add), one for the other photos, then "Videos, voice memos and
- * files" as a list. Tapping a photo or file opens it.
+ * The Media tab: "Photos", with a card per kind of photo the property's photo rules count (how many it has against what
+ * is needed or allowed, and its photos), one for the other photos, then "Videos", then "Voice memos and files". Tapping a
+ * photo or file opens it. Adding is done with the floating buttons ([MediaFabs]).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MediaTab(
-    media: List<Media>,
-    rules: List<PhotoRule>,
-    locked: Boolean,
-    onOpen: (Int) -> Unit,
-    onAddPhoto: (kind: PhotoKind?, camera: Boolean) -> Unit,
-    onAddFile: () -> Unit,
-) {
+fun MediaTab(media: List<Media>, rules: List<PhotoRule>, onOpen: (Int) -> Unit) {
     val indexed = media.withIndex().toList()
     val photos = indexed.filter { (_, m) -> !m.video && !m.isDoc && !m.audio }
     val locale = LocalConfiguration.current.locales[0]
@@ -271,22 +264,22 @@ fun MediaTab(
         val chip = if (count < r.min) stringResource(R.string.media_needed, count, r.min) else stringResource(R.string.media_allowed, count, r.max)
         PhotoCard(
             title = stringResource(r.kind.nameRes()), hint = stringResource(r.kind.hintRes()), chip = chip, chipWarn = count < r.min,
-            items = mine, canAdd = !locked && count < r.max, onOpen = onOpen, onAdd = { camera -> onAddPhoto(r.kind, camera) },
-            modifier = Modifier.testTag("media-card-${r.kind.db}"),
+            items = mine, onOpen = onOpen, modifier = Modifier.testTag("media-card-${r.kind.db}"),
         )
     }
     PhotoCard(
         title = stringResource(R.string.media_other), hint = stringResource(R.string.media_other_hint), chip = null, chipWarn = false,
-        items = photos.filter { it.value.category == null && it.value.fieldId == null }, canAdd = !locked,
-        onOpen = onOpen, onAdd = { camera -> onAddPhoto(null, camera) }, modifier = Modifier.testTag("media-card-other"),
+        items = photos.filter { it.value.category == null && it.value.fieldId == null },
+        onOpen = onOpen, modifier = Modifier.testTag("media-card-other"),
     )
+    FileList(stringResource(R.string.media_videos), indexed.filter { (_, m) -> m.video }, onOpen)
+    FileList(stringResource(R.string.media_memos_files), indexed.filter { (_, m) -> !m.video && (m.isDoc || m.audio) }, onOpen)
+}
 
-    // Videos, voice memos and files
-    val files = indexed.filter { (_, m) -> m.video || m.isDoc || m.audio }
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Txt(stringResource(R.string.media_files), 15, 700, modifier = Modifier.weight(1f), maxLines = 2)
-        if (!locked) AddChip(stringResource(R.string.media_add_file), onAddFile)
-    }
+/** A titled list of videos, voice memos or files: each with its kind, name, size or length; tapping one opens it. */
+@Composable
+private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
+    Txt(title, 15, 700, modifier = Modifier.padding(top = 6.dp), maxLines = 2)
     if (files.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
     else Column(Modifier.fillMaxWidth().clip(r(12)).border(1.dp, C.Border, r(12))) {
         files.forEachIndexed { n, (i, m) ->
@@ -313,7 +306,7 @@ fun MediaTab(
     }
 }
 
-/** One photo card: its name with a count chip, what it shows, its photos (or "None yet.") and an Add. */
+/** One photo card: its name with a count chip, what it shows, and its photos (or "None yet."). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotoCard(
@@ -322,12 +315,9 @@ private fun PhotoCard(
     chip: String?,
     chipWarn: Boolean,
     items: List<IndexedValue<Media>>,
-    canAdd: Boolean,
     onOpen: (Int) -> Unit,
-    onAdd: (camera: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var menu by remember { mutableStateOf(false) }
     Column(
         modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 10.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -345,40 +335,11 @@ private fun PhotoCard(
                 }
                 Txt(hint, 11, 400, C.Muted, maxLines = 2)
             }
-            Box {
-                AddChip(stringResource(R.string.action_add), { menu = true }, enabled = canAdd)
-                DropdownMenu(menu, { menu = false }, containerColor = C.Raised) {
-                    DropdownMenuItem(
-                        text = { Txt(stringResource(R.string.detail_menu_camera), 13, 500) },
-                        leadingIcon = { LineIcon(Icons.Camera, 18.dp, C.Yellow, 2.2f) },
-                        onClick = { menu = false; onAdd(true) },
-                    )
-                    DropdownMenuItem(
-                        text = { Txt(stringResource(R.string.detail_menu_gallery), 13, 500) },
-                        leadingIcon = { LineIcon(Icons.Gallery, 18.dp, C.Yellow, 2.2f) },
-                        onClick = { menu = false; onAdd(false) },
-                    )
-                }
-            }
         }
         if (items.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
         else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items.forEach { (i, m) -> MediaTile(m, { onOpen(i) }, Modifier.size(96.dp).testTag(PhotoTags.tile(i))) }
         }
-    }
-}
-
-/** The web's "+ Add" chip button; dimmed and inert when [enabled] is false (e.g. the most photos the property allows). */
-@Composable
-private fun AddChip(label: String, onClick: () -> Unit, enabled: Boolean = true) {
-    Row(
-        Modifier.heightIn(min = 40.dp).clip(Capsule).border(1.dp, C.Border2, Capsule).clickable(enabled = enabled, onClick = onClick)
-            .alpha(if (enabled) 1f else 0.45f).padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        LineIcon(Icons.Plus, 12.dp, C.Text, 2.6f)
-        Txt(label, 12, 700)
     }
 }
 
@@ -389,7 +350,14 @@ private fun AddChip(label: String, onClick: () -> Unit, enabled: Boolean = true)
 @Composable
 fun CommentList(activity: List<AssetActivity>) {
     val locale = LocalConfiguration.current.locales[0]
-    activity.filter { it.kind == ActivityKind.COMMENT }.forEach { e ->
+    val comments = activity.filter { it.kind == ActivityKind.COMMENT }
+    // How many there are, then the comments (or "No comments"); a comment is added with the floating +.
+    Txt(pluralStringResource(R.plurals.detail_comment_count, comments.size, comments.size), 15, 700, modifier = Modifier.testTag("comment-count"))
+    if (comments.isEmpty()) {
+        EmptyTab(stringResource(R.string.detail_no_comments))
+        return
+    }
+    comments.forEach { e ->
         Column(
             Modifier.fillMaxWidth().testTag("detail-activity-${e.id}").clip(r(12)).border(1.dp, C.Border, r(12))
                 .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -450,7 +418,7 @@ fun HistoryList(activity: List<AssetActivity>) {
 }
 
 /**
- * The box above the comments where one is written: the text, what is wrong with it ([error]), and Post (off while it is
+ * The box in the Add comment sheet where a comment is written: the text, what is wrong with it ([error]), and Post (off while it is
  * blank or [posting]). It stays usable on a submitted asset: the server takes comments on any asset.
  */
 @Composable

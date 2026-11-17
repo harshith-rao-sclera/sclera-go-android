@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.sync
 
+import java.io.OutputStream
 import android.content.ContentValues
 import android.database.Cursor
 import com.sclera.sclerago.data.mapper.DbClock
@@ -101,6 +102,30 @@ class AdcDatabase @Inject constructor(
 
     fun queryOne(sql: String, args: List<Any> = emptyList()): DbRow? = query(sql, args).firstOrNull()
 
+    /**
+     * Streams the blob [column] of the first row of [table] matching [where] (with [args]) into [out], a chunk at a time
+     * (a cursor can't hold a large blob whole); false when there is no such row or its blob is null. [table], [column]
+     * and [where] are the caller's own constants, never user input.
+     */
+    fun copyBlob(table: String, column: String, where: String, args: List<Any>, out: OutputStream): Boolean {
+        val conn = db()
+        val bind = args.map { it.toString() }.toTypedArray()
+        val size = conn.rawQuery("SELECT length(\"$column\") FROM \"$table\" WHERE $where LIMIT 1", bind).use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else null
+        } ?: return false
+        var offset = 0L
+        while (offset < size) {
+            val n = minOf(BLOB_CHUNK, size - offset)
+            val chunk = conn.rawQuery("SELECT substr(\"$column\", ${offset + 1}, $n) FROM \"$table\" WHERE $where LIMIT 1", bind).use { c ->
+                if (c.moveToFirst()) c.getBlob(0) else null
+            } ?: return false
+            out.write(chunk)
+            offset += chunk.size
+            if (chunk.isEmpty()) break
+        }
+        return true
+    }
+
     /** Runs [sql]; list the tables it changes in [affects] so observers are told. */
     fun execute(sql: String, args: List<Any?> = emptyList(), affects: Set<String> = emptySet()) = write(affects) {
         db().execSQL(sql, args.toTypedArray())
@@ -160,6 +185,9 @@ class AdcDatabase @Inject constructor(
 private val SERVER_ONLY_TABLES = listOf("validation_jobs", "validation_results", "lookup_jobs", "manual_jobs", "master_formats")
 
 private const val QUARTER_HOUR_MS = 15 * 60 * 1000L
+
+/** How much of a blob [AdcDatabase.copyBlob] reads at once (well under a cursor window's 2MB). */
+private const val BLOB_CHUNK = 1024L * 1024
 
 private fun Cursor.toRow(): DbRow = MapRow(
     (0 until columnCount).associate { i ->

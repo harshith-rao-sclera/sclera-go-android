@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailRoute
@@ -50,6 +52,7 @@ import com.sclera.sclerago.presentation.components.CapturePreview
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.PermissionSheet
+import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.ShakeEffect
 import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.readableWidth
@@ -61,7 +64,16 @@ import com.sclera.sclerago.presentation.property.PropertyListScreen
 import com.sclera.sclerago.presentation.scan.BluetoothPage
 import com.sclera.sclerago.presentation.scan.NetworkPage
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.validation.QuickValidate
 import com.sclera.sclerago.presentation.validation.ValidationScreen
+import com.sclera.sclerago.presentation.validation.ValidationViewModel
+import com.sclera.sclerago.presentation.integration.IntegrationScreen
+import com.sclera.sclerago.presentation.integration.ManagedSummarySheet
+import com.sclera.sclerago.presentation.integration.ManagedSummaryViewModel
+import com.sclera.sclerago.presentation.integration.MoveToManagedSheet
+import com.sclera.sclerago.presentation.integration.MoveToManagedViewModel
+import com.sclera.sclerago.presentation.assign.AssignSheet
+import com.sclera.sclerago.presentation.assign.AssignViewModel
 
 private val TrackEasing = CubicBezierEasing(0.22f, 0.8f, 0.24f, 1f)
 
@@ -77,8 +89,18 @@ private val IMPORT_MIME_TYPES = arrayOf(
 )
 
 @Composable
-fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hiltViewModel()) {
+fun ScleraApp(
+    vm: AppViewModel = hiltViewModel(),
+    list: AssetListViewModel = hiltViewModel(),
+    move: MoveToManagedViewModel = hiltViewModel(),
+    assign: AssignViewModel = hiltViewModel(),
+    summary: ManagedSummaryViewModel = hiltViewModel(),
+    validation: ValidationViewModel = hiltViewModel(),
+    bulk: BulkEditViewModel = hiltViewModel(),
+) {
     val s = vm.state
+    // Validate (selection bar or an asset): the assets the Run validation sheet opens on, as the web's QuickValidate.
+    var quickIds by rememberSaveable { mutableStateOf<List<String>?>(null) }
     val lists by list.state.collectAsStateWithLifecycle()
     // Bluetooth / Network drop out when the property's onboarding for them is off (Configuration →
     // Property Settings); the pager is rebuilt then, so page numbers always match the visible tabs.
@@ -100,8 +122,15 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
 
     // The lists show the current property, narrowed by the location tab; a selection belongs to the page it was made on.
     LaunchedEffect(vm.locationFilter) { list.setScope(vm.locationFilter) }
-    LaunchedEffect(s.tab, vm.currentProp, vm.showDetail, s.adminPage, s.valOpen, s.cfgOpen) { list.clearSelection() }
+    LaunchedEffect(s.tab, vm.currentProp, vm.showDetail, s.adminPage, s.valOpen, s.cfgOpen, s.intOpen) { list.clearSelection() }
     LaunchedEffect(list) { list.notices.collect { vm.flash(it) } }
+    // Move to managed assets needs the property's VDMS link (checked again after the Integration page).
+    LaunchedEffect(vm.currentProp, s.intOpen) { if (!s.intOpen) move.bind(vm.currentProp) }
+    LaunchedEffect(move) { move.notices.collect { vm.flash(it) } }
+    // Assign asset gives assets of the current property to a person.
+    LaunchedEffect(vm.currentProp) { assign.bind(vm.currentProp) }
+    LaunchedEffect(assign) { assign.notices.collect { vm.flash(it) } }
+    LaunchedEffect(bulk) { bulk.notices.collect { vm.flash(it) } }
 
     // Shake the phone (two firm shakes) to jump straight to the camera.
     val view = LocalView.current
@@ -128,25 +157,30 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
     }
 
     val detail = vm.detailAsset
-    val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || s.valOpen || s.cfgOpen || s.adminPage != null
+    val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || s.valOpen || s.cfgOpen || s.intOpen || s.adminPage != null || move.state.sheet != null || summary.shown != null || assign.sheet != null || bulk.sheet != null
     val detailView: @Composable (Asset) -> Unit = { d ->
         AssetDetailRoute(
             asset = d,
             isNew = s.newAsset,
-            prefill = vm.newPrefill,
             onBack = vm::closeDetail,
             onChangeLoc = vm::openLocAsset,
-            onCreate = { name, info, media, values, submit ->
+            onCreate = { name, info, media, values, submit, exception ->
                 // A hand-made asset is shown in the full list, whatever status was being filtered.
-                if (vm.createAsset(name, info, media, values, submit) == CreateAssetUseCase.Via.MANUAL) list.setStatusFilter(Tab.ASSETS, null)
+                if (vm.createAsset(name, info, media, values, submit, exception) == CreateAssetUseCase.Via.MANUAL) list.setStatusFilter(Tab.ASSETS, null)
             },
             onDelete = vm::deleteAsset,
             onNotice = vm::flash,
+            pickedPlace = s.detailPlace,
+            onPlaceTaken = vm::detailPlaceTaken,
+            onAssign = { assign.open(setOf(d.id)) },
+            onValidate = { quickIds = listOf(d.id) },
         )
     }
 
     val selecting = lists.selecting && vm.listInteractive
     val visibleItems = lists.lists[s.tab]?.items.orEmpty()
+    // As the web's Validated tab: Move works only while the list is filtered to validated assets.
+    val onValidatedFilter = lists.statusFilter[s.tab] == Status.VALIDATED
 
     // System back closes the topmost transient UI first.
     BackHandler(enabled = lists.searchOpen) { list.closeSearch() }
@@ -209,10 +243,13 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
                         allPicked = visibleItems.isNotEmpty() && visibleItems.all { it.id in lists.picked },
                         onClear = list::clearSelection,
                         onSelectAll = { list.selectAll(s.tab) },
-                        onValidate = list::validateSelected,
-                        onAssign = vm::assignSel,
+                        onValidate = if (validation.mayCheck()) ({ quickIds = lists.picked.toList() }) else null,
+                        onAssign = { assign.open(lists.picked) },
+                        onEdit = if (onValidatedFilter) null else ({ bulk.open(lists.picked) }),
                         onSubmit = list::submitSelected,
                         onDelete = list::askDelete,
+                        onMove = if (move.offered(lists.pickedAssets)) ({ move.tap(lists.picked, onValidatedFilter) }) else null,
+                        moveDimmed = move.blockedReason(onValidatedFilter) != null,
                     )
                 }
                 // Scanned devices ticked on the Bluetooth / Network list: add them all as assets.
@@ -236,7 +273,7 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
 
         // Validation page (side menu) covers the whole app; an asset opened from its results sits on top.
         if (s.valOpen) {
-            ValidationScreen(vm)
+            ValidationScreen(vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation)
             if (detail != null) {
                 Box(Modifier.fillMaxSize().background(C.Bg).statusBarsPadding().navigationBarsPadding()) { detailView(detail) }
             }
@@ -245,6 +282,9 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
         // Configuration page (side menu): building info, asset fields, geofencing.
         if (s.cfgOpen) ConfigScreen(vm)
 
+        // Integration page (side menu): the property's link to a VDMS.
+        if (s.intOpen) IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration)
+
         // Property list / People and access (side menu).
         when (s.adminPage) {
             AdminPage.PROPERTIES -> PropertyListScreen(vm)
@@ -252,12 +292,16 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
             null -> {}
         }
 
+        // Bulk Edit sits under the location sheet it opens.
+        bulk.sheet?.let { BulkEditSheet(it, bulk, onPickPlace = vm::editSelLocation, onUpdated = list::clearSelection) }
+
         when (s.sheet) {
             Sheet.LOC -> LocationPicker(
                 vm.currentProp, vm.propName, s.specSel, vm::closeLoc,
                 onPick = { r ->
                     if (s.sheetFor == SheetFor.BULK) {
-                        list.assignSelected(vm.locValue(r), r.label)
+                        // Kept on the bulk Edit sheet until Update.
+                        bulk.setPlace(vm.locValue(r), r.label)
                         vm.closeLoc()
                     } else vm.pickLoc(r)
                 },
@@ -265,6 +309,10 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
             )
             Sheet.NONE -> {}
         }
+        summary.shown?.let { ManagedSummarySheet(it, summary::close) }
+        move.state.sheet?.let { sheet -> MoveToManagedSheet(move.state.networks, sheet, move, onSubmitted = list::clearSelection) }
+        assign.sheet?.let { sheet -> AssignSheet(sheet, assign, onSubmitted = list::clearSelection) }
+        quickIds?.let { ids -> QuickValidate(vm.currentProp, vm.assets, ids, vm::flash, onClose = { quickIds = null }, vm = validation) }
         s.pv?.let { CapturePreview(it, vm::closePreview) }
         SideMenu(vm)
 
@@ -299,5 +347,7 @@ fun ScleraApp(vm: AppViewModel = hiltViewModel(), list: AssetListViewModel = hil
 @Composable
 private fun AssetsPage(vm: AppViewModel) {
     val list = rememberAssetListBinding(vm, Tab.ASSETS)
-    LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) { assetList(list) }
+    PullRefresh(list.refreshing, list.onRefresh, Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) { assetList(list) }
+    }
 }

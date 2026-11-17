@@ -55,14 +55,13 @@ class PeopleScreenTest {
     private fun checkPeopleAndGroupsTabs() {
         val tab = mutableStateOf(AccessTab.PEOPLE)
         val edited = mutableListOf<String>()
-        val filters = mutableListOf<Permission?>()
         var added = 0
         compose.setContent {
             ScleraTheme {
                 val list = if (tab.value == AccessTab.PEOPLE) SamplePeopleList else SampleGroupsList
                 PeopleContent(
                     list, SampleProperties, {}, { tab.value = it }, {}, { added++ },
-                    { edited += it.id }, { edited += it.id }, { filters += it },
+                    { edited += it.id }, { edited += it.id },
                 )
             }
         }
@@ -73,7 +72,6 @@ class PeopleScreenTest {
         compose.onNodeWithTag(AccessTags.person("u1")).assertIsDisplayed()
             .assertTextContains(str(R.string.access_pair, "Admins", str(R.string.access_all_properties)))
         compose.onNodeWithTag(AccessTags.person("u2")).assertTextContains(str(R.string.access_pair, "Collectors", "Test 861"))
-        compose.onNodeWithTag(AccessTags.FILTER_ALL).assertDoesNotExist() // the filter is on the Groups tab only
         compose.onNodeWithTag(AccessTags.person("u2")).performClick()
         compose.onNodeWithTag(AccessTags.FAB_ADD).performClick()
         assertEquals(listOf("u2"), edited)
@@ -89,66 +87,12 @@ class PeopleScreenTest {
         compose.onNodeWithContentDescription(str(R.string.access_delete_group, "Collectors")).assertDoesNotExist()
         compose.onNodeWithTag(AccessTags.group("g-collectors")).performClick()
         assertEquals(listOf("u2", "g-collectors"), edited)
-        // Permission filter: All is on, each chip counts the groups that can do it (Admins can do everything).
-        compose.onNodeWithTag(AccessTags.FILTER_ALL).assertIsSelected().assertTextContains("4", substring = true)
-        compose.onNodeWithTag(AccessTags.filter(Permission.COLLECT)).assertTextContains("3", substring = true).performClick()
-        compose.onNodeWithTag(AccessTags.filter(Permission.CONFIGURE)).performScrollTo().performClick()
-        assertEquals(listOf(Permission.COLLECT, Permission.CONFIGURE), filters)
         compose.onNodeWithTag(AccessTags.TAB_PEOPLE).performClick()
         compose.onNodeWithTag(AccessTags.person("u1")).assertIsDisplayed()
     }
 
     @Test @Config(qualifiers = PHONE)
     fun phone_tabsTilesCardsAndButtons() = checkPeopleAndGroupsTabs()
-
-    private fun checkTickingGroups() {
-        val picked = mutableStateOf(setOf<String>())
-        val toggled = mutableListOf<String>()
-        var selectAll = 0
-        var cleared = 0
-        var deletes = 0
-        val edited = mutableListOf<String>()
-        compose.setContent {
-            ScleraTheme {
-                PeopleContent(
-                    SampleGroupsList.copy(pickedGroups = picked.value, selectableGroups = 3), SampleProperties, {}, {}, {}, {},
-                    {}, { edited += it.id },
-                    selection = GroupSelectionActions(
-                        onToggle = { toggled += it.id; picked.value = if (it.id in picked.value) picked.value - it.id else picked.value + it.id },
-                        onSelectAll = { selectAll++ }, onClear = { cleared++ }, onDelete = { deletes++ },
-                    ),
-                )
-            }
-        }
-        // Long-press ticks a deletable group; Admins (locked) can't be ticked.
-        compose.onNodeWithTag(AccessTags.group("g-collectors")).performTouchInput { longClick() }
-        compose.onNodeWithTag(AccessTags.group(ADMINS.id)).performTouchInput { longClick() }
-        assertEquals(listOf("g-collectors"), toggled)
-        compose.onNodeWithTag(AccessTags.group("g-collectors")).assertIsSelected()
-        // While ticking: the dock replaces the + and search buttons, and a tap ticks instead of opening.
-        compose.onNodeWithTag(AccessTags.GROUP_DOCK).assertIsDisplayed()
-        compose.onNodeWithTag(AccessTags.FAB_ADD).assertDoesNotExist()
-        compose.onNodeWithText(str(R.string.dash_selected, 1)).assertIsDisplayed()
-        compose.onNodeWithTag(AccessTags.group("g-reviewers")).performClick()
-        compose.onNodeWithTag(AccessTags.group(ADMINS.id)).performClick()
-        assertEquals(listOf("g-collectors", "g-reviewers"), toggled)
-        assertTrue(edited.isEmpty())
-        compose.onNodeWithTag(AccessTags.GROUP_SELECT_ALL).assertTextContains(str(R.string.dash_select_all, 3)).performClick()
-        compose.onNodeWithText(str(R.string.action_delete)).performClick()
-        compose.onNodeWithContentDescription(str(R.string.dash_clear_selection)).performClick()
-        assertEquals(1, selectAll)
-        assertEquals(1, deletes)
-        assertEquals(1, cleared)
-    }
-
-    @Test @Config(qualifiers = PHONE)
-    fun phone_tickGroupsToDeleteTogether() = checkTickingGroups()
-
-    @Test @Config(qualifiers = TABLET_PORTRAIT)
-    fun tabletPortrait_tickGroupsToDeleteTogether() = checkTickingGroups()
-
-    @Test @Config(qualifiers = TABLET_LANDSCAPE)
-    fun tabletLandscape_tickGroupsToDeleteTogether() = checkTickingGroups()
 
     @Test @Config(qualifiers = TABLET_PORTRAIT)
     fun tabletPortrait_tabsTilesCardsAndButtons() = checkPeopleAndGroupsTabs()

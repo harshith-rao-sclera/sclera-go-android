@@ -12,7 +12,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -32,7 +34,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -180,21 +184,35 @@ fun SegHeader(labels: List<String>, selected: Int, top: Dp = 10.dp, icons: List<
 }
 
 @Composable
-fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier, height: Dp = 44.dp) {
+fun SearchField(
+    value: String,
+    onChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    height: Dp = 44.dp,
+    iconColor: Color = C.Muted,
+    /** When set, the keyboard's search key calls it. */
+    onSubmit: (() -> Unit)? = null,
+) {
     Row(
         modifier.fillMaxWidth().height(height).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12))
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        LineIcon(Icons.Search, 18.dp, C.Muted)
-        PlainField(value, onChange, placeholder, Modifier.weight(1f), size = 13)
+        LineIcon(Icons.Search, 18.dp, iconColor)
+        PlainField(value, onChange, placeholder, Modifier.weight(1f), size = 13, onSubmit = onSubmit)
     }
 }
 
 /** When true, fields below are shown but can't be edited (e.g. a submitted asset). */
 val LocalReadOnly = androidx.compose.runtime.compositionLocalOf { false }
 
+/**
+ * A bare text field. It keeps the text being typed itself, so typing never waits for [value] to come back from a view
+ * model (which made the cursor jump): a [value] that is one of the texts just typed coming back is ignored, any other
+ * (an AI fill, a discard, another asset) replaces the text.
+ */
 @Composable
 fun PlainField(
     value: String,
@@ -208,12 +226,39 @@ fun PlainField(
     minLines: Int = 1,
     readOnly: Boolean = false,
     keyboard: androidx.compose.ui.text.input.KeyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
+    /** When set, the keyboard shows a search key that calls it (e.g. the geofence address search). */
+    onSubmit: (() -> Unit)? = null,
 ) {
+    var field by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+    // What was typed and sent to [onChange] but hasn't come back as [value] yet, oldest first.
+    val typed = remember { ArrayDeque<String>() }
+    if (value == field.text) {
+        typed.clear()
+    } else {
+        val echo = typed.indexOf(value)
+        if (echo >= 0) {
+            repeat(echo + 1) { typed.removeFirst() }
+        } else {
+            typed.clear()
+            field = TextFieldValue(value, TextRange(value.length))
+        }
+    }
     BasicTextField(
-        value = value,
-        onValueChange = onChange,
+        value = field,
+        onValueChange = { next ->
+            val changed = next.text != field.text
+            field = next
+            if (changed) {
+                typed.addLast(next.text)
+                onChange(next.text)
+            }
+        },
         modifier = modifier,
-        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboard),
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+            keyboardType = keyboard,
+            imeAction = if (onSubmit != null) androidx.compose.ui.text.input.ImeAction.Search else androidx.compose.ui.text.input.ImeAction.Default,
+        ),
+        keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSubmit?.invoke() }),
         readOnly = readOnly || LocalReadOnly.current,
         singleLine = singleLine,
         minLines = minLines,
@@ -224,7 +269,7 @@ fun PlainField(
         ),
         decorationBox = { inner ->
             Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) {
-                if (value.isEmpty()) Txt(placeholder, size, 400, C.Muted, maxLines = minLines)
+                if (field.text.isEmpty()) Txt(placeholder, size, 400, C.Muted, maxLines = minLines)
                 inner()
             }
         },
@@ -286,8 +331,8 @@ fun SheetHandle(modifier: Modifier = Modifier) {
 }
 
 /**
- * Bottom action bar: a leading area (selection count, or a single asset's status), then Validate, Assign,
- * Submit and Delete, each in its own color. Used by list selection (assets, groups) and asset details.
+ * Bottom action bar: a leading area (selection count, or a single asset's status), then Validate, Edit, Assign,
+ * Submit, Move and Delete (the web's selection bar order), each in its own color. Used by list selection (assets, groups) and asset details.
  * Pass null for an action to leave it out (e.g. Submit on an asset that is already submitted; groups only Delete).
  */
 @Composable
@@ -298,6 +343,11 @@ fun ActionDock(
     onDelete: () -> Unit,
     floating: Boolean = false,
     deleteModifier: Modifier = Modifier.width(56.dp),
+    /** Move to managed assets; null hides it. [moveDimmed] greys it out (it still answers a tap, to say why). */
+    onMove: (() -> Unit)? = null,
+    moveDimmed: Boolean = false,
+    /** Edit the selected assets (their location); null hides it. */
+    onEdit: (() -> Unit)? = null,
     leading: @Composable RowScope.() -> Unit,
 ) {
     // Floating: inset from the edges with rounded corners and a shadow; otherwise flush with a top border.
@@ -313,10 +363,16 @@ fun ActionDock(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leading()
-        onValidate?.let { DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it) }
-        onAssign?.let { DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it) }
-        onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it) }
-        DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, deleteModifier)
+        // With more actions each one is a little narrower, so the selection summary keeps room on phones.
+        val actions = listOfNotNull(onValidate, onEdit, onAssign, onSubmit, onMove).size + 1
+        val narrow = actions >= 5
+        val item = Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
+        onValidate?.let { DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it, item) }
+        onEdit?.let { DockAction(stringResource(R.string.action_edit), Icons.Pencil, C.Orange, it, item) }
+        onAssign?.let { DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it, item) }
+        onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item) }
+        onMove?.let { DockAction(stringResource(R.string.mv_action), Icons.Send, C.Green, it, item.alpha(if (moveDimmed) 0.35f else 1f)) }
+        DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, if (narrow) item else deleteModifier)
     }
 }
 

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Validation page (side menu → Validation) and a run's review. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Landing page -->
+    <string name="val_loading">Loading…</string>
+    <string name="val_load_failed">Couldn\'t load validation.</string>
+    <string name="val_scope_all">All assets (%1$d)</string>
+    <string name="val_cancel">Cancel</string>
+    <string name="val_deleted">Validation deleted</string>
+    <string name="val_saved">Validation saved</string>
+    <string name="val_updated">Validation updated</string>
+    <string name="val_name_taken">A validation called “%1$s” already exists.</string>
+    <string name="val_run_started">%1$s started on %2$s</string>
+    <string name="val_run_saved_ready">%1$s is ready in Recent jobs, for %2$s</string>
+    <string name="val_run_discarded">%1$s discarded</string>
+    <string name="val_nothing_changed">Nothing was added or changed since the last run. Run it on all assets instead.</string>
+    <string name="val_chosen_gone">None of the chosen assets can be checked. Choose others, or sync first.</string>
+    <string name="val_no_types_match">No assets are of the types this validation is limited to.</string>
+
+    <!-- Run validation sheet -->
+    <string name="val_unnamed">Unnamed asset</string>
+
+    <!-- Default order sheet -->
+    <string name="val_order_saved">Default order saved: your template runs follow it from now on</string>
+    <string name="val_order_reset">Back to the default step order</string>
+
+    <!-- New / edit validation -->
+    <string name="val_save">Save</string>
+
+    <!-- Run review -->
+    <string name="rev_export_saved">Results saved</string>
+    <string name="rev_export_failed">Couldn\'t save the file.</string>
+    <string name="rev_to_review_chip">To review</string>
+    <string name="rev_decision_validated">Validated</string>
+    <string name="rev_decision_recollect">Recollect</string>
+    <string name="rev_decision_excluded">Excluded</string>
+    <string name="rev_undo_decision">Undo decision</string>
+    <string name="rev_asset_gone">This asset was deleted (or merged into another) after the run.</string>
+    <string name="rev_apply_failed">Couldn\'t apply that value.</string>
+    <string name="rev_update_failed">Couldn\'t update the issue.</string>
+    <string name="rev_undo_failed">Couldn\'t undo that fix.</string>
+
+    <!-- One asset of a run -->
+    <string name="rev_first_problem">First problem at step %1$d: %2$s</string>
+    <string name="rev_passed_every">Passed every step</string>
+    <string name="rev_score">Score %1$d</string>
+    <string name="rev_open_asset">Open asset</string>
+    <string name="rev_asset_not_here">This asset isn\'t on this phone yet; it shows once it has synced.</string>
+    <string name="rev_n_open">%1$d open</string>
+    <string name="rev_all_handled">all handled</string>
+    <string name="rev_step_not_applicable">Nothing in this step applies to this property.</string>
+    <string name="rev_from_web">From the web</string>
+    <string name="rev_best_match">· best match</string>
+    <string name="rev_sure">%1$d%% sure</string>
+    <string name="rev_apply">Apply</string>
+    <string name="rev_type_value">Type the correct value</string>
+    <string name="rev_or_type">Or type a value</string>
+    <string name="rev_merge">Merge duplicates</string>
+    <string name="rev_not_duplicate">Not a duplicate</string>
+    <string name="rev_keep_value">Keep current value</string>
+    <string name="rev_keep_as_is">Keep as it is</string>
+    <string name="rev_dismiss">Dismiss</string>
+    <string name="rev_kept">Kept as is</string>
+    <string name="rev_fixed">Fixed</string>
+    <string name="rev_set_to">Set to %1$s</string>
+    <string name="rev_reopen">Undo, decide again</string>
+    <string name="rev_undo_type">Undo, restore the type it had</string>
+    <string name="rev_undo_unclassified">Undo, restore unclassified</string>
+    <string name="rev_undo_empty">Undo, restore the empty value</string>
+    <string name="rev_undo_value">Undo, restore %1$s</string>
+
+    <!-- Merge duplicates -->
+    <string name="rev_merge_title">Merge duplicates</string>
+    <string name="rev_merge_sub">Keep one asset and choose which value wins where they differ. The others are deleted.</string>
+    <string name="rev_merge_keep">Asset to keep</string>
+    <string name="rev_merge_differ">Where they differ</string>
+    <string name="rev_merge_same">Their values are the same; only one copy is kept.</string>
+    <string name="rev_field">Field</string>
+    <string name="rev_empty">Empty</string>
+    <string name="rev_merge_button">Merge</string>
+
+    <plurals name="val_scope_changed">
+        <item quantity="one">%1$d new or changed asset</item>
+        <item quantity="other">%1$d new or changed assets</item>
+    </plurals>
+    <plurals name="val_scope_types">
+        <item quantity="one">%1$d asset of the chosen types</item>
+        <item quantity="other">%1$d assets of the chosen types</item>
+    </plurals>
+    <plurals name="val_scope_selected">
+        <item quantity="one">%1$d chosen asset</item>
+        <item quantity="other">%1$d chosen assets</item>
+    </plurals>
+    <plurals name="rev_fixes_applied">
+        <item quantity="one">Applied %1$d fix</item>
+        <item quantity="other">Applied %1$d fixes</item>
+    </plurals>
+    <plurals name="rev_decided_validated">
+        <item quantity="one">Marked as validated: %1$d asset</item>
+        <item quantity="other">Marked as validated: %1$d assets</item>
+    </plurals>
+    <plurals name="rev_decided_recollect">
+        <item quantity="one">Sent for recollection: %1$d asset</item>
+        <item quantity="other">Sent for recollection: %1$d assets</item>
+    </plurals>
+    <plurals name="rev_decided_excluded">
+        <item quantity="one">Excluded: %1$d asset</item>
+        <item quantity="other">Excluded: %1$d assets</item>
+    </plurals>
+    <plurals name="rev_decided_cleared">
+        <item quantity="one">Decision undone: %1$d asset</item>
+        <item quantity="other">Decision undone: %1$d assets</item>
+    </plurals>
+    <plurals name="rev_merged">
+        <item quantity="one">Merged %1$d asset into one</item>
+        <item quantity="other">Merged %1$d assets into one</item>
+    </plurals>
+    <!-- Validation page, worded as the web's -->
+    <string name="val_lead">Find and fix gaps and mistakes in your assets.</string>
+    <string name="val_saved_empty_reviewer">No saved validations yet. Press + to build one, or customize a template to save it here.</string>
+    <string name="val_saved_empty_checker">No saved validations yet. A reviewer can build one. Until then, run a template above.</string>
+    <string name="val_jobs_empty">No runs yet. Run a template to see results here.</string>
+    <string name="val_delete_title">Delete “%1$s”?</string>
+    <string name="val_delete_body">Its past runs stay in Recent jobs.</string>
+    <string name="val_run_sub">Checks run in the background, so you can keep working. Or save it as ready to run later.</string>
+    <string name="val_search_assets">Search assets by name or value</string>
+    <string name="val_select_shown">Select shown (%1$d)</string>
+    <string name="val_clear_shown">Clear shown (%1$d)</string>
+    <string name="val_no_asset_match">No assets match.</string>
+    <string name="val_some_ai">" · some use AI and look things up online"</string>
+    <string name="val_steps_in_order">Every asset goes through these steps in this order.</string>
+    <string name="val_kind_field">Checks each asset\'s values</string>
+    <string name="val_kind_group">Compares assets with each other</string>
+    <string name="val_kind_ai">Uses AI and the web</string>
+    <string name="val_order_sub">The order templates and quick runs go through the steps, for you only. Saved validations keep the order they\'re built in.</string>
+    <string name="val_undo">Undo</string>
+    <!-- Job review, worded as the web's -->
+    <string name="rev_took">Took %1$s</string>
+    <string name="rev_checked_of">%1$d of %2$d assets checked</string>
+    <string name="rev_status_starting">Starting</string>
+    <string name="rev_status_stopped">Stopped at %1$d%%</string>
+    <string name="rev_status_finished">Finished</string>
+    <string name="rev_time_left">About %1$s left · results appear as assets are checked</string>
+    <string name="rev_estimating">Estimating time left… · results appear as assets are checked</string>
+    <plurals name="rev_issues_to_review">
+        <item quantity="one">%1$d issue to review</item>
+        <item quantity="other">%1$d issues to review</item>
+    </plurals>
+    <string name="rev_checked_at">Checked %1$s</string>
+    <string name="rev_showing">Showing %1$d</string>
+    <string name="rev_showing_all">Showing %1$d of these</string>
+    <string name="rev_locked_note">This asset has been submitted, so only a reviewer can change it. Request a change to fix it.</string>
+    <string name="rev_reviewer_signs_off">Fix what you can here. A reviewer signs the asset off.</string>
+    <plurals name="rev_merge_deleted">
+        <item quantity="one">%1$d asset will be deleted</item>
+        <item quantity="other">%1$d assets will be deleted</item>
+    </plurals>
+    <string name="val_quick_started">%1$s is running. Follow it under Validation → Recent jobs.</string>
+    <string name="val_quick_ready">%1$s is ready to run under Validation → Recent jobs.</string>
+    <string name="val_quick_unavailable">Couldn\'t load validation.</string>
+</resources>

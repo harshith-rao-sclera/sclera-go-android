@@ -25,6 +25,7 @@ import com.sclera.sclerago.domain.usecase.asset.MatchDevicesUseCase
 import com.sclera.sclerago.domain.usecase.asset.ObserveAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SaveAssetDetailsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
+import com.sclera.sclerago.testutil.FakePhotoRulesRepository
 import com.sclera.sclerago.testutil.InMemoryAssetConfig
 import com.sclera.sclerago.testutil.InMemoryAssetRepository
 import com.sclera.sclerago.testutil.SequentialIdGenerator
@@ -204,7 +205,7 @@ class AssetUseCasesTest {
     @Test
     fun buildCheckInput_combinesFieldsDetailsAndConfig() = runTest {
         val config = InMemoryAssetConfig()
-        val build = BuildCheckInputUseCase(repo, config)
+        val build = BuildCheckInputUseCase(repo, config, FakePhotoRulesRepository())
         repo.saveDetails("a1", mapOf("make" to "Acme"))
         val inputs = build(listOf(assetNow("a1"), asset(901), asset(900, loc = null)))
         val (_, input) = inputs[0]

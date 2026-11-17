@@ -20,6 +20,8 @@ data class Media(
     /** A voice memo (audio). */
     val audio: Boolean = false,
     val sizeBytes: Long? = null,
+    /** Uploaded from the Documents tab: saved as the asset's source document (`documents`), not as one of its media. */
+    val sourceDocument: Boolean = false,
 ) {
     val durationText: String get() = formatDuration(durationMs)
     val isDoc: Boolean get() = fileName != null

@@ -21,6 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -74,7 +77,10 @@ internal fun SubPageBar(title: String, property: String?, onMenu: () -> Unit) {
     }
 }
 
-/** Tile with a tinted icon, a number and what it counts (the 2-up tiles of the list pages). */
+/**
+ * Tile with a tinted icon, a number and what it counts (the 2-up tiles of the list pages). [prominent] makes it a
+ * larger tile washed with its tint from the icon's side, with a tinted edge.
+ */
 @Composable
 internal fun StatCard(
     icon: Ico,
@@ -84,18 +90,32 @@ internal fun StatCard(
     modifier: Modifier = Modifier,
     valueSize: Int = 20,
     labelSize: Int = 12,
+    prominent: Boolean = false,
 ) {
+    val shape = r(if (prominent) 16 else 12)
+    val look = if (prominent) {
+        // The tint fades from the icon's side, which is the right in right-to-left languages.
+        val wash = listOf(tint.copy(alpha = 0.14f), C.Surface)
+        val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+        Modifier.clip(shape).background(Brush.horizontalGradient(if (rtl) wash.reversed() else wash))
+            .border(1.dp, tint.copy(alpha = 0.3f), shape).padding(horizontal = 14.dp, vertical = 14.dp)
+    } else {
+        Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(horizontal = 10.dp, vertical = 6.dp)
+    }
     Row(
-        modifier.clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 10.dp, vertical = 6.dp),
+        modifier.then(look),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (prominent) 12.dp else 10.dp),
     ) {
-        Box(Modifier.size(36.dp).clip(r(10)).background(tint.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
-            LineIcon(icon, 16.dp, tint, 1.9f)
+        Box(
+            Modifier.size(if (prominent) 46.dp else 36.dp).clip(r(if (prominent) 13 else 10)).background(tint.copy(alpha = if (prominent) 0.2f else 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            LineIcon(icon, if (prominent) 21.dp else 16.dp, tint, if (prominent) 2.1f else 1.9f)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Txt(value, valueSize, 700)
-            Txt(label, labelSize, 400, C.Muted)
+        Column(verticalArrangement = Arrangement.spacedBy(if (prominent) 2.dp else 1.dp)) {
+            Txt(value, valueSize, if (prominent) 800 else 700)
+            Txt(label, labelSize, if (prominent) 500 else 400, C.Muted)
         }
     }
 }
@@ -217,7 +237,8 @@ internal fun ChoiceSheet(
 /**
  * Modal sheet over the page (top 56dp of the page stays visible): handle, header with title,
  * subtitle and close button, scrolling [content], and a footer with Cancel and the [primary]
- * action. [error] is shown above the footer; [progress] (0–1) draws the yellow bar under the header.
+ * action ([footerLeading] goes before them, e.g. a Delete button). [error] is shown above the footer;
+ * [progress] (0–1) draws the yellow bar under the header.
  */
 @Composable
 internal fun FormSheet(
@@ -236,12 +257,13 @@ internal fun FormSheet(
     primaryModifier: Modifier = Modifier,
     /** Something was entered or changed: closing (back, outside, ×, Cancel) asks before discarding it. */
     dirty: Boolean = false,
+    footerLeading: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) = Box(Modifier.fillMaxSize()) {
     GuardedClose(dirty, onClose) { close ->
         FormSheetBody(
             title, sub, primary, primaryEnabled, error, close, onPrimary, leadingIcon, progress,
-            bodyBackground, bodyPadding, bodySpacing, primaryModifier, content,
+            bodyBackground, bodyPadding, bodySpacing, primaryModifier, footerLeading, content,
         )
     }
 }
@@ -261,6 +283,7 @@ private fun FormSheetBody(
     bodyPadding: PaddingValues,
     bodySpacing: Dp,
     primaryModifier: Modifier,
+    footerLeading: (@Composable RowScope.() -> Unit)?,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onClose)
@@ -311,7 +334,9 @@ private fun FormSheetBody(
             Row(
                 Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                footerLeading?.invoke(this)
                 Pill(stringResource(R.string.action_cancel), onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 14, weight = 600)
                 Pill(
                     primary, onPrimary, Modifier.weight(1f).then(primaryModifier),

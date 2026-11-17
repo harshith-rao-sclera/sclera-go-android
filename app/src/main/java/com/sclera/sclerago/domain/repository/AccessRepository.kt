@@ -1,7 +1,10 @@
 package com.sclera.sclerago.domain.repository
 
+import com.sclera.sclerago.domain.model.DirectoryPage
 import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.PermissionInfo
 import com.sclera.sclerago.domain.model.Person
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -23,6 +26,13 @@ interface AccessRepository {
     /** Invites ([Person.id] empty) or updates a person; returns them as the server saved them. */
     suspend fun savePerson(person: Person): Person
 
-    /** Takes away all of the person's access. */
-    suspend fun removePerson(id: String)
+    /** Every permission a group can be given, in the server's order, with its name and description (empty until loaded). */
+    val permissions: StateFlow<List<PermissionInfo>> get() = NoPermissions
+
+    /** A [page] (from 1) of [limit] people the organisation's directory lists matching [query] (everyone when blank). */
+    suspend fun directory(query: String, limit: Int, page: Int): DirectoryPage = NoDirectory
 }
+
+private val NoDirectory = DirectoryPage(emptyList(), available = false, reason = null, hasMore = false)
+
+private val NoPermissions: StateFlow<List<PermissionInfo>> = MutableStateFlow(emptyList())

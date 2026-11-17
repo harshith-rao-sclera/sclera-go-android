@@ -3,14 +3,15 @@ package com.sclera.sclerago.presentation.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
 import com.sclera.sclerago.domain.model.DataException
-import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
+import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -49,6 +50,12 @@ data class AssetListState(
     val confirmDelete: Boolean = false,
     /** The property's data is still being opened, so the assets aren't known yet: the lists show a loader. */
     val loading: Boolean = false,
+    /** A pull to refresh is reading the property's assets again. */
+    val refreshing: Boolean = false,
+    /** The selected assets themselves (the ones in [picked]). */
+    val pickedAssets: List<Asset> = emptyList(),
+    /** The status chip each tab is filtered by (null: all). */
+    val statusFilter: Map<Tab, Status?> = emptyMap(),
 ) {
     val selecting: Boolean get() = picked.isNotEmpty()
 }
@@ -58,7 +65,10 @@ data class AssetListState(
  * (validate, submit, delete, assign a location). What the user should be told comes out of [notices].
  */
 @HiltViewModel
-class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases) : ViewModel() {
+class AssetListViewModel @Inject constructor(
+    private val useCases: AssetUseCases,
+    private val reloadAssets: ReloadAssetsUseCase,
+) : ViewModel() {
     private val scope = MutableStateFlow(AssetListScope())
     private val ui = MutableStateFlow(Ui())
     private val message = MutableSharedFlow<UiText>(extraBufferCapacity = 8)
@@ -72,16 +82,20 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
         val searchOpen: Boolean = false,
         val confirmDelete: Boolean = false,
         val statusFilter: Map<Tab, Status?> = emptyMap(),
+        /** The tabs narrowed to assets sent back to be collected again (the Recollect chip). */
+        val recollect: Set<Tab> = emptySet(),
+        val refreshing: Boolean = false,
     )
 
     val state: StateFlow<AssetListState> = combine(useCases.observe(), scope, ui) { catalog, sc, u ->
         val assets = catalog.assets
         val lists = Tab.entries.associateWith { tab ->
-            useCases.buildList(assets, AssetListQuery(tab.sources, sc.location, u.query, u.statusFilter[tab]))
+            useCases.buildList(assets, AssetListQuery(tab.sources, sc.location, u.query, u.statusFilter[tab], tab in u.recollect))
         }
+        val pickedAssets = assets.filter { it.id in u.picked }
         AssetListState(
-            lists, u.picked.filterTo(HashSet()) { id -> assets.any { it.id == id } }, u.query, u.searchOpen, u.confirmDelete,
-            loading = !catalog.loaded,
+            lists, pickedAssets.mapTo(HashSet()) { it.id }, u.query, u.searchOpen, u.confirmDelete,
+            loading = !catalog.loaded, refreshing = u.refreshing, pickedAssets = pickedAssets, statusFilter = u.statusFilter,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState(loading = true))
 
@@ -89,7 +103,23 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
         scope.value = AssetListScope(location)
     }
 
-    fun setStatusFilter(tab: Tab, status: Status?) = ui.update { it.copy(statusFilter = it.statusFilter + (tab to status)) }
+    /** A status chip; it turns the Recollect chip off (as on the web, Recollect goes with "All" only). */
+    fun setStatusFilter(tab: Tab, status: Status?) =
+        ui.update { it.copy(statusFilter = it.statusFilter + (tab to status), recollect = it.recollect - tab) }
+
+    /** The Recollect chip: shows only the assets sent back to be collected again (with "All"), or turns that off. */
+    fun toggleRecollect(tab: Tab) = ui.update {
+        if (tab in it.recollect) it.copy(recollect = it.recollect - tab)
+        else it.copy(statusFilter = it.statusFilter + (tab to null), recollect = it.recollect + tab)
+    }
+
+    /** Pull to refresh: reads the property's assets on this device again; the background sync keeps them up to date. */
+    fun refresh() {
+        if (ui.value.refreshing) return
+        ui.update { it.copy(refreshing = true) }
+        reloadAssets()
+        ui.update { it.copy(refreshing = false) }
+    }
 
     // ---- Search
 
@@ -110,7 +140,7 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
 
     // ---- Bulk actions
 
-    fun validateSelected() = changeStatus(Status.VALIDATED, R.plurals.assets_validated)
+    /** The signed-in user may sign assets off (the server's validate permission); the Validate button shows only then. */
     fun submitSelected() = changeStatus(Status.SUBMITTED, R.plurals.assets_submitted)
 
     private fun changeStatus(status: Status, plural: Int) {
@@ -137,16 +167,6 @@ class AssetListViewModel @Inject constructor(private val useCases: AssetUseCases
     }
 
     /** Gives the selected assets [location], labelled [label] in the message. */
-    fun assignSelected(location: LocValue, label: String) {
-        val ids = state.value.picked
-        ui.update { it.copy(picked = emptySet()) }
-        if (ids.isEmpty()) return
-        write {
-            useCases.assignLocation(ids, location)
-            message.emit(UiText.Plural(R.plurals.assets_assigned, ids.size, listOf(ids.size, label)))
-        }
-    }
-
     /** Makes a change to the offline data in the background; when it is refused or fails the user is told why. */
     private fun write(block: suspend () -> Unit) {
         viewModelScope.launch {

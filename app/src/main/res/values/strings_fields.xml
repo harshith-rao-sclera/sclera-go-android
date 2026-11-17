@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration → Asset fields: option colours and fields the phone can't fill in. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="cfg_option_color_title">Option colour</string>
+    <string name="cfg_option_color_cd">Colour of %1$s</string>
+    <string name="cfg_checks_no_format">Nothing is typed into this field, so there is no format to check.</string>
+</resources>

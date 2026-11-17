@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
@@ -73,9 +74,12 @@ fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
     )
 }
 
-/** End of a submitted asset form: it is read-only now; a recollect request would reopen it. */
+/**
+ * End of a submitted asset form: it is read-only now; a recollect request would reopen it. [onValidate] (null hides it)
+ * runs checks on it, which changes nothing on the asset, so it stays offered as on the web.
+ */
 @Composable
-fun SubmittedCard(onRecollect: () -> Unit, modifier: Modifier) {
+fun SubmittedCard(onRecollect: () -> Unit, modifier: Modifier, onValidate: (() -> Unit)? = null) {
     Column(
         modifier.fillMaxWidth().clip(r(14)).background(Status.SUBMITTED.chipBg).border(1.dp, Status.SUBMITTED.chipBd, r(14)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -89,7 +93,10 @@ fun SubmittedCard(onRecollect: () -> Unit, modifier: Modifier) {
                 Txt(stringResource(R.string.detail_submitted_body), 11, 400, C.Muted, maxLines = 3)
             }
         }
-        Pill(stringResource(R.string.detail_recollect), onRecollect, Modifier.fillMaxWidth(), height = 48.dp, size = 14, weight = 700)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            onValidate?.let { Pill(stringResource(R.string.action_validate), it, Modifier.weight(1f), height = 48.dp, size = 14, weight = 700) }
+            Pill(stringResource(R.string.detail_recollect), onRecollect, Modifier.weight(1f), height = 48.dp, size = 14, weight = 700)
+        }
     }
 }
 
@@ -122,14 +129,20 @@ private fun InfoChip(text: String, modifier: Modifier = Modifier) {
  * tab's failed-check badge (null = none shown, 0 = a tick); [count] how many items the tab lists (shown when above 0).
  */
 @Composable
-fun DetailTab(label: String, icon: Ico, selected: Boolean, fails: Int?, modifier: Modifier, count: Int? = null, onClick: () -> Unit) {
+fun DetailTab(
+    label: String,
+    icon: Ico,
+    selected: Boolean,
+    fails: Int?,
+    modifier: Modifier,
+    count: Int? = null,
+    /** The icon beside the label (a lower bar) instead of above it. */
+    compact: Boolean = false,
+    onClick: () -> Unit,
+) {
     val fg = if (selected) C.Yellow else C.Muted
     Box(modifier.fillMaxHeight().selectable(selected, role = Role.Tab, onClick = onClick).padding(horizontal = 2.dp)) {
-        Column(
-            Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
+        val content: @Composable () -> Unit = {
             Box {
                 Box(
                     Modifier.size(26.dp).background(if (selected) C.YTintBg else Color.Transparent, CircleShape),
@@ -151,7 +164,12 @@ fun DetailTab(label: String, icon: Ico, selected: Boolean, fails: Int?, modifier
                     }
                 }
             }
-            Txt(label, 11, if (selected) 700 else 500, fg, maxLines = 1)
+            Txt(label, if (compact) 12 else 11, if (selected) 700 else 500, fg, maxLines = 1)
+        }
+        if (compact) {
+            Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) { content() }
+        } else {
+            Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) { content() }
         }
         if (selected) {
             Box(
@@ -162,19 +180,20 @@ fun DetailTab(label: String, icon: Ico, selected: Boolean, fails: Int?, modifier
     }
 }
 
-/** The two floating buttons: AI fill above, voice below, with a short message beside the active one. */
+/** The two floating buttons: AI fill above, voice below, with a short message beside the active one ([heard]: the words heard so far). */
 @Composable
 fun FormFloatingButtons(
     aiBusy: Boolean,
     aiNotice: UiText?,
     listening: Boolean,
+    heard: String,
     onAi: () -> Unit,
     onMic: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.padding(end = 16.dp, bottom = 16.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AiFillButton(aiBusy, aiNotice, onAi)
-        MicButton(listening, onMic)
+        MicButton(listening, heard, onMic)
     }
 }
 
@@ -206,9 +225,9 @@ private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MicButton(listening: Boolean, onClick: () -> Unit) {
+private fun MicButton(listening: Boolean, heard: String, onClick: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (listening) Bubble(stringResource(R.string.detail_listening), 3)
+        if (listening) Bubble(heard.ifBlank { stringResource(R.string.detail_listening) }, 3)
         val description = stringResource(R.string.detail_voice_fill)
         Box(contentAlignment = Alignment.Center) {
             if (listening) {
@@ -221,7 +240,8 @@ private fun MicButton(listening: Boolean, onClick: () -> Unit) {
                 }
             }
             Box(
-                Modifier.size(54.dp).testTag(FloatingTags.MIC).fabShadow().clip(CircleShape).background(C.Yellow)
+                // Faded while listening, so the mic shows it is on.
+                Modifier.size(54.dp).testTag(FloatingTags.MIC).alpha(if (listening) 0.6f else 1f).fabShadow().clip(CircleShape).background(C.Yellow)
                     .semantics { contentDescription = description }.clickable(onClick = onClick),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f) }

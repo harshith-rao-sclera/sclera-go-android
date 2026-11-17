@@ -32,6 +32,16 @@
         tools:targetApi="s" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
     <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <!-- Filling asset fields by voice (asked when the mic is tapped); speech goes to the device's recognizer. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Lets the app find the device's speech recognizer (package visibility, Android 11+). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:name=".ScleraApplication"
@@ -62,6 +72,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Asset media and documents, served from the offline database (their only copy). Not exported: another
+             app can open one only through a one-off read grant on the intent that hands it over. -->
+        <provider
+            android:name=".data.local.MediaBlobProvider"
+            android:authorities="${applicationId}.media"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 
 </manifest>

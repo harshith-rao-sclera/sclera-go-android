@@ -57,16 +57,6 @@ class SharedComponentsTest {
     }
 
     @Test
-    @Config(qualifiers = "w1280dp-h800dp")
-    fun importStrip_showsLabelAndFormat_andClicks_onTabletLandscape() {
-        var taps = 0
-        phoneAndTabletChecks { ImportStrip("Import it", ".xlsx", { taps++ }) }
-        compose.onNodeWithText("Import it").assertIsDisplayed().performClick()
-        compose.onNodeWithText(".xlsx").assertIsDisplayed()
-        assertEquals(1, taps)
-    }
-
-    @Test
     @Config(qualifiers = "w411dp-h891dp")
     fun statRow_showsTwoTilesWithValueAndLabel() {
         phoneAndTabletChecks {

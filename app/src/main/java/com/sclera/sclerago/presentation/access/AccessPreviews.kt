@@ -2,10 +2,12 @@ package com.sclera.sclerago.presentation.access
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.presentation.common.toUiText
 import com.sclera.sclerago.presentation.theme.ScleraTheme
 
 private const val PHONE = "spec:width=390dp,height=844dp"
@@ -27,22 +29,22 @@ private val DEFAULT_GROUPS = listOf(
 private const val SampleNow = 1_700_000_000_000L
 
 private val SamplePeople = listOf(
-    Person("u1", "dev.admin@sclera-adc.com", ADMINS_ID, true, lastSeenAt = SampleNow),
+    Person("u1", "dev.admin@sclera-adc.com", ADMINS_ID, true, lastSeenAt = SampleNow, fullName = "Dev Admin"),
     Person("u2", "ada.lovelace@sclera-adc.com", "g-collectors", false, setOf("p1"), lastSeenAt = SampleNow - 3_600_000),
 )
 
 internal val SamplePeopleList = AccessListState(
     tab = AccessTab.PEOPLE,
-    people = SamplePeople.map { PersonRow(it, DEFAULT_GROUPS.first { g -> g.id == it.groupId }, it.id == "u1", it.lastSeenAt) },
+    people = SamplePeople.map { PersonRow(it, DEFAULT_GROUPS.first { g -> g.id == it.groupId }) },
     peopleTotal = SamplePeople.size,
     groupsTotal = DEFAULT_GROUPS.size,
     nowMillis = SampleNow,
+    canAdd = true,
 )
 
 internal val SampleGroupsList = SamplePeopleList.copy(
     tab = AccessTab.GROUPS,
-    groups = DEFAULT_GROUPS.map { GroupRow(it, if (it.id == ADMINS_ID) 1 else 0, canDelete = !it.locked) },
-    permissionCounts = Permission.entries.associateWith { p -> DEFAULT_GROUPS.count { it.can(p) } },
+    groups = DEFAULT_GROUPS.map { GroupRow(it, if (it.id == ADMINS_ID) 1 else 0) },
 )
 
 @Composable
@@ -69,26 +71,19 @@ private fun GroupsPreview() = Page(SampleGroupsList)
 @Composable
 private fun PeopleLoadingPreview() = Page(AccessListState(loading = true))
 
-/** The server answered with no groups. */
+/** The server answered with no groups (the web shows an empty list too). */
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun GroupsEmptyPreview() = Page(AccessListState(tab = AccessTab.GROUPS))
 
-/** Two groups ticked for deleting: the dock (× · 2 selected · Select all 3 · Delete) replaces the buttons. */
-@Preview(name = "Phone", device = PHONE)
-@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
-@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
-@Composable
-private fun GroupsTickedPreview() = Page(SampleGroupsList.copy(pickedGroups = setOf("g-collectors", "g-reviewers"), selectableGroups = 3))
-
 @Preview(name = "Phone", device = PHONE)
 @Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun AddPersonPreview() = ScleraTheme {
-    PersonSheet(Person("", "", "g-collectors", false), DEFAULT_GROUPS, SampleProperties, false, { null }, { null }, {}, {})
+    PersonSheet(Person("", "", "g-collectors", false), DEFAULT_GROUPS, SampleProperties, { null }, { null }, {})
 }
 
 @Preview(name = "Phone", device = PHONE)
@@ -96,7 +91,7 @@ private fun AddPersonPreview() = ScleraTheme {
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun EditPersonPreview() = ScleraTheme {
-    PersonSheet(SamplePeople[0], DEFAULT_GROUPS, SampleProperties, false, { null }, { null }, {}, {})
+    PersonSheet(SamplePeople[1], DEFAULT_GROUPS, SampleProperties, { null }, { null }, {})
 }
 
 @Preview(name = "Phone", device = PHONE)
@@ -104,7 +99,7 @@ private fun EditPersonPreview() = ScleraTheme {
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun NewGroupPreview() = ScleraTheme {
-    GroupSheet(com.sclera.sclerago.domain.model.Group("", "", "", emptySet()), { null }, { 0 }, { null }, {})
+    GroupSheet(Group("", "", "", emptySet()), { null }, { null }, {})
 }
 
 /** An existing group that can be deleted: Delete shows at the end of the sheet. */
@@ -113,7 +108,7 @@ private fun NewGroupPreview() = ScleraTheme {
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun EditGroupPreview() = ScleraTheme {
-    GroupSheet(DEFAULT_GROUPS.first { it.id == "g-collectors" }, { null }, { 0 }, { null }, {}, canDelete = true)
+    GroupSheet(DEFAULT_GROUPS.first { it.id == "g-collectors" }, { null }, { null }, {}, canDelete = true)
 }
 
 @Preview(name = "Phone", device = PHONE)
@@ -121,5 +116,12 @@ private fun EditGroupPreview() = ScleraTheme {
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun EditLockedGroupPreview() = ScleraTheme {
-    GroupSheet(DEFAULT_GROUPS.first { it.locked }, { null }, { 0 }, { null }, {})
+    GroupSheet(DEFAULT_GROUPS.first { it.locked }, { null }, { null }, {})
 }
+
+/** People and groups couldn't be read and nothing is saved: "Not available" and why, as the web shows it. */
+@Preview(name = "Phone", device = PHONE)
+@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
+@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
+@Composable
+private fun UnavailablePreview() = Page(AccessListState(unavailable = OnlineError.Offline.toUiText()))

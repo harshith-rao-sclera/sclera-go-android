@@ -14,6 +14,16 @@ data class MasterFormat(
 /** What an asset's system, asset and sub type say while it isn't classified (the form's first choice). */
 const val UNCLASSIFIED = "Generic"
 
+/**
+ * The catalogue row the details form [values] choose by their system, asset and sub type ("sys", "typ", "sub"; names
+ * in any case, [UNCLASSIFIED] or blank is no choice), or null when they choose none or one the catalogue doesn't have.
+ */
+fun List<MasterFormat>.formatFor(values: Map<String, String>): MasterFormat? {
+    fun pick(key: String) = values[key]?.trim()?.takeIf { it.isNotEmpty() && it != UNCLASSIFIED }
+    val system = pick("sys") ?: return null
+    return firstOrNull { it.systemType.equals(system, true) && it.assetType.equals(pick("typ"), true) && it.subtype.equals(pick("sub"), true) }
+}
+
 /** The system types of the catalogue, in its order. */
 fun List<MasterFormat>.systemTypes(): List<String> = map { it.systemType }.filter { it.isNotBlank() }.distinct()
 

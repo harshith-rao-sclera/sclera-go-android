@@ -44,23 +44,55 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.sclera.sclerago.presentation.components.SearchField
+import com.sclera.sclerago.presentation.components.DiscardChangesDialog
+import kotlinx.serialization.json.JsonPrimitive
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.sclera.sclerago.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.sclera.sclerago.domain.model.BUILDING_TYPES
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.COUNTRIES
-import com.sclera.sclerago.domain.model.DATE_DISPLAY
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.domain.model.LocNode
+import com.sclera.sclerago.domain.model.NewLocation
 import com.sclera.sclerago.domain.model.OPTION_KINDS
+import com.sclera.sclerago.domain.model.OPTION_COLORS
+import com.sclera.sclerago.domain.model.DEFAULT_OPTION_COLOR
+import com.sclera.sclerago.domain.model.ANSWER_YES
+import com.sclera.sclerago.domain.model.CHECKED
+import com.sclera.sclerago.domain.model.DEFAULT_DATE_PICKER
+import com.sclera.sclerago.domain.model.DEFAULT_NOW
+import com.sclera.sclerago.domain.model.DEFAULT_TIME_PICKER
+import com.sclera.sclerago.domain.model.DEFAULT_TODAY
+import com.sclera.sclerago.domain.model.FieldChecks
+import com.sclera.sclerago.domain.model.MAX_PLACE_CODE
+import com.sclera.sclerago.domain.model.MAX_PLACE_NAME
+import com.sclera.sclerago.domain.model.MAX_PLACE_TYPE
+import com.sclera.sclerago.domain.model.MAX_PATTERN_LENGTH
+import com.sclera.sclerago.domain.model.MAX_PHOTOS_PER_ASSET
+import com.sclera.sclerago.domain.model.MAX_TOOLTIP_LENGTH
+import com.sclera.sclerago.domain.model.OptionProblem
+import com.sclera.sclerago.domain.model.PhotoKind
+import com.sclera.sclerago.domain.model.TEXT_KINDS
+import com.sclera.sclerago.domain.model.UNCHECKED
+import com.sclera.sclerago.domain.model.optionProblem
+import com.sclera.sclerago.domain.usecase.config.ChecksProblem
+import com.sclera.sclerago.domain.usecase.config.PhotoBound
+import com.sclera.sclerago.domain.usecase.config.checksProblem
+import com.sclera.sclerago.domain.usecase.config.nameTaken
 import com.sclera.sclerago.domain.model.REGIONS
-import com.sclera.sclerago.domain.model.TIME_DISPLAY
 import com.sclera.sclerago.domain.model.ValueRule
 import com.sclera.sclerago.domain.model.findNode
-import com.sclera.sclerago.domain.model.noRuleLabel
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.BottomTabBar
@@ -75,7 +107,6 @@ import com.sclera.sclerago.presentation.components.NavItem
 import com.sclera.sclerago.presentation.components.PageBar
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
-import com.sclera.sclerago.presentation.components.RadioDot
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.Segmented
 import com.sclera.sclerago.presentation.components.SheetHeader
@@ -119,9 +150,23 @@ private val IMPORT_SHEET_TYPES = arrayOf(
  * onboarding). System back closes Configuration and returns to the app.
  */
 @Composable
-fun ConfigScreen(vm: AppViewModel) {
+fun ConfigScreen(
+    vm: AppViewModel,
+    cfg: ConfigViewModel = hiltViewModel(),
+    fields: FieldsConfigViewModel = hiltViewModel(),
+    places: PlacesConfigViewModel = hiltViewModel(),
+) {
     val s = vm.state
     var addingField by remember { mutableStateOf(false) }
+    // Configuration reads and writes the server (fields, places, settings, geofence): read again each time it opens.
+    LaunchedEffect(vm.currentProp) {
+        cfg.open(vm.currentProp)
+        fields.open(vm.currentProp)
+        places.open(vm.currentProp)
+    }
+    LaunchedEffect(cfg) { cfg.messages.collect { vm.flash(it) } }
+    LaunchedEffect(fields) { fields.messages.collect { vm.flash(it) } }
+    LaunchedEffect(places) { places.messages.collect { vm.flash(it) } }
     val pager = rememberPagerState(initialPage = CFG_TABS.indexOfFirst { it.page == s.cfgPage }.coerceAtLeast(0)) { CFG_TABS.size }
     // A tapped tab slides the pager there; a finished swipe selects the tab it rests on.
     LaunchedEffect(s.cfgPage) {
@@ -133,18 +178,25 @@ fun ConfigScreen(vm: AppViewModel) {
             if (!scrolling) CFG_TABS[pager.currentPage].page.let { if (it != vm.state.cfgPage) vm.cfgGo(it) }
         }
     }
-    BackHandler(onBack = vm::closeConfig)
+    // Leaving with fences drawn or changed but not saved asks first (as the web's unsaved-changes guard).
+    var askLeave by remember { mutableStateOf(false) }
+    val close: () -> Unit = {
+        if (cfg.geoUnsaved) askLeave = true else vm.closeConfig()
+    }
+    BackHandler(onBack = close)
     SecureWindow() // building access codes and contacts are shown here
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            PageBar("Configuration", vm.propName, vm::closeConfig, property = true)
-            HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = 1, key = { it }) { i ->
+            PageBar("Configuration", vm.propName, close, property = true)
+            // Every tab stays composed (as the web keeps them mounted), so unsaved work on one, such as fences being
+            // drawn on the map, survives switching to another.
+            HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = CFG_TABS.size - 1, key = { it }) { i ->
                 Box(Modifier.fillMaxSize()) {
                     when (CFG_TABS[i].page) {
-                        CfgPage.BUILDING -> BuildingInfo(vm)
-                        CfgPage.FIELDS -> AssetFields(vm, addingField) { addingField = it }
-                        CfgPage.GEO -> Geofencing(vm)
-                        CfgPage.SETTINGS -> PropertySettingsPage(vm)
+                        CfgPage.BUILDING -> BuildingInfo(places, vm.propName)
+                        CfgPage.FIELDS -> AssetFields(fields, cfg, vm.propName, addingField) { addingField = it }
+                        CfgPage.GEO -> Geofencing(cfg)
+                        CfgPage.SETTINGS -> PropertySettingsPage(vm, cfg)
                     }
                 }
             }
@@ -162,6 +214,16 @@ fun ConfigScreen(vm: AppViewModel) {
             Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp),
             enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut(),
         ) { Toast(s.toast.asString()) }
+        if (askLeave) {
+            DiscardChangesDialog(
+                onKeep = { askLeave = false },
+                onDiscard = {
+                    askLeave = false
+                    cfg.markGeoUnsaved(false)
+                    vm.closeConfig()
+                },
+            )
+        }
     }
 }
 
@@ -173,8 +235,12 @@ private class NameAsk(val title: String, val initial: String, val placeholder: S
 private class DeleteAsk(val title: String, val body: String, val onYes: () -> Unit)
 
 @Composable
-private fun BuildingInfo(vm: AppViewModel) {
-    val tree = vm.treeFor()
+private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
+    if (places.load != LoadState.READY) {
+        OnlineNote(places.load, places.failure, places::retry)
+        return
+    }
+    val tree = places.tree
     var bId by remember { mutableStateOf<String?>(null) }
     var fId by remember { mutableStateOf<String?>(null) }
     val building = tree.firstOrNull { it.id == bId } ?: tree.firstOrNull()
@@ -189,28 +255,31 @@ private fun BuildingInfo(vm: AppViewModel) {
     var deleteAsk by remember { mutableStateOf<DeleteAsk?>(null) }
     var openLoc by remember { mutableStateOf<String?>(null) }
     var adding by remember { mutableStateOf(false) }
+    // Add floor sheet for this building (null: closed).
+    var addingFloorTo by remember { mutableStateOf<LocNode?>(null) }
     // Add / edit building sheet: null = closed, "" = new building, else the building's id.
     var buildingSheet by remember { mutableStateOf<String?>(null) }
     var floorsSheet by remember { mutableStateOf(false) }
     // Import buildings: pick a spreadsheet (CSV or Excel) in the phone's file manager.
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::importBuildings) }
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { places.importBuildings(it.toString()) } }
 
     fun closeSearch() { searching = false; q = "" }
     fun addFloor(b: LocNode) {
-        nameAsk = NameAsk("Add floor", "", "Floor name, e.g. Level 2") { n -> vm.addFloor(b.id, n) { fId = it } }
+        addingFloorTo = b
     }
     BackHandler(enabled = searching, onBack = ::closeSearch)
     BackHandler(enabled = dial) { dial = false }
 
+    val hiddenWord = stringResource(R.string.cfg_place_hidden)
     val buildingMenu = buildList {
-        tree.forEach { b -> add(MenuAct(Icons.Building, b.name, selected = b.id == building?.id) { bId = b.id; fId = null }) }
+        tree.forEach { b -> add(MenuAct(Icons.Building, if (b.active) b.name else "${b.name} · $hiddenWord", selected = b.id == building?.id) { bId = b.id; fId = null }) }
         add(MenuAct(Icons.PlusCircle, "Add building", divider = tree.isNotEmpty()) { buildingSheet = "" })
         if (building != null) add(MenuAct(Icons.Pencil, "Edit ${building.name}") { buildingSheet = building.id })
         if (floors.isNotEmpty()) add(MenuAct(Icons.Floor, "Edit floors") { floorsSheet = true })
         add(MenuAct(Icons.Import, "Import buildings") { importer.launch(IMPORT_SHEET_TYPES) })
         if (building != null) add(MenuAct(Icons.Trash, "Delete ${building.name}", danger = true, divider = true) {
-            deleteAsk = DeleteAsk("Delete ${building.name}?", "Its floors and locations are removed too.") {
-                vm.deleteNodes(setOf(building.id), "Building"); bId = null; fId = null
+            deleteAsk = DeleteAsk("Delete ${building.name}?", "This can’t be undone.") {
+                places.delete(listOf(building)) { bId = null; fId = null }
             }
         })
     }
@@ -273,7 +342,7 @@ private fun BuildingInfo(vm: AppViewModel) {
                     options = buildList {
                         if (floor != null) add(DialAct("Location", "On ${floor.name}", Icons.Pin, C.Yellow) { dial = false; adding = true })
                         if (building != null) add(DialAct("Floor", "In ${building.name}", Icons.Floor, C.Text) { dial = false; addFloor(building) })
-                        add(DialAct("Building", "In ${vm.propName}", Icons.Building, C.Text) { dial = false; buildingSheet = "" })
+                        add(DialAct("Building", "In $propName", Icons.Building, C.Text) { dial = false; buildingSheet = "" })
                     },
                 )
             }
@@ -289,32 +358,37 @@ private fun BuildingInfo(vm: AppViewModel) {
                 Pill("Delete", {
                     val ids = sel
                     deleteAsk = DeleteAsk("Delete ${plural(ids.size, "location", "locations")}?", "This can’t be undone.") {
-                        vm.deleteNodes(ids, if (ids.size == 1) "Location" else "Locations"); sel = emptySet()
+                        places.delete(locs.filter { it.id in ids }) { sel = emptySet() }
                     }
                 }, bg = Color(0xFF2A1919), fg = C.Red, height = 40.dp, hPad = 16.dp, weight = 700)
             }
         }
     }
 
-    if (adding && floor != null) AddLocationSheet(onClose = { adding = false }) { names, type, code ->
-        vm.addLocations(floor.id, names, type, code); adding = false
+    if (adding && floor != null) AddPlacesSheet(PlaceSheetKind.LOCATION, onClose = { adding = false }) { rows ->
+        places.addLocations(floor, rows); adding = false
+    }
+    addingFloorTo?.let { b ->
+        AddPlacesSheet(PlaceSheetKind.FLOOR, onClose = { addingFloorTo = null }) { rows ->
+            places.addFloors(b, rows) { fId = it }; addingFloorTo = null
+        }
     }
     openLoc?.let { id -> tree.findNode(id) }?.let { l ->
         LocationSheet(l, onClose = { openLoc = null },
-            onSave = { n, t, c -> vm.updateLocation(l.id, n, t, c) },
+            onSave = { n, t, c -> floorOf(tree, l.id)?.let { places.updateLocation(it, l, n, t, c) } },
             onDelete = {
-                deleteAsk = DeleteAsk("Delete ${l.name}?", "This can’t be undone.") { vm.deleteNodes(setOf(l.id), "Location"); openLoc = null }
+                deleteAsk = DeleteAsk("Delete ${l.name}?", "This can’t be undone.") { places.delete(listOf(l)) { openLoc = null } }
             })
     }
     buildingSheet?.let { id ->
         val b = if (id.isEmpty()) null else tree.firstOrNull { it.id == id }
-        EditBuildingSheet(b, onClose = { buildingSheet = null }) { n, info ->
-            if (b == null) { vm.addBuilding(n, info) { bId = it; fId = null } } else vm.saveBuilding(b.id, n, info)
+        EditBuildingSheet(b, onClose = { buildingSheet = null }) { n, info, visible ->
+            if (b == null) places.addBuilding(n, info) { bId = it; fId = null } else places.saveBuilding(b, n, info, visible)
             buildingSheet = null
         }
     }
     if (floorsSheet && building != null) EditFloorsSheet(building, onClose = { floorsSheet = false }) { list ->
-        vm.saveFloors(building.id, list); floorsSheet = false
+        places.saveFloors(building, list); floorsSheet = false
     }
     nameAsk?.let { a -> NameDialog(a) { nameAsk = null } }
     deleteAsk?.let { d ->
@@ -347,7 +421,8 @@ private fun BuildingCard(building: LocNode?, menu: List<MenuAct>) {
                     val floors = building.kids.orEmpty()
                     Txt(building.name, 16, 700)
                     Txt(
-                        plural(floors.size, "floor", "floors") + " · " + plural(floors.sumOf { it.kids.orEmpty().size }, "location", "locations"),
+                        plural(floors.size, "floor", "floors") + " · " + plural(floors.sumOf { it.kids.orEmpty().size }, "location", "locations") +
+                            if (building.active) "" else " · " + stringResource(R.string.cfg_place_hidden),
                         13, 400, C.Muted,
                     )
                 }
@@ -366,7 +441,7 @@ private fun FloorRail(floors: List<LocNode>, current: String?, onPick: (String) 
             val on = f.id == current
             Column(
                 Modifier.fillMaxWidth().height(54.dp).clip(r(14))
-                    .background(if (on) C.Yellow else C.Surface)
+                    .background(if (on) C.Yellow else C.Surface).alpha(if (f.active) 1f else 0.5f)
                     .then(if (on) Modifier else Modifier.border(1.dp, C.Border, r(14)))
                     .clickable { onPick(f.id) },
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -644,14 +719,15 @@ private fun phoneOk(p: String) = Regex("^[+0-9 ()-]+$").matches(p) && p.count(Ch
 
 /** Add or edit a building: details, address, primary contact, notes and site access. */
 @Composable
-private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String, BuildingInfo) -> Unit) {
+private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String, BuildingInfo, Boolean) -> Unit) {
     val i0 = b?.info ?: BuildingInfo()
     var name by remember { mutableStateOf(b?.name.orEmpty()) }
     var info by remember { mutableStateOf(i0) }
+    var visible by remember { mutableStateOf(b?.active ?: true) }
     val emailBad = info.email.isNotBlank() && !EMAIL_RE.matches(info.email.trim())
     val phoneBad = info.phone.isNotBlank() && !phoneOk(info.phone.trim())
     val ok = name.isNotBlank() && info.type.isNotBlank() && !emailBad && !phoneBad
-    GuardedClose(name.trim() != b?.name.orEmpty().trim() || info != i0, onClose) { onClose ->
+    GuardedClose(name.trim() != b?.name.orEmpty().trim() || info != i0 || visible != (b?.active ?: true), onClose) { onClose ->
     BottomSheet(onClose) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 10.dp, top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Txt(if (b == null) "Add building" else "Edit ${b.name}", 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
@@ -662,7 +738,7 @@ private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             SheetSection("Building details")
-            LabeledInput("Building name *", name, { name = it }, "Enter building name")
+            LabeledInput("Building name *", name, { name = it.take(MAX_PLACE_NAME) }, "Enter building name")
             PickField("Building type *", info.type, "Select type", BUILDING_TYPES) { info = info.copy(type = it) }
             LabeledInput("Address line 1", info.address1, { info = info.copy(address1 = it) }, "Enter address line 1")
             LabeledInput("Address line 2", info.address2, { info = info.copy(address2 = it) }, "Enter address line 2")
@@ -694,8 +770,13 @@ private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String,
                 TimeField("End time", info.endTime, "Select end time", Modifier.weight(1f)) { info = info.copy(endTime = it) }
             }
             LabeledInput("Access code", info.accessCode, { info = info.copy(accessCode = it) }, "Enter access code")
+            if (b != null) {
+                Spacer(Modifier.height(4.dp))
+                SheetSection(stringResource(R.string.cfg_place_visibility))
+                CfgCard { ToggleRow("Visible", stringResource(R.string.cfg_building_visible_hint), visible, enabled = true) { visible = it } }
+            }
         }
-        SheetButtons(if (b == null) "Add building" else "Save", ok, onClose) { onSave(name, info) }
+        SheetButtons(if (b == null) "Add building" else "Save", ok, onClose) { onSave(name, info, visible) }
     }
     }
 }
@@ -736,16 +817,21 @@ private fun EditFloorsSheet(b: LocNode, onClose: () -> Unit, onSave: (List<LocNo
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SmallInput(f.type, { v -> edit(f.id) { it.copy(type = v) } }, "Type", Modifier.weight(1f))
-                            SmallInput(f.code, { v -> edit(f.id) { it.copy(code = v) } }, "Code", Modifier.weight(1f))
+                            SmallInput(f.type, { v -> edit(f.id) { it.copy(type = v.take(MAX_PLACE_TYPE)) } }, "Type", Modifier.weight(1f))
+                            SmallInput(f.code, { v -> edit(f.id) { it.copy(code = v.take(MAX_PLACE_CODE)) } }, "Code", Modifier.weight(1f))
                         }
+                    }
+                    // Hidden floors can't be picked by field workers (the server's isActive).
+                    ToggleRow("Visible", stringResource(R.string.cfg_floor_visible_hint), f.active, enabled = true, divider = true) { on ->
+                        edit(f.id) { it.copy(active = on) }
                     }
                 }
             }
             if (removed.isNotEmpty()) {
+                // The server refuses to delete a floor that still has locations.
                 val locs = removed.sumOf { it.kids.orEmpty().size }
                 Txt(
-                    "Removing ${removed.joinToString { it.name }}" + (if (locs > 0) " deletes ${plural(locs, "location", "locations")} too" else "") + " when you save.",
+                    if (locs > 0) stringResource(R.string.cfg_floor_has_locations) else "Removing ${removed.joinToString { it.name }} when you save.",
                     12, 500, C.Orange, maxLines = 3,
                 )
             }
@@ -764,40 +850,80 @@ private fun SmallInput(value: String, onChange: (String) -> Unit, placeholder: S
     )
 }
 
+/** What the add sheet adds: floors (to a building) or locations (to a floor). */
+private enum class PlaceSheetKind { FLOOR, LOCATION }
+
+/** One row of the add sheet: a name with its own type and code. */
+private class PlaceDraft(name: String = "", type: String = "", code: String = "") {
+    var name by mutableStateOf(name)
+    var type by mutableStateOf(type)
+    var code by mutableStateOf(code)
+    val blank get() = name.isBlank() && type.isBlank() && code.isBlank()
+}
+
+/**
+ * Add floor / Add location, as the web's: a name, type and code; with Bulk addition, several rows, each with its own
+ * name, type and code (+ Add row).
+ */
 @Composable
-private fun AddLocationSheet(onClose: () -> Unit, onAdd: (List<String>, String, String) -> Unit) {
+private fun AddPlacesSheet(kind: PlaceSheetKind, onClose: () -> Unit, onAdd: (List<NewLocation>) -> Unit) {
     var bulk by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("") }
-    var code by remember { mutableStateOf("") }
-    val names = if (bulk) name.split('\n').map { it.trim() }.filter { it.isNotEmpty() } else listOf(name.trim()).filter { it.isNotEmpty() }
-    GuardedClose(name.isNotBlank() || type.isNotBlank() || code.isNotBlank(), onClose) { onClose ->
+    val rows = remember { androidx.compose.runtime.mutableStateListOf(PlaceDraft()) }
+    val shown = if (bulk) rows else rows.take(1)
+    val ready = shown.filter { it.name.isNotBlank() }.map { NewLocation(it.name.trim(), it.type.trim(), it.code.trim()) }
+    val floor = kind == PlaceSheetKind.FLOOR
+    GuardedClose(rows.any { !it.blank }, onClose) { onClose ->
     BottomSheet(onClose) {
-        SheetHeader("Add location", if (bulk) "One location per line. They all get the same type." else null, onClose)
+        SheetHeader(
+            stringResource(if (floor) R.string.cfg_add_floor_title else R.string.cfg_add_location_title),
+            if (bulk) stringResource(R.string.cfg_add_bulk_hint) else null, onClose,
+        )
         Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
-                Modifier.clip(r(8)).clickable { bulk = !bulk }.padding(vertical = 4.dp),
+                Modifier.clip(r(8)).clickable { bulk = !bulk }.padding(vertical = 4.dp).testTag("place-bulk"),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 CheckBox(bulk)
-                Txt("Bulk addition", 12, 600)
+                Txt(stringResource(R.string.cfg_add_bulk), 12, 600)
             }
-            LabeledInput(
-                if (bulk) "Names *" else "Name *", name, { name = it },
-                if (bulk) "Lobby\nMeeting room 1\nMeeting room 2" else "Enter location name (e.g. Lobby)",
-                singleLine = !bulk, minLines = if (bulk) 4 else 1,
-            )
-            LabeledInput("Type", type, { type = it }, "e.g. Plant room, Office")
-            LabeledInput("Code", code, { code = it }, if (bulk) "Prefix, e.g. B2 (becomes B2-1, B2-2…)" else "e.g. B2-PR-01")
+            shown.forEachIndexed { i, row ->
+                Column(
+                    if (bulk) Modifier.fillMaxWidth().clip(r(10)).border(1.dp, C.Border, r(10)).padding(8.dp) else Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (bulk) Row(verticalAlignment = Alignment.CenterVertically) {
+                        Txt(stringResource(R.string.cfg_add_row_n, i + 1), 12, 700, C.Muted, Modifier.weight(1f))
+                        if (rows.size > 1) {
+                            val cd = stringResource(R.string.cfg_add_row_remove, i + 1)
+                            Box(
+                                Modifier.size(40.dp).clip(r(10)).clickable { rows.removeAt(i) }.semantics { contentDescription = cd },
+                                contentAlignment = Alignment.Center,
+                            ) { LineIcon(Icons.Trash, 16.dp, C.Red, 2.2f) }
+                        }
+                    }
+                    LabeledInput(
+                        stringResource(R.string.cfg_add_name), row.name, { row.name = it },
+                        stringResource(if (floor) R.string.cfg_add_floor_name_hint else R.string.cfg_add_location_name_hint),
+                    )
+                    LabeledInput(stringResource(R.string.cfg_add_type), row.type, { row.type = it.take(MAX_PLACE_TYPE) },
+                        stringResource(if (floor) R.string.cfg_add_floor_type_hint else R.string.cfg_add_location_type_hint))
+                    LabeledInput(stringResource(R.string.cfg_add_code), row.code, { row.code = it.take(MAX_PLACE_CODE) }, stringResource(R.string.cfg_add_code_hint))
+                }
+            }
+            if (bulk) Pill(stringResource(R.string.cfg_add_row), { rows.add(PlaceDraft()) }, Modifier.testTag("place-add-row"), height = 40.dp, hPad = 16.dp)
             Spacer(Modifier.height(4.dp))
         }
         Row(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 10.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Cancel", onClose, height = 40.dp, hPad = 16.dp)
+            Pill(stringResource(R.string.cfg_cancel), onClose, height = 40.dp, hPad = 16.dp)
             Pill(
-                if (names.size > 1) "Add ${names.size} locations" else "Add location",
-                { if (names.isNotEmpty()) onAdd(names, type, code) },
-                Modifier.weight(1f).alpha(if (names.isNotEmpty()) 1f else 0.4f),
+                when {
+                    ready.size > 1 -> pluralStringResource(if (floor) R.plurals.cfg_add_floors_n else R.plurals.cfg_add_locations_n, ready.size, ready.size)
+                    floor -> stringResource(R.string.cfg_add_floor_title)
+                    else -> stringResource(R.string.cfg_add_location_title)
+                },
+                { if (ready.isNotEmpty()) onAdd(ready) },
+                Modifier.weight(1f).alpha(if (ready.isNotEmpty()) 1f else 0.4f).testTag("place-add"),
                 bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
             )
         }
@@ -821,9 +947,9 @@ private fun LocationSheet(l: LocNode, onClose: () -> Unit, onSave: (String, Stri
         }
         Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (editing) {
-                LabeledInput("Name *", name, { name = it }, "Location name")
-                LabeledInput("Type", type, { type = it }, "e.g. Plant room")
-                LabeledInput("Code", code, { code = it }, "e.g. B2-PR-01")
+                LabeledInput("Name *", name, { name = it.take(MAX_PLACE_NAME) }, "Location name")
+                LabeledInput("Type", type, { type = it.take(MAX_PLACE_TYPE) }, "e.g. Plant room")
+                LabeledInput("Code", code, { code = it.take(MAX_PLACE_CODE) }, "e.g. B2-PR-01")
             } else {
                 listOf("Name" to l.name, "Type" to l.type, "Code" to l.code).forEach { (k, v) ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -890,20 +1016,21 @@ private fun NameDialogBody(a: NameAsk, v: String, setV: (String) -> Unit, close:
 // ---------------------------------------------------------------- Asset fields
 
 @Composable
-private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) -> Unit) {
-    val s = vm.state
-    var addingPhoto by remember { mutableStateOf(false) }
+private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propName: String, adding: Boolean, setAdding: (Boolean) -> Unit) {
     var editFor by remember { mutableStateOf<String?>(null) }
     var checksFor by remember { mutableStateOf<String?>(null) }
     var dial by remember { mutableStateOf(false) }
     // Fields read from a spreadsheet, waiting in the Add field sheet.
     var drafts by remember { mutableStateOf<List<FieldCfg>>(emptyList()) }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { vm.importFields(it) { list -> drafts = list; setAdding(true) } }
+        uri?.let { fv.importFields(it.toString()) { list -> drafts = list; setAdding(true) } }
     }
+    val ready = fv.load == LoadState.READY
+    val photos = cfg.photos
+    val photosReady = photos.load == LoadState.READY
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(top = 10.dp)) {
         Txt(
-            "Choose what’s collected for every asset in ${vm.propName}, and what validation checks in each field. Mandatory fields are always visible.",
+            "Choose what’s collected for every asset in $propName, and what validation checks in each field. Mandatory fields are always visible.",
             11, 400, C.Muted, Modifier.padding(horizontal = 16.dp), maxLines = 4,
         )
         // Column headings, lined up with the rows' content.
@@ -916,17 +1043,21 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
             Txt("MANDATORY", 10, 600, C.Muted, Modifier.width(MUST_W), spacing = 0.8f, align = TextAlign.Center)
             Txt("CHECKS", 10, 600, C.Muted, Modifier.width(CHECKS_W), spacing = 0.8f, align = TextAlign.Center)
         }
-        vm.fieldCfg.forEach { f ->
-            FieldCfgRow(f, vm.optionCount(f), vm, onEdit = { editFor = f.key }, onChecks = { checksFor = f.key })
+        if (!ready) OnlineNote(fv.load, fv.failure, fv::retry)
+        fv.fields.forEach { f ->
+            FieldCfgRow(
+                f, f.options.size,
+                onToggleVisible = { fv.toggleVisible(f) }, onToggleRequired = { fv.toggleRequired(f) },
+                onEdit = { editFor = f.key }, onChecks = { checksFor = f.key },
+            )
         }
 
-        // Photos
+        // Photos: the property's photo rules at the server (nameplate, asset, label ID).
         Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 20.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Txt("Photos", 13, 700)
-                Txt("How many of each kind to collect per asset · ${vm.minPhotos} needed in total", 11, 400, C.Muted, maxLines = 2)
+                Txt("How many of each kind to collect per asset · ${photos.rules.sumOf { it.min }} needed in total", 11, 400, C.Muted, maxLines = 2)
             }
-            Pill("Add type", { addingPhoto = true }, height = 32.dp, hPad = 12.dp, size = 12)
         }
         Row(
             Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 6.dp),
@@ -936,63 +1067,76 @@ private fun AssetFields(vm: AppViewModel, adding: Boolean, setAdding: (Boolean) 
             Txt("MIN", 10, 600, C.Muted, Modifier.width(92.dp), spacing = 0.8f, align = TextAlign.Center)
             Txt("MAX", 10, 600, C.Muted, Modifier.width(92.dp), spacing = 0.8f, align = TextAlign.Center)
         }
-        vm.photoReqs.forEach { p ->
+        photos.rules.forEach { p ->
             Row(
                 Modifier.listCard().heightIn(min = 64.dp).padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Column(Modifier.weight(1f).padding(end = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Txt(p.name, 14, 600, modifier = Modifier.weight(1f, fill = false))
-                        Box(Modifier.clip(CircleShape).clickable { vm.removePhotoReq(p.id) }.padding(2.dp)) { LineIcon(Icons.Close, 12.dp, C.Dim, 2.4f) }
-                    }
-                    Txt(p.hint, 11, 400, C.Muted, maxLines = 2)
+                    Txt(stringResource(p.kind.nameRes()), 14, 600)
+                    Txt(stringResource(p.kind.hintRes()), 11, 400, C.Muted, maxLines = 2)
                 }
-                Stepper(p.min, Modifier.width(92.dp)) { vm.setPhotoLimits(p.id, it, maxOf(p.max, it)) }
-                Stepper(p.max, Modifier.width(92.dp)) { vm.setPhotoLimits(p.id, minOf(p.min, it), it) }
+                Stepper(
+                    p.min, Modifier.width(92.dp), photosReady,
+                    downBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = false) != null,
+                    upBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = true) != null,
+                ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MIN, up) }
+                Stepper(
+                    p.max, Modifier.width(92.dp), photosReady,
+                    downBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = false) != null,
+                    upBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = true) != null,
+                ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MAX, up) }
             }
         }
+        // How many photos all kinds together allow, or why the rules aren't there.
+        Txt(
+            when (photos.load) {
+                LoadState.LOADING -> stringResource(R.string.cfg_photos_loading)
+                LoadState.FAILED -> stringResource(R.string.cfg_photos_load_failed)
+                LoadState.READY -> stringResource(R.string.cfg_photos_usage, photos.totalMax, MAX_PHOTOS_PER_ASSET)
+            },
+            11, 400, C.Muted, Modifier.padding(start = 16.dp, end = 8.dp, top = 6.dp), maxLines = 3,
+        )
         Spacer(Modifier.height(160.dp)) // room for the floating +, as on the Assets list
     }
     // The floating + opens two ways to add fields. Drawn under the sheets and hidden while one is open.
-    if (!adding && editFor == null && checksFor == null && !addingPhoto) {
+    if (ready && !adding && editFor == null && checksFor == null) {
         AddDial(
             dial, onToggle = { dial = !dial },
             onExcel = { dial = false; importer.launch(IMPORT_SHEET_TYPES) },
             onNew = { dial = false; drafts = emptyList(); setAdding(true) },
         )
     }
-    if (adding) AddFieldsSheet(vm.fieldCfg, drafts, onClose = { setAdding(false); drafts = emptyList() }) { list ->
-        vm.addFields(list); setAdding(false); drafts = emptyList()
+    if (adding) AddFieldsSheet(fv.fields, drafts, onClose = { setAdding(false); drafts = emptyList() }) { list ->
+        fv.add(list) { setAdding(false); drafts = emptyList() }
     }
-    editFor?.let { k -> vm.fieldCfg.firstOrNull { it.key == k } }?.let { f ->
+    editFor?.let { k -> fv.fields.firstOrNull { it.key == k } }?.let { f ->
         FieldSheet(
-            f, draft = false, options = vm.optionCount(f), editableOptions = f.key !in FIXED_OPTIONS,
+            f, draft = false, options = f.options.size, editableOptions = f.key !in FIXED_OPTIONS, taken = fv.fields,
             onClose = { editFor = null },
-            onSubmit = { vm.saveField(it); editFor = null },
-            onDelete = if (f.custom) ({ vm.removeField(f.key); editFor = null }) else null,
+            onSubmit = { edited -> fv.save(f, edited) { editFor = null } },
+            onDelete = if (f.custom) ({ fv.delete(f) { editFor = null } }) else null,
         )
     }
-    checksFor?.let { k -> vm.fieldCfg.firstOrNull { it.key == k } }?.let { f ->
-        FieldChecksSheet(f, vm.optionCount(f), onClose = { checksFor = null }) { e, rule, lo, hi ->
-            vm.setFieldChecks(f.key, e, rule, lo, hi); checksFor = null
+    checksFor?.let { k -> fv.fields.firstOrNull { it.key == k } }?.let { f ->
+        FieldChecksSheet(f, f.options.size, onClose = { checksFor = null }, onRemove = { fv.removeChecks(f) { checksFor = null } }) { c ->
+            fv.setChecks(f, c) { checksFor = null }
         }
     }
-    if (addingPhoto) {
-        var name by remember { mutableStateOf("") }
-        var hint by remember { mutableStateOf("") }
-        GuardedClose(name.isNotBlank() || hint.isNotBlank(), { addingPhoto = false }) { close ->
-        BottomSheet(close) {
-            SheetHeader("Add photo type", "E.g. Data plate, Valve position, Meter reading.", close)
-            Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                LabeledInput("Name *", name, { name = it }, "e.g. Meter reading")
-                LabeledInput("Hint for field workers", hint, { hint = it }, "What the photo should show")
-            }
-            SheetButtons("Add", name.isNotBlank(), close) { vm.addPhotoReq(name, hint); addingPhoto = false }
-        }
-        }
-    }
+}
+
+/** Name and hint of each kind of photo, as the web shows them. */
+private fun PhotoKind.nameRes() = when (this) {
+    PhotoKind.NAMEPLATE -> R.string.cfg_photo_nameplate
+    PhotoKind.ASSET -> R.string.cfg_photo_asset
+    PhotoKind.LABEL_ID -> R.string.cfg_photo_label_id
+}
+
+private fun PhotoKind.hintRes() = when (this) {
+    PhotoKind.NAMEPLATE -> R.string.cfg_photo_nameplate_hint
+    PhotoKind.ASSET -> R.string.cfg_photo_asset_hint
+    PhotoKind.LABEL_ID -> R.string.cfg_photo_label_id_hint
 }
 
 private val SHOW_W = 52.dp
@@ -1003,27 +1147,46 @@ private val CHECKS_W = 72.dp
 private val FIXED_OPTIONS = setOf("sys", "typ", "sub", "jacs")
 
 /** One line on what validation checks in [f], for the Edit sheet. */
+@Composable
 private fun checksSummary(f: FieldCfg): String {
     val parts = mutableListOf<String>()
     if (f.required || f.flagEmpty) parts += "Flagged when empty"
-    if (f.rule != ValueRule.NONE) parts += f.rule.label
-    val unit = when (f.kind) {
-        FieldKind.NUMBER -> ""
-        FieldKind.DATE -> ""
-        else -> " characters"
-    }
+    if (f.rule != ValueRule.NONE) parts += stringResource(f.rule.labelRes(f.kind))
+    if (f.kind == FieldKind.NUMBER && f.wholeNumber) parts += stringResource(R.string.cfg_checks_whole)
+    val unit = if (f.kind == FieldKind.NUMBER) "" else " characters"
     val lo = f.min.takeIf { it.isNotBlank() }
     val hi = f.max.takeIf { it.isNotBlank() }
     when {
         lo != null && hi != null -> parts += "$lo–$hi$unit"
-        lo != null -> parts += (if (f.kind == FieldKind.DATE) "From $lo" else "At least $lo$unit")
-        hi != null -> parts += (if (f.kind == FieldKind.DATE) "Up to $hi" else "At most $hi$unit")
+        lo != null -> parts += "At least $lo$unit"
+        hi != null -> parts += "At most $hi$unit"
     }
     return parts.joinToString(" · ").ifEmpty { "Nothing beyond its type" }
 }
 
+/** What a rule is called for a field of [kind] (the server's text formats, and past / future for dates). */
+private fun ValueRule.labelRes(kind: FieldKind): Int = when (this) {
+    ValueRule.NONE -> if (kind == FieldKind.DATE) R.string.cfg_rule_any_date else R.string.cfg_rule_any_text
+    ValueRule.LETTERS -> R.string.cfg_rule_letters
+    ValueRule.DIGITS -> R.string.cfg_rule_digits
+    ValueRule.ALNUM -> R.string.cfg_rule_alnum
+    ValueRule.EMAIL -> R.string.cfg_rule_email
+    ValueRule.PHONE -> R.string.cfg_rule_phone
+    ValueRule.UPPERCASE -> R.string.cfg_rule_uppercase
+    ValueRule.PATTERN -> R.string.cfg_rule_pattern
+    ValueRule.PAST -> R.string.cfg_rule_past
+    ValueRule.FUTURE -> R.string.cfg_rule_future
+}
+
 @Composable
-private fun FieldCfgRow(f: FieldCfg, options: Int, vm: AppViewModel, onEdit: () -> Unit, onChecks: () -> Unit) {
+private fun FieldCfgRow(
+    f: FieldCfg,
+    options: Int,
+    onToggleVisible: () -> Unit,
+    onToggleRequired: () -> Unit,
+    onEdit: () -> Unit,
+    onChecks: () -> Unit,
+) {
     Row(
         Modifier.listCard().clickable(onClick = onEdit).heightIn(min = 64.dp).padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1040,7 +1203,7 @@ private fun FieldCfgRow(f: FieldCfg, options: Int, vm: AppViewModel, onEdit: () 
         }
         // Show: the eye. Mandatory fields stay visible.
         Box(
-            Modifier.size(SHOW_W, 44.dp).clip(r(8)).clickable(enabled = !f.locked) { vm.toggleFieldVisible(f.key) },
+            Modifier.size(SHOW_W, 44.dp).clip(r(8)).clickable(enabled = !f.locked, onClick = onToggleVisible),
             contentAlignment = Alignment.Center,
         ) {
             LineIcon(
@@ -1055,7 +1218,7 @@ private fun FieldCfgRow(f: FieldCfg, options: Int, vm: AppViewModel, onEdit: () 
         }
         // Mandatory: the tick.
         Box(
-            Modifier.size(MUST_W, 44.dp).clip(r(8)).clickable(enabled = !f.locked) { vm.toggleFieldRequired(f.key) },
+            Modifier.size(MUST_W, 44.dp).clip(r(8)).clickable(enabled = !f.locked, onClick = onToggleRequired),
             contentAlignment = Alignment.Center,
         ) { Box(Modifier.alpha(if (f.locked) 0.4f else 1f)) { CheckBox(f.required) } }
         // Checks: what validation looks for beyond the kind.
@@ -1195,7 +1358,7 @@ private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, on
     editing?.let { d ->
         val isNew = drafts.none { it.key == d.key }
         FieldSheet(
-            d, draft = true, options = d.options.size, editableOptions = true,
+            d, draft = true, options = d.options.size, editableOptions = true, taken = existing + drafts,
             onClose = { editing = null },
             onSubmit = { f -> drafts = if (isNew) drafts + f else drafts.map { if (it.key == f.key) f else it }; editing = null },
             onDelete = { drafts = drafts.filter { it.key != d.key }; editing = null },
@@ -1230,16 +1393,33 @@ private fun FieldSheet(
     onClose: () -> Unit,
     onSubmit: (FieldCfg) -> Unit,
     onDelete: (() -> Unit)?,
+    /** Fields whose names this one can't reuse (compared without case or spaces, as the web does). */
+    taken: List<FieldCfg> = emptyList(),
 ) {
     var cur by remember(f.key) { mutableStateOf(f) }
     var opt by remember(f.key) { mutableStateOf("") }
+    var optProblem by remember(f.key) { mutableStateOf<OptionProblem?>(null) }
     var checks by remember(f.key) { mutableStateOf(false) }
+    var confirmDelete by remember(f.key) { mutableStateOf(false) }
+    // The option whose colour is being picked (null: none).
+    var colorFor by remember(f.key) { mutableStateOf<String?>(null) }
     val ownOptions = f.kind in OPTION_KINDS && editableOptions
-    val ok = cur.label.isNotBlank() && (!ownOptions || cur.options.isNotEmpty())
+    val duplicate = nameTaken(taken, cur.label, f.key)
+    val ok = cur.label.isNotBlank() && !duplicate && (!ownOptions || cur.options.isNotEmpty())
     fun addOption() {
-        val o = opt.trim()
-        if (o.isNotEmpty() && cur.options.none { it.equals(o, true) }) cur = cur.copy(options = cur.options + o)
-        opt = ""
+        // Option names are trimmed, can't be blank or hold / , { }, and can't repeat (the web's rules).
+        optProblem = optionProblem(opt, cur.options)
+        if (optProblem == null) {
+            cur = cur.copy(options = cur.options + opt.trim())
+            opt = ""
+        }
+    }
+    fun removeOption(o: String) {
+        val left = cur.options - o
+        // Removing the default's option clears the default (multiple checkboxes: just that name).
+        val default = if (cur.kind == FieldKind.MULTI) cur.defaultValue.split(',').filter { it.isNotBlank() && it != o }.joinToString(",")
+        else if (cur.defaultValue == o || left.isEmpty()) "" else cur.defaultValue
+        cur = cur.copy(options = left, defaultValue = default)
     }
     GuardedClose(cur != f || opt.isNotBlank(), onClose) { onClose ->
     BottomSheet(onClose) {
@@ -1259,6 +1439,7 @@ private fun FieldSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             LabeledInput("Name *", cur.label, { cur = cur.copy(label = it) }, "Field name")
+            if (duplicate) Txt(stringResource(R.string.cfg_field_exists), 11, 500, C.Red)
             if (ownOptions) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FieldLabel("Options *")
                 if (cur.options.isNotEmpty()) CfgCard {
@@ -1268,8 +1449,15 @@ private fun FieldSheet(
                                 .padding(start = 10.dp, end = 2.dp, top = 0.dp, bottom = 0.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            // The option's colour (as the web's picker); tap to change it.
+                            val colour = cur.optionColors[o] ?: DEFAULT_OPTION_COLOR
+                            val colourCd = stringResource(R.string.cfg_option_color_cd, o)
+                            Box(
+                                Modifier.size(40.dp).clip(CircleShape).clickable { colorFor = o }.semantics { contentDescription = colourCd }.testTag("option-color-$i"),
+                                contentAlignment = Alignment.Center,
+                            ) { Box(Modifier.size(18.dp).clip(CircleShape).background(hexColor(colour)).border(1.dp, C.Border2, CircleShape)) }
                             Txt(o, 12, 600, modifier = Modifier.weight(1f))
-                            Box(Modifier.size(40.dp).clip(CircleShape).clickable { cur = cur.copy(options = cur.options - o) }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(40.dp).clip(CircleShape).clickable { removeOption(o) }, contentAlignment = Alignment.Center) {
                                 LineIcon(Icons.Close, 14.dp, C.Muted, 2.4f)
                             }
                         }
@@ -1279,38 +1467,27 @@ private fun FieldSheet(
                     Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12)).padding(start = 10.dp, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PlainField(opt, { opt = it }, "Add an option", Modifier.weight(1f), size = 13)
+                    PlainField(opt, { opt = it; optProblem = null }, "Add an option", Modifier.weight(1f), size = 13)
                     Box(Modifier.size(34.dp).clip(CircleShape).background(C.Yellow).clickable(onClick = ::addOption), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.PlusSmall, 18.dp, C.OnYellow, 2.8f)
                     }
                 }
+                optProblem?.let {
+                    Txt(stringResource(if (it == OptionProblem.DUPLICATE) R.string.cfg_option_duplicate else R.string.cfg_option_invalid), 11, 500, C.Red)
+                }
             }
-            DefaultValueInput(cur, cur.options) { cur = cur.copy(defaultValue = it) }
-            LabeledInput("Tooltip", cur.tooltip, { cur = cur.copy(tooltip = it) }, "Help shown next to the field", singleLine = false, minLines = 3)
+            DefaultValueInput(cur, if (ownOptions) cur.options else f.options) { cur = cur.copy(defaultValue = it) }
+            LabeledInput("Tooltip", cur.tooltip, { cur = cur.copy(tooltip = it.take(MAX_TOOLTIP_LENGTH)) }, "Help shown next to the field", singleLine = false, minLines = 3)
             CfgCard {
                 if (!draft) ToggleRow("Visible", "Shown on the asset form", cur.visible, enabled = !f.locked && !cur.required) { cur = cur.copy(visible = it) }
                 ToggleRow("Mandatory", "Must be filled before submitting", cur.required, enabled = !f.locked, divider = !draft) {
                     cur = cur.copy(required = it, visible = cur.visible || it)
                 }
             }
-            if (f.kind == FieldKind.DATE || f.kind == FieldKind.TIME) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FieldLabel("Display format")
-                CfgCard {
-                    (listOf("") + if (f.kind == FieldKind.DATE) DATE_DISPLAY else TIME_DISPLAY).forEachIndexed { i, v ->
-                        Row(
-                            Modifier.fillMaxWidth().then(if (i > 0) Modifier.topBorder(C.Border) else Modifier).clickable { cur = cur.copy(display = v) }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Txt(v.ifEmpty { "No format" }, 14, if (cur.display == v) 700 else 500, modifier = Modifier.weight(1f))
-                            RadioDot(cur.display == v)
-                        }
-                    }
-                }
-            }
             CfgCard { LinkRow(Icons.ShieldCheck, "Checks", checksSummary(cur), { checks = true }) }
             if (onDelete != null) Row(
-                Modifier.fillMaxWidth().height(42.dp).clip(r(14)).border(1.dp, C.Red.copy(alpha = 0.7f), r(14)).clickable(onClick = onDelete),
+                Modifier.fillMaxWidth().height(42.dp).clip(r(14)).border(1.dp, C.Red.copy(alpha = 0.7f), r(14))
+                    .clickable { confirmDelete = !draft; if (draft) onDelete() },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             ) {
@@ -1322,23 +1499,67 @@ private fun FieldSheet(
     }
     }
     if (checks) {
-        FieldChecksSheet(cur, if (ownOptions) cur.options.size else options, onClose = { checks = false }) { e, rule, lo, hi ->
-            cur = cur.copy(flagEmpty = e, rule = rule, min = lo, max = hi); checks = false
+        FieldChecksSheet(
+            cur, if (ownOptions) cur.options.size else options, onClose = { checks = false },
+            onRemove = { cur = cur.withChecks(FieldChecks()); checks = false },
+        ) { c -> cur = cur.withChecks(c); checks = false }
+    }
+    if (confirmDelete && onDelete != null) {
+        ConfirmDialog(
+            icon = Icons.Trash, iconBg = Color(0xFF2A1919), iconFg = C.Red,
+            title = stringResource(R.string.cfg_field_delete_title, f.label), body = stringResource(R.string.cfg_field_delete_body, f.label),
+            no = "Cancel", yes = "Delete", onNo = { confirmDelete = false }, onYes = { confirmDelete = false; onDelete() },
+        )
+    }
+    colorFor?.let { o ->
+        OptionColorSheet(o, cur.optionColors[o] ?: DEFAULT_OPTION_COLOR, onClose = { colorFor = null }) { c ->
+            cur = cur.copy(optionColors = cur.optionColors + (o to c))
+            colorFor = null
         }
     }
 }
 
-/** The default value input for [f]'s kind; [choices] are its options when it has some. */
+/** Picks the colour of option [option] from [OPTION_COLORS]; [current] is ticked. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OptionColorSheet(option: String, current: String, onClose: () -> Unit, onPick: (String) -> Unit) {
+    BottomSheet(onClose) {
+        SheetHeader(stringResource(R.string.cfg_option_color_title), option, onClose)
+        FlowRow(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OPTION_COLORS.forEach { c ->
+                val on = c.equals(current, ignoreCase = true)
+                Box(
+                    Modifier.size(44.dp).clip(CircleShape).background(hexColor(c)).border(if (on) 3.dp else 1.dp, if (on) C.White else C.Border2, CircleShape)
+                        .clickable { onPick(c) }.semantics { contentDescription = c }.testTag("option-color-pick-$c"),
+                    contentAlignment = Alignment.Center,
+                ) { if (on) LineIcon(Icons.Check, 18.dp, C.White, 3f) }
+            }
+        }
+    }
+}
+
+/** A "#rrggbb" colour as a Compose colour (anything else: the default option colour). */
+private fun hexColor(hex: String): Color = runCatching { Color(android.graphics.Color.parseColor(hex)) }
+    .getOrDefault(Color(android.graphics.Color.parseColor(DEFAULT_OPTION_COLOR)))
+
+/**
+ * The default value input for [f]'s kind; [choices] are its options when it has some. Values are stored as the web
+ * stores them: checkbox true / false, date datepicker / today, time timepicker / now, links none.
+ */
 @Composable
 private fun DefaultValueInput(f: FieldCfg, choices: List<String>, onChange: (String) -> Unit) {
     val v = f.defaultValue
     when (f.kind) {
         FieldKind.CHECKBOX -> Row(
-            Modifier.fillMaxWidth().clip(r(10)).clickable { onChange(if (v == "Yes") "" else "Yes") }.padding(vertical = 4.dp),
+            Modifier.fillMaxWidth().clip(r(10)).clickable { onChange(if (v == CHECKED || v == ANSWER_YES) UNCHECKED else CHECKED) }.padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CheckBox(v == "Yes")
+            CheckBox(v == CHECKED || v == ANSWER_YES)
             Column {
                 Txt("Default status", 12, 700)
                 Txt("Ticked when a new asset is started", 11, 400, C.Muted)
@@ -1349,15 +1570,26 @@ private fun DefaultValueInput(f: FieldCfg, choices: List<String>, onChange: (Str
             val vals = listOf("", "Yes", "No")
             Segmented(listOf("None", "Yes", "No"), vals.indexOf(v).coerceAtLeast(0), { onChange(vals[it]) })
         }
-        FieldKind.DATE -> PickField("Default value", v, "Select…", listOf("None", "Today")) { onChange(if (it == "None") "" else it) }
-        FieldKind.TIME -> PickField("Default value", v, "Select…", listOf("None", "Now")) { onChange(if (it == "None") "" else it) }
+        FieldKind.DATE -> DefaultChoice(v, listOf("" to "None", DEFAULT_DATE_PICKER to "Date Picker", DEFAULT_TODAY to "Today"), onChange)
+        FieldKind.TIME -> DefaultChoice(v, listOf("" to "None", DEFAULT_TIME_PICKER to "Time Picker", DEFAULT_NOW to "Now"), onChange)
         FieldKind.DROPDOWN, FieldKind.MULTI ->
             PickField("Default value", v, if (choices.isEmpty()) "Add options first" else "Select…", if (choices.isEmpty()) emptyList() else listOf("None") + choices) {
                 onChange(if (it == "None") "" else it)
             }
         FieldKind.NUMBER -> LabeledInput("Default value", v, { s -> onChange(s.filter { it.isDigit() || it == '.' || it == '-' }) }, "Pre-filled number")
-        FieldKind.URL -> LabeledInput("Default value", v, onChange, "https://")
+        FieldKind.URL -> Unit // the web keeps no default for links
+        // Image, video, voice memo and key value: nothing is typed in, so no default.
+        FieldKind.IMAGE, FieldKind.VIDEO, FieldKind.VOICE_MEMO, FieldKind.KEY_VALUE -> Unit
         else -> LabeledInput("Default value", v, onChange, "Pre-filled text")
+    }
+}
+
+/** A default picked from a short fixed list (stored value to its name); a stored value in another case still shows. */
+@Composable
+private fun DefaultChoice(value: String, choices: List<Pair<String, String>>, onChange: (String) -> Unit) {
+    val shown = choices.firstOrNull { it.first.isNotEmpty() && it.first.equals(value, ignoreCase = true) }?.second ?: value
+    PickField("Default value", shown, "Select…", choices.map { it.second }) { name ->
+        onChange(choices.firstOrNull { it.second == name }?.first.orEmpty())
     }
 }
 
@@ -1402,18 +1634,38 @@ private fun InfoBox(text: String) {
     Txt(text, 12, 400, C.Soft, Modifier.fillMaxWidth().clip(r(12)).background(C.Raised).padding(10.dp), maxLines = 4)
 }
 
-/** What validation looks for in a field: flag it when empty, and what its values must be. */
+/** The rules a field of [kind] can pick, in the web’s order (text formats, or past / future for dates). */
+private fun rulesFor(kind: FieldKind): List<ValueRule> = when (kind) {
+    in TEXT_KINDS -> listOf(
+        ValueRule.NONE, ValueRule.LETTERS, ValueRule.DIGITS, ValueRule.ALNUM, ValueRule.EMAIL, ValueRule.PHONE, ValueRule.UPPERCASE, ValueRule.PATTERN,
+    )
+    FieldKind.DATE -> listOf(ValueRule.NONE, ValueRule.PAST, ValueRule.FUTURE)
+    else -> emptyList()
+}
+
+/**
+ * What validation looks for in a field: flag it when empty, and what its values must be (the server’s checks: a text
+ * format or your own pattern and lengths, a number range and whole numbers, past or future dates). [onRemove] clears
+ * every check (offered when the field has some).
+ */
 @Composable
-private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onSave: (Boolean, ValueRule, String, String) -> Unit) {
+private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onRemove: (() -> Unit)? = null, onSave: (FieldChecks) -> Unit) {
     var flag by remember(f.key) { mutableStateOf(f.flagEmpty) }
     var rule by remember(f.key) { mutableStateOf(f.rule) }
+    var pattern by remember(f.key) { mutableStateOf(f.pattern) }
     var lo by remember(f.key) { mutableStateOf(f.min) }
     var hi by remember(f.key) { mutableStateOf(f.max) }
+    var whole by remember(f.key) { mutableStateOf(f.wholeNumber) }
+    var tried by remember(f.key) { mutableStateOf(false) }
     var ruleOpen by remember { mutableStateOf(false) }
-    val rules = ValueRule.entries.filter { f.kind in it.kinds }
-    fun ruleName(r: ValueRule) = if (r == ValueRule.NONE) noRuleLabel(f.kind) else r.label
+    val rules = rulesFor(f.kind)
+    val now = FieldChecks(flag, rule, pattern, lo, hi, whole)
+    val problem = checksProblem(f.kind, now)
+    // A missing pattern is pointed out once Save was tried; contradictions show as soon as they are typed.
+    val shown = problem?.takeIf { it != ChecksProblem.PATTERN_MISSING || tried }
     val numeric: (String) -> String = { v -> v.filter { it.isDigit() || it == '.' || it == '-' } }
-    GuardedClose(flag != f.flagEmpty || rule != f.rule || lo != f.min || hi != f.max, onClose) { onClose ->
+    val digits: (String) -> String = { v -> v.filter(Char::isDigit) }
+    GuardedClose(now != f.checks, onClose) { onClose ->
     BottomSheet(onClose) {
         TightSheetHeader("Checks: ${f.label}", "What validation looks for in this field, beyond its type.", onClose)
         Column(
@@ -1432,166 +1684,344 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onS
                 FieldKind.YESNO -> "Yes or No: nothing more to check."
                 FieldKind.URL -> "Values must be a web link starting with http:// or https://."
                 FieldKind.TIME -> "Values must be a time, like 09:30."
+                FieldKind.IMAGE, FieldKind.VIDEO, FieldKind.VOICE_MEMO, FieldKind.KEY_VALUE -> stringResource(R.string.cfg_checks_no_format)
                 else -> null
             }
             if (fixedNote != null) {
                 InfoBox(fixedNote)
             } else {
-                Txt("Values must be", 12, 600, C.Soft)
-                Box {
-                    Row(
-                        Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12))
-                            .clickable { ruleOpen = true }.padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Txt(ruleName(rule), 13, 500, modifier = Modifier.weight(1f))
-                        Column {
-                            LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f, Modifier.rotate(180f))
-                            LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f)
+                if (rules.isNotEmpty()) {
+                    Txt("Values must be", 12, 600, C.Soft)
+                    Box {
+                        Row(
+                            Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12))
+                                .clickable { ruleOpen = true }.padding(horizontal = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Txt(stringResource(rule.labelRes(f.kind)), 13, 500, modifier = Modifier.weight(1f))
+                            Column {
+                                LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f, Modifier.rotate(180f))
+                                LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f)
+                            }
+                        }
+                        DropdownMenu(ruleOpen, { ruleOpen = false }, containerColor = C.Surface) {
+                            rules.forEach { r ->
+                                DropdownMenuItem(
+                                    text = { Txt(stringResource(r.labelRes(f.kind)), 14, if (r == rule) 700 else 500, if (r == rule) C.Yellow else C.Text) },
+                                    onClick = { rule = r; ruleOpen = false },
+                                )
+                            }
                         }
                     }
-                    DropdownMenu(ruleOpen, { ruleOpen = false }, containerColor = C.Surface) {
-                        rules.forEach { r ->
-                            DropdownMenuItem(
-                                text = { Txt(ruleName(r), 14, if (r == rule) 700 else 500, if (r == rule) C.Yellow else C.Text) },
-                                onClick = { rule = r; ruleOpen = false },
-                            )
-                        }
+                }
+                if (f.kind in TEXT_KINDS && rule == ValueRule.PATTERN) {
+                    LabeledInput(
+                        stringResource(R.string.cfg_checks_pattern_label), pattern, { pattern = it.take(MAX_PATTERN_LENGTH) },
+                        stringResource(R.string.cfg_checks_pattern_placeholder),
+                    )
+                    Txt(stringResource(R.string.cfg_checks_pattern_hint), 11, 400, C.Muted, maxLines = 3)
+                }
+                // Dates have no limits at the server: past or future only.
+                if (f.kind != FieldKind.DATE) {
+                    val (loLabel, hiLabel, loHint, hiHint) = when (f.kind) {
+                        FieldKind.NUMBER -> listOf("Min value (optional)", "Max value (optional)", "e.g. 0", "e.g. 5000")
+                        else -> listOf("Min length (optional)", "Max length (optional)", "e.g. 4", "e.g. 20")
+                    }
+                    val filter = if (f.kind == FieldKind.NUMBER) numeric else digits
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.weight(1f)) { LabeledInput(loLabel, lo, { lo = filter(it) }, loHint) }
+                        Box(Modifier.weight(1f)) { LabeledInput(hiLabel, hi, { hi = filter(it) }, hiHint) }
                     }
                 }
-                val (loLabel, hiLabel, loHint, hiHint) = when (f.kind) {
-                    FieldKind.NUMBER -> listOf("Min value (optional)", "Max value (optional)", "e.g. 0", "e.g. 5000")
-                    FieldKind.DATE -> listOf("Not before year (optional)", "Not after year (optional)", "e.g. 1950", "e.g. 2040")
-                    else -> listOf("Min length (optional)", "Max length (optional)", "e.g. 4", "e.g. 20")
+                if (f.kind == FieldKind.NUMBER) {
+                    CfgCard { ToggleRow(stringResource(R.string.cfg_checks_whole), stringResource(R.string.cfg_checks_whole_hint), whole, enabled = true) { whole = it } }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.weight(1f)) { LabeledInput(loLabel, lo, { lo = numeric(it) }, loHint) }
-                    Box(Modifier.weight(1f)) { LabeledInput(hiLabel, hi, { hi = numeric(it) }, hiHint) }
-                }
+                shown?.let { Txt(stringResource(it.messageRes()), 11, 500, C.Red, maxLines = 3) }
+            }
+            if (onRemove != null && f.checks.isSet) Row(
+                Modifier.fillMaxWidth().height(42.dp).clip(r(14)).border(1.dp, C.Red.copy(alpha = 0.7f), r(14)).clickable(onClick = onRemove),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            ) {
+                LineIcon(Icons.Trash, 17.dp, C.Red, 2.2f)
+                Txt(stringResource(R.string.cfg_checks_remove), 12, 700, C.Red)
             }
         }
-        SheetButtons("Save", true, onClose) { onSave(flag && !f.required, rule, lo, hi) }
+        SheetButtons("Save", shown == null, onClose) {
+            tried = true
+            if (problem == null) onSave(FieldChecks(flag && !f.required, rule, pattern, lo, hi, whole))
+        }
     }
     }
 }
 
+/** A [−] value [+] stepper; [enabled] false shows "–". A blocked button is dimmed, and its tap says why. */
 @Composable
-private fun Stepper(value: Int, modifier: Modifier, onChange: (Int) -> Unit) {
+private fun Stepper(value: Int, modifier: Modifier, enabled: Boolean, downBlocked: Boolean, upBlocked: Boolean, onStep: (up: Boolean) -> Unit) {
     Row(
         modifier.height(36.dp).clip(r(9)).background(C.Bg).border(1.dp, C.Border2, r(9)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = value > 0) { onChange(value - 1) }, contentAlignment = Alignment.Center) {
-            LineIcon(Icons.Minus, 14.dp, if (value > 0) C.Text else C.Dim, 2.6f)
+        Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled) { onStep(false) }, contentAlignment = Alignment.Center) {
+            LineIcon(Icons.Minus, 14.dp, if (enabled && !downBlocked) C.Text else C.Dim, 2.6f)
         }
-        Txt(value.toString(), 12, 700, modifier = Modifier.width(26.dp), align = androidx.compose.ui.text.style.TextAlign.Center)
-        Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = value < 9) { onChange(value + 1) }, contentAlignment = Alignment.Center) {
-            LineIcon(Icons.PlusSmall, 14.dp, if (value < 9) C.Text else C.Dim, 2.6f)
+        Txt(if (enabled) value.toString() else "–", 12, 700, modifier = Modifier.width(26.dp), align = androidx.compose.ui.text.style.TextAlign.Center)
+        Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled) { onStep(true) }, contentAlignment = Alignment.Center) {
+            LineIcon(Icons.PlusSmall, 14.dp, if (enabled && !upBlocked) C.Text else C.Dim, 2.6f)
         }
     }
 }
 
 // ---------------------------------------------------------------- Geofencing
 
-/** OpenStreetMap via Leaflet in a WebView, with address search (Nominatim). Drawing the fence comes later. */
-private const val MAP_HTML = """<!doctype html><html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<link rel="stylesheet" href="https://appassets.androidplatform.net/assets/leaflet/leaflet.css">
-<style>
-html,body{margin:0;height:100%;background:#aad3df}
-#m{position:absolute;top:0;left:0;right:0;bottom:0}
-#s{position:absolute;top:10px;left:54px;right:10px;z-index:1000}
-#q{box-sizing:border-box;width:100%;height:40px;border-radius:20px;border:0;padding:0 16px;font:15px sans-serif;
-   box-shadow:0 2px 8px rgba(0,0,0,.3);outline:none}
-#e{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font:15px sans-serif;color:#333;text-align:center;padding:24px}
-</style></head><body>
-<div id="m"></div>
-<form id="s"><input id="q" type="search" placeholder="Search address" enterkeyhint="search" autocomplete="off"></form>
-<div id="e">The map needs an internet connection.</div>
-<script src="https://appassets.androidplatform.net/assets/leaflet/leaflet.js"></script>
-<script>
-if (!window.L) { document.getElementById('e').style.display = 'flex'; }
-else {
-  var map = L.map('m', {worldCopyJump: true}).setView([20, 0], 2);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'}).addTo(map);
-  // The view may get its final size after load; let Leaflet re-measure so tiles fill it.
-  setTimeout(function () { map.invalidateSize(); }, 300);
-  window.addEventListener('resize', function () { map.invalidateSize(); });
-  var mk;
-  document.getElementById('s').onsubmit = function (e) {
-    e.preventDefault();
-    var q = document.getElementById('q').value.trim();
-    if (!q) return;
-    document.getElementById('q').blur();
-    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q))
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (!d.length) { alert('No place found for "' + q + '"'); return; }
-        var p = [+d[0].lat, +d[0].lon];
-        map.setView(p, 16);
-        if (mk) mk.remove();
-        mk = L.marker(p).addTo(map).bindPopup(d[0].display_name).openPopup();
-      })
-      .catch(function () { alert('Search needs an internet connection.'); });
-  };
-}
-</script></body></html>"""
-
+/**
+ * Geofencing, as the design: the address search, the map (OpenStreetMap or satellite, via the bundled Leaflet; page in
+ * GeofenceMap.kt) with a Satellite switch, then the enforce switch (it asks to confirm, and works once a fence is
+ * saved), the fences with their corners (tap one to move its corners, the bin removes it), and Draw fence. While
+ * drawing, the bar says how many corners there are, with Cancel, Undo and Finish. Save sends them all to the server.
+ */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun Geofencing(vm: AppViewModel) {
-    val s = vm.state
+private fun Geofencing(cfg: ConfigViewModel) {
+    val g = cfg.geofence
+    var web by remember { mutableStateOf<WebView?>(null) }
+    var pageReady by remember { mutableStateOf(false) }
+    var map by remember { mutableStateOf(MapState()) }
+    var query by remember { mutableStateOf("") }
+    var satellite by remember { mutableStateOf(false) }
+    val ready = g.load == LoadState.READY
+    val enforced = g.saved.enforced
+    val canEnforce = ready && !g.saving && g.saved.fences.isNotEmpty()
+    val on = ready && pageReady && !g.saving
+    // Show the saved fences once both the page and the geofence are there, and again after each load or save.
+    LaunchedEffect(pageReady, g.revision, g.load) {
+        if (pageReady && ready) web?.evaluateJavascript("adcSetFences(${fencesToJs(g.saved.fences)})", null)
+    }
+    LaunchedEffect(pageReady, satellite) { if (pageReady) web?.evaluateJavascript("adcSetSatellite($satellite)", null) }
+    // Fences changed, or a fence being drawn, that aren't saved: Configuration asks before closing.
+    val unsaved = map.dirty || (map.drawing && map.points > 0)
+    LaunchedEffect(unsaved) { cfg.markGeoUnsaved(unsaved) }
+    fun js(call: String) = web?.evaluateJavascript(call, null)
+    // Address suggestions as the web's: up to five, after a short pause, once two letters are typed.
+    var hits by remember { mutableStateOf(emptyList<PlaceHit>()) }
+    var picking by remember { mutableStateOf(false) }
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    LaunchedEffect(query, pageReady) {
+        if (!pageReady || !picking) return@LaunchedEffect
+        kotlinx.coroutines.delay(250)
+        js("adcSuggest(${JsonPrimitive(query.trim())})")
+    }
+    LaunchedEffect(map.suggestions) {
+        if (pageReady && map.suggestions > 0) web?.evaluateJavascript("adcSuggestions()") { hits = if (picking) hitsFromJs(it) else emptyList() }
+    }
+    fun go(hit: PlaceHit) {
+        picking = false
+        hits = emptyList()
+        query = hit.name
+        focus.clearFocus()
+        js("adcGoTo(${hit.lat}, ${hit.lon}, ${JsonPrimitive(hit.name)})")
+    }
     Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.padding(12.dp).fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))
-                .clickable { vm.setGeoEnforce(!vm.geoEnforce) }.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            CheckBox(vm.geoEnforce)
-            Column(Modifier.weight(1f)) {
-                Txt("Enforce location restriction for collecting asset data", 12, 600, maxLines = 2)
-                Txt(if (vm.geoEnforce) "Assets can only be collected inside the geofence." else "Assets can be collected anywhere.", 11, 400, C.Muted)
+        SearchField(
+            query, { query = it; picking = true; if (it.trim().length < 2) hits = emptyList() }, stringResource(R.string.cfg_geo_search),
+            Modifier.padding(horizontal = 12.dp).padding(top = 12.dp, bottom = 10.dp).testTag("geo-search"),
+            iconColor = C.Yellow,
+            onSubmit = {
+                picking = false
+                hits = emptyList()
+                focus.clearFocus()
+                if (pageReady && query.isNotBlank()) js("adcSearch(${JsonPrimitive(query.trim())})")
+            },
+        )
+        Box(Modifier.padding(horizontal = 12.dp).fillMaxWidth().weight(1f).clip(r(14)).border(1.dp, C.Border, r(14))) {
+            // Serves leaflet.js / .css / images from assets/leaflet/ so no script is fetched from the internet.
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val assets = remember { androidx.webkit.WebViewAssetLoader.Builder().addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build() }
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        // JavaScript runs the map; nothing else is switched on, and only the bundled page and
+                        // Leaflet (served from the app's assets) plus map tiles and address search are reachable.
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        settings.allowFileAccess = false
+                        settings.allowContentAccess = false
+                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                        settings.safeBrowsingEnabled = true
+                        // Without MATCH_PARENT the WebView sizes its viewport to the (empty) page: a 0-high map.
+                        layoutParams = android.view.ViewGroup.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        )
+                        // Drags on the map pan the map instead of swiping to the next tab.
+                        setOnTouchListener { v, e ->
+                            if (e.actionMasked == android.view.MotionEvent.ACTION_DOWN) v.parent?.requestDisallowInterceptTouchEvent(true)
+                            false
+                        }
+                        webViewClient = object : WebViewClient() {
+                            override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest) =
+                                assets.shouldInterceptRequest(request.url)
+
+                            // The map never navigates away; links stay inert.
+                            override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest) = true
+
+                            override fun onPageFinished(view: WebView, url: String?) {
+                                pageReady = true
+                            }
+                        }
+                        // The page reports what it is doing through its title (no JavaScript interface is added).
+                        webChromeClient = object : WebChromeClient() {
+                            override fun onReceivedTitle(view: WebView, title: String?) {
+                                parseMapTitle(title)?.let { map = it }
+                            }
+                        }
+                        loadDataWithBaseURL("https://appassets.androidplatform.net/", MAP_HTML, "text/html", "utf-8", null)
+                        web = this
+                    }
+                },
+                onRelease = {
+                    web = null
+                    pageReady = false
+                    it.destroy()
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+            // Street map or satellite imagery.
+            Row(
+                Modifier.align(Alignment.TopEnd).padding(10.dp).clip(Capsule).background(Color(0xCC1C1D21))
+                    .clickable { satellite = !satellite }.padding(horizontal = 12.dp, vertical = 7.dp).testTag("geo-satellite"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                LineIcon(Icons.Globe, 14.dp, if (satellite) C.Yellow else C.White, 2.2f)
+                Txt(stringResource(if (satellite) R.string.cfg_geo_map else R.string.cfg_geo_satellite), 12, 700, C.White)
+            }
+            // Address suggestions for what is typed, over the top of the map; tapping one goes there.
+            if (picking && hits.isNotEmpty()) {
+                Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(C.Surface).border(1.dp, C.Border).testTag("geo-suggestions")) {
+                    hits.forEach { h ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable { go(h) }.heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            LineIcon(Icons.Pin, 16.dp, C.Yellow, 2.2f)
+                            Txt(h.name, 12, 500, modifier = Modifier.weight(1f), maxLines = 2)
+                        }
+                    }
+                }
             }
         }
-        Txt("Draw geofence", 13, 700, modifier = Modifier.padding(start = 10.dp, bottom = 8.dp))
-        // Serves leaflet.js / .css / images from assets/leaflet/ so no script is fetched from the internet.
-        val context = androidx.compose.ui.platform.LocalContext.current
-        val assets = remember { androidx.webkit.WebViewAssetLoader.Builder().addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build() }
-        AndroidView(
-            factory = { ctx ->
-                WebView(ctx).apply {
-                    // JavaScript runs the map; nothing else is switched on, and only the bundled page and
-                    // Leaflet (served from the app's assets) plus map tiles and address search are reachable.
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-                    settings.allowFileAccess = false
-                    settings.allowContentAccess = false
-                    settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    settings.safeBrowsingEnabled = true
-                    // Without MATCH_PARENT the WebView sizes its viewport to the (empty) page: a 0-high map.
-                    layoutParams = android.view.ViewGroup.LayoutParams(
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+        if (map.drawing) {
+            // Drawing: how many corners so far, then Cancel, Undo and Finish (3 corners or more).
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Txt(pluralStringResource(R.plurals.cfg_geo_drawing, map.points, map.points), 13, 500, C.Soft, maxLines = 2)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Pill(stringResource(R.string.cfg_cancel), { js("adcCancelDraw()") }, height = 40.dp, hPad = 16.dp, size = 13)
+                    Pill(stringResource(R.string.cfg_geo_undo), { if (map.points > 0) js("adcUndo()") }, Modifier.alpha(if (map.points > 0) 1f else 0.4f), height = 40.dp, hPad = 16.dp, size = 13)
+                    Spacer(Modifier.weight(1f))
+                    Pill(
+                        stringResource(R.string.cfg_geo_finish), { if (map.points >= 3) js("adcFinishDraw()") }, Modifier.alpha(if (map.points >= 3) 1f else 0.4f).testTag("geo-finish"),
+                        bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 22.dp, size = 13, weight = 700,
                     )
-                    // Drags on the map pan the map instead of swiping to the next tab.
-                    setOnTouchListener { v, e ->
-                        if (e.actionMasked == android.view.MotionEvent.ACTION_DOWN) v.parent?.requestDisallowInterceptTouchEvent(true)
-                        false
-                    }
-                    webViewClient = object : WebViewClient() {
-                        override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest) =
-                            assets.shouldInterceptRequest(request.url)
-
-                        // The map never navigates away; links stay inert.
-                        override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest) = true
-                    }
-                    webChromeClient = WebChromeClient()
-                    loadDataWithBaseURL("https://appassets.androidplatform.net/", MAP_HTML, "text/html", "utf-8", null)
                 }
-            },
-            onRelease = { it.destroy() },
-            modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp).fillMaxWidth().weight(1f).clip(r(14))
-                .border(1.dp, C.Border, r(14)),
+            }
+        } else {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState()).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // Enforce location restriction.
+                Row(
+                    Modifier.fillMaxWidth().clickable { if (canEnforce) cfg.askEnforce(!enforced) else if (ready) cfg.explainEnforce() },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Txt(stringResource(R.string.cfg_geo_enforce_title), 14, 700, maxLines = 2)
+                        Txt(
+                            when (g.load) {
+                                LoadState.LOADING -> stringResource(R.string.cfg_geo_loading)
+                                LoadState.FAILED -> stringResource(R.string.cfg_geo_load_failed)
+                                LoadState.READY -> stringResource(R.string.cfg_geo_enforce_hint)
+                            },
+                            12, 400, C.Muted, maxLines = 3,
+                        )
+                    }
+                    Box(Modifier.alpha(if (canEnforce) 1f else 0.5f).testTag("geo-enforce")) {
+                        OnOffSwitch(enforced) { if (canEnforce) cfg.askEnforce(it) else if (ready) cfg.explainEnforce() }
+                    }
+                }
+                // The fences on the map now (saved or not): tap one to move its corners; the bin removes it.
+                map.corners.forEachIndexed { i, n ->
+                    val picked = map.selected == i
+                    Row(
+                        Modifier.fillMaxWidth().clip(r(10)).background(if (picked) C.YTintBg else Color.Transparent)
+                            .clickable { if (on) js("adcSelectFence($i)") }.heightIn(min = 44.dp).padding(start = 4.dp).testTag("geo-fence-$i"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        LineIcon(Icons.Fence, 20.dp, C.Orange, 2.2f)
+                        Txt(stringResource(R.string.cfg_geo_fence_name, i + 1), 14, 700)
+                        Txt(pluralStringResource(R.plurals.cfg_geo_corners, n, n), 12, 400, C.Muted, Modifier.weight(1f))
+                        val label = stringResource(R.string.cfg_geo_delete_fence_cd, i + 1)
+                        Box(
+                            Modifier.size(44.dp).clip(r(10)).clickable { if (on) js("adcDeleteFence($i)") }.semantics { contentDescription = label },
+                            contentAlignment = Alignment.Center,
+                        ) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
+                    }
+                }
+                // A picked fence: how to change its corners, and Remove corner for the tapped one (a fence keeps 3).
+                if (map.selected >= 0) Txt(stringResource(R.string.cfg_geo_corner_hint), 12, 400, C.Muted, maxLines = 3)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Pill(stringResource(R.string.cfg_geo_draw_fence), { if (on) js("adcStartDraw()") }, Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-draw"), height = 40.dp, hPad = 18.dp, size = 13, weight = 700)
+                    if (map.corner >= 0) {
+                        val canRemove = on && (map.corners.getOrNull(map.selected) ?: 0) > 3
+                        Pill(
+                            stringResource(R.string.cfg_geo_remove_corner), { if (canRemove) js("adcRemoveCorner()") },
+                            Modifier.alpha(if (canRemove) 1f else 0.4f).testTag("geo-remove-corner"), fg = C.Red, height = 40.dp, hPad = 14.dp, size = 13,
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    // Save appears once something changed on the map.
+                    if (map.dirty) {
+                        Pill(
+                            stringResource(if (g.saving) R.string.cfg_saving else R.string.cfg_save),
+                            { if (on) web?.evaluateJavascript("adcGetFences()") { value -> cfg.saveFences(fencesFromJs(value)) } },
+                            Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-save"), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 22.dp, size = 13, weight = 700,
+                        )
+                    }
+                }
+            }
+        }
+    }
+    g.confirmEnforce?.let { turnOn ->
+        ConfirmDialog(
+            icon = Icons.Pin, iconBg = C.YTintBg, iconFg = C.Yellow,
+            title = stringResource(R.string.cfg_geo_confirm_question),
+            body = stringResource(if (turnOn) R.string.cfg_geo_confirm_enforce else R.string.cfg_geo_confirm_release),
+            no = stringResource(R.string.cfg_cancel), yes = stringResource(R.string.cfg_geo_proceed),
+            onNo = cfg::cancelEnforce, onYes = cfg::confirmEnforce, yesBg = C.Yellow,
         )
+    }
+}
+
+/** The floor that holds location [locationId]. */
+private fun floorOf(tree: List<LocNode>, locationId: String): LocNode? =
+    tree.flatMap { it.kids.orEmpty() }.firstOrNull { f -> f.kids.orEmpty().any { it.id == locationId } }
+
+/** Loading, or why the server's data isn't there, with Try again: the empty-state note these tabs already use. */
+@Composable
+private fun OnlineNote(load: LoadState, failure: com.sclera.sclerago.presentation.common.UiText?, onRetry: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = pageGutter()).padding(horizontal = 9.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (load == LoadState.LOADING) {
+            EmptyNote(stringResource(R.string.cfg_loading))
+        } else {
+            EmptyNote(stringResource(R.string.cfg_needs_connection) + (failure?.let { "\n" + it.asString() } ?: ""))
+            Pill(stringResource(R.string.cfg_try_again), onRetry, height = 40.dp, hPad = 16.dp)
+        }
     }
 }

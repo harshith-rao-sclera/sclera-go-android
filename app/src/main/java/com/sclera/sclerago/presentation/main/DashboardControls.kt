@@ -100,14 +100,24 @@ fun SelectionDock(
     allPicked: Boolean,
     onClear: () -> Unit,
     onSelectAll: () -> Unit,
-    onValidate: () -> Unit,
+    /** Sign the selected assets off; null hides it (only reviewers may). */
+    onValidate: (() -> Unit)?,
     onAssign: () -> Unit,
     onSubmit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Move to managed assets; null hides it (nothing selected is validated). */
+    onMove: (() -> Unit)? = null,
+    /** Greys Move out (not linked, link unknown, or not on the Validated filter); a tap then says why. */
+    moveDimmed: Boolean = false,
+    /** Edit the selected assets' location (the web's Edit); null hides it. */
+    onEdit: (() -> Unit)? = null,
 ) {
     Column(modifier.testTag(DashTags.DOCK)) {
-        ActionDock(onValidate = onValidate, onAssign = onAssign, onSubmit = onSubmit, onDelete = onDelete, floating = true) {
+        ActionDock(
+            onValidate = onValidate, onAssign = onAssign, onSubmit = onSubmit, onDelete = onDelete, floating = true,
+            onMove = onMove, moveDimmed = moveDimmed, onEdit = onEdit,
+        ) {
             SelectionSummary(count, visible, allPicked, onClear, onSelectAll, Modifier.testTag(DashTags.SELECT_ALL))
         }
     }

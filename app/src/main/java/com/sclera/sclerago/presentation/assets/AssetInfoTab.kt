@@ -27,7 +27,11 @@ import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.PhotoKind
-import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.ANSWER_NO
+import com.sclera.sclerago.domain.model.ANSWER_YES
+import com.sclera.sclerago.domain.model.CHECKED
+import com.sclera.sclerago.domain.validation.isServerId
+import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.assetTypes
 import com.sclera.sclerago.domain.model.subtypes
@@ -46,6 +50,8 @@ enum class DetailModal { NONE, DELETE, DISCARD, SUBMIT, SUBMIT_EXCEPTION, SAVE_M
 class AssetDetailActions(
     val onBack: () -> Unit = {},
     val onChangeLoc: () -> Unit = {},
+    /** Assign the asset to a person (the web's Assign asset). */
+    val onAssign: () -> Unit = {},
     val onEdit: (key: String, value: String) -> Unit = { _, _ -> },
     val onDiscardEdits: () -> Unit = {},
     val onSave: () -> Unit = {},
@@ -59,25 +65,38 @@ class AssetDetailActions(
     val onAutofill: () -> Unit = {},
     /** What the AI suggestions dialog's buttons do. */
     val ai: AiDialogActions = AiDialogActions(),
+    /** Start or stop listening to fill fields by voice. */
+    val onMic: () -> Unit = {},
+    /** What the voice fill sheet's buttons do. */
+    val voice: VoiceFillActions = VoiceFillActions(),
     val onTakePhoto: () -> Unit = {},
     val onPickGallery: () -> Unit = {},
     val onPickFiles: () -> Unit = {},
+    /** The Documents tab's Upload: one file, kept as the asset's source document. */
+    val onUploadDocument: () -> Unit = {},
+    /** The Media tab's Record memo: records a voice memo for the asset. */
+    val onRecordMemo: () -> Unit = {},
     /** The comment being typed changed / post it (Comments tab). */
     val onCommentChange: (String) -> Unit = {},
     val onPostComment: () -> Unit = {},
+    /** The Comments tab's +: opens (true) or closes the sheet a comment is written in. */
+    val onCommentSheet: (Boolean) -> Unit = {},
     /** Validate the asset again at the server: from its first step to look at, or (true) every step. */
     val onRevalidate: (fromStart: Boolean) -> Unit = {},
-    /** Add a photo of [kind] (null: other photos) with the camera, or from the gallery (Media tab cards). */
-    val onAddPhoto: (kind: PhotoKind?, camera: Boolean) -> Unit = { _, _ -> },
+    /** Open the camera for a photo of [kind] (null: other photos) (Media tab +). */
+    val onAddPhoto: (kind: PhotoKind?) -> Unit = {},
     /** Take a web page off the asset (Documents tab, after the confirmation). */
     val onRemoveWebPage: (documentId: String) -> Unit = {},
+    /** Open the "Suggest type" sheet (System details). */
+    val onSuggestType: () -> Unit = {},
+    /** What the "Suggest type" sheet's buttons do. */
+    val classify: ClassifyActions = ClassifyActions(),
 )
 
-/** The form's own view state: which sections are closed, the voice note, and where a Fix button should scroll to. */
+/** The form's own view state: which sections are closed and where a Fix button should scroll to. */
 @Stable
 class FormUi {
     var collapsed by mutableStateOf(emptySet<String>())
-    var listening by mutableStateOf(false)
 
     /** The section or field key a Fix button asked to show. */
     var pending by mutableStateOf<String?>(null)
@@ -99,8 +118,8 @@ object InfoSections {
 /** The System details fields: system, asset and sub type, and the JACS code. */
 private val SYSTEM_KEYS = listOf("sys", "typ", "sub", "jacs")
 
-/** Fields shown in System details rather than Asset fields (the name is listed in Asset fields too, as on the web). */
-private val NOT_IN_FIELDS = SYSTEM_KEYS.toSet()
+/** Fields not listed in Asset fields: the System details ones, and the name (edited in the title bar). */
+private val NOT_IN_FIELDS = SYSTEM_KEYS.toSet() + "name"
 
 /** Fields whose values are codes and addresses, shown in a fixed-width font. */
 private val CODE_KEYS = setOf("label", "ble", "ip", "mac", "serial")
@@ -168,11 +187,10 @@ fun AssetInfoTab(
             ?: Summary(listOf("sub", "typ", "sys").map { v(it) }.firstOrNull { it.isNotEmpty() && it != UNCLASSIFIED } ?: notSet),
     ) {
         systemShown.forEach { k ->
-            val bg = if (missing(k)) C.WarnRow else Color.Transparent
             if (k == "jacs") {
                 FieldRow(
                     k, labels.getValue(k), v(k), { actions.onEdit(k, it) }, state.dirty(k), state.badgeFor(k),
-                    rowBg = bg, mono = true, requester = ui.requester(k), required = missing(k),
+                    mono = true, requester = ui.requester(k),
                 )
             } else {
                 val choices = when (k) {
@@ -183,9 +201,17 @@ fun AssetInfoTab(
                 // Not classified yet shows as "-", as on the web.
                 SelectRow(
                     k, labels.getValue(k), v(k), listOf(UNCLASSIFIED to notSet) + choices.filter { it != UNCLASSIFIED }.map { it to it },
-                    state.dirty(k), { actions.onEdit(k, it) }, required = missing(k), rowBg = bg, requester = ui.requester(k),
+                    state.dirty(k), { actions.onEdit(k, it) }, requester = ui.requester(k),
                 )
             }
+        }
+        // The server suggests the type and JACS code from the photos and what is typed (the asset need not be synced).
+        if (!locked) {
+            Pill(
+                stringResource(R.string.classify_suggest), actions.onSuggestType,
+                Modifier.padding(horizontal = 12.dp).padding(top = 8.dp).fillMaxWidth().testTag(DetailTags.SUGGEST_TYPE),
+                height = 44.dp, size = 13, weight = 600,
+            )
         }
     }
 
@@ -202,7 +228,7 @@ fun AssetInfoTab(
     ) {
         state.fieldRows.forEach { row ->
             when (row) {
-                is FormEntry.Input -> state.fields.firstOrNull { it.key == row.key }?.takeIf { it.key !in NOT_IN_FIELDS }
+                is FormEntry.Input -> spec.cfg(row.key)?.takeIf { it.key !in NOT_IN_FIELDS }
                     ?.let { f -> AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) } }
                 is FormEntry.MediaField -> {
                     val files = state.media.count { it.fieldId == row.id }
@@ -219,19 +245,22 @@ fun AssetInfoTab(
         StatusLine(asset, Modifier.padding(horizontal = 12.dp).padding(top = 2.dp))
         if (locked) {
             // Submitted: read-only. A recollect request reopens it (for now it just closes the asset).
-            SubmittedCard(onRecollect = actions.onBack, modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp))
+            SubmittedCard(
+                onRecollect = actions.onBack, modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
+                onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
+            )
         } else {
             // As the server: an asset with an empty mandatory field or too few photos is submitted as an exception, so ask about that first.
             val submitModal = if (state.complete) DetailModal.SUBMIT else DetailModal.SUBMIT_EXCEPTION
             ActionCard(
-                // No button for the status the asset already has.
-                onValidate = if (asset.st != Status.VALIDATED) actions.onValidate else null,
-                onAssign = actions.onChangeLoc,
+                // As the web: for anyone who may run checks, once the server has the asset.
+                onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
+                onAssign = actions.onAssign,
                 onSubmit = { onModal(submitModal) },
                 onDelete = { onModal(DetailModal.DELETE) },
                 modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
             )
-            // Save (keeps its status; asks first while a mandatory field is empty, as the web) and Submit.
+            // Save (makes it drafted with the AI flag on; asks first while a mandatory field is empty, as the web) and Submit.
             val dirty = state.dirtyCount
             SaveCard(Modifier.padding(horizontal = 12.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -259,14 +288,16 @@ fun AssetInfoTab(
             }
         }
     } else {
-        // New asset: save it as a draft, or submit it (then it can not be edited).
+        // New asset: save it as a draft, or submit it (then it can not be edited). As the server, one with an empty mandatory
+        // field or too few photos is submitted as an exception, so ask about that first.
+        val submitModal = if (state.complete) DetailModal.SUBMIT else DetailModal.SUBMIT_EXCEPTION
         SaveCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp)) {
             Pill(
                 stringResource(R.string.action_save), { actions.onCreate(false) }, Modifier.weight(1f).testTag(DetailTags.SAVE),
                 height = 48.dp, size = 14, weight = 700,
             )
             Pill(
-                stringResource(R.string.action_submit), { onModal(DetailModal.SUBMIT) }, Modifier.weight(1f).testTag(DetailTags.SUBMIT),
+                stringResource(R.string.action_submit), { onModal(submitModal) }, Modifier.weight(1f).testTag(DetailTags.SUBMIT),
                 bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700,
             )
         }
@@ -281,42 +312,36 @@ fun AssetInfoTab(
 private fun AssetFieldRow(f: FieldCfg, state: AssetDetailState, spec: FieldSpec, select: String, ui: FormUi, onChange: (String) -> Unit) {
     val k = f.key
     val value = state.value(k)
-    val missing = spec.required(k) && value.isEmpty()
-    val bg = if (missing || state.badgeFor(k) == FieldBadge.CHECK) C.WarnRow else Color.Transparent
+    // Only a value the nameplate reading was unsure of is highlighted; a mandatory field shows its orange * alone.
+    val bg = if (state.badgeFor(k) == FieldBadge.CHECK) C.WarnRow else Color.Transparent
     val label = spec.label(k, f.label)
     when (f.kind) {
         FieldKind.DATE, FieldKind.TIME -> {
-            WhenRow(k, label, value, if (f.kind == FieldKind.DATE) WhenKind.DATE else WhenKind.TIME, state.dirty(k), missing, onChange, bg)
+            WhenRow(k, label, value, if (f.kind == FieldKind.DATE) WhenKind.DATE else WhenKind.TIME, state.dirty(k), onChange, bg)
             return
         }
         FieldKind.MULTI -> if (f.options.isNotEmpty()) {
-            MultiCheckRow(k, label, value, f.options, state.dirty(k), missing, onChange, bg)
+            MultiCheckRow(k, label, value, f.options, state.dirty(k), onChange, bg)
             return
         }
         else -> {}
     }
     val choices = when (f.kind) {
         // Yes / no answers are stored as the words, checkboxes as true / false (as the web stores them).
-        FieldKind.YESNO -> listOf(YES to stringResource(R.string.detail_yes), NO to stringResource(R.string.detail_no))
-        FieldKind.CHECKBOX -> listOf(TRUE to stringResource(R.string.detail_yes), FALSE to stringResource(R.string.detail_no))
+        FieldKind.YESNO -> listOf(ANSWER_YES to stringResource(R.string.detail_yes), ANSWER_NO to stringResource(R.string.detail_no))
+        FieldKind.CHECKBOX -> listOf(CHECKED to stringResource(R.string.detail_yes), UNCHECKED to stringResource(R.string.detail_no))
         FieldKind.DROPDOWN -> f.options.map { it to it }
         else -> emptyList()
     }
     if (choices.isNotEmpty()) {
         SelectRow(
             k, label, value, listOf("" to select) + choices, state.dirty(k), onChange,
-            required = missing, rowBg = bg, requester = ui.requester(k),
+            rowBg = bg, requester = ui.requester(k),
         )
     } else {
         FieldRow(
             k, label, value, onChange, state.dirty(k), state.badgeFor(k), rowBg = bg,
-            mono = k in CODE_KEYS, requester = ui.requester(k), required = missing, multiLine = f.kind == FieldKind.TEXTAREA,
+            mono = k in CODE_KEYS, requester = ui.requester(k), multiLine = f.kind == FieldKind.TEXTAREA,
         )
     }
 }
-
-/** How yes / no and checkbox answers are stored (as the web stores them). */
-private const val YES = "Yes"
-private const val NO = "No"
-private const val TRUE = "true"
-private const val FALSE = "false"

@@ -6,6 +6,8 @@ import com.sclera.sclerago.data.sync.AdcSyncController
 import com.sclera.sclerago.data.sync.MeCredentialsProvider
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.data.sync.SyncDataCleaner
+import com.sclera.sclerago.data.sync.TableReloader
+import com.sclera.sclerago.domain.repository.LocalDataReloader
 import com.sclera.sclerago.domain.repository.UserDataCleaner
 import com.sclera.sclerago.domain.sync.OfflineSync
 import dagger.Binds
@@ -28,6 +30,7 @@ abstract class SyncModule {
     /** Absent in release; the debug source set binds it so a local test database can replace the sync. */
     @BindsOptionalOf abstract fun testDatabase(): TestDatabase
     @Binds @IntoSet abstract fun clearSync(impl: SyncDataCleaner): UserDataCleaner
+    @Binds abstract fun localDataReloader(impl: TableReloader): LocalDataReloader
 
     companion object {
         /** Lives as long as the process, for work that must outlive any screen (the sync). */

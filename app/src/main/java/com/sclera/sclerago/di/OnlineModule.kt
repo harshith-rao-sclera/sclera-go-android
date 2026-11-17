@@ -8,18 +8,44 @@ import com.sclera.sclerago.data.online.OnlineIdentity
 import com.sclera.sclerago.data.online.PropertyStore
 import com.sclera.sclerago.data.remote.adc.AccessTokenProvider
 import com.sclera.sclerago.data.remote.adc.AdcApiService
+import com.sclera.sclerago.data.remote.adc.AdcClassifyService
 import com.sclera.sclerago.data.remote.adc.AdcConfig
+import com.sclera.sclerago.data.remote.adc.AdcConfigService
 import com.sclera.sclerago.data.remote.adc.AdcJobsService
+import com.sclera.sclerago.data.remote.adc.AdcValidationService
+import com.sclera.sclerago.data.remote.adc.AdcIntegrationService
 import com.sclera.sclerago.data.remote.adc.forAdc
 import com.sclera.sclerago.data.repository.AccessRepositoryImpl
+import com.sclera.sclerago.data.repository.AddressLookupRepositoryImpl
+import com.sclera.sclerago.data.repository.PropertyImportRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetAssignmentRepositoryImpl
 import com.sclera.sclerago.data.repository.AuthRepositoryImpl
+import com.sclera.sclerago.data.repository.ConfigFieldsRepositoryImpl
+import com.sclera.sclerago.data.repository.ConfigPlacesRepositoryImpl
+import com.sclera.sclerago.data.repository.GeofenceRepositoryImpl
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
+import com.sclera.sclerago.data.repository.PropertySettingsRepositoryImpl
+import com.sclera.sclerago.data.repository.ValidationRunRepositoryImpl
+import com.sclera.sclerago.data.repository.IntegrationRepositoryImpl
+import com.sclera.sclerago.data.repository.ManagedAssetsRepositoryImpl
 import com.sclera.sclerago.domain.repository.AccessRepository
+import com.sclera.sclerago.domain.repository.AddressLookupRepository
+import com.sclera.sclerago.domain.repository.PropertyImportRepository
+import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
+import com.sclera.sclerago.domain.repository.ConfigFieldsRepository
+import com.sclera.sclerago.domain.repository.ConfigPlacesRepository
 import com.sclera.sclerago.domain.repository.CurrentAccessRepository
+import com.sclera.sclerago.domain.repository.GeofenceRepository
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
+import com.sclera.sclerago.domain.repository.PropertySettingsRepository
+import com.sclera.sclerago.domain.repository.SavedValidationRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
+import com.sclera.sclerago.domain.repository.ValidationCatalogRepository
+import com.sclera.sclerago.domain.repository.ValidationRunRepository
+import com.sclera.sclerago.domain.repository.IntegrationRepository
+import com.sclera.sclerago.domain.repository.ManagedAssetsRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -43,14 +69,27 @@ abstract class OnlineModule {
     @Binds abstract fun properties(impl: PropertyRepositoryImpl): PropertyRepository
     @Binds abstract fun onboarding(impl: OnboardingRepositoryImpl): OnboardingRepository
     @Binds abstract fun access(impl: AccessRepositoryImpl): AccessRepository
+    @Binds abstract fun assetAssignment(impl: AssetAssignmentRepositoryImpl): AssetAssignmentRepository
+    @Binds abstract fun addressLookup(impl: AddressLookupRepositoryImpl): AddressLookupRepository
+    @Binds abstract fun propertyImport(impl: PropertyImportRepositoryImpl): PropertyImportRepository
     @Binds abstract fun currentAccess(impl: CurrentAccessRepositoryImpl): CurrentAccessRepository
     @Binds abstract fun cache(impl: EncryptedFileCache): EncryptedCache
+    @Binds abstract fun validationCatalog(impl: ValidationRunRepositoryImpl): ValidationCatalogRepository
+    @Binds abstract fun savedValidations(impl: ValidationRunRepositoryImpl): SavedValidationRepository
+    @Binds abstract fun validationRuns(impl: ValidationRunRepositoryImpl): ValidationRunRepository
+    @Binds abstract fun integration(impl: IntegrationRepositoryImpl): IntegrationRepository
+    @Binds abstract fun managedAssets(impl: ManagedAssetsRepositoryImpl): ManagedAssetsRepository
+    @Binds abstract fun propertySettings(impl: PropertySettingsRepositoryImpl): PropertySettingsRepository
+    @Binds abstract fun geofence(impl: GeofenceRepositoryImpl): GeofenceRepository
+    @Binds abstract fun configFields(impl: ConfigFieldsRepositoryImpl): ConfigFieldsRepository
+    @Binds abstract fun configPlaces(impl: ConfigPlacesRepositoryImpl): ConfigPlacesRepository
 
     @Binds @IntoSet abstract fun clearCache(impl: EncryptedFileCache): UserDataCleaner
     @Binds @IntoSet abstract fun clearProperties(impl: PropertyStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearAccess(impl: AccessStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearCurrentAccess(impl: CurrentAccessRepositoryImpl): UserDataCleaner
     @Binds @IntoSet abstract fun clearIdentity(impl: OnlineIdentity): UserDataCleaner
+    @Binds @IntoSet abstract fun clearConfigPlaces(impl: ConfigPlacesRepositoryImpl): UserDataCleaner
 
     companion object {
         @Provides
@@ -68,7 +107,27 @@ abstract class OnlineModule {
 
         @Provides
         @Singleton
+        fun adcClassifyService(@AdcClient client: OkHttpClient): AdcClassifyService =
+            Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcClassifyService::class.java)
+
+        @Provides
+        @Singleton
         fun adcJobsService(@AdcClient client: OkHttpClient): AdcJobsService =
             Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcJobsService::class.java)
+
+        @Provides
+        @Singleton
+        fun adcValidationService(@AdcClient client: OkHttpClient): AdcValidationService =
+            Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcValidationService::class.java)
+
+        @Provides
+        @Singleton
+        fun adcIntegrationService(@AdcClient client: OkHttpClient): AdcIntegrationService =
+            Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcIntegrationService::class.java)
+
+        @Provides
+        @Singleton
+        fun adcConfigService(@AdcClient client: OkHttpClient): AdcConfigService =
+            Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcConfigService::class.java)
     }
 }

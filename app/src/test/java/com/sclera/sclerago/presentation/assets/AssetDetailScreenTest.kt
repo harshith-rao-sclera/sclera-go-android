@@ -170,7 +170,6 @@ class AssetDetailScreenTest {
         // Passes show their value; the failing JACS check is REQUIRED with its reason and a Fix button.
         compose.onNodeWithText("Mechanical · Pump").assertIsDisplayed()
         compose.onNodeWithText(str(R.string.check_note_required)).assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.check_required)).assertIsDisplayed()
         compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.JACS_CODE)).assertIsDisplayed()
         compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.LOW_CONFIDENCE)).assertIsDisplayed()
         compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.SERIAL)).assertDoesNotExist()

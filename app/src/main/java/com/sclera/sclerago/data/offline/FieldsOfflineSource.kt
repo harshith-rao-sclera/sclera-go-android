@@ -12,10 +12,14 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
-private const val STANDARD_FIELDS = "SELECT * FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '') AND %LIVE% ORDER BY position, id"
+/**
+ * As the server decides it (`services/fields.py`): a standard field (`is_standard`) is on every asset, any other field
+ * only on the asset its `asset_id` names. A row that is neither (no asset linked) is on no asset.
+ */
+private const val STANDARD_FIELDS = "SELECT * FROM asset_fields WHERE is_standard = 1 AND %LIVE% ORDER BY position, key"
 
 private const val EFFECTIVE_FIELDS =
-    "SELECT * FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '' OR asset_id = ?) AND %LIVE% ORDER BY (asset_id IS NOT NULL AND asset_id <> ''), position, key"
+    "SELECT * FROM asset_fields WHERE (is_standard = 1 OR asset_id = ?) AND %LIVE% ORDER BY (COALESCE(is_standard, 0) = 0), position, key"
 
 /** The asset fields: the standard ones every asset has, and the extra ones a single asset carries. Reads only. */
 class FieldsOfflineSource(private val db: AdcDatabase, private val io: CoroutineDispatcher) {

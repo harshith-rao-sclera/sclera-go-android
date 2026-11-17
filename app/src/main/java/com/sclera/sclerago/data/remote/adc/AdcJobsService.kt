@@ -7,7 +7,6 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
-import retrofit2.http.Query
 
 /**
  * Retrofit description of the ADC `/v1` calls that start work on the server and are polled: spec look-ups
@@ -35,25 +34,6 @@ interface AdcJobsService {
     @POST("properties/{property}/assets/{asset}/revalidate")
     suspend fun revalidate(@Path("property") property: String, @Path("asset") asset: String, @Body body: RequestBody): Response<ResponseBody>
 
-    @POST("properties/{property}/validation-jobs")
-    suspend fun startValidation(@Path("property") property: String, @Body body: RequestBody): Response<ResponseBody>
-
     @GET("properties/{property}/validation-jobs/{job}")
     suspend fun validation(@Path("property") property: String, @Path("job") job: String): Response<ResponseBody>
-
-    @GET("properties/{property}/validation-jobs/{job}/results")
-    suspend fun validationResults(
-        @Path("property") property: String,
-        @Path("job") job: String,
-        @Query("limit") limit: Int,
-        @Query("cursor") cursor: String?,
-    ): Response<ResponseBody>
-
-    @GET("properties/{property}/validation-jobs/{job}/issues")
-    suspend fun validationIssues(
-        @Path("property") property: String,
-        @Path("job") job: String,
-        @Query("status") status: String,
-        @Query("limit") limit: Int,
-    ): Response<ResponseBody>
 }

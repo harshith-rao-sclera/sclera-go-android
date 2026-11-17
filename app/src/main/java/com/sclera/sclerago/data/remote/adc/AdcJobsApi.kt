@@ -31,9 +31,6 @@ class AdcJobsApi @Inject constructor(private val service: AdcJobsService, privat
         call.json({ service.lookupSeen(property, job) }) { }
     }
 
-    suspend fun startValidation(property: String, body: JsonObject): ValidationJobDto =
-        call.json({ service.startValidation(property, body.asBody()) }) { jobOf(it) }
-
     /** Starts validating [asset] again ([fromStart]: every step, else from its first step to look at); returns the run. */
     suspend fun revalidate(property: String, asset: String, fromStart: Boolean): ValidationJobDto {
         val body = JsonObject(if (fromStart) mapOf("fromStart" to JsonPrimitive(true)) else emptyMap())
@@ -43,27 +40,6 @@ class AdcJobsApi @Inject constructor(private val service: AdcJobsService, privat
     suspend fun validation(property: String, job: String): ValidationJobDto =
         call.json({ service.validation(property, job) }) { jobOf(it) }
 
-    /** Every result of the run, following `nextCursor` (at most [MAX_PAGES] pages). */
-    suspend fun validationResults(property: String, job: String): List<ValidationResultDto> {
-        val all = mutableListOf<ValidationResultDto>()
-        var cursor: String? = null
-        repeat(MAX_PAGES) {
-            val page = call.json({ service.validationResults(property, job, AdcConfig.PAGE_SIZE, cursor) }) {
-                AdcJson.decodeFromString(PageDto.serializer(ValidationResultDto.serializer()), it)
-            }
-            all += page.data
-            cursor = page.nextCursor
-            if (!page.hasMore || cursor == null) return all
-        }
-        return all
-    }
-
-    /** The run's problems, open or not (the most serious first, at most [MAX_ISSUES]). */
-    suspend fun validationIssues(property: String, job: String): List<ValidationIssueDto> =
-        call.json({ service.validationIssues(property, job, status = "", limit = MAX_ISSUES) }) {
-            AdcJson.decodeFromString(PageDto.serializer(ValidationIssueDto.serializer()), it).data
-        }
-
     private fun lookupOf(text: String) = AdcJson.decodeFromString(LookupJobDto.serializer(), text)
 
     private fun jobOf(text: String) = AdcJson.decodeFromString(ValidationJobDto.serializer(), text)
@@ -72,7 +48,5 @@ class AdcJobsApi @Inject constructor(private val service: AdcJobsService, privat
 
     private companion object {
         val JSON = "application/json".toMediaType()
-        const val MAX_PAGES = 50
-        const val MAX_ISSUES = 2000
     }
 }

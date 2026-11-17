@@ -30,16 +30,3 @@ data class LookupJobDto(
 /** A validation run: [status] is ready, queued, running, completed or failed. */
 @Serializable
 data class ValidationJobDto(val id: String, val status: String = "")
-
-/** How one asset did in a run; [outcome] is passed, warning or failed. */
-@Serializable
-data class ValidationResultDto(val assetId: String, val assetName: String? = null, val outcome: String = "")
-
-/** One problem found in a run; [severity] is error or warning. */
-@Serializable
-data class ValidationIssueDto(
-    val assetId: String,
-    val ruleName: String = "",
-    val severity: String = "",
-    val message: String = "",
-)

@@ -221,13 +221,13 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
                     Target.NETWORK -> "Scanning Wi-Fi network…"
                     Target.ACCESS_POINTS -> "Looking for access points…"
                 },
-                "$what · $new new · tap to pause",
+                "$what · $new new · tap to stop",
                 progress = progress[t] ?: 0f,
             )
             issue != null -> Card("Can't scan", "$issue · tap to try again")
-            t in paused -> Card("Scan paused", "Tap to scan again")
+            t in paused -> Card("Scan stopped", "Tap to scan again")
             found > 0 -> Card("Scan complete", "$what · $new new · tap to scan again")
-            else -> Card("Scan paused", "Tap to scan again")
+            else -> Card("Scan stopped", "Tap to scan again")
         }
     }
 

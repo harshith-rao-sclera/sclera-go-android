@@ -28,20 +28,51 @@ data class Property(
     val downloaded: Boolean = false,
 )
 
-val PROPERTY_TYPES = listOf("Office", "Warehouse", "Hospital", "Retail", "Residential", "Industrial", "Campus", "Other")
+/** A choice in the Add property form: what is shown ([label]) and what is sent to the server ([value]). */
+data class PropertyChoice(val label: String, val value: String)
 
-/** Countries offered in Add New Property, with their states (none for Singapore). */
-val PROPERTY_COUNTRIES: Map<String, List<String>> = linkedMapOf(
-    "Australia" to listOf("New South Wales", "Queensland", "Victoria"),
-    "Germany" to listOf("Bavaria", "Berlin", "Hesse"),
-    "India" to listOf("Delhi", "Karnataka", "Maharashtra", "Tamil Nadu"),
-    "Singapore" to emptyList(),
-    "United Arab Emirates" to listOf("Abu Dhabi", "Dubai", "Sharjah"),
-    "United Kingdom" to listOf("England", "Northern Ireland", "Scotland", "Wales"),
-    "United States" to listOf("California", "New York", "Texas", "Washington"),
+/** The property types the web's Add New Property offers, in its order (Data Center is sent as "data_center"). */
+val PROPERTY_TYPES: List<PropertyChoice> = listOf(
+    PropertyChoice("Data Center", "data_center"),
+) + listOf(
+    "Consumer Goods", "Research and Development", "Retail", "Healthcare", "Government", "Education", "Hospitality",
+    "Finance", "Energy", "Pharmaceutical", "Automotive", "Food and Beverage", "Construction and Infrastructure",
+    "Telecommunications", "Agriculture", "Logistics", "Real Estate", "Defense", "Utilities",
+    "Mining and Natural Resources", "Chemical Industry", "Aerospace", "Technology",
+).map { PropertyChoice(it, it) }
+
+/** The regions the web offers. */
+val PROPERTY_REGIONS: List<PropertyChoice> = listOf(
+    PropertyChoice("Americas", "americas"),
+    PropertyChoice("EMEA", "emea"),
+    PropertyChoice("APAC", "apac"),
 )
 
-val PROPERTY_REGIONS = listOf("North", "South", "East", "West", "Central")
+/** How a type or region value reads: its label from [choices], or the value with a capital first letter (as the web shows it). */
+fun labelOf(value: String, choices: List<PropertyChoice>): String =
+    choices.firstOrNull { it.value == value }?.label ?: value.trim().replaceFirstChar { it.uppercaseChar() }
+
+private val AMERICAS = (
+    "AG AI AR AW BB BL BM BO BQ BR BS BZ CA CL CO CR CU CW DM DO EC FK GD GF GL GP GS GT GY HN HT JM " +
+        "KN KY LC MF MQ MS MX NI PA PE PM PR PY SR SV SX TC TT UM US UY VC VE VG VI"
+    ).split(' ').toSet()
+private val APAC = (
+    "AS AU BD BN BT CC CK CN CX FJ FM GU HK HM ID IN IO JP KH KI KP KR LA LK MH MM MN MO MP MV MY NC " +
+        "NF NP NR NU NZ PF PG PH PK PN PW SB SG TH TK TL TO TV TW VN VU WF WS"
+    ).split(' ').toSet()
+
+/**
+ * The region value ("americas", "emea" or "apac") of a country by its ISO [code], as the web works it out; null when
+ * the code is unknown (or Antarctica).
+ */
+fun regionOfCountry(code: String?): String? {
+    val c = code?.trim()?.uppercase()?.takeIf { it.length == 2 && it.all(Char::isLetter) && it != "AQ" } ?: return null
+    return when (c) {
+        in AMERICAS -> "americas"
+        in APAC -> "apac"
+        else -> "emea" // Europe, the Middle East, Africa and Central Asia
+    }
+}
 
 /** Ways of adding assets a property can switch off in Property Settings (camera, files and manual always stay). */
 enum class OnboardingChannel { BLUETOOTH, NETWORK }

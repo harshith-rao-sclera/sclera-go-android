@@ -17,6 +17,12 @@ enum class Permission(
         "collect",
         0xFF6FA8E6, "M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z",
     ),
+
+    /** Run validations and accept or dismiss fixes on assets not yet submitted. The server gives it to everyone with [VALIDATE] too. */
+    CHECK(
+        "check",
+        0xFF4DB6C4, "M9 12l2 2 4-4M12 3a9 9 0 100 18 9 9 0 000-18z",
+    ),
     VALIDATE(
         "validate",
         0xFF5DBE8C, "M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3zM9 12l2 2 4-4",
@@ -37,11 +43,10 @@ enum class Permission(
     ),
 }
 
-/** Chip for a group with no permissions. */
+/** Colour of the "View only" tag of a group with no permissions. */
 const val VIEW_ONLY_COLOR = 0xFF8B8F97
-const val VIEW_ONLY_ICON = "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z"
 
-/** A group says what its people can do. [locked] groups (Admins) always have every permission and can't be deleted or renamed. */
+/** A group says what its people can do. [locked] groups (Admins) always have every permission and can't be deleted. */
 data class Group(
     val id: String,
     val name: String,
@@ -49,8 +54,6 @@ data class Group(
     val permissions: Set<Permission>,
     val locked: Boolean = false,
 ) {
-    val needsAllProperties: Boolean get() = locked || permissions.any { it.needsAllProperties }
-
     /** Whether this group's people can do [p] (a locked group can do everything). */
     fun can(p: Permission): Boolean = locked || p in permissions
 
@@ -59,11 +62,29 @@ data class Group(
 
     /** The strongest permission, which sets the group's icon and colour (null = view only). */
     val topPermission: Permission?
-        get() = listOf(Permission.MANAGE_ACCESS, Permission.MANAGE_PROPERTIES, Permission.CONFIGURE, Permission.VALIDATE, Permission.COLLECT)
+        get() = listOf(Permission.MANAGE_ACCESS, Permission.MANAGE_PROPERTIES, Permission.CONFIGURE, Permission.VALIDATE, Permission.CHECK, Permission.COLLECT)
             .firstOrNull(::can)
 }
 
-/** Each person is in one group, for all properties or only [propertyIds]. [lastSeenAt] is epoch millis (null = never). */
+/**
+ * A permission as the server describes it (`GET organisations/{org}/access/permissions`): its [key], the [name] and
+ * [description] to show, and whether it only works with access to every property.
+ */
+data class PermissionInfo(val key: String, val name: String, val description: String, val needsAllProperties: Boolean)
+
+/** Someone the organisation's directory lists, to pick when adding a person; [userId] is set when they are already here. */
+data class DirectoryPerson(val email: String, val name: String?, val userId: String?)
+
+/**
+ * A page of the organisation's directory. When it isn't [available] (the server can't ask Sclera), [reason] says why
+ * and there is nobody in it; [hasMore] says another page can be asked for.
+ */
+data class DirectoryPage(val people: List<DirectoryPerson>, val available: Boolean, val reason: String?, val hasMore: Boolean)
+
+/**
+ * Each person is in one group ([groupId] empty = no access), for all properties or only [propertyIds].
+ * [lastSeenAt] is epoch millis (null = never); [fullName] is the name the server has for them, if any.
+ */
 data class Person(
     val id: String,
     val email: String,
@@ -75,8 +96,13 @@ data class Person(
     val signedIn: Boolean = true,
     /** The name picked from the organisation directory when inviting; sent with the invitation, not kept. */
     val inviteName: String? = null,
+    val fullName: String? = null,
 ) {
-    val name: String get() = email.substringBefore('@')
+    /** Their name, or their email when the server has no name for them (as the web shows it). */
+    val name: String get() = fullName?.trim()?.takeIf { it.isNotEmpty() } ?: email
+
+    /** Whether they are in a group; without one they keep their sign-in but can open nothing. */
+    val hasAccess: Boolean get() = groupId.isNotBlank()
 }
 
 /** The permission the API calls [key], or null for one this app does not know (those are ignored). */

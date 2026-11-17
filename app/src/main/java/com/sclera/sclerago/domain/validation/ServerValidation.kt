@@ -90,7 +90,8 @@ private val STEP_OF = mapOf(
     "duplicate_serials" to "unique", "possible_duplicates" to "unique",
     "consistent_manufacturers" to "consistent", "consistent_naming" to "consistent", "consistent_types" to "consistent",
     "model_consistency" to "consistent", "outlier_values" to "consistent",
-    "published_specs" to "verified", "jacs_prediction" to "verified", "ai_review" to "verified",
+    "photo_match" to "verified", "published_specs" to "verified", "jacs_prediction" to "verified", "ai_review" to "verified",
+    "spelling" to "verified",
 )
 
 /** The step of the check [rule]; a step key stays itself. */

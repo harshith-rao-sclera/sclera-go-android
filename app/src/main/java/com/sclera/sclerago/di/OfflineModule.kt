@@ -1,43 +1,43 @@
 package com.sclera.sclerago.di
 
 import com.sclera.sclerago.data.local.LocalAssetFileStore
+import com.sclera.sclerago.data.local.TypeFieldsStore
 import com.sclera.sclerago.data.offline.AssetFileStore
+import com.sclera.sclerago.data.offline.MediaBlobs
 import com.sclera.sclerago.data.offline.AssetsOfflineSource
 import com.sclera.sclerago.data.offline.AssetsWriter
 import com.sclera.sclerago.data.offline.FieldsOfflineSource
-import com.sclera.sclerago.data.offline.FieldsWriter
 import com.sclera.sclerago.data.offline.DocumentsOfflineSource
 import com.sclera.sclerago.data.offline.MasterFormatsOfflineSource
 import com.sclera.sclerago.data.offline.PlacesOfflineSource
-import com.sclera.sclerago.data.offline.PlacesWriter
 import com.sclera.sclerago.data.offline.PropertyOfflineSource
+import com.sclera.sclerago.data.offline.TypeFieldsLookup
 import com.sclera.sclerago.data.offline.ValidationOfflineSource
-import com.sclera.sclerago.data.offline.ValidationWriter
+import com.sclera.sclerago.data.offline.ValidationRunsOfflineSource
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetActivityRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetFormRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetValidationRepositoryImpl
+import com.sclera.sclerago.data.repository.ClassificationRepositoryImpl
 import com.sclera.sclerago.data.repository.PhotoRulesRepositoryImpl
 import com.sclera.sclerago.data.repository.SpecLookupRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetDocumentsRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.data.repository.LocationRepositoryImpl
-import com.sclera.sclerago.data.repository.OnlineValidationImpl
-import com.sclera.sclerago.data.repository.ValidationRepositoryImpl
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.repository.AssetValidationRepository
+import com.sclera.sclerago.domain.repository.ClassificationRepository
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
 import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.LocationRepository
+import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
-import com.sclera.sclerago.domain.repository.OnlineValidation
-import com.sclera.sclerago.domain.repository.ValidationRepository
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.TimeProvider
 import dagger.Binds
@@ -69,6 +69,9 @@ object OfflineModule {
     fun validation(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher) = ValidationOfflineSource(db, io)
 
     @Provides @Singleton
+    fun validationRuns(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher) = ValidationRunsOfflineSource(db, io)
+
+    @Provides @Singleton
     fun properties(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher) = PropertyOfflineSource(db, io)
 
     @Provides @Singleton
@@ -79,7 +82,8 @@ object OfflineModule {
         places: PlacesOfflineSource,
         formats: MasterFormatsOfflineSource,
         validation: ValidationOfflineSource,
-    ) = AssetsOfflineSource(db, io, files, places, formats, validation)
+        blobs: MediaBlobs,
+    ) = AssetsOfflineSource(db, io, files, places, formats, validation, blobs)
 
     @Provides @Singleton
     fun assetsWriter(
@@ -91,24 +95,13 @@ object OfflineModule {
         places: PlacesOfflineSource,
         formats: MasterFormatsOfflineSource,
         files: AssetFileStore,
-    ) = AssetsWriter(db, io, time, ids, user, places, formats, files)
-
-    @Provides @Singleton
-    fun placesWriter(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher, time: TimeProvider, ids: IdGenerator) =
-        PlacesWriter(db, io, time, ids)
-
-    @Provides @Singleton
-    fun fieldsWriter(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher, time: TimeProvider, ids: IdGenerator) =
-        FieldsWriter(db, io, time, ids)
-
-    @Provides @Singleton
-    fun validationWriter(
-        db: AdcDatabase,
-        @IoDispatcher io: CoroutineDispatcher,
-        time: TimeProvider,
-        ids: IdGenerator,
-        user: SyncCredentialsProvider,
-    ) = ValidationWriter(db, io, time, ids, user)
+        typeFields: TypeFieldsStore,
+        downloads: PropertyDownloadRepository,
+    ) = AssetsWriter(
+        db, io, time, ids, user, places, formats, files,
+        // The fields kept on the device for the current property's types (an asset of a type gets them when saved).
+        TypeFieldsLookup { formatId -> downloads.downloads.value.currentId?.let { typeFields.get(it, formatId) }.orEmpty() },
+    )
 }
 
 /**
@@ -124,15 +117,12 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun assetValidation(impl: AssetValidationRepositoryImpl): AssetValidationRepository
     @Binds abstract fun photoRules(impl: PhotoRulesRepositoryImpl): PhotoRulesRepository
     @Binds abstract fun specLookups(impl: SpecLookupRepositoryImpl): SpecLookupRepository
+    @Binds abstract fun classification(impl: ClassificationRepositoryImpl): ClassificationRepository
     @Binds abstract fun assetDocuments(impl: AssetDocumentsRepositoryImpl): AssetDocumentsRepository
     @Binds abstract fun locations(impl: LocationRepositoryImpl): LocationRepository
     @Binds abstract fun assetConfig(impl: AssetConfigRepositoryImpl): AssetConfigRepository
-    @Binds abstract fun validation(impl: ValidationRepositoryImpl): ValidationRepository
-    @Binds abstract fun onlineValidation(impl: OnlineValidationImpl): OnlineValidation
     @Binds abstract fun assetFiles(impl: LocalAssetFileStore): AssetFileStore
 
-    @Binds @IntoSet abstract fun clearLocations(impl: LocationRepositoryImpl): UserDataCleaner
-    @Binds @IntoSet abstract fun clearAssetConfig(impl: AssetConfigRepositoryImpl): UserDataCleaner
-    @Binds @IntoSet abstract fun clearValidation(impl: ValidationRepositoryImpl): UserDataCleaner
     @Binds @IntoSet abstract fun clearAssetFiles(impl: LocalAssetFileStore): UserDataCleaner
+    @Binds @IntoSet abstract fun clearTypeFields(impl: TypeFieldsStore): UserDataCleaner
 }

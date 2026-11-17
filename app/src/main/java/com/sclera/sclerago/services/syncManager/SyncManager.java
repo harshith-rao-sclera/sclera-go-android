@@ -533,7 +533,7 @@ public class SyncManager {
         }
 
         if (webSocketClientService != null) {
-            webSocketClientService.stopProcessor();
+            webSocketClientService.stop();
         }
     }
 

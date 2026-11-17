@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.online
 
 import com.sclera.sclerago.data.local.EncryptedCache
 import com.sclera.sclerago.data.mapper.PropertyRecord
+import com.sclera.sclerago.data.mapper.channelsOff
 import com.sclera.sclerago.data.mapper.settingsBody
 import com.sclera.sclerago.data.mapper.toBody
 import com.sclera.sclerago.data.mapper.toRecord
@@ -10,6 +11,7 @@ import com.sclera.sclerago.data.remote.adc.AdcApi
 import com.sclera.sclerago.data.remote.adc.AdcJson
 import com.sclera.sclerago.data.remote.adc.PhotoRulesDto
 import com.sclera.sclerago.data.remote.adc.PropertyDto
+import com.sclera.sclerago.data.remote.adc.SettingsDto
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.di.ApplicationScope
 import com.sclera.sclerago.di.IoDispatcher
@@ -50,6 +52,12 @@ class PropertyStore @Inject constructor(
     private val _disabled = MutableStateFlow(emptyMap<String, Set<OnboardingChannel>>())
     private var dtos = emptyList<PropertyDto>()
     private var offlineJob: Job? = null
+
+    /**
+     * Property id → the onboarding channels its server settings switch off, as last read from or saved to the server.
+     * The offline properties table doesn't carry settings, so the switches use this whichever list is shown.
+     */
+    private var settingsOff = emptyMap<String, Set<OnboardingChannel>>()
 
     val properties: StateFlow<List<Property>> = _properties
 
@@ -93,6 +101,8 @@ class PropertyStore @Inject constructor(
             job.invokeOnCompletion { firstPublished.complete(Unit) }
             offlineJob = job
             firstPublished.await()
+            // The offline list has no settings: read the server's in the background for the Bluetooth / Wi-Fi switches.
+            scope.launch { refreshSettings() }
             return
         }
         val user = session.user.value
@@ -109,14 +119,71 @@ class PropertyStore @Inject constructor(
         return created.toRecord().property
     }
 
+    /** The property as the server has it now (Property Info's Edit reads it fresh, as the web does). Throws [OnlineException]. */
+    suspend fun fetch(id: String): Property = api.property(id).toRecord().property
+
+    /** Saves [property]'s details on the server and keeps what it saved. Throws [OnlineException]. */
+    suspend fun update(property: Property): Property {
+        val user = session.user.value
+        val saved = api.updateProperty(property.id, property.toBody())
+        if (session.user.value == user) setDtos(dtos.map { if (it.id == saved.id) saved else it })
+        return saved.toRecord().property
+    }
+
+    /** Deletes [id] on the server and drops it from the list. Throws [OnlineException]. */
+    suspend fun delete(id: String) {
+        val user = session.user.value
+        api.deleteProperty(id)
+        if (session.user.value == user) setDtos(dtos.filterNot { it.id == id })
+    }
+
     /** Switches one way of adding assets on or off for [propertyId]. Throws [OnlineException]. */
     suspend fun setOnboarding(propertyId: String, channel: OnboardingChannel, enabled: Boolean) {
-        val settings = api.updateSettings(propertyId, settingsBody(channel, enabled))
-        setDtos(dtos.map { if (it.id == propertyId) it.copy(settings = settings) else it })
+        // Only the settings change: the property list on show (possibly the offline one) stays as it is.
+        applySettings(propertyId, api.updateSettings(propertyId, settingsBody(channel, enabled)))
+    }
+
+    /**
+     * Keeps [settings] as [propertyId]'s settings just read from or saved to the server (Configuration), so the asset
+     * screens use its photo rules and onboarding switches at once. The kept property list is updated too when it holds the property.
+     */
+    suspend fun applySettings(propertyId: String, settings: SettingsDto) {
+        _photoRules.value = _photoRules.value + (propertyId to settings.photoRules)
+        val off = settings.channelsOff()
+        settingsOff = settingsOff + (propertyId to off)
+        _disabled.value = _disabled.value + (propertyId to off)
+        if (dtos.none { it.id == propertyId }) return
+        dtos = dtos.map { if (it.id == propertyId) it.copy(settings = settings) else it }
+        val list = dtos
+        withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(LIST, list)) } }
+    }
+
+    /**
+     * Reads the property list from the server only for its settings (onboarding switches and photo rules), while the
+     * offline list stays on show. Nothing is said when it can't: the last known settings stay.
+     */
+    private suspend fun refreshSettings() {
+        val user = session.user.value
+        val loaded = try {
+            api.properties(session.organisation())
+        } catch (_: OnlineException) {
+            return
+        }
+        if (session.user.value != user) return
+        rememberSettings(loaded)
+        _disabled.value = _disabled.value.mapValues { (id, off) -> settingsOff[id] ?: off }
+        dtos = loaded
+        withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(LIST, loaded)) } }
+    }
+
+    private fun rememberSettings(list: List<PropertyDto>) {
+        settingsOff = settingsOff + list.associate { it.id to it.settings.channelsOff() }
+        _photoRules.value = list.associate { it.id to it.settings.photoRules }
     }
 
     override fun clear() {
         offlineJob?.cancel()
+        settingsOff = emptyMap()
         dtos = emptyList()
         publish(emptyList())
         _photoRules.value = emptyMap()
@@ -129,21 +196,22 @@ class PropertyStore @Inject constructor(
         val text = withContext(io) { cache.read(CACHE) } ?: return
         runCatching { AdcJson.decodeFromString(LIST, text) }.getOrNull()?.let {
             dtos = it
+            rememberSettings(it)
             publish(it.map(PropertyDto::toRecord))
-            _photoRules.value = it.associate { p -> p.id to p.settings.photoRules }
         }
     }
 
     private suspend fun setDtos(list: List<PropertyDto>) {
         dtos = list
+        rememberSettings(list)
         publish(list.map(PropertyDto::toRecord))
-        _photoRules.value = list.associate { it.id to it.settings.photoRules }
         withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(LIST, list)) } }
     }
 
+    /** Shows [records]; each one's onboarding switches come from its last known server settings when there are any. */
     private fun publish(records: List<PropertyRecord>) {
         _properties.value = records.map { it.property }
-        _disabled.value = records.associate { it.property.id to it.disabled }
+        _disabled.value = records.associate { it.property.id to (settingsOff[it.property.id] ?: it.disabled) }
     }
 
     private companion object {

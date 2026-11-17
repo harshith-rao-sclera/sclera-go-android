@@ -33,7 +33,6 @@ class SideMenuTest {
 
     private val picked = mutableListOf<MenuItem>()
     private var closed = 0
-    private var switched = 0
     private var signedOut = 0
 
     private fun show(
@@ -46,7 +45,7 @@ class SideMenuTest {
             ScleraTheme {
                 SideMenuPanel(
                     open, session, "Test 861", assetCount = 25, validationCount = validationCount, active = active,
-                    onClose = { closed++ }, onPick = { picked += it }, onSwitch = { switched++ }, onSignOut = { signedOut++ },
+                    onClose = { closed++ }, onPick = { picked += it }, onSignOut = { signedOut++ },
                 )
             }
         }
@@ -61,9 +60,7 @@ class SideMenuTest {
         compose.onNodeWithText("25 assets").assertIsDisplayed()
         compose.onNodeWithTag(MenuTags.item(MenuItem.PROPERTY)).performClick()
         compose.onNodeWithTag(MenuTags.item(MenuItem.VALIDATION)).performClick()
-        compose.onNodeWithTag(MenuTags.SWITCH).performClick()
         assertEquals(listOf(MenuItem.PROPERTY, MenuItem.VALIDATION), picked)
-        assertEquals(1, switched)
     }
 
     @Test

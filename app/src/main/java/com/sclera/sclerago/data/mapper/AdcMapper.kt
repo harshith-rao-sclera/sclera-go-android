@@ -1,10 +1,17 @@
 package com.sclera.sclerago.data.mapper
 
+import com.sclera.sclerago.data.remote.adc.AssignResultDto
+import com.sclera.sclerago.data.remote.adc.DirectoryPersonDto
 import com.sclera.sclerago.data.remote.adc.GroupDto
 import com.sclera.sclerago.data.remote.adc.MeDto
+import com.sclera.sclerago.data.remote.adc.PermissionDto
 import com.sclera.sclerago.data.remote.adc.PropertyDto
+import com.sclera.sclerago.data.remote.adc.SettingsDto
 import com.sclera.sclerago.data.remote.adc.UserDto
+import com.sclera.sclerago.domain.model.DirectoryPerson
+import com.sclera.sclerago.domain.model.PermissionInfo
 import com.sclera.sclerago.domain.model.Address
+import com.sclera.sclerago.domain.model.AssignResult
 import com.sclera.sclerago.domain.model.Availability
 import com.sclera.sclerago.domain.model.Contact
 import com.sclera.sclerago.domain.model.CurrentAccess
@@ -36,7 +43,7 @@ fun PropertyDto.toRecord(): PropertyRecord {
         id = id,
         name = name,
         gps = false, // geofencing has no API; it stays on the device
-        type = type?.let(::prettyPropertyType).orEmpty(),
+        type = type?.trim().orEmpty(),
         address = Address(
             line1 = addressLine1.orEmpty(), line2 = addressLine2.orEmpty(), country = country.orEmpty(),
             state = state.orEmpty(), region = region.orEmpty(), city = city.orEmpty(), postcode = postalCode.orEmpty(),
@@ -45,11 +52,13 @@ fun PropertyDto.toRecord(): PropertyRecord {
         notes = notes.orEmpty(),
         availability = Availability(availableFrom.shortTime(defaults.start), availableUntil.shortTime(defaults.end), accessCode.orEmpty()),
     )
-    val disabled = buildSet {
-        if (!settings.bluetoothOnboarding) add(OnboardingChannel.BLUETOOTH)
-        if (!settings.wifiOnboarding) add(OnboardingChannel.NETWORK)
-    }
-    return PropertyRecord(property, disabled)
+    return PropertyRecord(property, settings.channelsOff())
+}
+
+/** The ways of adding assets these settings switch off (Bluetooth and Wi-Fi onboarding). */
+fun SettingsDto.channelsOff(): Set<OnboardingChannel> = buildSet {
+    if (!bluetoothOnboarding) add(OnboardingChannel.BLUETOOTH)
+    if (!wifiOnboarding) add(OnboardingChannel.NETWORK)
 }
 
 private fun textOrNull(value: String?): JsonElement = value?.trim()?.takeIf { it.isNotEmpty() }?.let(::JsonPrimitive) ?: JsonNull
@@ -64,7 +73,6 @@ fun Property.toBody(): JsonObject = buildJsonObject {
     put("state", textOrNull(address.state))
     put("country", textOrNull(address.country))
     put("region", textOrNull(address.region))
-    put("postalCode", textOrNull(address.postcode))
     put("contactName", textOrNull(contact.name))
     put("contactEmail", textOrNull(contact.email))
     put("contactPhone", textOrNull(contact.phone))
@@ -91,10 +99,11 @@ fun GroupDto.toGroup() = Group(
 
 private fun permissionKeys(permissions: Set<Permission>) = JsonArray(permissions.map { JsonPrimitive(it.key) })
 
+/** A group's name, description and permissions; a locked group (Admins) always has every permission, so none are sent (as the web does). */
 fun Group.toCreateBody(): JsonObject = buildJsonObject {
     put("name", name.trim())
     put("description", textOrNull(description))
-    put("permissions", permissionKeys(permissions))
+    if (!locked) put("permissions", permissionKeys(permissions))
 }
 
 fun Group.toUpdateBody(): JsonObject = toCreateBody()
@@ -107,7 +116,20 @@ fun UserDto.toPerson() = Person(
     propertyIds = propertyIds.toSet(),
     lastSeenAt = lastSeenAt?.let { runCatching { OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull() },
     signedIn = signedIn,
+    fullName = name,
 )
+
+/** `POST /assets/bulk/assign`: the assets and who gets them (no email takes them off whoever has them), as the web sends it. */
+fun assignBody(assetIds: Collection<String>, email: String?): JsonObject = buildJsonObject {
+    put("ids", JsonArray(assetIds.map(::JsonPrimitive)))
+    put("email", email?.trim()?.takeIf { it.isNotEmpty() }?.let(::JsonPrimitive) ?: JsonNull)
+}
+
+fun AssignResultDto.toAssignResult() = AssignResult(assigned.coerceAtLeast(0), email?.takeIf { it.isNotBlank() }, name?.takeIf { it.isNotBlank() }, added, givenAccess)
+
+fun PermissionDto.toPermissionInfo() = PermissionInfo(key, name, description, needsAllProperties)
+
+fun DirectoryPersonDto.toDirectoryPerson() = DirectoryPerson(email, name, userId)
 
 private fun Person.propertyArray() = JsonArray((if (allProperties) emptySet() else propertyIds).map(::JsonPrimitive))
 
@@ -119,14 +141,12 @@ fun Person.toInviteBody(): JsonObject = buildJsonObject {
     put("propertyIds", propertyArray())
 }
 
+/** `PATCH /users/{id}`: their group (none takes away all access, as the web's "No access") and properties. */
 fun Person.toUpdateBody(): JsonObject = buildJsonObject {
-    put("groupId", groupId)
+    put("groupId", groupId.takeIf { it.isNotBlank() }?.let(::JsonPrimitive) ?: JsonNull)
     put("allProperties", allProperties)
     put("propertyIds", propertyArray())
 }
-
-/** `PATCH /users/{id}` that takes away all of a person's access (the API has no delete). */
-fun removeAccessBody(): JsonObject = buildJsonObject { put("groupId", JsonNull) }
 
 fun MeDto.toCurrentAccess(signedInEmail: String) = CurrentAccess(
     userId = userId,

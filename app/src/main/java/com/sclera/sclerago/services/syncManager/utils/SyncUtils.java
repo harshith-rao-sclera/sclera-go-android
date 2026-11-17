@@ -526,13 +526,6 @@ public class SyncUtils {
         return false;
     }
 
-    public static String replaceUrl(String syncURL) {
-        return syncURL
-                .replace("https://", "wss://")
-                .replace("http://", "ws://")
-                .replace("/adc-offline-sync", "");
-    }
-
     /**
      * Deletes the asset data collection databases (and their zips) and sync preferences of every property not in
      * {@code keepPropertyIds}, and always the legacy single database (null or empty deletes everything).
