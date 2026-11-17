@@ -19,4 +19,11 @@ data class AssetActivity(
     val fieldChanges: List<FieldChange> = emptyList(),
     /** Written by the signed-in user. */
     val byMe: Boolean = false,
+    /** A comment changed since it was written. */
+    val edited: Boolean = false,
+    /** Who wrote it, as far as this device knows (null: someone it doesn't know). */
+    val authorName: String? = null,
+    /** The signed-in user may change this comment's text (its author) / remove it (its author, or a validator). */
+    val canEdit: Boolean = false,
+    val canDelete: Boolean = false,
 )

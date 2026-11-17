@@ -26,4 +26,8 @@ class AssetActivityRepositoryImpl @Inject constructor(
         }
 
     override suspend fun addComment(assetId: String, text: String) = writer.addComment(assetId, text)
+
+    override suspend fun updateComment(assetId: String, commentId: String, text: String) = writer.updateComment(assetId, commentId, text)
+
+    override suspend fun removeComment(assetId: String, commentId: String) = writer.removeComment(assetId, commentId)
 }

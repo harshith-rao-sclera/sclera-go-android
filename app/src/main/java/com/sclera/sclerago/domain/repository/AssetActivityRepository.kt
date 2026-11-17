@@ -13,4 +13,10 @@ interface AssetActivityRepository {
 
     /** Adds the comment [text] (already checked, see `checkComment`) to the asset [assetId], by the signed-in user. */
     suspend fun addComment(assetId: String, text: String)
+
+    /** Changes the text of comment [commentId] of asset [assetId] to [text] (already checked). */
+    suspend fun updateComment(assetId: String, commentId: String, text: String)
+
+    /** Removes comment [commentId] of asset [assetId]. */
+    suspend fun removeComment(assetId: String, commentId: String)
 }
