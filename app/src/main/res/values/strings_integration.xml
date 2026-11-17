@@ -5,7 +5,6 @@
     <string name="int_loading">Loading</string>
     <string name="int_none">No integration</string>
     <string name="int_load_failed">Unable to fetch VDMS integration</string>
-    <string name="int_view_title">View Integration</string>
     <string name="int_add_title">Add Integration</string>
     <string name="int_field_integration">Integration</string>
     <string name="int_field_vdms">VDMS</string>

@@ -25,6 +25,8 @@ object AccessTags {
     const val LOADING = "access_loading"
     const val TAB_PEOPLE = "access_tab_people"
     const val TAB_GROUPS = "access_tab_groups"
+    const val STAT_PEOPLE = "access_stat_people"
+    const val STAT_GROUPS = "access_stat_groups"
     const val PERSON_SHEET = "access_person_sheet"
     const val GROUP_SHEET = "access_group_sheet"
     const val SHEET_PRIMARY = "access_sheet_primary"

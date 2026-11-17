@@ -14,7 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.components.BottomSheet
-import com.sclera.sclerago.presentation.components.ChoiceRow
+import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
@@ -37,7 +37,7 @@ fun MoveToManagedSheet(networks: List<String>, s: MoveSheetState, vm: MoveToMana
             Txt(stringResource(R.string.mv_network_label), 12, 600, C.Muted)
             if (networks.isEmpty()) Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
             // The web shows each name capitalised and sends it as it is.
-            networks.forEach { n -> ChoiceRow(n.replaceFirstChar { it.uppercaseChar() }, s.network == n) { vm.pickNetwork(n) } }
+            ChoiceList(networks, { n -> n.replaceFirstChar { it.uppercaseChar() } }, { it == s.network }, vm::pickNetwork)
 
             Txt(stringResource(R.string.mv_assignee_label), 12, 600, C.Muted, Modifier.padding(top = 6.dp))
             SearchField(s.query, vm::setQuery, stringResource(R.string.int_select))
@@ -45,7 +45,7 @@ fun MoveToManagedSheet(networks: List<String>, s: MoveSheetState, vm: MoveToMana
                 s.searching -> Txt(stringResource(R.string.int_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
                 s.assignees.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
             }
-            s.assignees.forEach { a -> ChoiceRow(a.email, s.assignee == a.email) { vm.pickAssignee(a.email) } }
+            ChoiceList(s.assignees, { it.email }, { it.email == s.assignee }, onPick = { vm.pickAssignee(it.email) })
         }
         Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp)) {
             val ok = s.network != null

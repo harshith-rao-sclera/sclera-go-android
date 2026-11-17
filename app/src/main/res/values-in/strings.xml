@@ -106,8 +106,6 @@
     <string name="launch_logo_description">Logo Sclera Go</string>
     <string name="access_stat_people">Pengguna</string>
     <string name="access_stat_groups">Grup</string>
-    <string name="access_tab_people">Pengguna (%1$d)</string>
-    <string name="access_tab_groups">Grup (%1$d)</string>
     <string name="access_search_people">Cari orang</string>
     <string name="access_add_person">Tambah orang</string>
     <string name="access_new_group">Grup baru</string>
@@ -390,7 +388,6 @@
     <string name="detail_no_unsaved">Tidak ada perubahan yang belum disimpan</string>
     <string name="detail_status">Status: %1$s</string>
     <string name="detail_submitted_body">Kolomnya tidak dapat diedit lagi. Perlu perubahan? Minta pengumpulan ulang.</string>
-    <string name="detail_recollect">Minta pengumpulan ulang</string>
     <string name="detail_updated">Diperbarui %1$s</string>
     <string name="detail_photo_of">%1$d dari %2$d</string>
     <string name="detail_prev">Foto sebelumnya</string>

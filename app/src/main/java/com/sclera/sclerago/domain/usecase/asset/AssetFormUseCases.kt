@@ -16,6 +16,7 @@ import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.repository.AssetValidationRepository
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
+import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.usecase.location.ObserveLocationTreeUseCase
 import com.sclera.sclerago.domain.validation.AssetValidation
@@ -112,9 +113,15 @@ class ObserveAssetDocumentsUseCase @Inject constructor(private val repo: AssetDo
 }
 
 /** Takes a web page off an asset, as anyone who can collect may (the web's remove on a source page). */
-class RemoveWebPageUseCase @Inject constructor(private val repo: AssetDocumentsRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(documentId: String) {
+class RemoveWebPageUseCase @Inject constructor(
+    private val repo: AssetDocumentsRepository,
+    private val assets: AssetRepository,
+    private val guard: PermissionGuard,
+) {
+    /** Takes web page [documentId] off asset [assetId] (a submitted asset only by an admin, as the server's). */
+    suspend operator fun invoke(assetId: String, documentId: String) {
         guard.requireOffline(Permission.COLLECT)
+        requireUnlocked(assets, guard, listOf(assetId))
         repo.removeWebPage(documentId)
     }
 }

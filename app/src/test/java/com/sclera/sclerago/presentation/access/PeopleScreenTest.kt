@@ -67,7 +67,7 @@ class PeopleScreenTest {
         }
         // The app bar says "Users and access", with no current property under it.
         compose.onNodeWithText(str(R.string.access_title)).assertIsDisplayed()
-        compose.onNodeWithTag(AccessTags.TAB_PEOPLE).assertIsSelected().assertTextContains(str(R.string.access_tab_people, 2))
+        compose.onNodeWithTag(AccessTags.TAB_PEOPLE).assertIsSelected().assertTextContains(str(R.string.access_stat_people))
         // A person's card says their group and property access on one line.
         compose.onNodeWithTag(AccessTags.person("u1")).assertIsDisplayed()
             .assertTextContains(str(R.string.access_pair, "Admins", str(R.string.access_all_properties)))

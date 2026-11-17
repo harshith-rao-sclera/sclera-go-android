@@ -11,6 +11,8 @@ import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.repository.AssetRepository
+import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
+import com.sclera.sclerago.domain.repository.VdmsLinkRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +29,8 @@ import javax.inject.Singleton
 class AssetRepositoryImpl @Inject constructor(
     private val source: AssetsOfflineSource,
     private val writer: AssetsWriter,
+    private val vdmsLinks: VdmsLinkRepository,
+    private val downloads: PropertyDownloadRepository,
     @ApplicationScope scope: CoroutineScope,
 ) : AssetRepository {
     override val catalog: StateFlow<AssetCatalog> =
@@ -39,15 +43,21 @@ class AssetRepositoryImpl @Inject constructor(
     override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean, photoRules: List<PhotoRule>) =
         writer.setStatus(ids, status, allowExceptions, photoRules)
 
-    override suspend fun saveDetails(id: String, values: Map<String, String>) {
-        writer.saveDetails(id, values)
+    override suspend fun saveDetails(id: String, values: Map<String, String>, sources: Map<String, String>, place: LocValue?) {
+        writer.saveDetails(id, values, sources, place)
     }
 
-    override suspend fun delete(ids: Collection<String>) = writer.delete(ids)
+    // In a property linked to a VDMS the delete waits for VDMS to confirm it, as the server's DELETE does.
+    override suspend fun delete(ids: Collection<String>) {
+        val linked = downloads.downloads.value.currentId?.let { vdmsLinks.isLinked(it) } ?: false
+        writer.delete(ids, vdmsLinked = linked)
+    }
 
     override suspend fun assignLocation(ids: Collection<String>, location: LocValue) = writer.assignLocation(ids, location)
 
     override suspend fun attachMedia(id: String, media: List<Media>) = writer.attachMedia(id, media)
+
+    override suspend fun removeMedia(assetId: String, mediaId: String) = writer.removeMedia(assetId, mediaId)
 
     override suspend fun details(id: String): AssetDetails? = source.asset(id)?.details
 

@@ -26,14 +26,11 @@ internal suspend fun <T> AdcDatabase.write(io: CoroutineDispatcher, block: AdcDa
 /**
  * Marks the rows of [table] that match [where] removed, as the server does: `is_removed = 1`, `version + 1` and
  * `updated_at` ([now]) where the table has those columns. The engine pushes that change, and the server and every
- * other phone then drop the row. A table without the `is_removed` column (before the engine has added it) loses the rows.
+ * other phone then leave the row out. Rows are never deleted: a table without the `is_removed` column (before the engine
+ * has added it) is left as it is.
  */
 internal fun AdcDatabase.removeRows(table: String, where: String, args: List<Any>, now: String) {
-    if (!hasTable(table)) return
-    if (!hasColumn(table, "is_removed")) {
-        execute("DELETE FROM $table WHERE $where", args, setOf(table))
-        return
-    }
+    if (!hasTable(table) || !hasColumn(table, "is_removed")) return
     val touched = hasColumn(table, "updated_at")
     val sets = buildList {
         add("is_removed = 1")

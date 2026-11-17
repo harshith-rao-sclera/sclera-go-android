@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Limits on what an asset keeps: 10-second videos and voice memos, 5MB photos and files. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="data_error_file_too_large">Files can be up to 5MB.</string>
+    <string name="data_error_clip_too_long">Videos can be up to 10 seconds.</string>
+    <string name="data_error_photo_limit">This asset already has the most photos of that kind this property allows.</string>
+    <string name="memo_limit">Up to 10 seconds</string>
+</resources>

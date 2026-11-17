@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Change requests on submitted assets (asking an admin to reopen one). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="change_request_action">Request change</string>
+    <string name="change_request_title">Ask to reopen this asset</string>
+    <string name="change_request_body">Say what needs changing. An admin can move it back to draft so it can be edited.</string>
+    <string name="change_request_note_label">What needs changing</string>
+    <string name="change_request_note_hint">Optional note for the admin</string>
+    <string name="change_request_send">Send request</string>
+    <string name="change_request_mine">You asked for a change · %1$s</string>
+    <string name="change_request_other">Change requested · %1$s</string>
+    <string name="change_request_by">%1$s asked for a change · %2$s</string>
+    <string name="change_request_withdraw">Withdraw request</string>
+    <string name="change_request_decline">Decline</string>
+    <string name="change_request_reopen">Reopen for editing</string>
+    <string name="change_request_sent">Change request sent</string>
+    <string name="change_request_withdrawn">Change request withdrawn</string>
+    <string name="change_request_declined">Change request declined</string>
+    <string name="change_request_reopened">Asset moved back to draft</string>
+</resources>

@@ -19,7 +19,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.components.BottomSheet
-import com.sclera.sclerago.presentation.components.ChoiceRow
+import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
@@ -65,7 +65,7 @@ fun AssignSheet(s: AssignSheetState, vm: AssignViewModel, onSubmitted: () -> Uni
                 s.searching && shown.isEmpty() -> Txt(stringResource(R.string.assign_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
                 shown.isEmpty() -> Txt(stringResource(R.string.assign_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
             }
-            shown.forEach { email -> ChoiceRow(email, s.picked == email) { vm.pick(email) } }
+            ChoiceList(shown, { it }, { it == s.picked }, vm::pick)
         }
         Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp)) {
             Pill(

@@ -56,4 +56,14 @@ class FileRepositoryImpl @Inject constructor(
             context.contentResolver.openOutputStream(Uri.parse(uri), "wt")?.use { it.write(bytes) } != null
         }.getOrDefault(false)
     }
+
+    /** Streams the file across (a video can be large), so it is never held in memory whole. */
+    override suspend fun copyFile(from: String, to: String): Boolean = withContext(ioDispatcher) {
+        runCatching {
+            val resolver = context.contentResolver
+            resolver.openInputStream(Uri.parse(from))?.use { input ->
+                resolver.openOutputStream(Uri.parse(to), "wt")?.use { output -> input.copyTo(output) }
+            } != null
+        }.getOrDefault(false)
+    }
 }

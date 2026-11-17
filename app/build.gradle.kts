@@ -94,6 +94,10 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.video)
     implementation(libs.camera.view)
+    // Re-encodes videos smaller before they are kept in the offline database (services/media/VideoCompressor.kt).
+    implementation(libs.media3.transformer)
+    implementation(libs.media3.effect)
+    implementation(libs.media3.common)
     implementation(libs.exifinterface)
     // Bluetooth / Wi-Fi / access point scanning (scan/ package)
     implementation(libs.core.ktx)

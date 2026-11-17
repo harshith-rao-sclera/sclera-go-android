@@ -31,8 +31,11 @@ interface AssetRepository {
         photoRules: List<PhotoRule> = emptyList(),
     )
 
-    /** Keeps the values from an asset's details form. */
-    suspend fun saveDetails(id: String, values: Map<String, String>)
+    /**
+     * Keeps the values from an asset's details form. [sources] (form field key -> web page) are where applied AI
+     * suggestions came from: kept with those values, and the pages kept with the asset, as the server's edit does.
+     */
+    suspend fun saveDetails(id: String, values: Map<String, String>, sources: Map<String, String> = emptyMap(), place: LocValue? = null)
 
     suspend fun delete(ids: Collection<String>)
 
@@ -40,6 +43,9 @@ interface AssetRepository {
 
     /** Adds photos / videos / documents to an asset. */
     suspend fun attachMedia(id: String, media: List<Media>)
+
+    /** Removes the photo, video, voice memo or file [mediaId] from asset [assetId] (and from the field it answers). */
+    suspend fun removeMedia(assetId: String, mediaId: String)
 
     /** The code, fields, confidence and sources of the asset [id]; null when it is not there. */
     suspend fun details(id: String): AssetDetails?

@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
+import com.sclera.sclerago.domain.usecase.asset.ChangeRequestUseCases
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
@@ -33,6 +35,8 @@ import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.AssetFormUseCases
+import com.sclera.sclerago.domain.usecase.asset.AssetHandling
+import com.sclera.sclerago.domain.usecase.asset.AssetHandlingUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CanEditAssetUseCase
 import com.sclera.sclerago.domain.usecase.asset.ClassifyAssetUseCases
@@ -92,14 +96,22 @@ data class AssetDetailState(
     val validation: AssetValidation? = null,
     /** The asset is being validated again at the server. */
     val validating: Boolean = false,
+    /** The change request note being written (null: its dialog is closed). */
+    val changeNote: String? = null,
+    /** The signed-in user made the asset's change request. */
+    val changeRequestMine: Boolean = false,
+    /** Who made the asset's change request (name, else email); null when they aren't known on this device. */
+    val changeRequester: String? = null,
+    /** The signed-in user is an admin (who can decline a change request or reopen the asset). */
+    val admin: Boolean = false,
     /** The asset's comments and history, newest first (none for a new asset). */
     val activity: List<AssetActivity> = emptyList(),
+    /** Who the asset is assigned to and who submitted it, when (null for a new asset). */
+    val handling: AssetHandling? = null,
     /** The comment being typed in the Comments tab, why it can't be posted (if so), and whether it is being posted. */
     val commentDraft: String = "",
     val commentError: UiText? = null,
     val commentPosting: Boolean = false,
-    /** The sheet a comment is written in is open (the Comments tab's +). */
-    val commentOpen: Boolean = false,
     val savedFlash: Boolean = false,
     /** The AI suggestions dialog while it is open (null: closed). */
     val ai: AiDialogState? = null,
@@ -181,6 +193,8 @@ class AssetDetailViewModel @Inject constructor(
     private val formData: AssetFormUseCases,
     private val canEditAsset: CanEditAssetUseCase,
     private val classifying: ClassifyAssetUseCases,
+    private val changeRequests: ChangeRequestUseCases,
+    private val handling: AssetHandlingUseCase,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
 
@@ -196,8 +210,13 @@ class AssetDetailViewModel @Inject constructor(
         val documents: List<AssetDocument> = emptyList(),
     )
 
+    /** Where an applied AI suggestion came from ([page]) and the [value] it put in the form. */
+    private data class AiSource(val page: String, val value: String)
+
     private data class Form(
         val edits: Map<String, String> = emptyMap(),
+        /** Field key -> the page each applied AI suggestion came from; dropped when that field is typed over. */
+        val aiSources: Map<String, AiSource> = emptyMap(),
         val place: LocValue? = null,
         val savedFlash: Boolean = false,
         val ai: AiDialogState? = null,
@@ -207,8 +226,9 @@ class AssetDetailViewModel @Inject constructor(
         val commentDraft: String = "",
         val commentProblem: CommentProblem? = null,
         val commentPosting: Boolean = false,
-        val commentOpen: Boolean = false,
         val validating: Boolean = false,
+        /** The change request note being written; null while its dialog is closed. */
+        val changeNote: String? = null,
     )
 
     private val target = MutableStateFlow<Target?>(null)
@@ -275,9 +295,11 @@ class AssetDetailViewModel @Inject constructor(
                 media = asset.media + f.newPicks.filterNot { it.sourceDocument }, newPicks = f.newPicks, savedFlash = f.savedFlash,
                 ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase == AiPhase.SEARCHING, voice = f.voice,
                 activity = if (t.isNew) emptyList() else db.activity,
+                handling = if (t.isNew) null else handling(asset, db.activity),
                 commentDraft = f.commentDraft, commentError = f.commentProblem?.problemText(), commentPosting = f.commentPosting,
-                commentOpen = f.commentOpen && !t.isNew,
                 validation = if (t.isNew) null else db.validation, validating = f.validating,
+                changeNote = f.changeNote, changeRequestMine = changeRequests.isMine(asset.changeRequest), admin = changeRequests.isAdmin(),
+                changeRequester = changeRequests.requesterName(asset.changeRequest),
                 canEdit = t.isNew || canEditAsset(asset.st),
                 canCheck = formData.revalidate.allowed(),
                 classify = classified.sheet,
@@ -307,7 +329,8 @@ class AssetDetailViewModel @Inject constructor(
         if (s.locked) return
         // A new system or asset type also resets the types below it that the catalogue doesn't file under it.
         val changes = if (key in CLASS_KEYS) formData.reclassify(s.formats, s.values, key, value) else mapOf(key to value)
-        form.update { it.copy(edits = it.edits + changes, savedFlash = false) }
+        // A value typed over an applied AI suggestion no longer came from its page, as the server drops it.
+        form.update { it.copy(edits = it.edits + changes, aiSources = it.aiSources - changes.keys, savedFlash = false) }
         // A new type shows its fields.
         if (key in CLASS_KEYS) classifier.showTypeFields(s.formats, s.fields, s.values + changes)
     }
@@ -324,7 +347,7 @@ class AssetDetailViewModel @Inject constructor(
     }
 
     fun discardEdits() {
-        form.update { it.copy(edits = emptyMap(), place = null) }
+        form.update { it.copy(edits = emptyMap(), aiSources = emptyMap(), place = null) }
         classifier.clearTypeFields()
     }
 
@@ -334,10 +357,9 @@ class AssetDetailViewModel @Inject constructor(
         val id = s.asset?.id ?: return
         if (s.dirtyCount == 0) return
         write {
-            // The place picked goes in with the rest of the changes, only now.
-            s.pendingPlace?.let { useCases.assignLocation(listOf(id), it) }
-            // Saving makes the asset drafted with the AI flag on (Status.AI is stored that way), as saving a new one does.
-            useCases.saveDetails(id, s.values, Status.AI)
+            // An edit keeps the asset's status, as the server's; its AI flag is worked out again from its empty fields. The
+            // place picked goes in with the rest of the changes, in one history line.
+            useCases.saveDetails(id, s.values, sources = aiPages(s), place = s.pendingPlace)
             clearEditsOnceRefreshed(s)
             form.update { it.copy(savedFlash = true) }
             state.value.let { classifier.showTypeFields(it.formats, it.fields, it.values) }
@@ -353,8 +375,7 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         val id = s.asset?.id ?: return
         write {
-            s.pendingPlace?.let { useCases.assignLocation(listOf(id), it) }
-            useCases.saveDetails(id, s.values, Status.SUBMITTED)
+            useCases.saveDetails(id, s.values, Status.SUBMITTED, sources = aiPages(s), place = s.pendingPlace)
             clearEditsOnceRefreshed(s)
             message.emit(UiText.Res(if (s.complete) R.string.asset_submitted_notice else R.string.asset_exception_notice))
         }
@@ -364,8 +385,12 @@ class AssetDetailViewModel @Inject constructor(
     private suspend fun clearEditsOnceRefreshed(before: AssetDetailState) {
         withTimeoutOrNull(REFRESH_MS) { state.first { it.asset != before.asset || it.saved != before.saved } }
         // The picked place goes too: the asset now has it, so it shows from the asset itself.
-        form.update { it.copy(edits = emptyMap(), place = null) }
+        form.update { it.copy(edits = emptyMap(), aiSources = emptyMap(), place = null) }
     }
+
+    /** Field key -> page, for the applied AI suggestions the form still holds as they were applied. */
+    private fun aiPages(s: AssetDetailState): Map<String, String> =
+        form.value.aiSources.filter { (key, src) -> s.value(key).trim() == src.value }.mapValues { it.value.page }
 
     /** Makes a change to the offline data in the background; when it is refused or fails the user is told why. */
     private fun write(block: suspend () -> Unit) {
@@ -412,6 +437,25 @@ class AssetDetailViewModel @Inject constructor(
         }
     }
 
+    /** Removes [m] from the saved asset, as the web's Remove (not on a read-only asset); the sync pushes it. */
+    fun removeMedia(m: Media) {
+        val s = state.value
+        val asset = s.asset ?: return
+        if (s.isNew || s.locked) return
+        write {
+            useCases.removeMedia(asset.id, m.id)
+            message.emit(UiText.Res(R.string.media_removed))
+        }
+    }
+
+    /** Saves a copy of [m] to [target], the document the user picked to save it as (null: they cancelled). */
+    fun downloadMedia(m: Media, target: String?) {
+        if (target == null) return
+        viewModelScope.launch {
+            message.emit(UiText.Res(if (useCases.downloadMedia(m, target)) R.string.media_downloaded else R.string.media_download_failed))
+        }
+    }
+
     /** Opens the "Suggest type" sheet: the server reads the asset's photos and what is typed, and suggests its type and JACS code. */
     fun openClassify() {
         val s = state.value
@@ -432,7 +476,7 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         if (s.locked) return
         val update = classifier.chosenValues(s::value) ?: return
-        form.update { it.copy(edits = it.edits + update, savedFlash = false) }
+        form.update { it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys, savedFlash = false) }
         classifier.close()
         classifier.showTypeFields(s.formats, s.fields, s.values + update)
         message.tryEmit(UiText.Res(R.string.classify_applied))
@@ -474,6 +518,46 @@ class AssetDetailViewModel @Inject constructor(
     /** Closes the dialog; a look-up still running carries on and says when it is done. */
     fun closeAi() = form.update { it.copy(aiOpen = false) }
 
+    // ---- Change requests (a submitted asset): ask an admin to reopen it, withdraw or decline, or reopen it (admins)
+
+    /** Opens the change request dialog, with the note already sent when asking again. */
+    fun openChangeRequest() = form.update { it.copy(changeNote = state.value.asset?.changeRequest?.note.orEmpty()) }
+
+    fun editChangeNote(text: String) = form.update { it.copy(changeNote = text.take(CHANGE_NOTE_MAX)) }
+
+    fun cancelChangeRequest() = form.update { it.copy(changeNote = null) }
+
+    fun sendChangeRequest() {
+        val id = state.value.asset?.id ?: return
+        val note = form.value.changeNote ?: return
+        form.update { it.copy(changeNote = null) }
+        write {
+            changeRequests.request(id, note)
+            message.emit(UiText.Res(R.string.change_request_sent))
+        }
+    }
+
+    /** Withdraws one's own change request, or (an admin) declines someone else's; the asset stays submitted. */
+    fun closeChangeRequest() {
+        val s = state.value
+        val asset = s.asset ?: return
+        val request = asset.changeRequest ?: return
+        val declining = s.admin && !s.changeRequestMine
+        write {
+            changeRequests.close(asset.id, request)
+            message.emit(UiText.Res(if (declining) R.string.change_request_declined else R.string.change_request_withdrawn))
+        }
+    }
+
+    /** An admin reopens the asset: back to draft, which closes its change request, as the server's. */
+    fun reopenAsset() {
+        val id = state.value.asset?.id ?: return
+        write {
+            useCases.setStatus(listOf(id), Status.DRAFT)
+            message.emit(UiText.Res(R.string.change_request_reopened))
+        }
+    }
+
     fun editAiIdentity(make: String, model: String) = setAi { it.copy(make = make, model = model) }
 
     /** Starts (again) a look-up with the manufacturer and model typed in the dialog. */
@@ -493,9 +577,17 @@ class AssetDetailViewModel @Inject constructor(
     /** Puts the ticked suggestions (and the manufacturer / model typed) into the form; nothing is saved until Save. */
     fun applyAi() {
         val d = form.value.ai ?: return
-        val update = typedIdentity(d) + d.picks.filterValues { it.on && it.value.isNotBlank() }.mapValues { it.value.value.trim() }
+        val picked = d.picks.filterValues { it.on && it.value.isNotBlank() }.mapValues { it.value.value.trim() }
+        val update = typedIdentity(d) + picked
         if (update.isEmpty()) return
-        form.update { it.copy(edits = it.edits + update, savedFlash = false, ai = null, aiOpen = false) }
+        // Each suggestion's page goes with it, kept on Save while the value stays as suggested (as the web sends `sources`).
+        val suggested = d.lookup?.values.orEmpty()
+        val pages = picked.mapNotNull { (key, value) ->
+            d.lookup?.sources?.get(key)?.takeIf { suggested[key]?.trim() == value }?.let { key to AiSource(it, value) }
+        }.toMap()
+        form.update {
+            it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys + pages, savedFlash = false, ai = null, aiOpen = false)
+        }
         message.tryEmit(UiText.Plural(R.plurals.ai_applied, update.size))
     }
 
@@ -524,7 +616,7 @@ class AssetDetailViewModel @Inject constructor(
         val v = form.value.voice ?: return
         val update = v.picks.filterValues { it.on }.mapValues { it.value.value }
         if (update.isEmpty()) return
-        form.update { it.copy(edits = it.edits + update, savedFlash = false, voice = null) }
+        form.update { it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys, savedFlash = false, voice = null) }
         message.tryEmit(UiText.Plural(R.plurals.ai_applied, update.size))
     }
 
@@ -629,16 +721,14 @@ class AssetDetailViewModel @Inject constructor(
 
     /** Takes a web page off the asset (after the confirmation), as the web's remove on a document does. */
     fun removeWebPage(documentId: String) = write {
-        formData.removeWebPage(documentId)
+        val id = state.value.asset?.id ?: return@write
+        formData.removeWebPage(id, documentId)
         message.emit(UiText.Res(R.string.doc_removed))
     }
 
     fun editComment(text: String) = form.update { it.copy(commentDraft = text, commentProblem = null) }
 
-    /** The Comments tab's +: opens (true) or closes the sheet a comment is written in; the draft is kept either way. */
-    fun showCommentSheet(open: Boolean) = form.update { it.copy(commentOpen = open, commentProblem = null) }
-
-    /** Posts the typed comment: the box empties and the sheet closes once it is kept, or it says what is wrong with it. */
+    /** Posts the typed comment: the box empties once it is kept, or it says what is wrong with it. */
     fun postComment() {
         val s = state.value
         val id = s.asset?.id ?: return
@@ -649,7 +739,7 @@ class AssetDetailViewModel @Inject constructor(
             try {
                 val problem = useCases.addComment(id, draft)
                 form.update {
-                    if (problem == null) it.copy(commentDraft = "", commentProblem = null, commentOpen = false)
+                    if (problem == null) it.copy(commentDraft = "", commentProblem = null)
                     else it.copy(commentProblem = problem)
                 }
                 if (problem == null) message.emit(UiText.Res(R.string.detail_comment_added))
@@ -660,6 +750,21 @@ class AssetDetailViewModel @Inject constructor(
             }
         }
     }
+
+    /** Saves the new [text] of [comment]; [onSaved] once it is saved (otherwise what is wrong is flashed). */
+    fun updateComment(comment: AssetActivity, text: String, onSaved: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val problem = useCases.updateComment(comment, text)
+                if (problem == null) onSaved() else message.emit(problem.problemText())
+            } catch (e: DataException) {
+                message.emit(e.error.toUiText())
+            }
+        }
+    }
+
+    /** Removes [comment] (after the screen asked), as the web's Delete. */
+    fun removeComment(comment: AssetActivity) = write { useCases.removeComment(comment) }
 
     private fun CommentProblem.problemText(): UiText = when (this) {
         CommentProblem.EMPTY -> UiText.Res(R.string.detail_comment_empty)

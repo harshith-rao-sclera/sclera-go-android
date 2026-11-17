@@ -2,6 +2,7 @@ package com.sclera.sclerago.presentation.main
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,15 +21,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.bottomBorder
@@ -40,6 +48,7 @@ import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
 
 /** Test tags of the dashboard header and tabs. */
@@ -163,16 +172,43 @@ private fun RowScope.LocCell(
     }
 }
 
-/** The Sclera Go mark (same artwork as the login screen and app icon) with "GO" in its right loop. */
+/** Centre of the right loop's hole in login_logo.png (512 × 357), as fractions of the image. */
+private const val GO_CENTRE_X = 390f / 512f
+private const val GO_CENTRE_Y = 234f / 357f
+
+/** "GO"'s font size as a fraction of the logo's height: it fills most of the loop's hole. */
+private const val GO_SIZE = 0.24f
+
+/**
+ * The Sclera Go mark (same artwork as the login screen and app icon) with "GO" in its right loop. The mark is scaled
+ * down with high-quality filtering, and "GO" is drawn to the logo's own scale (not the font size setting), so both stay
+ * sharp at this small size.
+ */
 @Composable
 private fun ScleraGoLogo(modifier: Modifier = Modifier) {
+    val measurer = rememberTextMeasurer()
     Box(modifier.height(25.dp).aspectRatio(512f / 357f)) {
         Image(
-            painterResource(R.drawable.login_logo),
+            // As a bitmap, so it can be scaled down with high-quality filtering (the painter overload has no filterQuality).
+            bitmap = ImageBitmap.imageResource(R.drawable.login_logo),
             contentDescription = "Sclera Go", // Product name: not translated.
             modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+            filterQuality = FilterQuality.High,
         )
-        // Centre of the right loop in login_logo.png (512 × 357): about (395, 230).
-        Txt("GO", 5, 800, C.Surface, Modifier.align(BiasAlignment(0.54f, 0.29f)))
+        Canvas(Modifier.matchParentSize()) {
+            val style = TextStyle(
+                color = C.Surface,
+                // toSp undoes the font size setting, so "GO" always fits the loop.
+                fontSize = (size.height * GO_SIZE).toSp(),
+                fontWeight = FontWeight.Bold,
+                fontFamily = ScleraFonts.Inter,
+                letterSpacing = 0.sp,
+            )
+            val go = measurer.measure("GO", style)
+            drawText(
+                go,
+                topLeft = Offset(size.width * GO_CENTRE_X - go.size.width / 2f, size.height * GO_CENTRE_Y - go.size.height / 2f),
+            )
+        }
     }
 }

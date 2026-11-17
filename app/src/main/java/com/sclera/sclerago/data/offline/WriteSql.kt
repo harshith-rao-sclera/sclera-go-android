@@ -14,8 +14,26 @@ internal const val ASSET_STATE = """SELECT status, validated, ai_suggestion, nam
 
 internal const val ASSET_INSERT = """INSERT INTO assets (id, name, building_id, floor_id, location_id, status, source, source_ref, created_by,
     version, created_at, updated_at, manufacturer, model, serial_number, needs_review, values_changed_at, classification_source,
-    values_revision, master_format_id, jacs_code_id, validated, ai_suggestion)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 0, ?, ?, 1, ?, ?, ?, ?)"""
+    values_revision, master_format_id, jacs_code_id, validated, ai_suggestion, assigned_to)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 0, ?, ?, 1, ?, ?, ?, ?, ?)"""
+
+/** Whether AI suggestions could fill an empty field, worked out again after the answers or fields change (the server's refresh_ai_suggestion). */
+internal const val ASSET_SET_AI_SUGGESTION = "UPDATE assets SET ai_suggestion = ? WHERE id = ?"
+
+/** Deleted in a property linked to a VDMS: VDMS has to confirm it (the server's vdms_state DELETING). */
+internal const val ASSET_VDMS_DELETING = "UPDATE assets SET vdms_state = 5 WHERE id = ?"
+
+/** Someone asks an admin to reopen a submitted asset (the server's POST …/change-request): asking again replaces it. */
+internal const val ASSET_REQUEST_CHANGE = """UPDATE assets SET change_requested_by = ?, change_requested_at = ?, change_request_note = ?,
+    version = version + 1, updated_at = ? WHERE id = ?"""
+
+/** A change request closed without reopening the asset: declined or withdrawn (the server's DELETE …/change-request). */
+internal const val ASSET_DROP_CHANGE_REQUEST = """UPDATE assets SET change_requested_by = NULL, change_requested_at = NULL,
+    change_request_note = NULL, version = version + 1, updated_at = ? WHERE id = ? AND change_requested_at IS NOT NULL"""
+
+/** Back in draft is what a change request asked for, so it is over (the server's close_change_request). */
+internal const val ASSET_CLOSE_CHANGE_REQUEST = """UPDATE assets SET change_requested_by = NULL, change_requested_at = NULL,
+    change_request_note = NULL WHERE id = ? AND change_requested_at IS NOT NULL"""
 
 /** New values for an asset's answers: bumps the revision validation's "new or changed" compares. */
 internal const val ASSET_UPDATE_VALUES = """UPDATE assets SET name = ?, manufacturer = ?, model = ?, serial_number = ?, master_format_id = ?,
@@ -35,12 +53,30 @@ internal const val ASSET_VALUES_INSERT = """INSERT INTO asset_values (asset_id, 
 
 internal const val ASSET_VALUES_UPDATE = """UPDATE asset_values SET %ANSWERS% = ?, confidence = ?, sources = ? WHERE asset_id = ?"""
 
-internal const val ACTIVITY_INSERT = """INSERT INTO asset_activity (id, asset_id, kind, action, text, changes, created_by, version, created_at, updated_at)
+/**
+ * A history line. %CHANGES% is the column of its field changes: `field_changes` (the server renamed it, so `changes` is
+ * the sync engine's again), or `changes` in a database from before that.
+ */
+internal const val ACTIVITY_INSERT = """INSERT INTO asset_activity (id, asset_id, kind, action, text, %CHANGES%, created_by, version, created_at, updated_at)
     VALUES (?, ?, 'history', ?, ?, ?, ?, 1, ?, ?)"""
 
 /** A comment, as the server's `POST /assets/{id}/comments` writes it: no action or changes, just the text and who wrote it. */
-internal const val COMMENT_INSERT = """INSERT INTO asset_activity (id, asset_id, kind, action, text, changes, created_by, version, created_at, updated_at)
-    VALUES (?, ?, 'comment', NULL, ?, NULL, ?, 1, ?, ?)"""
+internal const val COMMENT_INSERT = """INSERT INTO asset_activity (id, asset_id, kind, action, text, created_by, version, created_at, updated_at)
+    VALUES (?, ?, 'comment', NULL, ?, ?, 1, ?, ?)"""
+
+/** A comment's new text, as the server's `PATCH …/comments/{id}`: version + 1, which marks it edited. */
+internal const val COMMENT_UPDATE = """UPDATE asset_activity SET text = ?, version = version + 1, updated_at = ?
+    WHERE id = ? AND asset_id = ? AND kind = 'comment' AND %LIVE%"""
+
+/** One live comment of an asset. */
+internal const val COMMENT_ROW = "SELECT text FROM asset_activity WHERE id = ? AND asset_id = ? AND kind = 'comment' AND %LIVE%"
+
+/** The fields an edit's history line lists changes of, in form order: standard ones, then the asset's own (the server's field_order). */
+internal const val HISTORY_FIELDS = """SELECT id, key, name, type FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '' OR asset_id = ?)
+    AND %LIVE% ORDER BY CASE WHEN is_standard = 1 THEN 0 ELSE 1 END, position, key"""
+
+/** A new place for an asset, written with the rest of an edit (which bumps the revision once). */
+internal const val ASSET_SET_PLACE = "UPDATE assets SET building_id = ?, floor_id = ?, location_id = ? WHERE id = ?"
 
 internal const val FIELD_NAMES = """SELECT id, key, name FROM asset_fields WHERE (is_standard = 1 OR asset_id = ?) AND %LIVE%"""
 
@@ -53,6 +89,16 @@ internal const val PLACE_NAME_LOCATION = "SELECT name FROM locations WHERE id = 
 internal const val MEDIA_NEXT_POSITION = "SELECT COALESCE(MAX(position), -1) + 1 AS p FROM asset_media WHERE asset_id = ? AND %LIVE%"
 
 internal const val MEDIA_OF_ASSET = "SELECT id, object_path FROM asset_media WHERE asset_id = ? AND %LIVE%"
+
+/** One of an asset's media, with the field it answers (if any). */
+internal const val MEDIA_ROW = "SELECT * FROM asset_media WHERE id = ? AND asset_id = ? AND %LIVE%"
+
+/** The key an asset's answers are kept under for field [id]. */
+internal const val FIELD_KEY = "SELECT key FROM asset_fields WHERE id = ?"
+
+/** An answer kept in `asset_values` changed: bumps the revision validation's "new or changed" compares (the server's `touch`). */
+internal const val ASSET_TOUCH_VALUES = """UPDATE assets SET values_revision = values_revision + 1, values_changed_at = ?,
+    version = version + 1, updated_at = ? WHERE id = ?"""
 
 /** How many photos of each kind an asset has (what the property's photo rules count, as the server's `photo_counts`). */
 internal const val PHOTO_COUNTS = """SELECT category, COUNT(*) AS n FROM asset_media
@@ -77,7 +123,8 @@ internal const val DOCUMENT_INSERT = """INSERT INTO documents (id, filename, con
 /** The file an asset was read from (the server's `assets.source_document_id`). */
 internal const val ASSET_SET_SOURCE_DOCUMENT = """UPDATE assets SET source_document_id = ?, version = version + 1, updated_at = ? WHERE id = ?"""
 
-internal const val MULTIMEDIA_DELETE = "DELETE FROM multimedia WHERE table_name = 'asset_media' AND row_id = ?"
+/** Drops a removed media's file (the media removed, or its asset deleted) but keeps its `multimedia` row (the sync engine's record of it). */
+internal const val MULTIMEDIA_CLEAR = "UPDATE multimedia SET multimedia_content = NULL WHERE table_name = 'asset_media' AND row_id = ?"
 
 internal const val IMAGE_CONFIG = "SELECT image_config FROM global_timestamp WHERE id = '1'"
 

@@ -72,7 +72,54 @@ public class ImageSyncService {
     private Thread imageSyncWSThread;
     private Thread imageSyncThread;
     private final Map<String, TreeSet<Integer>> currentImageSet = new HashMap<>();
-    final ByteArrayOutputStream multipartBuffer = new ByteArrayOutputStream();
+    final MultipartBuffer multipartBuffer = new MultipartBuffer();
+
+    /**
+     * The image pull's multipart bytes received so far. Parsed in place ({@link #data()} up to {@link #length()}), so a
+     * frame doesn't copy everything buffered before it (a video can be tens of MB); grows by half, not double.
+     */
+    static final class MultipartBuffer extends ByteArrayOutputStream {
+        private static final int SMALL = 32;
+        private static final int SHRINK_ABOVE = 1024 * 1024;
+
+        byte[] data() {
+            return buf;
+        }
+
+        int length() {
+            return count;
+        }
+
+        @Override
+        public synchronized void write(byte[] b, int off, int len) {
+            int needed = count + len;
+            if (needed > buf.length) {
+                buf = Arrays.copyOf(buf, Math.max(needed, buf.length + (buf.length >> 1)));
+            }
+            System.arraycopy(b, off, buf, count, len);
+            count = needed;
+        }
+
+        /** Drops the first [n] bytes (the parts already saved), keeping the rest at the start; frees spare room. */
+        synchronized void dropFirst(int n) {
+            if (n <= 0) return;
+            if (n >= count) {
+                clear();
+                return;
+            }
+            System.arraycopy(buf, n, buf, 0, count - n);
+            count -= n;
+            if (buf.length > SHRINK_ABOVE && count < buf.length / 4) {
+                buf = Arrays.copyOf(buf, Math.max(count, SMALL));
+            }
+        }
+
+        /** Empties the buffer and lets its memory go (after a batch, or when the connection opens or closes). */
+        synchronized void clear() {
+            buf = new byte[SMALL];
+            count = 0;
+        }
+    }
     private final Queue<Map.Entry<String, ByteBuffer>> imageQueue = new LinkedList<>();
     final AtomicBoolean pullingImages = new AtomicBoolean(false);
     private final String TAG = "Image Sync Service";
@@ -160,7 +207,7 @@ public class ImageSyncService {
                     if (!mediaRecords.isEmpty()) {
                         pushImages(mediaRecords);
                     } else {
-                        if (!syncManager.getFeature().equals(OfflineFeatures.ASSET_DATA_COLLECTION) && syncManager.isPullImagesEnabled(syncManager.appContext, syncManager.getVdmsID()) ) {
+                        if (syncManager.isPullImagesEnabled(syncManager.appContext, syncManager.getVdmsID()) ) {
                             JSONObject payload = generatePayloadForPullImages();
                             if (payload != null) {
                                 pullImages(payload);
@@ -307,7 +354,7 @@ public class ImageSyncService {
                     "SELECT \"" + multimediaId + "\", \"table_name\", \"row_id\", \"column_name\", \"order\", \"content_type\" " +
                             "FROM \"" + multimediaTable + "\" " +
                             "WHERE \"media_changes\" IS NOT NULL " +
-                            "AND \"content_type\" NOT LIKE '%video%' " +
+//                            "AND \"content_type\" NOT LIKE '%video%' " +
                             "AND length(\"" + multimediaContent + "\") < " + (10 * 1024 * 1024) + " " +
                             "ORDER BY \"order\" ASC LIMIT 10;";
             cursor = dbConnection.rawQuery(query, null);
@@ -393,7 +440,7 @@ public class ImageSyncService {
             if (!pendingImages.isEmpty()) {
                 pushImages(pendingImages);
             } else {
-                if (!syncManager.getFeature().equals(OfflineFeatures.ASSET_DATA_COLLECTION) && currentImageSyncMode.equals(SyncMode.POLLING)) {
+                if (currentImageSyncMode.equals(SyncMode.POLLING)) {
                     JSONObject payload = generatePayloadForPullImages();
                     if (payload != null) {
                         pullImages(payload);
@@ -494,29 +541,38 @@ public class ImageSyncService {
 
     void handleIncomingImages(byte[] originalData) {
         try {
-            multipartBuffer.write(originalData);
-            byte[] rawData = multipartBuffer.toByteArray();
+            int before = multipartBuffer.length();
+            multipartBuffer.write(originalData, 0, originalData.length);
+            // Read in place: only bytes before `length` are this batch's (the rest is spare room).
+            byte[] rawData = multipartBuffer.data();
+            int length = multipartBuffer.length();
 
-            String boundary = getBoundaryFromData(rawData);
+            String boundary = getBoundaryFromData(rawData, length);
             if (boundary == null) {
                 Log.e(TAG, "Could not extract boundary from data. Waiting for more data.");
                 return;
             }
             byte[] boundaryBytes = boundary.getBytes(StandardCharsets.ISO_8859_1);
 
+            // A part is complete only once the next boundary arrives, so nothing to do until a frame brings one (it may
+            // start in the bytes before this frame).
+            if (before > 0 && indexOf(rawData, length, boundaryBytes, Math.max(1, before - boundaryBytes.length + 1)) == -1) {
+                return;
+            }
+
             int searchIndex = 0;
             String max_timestamp = "0";
 
             while (true) {
                 // Find the start of the next part
-                int partStartIndex = indexOf(rawData, boundaryBytes, searchIndex);
+                int partStartIndex = indexOf(rawData, length, boundaryBytes, searchIndex);
                 if (partStartIndex == -1) {
                     // No more boundaries found. The rest of the data is an incomplete part.
                     break;
                 }
 
                 // Find the end of the current part (which is the start of the next boundary)
-                int partEndIndex = indexOf(rawData, boundaryBytes, partStartIndex + boundaryBytes.length);
+                int partEndIndex = indexOf(rawData, length, boundaryBytes, partStartIndex + boundaryBytes.length);
                 if (partEndIndex == -1) {
                     // The end of this part is not yet in the buffer. We need more data.
                     break;
@@ -525,7 +581,7 @@ public class ImageSyncService {
                 // --- A complete part is found between partStartIndex and partEndIndex ---
                 int contentStartIndex = partStartIndex + boundaryBytes.length;
 
-                int headersEndIndex = indexOf(rawData, new byte[]{'\r', '\n', '\r', '\n'}, contentStartIndex);
+                int headersEndIndex = indexOf(rawData, length, new byte[]{'\r', '\n', '\r', '\n'}, contentStartIndex);
                 if (headersEndIndex == -1) break;
 
                 String headersStr = new String(rawData, contentStartIndex, headersEndIndex - contentStartIndex, StandardCharsets.UTF_8);
@@ -603,16 +659,12 @@ public class ImageSyncService {
 
             //  Handle leftover data ---
             if (searchIndex > 0) {
-                byte[] leftoverData = Arrays.copyOfRange(rawData, searchIndex, rawData.length);
-                multipartBuffer.reset();
-                multipartBuffer.write(leftoverData);
+                multipartBuffer.dropFirst(searchIndex);
             }
 
             if (!max_timestamp.equals("0")) {
                 updateGlobalMediaTimestamp(max_timestamp);
             }
-        } catch (IOException e) {
-            Log.e(TAG, "IOException while writing to buffer: " + e.getMessage());
         } catch (NumberFormatException e) {
             Log.e(TAG, "Failed to parse a number (e.g., timestamp, order, or content-length): " + e.getMessage());
         } catch (Exception e) {
@@ -631,13 +683,13 @@ public class ImageSyncService {
         if (multipartBuffer.size() == 0) {
             return;
         }
-        String boundary = getBoundaryFromData(multipartBuffer.toByteArray());
+        String boundary = getBoundaryFromData(multipartBuffer.data(), multipartBuffer.length());
         if (boundary == null) {
-            multipartBuffer.reset();
+            multipartBuffer.clear();
             return;
         }
         handleIncomingImages(boundary.getBytes(StandardCharsets.ISO_8859_1));
-        multipartBuffer.reset();
+        multipartBuffer.clear();
     }
 
     void removeExtraOrders(Map<String, TreeSet<Integer>> orderMapFromResponse) throws JSONException {
@@ -709,8 +761,9 @@ public class ImageSyncService {
         }
     }
 
-    private String getBoundaryFromData(byte[] rawData) {
-        int end = indexOf(rawData, "\r\n".getBytes(StandardCharsets.ISO_8859_1), 0);
+    /** The boundary line that starts the buffered multipart bytes (the first [length] bytes of [rawData]). */
+    private String getBoundaryFromData(byte[] rawData, int length) {
+        int end = indexOf(rawData, length, "\r\n".getBytes(StandardCharsets.ISO_8859_1), 0);
         return (end != -1) ? new String(rawData, 0, end, StandardCharsets.ISO_8859_1) : null;
     }
 
@@ -827,8 +880,13 @@ public class ImageSyncService {
     }
 
     private static int indexOf(byte[] data, byte[] pattern, int from) {
+        return indexOf(data, data.length, pattern, from);
+    }
+
+    /** Where [pattern] first occurs in the first [length] bytes of [data], from [from]; -1 if it doesn't. */
+    private static int indexOf(byte[] data, int length, byte[] pattern, int from) {
         outer:
-        for (int i = from; i <= data.length - pattern.length; i++) {
+        for (int i = Math.max(0, from); i <= length - pattern.length; i++) {
             for (int j = 0; j < pattern.length; j++) {
                 if (data[i + j] != pattern[j]) {
                     continue outer;

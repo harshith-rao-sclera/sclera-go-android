@@ -1,7 +1,9 @@
 package com.sclera.sclerago.domain.usecase.asset
 
+import com.sclera.sclerago.domain.model.ActivityKind
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AssetType
@@ -22,12 +24,15 @@ import com.sclera.sclerago.domain.model.scanKey
 import com.sclera.sclerago.domain.model.timeLabel
 import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.domain.model.withDefaultKind
+import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
+import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.LocalDataReloader
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.system.IdGenerator
+import com.sclera.sclerago.domain.usecase.media.DownloadMediaUseCase
 import com.sclera.sclerago.domain.system.next
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.validation.CheckInput
@@ -36,6 +41,7 @@ import com.sclera.sclerago.domain.validation.checkComment
 import com.sclera.sclerago.domain.validation.commentText
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
@@ -44,8 +50,34 @@ class ObserveAssetsUseCase @Inject constructor(private val repo: AssetRepository
 }
 
 /** An asset's comments and history, newest first, again whenever they change. */
-class ObserveAssetActivityUseCase @Inject constructor(private val repo: AssetActivityRepository) {
-    operator fun invoke(assetId: String): Flow<List<AssetActivity>> = repo.observe(assetId)
+/**
+ * An asset's comments and history, each with who wrote it as far as this device knows (so it shows offline too: the
+ * signed-in user's own name, else the people list, which the server sends to admins only) and, for a comment, whether
+ * the signed-in user may change it (its author) or remove it (its author, or anyone who can validate), as the server's
+ * comment routes allow.
+ */
+class ObserveAssetActivityUseCase @Inject constructor(
+    private val repo: AssetActivityRepository,
+    private val access: AccessRepository,
+    private val auth: AuthRepository,
+    private val guard: PermissionGuard,
+) {
+    operator fun invoke(assetId: String): Flow<List<AssetActivity>> {
+        val rights = combine(guard.observe(Permission.COLLECT), guard.observe(Permission.VALIDATE)) { collect, validate -> collect to validate }
+        return combine(repo.observe(assetId), access.people, auth.state, rights) { entries, people, session, (collect, validate) ->
+            val names = people.associate { it.id to it.name }
+            val myName = (session as? AuthState.SignedIn)?.session?.displayName?.takeIf { it.isNotBlank() }
+            val mayComment = collect || validate
+            entries.map { e ->
+                val comment = e.kind == ActivityKind.COMMENT
+                e.copy(
+                    authorName = (if (e.byMe) myName else null) ?: e.createdBy?.let(names::get),
+                    canEdit = comment && mayComment && e.byMe,
+                    canDelete = comment && ((mayComment && e.byMe) || validate),
+                )
+            }
+        }
+    }
 }
 
 /**
@@ -84,6 +116,12 @@ class SetAssetStatusUseCase @Inject constructor(
         allowExceptions: Boolean = true,
     ) {
         guard.requireOffline(permissionFor(status))
+        // As the server: assets are signed off in a validation run (which keeps a record of who decided), never by a
+        // status move.
+        if (status == Status.VALIDATED) throw DataException(DataError.FORBIDDEN)
+        // Submitting only moves assets still being collected; any other move of a submitted asset (back to draft) is an
+        // admin's, as the server's edit.
+        if (status != Status.SUBMITTED) requireUnlocked(repo, guard, ids)
         repo.setStatus(ids, status, allowExceptions, photoRules.forMove(status))
     }
 }
@@ -94,9 +132,6 @@ private fun permissionFor(status: Status) = if (status == Status.VALIDATED) Perm
 private suspend fun PhotoRulesRepository.forMove(status: Status): List<PhotoRule> =
     if (status == Status.SUBMITTED) rules().first() else emptyList()
 
-/** Still being drafted: saving such an asset gives it the AI flag of a saved draft; any other status is kept. */
-private val DRAFTING = setOf(Status.DRAFT, Status.INPUT, Status.AI)
-
 /**
  * Keeps the values from an asset's details form and, when given, moves it to [status] (submitting counts [photoRules]).
  * As the server, a submitted or validated asset can only be changed by an admin (else [DataException] FORBIDDEN).
@@ -106,15 +141,20 @@ class SaveAssetDetailsUseCase @Inject constructor(
     private val guard: PermissionGuard,
     private val photoRules: PhotoRulesRepository,
 ) {
-    suspend operator fun invoke(id: String, values: Map<String, String>, status: Status? = null) {
+    /** [sources]: form field key -> the web page an applied AI suggestion came from. [place]: a new place, kept with the rest. */
+    suspend operator fun invoke(
+        id: String,
+        values: Map<String, String>,
+        status: Status? = null,
+        sources: Map<String, String> = emptyMap(),
+        place: LocValue? = null,
+    ) {
         guard.requireOffline(Permission.COLLECT)
         if (status != null) guard.requireOffline(permissionFor(status))
-        val current = repo.catalog.value.assets.firstOrNull { it.id == id }?.st
-        if (current != null && isLockedFor(current, guard.isAdmin())) throw DataException(DataError.FORBIDDEN)
-        repo.saveDetails(id, values)
-        // As the server's edit: saving keeps the status of an asset that isn't a draft any more (an exception stays one).
-        val target = if (status == Status.AI && current != null && current !in DRAFTING) null else status
-        if (target != null) repo.setStatus(listOf(id), target, allowExceptions = true, photoRules = photoRules.forMove(target))
+        requireUnlocked(repo, guard, listOf(id))
+        repo.saveDetails(id, values, sources, place)
+        // Without a status the asset keeps its own, as the server's edit does.
+        if (status != null) repo.setStatus(listOf(id), status, allowExceptions = true, photoRules = photoRules.forMove(status))
     }
 }
 
@@ -123,9 +163,20 @@ class CanEditAssetUseCase @Inject constructor(private val guard: PermissionGuard
     operator fun invoke(status: Status): Boolean = !isLockedFor(status, guard.isAdmin())
 }
 
+/**
+ * As the server's check_unlocked: once submitted (or signed off) an asset is changed by an admin only; anyone else gets
+ * [DataException] FORBIDDEN and nothing changes. Unknown ids are left to the writer.
+ */
+internal fun requireUnlocked(repo: AssetRepository, guard: PermissionGuard, ids: Collection<String>) {
+    if (guard.isAdmin()) return
+    val status = repo.catalog.value.assets.associate { it.id to it.st }
+    if (ids.any { id -> status[id]?.let { isLockedFor(it, isAdmin = false) } == true }) throw DataException(DataError.FORBIDDEN)
+}
+
 class DeleteAssetsUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(ids: Collection<String>) {
         guard.requireOffline(Permission.COLLECT)
+        requireUnlocked(repo, guard, ids)
         repo.delete(ids)
     }
 }
@@ -133,17 +184,46 @@ class DeleteAssetsUseCase @Inject constructor(private val repo: AssetRepository,
 class AssignLocationUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(ids: Collection<String>, location: LocValue) {
         guard.requireOffline(Permission.COLLECT)
+        requireUnlocked(repo, guard, ids)
         repo.assignLocation(ids, location)
     }
 }
 
+/**
+ * As the server's _check_room: refuses ([DataException] PHOTO_LIMIT) photos of a kind that would take the asset past the
+ * most the property's [rules] allow, or of a kind the property doesn't collect. [have] is the asset's media now.
+ */
+internal fun checkPhotoRoom(rules: List<PhotoRule>, have: List<Media>, adding: List<Media>) {
+    adding.filter { it.fieldId == null && it.category != null && !it.video && !it.audio && !it.isDoc }.groupBy { it.category }.forEach { (kind, added) ->
+        val rule = rules.firstOrNull { it.kind == kind } ?: return@forEach
+        val count = have.count { it.fieldId == null && it.category == kind }
+        if (rule.max == 0 || count + added.size > rule.max) throw DataException(DataError.PHOTO_LIMIT)
+    }
+}
+
 /** Adds photos / videos to an existing asset; false when there is nothing to add. */
-class AttachMediaUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
+class AttachMediaUseCase @Inject constructor(
+    private val repo: AssetRepository,
+    private val guard: PermissionGuard,
+    private val photoRules: PhotoRulesRepository,
+) {
     suspend operator fun invoke(assetId: String, media: List<Media>): Boolean {
         if (media.isEmpty() || assetId.isBlank()) return false
         guard.requireOffline(Permission.COLLECT)
+        requireUnlocked(repo, guard, listOf(assetId))
+        val have = repo.catalog.value.assets.firstOrNull { it.id == assetId }?.media.orEmpty()
+        checkPhotoRoom(photoRules.rules().first(), have, media)
         repo.attachMedia(assetId, media)
         return true
+    }
+}
+
+/** Removes one of an asset's photos, videos, voice memos or files, as the server's media DELETE (collectors only). */
+class RemoveMediaUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(assetId: String, mediaId: String) {
+        guard.requireOffline(Permission.COLLECT)
+        requireUnlocked(repo, guard, listOf(assetId))
+        repo.removeMedia(assetId, mediaId)
     }
 }
 
@@ -227,8 +307,10 @@ class CreateAssetUseCase @Inject constructor(
             Via.MANUAL ->
                 Asset(id, name.ifBlank { "Untitled asset" }, detail.ifBlank { "Added manually" }, place.loc, place.where, Source.MANUAL, st, typeOf(name), place.prop, media, locationId = place.placeId) to Source.MANUAL
         }
-        // Saved (drafted) or submitted, a new asset has the AI flag on.
-        repo.add(listOf(NewAsset(asset.copy(aiSuggestion = true), values, device?.id)))
+        // Its photos of each kind stay within the property's photo rules, as each upload to the server is checked.
+        checkPhotoRoom(photoRules.rules().first(), emptyList(), asset.media)
+        // Its AI flag is worked out from its empty fields once it is written, as the server's POST /assets.
+        repo.add(listOf(NewAsset(asset, values, device?.id)))
         // With a mandatory field empty or too few photos it goes in as an exception (the screen asks about that first).
         if (submit) repo.setStatus(listOf(id), Status.SUBMITTED, allowExceptions = true, photoRules = photoRules.forMove(Status.SUBMITTED))
         return Created(id, via, source)
@@ -285,6 +367,8 @@ class AssetUseCases @Inject constructor(
     val delete: DeleteAssetsUseCase,
     val assignLocation: AssignLocationUseCase,
     val attachMedia: AttachMediaUseCase,
+    val removeMedia: RemoveMediaUseCase,
+    val downloadMedia: DownloadMediaUseCase,
     val add: AddAssetsUseCase,
     val create: CreateAssetUseCase,
     val matchDevices: MatchDevicesUseCase,
@@ -297,4 +381,6 @@ class AssetUseCases @Inject constructor(
     val formValues: BuildFormValuesUseCase,
     val activity: ObserveAssetActivityUseCase,
     val addComment: AddCommentUseCase,
+    val updateComment: UpdateCommentUseCase,
+    val removeComment: RemoveCommentUseCase,
 )

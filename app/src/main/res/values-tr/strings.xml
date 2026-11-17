@@ -108,8 +108,6 @@
     <string name="launch_logo_description">Sclera Go logosu</string>
     <string name="access_stat_people">Kullanıcılar</string>
     <string name="access_stat_groups">Gruplar</string>
-    <string name="access_tab_people">Kullanıcılar (%1$d)</string>
-    <string name="access_tab_groups">Gruplar (%1$d)</string>
     <string name="access_search_people">Kişi ara</string>
     <string name="access_add_person">Kişi ekle</string>
     <string name="access_new_group">Yeni grup</string>
@@ -394,7 +392,6 @@
     <string name="detail_no_unsaved">Kaydedilmemiş değişiklik yok</string>
     <string name="detail_status">Durum: %1$s</string>
     <string name="detail_submitted_body">Alanları artık düzenlenemez. Değişiklik mi gerekiyor? Yeniden toplama isteyin.</string>
-    <string name="detail_recollect">Yeniden toplama iste</string>
     <string name="detail_updated">Güncellendi: %1$s</string>
     <string name="detail_photo_of">%1$d / %2$d</string>
     <string name="detail_prev">Önceki fotoğraf</string>

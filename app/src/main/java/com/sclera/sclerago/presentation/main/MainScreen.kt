@@ -273,7 +273,7 @@ fun ScleraApp(
 
         // Validation page (side menu) covers the whole app; an asset opened from its results sits on top.
         if (s.valOpen) {
-            ValidationScreen(vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation)
+            ValidationScreen(vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation, onMenu = vm::openMenu)
             if (detail != null) {
                 Box(Modifier.fillMaxSize().background(C.Bg).statusBarsPadding().navigationBarsPadding()) { detailView(detail) }
             }
@@ -283,7 +283,7 @@ fun ScleraApp(
         if (s.cfgOpen) ConfigScreen(vm)
 
         // Integration page (side menu): the property's link to a VDMS.
-        if (s.intOpen) IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration)
+        if (s.intOpen) IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration, onMenu = vm::openMenu)
 
         // Property list / People and access (side menu).
         when (s.adminPage) {

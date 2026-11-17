@@ -153,7 +153,8 @@ object Icons {
         s(circle(9f, 8f, 3.5f)), s("M2.5 20v-.5A5.5 5.5 0 0 1 8 14h2a5.5 5.5 0 0 1 5.5 5.5v.5"),
         s("M15.5 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a5.5 5.5 0 0 1 3.5 5.3v.5"),
     )
-    val User = Ico(s("M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-4 3.6-6 8-6s8 2 8 6"))
+    /** One person: a round head over shoulders (drawn like [Users], whose shapes the path drawer reads reliably). */
+    val User = Ico(s(circle(12f, 8f, 4f)), s("M4.5 20.5v-.5A6 6 0 0 1 10.5 14h3a6 6 0 0 1 6 6v.5"))
     val Mail = Ico(s(rect(3f, 5f, 18f, 14f, 2f)), s("M4 7l8 6 8-6"))
     val ArrowRight = Ico(s("M5 12h14M13 6l6 6-6 6"))
     val Download = Ico(s("M12 4v11M7 10l5 5 5-5"), s("M5 20h14"))
@@ -162,6 +163,10 @@ object Icons {
     val Upload = Ico(s("M12 15V4M7 9l5-5 5 5"), s("M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"))
     val Trash = Ico(s("M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"))
     val Mic = Ico(s(rect(9f, 3f, 6f, 11f, 3f)), s("M5 11a7 7 0 0 0 14 0M12 18v3"))
+    /** Switch to another property (two opposite arrows). */
+    val Switch = Ico(s("M4 8h14M14 4l4 4-4 4"), s("M20 16H6M10 12l-4 4 4 4"))
+    /** A group of users (what its people can open and do). */
+    val Key = Ico(s(circle(8f, 12f, 4f)), s("M12 12h9M18 12v3M21 12v2"))
     /** A geofence (a drawn polygon). */
     val Fence = Ico(s("M12 3.5l8.5 6.2-3.2 10H6.7l-3.2-10z"))
 

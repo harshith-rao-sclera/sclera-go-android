@@ -77,7 +77,7 @@ private const val SuggestionsShown = 8
  * required fields and the email and phone as the web does; [onAdd] returns what stopped it, [serverError] says the
  * server refused. [suggestions] are those for the address field being typed in ([onSuggest] asks for them).
  * With [initial] it edits that property instead (the info button on a property): the form starts from it, is titled
- * "Property Info", saves with Save, and has a round Delete button before Cancel ([onDelete] asks first). While
+ * "Property Info", and its footer has Delete and Save (Delete takes Cancel's place; [onDelete] asks first). While
  * [readOnly] (offline: the copy saved on the device) it only shows the property: nothing can be changed, Save is off,
  * Delete is hidden and a line says why.
  */

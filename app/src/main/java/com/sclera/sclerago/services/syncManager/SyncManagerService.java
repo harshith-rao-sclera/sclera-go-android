@@ -106,15 +106,15 @@ public class SyncManagerService {
                     SyncManager finalCurrentInstance = currentInstance;
                     executorService.execute(() -> {
                         finalCurrentInstance.startConnection();
-                        finalCurrentInstance.startWebSocketClientService();
+//                        finalCurrentInstance.startWebSocketClientService();
 
                         if (finalCurrentInstance.isSynced == 2) {
-                            finalCurrentInstance.setCurrentDataSyncMode(SyncMode.WEBSOCKET);
-                            finalCurrentInstance.setCurrentImageSyncMode(SyncMode.WEBSOCKET);
+                            finalCurrentInstance.setCurrentDataSyncMode(SyncMode.POLLING);
+                            finalCurrentInstance.setCurrentImageSyncMode(SyncMode.POLLING);
 
                             finalCurrentInstance.startDataSyncingService();
                             finalCurrentInstance.startImageSyncingService();
-                            finalCurrentInstance.startLargeDataSyncingService();
+//                            finalCurrentInstance.startLargeDataSyncingService();
                         }
                     });
                 }

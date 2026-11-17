@@ -106,8 +106,6 @@
     <string name="launch_logo_description">Sclera Go 标志</string>
     <string name="access_stat_people">用户</string>
     <string name="access_stat_groups">群组</string>
-    <string name="access_tab_people">用户（%1$d）</string>
-    <string name="access_tab_groups">群组（%1$d）</string>
     <string name="access_search_people">搜索人员</string>
     <string name="access_add_person">添加人员</string>
     <string name="access_new_group">新建群组</string>
@@ -390,7 +388,6 @@
     <string name="detail_no_unsaved">没有未保存的更改</string>
     <string name="detail_status">状态：%1$s</string>
     <string name="detail_submitted_body">其字段已无法再编辑。需要更改？请申请重新采集。</string>
-    <string name="detail_recollect">申请重新采集</string>
     <string name="detail_updated">更新于 %1$s</string>
     <string name="detail_photo_of">%1$d/%2$d</string>
     <string name="detail_prev">上一张照片</string>

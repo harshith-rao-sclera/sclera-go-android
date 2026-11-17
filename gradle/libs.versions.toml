@@ -5,6 +5,7 @@ composeBom = "2026.06.01"
 activityCompose = "1.13.0"
 lifecycle = "2.10.0"
 camerax = "1.6.2"
+media3 = "1.8.0"
 exifinterface = "1.4.2"
 coreKtx = "1.17.0"
 coreSplashscreen = "1.0.1"
@@ -50,6 +51,9 @@ camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.r
 camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 camera-video = { group = "androidx.camera", name = "camera-video", version.ref = "camerax" }
 camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+media3-transformer = { group = "androidx.media3", name = "media3-transformer", version.ref = "media3" }
+media3-effect = { group = "androidx.media3", name = "media3-effect", version.ref = "media3" }
+media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
 exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

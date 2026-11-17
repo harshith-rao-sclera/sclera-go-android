@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -35,10 +36,18 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.platform.LocalContext
+import com.sclera.sclerago.domain.model.formatDuration
+import com.sclera.sclerago.services.media.MediaDurations
+import java.util.Locale
 
 /** Test tags of the asset photos. */
 object PhotoTags {
     const val VIEWER = "detail-photo-viewer"
+    const val DOWNLOAD = "detail-photo-download"
+    const val REMOVE = "detail-photo-remove"
     fun tile(index: Int) = "detail-photo-$index"
 }
 
@@ -50,6 +59,18 @@ private fun Media.title(): String = when {
     else -> stringResource(R.string.detail_photo)
 }
 
+/**
+ * [m]'s length in milliseconds: its row's, else read from its file (media added on iOS saves no length); 0 while it
+ * isn't known, so nothing shows rather than "0:00".
+ */
+@Composable
+internal fun lengthMs(m: Media): Long {
+    if (m.durationMs > 0 || !(m.video || m.audio)) return m.durationMs
+    val context = LocalContext.current
+    val read by produceState(0L, m.uri) { value = MediaDurations.of(context, m.uri) ?: 0L }
+    return read
+}
+
 /** One attachment as a square tile ([modifier] sets its size): the picture (or a document's type), a video's length, and an expand mark. */
 @Composable
 internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifier) {
@@ -58,7 +79,9 @@ internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifi
         if (m.isDoc) Txt(m.ext, 11, 800, C.Yellow, Modifier.align(Alignment.Center))
         else MediaImage(m, Modifier.fillMaxSize(), maxPx = 240)
         if (m.video) Txt(
-            stringResource(R.string.detail_video_badge, m.durationText), 9, 700, C.White,
+            lengthMs(m).takeIf { it > 0 }?.let { stringResource(R.string.detail_video_badge, formatDuration(it)) }
+                ?: stringResource(R.string.detail_video).uppercase(Locale.getDefault()),
+            9, 700, C.White,
             Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp), spacing = 0.4f,
         )
         Box(
@@ -68,9 +91,27 @@ internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifi
     }
 }
 
-/** Full-screen view of one attachment, with arrows to the neighbours. */
+/** The title of the confirmation before removing [m]: a file or voice memo by its name, a photo or video by its kind. */
 @Composable
-fun PhotoViewer(media: List<Media>, index: Int, onIndex: (Int) -> Unit, onClose: () -> Unit) {
+internal fun removeMediaTitle(m: Media): String = when {
+    m.isDoc -> stringResource(R.string.media_remove_named, m.title())
+    m.video -> stringResource(R.string.media_remove_video)
+    else -> stringResource(R.string.media_remove_photo)
+}
+
+/**
+ * Full-screen view of one attachment, with arrows to the neighbours, as the web's media viewer: Download saves a copy,
+ * and Remove (null: the asset is read-only) asks to delete it from the asset.
+ */
+@Composable
+fun PhotoViewer(
+    media: List<Media>,
+    index: Int,
+    onIndex: (Int) -> Unit,
+    onClose: () -> Unit,
+    onDownload: (Media) -> Unit,
+    onRemove: ((Media) -> Unit)?,
+) {
     val m = media[index]
     Column(Modifier.fillMaxSize().testTag(PhotoTags.VIEWER).background(C.shade(0.96f)).noRippleClick { }) {
         Row(
@@ -82,6 +123,10 @@ fun PhotoViewer(media: List<Media>, index: Int, onIndex: (Int) -> Unit, onClose:
                 Txt(m.title(), 15, 700)
                 Txt(stringResource(R.string.detail_photo_of, index + 1, media.size), 11, 400, C.Muted)
                 m.credit?.let { Txt(it, 10, 400, C.Muted, maxLines = 2) }
+            }
+            HeaderButton(Icons.Download, stringResource(R.string.media_download), C.Text, Modifier.testTag(PhotoTags.DOWNLOAD)) { onDownload(m) }
+            onRemove?.let { remove ->
+                HeaderButton(Icons.Trash, stringResource(R.string.media_remove), C.Red, Modifier.testTag(PhotoTags.REMOVE)) { remove(m) }
             }
             CloseButton(onClose)
         }
@@ -106,6 +151,12 @@ fun PhotoViewer(media: List<Media>, index: Int, onIndex: (Int) -> Unit, onClose:
             }
         }
     }
+}
+
+/** A round header button like the viewer's Close, for an icon-only action ([description] is read out). */
+@Composable
+private fun HeaderButton(icon: Ico, description: String, tint: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    RoundButton(48.dp, C.Btn, onClick, modifier.semantics { contentDescription = description }) { LineIcon(icon, 18.dp, tint, 2.6f) }
 }
 
 @Composable

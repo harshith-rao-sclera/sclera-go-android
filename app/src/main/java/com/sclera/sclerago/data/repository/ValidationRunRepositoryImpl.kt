@@ -34,11 +34,6 @@ import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.domain.validation.ValTemplate
 import com.sclera.sclerago.domain.validation.ValidationDef
 import com.sclera.sclerago.domain.validation.ValidationDraft
-import com.sclera.sclerago.di.ApplicationScope
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.serialization.json.JsonPrimitive
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,10 +46,7 @@ import javax.inject.Singleton
 class ValidationRunRepositoryImpl @Inject constructor(
     private val api: AdcValidationApi,
     private val offline: ValidationRunsOfflineSource,
-    @ApplicationScope scope: CoroutineScope,
 ) : ValidationCatalogRepository, SavedValidationRepository, ValidationRunRepository {
-
-    override val runCount: StateFlow<Int> = offline.runCountFlow().stateIn(scope, SharingStarted.Eagerly, 0)
 
     /** [online], or [fallback] when there is no connection. */
     private suspend fun <T> orOffline(online: suspend () -> T, fallback: suspend () -> T): T = try {

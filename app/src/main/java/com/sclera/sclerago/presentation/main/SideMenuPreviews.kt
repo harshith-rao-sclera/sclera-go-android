@@ -26,7 +26,7 @@ private fun SideMenuPreview() {
     ScleraTheme {
         Box(Modifier.fillMaxSize().background(C.Bg)) {
             SideMenuPanel(
-                open = true, session = SampleSession, propertyName = "Test 861", assetCount = 25, validationCount = 4,
+                open = true, session = SampleSession, propertyName = "Test 861", assetCount = 25,
                 active = MenuItem.ASSETS, onClose = {}, onPick = {}, onSignOut = {},
             )
         }
@@ -42,7 +42,7 @@ private fun SideMenuNoPropertyPreview() {
     ScleraTheme {
         Box(Modifier.fillMaxSize().background(C.Bg)) {
             SideMenuPanel(
-                open = true, session = SampleSession, propertyName = null, assetCount = 0, validationCount = 0,
+                open = true, session = SampleSession, propertyName = null, assetCount = 0,
                 active = MenuItem.PROPERTY, onClose = {}, onPick = {}, onSignOut = {},
             )
         }

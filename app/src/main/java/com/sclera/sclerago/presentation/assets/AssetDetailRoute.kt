@@ -24,6 +24,7 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.SaveMediaAs
 import com.sclera.sclerago.services.media.describeAttachments
 import com.sclera.sclerago.services.media.describeDocument
 import com.sclera.sclerago.services.media.describeVisualMedia
@@ -92,6 +93,13 @@ fun AssetDetailRoute(
         }
     }
 
+    // The viewer's Download: the system's save dialog, then the file is copied where the user chose.
+    var downloading by remember(asset.id) { mutableStateOf<Media?>(null) }
+    val mediaSave = rememberLauncherForActivityResult(SaveMediaAs()) { uri ->
+        downloading?.let { vm.downloadMedia(it, uri?.toString()) }
+        downloading = null
+    }
+
     val actions = AssetDetailActions(
         onBack = onBack,
         onChangeLoc = onChangeLoc,
@@ -109,6 +117,10 @@ fun AssetDetailRoute(
         },
         onValidate = onValidate,
         onDelete = { onDelete(asset.id) },
+        changeRequest = ChangeRequestActions(
+            onOpen = vm::openChangeRequest, onNote = vm::editChangeNote, onSend = vm::sendChangeRequest,
+            onCancel = vm::cancelChangeRequest, onClose = vm::closeChangeRequest, onReopen = vm::reopenAsset,
+        ),
         onAutofill = vm::openAi,
         ai = AiDialogActions(
             onClose = vm::closeAi, onIdentity = vm::editAiIdentity, onLookUp = vm::lookUp, onChangeModel = vm::changeAiModel,
@@ -129,9 +141,15 @@ fun AssetDetailRoute(
         onUploadDocument = { documentPick.launch(arrayOf("*/*")) },
         onCommentChange = vm::editComment,
         onPostComment = vm::postComment,
-        onCommentSheet = vm::showCommentSheet,
+        onUpdateComment = vm::updateComment,
+        onRemoveComment = vm::removeComment,
         onRevalidate = vm::revalidate,
         onRemoveWebPage = vm::removeWebPage,
+        onDownloadMedia = { m ->
+            downloading = m
+            mediaSave.launch(m)
+        },
+        onRemoveMedia = vm::removeMedia,
         onSuggestType = vm::openClassify,
         classify = ClassifyActions(
             onClose = vm::closeClassify, onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,

@@ -21,9 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -94,11 +91,8 @@ internal fun StatCard(
 ) {
     val shape = r(if (prominent) 16 else 12)
     val look = if (prominent) {
-        // The tint fades from the icon's side, which is the right in right-to-left languages.
-        val wash = listOf(tint.copy(alpha = 0.14f), C.Surface)
-        val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-        Modifier.clip(shape).background(Brush.horizontalGradient(if (rtl) wash.reversed() else wash))
-            .border(1.dp, tint.copy(alpha = 0.3f), shape).padding(horizontal = 14.dp, vertical = 14.dp)
+        // Bigger, on the plain card background (no coloured wash); the colour is on the icon tile only.
+        Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(horizontal = 14.dp, vertical = 14.dp)
     } else {
         Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(horizontal = 10.dp, vertical = 6.dp)
     }
@@ -237,7 +231,7 @@ internal fun ChoiceSheet(
 /**
  * Modal sheet over the page (top 56dp of the page stays visible): handle, header with title,
  * subtitle and close button, scrolling [content], and a footer with Cancel and the [primary]
- * action ([footerLeading] goes before them, e.g. a Delete button). [error] is shown above the footer;
+ * action ([footerLeading], e.g. a Delete button, takes Cancel's place). [error] is shown above the footer;
  * [progress] (0–1) draws the yellow bar under the header.
  */
 @Composable
@@ -336,8 +330,9 @@ private fun FormSheetBody(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                footerLeading?.invoke(this)
-                Pill(stringResource(R.string.action_cancel), onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 14, weight = 600)
+                // Editing something that can be deleted: Delete takes Cancel's place (two buttons, Delete and Save).
+                if (footerLeading != null) footerLeading.invoke(this)
+                else Pill(stringResource(R.string.action_cancel), onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 14, weight = 600)
                 Pill(
                     primary, onPrimary, Modifier.weight(1f).then(primaryModifier),
                     bg = if (primaryEnabled) C.Yellow else C.PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else C.PrimaryOffFg,

@@ -64,6 +64,7 @@ import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.PageBar
+import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RadioDot
 import com.sclera.sclerago.presentation.components.SearchField
@@ -118,6 +119,8 @@ fun ValidationScreen(
     assets: List<Asset>,
     onOpenAsset: (String) -> Unit,
     onClose: () -> Unit,
+    /** The header's menu button: opens the side menu. */
+    onMenu: () -> Unit = {},
     vm: ValidationViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(propertyId) { vm.bind(propertyId) }
@@ -129,7 +132,7 @@ fun ValidationScreen(
     BackHandler(onBack = close)
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            PageBar("Validation", propName, close, property = true)
+            SubPageBar("Validation", propName, onMenu)
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 160.dp)) {
                 item(key = "top") { Spacer(Modifier.height(4.dp)) }
                 item(key = "lead") {

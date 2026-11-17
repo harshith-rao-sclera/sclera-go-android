@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.mapper
 
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetDetails
+import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.sourceFromDb
@@ -37,10 +38,12 @@ fun DbRow.toAsset(
     val validated = bool("validated")
     val aiSuggestion = bool("ai_suggestion")
     val locationId = string("location_id")?.takeIf { it.isNotBlank() }
+    val makeModel = listOfNotNull(string("manufacturer"), string("model")).map { it.trim() }.filter { it.isNotEmpty() }.joinToString(" · ")
     return Asset(
         id = string("id").orEmpty(),
         name = name,
-        detail = listOfNotNull(string("manufacturer"), string("model")).filter { it.isNotBlank() }.joinToString(" · "),
+        detail = makeModel,
+        makeModel = makeModel,
         loc = place?.loc ?: locationId,
         where = place?.where.orEmpty(),
         src = sourceFromDb(string("source")),
@@ -57,7 +60,13 @@ fun DbRow.toAsset(
         aiSuggestion = aiSuggestion,
         validated = validated,
         version = int("version") ?: 1,
-        assetTypeName = format?.assetType?.takeIf { it.isNotBlank() },
+        changeRequest = string("change_requested_at")?.takeIf { it.isNotBlank() }?.let { at ->
+            ChangeRequest(
+                string("change_requested_by")?.takeIf { it.isNotBlank() }, parseDbTime(at),
+                string("change_request_note")?.takeIf { it.isNotBlank() },
+            )
+        },
+        assignedTo = string("assigned_to")?.takeIf { it.isNotBlank() },
     )
 }
 

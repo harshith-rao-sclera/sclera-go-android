@@ -23,8 +23,8 @@ class BulkUpdateAssetsUseCase @Inject constructor(private val repo: AssetReposit
         val admin = guard.isAdmin()
         val status = repo.catalog.value.assets.associate { it.id to it.st }
         val editable = ids.filter { id -> status[id]?.let { !isLockedFor(it, admin) } == true }
-        if (given.isNotEmpty()) editable.forEach { repo.saveDetails(it, given) }
-        if (place != null && editable.isNotEmpty()) repo.assignLocation(editable, place)
+        // Values and place together, so each asset gets one history line for the edit, as the server's PATCH.
+        editable.forEach { repo.saveDetails(it, given, place = place) }
         return Result(editable.size, ids.size - editable.size)
     }
 }

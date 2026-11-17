@@ -90,13 +90,6 @@ class FieldsConfigViewModel @Inject constructor(private val useCases: FieldsConf
         fields = fields.map { if (it.id == f.id) f else it }
     }
 
-    fun toggleVisible(f: FieldCfg) {
-        if (f.required && f.visible && !f.locked) {
-            say(UiText.Res(R.string.cfg_fields_mandatory_visible))
-            return
-        }
-        send { replace(useCases.toggleVisible(propertyId, f)) }
-    }
 
     fun toggleRequired(f: FieldCfg) = send { replace(useCases.toggleRequired(propertyId, f)) }
 

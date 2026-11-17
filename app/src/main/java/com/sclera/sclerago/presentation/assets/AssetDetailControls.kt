@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
@@ -79,7 +80,17 @@ fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
  * runs checks on it, which changes nothing on the asset, so it stays offered as on the web.
  */
 @Composable
-fun SubmittedCard(onRecollect: () -> Unit, modifier: Modifier, onValidate: (() -> Unit)? = null) {
+fun SubmittedCard(
+    modifier: Modifier,
+    onValidate: (() -> Unit)? = null,
+    /** Someone's request to reopen it, shown under the header; with none, Request change asks for one. */
+    request: ChangeRequest? = null,
+    mine: Boolean = false,
+    /** Who made [request] (name, else email), when known on this device. */
+    requester: String? = null,
+    onRequestChange: () -> Unit = {},
+    onWithdraw: () -> Unit = {},
+) {
     Column(
         modifier.fillMaxWidth().clip(r(14)).background(Status.SUBMITTED.chipBg).border(1.dp, Status.SUBMITTED.chipBd, r(14)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -93,9 +104,24 @@ fun SubmittedCard(onRecollect: () -> Unit, modifier: Modifier, onValidate: (() -
                 Txt(stringResource(R.string.detail_submitted_body), 11, 400, C.Muted, maxLines = 3)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            onValidate?.let { Pill(stringResource(R.string.action_validate), it, Modifier.weight(1f), height = 48.dp, size = 14, weight = 700) }
-            Pill(stringResource(R.string.detail_recollect), onRecollect, Modifier.weight(1f), height = 48.dp, size = 14, weight = 700)
+        request?.let { ChangeRequestLine(it, mine, requester) }
+        // Request change while nobody has asked; Withdraw for one's own request; nothing for someone else's.
+        val ask = request == null
+        if (onValidate != null || ask || mine) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onValidate?.let { Pill(stringResource(R.string.action_validate), it, Modifier.weight(1f), height = 48.dp, size = 14, weight = 700) }
+                if (ask) {
+                    Pill(
+                        stringResource(R.string.change_request_action), onRequestChange, Modifier.weight(1f).testTag(ChangeRequestTags.ASK),
+                        height = 48.dp, size = 14, weight = 700,
+                    )
+                } else if (mine) {
+                    Pill(
+                        stringResource(R.string.change_request_withdraw), onWithdraw, Modifier.weight(1f).testTag(ChangeRequestTags.CLOSE),
+                        height = 48.dp, size = 14, weight = 700,
+                    )
+                }
+            }
         }
     }
 }
@@ -135,7 +161,6 @@ fun DetailTab(
     selected: Boolean,
     fails: Int?,
     modifier: Modifier,
-    count: Int? = null,
     /** The icon beside the label (a lower bar) instead of above it. */
     compact: Boolean = false,
     onClick: () -> Unit,
@@ -149,13 +174,9 @@ fun DetailTab(
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(icon, 16.dp, fg, 2.4f) }
                 val badge = Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-3).dp).heightIn(min = 15.dp).widthIn(min = 15.dp)
+                // Only the Validation tab has a badge: its failed checks, or a tick when all passed.
                 when {
-                    // A plain count (documents, media, comments): only when there is something to count.
-                    fails == null -> if (count != null && count > 0) {
-                        Box(badge.background(C.Btn, Capsule).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
-                            Txt(count.toString(), 9, 700, fg)
-                        }
-                    }
+                    fails == null -> Unit
                     fails > 0 -> Box(badge.background(C.Red, Capsule).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
                         Txt(fails.toString(), 9, 800, C.OnYellow)
                     }

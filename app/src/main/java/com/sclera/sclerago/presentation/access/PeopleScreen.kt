@@ -2,9 +2,13 @@ package com.sclera.sclerago.presentation.access
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +27,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import kotlinx.coroutines.flow.first
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,7 +49,10 @@ import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.pageGutter
+import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
+import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
@@ -200,24 +210,50 @@ internal fun PeopleContent(
 }
 
 /**
- * What the page is for and the People / Groups tab switch (the app bar names the page). The tabs count people and
- * groups once there are some, as the web's do.
+ * The Users and Groups cards (how many of each; tapping one opens its tab), then the Users / Groups tab switch (the app
+ * bar names the page). The counts are on the cards, not the tabs.
  */
 @Composable
 private fun Header(list: AccessListState, onTab: (AccessTab) -> Unit) {
     val onPeople = list.tab == AccessTab.PEOPLE
     Column(Modifier.padding(top = 2.dp, bottom = 7.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Txt(stringResource(R.string.access_lead), 12, 400, C.Muted, maxLines = 4)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StatCard(
+                list.peopleTotal, stringResource(R.string.access_stat_people), Icons.Users, C.Yellow, C.OnYellow,
+                Modifier.weight(1f).testTag(AccessTags.STAT_PEOPLE),
+            ) { onTab(AccessTab.PEOPLE) }
+            StatCard(
+                list.groupsTotal, stringResource(R.string.access_stat_groups), Icons.Key, C.Purple, C.OnYellow,
+                Modifier.weight(1f).testTag(AccessTags.STAT_GROUPS),
+            ) { onTab(AccessTab.GROUPS) }
+        }
         TabSwitch(
             listOf(
-                if (list.peopleTotal > 0) stringResource(R.string.access_tab_people, list.peopleTotal) else stringResource(R.string.access_stat_people),
-                if (list.groupsTotal > 0) stringResource(R.string.access_tab_groups, list.groupsTotal) else stringResource(R.string.access_stat_groups),
+                stringResource(R.string.access_stat_people),
+                stringResource(R.string.access_stat_groups),
             ),
             listOf(AccessTags.TAB_PEOPLE, AccessTags.TAB_GROUPS), if (onPeople) 0 else 1,
         ) { onTab(if (it == 0) AccessTab.PEOPLE else AccessTab.GROUPS) }
     }
 }
 
+
+/** One count card at the top of the page: a coloured icon tile, the number, and what it counts. */
+@Composable
+private fun StatCard(count: Int, label: String, icon: Ico, tile: Color, onTile: Color, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier.clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).clickable(role = Role.Button, onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(42.dp).clip(r(11)).background(tile), contentAlignment = Alignment.Center) { LineIcon(icon, 22.dp, onTile, 2.2f) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Txt(count.toString(), 22, 800)
+            Txt(label, 12, 500, C.Muted, maxLines = 1)
+        }
+    }
+}
 
 /** A bold line over a muted one, centred: nobody yet, nobody by that name, or why the page isn't available. */
 @Composable

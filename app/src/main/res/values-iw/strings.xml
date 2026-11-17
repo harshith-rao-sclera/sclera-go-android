@@ -112,8 +112,6 @@
     <string name="launch_logo_description">הלוגו של Sclera Go</string>
     <string name="access_stat_people">משתמשים</string>
     <string name="access_stat_groups">קבוצות</string>
-    <string name="access_tab_people">משתמשים (%1$d)</string>
-    <string name="access_tab_groups">קבוצות (%1$d)</string>
     <string name="access_search_people">חיפוש אנשים</string>
     <string name="access_add_person">הוספת אדם</string>
     <string name="access_new_group">קבוצה חדשה</string>
@@ -402,7 +400,6 @@
     <string name="detail_no_unsaved">אין שינויים שלא נשמרו</string>
     <string name="detail_status">סטטוס: %1$s</string>
     <string name="detail_submitted_body">אי אפשר עוד לערוך את השדות. צריך שינוי? בקשו איסוף מחדש.</string>
-    <string name="detail_recollect">בקשת איסוף מחדש</string>
     <string name="detail_updated">עודכן: %1$s</string>
     <string name="detail_photo_of">%1$d מתוך %2$d</string>
     <string name="detail_prev">התמונה הקודמת</string>

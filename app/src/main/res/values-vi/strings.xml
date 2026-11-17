@@ -106,8 +106,6 @@
     <string name="launch_logo_description">Biểu trưng Sclera Go</string>
     <string name="access_stat_people">Người dùng</string>
     <string name="access_stat_groups">Nhóm</string>
-    <string name="access_tab_people">Người dùng (%1$d)</string>
-    <string name="access_tab_groups">Nhóm (%1$d)</string>
     <string name="access_search_people">Tìm người</string>
     <string name="access_add_person">Thêm người</string>
     <string name="access_new_group">Nhóm mới</string>
@@ -390,7 +388,6 @@
     <string name="detail_no_unsaved">Không có thay đổi chưa lưu</string>
     <string name="detail_status">Trạng thái: %1$s</string>
     <string name="detail_submitted_body">Các trường không thể chỉnh sửa nữa. Cần thay đổi? Hãy yêu cầu thu thập lại.</string>
-    <string name="detail_recollect">Yêu cầu thu thập lại</string>
     <string name="detail_updated">Cập nhật %1$s</string>
     <string name="detail_photo_of">%1$d/%2$d</string>
     <string name="detail_prev">Ảnh trước</string>

@@ -20,6 +20,11 @@ class DeleteOwnedMediaUseCase @Inject constructor(private val files: FileReposit
     operator fun invoke(media: List<Media>) = files.deleteOwned(media)
 }
 
+/** Saves a copy of an asset's photo, video, voice memo or file to the document [target] the user chose; false when it can't. */
+class DownloadMediaUseCase @Inject constructor(private val files: FileRepository) {
+    suspend operator fun invoke(media: Media, target: String): Boolean = files.copyFile(media.uri, target)
+}
+
 /** The device-file use cases, for injecting as one. */
 class FileUseCases @Inject constructor(
     val describeMedia: DescribePickedMediaUseCase,

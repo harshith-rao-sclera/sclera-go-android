@@ -70,11 +70,18 @@ data class Asset(
     val validated: Boolean = false,
     /** Server row version, bumped on each synced edit. */
     val version: Int = 1,
-    /** Its asset type from the property's catalogue (its master format's asset type); null while it isn't classified. */
-    val assetTypeName: String? = null,
     /** Sent back to be collected again (by a reviewer), and still drafted: the web's "Recollect" badge and filter. */
     val recollect: Boolean = false,
+    /** Someone asked an admin to reopen it (it is submitted); null when nobody has. */
+    val changeRequest: ChangeRequest? = null,
+    /** The user it is assigned to (a user id; whoever added it, unless an admin chose someone else); null when nobody. */
+    val assignedTo: String? = null,
+    /** Its manufacturer and model ("Daikin · VRV IV"); empty when neither is filled in. [detail] adds its specs to these. */
+    val makeModel: String = "",
 )
+
+/** A request to reopen a submitted asset: who asked ([requestedBy], a user id), when, and what needs changing. */
+data class ChangeRequest(val requestedBy: String?, val requestedAt: Long?, val note: String?)
 
 /**
  * Whether a status chip or filter for [status] takes this asset. "AI suggestion" goes by the AI flag (AI could fill

@@ -6,4 +6,14 @@
     <string name="media_add_file_fab">File</string>
     <string name="media_videos">Videos</string>
     <string name="media_memos_files">Voice memos and files</string>
+    <!-- The media viewer's Download and Remove, as the web's. -->
+    <string name="media_download">Download</string>
+    <string name="media_downloaded">Saved a copy</string>
+    <string name="media_download_failed">Couldn\'t save the file</string>
+    <string name="media_remove">Remove</string>
+    <string name="media_remove_photo">Remove this photo?</string>
+    <string name="media_remove_video">Remove this video?</string>
+    <string name="media_remove_named">Remove %1$s?</string>
+    <string name="media_remove_body">The file is deleted from this asset. This can\'t be undone.</string>
+    <string name="media_removed">Removed from the asset</string>
 </resources>

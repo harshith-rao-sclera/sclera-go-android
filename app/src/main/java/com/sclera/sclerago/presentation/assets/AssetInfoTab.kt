@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.Status
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,11 +27,16 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FormEntry
+import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.ANSWER_NO
 import com.sclera.sclerago.domain.model.ANSWER_YES
 import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.validation.isServerId
+import com.sclera.sclerago.domain.usecase.asset.AssetPerson
+import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
+import androidx.compose.ui.platform.LocalConfiguration
 import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.assetTypes
@@ -61,6 +67,8 @@ class AssetDetailActions(
     val onCreate: (submit: Boolean) -> Unit = {},
     val onValidate: () -> Unit = {},
     val onDelete: () -> Unit = {},
+    /** Change requests on a submitted asset: open the dialog, edit its note, send or cancel, withdraw / decline, reopen. */
+    val changeRequest: ChangeRequestActions = ChangeRequestActions(),
     /** Open the AI suggestions dialog. */
     val onAutofill: () -> Unit = {},
     /** What the AI suggestions dialog's buttons do. */
@@ -79,14 +87,19 @@ class AssetDetailActions(
     /** The comment being typed changed / post it (Comments tab). */
     val onCommentChange: (String) -> Unit = {},
     val onPostComment: () -> Unit = {},
-    /** The Comments tab's +: opens (true) or closes the sheet a comment is written in. */
-    val onCommentSheet: (Boolean) -> Unit = {},
+    /** Save a comment's new text ([onSaved] once saved) / remove a comment (after the confirmation) (Comments tab). */
+    val onUpdateComment: (comment: AssetActivity, text: String, onSaved: () -> Unit) -> Unit = { _, _, _ -> },
+    val onRemoveComment: (AssetActivity) -> Unit = {},
     /** Validate the asset again at the server: from its first step to look at, or (true) every step. */
     val onRevalidate: (fromStart: Boolean) -> Unit = {},
     /** Open the camera for a photo of [kind] (null: other photos) (Media tab +). */
     val onAddPhoto: (kind: PhotoKind?) -> Unit = {},
     /** Take a web page off the asset (Documents tab, after the confirmation). */
     val onRemoveWebPage: (documentId: String) -> Unit = {},
+    /** Save a copy of a photo, video, voice memo or file (the media viewer's Download). */
+    val onDownloadMedia: (Media) -> Unit = {},
+    /** Remove a photo, video, voice memo or file from the asset (the media viewer's Remove, after the confirmation). */
+    val onRemoveMedia: (Media) -> Unit = {},
     /** Open the "Suggest type" sheet (System details). */
     val onSuggestType: () -> Unit = {},
     /** What the "Suggest type" sheet's buttons do. */
@@ -110,6 +123,7 @@ class FormUi {
 
 /** The Info tab's sections, by key (also what a Validation Fix button opens). */
 object InfoSections {
+    const val ASSIGNMENT = "assignment"
     const val LOCATION = "loc"
     const val SYSTEM = "cls"
     const val FIELDS = "fields"
@@ -145,6 +159,22 @@ fun AssetInfoTab(
     fun open(key: String) = key !in ui.collapsed
     val notSet = stringResource(R.string.detail_value_none)
     val select = stringResource(R.string.detail_select)
+
+    // Assignment: who has the asset, and who submitted it and when (as the web's asset card). Not for a new asset.
+    state.handling?.let { h ->
+        val locale = LocalConfiguration.current.locales[0]
+        // Assigned to shows the person's email (their name, or "You", only when their email isn't on this device).
+        val assignee = h.assignedTo?.let { it.email ?: personText(it) }
+        FormSection(
+            key = InfoSections.ASSIGNMENT, title = stringResource(R.string.detail_sec_assignment), note = null,
+            open = open(InfoSections.ASSIGNMENT), onToggle = { ui.toggle(InfoSections.ASSIGNMENT) },
+            summary = Summary(assignee ?: stringResource(R.string.detail_unassigned)),
+        ) {
+            ValueRow(stringResource(R.string.detail_assigned_to), assignee)
+            ValueRow(stringResource(R.string.detail_submitted_by), h.submittedBy?.let { personText(it) })
+            ValueRow(stringResource(R.string.detail_submitted_on), h.submittedAt?.let { formatDateTimeSeconds(it, locale) })
+        }
+    }
 
     // Location details
     val place = state.place
@@ -244,25 +274,28 @@ fun AssetInfoTab(
     if (!isNew) {
         StatusLine(asset, Modifier.padding(horizontal = 12.dp).padding(top = 2.dp))
         if (locked) {
-            // Submitted: read-only. A recollect request reopens it (for now it just closes the asset).
+            // Submitted: read-only. Someone who needs to change it asks an admin to reopen it (a change request).
             SubmittedCard(
-                onRecollect = actions.onBack, modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
+                modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
                 onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
+                request = asset.changeRequest, mine = state.changeRequestMine, requester = state.changeRequester,
+                onRequestChange = actions.changeRequest.onOpen, onWithdraw = actions.changeRequest.onClose,
             )
         } else {
+            // An admin can change a submitted asset; a change request on it is theirs to decline, or reopen it for.
+            val request = asset.changeRequest
+            if (request != null && (asset.st == Status.SUBMITTED || asset.st == Status.VALIDATED)) {
+                AdminChangeRequestCard(
+                    request, state.changeRequestMine, state.changeRequester, actions.changeRequest.onClose, actions.changeRequest.onReopen,
+                    Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
+                )
+            }
             // As the server: an asset with an empty mandatory field or too few photos is submitted as an exception, so ask about that first.
             val submitModal = if (state.complete) DetailModal.SUBMIT else DetailModal.SUBMIT_EXCEPTION
-            ActionCard(
-                // As the web: for anyone who may run checks, once the server has the asset.
-                onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
-                onAssign = actions.onAssign,
-                onSubmit = { onModal(submitModal) },
-                onDelete = { onModal(DetailModal.DELETE) },
-                modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
-            )
-            // Save (makes it drafted with the AI flag on; asks first while a mandatory field is empty, as the web) and Submit.
+            // Save (makes it drafted with the AI flag on; asks first while a mandatory field is empty, as the web) and Submit,
+            // with the other actions under it.
             val dirty = state.dirtyCount
-            SaveCard(Modifier.padding(horizontal = 12.dp)) {
+            SaveCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     if (dirty > 0) {
                         Txt(pluralStringResource(R.plurals.detail_unsaved, dirty, dirty), 14, 700)
@@ -286,6 +319,14 @@ fun AssetInfoTab(
                     bg = C.Yellow, fg = C.OnYellow, height = 48.dp, hPad = 22.dp, size = 14, weight = 700,
                 )
             }
+            ActionCard(
+                // As the web: for anyone who may run checks, once the server has the asset.
+                onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
+                onAssign = actions.onAssign,
+                onSubmit = { onModal(submitModal) },
+                onDelete = { onModal(DetailModal.DELETE) },
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
         }
     } else {
         // New asset: save it as a draft, or submit it (then it can not be edited). As the server, one with an empty mandatory
@@ -303,6 +344,11 @@ fun AssetInfoTab(
         }
     }
 }
+
+/** A user the asset names: their name; "You" for the signed-in user when their name isn't on this device, else "Unknown user". */
+@Composable
+private fun personText(p: AssetPerson): String =
+    p.name ?: stringResource(if (p.me) R.string.detail_person_you else R.string.detail_person_unknown)
 
 /**
  * One of the asset's fields, by its kind: a dropdown for the choice kinds (their choices are the field's own, from the

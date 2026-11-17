@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -66,6 +68,7 @@ import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
+import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Ico
@@ -73,6 +76,7 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import com.sclera.sclerago.domain.model.formatDuration
 
 /** The tabs an asset's details can show, in the web app's order (Info, Validation, Documents, Media, Comments, History). */
 enum class DetailTabKind(@StringRes val label: Int, val icon: Ico, val tag: String) {
@@ -84,8 +88,8 @@ enum class DetailTabKind(@StringRes val label: Int, val icon: Ico, val tag: Stri
     HISTORY(R.string.detail_tab_history, Icons.Clock, "detail-tab-history"),
 }
 
-/** One tab as shown: [fails] is the Validation tab's failed checks (0 = all passed), [count] how many items the tab lists. */
-data class DetailTabItem(val kind: DetailTabKind, val fails: Int? = null, val count: Int? = null)
+/** One tab as shown: [fails] is the Validation tab's failed checks (0 = all passed). */
+data class DetailTabItem(val kind: DetailTabKind, val fails: Int? = null)
 
 /**
  * The tabs [state] shows, worked out from the asset as the web's asset panel does: Info, Validation,
@@ -97,11 +101,10 @@ fun detailTabs(state: AssetDetailState): List<DetailTabItem> {
     return buildList {
         add(DetailTabItem(DetailTabKind.INFO))
         if (!state.isNew) add(DetailTabItem(DetailTabKind.VALIDATION))
-        // Each tab counts what it lists: the Media tab shows attached files too, the Documents tab the asset's documents.
-        add(DetailTabItem(DetailTabKind.DOCUMENTS, count = state.documents.size))
-        add(DetailTabItem(DetailTabKind.MEDIA, count = state.media.size))
+        add(DetailTabItem(DetailTabKind.DOCUMENTS))
+        add(DetailTabItem(DetailTabKind.MEDIA))
         if (!state.isNew) {
-            add(DetailTabItem(DetailTabKind.COMMENTS, count = state.activity.count { it.kind == ActivityKind.COMMENT }))
+            add(DetailTabItem(DetailTabKind.COMMENTS))
             add(DetailTabItem(DetailTabKind.HISTORY))
         }
     }
@@ -120,7 +123,7 @@ fun DetailTabBar(tabs: List<DetailTabItem>, selected: DetailTabKind, onSelect: (
         tabs.forEach { t ->
             DetailTab(
                 stringResource(t.kind.label), t.kind.icon, t.kind == selected, t.fails,
-                Modifier.weight(1f).testTag(t.kind.tag), count = t.count, compact = compact,
+                Modifier.weight(1f).testTag(t.kind.tag), compact = compact,
             ) { onSelect(t.kind) }
         }
     }
@@ -297,7 +300,8 @@ private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (I
                 Txt(stringResource(tag), 10, 700, C.Soft, Modifier.background(C.Btn, Capsule).padding(horizontal = 8.dp, vertical = 3.dp))
                 Column(Modifier.weight(1f)) {
                     Txt(m.fileName ?: stringResource(tag), 13, 700, maxLines = 1)
-                    val meta = listOfNotNull(m.sizeBytes?.let(::sizeText), m.durationText.takeIf { m.video || m.audio }).joinToString(" · ")
+                    val length = lengthMs(m).takeIf { (m.video || m.audio) && it > 0 }?.let(::formatDuration)
+                    val meta = listOfNotNull(m.sizeBytes?.let(::sizeText), length).joinToString(" · ")
                     if (meta.isNotEmpty()) Txt(meta, 11, 400, C.Muted)
                 }
                 LineIcon(if (m.video || m.audio) Icons.Play else Icons.Download, 15.dp, C.Yellow, 2.2f)
@@ -344,31 +348,78 @@ private fun PhotoCard(
 }
 
 /**
- * The Comments tab's list, as the web's: one card per comment, newest first, with its text and under it who wrote it
- * (the phone knows only the signed-in user) and when.
+ * The Comments tab's list, as the web's: one card per comment, newest first, with its text, who wrote it and when
+ * ("· edited" once changed), and Edit (its author) and Delete (its author, or a validator) on the end side. Edit turns
+ * the card into a box with Save and Cancel; Delete asks first ([onDelete] shows the question). [readOnly] (a signed-off
+ * asset, as the web's validated list) hides both.
  */
 @Composable
-fun CommentList(activity: List<AssetActivity>) {
+fun CommentList(
+    activity: List<AssetActivity>,
+    readOnly: Boolean,
+    onSave: (comment: AssetActivity, text: String, onSaved: () -> Unit) -> Unit,
+    onDelete: (AssetActivity) -> Unit,
+) {
     val locale = LocalConfiguration.current.locales[0]
     val comments = activity.filter { it.kind == ActivityKind.COMMENT }
-    // How many there are, then the comments (or "No comments"); a comment is added with the floating +.
-    Txt(pluralStringResource(R.plurals.detail_comment_count, comments.size, comments.size), 15, 700, modifier = Modifier.testTag("comment-count"))
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editText by rememberSaveable { mutableStateOf("") }
+    val someone = stringResource(R.string.detail_comment_someone)
+    val edited = stringResource(R.string.detail_comment_edited)
+    // None yet: "No comments yet" in the middle of the tab, as the web's.
     if (comments.isEmpty()) {
-        EmptyTab(stringResource(R.string.detail_no_comments))
+        Box(Modifier.fillMaxWidth().padding(vertical = 120.dp).testTag(DetailTags.TAB_EMPTY), contentAlignment = Alignment.Center) {
+            Txt(stringResource(R.string.detail_no_comments), 13, 700, C.Muted, align = TextAlign.Center)
+        }
         return
     }
     comments.forEach { e ->
-        Column(
-            Modifier.fillMaxWidth().testTag("detail-activity-${e.id}").clip(r(12)).border(1.dp, C.Border, r(12))
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        val canEdit = !readOnly && e.canEdit
+        val canDelete = !readOnly && e.canDelete
+        Row(
+            Modifier.fillMaxWidth().testTag("detail-activity-${e.id}").clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))
+                .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Txt(e.text, 14, 400, maxLines = Int.MAX_VALUE)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Txt(if (e.byMe) stringResource(R.string.detail_by_you) else "", 11, 500, C.Muted, Modifier.weight(1f))
-                e.createdAt?.let { Txt(formatDateTimeSeconds(it, locale), 11, 400, C.Muted) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                if (editingId == e.id) {
+                    CompositionLocalProvider(LocalReadOnly provides false) {
+                        PlainField(
+                            editText, { editText = it }, stringResource(R.string.detail_comment_hint),
+                            Modifier.fillMaxWidth().testTag("detail-comment-edit-${e.id}").clip(r(10)).background(C.Bg)
+                                .border(1.dp, C.Border2, r(10)).padding(10.dp),
+                            size = 14, singleLine = false, minLines = 2,
+                        )
+                    }
+                } else {
+                    Txt(e.text, 14, 700, maxLines = Int.MAX_VALUE)
+                }
+                Txt(e.authorName ?: someone, 11, 500, C.Muted, maxLines = 1)
+                e.createdAt?.let { Txt(formatDateTimeSeconds(it, locale) + if (e.edited) " · $edited" else "", 11, 400, C.Muted) }
+            }
+            if (editingId == e.id) {
+                CommentIconButton(Icons.Check, stringResource(R.string.detail_comment_save), C.Yellow, "detail-comment-save-${e.id}") {
+                    if (editText.isNotBlank()) onSave(e, editText) { editingId = null }
+                }
+                CommentIconButton(Icons.Close, stringResource(R.string.action_cancel), C.Muted, "detail-comment-cancel-${e.id}") { editingId = null }
+            } else {
+                if (canEdit) CommentIconButton(Icons.Pencil, stringResource(R.string.detail_comment_edit), C.Yellow, "detail-comment-edit-btn-${e.id}") {
+                    editText = e.text
+                    editingId = e.id
+                }
+                if (canDelete) CommentIconButton(Icons.Trash, stringResource(R.string.detail_comment_delete), C.Red, "detail-comment-delete-${e.id}") {
+                    onDelete(e)
+                }
             }
         }
+    }
+}
+
+/** An icon-only button on a comment card (48dp to touch, [description] read out). */
+@Composable
+private fun CommentIconButton(icon: Ico, description: String, tint: Color, tag: String, onClick: () -> Unit) {
+    RoundButton(48.dp, Color.Transparent, onClick, Modifier.testTag(tag).semantics { contentDescription = description }) {
+        LineIcon(icon, 18.dp, tint, 2.2f)
     }
 }
 

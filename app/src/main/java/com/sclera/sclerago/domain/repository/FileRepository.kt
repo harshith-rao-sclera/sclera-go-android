@@ -19,4 +19,7 @@ interface FileRepository {
 
     /** Writes [bytes] to the document [uri] the user picked to save to; false when it can't be written. */
     suspend fun writeFile(uri: String, bytes: ByteArray): Boolean
+
+    /** Copies the file at [from] to the document [to] the user picked to save to; false when it can't be read or written. */
+    suspend fun copyFile(from: String, to: String): Boolean
 }

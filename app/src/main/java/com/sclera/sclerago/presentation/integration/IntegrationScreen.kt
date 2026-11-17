@@ -44,13 +44,13 @@ import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.ListLoader
-import com.sclera.sclerago.presentation.components.PageBar
+import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.pageGutter
-import com.sclera.sclerago.presentation.components.ChoiceRow
+import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
@@ -63,13 +63,20 @@ import com.sclera.sclerago.presentation.theme.Txt
  * the property has no link), and the link's card (logo, organisation name, info → View Integration). A link can't be changed here.
  */
 @Composable
-fun IntegrationScreen(propertyId: String, propName: String, onClose: () -> Unit, vm: IntegrationViewModel = hiltViewModel()) {
+fun IntegrationScreen(
+    propertyId: String,
+    propName: String,
+    onClose: () -> Unit,
+    /** The header's menu button: opens the side menu. */
+    onMenu: () -> Unit = {},
+    vm: IntegrationViewModel = hiltViewModel(),
+) {
     LaunchedEffect(propertyId) { vm.bind(propertyId) }
     val s = vm.state
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(C.Bg).testTag("integration_page")) {
         Column(Modifier.fillMaxSize()) {
-            PageBar(stringResource(R.string.int_title), propName, onClose, property = true)
+            SubPageBar(stringResource(R.string.int_title), propName, onMenu)
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(16.dp)
                     .padding(bottom = 72.dp), // room for the floating +
@@ -78,7 +85,7 @@ fun IntegrationScreen(propertyId: String, propName: String, onClose: () -> Unit,
                 when {
                     s.loading -> ListLoader(stringResource(R.string.int_loading))
                     s.link == null -> EmptyNote(stringResource(R.string.int_none))
-                    else -> LinkCard(vm.nameOf(s.link)) { vm.view(true) }
+                    else -> LinkCard(vm.nameOf(s.link), s.link.vdmsId)
                 }
             }
         }
@@ -90,15 +97,6 @@ fun IntegrationScreen(propertyId: String, propName: String, onClose: () -> Unit,
             Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp)
                 .alpha(if (canAdd) 1f else 0.4f).testTag("integration_add"),
         )
-        if (s.viewing) s.link?.let { link ->
-            BottomSheet({ vm.view(false) }) {
-                SheetHeader(stringResource(R.string.int_view_title), null) { vm.view(false) }
-                Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ReadOnly(stringResource(R.string.int_field_integration), vm.nameOf(link))
-                    ReadOnly(stringResource(R.string.int_field_vdms), link.vdmsId)
-                }
-            }
-        }
         s.adding?.let { a -> AddSheet(a, vm.nameOf(null), vm) }
         AnimatedVisibility(
             s.message != null,
@@ -108,20 +106,16 @@ fun IntegrationScreen(propertyId: String, propName: String, onClose: () -> Unit,
     }
 }
 
-/** The link's card, as the web's: the Sclera logo, the organisation name, and an info button that opens View Integration. */
+/** The link's card: the Sclera logo, then the integration (the organisation) and its VDMS, shown in the card itself. */
 @Composable
-private fun LinkCard(name: String, onOpen: () -> Unit) {
+private fun LinkCard(name: String, vdmsId: String) {
     Column(
-        Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).clickable(role = Role.Button, onClick = onOpen)
-            .heightIn(min = 64.dp).padding(14.dp),
+        Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(14.dp).testTag("integration_card"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.drawable.login_logo), contentDescription = null, modifier = Modifier.height(28.dp).aspectRatio(512f / 357f))
-            Spacer(Modifier.weight(1f))
-            LineIcon(Icons.Info, 18.dp, C.Soft, 2f)
-        }
-        Txt(name, 14, 700, maxLines = 2)
+        Image(painterResource(R.drawable.login_logo), contentDescription = null, modifier = Modifier.height(28.dp).aspectRatio(512f / 357f))
+        ReadOnly(stringResource(R.string.int_field_integration), name)
+        ReadOnly(stringResource(R.string.int_field_vdms), vdmsId)
     }
 }
 
@@ -148,7 +142,7 @@ private fun AddSheet(a: AddLinkState, organisation: String, vm: IntegrationViewM
                 a.searching -> Txt(stringResource(R.string.int_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
                 a.choices.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
             }
-            a.choices.forEach { c -> ChoiceRow(c.label(), a.picked?.vdmsId == c.vdmsId) { vm.pick(c) } }
+            ChoiceList(a.choices, { it.label() }, { it.vdmsId == a.picked?.vdmsId }, vm::pick)
         }
         Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(

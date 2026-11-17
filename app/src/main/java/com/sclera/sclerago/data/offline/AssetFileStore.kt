@@ -23,6 +23,12 @@ interface AssetFileStore {
      */
     fun read(media: Media): PickedContent?
 
+    /**
+     * [media] made ready for the database: each video re-encoded smaller (an app-private copy the caller discards once
+     * it is kept), everything else as it is. A video that can't be made smaller stays as it was.
+     */
+    suspend fun prepare(media: List<Media>): List<Media> = media
+
     /** Deletes the app's own camera and voice memo files behind [media] once they are in the database. */
     fun discardOriginals(media: List<Media>)
 

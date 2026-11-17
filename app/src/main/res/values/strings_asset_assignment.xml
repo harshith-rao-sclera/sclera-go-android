@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asset details → Info → Assignment: who has the asset, and who submitted it and when. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="detail_sec_assignment">Assignment</string>
+    <string name="detail_assigned_to">Assigned to</string>
+    <string name="detail_submitted_by">Submitted by</string>
+    <string name="detail_submitted_on">Submitted on</string>
+    <string name="detail_unassigned">Not assigned</string>
+    <string name="detail_person_you">You</string>
+    <string name="detail_person_unknown">Unknown user</string>
+</resources>

@@ -155,8 +155,6 @@
     <string name="launch_logo_description">Sclera Go logo</string>
     <string name="access_stat_people">Users</string>
     <string name="access_stat_groups">Groups</string>
-    <string name="access_tab_people">Users (%1$d)</string>
-    <string name="access_tab_groups">Groups (%1$d)</string>
     <string name="access_search_people">Search users</string>
     <string name="access_add_person">Add user</string>
     <string name="access_new_group">New group</string>
@@ -174,7 +172,6 @@
     <string name="access_section_person">User</string>
     <string name="access_field_email">Email</string>
     <string name="access_field_group">Group</string>
-    <string name="access_lead">Manage users and their permissions. Each user belongs to one group, which defines what they can do, and has access to all properties or to selected ones.</string>
     <string name="access_loading">Loading…</string>
     <string name="access_unavailable">Not available</string>
     <string name="access_nobody_yet">No users yet</string>
@@ -526,8 +523,7 @@
     <string name="detail_discard_body">What you’ve entered won’t be saved.</string>
     <string name="detail_no_unsaved">No unsaved changes</string>
     <string name="detail_status">Status: %1$s</string>
-    <string name="detail_submitted_body">Its fields can’t be edited any more. Need a change? Ask for it to be collected again.</string>
-    <string name="detail_recollect">Request recollect</string>
+    <string name="detail_submitted_body">Its fields can’t be edited any more. Need a change? Ask an admin to reopen it.</string>
     <string name="detail_updated">Updated %1$s</string>
     <string name="detail_photo_of">%1$d of %2$d</string>
     <string name="detail_prev">Previous photo</string>

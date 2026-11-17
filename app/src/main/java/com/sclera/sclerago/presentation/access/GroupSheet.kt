@@ -56,8 +56,8 @@ private const val DescriptionMax = 500
 /**
  * New group / edit one, as the web's group form: name, description (optional) and what its people can do, each
  * permission with its description and "Needs all properties" where that applies. Admins always have every
- * permission (shown ticked, not editable). An existing group other than Admins has a round Delete (trash) button
- * at the start of the footer, before Cancel and Save ([onDelete] asks first).
+ * permission (shown ticked, not editable). An existing group other than Admins has Delete and Save in the footer
+ * (Delete takes Cancel's place; [onDelete] asks first).
  */
 @Composable
 internal fun GroupSheet(

@@ -14,6 +14,15 @@ enum class DataError {
     /** The signed-in user's group does not allow it (what the server last said; the server still decides). */
     FORBIDDEN,
 
+    /** A photo or file is bigger than the 5MB an asset keeps (and couldn't be made smaller). */
+    FILE_TOO_LARGE,
+
+    /** A video is longer than the 10 seconds an asset keeps (and couldn't be cut down). */
+    CLIP_TOO_LONG,
+
+    /** One more photo of a kind than the property's photo rules allow (or a kind it doesn't collect). */
+    PHOTO_LIMIT,
+
     /** Anything else; the details stay out of the message. */
     FAILED,
 }

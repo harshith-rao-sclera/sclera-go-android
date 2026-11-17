@@ -20,15 +20,13 @@ fun statusFromDb(status: String?, validated: Boolean): Status = when {
 }
 
 /**
- * What to store for [status]: DRAFT, INPUT and AI are drafted. Saving (AI) and submitting (SUBMITTED, or EXCEPTION
- * when incomplete) set the AI flag; DRAFT, INPUT and VALIDATED keep it as it is (a drafted asset shows as Drafted
- * either way, so moving one to draft must not clear it).
+ * What to store for [status]: DRAFT, INPUT and AI are drafted. No status move changes the AI flag, as on the server: it
+ * says whether AI suggestions could fill an empty field, and is worked out again whenever the answers or fields change.
  */
 fun statusToDb(status: Status): DbStatus = when (status) {
-    Status.DRAFT, Status.INPUT -> DbStatus("drafted", validated = false, aiSuggestion = null)
-    Status.AI -> DbStatus("drafted", validated = false, aiSuggestion = true)
-    Status.SUBMITTED -> DbStatus("submitted", validated = false, aiSuggestion = true)
-    Status.EXCEPTION -> DbStatus("exception", validated = false, aiSuggestion = true)
+    Status.DRAFT, Status.INPUT, Status.AI -> DbStatus("drafted", validated = false, aiSuggestion = null)
+    Status.SUBMITTED -> DbStatus("submitted", validated = false, aiSuggestion = null)
+    Status.EXCEPTION -> DbStatus("exception", validated = false, aiSuggestion = null)
     Status.VALIDATED -> DbStatus("saved", validated = true, aiSuggestion = null)
 }
 

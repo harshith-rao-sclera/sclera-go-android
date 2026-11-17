@@ -104,7 +104,7 @@ import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.NavItem
-import com.sclera.sclerago.presentation.components.PageBar
+import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.RoundButton
@@ -125,6 +125,7 @@ import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.main.CfgPage
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import java.util.Locale
 
 private class CfgTabSpec(val page: CfgPage, val label: String, val icon: Ico)
 
@@ -187,7 +188,7 @@ fun ConfigScreen(
     SecureWindow() // building access codes and contacts are shown here
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            PageBar("Configuration", vm.propName, close, property = true)
+            SubPageBar("Configuration", vm.propName, vm::openMenu)
             // Every tab stays composed (as the web keeps them mounted), so unsaved work on one, such as fences being
             // drawn on the map, survives switching to another.
             HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = CFG_TABS.size - 1, key = { it }) { i ->
@@ -1029,75 +1030,75 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
     val photos = cfg.photos
     val photosReady = photos.load == LoadState.READY
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(top = 10.dp)) {
-        Txt(
-            "Choose what’s collected for every asset in $propName, and what validation checks in each field. Mandatory fields are always visible.",
-            11, 400, C.Muted, Modifier.padding(horizontal = 16.dp), maxLines = 4,
-        )
-        // Column headings, lined up with the rows' content.
-        Row(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Txt("FIELD", 10, 600, C.Muted, Modifier.weight(1f), spacing = 0.8f)
-            Txt("SHOW", 10, 600, C.Muted, Modifier.width(SHOW_W), spacing = 0.8f, align = TextAlign.Center)
-            Txt("MANDATORY", 10, 600, C.Muted, Modifier.width(MUST_W), spacing = 0.8f, align = TextAlign.Center)
-            Txt("CHECKS", 10, 600, C.Muted, Modifier.width(CHECKS_W), spacing = 0.8f, align = TextAlign.Center)
-        }
+        Txt(stringResource(R.string.cfg_fields_intro, propName), 12, 400, C.Muted, Modifier.padding(horizontal = 6.dp), maxLines = 4)
         if (!ready) OnlineNote(fv.load, fv.failure, fv::retry)
-        fv.fields.forEach { f ->
-            FieldCfgRow(
-                f, f.options.size,
-                onToggleVisible = { fv.toggleVisible(f) }, onToggleRequired = { fv.toggleRequired(f) },
-                onEdit = { editFor = f.key }, onChecks = { checksFor = f.key },
-            )
+        // The fields as one table, as the web's and the iOS app's: name, type, mandatory and checks.
+        TableCard(Modifier.padding(top = 12.dp)) {
+            TableHeader {
+                HeaderText(stringResource(R.string.cfg_col_name), Modifier.weight(1f))
+                HeaderText(stringResource(R.string.cfg_col_type), Modifier.width(TYPE_W))
+                HeaderText(stringResource(R.string.cfg_col_mandatory), Modifier.width(MUST_W), TextAlign.Center)
+                HeaderText(stringResource(R.string.cfg_col_checks), Modifier.width(CHECKS_W), TextAlign.Center)
+            }
+            fv.fields.forEach { f ->
+                FieldCfgRow(f, f.options.size, onToggleRequired = { fv.toggleRequired(f) }, onEdit = { editFor = f.key }, onChecks = { checksFor = f.key })
+            }
         }
 
-        // Photos: the property's photo rules at the server (nameplate, asset, label ID).
-        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 20.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Txt("Photos", 13, 700)
-                Txt("How many of each kind to collect per asset · ${photos.rules.sumOf { it.min }} needed in total", 11, 400, C.Muted, maxLines = 2)
+        // Photos: the property's photo rules at the server (nameplate, asset, label ID), as the web's table.
+        TableCard(Modifier.padding(top = 14.dp)) {
+            TableHeader {
+                HeaderText(stringResource(R.string.cfg_col_photos), Modifier.weight(1f))
+                HeaderText(stringResource(R.string.cfg_col_minimum), Modifier.width(STEPPER_W), TextAlign.Center)
+                HeaderText(stringResource(R.string.cfg_col_maximum), Modifier.width(STEPPER_W), TextAlign.Center)
             }
-        }
-        Row(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Txt("PHOTO", 10, 600, C.Muted, Modifier.weight(1f), spacing = 0.8f)
-            Txt("MIN", 10, 600, C.Muted, Modifier.width(92.dp), spacing = 0.8f, align = TextAlign.Center)
-            Txt("MAX", 10, 600, C.Muted, Modifier.width(92.dp), spacing = 0.8f, align = TextAlign.Center)
-        }
-        photos.rules.forEach { p ->
-            Row(
-                Modifier.listCard().heightIn(min = 64.dp).padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Column(Modifier.weight(1f).padding(end = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt(stringResource(p.kind.nameRes()), 14, 600)
-                    Txt(stringResource(p.kind.hintRes()), 11, 400, C.Muted, maxLines = 2)
+            photos.rules.forEach { p ->
+                Row(
+                    Modifier.fillMaxWidth().topBorder(C.Border).heightIn(min = 64.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(Modifier.size(34.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) {
+                        LineIcon(Icons.Camera, 16.dp, C.Yellow, 2.2f)
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Txt(stringResource(p.kind.nameRes()), 13, 700)
+                        Txt(stringResource(p.kind.hintRes()), 11, 400, C.Muted, maxLines = 2)
+                    }
+                    Stepper(
+                        p.min, Modifier.width(STEPPER_W), photosReady,
+                        downBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = false) != null,
+                        upBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = true) != null,
+                    ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MIN, up) }
+                    Stepper(
+                        p.max, Modifier.width(STEPPER_W), photosReady,
+                        downBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = false) != null,
+                        upBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = true) != null,
+                    ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MAX, up) }
                 }
-                Stepper(
-                    p.min, Modifier.width(92.dp), photosReady,
-                    downBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = false) != null,
-                    upBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = true) != null,
-                ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MIN, up) }
-                Stepper(
-                    p.max, Modifier.width(92.dp), photosReady,
-                    downBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = false) != null,
-                    upBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = true) != null,
-                ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MAX, up) }
+            }
+            // How many photos all kinds together allow (a bar, as the web's), or why the rules aren't there.
+            Row(
+                Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (photos.load == LoadState.READY) {
+                    val share = (photos.totalMax.toFloat() / MAX_PHOTOS_PER_ASSET).coerceIn(0f, 1f)
+                    Box(Modifier.width(56.dp).height(4.dp).clip(Capsule).background(C.Raised)) {
+                        Box(Modifier.fillMaxWidth(share).fillMaxHeight().clip(Capsule).background(C.Yellow))
+                    }
+                }
+                Txt(
+                    when (photos.load) {
+                        LoadState.LOADING -> stringResource(R.string.cfg_photos_loading)
+                        LoadState.FAILED -> stringResource(R.string.cfg_photos_load_failed)
+                        LoadState.READY -> stringResource(R.string.cfg_photos_usage, photos.totalMax, MAX_PHOTOS_PER_ASSET)
+                    },
+                    11, 400, C.Muted, Modifier.weight(1f), maxLines = 3,
+                )
             }
         }
-        // How many photos all kinds together allow, or why the rules aren't there.
-        Txt(
-            when (photos.load) {
-                LoadState.LOADING -> stringResource(R.string.cfg_photos_loading)
-                LoadState.FAILED -> stringResource(R.string.cfg_photos_load_failed)
-                LoadState.READY -> stringResource(R.string.cfg_photos_usage, photos.totalMax, MAX_PHOTOS_PER_ASSET)
-            },
-            11, 400, C.Muted, Modifier.padding(start = 16.dp, end = 8.dp, top = 6.dp), maxLines = 3,
-        )
         Spacer(Modifier.height(160.dp)) // room for the floating +, as on the Assets list
     }
     // The floating + opens two ways to add fields. Drawn under the sheets and hidden while one is open.
@@ -1139,9 +1140,26 @@ private fun PhotoKind.hintRes() = when (this) {
     PhotoKind.LABEL_ID -> R.string.cfg_photo_label_id_hint
 }
 
-private val SHOW_W = 52.dp
-private val MUST_W = 92.dp
-private val CHECKS_W = 72.dp
+private val TYPE_W = 92.dp
+private val MUST_W = 78.dp
+private val CHECKS_W = 66.dp
+private val STEPPER_W = 92.dp
+
+/** A bordered table card of the Asset fields tab: a header row, then rows split by lines. */
+@Composable
+private fun TableCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Column(modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)), content = content)
+}
+
+@Composable
+private fun TableHeader(content: @Composable RowScope.() -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, content = content)
+}
+
+/** A column heading: small capitals, muted. */
+@Composable
+private fun HeaderText(text: String, modifier: Modifier, align: TextAlign = TextAlign.Start) =
+    Txt(text.uppercase(Locale.getDefault()), 10, 700, C.Muted, modifier, spacing = 0.8f, align = align)
 
 /** Dropdowns whose choices are fixed lists (classification, JACS), so they have no options to edit. */
 private val FIXED_OPTIONS = setOf("sys", "typ", "sub", "jacs")
@@ -1182,56 +1200,44 @@ private fun ValueRule.labelRes(kind: FieldKind): Int = when (this) {
 private fun FieldCfgRow(
     f: FieldCfg,
     options: Int,
-    onToggleVisible: () -> Unit,
     onToggleRequired: () -> Unit,
     onEdit: () -> Unit,
     onChecks: () -> Unit,
 ) {
     Row(
-        Modifier.listCard().clickable(onClick = onEdit).heightIn(min = 64.dp).padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+        Modifier.fillMaxWidth().topBorder(C.Border).clickable(onClick = onEdit).heightIn(min = 56.dp).padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f).padding(end = 4.dp).alpha(if (f.visible) 1f else 0.55f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Txt(f.label, 12, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
-                if (f.locked) LineIcon(Icons.Lock, 13.dp, C.Dim, 2.4f)
+        // Name (a lock on built-in fields), and how many options a dropdown has.
+        Column(Modifier.weight(1f).padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Txt(f.label, 13, 700, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                if (f.locked) LineIcon(Icons.Lock, 12.dp, C.Dim, 2.4f)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                KindChip(f.kind)
-                if (f.kind == FieldKind.DROPDOWN) Txt(plural(options, "option", "options"), 10, 700, C.Yellow, maxLines = 1)
-            }
+            if (f.kind == FieldKind.DROPDOWN) Txt(pluralStringResource(R.plurals.cfg_field_options, options, options), 11, 400, C.Muted, maxLines = 1)
         }
-        // Show: the eye. Mandatory fields stay visible.
-        Box(
-            Modifier.size(SHOW_W, 44.dp).clip(r(8)).clickable(enabled = !f.locked, onClick = onToggleVisible),
-            contentAlignment = Alignment.Center,
-        ) {
-            LineIcon(
-                if (f.visible) Icons.Eye else Icons.EyeOff, 19.dp,
-                when {
-                    f.locked -> C.Yellow.copy(alpha = 0.35f)
-                    f.visible -> C.Yellow
-                    else -> C.Dim
-                },
-                2f,
-            )
+        // Type: its icon in yellow and its name.
+        Row(Modifier.width(TYPE_W), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            LineIcon(f.kind.icon(), 13.dp, C.Yellow, 2.4f)
+            Txt(f.kind.shown, 12, 600, C.Soft, maxLines = 1)
         }
         // Mandatory: the tick.
         Box(
             Modifier.size(MUST_W, 44.dp).clip(r(8)).clickable(enabled = !f.locked, onClick = onToggleRequired),
             contentAlignment = Alignment.Center,
         ) { Box(Modifier.alpha(if (f.locked) 0.4f else 1f)) { CheckBox(f.required) } }
-        // Checks: what validation looks for beyond the kind.
-        Box(Modifier.width(CHECKS_W), contentAlignment = Alignment.Center) {
+        // Checks: what validation looks for beyond the kind; a yellow pill when set, an outlined Add when not.
+        Box(Modifier.width(CHECKS_W).heightIn(min = 48.dp).clickable(onClick = onChecks), contentAlignment = Alignment.Center) {
             val tag = when {
-                f.hasFormat -> "Format"
-                f.flagEmpty && !f.required -> "Empty"
+                f.hasFormat -> R.string.cfg_checks_format
+                f.flagEmpty && !f.required -> R.string.cfg_checks_empty
                 else -> null
             }
             Box(
-                Modifier.clip(r(8)).background(if (tag != null) C.YTintBg else Color.Transparent).clickable(onClick = onChecks)
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-            ) { Txt(tag ?: "Add", 11, if (tag != null) 700 else 600, if (tag != null) C.Yellow else C.Soft) }
+                Modifier.clip(Capsule)
+                    .then(if (tag != null) Modifier.background(C.Yellow) else Modifier.border(1.dp, C.Border2, Capsule))
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
+            ) { Txt(stringResource(tag ?: R.string.cfg_checks_add), 11, 700, if (tag != null) C.OnYellow else C.Soft, maxLines = 1) }
         }
     }
 }
@@ -1479,8 +1485,7 @@ private fun FieldSheet(
             DefaultValueInput(cur, if (ownOptions) cur.options else f.options) { cur = cur.copy(defaultValue = it) }
             LabeledInput("Tooltip", cur.tooltip, { cur = cur.copy(tooltip = it.take(MAX_TOOLTIP_LENGTH)) }, "Help shown next to the field", singleLine = false, minLines = 3)
             CfgCard {
-                if (!draft) ToggleRow("Visible", "Shown on the asset form", cur.visible, enabled = !f.locked && !cur.required) { cur = cur.copy(visible = it) }
-                ToggleRow("Mandatory", "Must be filled before submitting", cur.required, enabled = !f.locked, divider = !draft) {
+                ToggleRow("Mandatory", "Must be filled before submitting", cur.required, enabled = !f.locked) {
                     cur = cur.copy(required = it, visible = cur.visible || it)
                 }
             }
@@ -1763,11 +1768,11 @@ private fun Stepper(value: Int, modifier: Modifier, enabled: Boolean, downBlocke
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled) { onStep(false) }, contentAlignment = Alignment.Center) {
-            LineIcon(Icons.Minus, 14.dp, if (enabled && !downBlocked) C.Text else C.Dim, 2.6f)
+            LineIcon(Icons.Minus, 14.dp, if (enabled && !downBlocked) C.Yellow else C.Dim, 2.6f)
         }
-        Txt(if (enabled) value.toString() else "–", 12, 700, modifier = Modifier.width(26.dp), align = androidx.compose.ui.text.style.TextAlign.Center)
+        Txt(if (enabled) value.toString() else "–", 13, 700, modifier = Modifier.width(26.dp), align = TextAlign.Center)
         Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled) { onStep(true) }, contentAlignment = Alignment.Center) {
-            LineIcon(Icons.PlusSmall, 14.dp, if (enabled && !upBlocked) C.Text else C.Dim, 2.6f)
+            LineIcon(Icons.PlusSmall, 14.dp, if (enabled && !upBlocked) C.Yellow else C.Dim, 2.6f)
         }
     }
 }

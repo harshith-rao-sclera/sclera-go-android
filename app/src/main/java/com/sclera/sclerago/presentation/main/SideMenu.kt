@@ -86,6 +86,7 @@ object MenuTags {
     const val SIGN_OUT = "menu_sign_out"
     const val SIGN_OUT_CONFIRM = "menu_sign_out_confirm"
     const val SIGN_OUT_WARNING = "menu_sign_out_warning"
+    const val SWITCH_PROPERTY = "menu_switch_property"
     fun item(item: MenuItem) = "menu_item_${item.name.lowercase()}"
 }
 
@@ -112,7 +113,6 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
         session = (auth as? AuthState.SignedIn)?.session,
         propertyName = vm.propName.takeIf { vm.hasProperty },
         assetCount = vm.assets.size,
-        validationCount = vm.validationRunCount,
         showValidation = vm.canCheck,
         showConfiguration = vm.canConfigure,
         showIntegration = vm.canConfigure,
@@ -131,7 +131,6 @@ internal fun SideMenuPanel(
     /** The downloaded property; null until one is downloaded, and then its card and sections are hidden. */
     propertyName: String?,
     assetCount: Int,
-    validationCount: Int,
     active: MenuItem,
     onClose: () -> Unit,
     /** The Validation section shows only to someone who may run checks (the server's check permission). */
@@ -241,6 +240,13 @@ internal fun SideMenuPanel(
                                 Txt(pluralStringResource(R.plurals.asset_count, assetCount, assetCount), 11, 400, C.Muted)
                             }
                         }
+                        // Switch property: opens the property list to pick another one.
+                        val switchLabel = stringResource(R.string.menu_switch_property)
+                        Box(
+                            Modifier.size(40.dp).clip(r(10)).background(C.Btn).clickable(role = Role.Button) { onPick(MenuItem.PROPERTY) }
+                                .semantics { contentDescription = switchLabel }.testTag(MenuTags.SWITCH_PROPERTY),
+                            contentAlignment = Alignment.Center,
+                        ) { LineIcon(Icons.Switch, 18.dp, C.Yellow, 2.2f) }
                         Box(Modifier.width(22.dp).clickable { sectionsOpen = !sectionsOpen }, contentAlignment = Alignment.Center) {
                             LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 3f, Modifier.rotate(chevron))
                         }
@@ -250,7 +256,7 @@ internal fun SideMenuPanel(
                             SectionRow(MenuItem.ASSETS, stringResource(R.string.label_assets), Icons.Box, Trailing.Count(assetCount), active, onPick, first = true)
                             if (showValidation) SectionRow(
                                 MenuItem.VALIDATION, stringResource(R.string.menu_validation), Icons.ShieldCheck,
-                                if (validationCount > 0) Trailing.Count(validationCount) else Trailing.Open, active, onPick,
+                                Trailing.Open, active, onPick,
                             )
                             if (showConfiguration) SectionRow(MenuItem.CONFIGURATION, stringResource(R.string.menu_configuration), Icons.Sliders, Trailing.Open, active, onPick)
                             SectionRow(MenuItem.AUDIT, stringResource(R.string.menu_audit), Icons.Clipboard, Trailing.Soon, active, onPick)

@@ -112,8 +112,6 @@
     <string name="launch_logo_description">Логотип Sclera Go</string>
     <string name="access_stat_people">Пользователи</string>
     <string name="access_stat_groups">Группы</string>
-    <string name="access_tab_people">Пользователи (%1$d)</string>
-    <string name="access_tab_groups">Группы (%1$d)</string>
     <string name="access_search_people">Поиск людей</string>
     <string name="access_add_person">Добавить человека</string>
     <string name="access_new_group">Новая группа</string>
@@ -402,7 +400,6 @@
     <string name="detail_no_unsaved">Нет несохранённых изменений</string>
     <string name="detail_status">Статус: %1$s</string>
     <string name="detail_submitted_body">Поля больше нельзя редактировать. Нужно изменение? Запросите повторный сбор.</string>
-    <string name="detail_recollect">Запросить повторный сбор</string>
     <string name="detail_updated">Обновлено: %1$s</string>
     <string name="detail_photo_of">%1$d из %2$d</string>
     <string name="detail_prev">Предыдущее фото</string>

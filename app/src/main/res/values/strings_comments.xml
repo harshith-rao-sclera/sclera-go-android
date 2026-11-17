@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Asset details → Comments: the count, the empty state and the + that adds one. English only for now. -->
+<!-- Asset details → Comments: the count, the empty state, the + that adds one, and who wrote each with Edit and Delete
+     (as the web's). English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <plurals name="detail_comment_count">
         <item quantity="one">%1$d comment</item>
@@ -7,4 +8,11 @@
     </plurals>
     <string name="detail_no_comments">No comments</string>
     <string name="detail_add_comment">Add comment</string>
+    <string name="detail_comment_someone">Someone</string>
+    <string name="detail_comment_edited">edited</string>
+    <string name="detail_comment_edit">Edit comment</string>
+    <string name="detail_comment_save">Save comment</string>
+    <string name="detail_comment_delete">Delete comment</string>
+    <string name="detail_comment_delete_title">Delete comment?</string>
+    <string name="detail_comment_delete_body">\"%1$s\" will be deleted.</string>
 </resources>

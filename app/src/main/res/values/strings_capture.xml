@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Camera: the photo or video just taken, before it is added. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="capture_discard">Discard</string>
+    <string name="capture_save">Save</string>
+</resources>

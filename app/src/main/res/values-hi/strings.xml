@@ -108,8 +108,6 @@
     <string name="launch_logo_description">Sclera Go लोगो</string>
     <string name="access_stat_people">उपयोगकर्ता</string>
     <string name="access_stat_groups">समूह</string>
-    <string name="access_tab_people">उपयोगकर्ता (%1$d)</string>
-    <string name="access_tab_groups">समूह (%1$d)</string>
     <string name="access_search_people">लोग खोजें</string>
     <string name="access_add_person">व्यक्ति जोड़ें</string>
     <string name="access_new_group">नया समूह</string>
@@ -394,7 +392,6 @@
     <string name="detail_no_unsaved">कोई असहेजा बदलाव नहीं</string>
     <string name="detail_status">स्थिति: %1$s</string>
     <string name="detail_submitted_body">इसके फ़ील्ड अब संपादित नहीं हो सकते। बदलाव चाहिए? दोबारा संग्रह का अनुरोध करें।</string>
-    <string name="detail_recollect">दोबारा संग्रह का अनुरोध करें</string>
     <string name="detail_updated">अपडेट किया गया: %1$s</string>
     <string name="detail_photo_of">%1$d में से %2$d</string>
     <string name="detail_prev">पिछली फ़ोटो</string>

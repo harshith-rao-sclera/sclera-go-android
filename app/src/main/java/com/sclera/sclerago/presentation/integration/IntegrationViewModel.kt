@@ -36,7 +36,6 @@ data class IntegrationUiState(
     val canAdd: Boolean = false,
     /** The organisation's name as the card and the sheets show it (the Sclera company name, else the organisation id). */
     val organisation: String = "",
-    val viewing: Boolean = false,
     val adding: AddLinkState? = null,
     val message: UiText? = null,
 )
@@ -91,7 +90,6 @@ class IntegrationViewModel @Inject constructor(
     /** The card's name: the company's, else the organisation id the link carries. */
     fun nameOf(link: VdmsLink?): String = state.organisation.ifBlank { link?.organisationId.orEmpty() }
 
-    fun view(on: Boolean) = set { copy(viewing = on) }
 
     // ---------------------------------------------------------------- Add
 

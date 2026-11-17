@@ -32,12 +32,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
-import androidx.compose.ui.platform.testTag
-import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Capsule
-import com.sclera.sclerago.presentation.components.CircleFab
-import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalReadOnly
@@ -74,6 +72,10 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
 
     // The web page waiting for its removal to be confirmed.
     var removeDoc by remember(asset.id) { mutableStateOf<AssetDocument?>(null) }
+    // The photo, video, voice memo or file waiting for its removal to be confirmed.
+    var removeMedia by remember(asset.id) { mutableStateOf<Media?>(null) }
+    // The comment waiting for its removal to be confirmed.
+    var removeComment by remember(asset.id) { mutableStateOf<AssetActivity?>(null) }
 
     // Each tab opens at its top.
     LaunchedEffect(tab) { scroll.scrollTo(0) }
@@ -115,7 +117,11 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                         tab == DetailTabKind.VALIDATION -> ValidationTab(state.validation, state.validating, actions.onRevalidate.takeIf { state.canCheck })
                         tab == DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents, locked) { removeDoc = it }
                         tab == DetailTabKind.MEDIA -> MediaTab(state.media, state.photoRules, open)
-                        tab == DetailTabKind.COMMENTS -> CommentList(state.activity)
+                        tab == DetailTabKind.COMMENTS -> {
+                            CommentBox(state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment)
+                            // As the web: a signed-off asset's comments can't be changed or removed.
+                            CommentList(state.activity, readOnly = asset.st == Status.VALIDATED, onSave = actions.onUpdateComment) { removeComment = it }
+                        }
                         tab == DetailTabKind.HISTORY -> HistoryList(state.activity)
                         else -> AssetInfoTab(state, actions, ui, onModal = { modal = it })
                     }
@@ -130,23 +136,6 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                     onAi = actions.onAutofill, onMic = actions.onMic,
                     modifier = Modifier.align(Alignment.BottomEnd),
                 )
-            }
-        }
-        // Comments: the + opens the sheet a comment is written in (open on submitted assets too: the server takes comments on any asset).
-        if (!isNew && tab == DetailTabKind.COMMENTS) {
-            Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
-                CircleFab(
-                    Icons.Plus, stringResource(R.string.detail_add_comment), { actions.onCommentSheet(true) },
-                    Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp).testTag("comment-add"),
-                )
-            }
-        }
-        if (state.commentOpen) {
-            BottomSheet({ actions.onCommentSheet(false) }) {
-                SheetHeader(stringResource(R.string.detail_add_comment), null) { actions.onCommentSheet(false) }
-                Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 20.dp)) {
-                    CommentBox(state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment)
-                }
             }
         }
         // Documents and Media add with floating buttons, like the other pages.
@@ -181,7 +170,45 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
             )
         }
 
-        preview?.let { i -> if (i in state.media.indices) PhotoViewer(state.media, i, onIndex = { preview = it }, onClose = { preview = null }) }
+        preview?.let { i ->
+            if (i in state.media.indices) PhotoViewer(
+                state.media, i, onIndex = { preview = it }, onClose = { preview = null },
+                onDownload = actions.onDownloadMedia,
+                // As the web: a saved asset's media can be removed unless it is read-only.
+                onRemove = if (isNew || locked) null else ({ removeMedia = it }),
+            )
+        }
+        removeMedia?.let { m ->
+            ConfirmDialog(
+                icon = Icons.Trash, iconBg = C.DangerBg, iconFg = C.Red,
+                title = removeMediaTitle(m), body = stringResource(R.string.media_remove_body),
+                no = stringResource(R.string.action_cancel), yes = stringResource(R.string.media_remove),
+                onNo = { removeMedia = null },
+                onYes = {
+                    removeMedia = null
+                    preview = null
+                    actions.onRemoveMedia(m)
+                },
+            )
+        }
+        removeComment?.let { c ->
+            ConfirmDialog(
+                icon = Icons.Trash, iconBg = C.DangerBg, iconFg = C.Red,
+                title = stringResource(R.string.detail_comment_delete_title),
+                body = stringResource(R.string.detail_comment_delete_body, c.text.let { if (it.length > 80) it.take(80) + "…" else it }),
+                no = stringResource(R.string.action_cancel), yes = stringResource(R.string.action_delete),
+                onNo = { removeComment = null },
+                onYes = {
+                    removeComment = null
+                    actions.onRemoveComment(c)
+                },
+            )
+        }
+
+        state.changeNote?.let { note ->
+            BackHandler(onBack = actions.changeRequest.onCancel)
+            ChangeRequestDialog(note, actions.changeRequest.onNote, actions.changeRequest.onSend, actions.changeRequest.onCancel)
+        }
 
         when (modal) {
             DetailModal.SUBMIT -> ConfirmDialog(

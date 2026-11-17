@@ -198,7 +198,7 @@ private fun ChipBox(label: String, count: Int, selected: Boolean, tag: String, o
     }
 }
 
-/** One asset: its type icon, name and asset type, and how it was onboarded, whether it has a location, and its status. */
+/** One asset: its type icon, name, manufacturer and model, and how it was onboarded, whether it has a location, and its status. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AssetRow(
@@ -244,8 +244,8 @@ fun AssetRow(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(a.name, 14, 600)
-                // Its asset type from the property's catalogue ("-" while it isn't classified), and nothing else.
-                Txt(a.assetTypeName ?: stringResource(R.string.detail_value_none), 11, 400, C.Muted)
+                // Manufacturer and model, when either is filled in.
+                if (a.makeModel.isNotEmpty()) Txt(a.makeModel, 12, 400, C.Text, maxLines = 1)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
                 // The web's "Recollect" badge: sent back to be collected again.

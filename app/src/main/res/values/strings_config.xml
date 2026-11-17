@@ -11,7 +11,6 @@
     <string name="cfg_import_unreadable">Couldn’t read that file</string>
 
     <!-- Asset fields -->
-    <string name="cfg_fields_mandatory_visible">Mandatory fields are always visible</string>
     <plurals name="cfg_fields_added">
         <item quantity="one">%1$d field added</item>
         <item quantity="other">%1$d fields added</item>
@@ -68,7 +67,7 @@
     <string name="cfg_photo_none_allowed">Already none allowed</string>
     <string name="cfg_photo_below_min">Can’t be below the minimum</string>
     <string name="cfg_photo_total_limit">%1$d photos per asset is the most</string>
-    <string name="cfg_photos_usage">Up to %1$d of %2$d photos per asset. An asset can’t be submitted until it has the minimum of each kind.</string>
+    <string name="cfg_photos_usage">Up to %1$d of %2$d photos per asset. Minimums are required to submit.</string>
     <string name="cfg_photos_loading">Loading photo rules…</string>
     <string name="cfg_photos_load_failed">Couldn’t load the photo rules.</string>
 
@@ -134,4 +133,20 @@
     <string name="cfg_checks_whole_hint">Values with decimals are flagged.</string>
     <string name="cfg_place_visibility">Visibility</string>
     <string name="cfg_floor_visible_hint">Field workers can pick this floor</string>
+    <!-- Asset fields table (as the web's and the iOS app's) -->
+    <string name="cfg_fields_intro">Choose what’s collected for every asset in %1$s, and what validation checks in each field.</string>
+    <string name="cfg_col_name">Name</string>
+    <string name="cfg_col_type">Type</string>
+    <string name="cfg_col_mandatory">Mandatory</string>
+    <string name="cfg_col_checks">Checks</string>
+    <string name="cfg_checks_add">Add</string>
+    <string name="cfg_checks_format">Format</string>
+    <string name="cfg_checks_empty">Empty</string>
+    <string name="cfg_col_photos">Photos</string>
+    <string name="cfg_col_minimum">Minimum</string>
+    <string name="cfg_col_maximum">Maximum</string>
+    <plurals name="cfg_field_options">
+        <item quantity="one">%1$d option</item>
+        <item quantity="other">%1$d options</item>
+    </plurals>
 </resources>

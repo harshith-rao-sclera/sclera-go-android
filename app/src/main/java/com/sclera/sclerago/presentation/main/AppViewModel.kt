@@ -38,7 +38,6 @@ import com.sclera.sclerago.domain.usecase.asset.AssetPlace
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
-import com.sclera.sclerago.domain.usecase.validation.ObserveValidationRunCountUseCase
 import com.sclera.sclerago.domain.usecase.validation.ValidationAccessUseCase
 import com.sclera.sclerago.domain.usecase.integration.IntegrationAccessUseCase
 import com.sclera.sclerago.domain.usecase.location.LocationUseCases
@@ -178,7 +177,6 @@ class AppViewModel @Inject constructor(
     private val locationUseCases: LocationUseCases,
     private val validationAccess: ValidationAccessUseCase,
     private val integrationAccess: IntegrationAccessUseCase,
-    observeRunCount: ObserveValidationRunCountUseCase,
     private val fileUseCases: FileUseCases,
     private val downloads: PropertyDownloadUseCases,
 ) : ViewModel() {
@@ -195,7 +193,6 @@ class AppViewModel @Inject constructor(
     private val downloadFlow = downloads.observe().observedIn(viewModelScope)
     private val onboardingOff = propertyUseCases.observeOnboarding().observedIn(viewModelScope)
     private val tree = locationUseCases.observeTree().observedIn(viewModelScope)
-    private val runCount = observeRunCount().observedIn(viewModelScope)
 
     /** Makes a change to the offline data in the background; when it is refused or fails the user is told why (never the details). */
     private fun write(block: suspend () -> Unit) {
@@ -459,7 +456,12 @@ class AppViewModel @Inject constructor(
         when (item) {
             MenuItem.PROPERTY -> openAdmin(AdminPage.PROPERTIES)
             MenuItem.USERS -> openAdmin(AdminPage.PEOPLE)
-            MenuItem.ASSETS -> { closeAdmin(); goTab(Tab.ASSETS) }
+            // Validation, Configuration and Integration sit on top of the tabs, so they close too.
+            MenuItem.ASSETS -> {
+                closeAdmin()
+                set { copy(valOpen = false, cfgOpen = false, cfgPage = CfgPage.FIELDS, intOpen = false) }
+                goTab(Tab.ASSETS)
+            }
             MenuItem.VALIDATION -> { closeAdmin(); openValidation() }
             MenuItem.CONFIGURATION -> { closeAdmin(); openConfig() }
             MenuItem.AUDIT -> comingSoon(R.string.menu_audit)
@@ -781,13 +783,10 @@ class AppViewModel @Inject constructor(
     /** The signed-in user may run validations (the server's check permission; validate includes it). */
     val canCheck: Boolean get() = validationAccess.canCheck()
 
-    /** How many validation runs the property has (the side menu's count), as last synced. */
-    val validationRunCount: Int get() = runCount.value
-
     // Side-menu pages always return to the Assets tab. It is also selected on open, so the
     // pager slides there hidden behind the page rather than visibly on close.
     fun openValidation() = set {
-        copy(valOpen = true, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
+        copy(valOpen = true, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
     }
     fun closeValidation() = set { copy(valOpen = false, tab = Tab.ASSETS, assetId = null, newAsset = false) }
 
@@ -839,7 +838,7 @@ class AppViewModel @Inject constructor(
 
     /** Opens Configuration, only for someone who may configure the property (the web hides it otherwise). */
     fun openConfig() = if (!canConfigure) Unit else set {
-        copy(cfgOpen = true, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
+        copy(cfgOpen = true, valOpen = false, intOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
     }
     fun closeConfig() = set { copy(cfgOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
 

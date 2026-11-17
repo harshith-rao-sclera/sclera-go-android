@@ -50,6 +50,9 @@ fun DataError.toUiText(): UiText = when (this) {
     DataError.NAME_TAKEN -> UiText.Res(R.string.data_error_name_taken)
     DataError.IN_USE -> UiText.Res(R.string.data_error_in_use)
     DataError.FORBIDDEN -> UiText.Res(R.string.online_error_forbidden)
+    DataError.FILE_TOO_LARGE -> UiText.Res(R.string.data_error_file_too_large)
+    DataError.CLIP_TOO_LONG -> UiText.Res(R.string.data_error_clip_too_long)
+    DataError.PHOTO_LIMIT -> UiText.Res(R.string.data_error_photo_limit)
     DataError.FAILED -> UiText.Res(R.string.data_error_failed)
 }
 

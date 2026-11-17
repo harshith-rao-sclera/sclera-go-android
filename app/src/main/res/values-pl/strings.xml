@@ -112,8 +112,6 @@
     <string name="launch_logo_description">Logo Sclera Go</string>
     <string name="access_stat_people">Użytkownicy</string>
     <string name="access_stat_groups">Grupy</string>
-    <string name="access_tab_people">Użytkownicy (%1$d)</string>
-    <string name="access_tab_groups">Grupy (%1$d)</string>
     <string name="access_search_people">Szukaj osób</string>
     <string name="access_add_person">Dodaj osobę</string>
     <string name="access_new_group">Nowa grupa</string>
@@ -402,7 +400,6 @@
     <string name="detail_no_unsaved">Brak niezapisanych zmian</string>
     <string name="detail_status">Status: %1$s</string>
     <string name="detail_submitted_body">Jego pól nie można już edytować. Potrzebna zmiana? Poproś o ponowne zebranie danych.</string>
-    <string name="detail_recollect">Poproś o ponowne zebranie</string>
     <string name="detail_updated">Zaktualizowano: %1$s</string>
     <string name="detail_photo_of">%1$d z %2$d</string>
     <string name="detail_prev">Poprzednie zdjęcie</string>

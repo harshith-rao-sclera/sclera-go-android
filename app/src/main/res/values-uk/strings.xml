@@ -112,8 +112,6 @@
     <string name="launch_logo_description">Логотип Sclera Go</string>
     <string name="access_stat_people">Користувачі</string>
     <string name="access_stat_groups">Групи</string>
-    <string name="access_tab_people">Користувачі (%1$d)</string>
-    <string name="access_tab_groups">Групи (%1$d)</string>
     <string name="access_search_people">Пошук людей</string>
     <string name="access_add_person">Додати людину</string>
     <string name="access_new_group">Нова група</string>
@@ -402,7 +400,6 @@
     <string name="detail_no_unsaved">Немає незбережених змін</string>
     <string name="detail_status">Статус: %1$s</string>
     <string name="detail_submitted_body">Поля більше не можна редагувати. Потрібна зміна? Запросіть повторний збір.</string>
-    <string name="detail_recollect">Запросити повторний збір</string>
     <string name="detail_updated">Оновлено: %1$s</string>
     <string name="detail_photo_of">%1$d з %2$d</string>
     <string name="detail_prev">Попереднє фото</string>

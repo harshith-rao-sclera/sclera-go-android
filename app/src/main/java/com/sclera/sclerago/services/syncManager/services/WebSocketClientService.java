@@ -167,6 +167,8 @@ public class WebSocketClientService extends WebSocketListener {
             }
             imageSyncService.setCurrentImageSyncMode(SyncMode.WEBSOCKET);
             imageSyncService.pullingImages.set(false);
+            // A batch cut off by the last connection would otherwise sit in front of this connection's images.
+            imageSyncService.multipartBuffer.clear();
         }
 
         syncManager.setWebSocket(webSocket);
@@ -304,6 +306,7 @@ public class WebSocketClientService extends WebSocketListener {
 
         if (imageSyncService != null) {
             imageSyncService.pullingImages.set(false);
+            imageSyncService.multipartBuffer.clear();
         }
 
         queue = null;

@@ -18,7 +18,6 @@ import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.domain.validation.ValTemplate
 import com.sclera.sclerago.domain.validation.ValidationDef
 import com.sclera.sclerago.domain.validation.ValidationDraft
-import kotlinx.coroutines.flow.StateFlow
 
 // The Validation page's data at the server. Every call can throw OnlineException; calls that read lists fall back to
 // what sync brought to the phone when there is no connection (see each one).
@@ -56,8 +55,6 @@ interface SavedValidationRepository {
 
 /** Validation runs, their results and issues, and what reviewers do with them. */
 interface ValidationRunRepository {
-    /** How many runs the property has, as sync last brought them. */
-    val runCount: StateFlow<Int>
 
     /** The newest runs (at most [limit]); from the phone's copy when offline. */
     suspend fun runs(propertyId: String, limit: Int): List<ValRun>

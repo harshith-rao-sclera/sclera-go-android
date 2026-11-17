@@ -16,7 +16,6 @@ import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.domain.validation.ValTemplate
 import com.sclera.sclerago.domain.validation.ValidationDef
 import com.sclera.sclerago.domain.validation.ValidationDraft
-import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
 // The Validation page: the catalogue, saved validations and starting runs. Every call goes to the server
@@ -120,10 +119,6 @@ class DiscardRunUseCase @Inject constructor(private val repo: ValidationRunRepos
     }
 }
 
-/** How many validation runs the property has (the side menu's count). */
-class ObserveValidationRunCountUseCase @Inject constructor(private val repo: ValidationRunRepository) {
-    operator fun invoke(): StateFlow<Int> = repo.runCount
-}
 
 /** The Validation page's use cases, for injecting as one. */
 class ValidationUseCases @Inject constructor(

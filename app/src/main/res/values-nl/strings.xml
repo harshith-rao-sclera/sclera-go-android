@@ -108,8 +108,6 @@
     <string name="launch_logo_description">Sclera Go-logo</string>
     <string name="access_stat_people">Gebruikers</string>
     <string name="access_stat_groups">Groepen</string>
-    <string name="access_tab_people">Gebruikers (%1$d)</string>
-    <string name="access_tab_groups">Groepen (%1$d)</string>
     <string name="access_search_people">Mensen zoeken</string>
     <string name="access_add_person">Persoon toevoegen</string>
     <string name="access_new_group">Nieuwe groep</string>
@@ -394,7 +392,6 @@
     <string name="detail_no_unsaved">Geen niet-opgeslagen wijzigingen</string>
     <string name="detail_status">Status: %1$s</string>
     <string name="detail_submitted_body">De velden kunnen niet meer worden bewerkt. Wijziging nodig? Vraag een nieuwe inventarisatie aan.</string>
-    <string name="detail_recollect">Nieuwe inventarisatie aanvragen</string>
     <string name="detail_updated">Bijgewerkt op %1$s</string>
     <string name="detail_photo_of">%1$d van %2$d</string>
     <string name="detail_prev">Vorige foto</string>

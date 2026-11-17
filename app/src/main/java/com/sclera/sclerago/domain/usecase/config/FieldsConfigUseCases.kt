@@ -67,14 +67,6 @@ class LoadConfigFieldsUseCase @Inject constructor(private val repo: ConfigFields
     suspend operator fun invoke(propertyId: String): List<FieldCfg> = repo.load(propertyId)
 }
 
-/** The eye: shows or hides a field (`isActive`). Mandatory and locked fields stay visible (returned unchanged). */
-class ToggleFieldVisibleUseCase @Inject constructor(private val repo: ConfigFieldsRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(propertyId: String, f: FieldCfg): FieldCfg {
-        if (f.locked || (f.required && f.visible)) return f
-        guard.requireOnline(Permission.CONFIGURE)
-        return repo.update(propertyId, f, f.copy(visible = !f.visible))
-    }
-}
 
 /** The tick: makes a field mandatory (and so visible) or optional. Locked fields stay mandatory. */
 class ToggleFieldRequiredUseCase @Inject constructor(private val repo: ConfigFieldsRepository, private val guard: PermissionGuard) {
@@ -200,7 +192,6 @@ class ImportFieldsUseCase @Inject constructor(private val files: FileRepository)
 /** The Asset fields use cases, for injecting as one. */
 class FieldsConfigUseCases @Inject constructor(
     val load: LoadConfigFieldsUseCase,
-    val toggleVisible: ToggleFieldVisibleUseCase,
     val toggleRequired: ToggleFieldRequiredUseCase,
     val save: SaveFieldUseCase,
     val add: AddFieldsUseCase,

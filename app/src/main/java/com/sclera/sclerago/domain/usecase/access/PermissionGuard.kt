@@ -29,11 +29,22 @@ class PermissionGuard @Inject constructor(private val access: CurrentAccessRepos
         AccessState.Loading, is AccessState.Failed -> true
     }
 
+    /** The signed-in user's id, as the server knows them; null until the access has been fetched. */
+    fun userId(): String? = (access.state.value as? AccessState.Loaded)?.access?.userId
+
     /** The user is known to be in the Admins group (false until the access has been fetched). */
     fun isAdmin(): Boolean = (access.state.value as? AccessState.Loaded)?.access?.isAdmin == true
 
-    /** The user's role is the plain "user" one (the web's `role === "user"`); false until the access has been fetched. */
-    fun isPlainUser(): Boolean = (access.state.value as? AccessState.Loaded)?.access?.role?.equals("user", ignoreCase = true) == true
+    /**
+     * The user is a plain "user", as the web works it out from the permissions (`legacyRole`): someone who can only
+     * collect and check (or only look); anyone who can validate, configure or manage is not. The `role` text from
+     * `/me` isn't used, as on the web. False until the access has been fetched.
+     */
+    fun isPlainUser(): Boolean = when (val s = access.state.value) {
+        is AccessState.Loaded -> s.access.permissions.all { it == Permission.COLLECT || it == Permission.CHECK }
+        is AccessState.NoGroup -> true
+        AccessState.Loading, is AccessState.Failed -> false
+    }
 
     /** For changes to the offline data. Throws [DataException] ([DataError.FORBIDDEN]). */
     fun requireOffline(permission: Permission) {

@@ -41,11 +41,20 @@ fun DbRow.toAssetActivity() = AssetActivity(
     kind = if (string("kind") == "comment") ActivityKind.COMMENT else ActivityKind.HISTORY,
     action = string("action"),
     text = string("text").orEmpty(),
-    changes = string("changes"),
+    changes = historyChanges(),
     createdBy = string("created_by"),
     createdAt = parseDbTime(string("created_at")),
-    fieldChanges = fieldChanges(string("changes")),
+    fieldChanges = fieldChanges(historyChanges()),
+    // As the server: a comment whose row moved past its first version was changed (not the timestamps: clocks step back).
+    edited = (int("version") ?: 1) > 1,
 )
+
+/**
+ * A history line's field changes (`[{field, fieldId, from, to}]`): `field_changes`, as the server now calls it, or in a
+ * database from before the rename `changes` when it holds that list (it is otherwise the sync engine's own column).
+ */
+private fun DbRow.historyChanges(): String? =
+    string("field_changes") ?: string("changes")?.takeIf { it.trimStart().startsWith("[") }
 
 /** A history line's `changes` JSON (`[{field, fieldId, from, to}]`, values of any JSON type) as text changes. */
 private fun fieldChanges(json: String?): List<FieldChange> =

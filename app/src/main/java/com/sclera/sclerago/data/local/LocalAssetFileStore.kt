@@ -11,6 +11,12 @@ import com.sclera.sclerago.data.offline.PickedContent
 import com.sclera.sclerago.domain.limits.MAX_IMPORT_BYTES
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.repository.UserDataCleaner
+import com.sclera.sclerago.services.media.PhotoShrinker
+import com.sclera.sclerago.services.media.VideoCompressor
+import com.sclera.sclerago.domain.limits.MAX_CLIP_MS
+import com.sclera.sclerago.domain.limits.MAX_MEDIA_BYTES
+import com.sclera.sclerago.domain.model.DataError
+import com.sclera.sclerago.domain.model.DataException
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -27,8 +33,73 @@ private const val LEGACY_DIR = "asset-media"
  * copies.
  */
 @Singleton
-class LocalAssetFileStore @Inject constructor(@ApplicationContext private val context: Context) : AssetFileStore, UserDataCleaner {
+class LocalAssetFileStore @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val videos: VideoCompressor,
+    private val photos: PhotoShrinker,
+) : AssetFileStore, UserDataCleaner {
     private val legacyDir: File get() = File(context.filesDir, LEGACY_DIR)
+
+    /**
+     * What an asset keeps: videos re-encoded smaller (720p, about 2.5 Mbit/s) and cut to [MAX_CLIP_MS]; photos over
+     * [MAX_MEDIA_BYTES] made smaller; any other file over [MAX_MEDIA_BYTES] refused ([DataError.FILE_TOO_LARGE]), as is a
+     * video longer than [MAX_CLIP_MS] that can't be cut ([DataError.CLIP_TOO_LONG]). When one is refused, the copies made
+     * for the others are deleted.
+     */
+    override suspend fun prepare(media: List<Media>): List<Media> {
+        val made = mutableListOf<Media>()
+        try {
+            return media.map { m -> (if (m.video) video(m) else fileOrPhoto(m)).also { if (it !== m) made += it } }
+        } catch (e: Exception) {
+            discardOriginals(made)
+            throw e
+        }
+    }
+
+    private suspend fun video(m: Media): Media {
+        val uri = Uri.parse(m.uri)
+        if (!readable(uri)) return m
+        val length = videos.durationMs(uri) ?: m.durationMs
+        val small = videos.compress(uri, MAX_CLIP_MS)
+        if (small == null) {
+            // Not compressed: kept as it is, unless it is longer than an asset keeps (a little over is the camera's stop).
+            if (length > MAX_CLIP_MS + CLIP_SLACK_MS) throw DataException(DataError.CLIP_TOO_LONG)
+            return m
+        }
+        val cut = small.durationMs < length
+        val before = sizeOf(uri)
+        if (!cut && before != null && small.file.length() >= before) {
+            small.file.delete()
+            return m
+        }
+        return m.copy(
+            uri = Uri.fromFile(small.file).toString(), owned = true, sizeBytes = small.file.length(), durationMs = small.durationMs,
+            fileName = m.fileName?.substringBeforeLast('.')?.let { "$it.mp4" },
+        )
+    }
+
+    private suspend fun fileOrPhoto(m: Media): Media {
+        val uri = Uri.parse(m.uri)
+        if (!readable(uri)) return m
+        val size = sizeOf(uri) ?: return m
+        if (size <= MAX_MEDIA_BYTES) return m
+        val type = context.contentResolver.getType(uri)
+            ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(extensionOf(m.fileName ?: displayName(uri)))
+        if (type?.startsWith("image/") != true) throw DataException(DataError.FILE_TOO_LARGE)
+        val small = photos.shrink(uri, MAX_MEDIA_BYTES) ?: throw DataException(DataError.FILE_TOO_LARGE)
+        return m.copy(
+            uri = Uri.fromFile(small).toString(), owned = true, sizeBytes = small.length(),
+            fileName = m.fileName?.substringBeforeLast('.')?.let { "$it.jpg" },
+        )
+    }
+
+    /** The size of the file behind [uri] in bytes, or null when it isn't known. */
+    private fun sizeOf(uri: Uri): Long? = runCatching {
+        if (uri.scheme == "file") return File(uri.path.orEmpty()).length()
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else null
+        }
+    }.getOrNull()
 
     override fun read(media: Media): PickedContent? = runCatching {
         val uri = Uri.parse(media.uri)
@@ -120,5 +191,8 @@ class LocalAssetFileStore @Inject constructor(@ApplicationContext private val co
 
     private companion object {
         const val BUFFER = 16 * 1024
+
+        /** A recording the camera stopped at the limit can run a little over it. */
+        const val CLIP_SLACK_MS = 500L
     }
 }

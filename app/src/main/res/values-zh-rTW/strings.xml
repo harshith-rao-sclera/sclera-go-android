@@ -106,8 +106,6 @@
     <string name="launch_logo_description">Sclera Go 標誌</string>
     <string name="access_stat_people">使用者</string>
     <string name="access_stat_groups">群組</string>
-    <string name="access_tab_people">使用者（%1$d）</string>
-    <string name="access_tab_groups">群組（%1$d）</string>
     <string name="access_search_people">搜尋人員</string>
     <string name="access_add_person">新增人員</string>
     <string name="access_new_group">新增群組</string>
@@ -390,7 +388,6 @@
     <string name="detail_no_unsaved">沒有未儲存的變更</string>
     <string name="detail_status">狀態：%1$s</string>
     <string name="detail_submitted_body">其欄位已無法再編輯。需要變更？請申請重新蒐集。</string>
-    <string name="detail_recollect">申請重新蒐集</string>
     <string name="detail_updated">更新於 %1$s</string>
     <string name="detail_photo_of">%1$d/%2$d</string>
     <string name="detail_prev">上一張照片</string>

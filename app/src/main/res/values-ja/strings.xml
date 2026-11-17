@@ -106,8 +106,6 @@
     <string name="launch_logo_description">Sclera Go のロゴ</string>
     <string name="access_stat_people">ユーザー</string>
     <string name="access_stat_groups">グループ</string>
-    <string name="access_tab_people">ユーザー (%1$d)</string>
-    <string name="access_tab_groups">グループ (%1$d)</string>
     <string name="access_search_people">ユーザーを検索</string>
     <string name="access_add_person">ユーザーを追加</string>
     <string name="access_new_group">新しいグループ</string>
@@ -390,7 +388,6 @@
     <string name="detail_no_unsaved">未保存の変更はありません</string>
     <string name="detail_status">ステータス: %1$s</string>
     <string name="detail_submitted_body">フィールドはもう編集できません。変更が必要ですか？再収集を依頼してください。</string>
-    <string name="detail_recollect">再収集を依頼</string>
     <string name="detail_updated">更新: %1$s</string>
     <string name="detail_photo_of">%1$d / %2$d</string>
     <string name="detail_prev">前の写真</string>

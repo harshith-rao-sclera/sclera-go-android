@@ -11,7 +11,6 @@ import com.sclera.sclerago.domain.validation.RunIssue
 import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.domain.validation.ValidationDef
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
 private const val VR_VALIDATIONS = "SELECT * FROM validations WHERE %LIVE% ORDER BY created_at DESC, id DESC"
@@ -32,7 +31,6 @@ private const val VR_ISSUES = "SELECT * FROM validation_issues WHERE job_id = ? 
 private const val VR_OPEN_COUNTS = """
     SELECT asset_id, COUNT(*) AS n FROM validation_issues WHERE job_id = ? AND status = 'open' AND %LIVE% GROUP BY asset_id"""
 
-private const val VR_RUN_COUNT = "SELECT COUNT(*) AS n FROM validation_jobs WHERE %LIVE%"
 
 private const val VR_FIELD_NAMES_TYPES = "SELECT id, name, type FROM asset_fields WHERE %LIVE%"
 
@@ -41,11 +39,6 @@ private const val VR_FIELD_NAMES_TYPES = "SELECT id, name, type FROM asset_field
  * for showing when there is no connection. Reads only.
  */
 class ValidationRunsOfflineSource(private val db: AdcDatabase, private val io: CoroutineDispatcher) {
-
-    /** How many runs the property has, again whenever they change. */
-    fun runCountFlow(): Flow<Int> = db.watch(io, "validation_jobs") {
-        db.whenTable("validation_jobs", 0) { db.queryOne(VR_RUN_COUNT.live("validation_jobs"))?.int("n") ?: 0 }
-    }
 
     suspend fun validations(): List<ValidationDef> = withContext(io) {
         db.whenTable("validations", emptyList()) {

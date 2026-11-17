@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.limits.MAX_CLIP_MS
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.formatDuration
 import com.sclera.sclerago.presentation.common.UiText
@@ -106,6 +107,9 @@ fun VoiceMemoSheet(onSaved: (Media) -> Unit, onClose: () -> Unit, onFailed: (UiT
         if (memo != null) saved(memo) else failed(UiText.Res(R.string.memo_too_short))
         close()
     }
+    // A memo stops and is kept on its own at the 10-second limit (MAX_CLIP_MS).
+    val atLimit = elapsed >= MAX_CLIP_MS
+    LaunchedEffect(recording, atLimit) { if (recording && atLimit) save() }
 
     BottomSheet(onDismiss = cancel) {
         Column(Modifier.testTag(MemoTags.SHEET)) {
@@ -124,6 +128,7 @@ fun VoiceMemoSheet(onSaved: (Media) -> Unit, onClose: () -> Unit, onFailed: (UiT
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.Mic, 32.dp, if (recording) C.Red else C.Muted, 2.2f) }
                 Txt(formatDuration(elapsed), 28, 800, modifier = Modifier.testTag(MemoTags.TIME))
+                Txt(stringResource(R.string.memo_limit), 12, 500, C.Muted)
             }
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 14.dp),
