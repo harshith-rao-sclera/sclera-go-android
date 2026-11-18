@@ -428,10 +428,6 @@
         <item quantity="one">%1$d asset aggiunto · servono dati</item>
         <item quantity="other">%1$d asset aggiunti · servono dati</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d asset importato · servono dati</item>
-        <item quantity="other">%1$d asset importati · servono dati</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">Eliminare questo asset?</item>
         <item quantity="other">Eliminare %1$d asset?</item>

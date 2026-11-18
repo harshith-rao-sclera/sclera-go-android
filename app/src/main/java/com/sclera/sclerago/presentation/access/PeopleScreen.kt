@@ -1,5 +1,9 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -62,7 +66,9 @@ import com.sclera.sclerago.presentation.theme.Txt
 fun PeopleScreen(
     vm: AppViewModel,
     access: AccessViewModel = hiltViewModel(),
+    connectivity: ConnectivityViewModel = hiltViewModel(),
 ) {
+    val online by connectivity.online.collectAsStateWithLifecycle()
     BackHandler(onBack = vm::closeAdmin)
     SecureWindow() // emails and who can open which property are shown here
     val s = access.state
@@ -84,6 +90,7 @@ fun PeopleScreen(
                 onAdd = { if (s.tab == AccessTab.PEOPLE) access.newPerson() else access.newGroup() },
                 onEditPerson = access::editPerson, onEditGroup = access::editGroup,
                 onRefresh = access::refresh, onInvite = access::newPerson, onMoreOthers = access::moreOthers,
+                offline = !online,
             )
             s.personForm?.let { form ->
                 PersonSheet(
@@ -127,6 +134,8 @@ internal fun PeopleContent(
     onRefresh: () -> Unit = {},
     onInvite: (DirectoryPerson) -> Unit = {},
     onMoreOthers: () -> Unit = {},
+    /** Offline: people and groups are managed on the server, so a banner at the top says so. */
+    offline: Boolean = false,
 ) {
     val gutter = pageGutter()
     val onPeople = list.tab == AccessTab.PEOPLE
@@ -145,6 +154,7 @@ internal fun PeopleContent(
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             SubPageBar(stringResource(R.string.access_title), property = null, onMenu = onBack)
+            if (offline) OfflineBanner(OnlineOnly.USERS, Modifier.padding(horizontal = gutter + 10.dp).padding(top = 10.dp))
             // The first read shows its own loader, so a pull waits until it is done.
             PullRefresh(list.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !list.loading) {
                 LazyColumn(

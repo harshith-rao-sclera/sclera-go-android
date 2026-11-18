@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -29,6 +31,8 @@ import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.MediaFull
 import com.sclera.sclerago.presentation.components.MediaImage
 import com.sclera.sclerago.presentation.components.RoundButton
+import com.sclera.sclerago.presentation.components.bottomBorder
+import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.noRippleClick
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Ico
@@ -48,6 +52,8 @@ object PhotoTags {
     const val VIEWER = "detail-photo-viewer"
     const val DOWNLOAD = "detail-photo-download"
     const val REMOVE = "detail-photo-remove"
+    const val STRIP = "detail-photo-strip"
+    const val ADD = "detail-photo-add"
     fun tile(index: Int) = "detail-photo-$index"
 }
 
@@ -91,6 +97,35 @@ internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifi
     }
 }
 
+/** Size of a tile in the Info tab's photo strip. */
+private val StripTile = 76.dp
+
+/**
+ * The Info tab's photo strip: a dashed + first, which opens the camera ([onAdd]; null while the asset is read-only, when
+ * it is left out), then the asset's photos and videos as square tiles; a tile (its
+ * expand mark) opens it full screen ([onOpen] takes its place in [media]). Nothing shows for a read-only asset with none.
+ */
+@Composable
+internal fun InfoPhotoStrip(media: List<Media>, onAdd: (() -> Unit)?, onOpen: (Int) -> Unit) {
+    val shown = media.withIndex().filter { (_, m) -> !m.isDoc && !m.audio }
+    if (onAdd == null && shown.isEmpty()) return
+    val addLabel = stringResource(R.string.detail_menu_camera)
+    Row(
+        Modifier.fillMaxWidth().testTag(PhotoTags.STRIP).bottomBorder(C.Border).horizontalScroll(rememberScrollState())
+            .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        onAdd?.let { add ->
+            Box(
+                Modifier.size(StripTile).testTag(PhotoTags.ADD).clip(r(12)).dashedBorder(C.Border2, 1.dp, 12.dp)
+                    .semantics { contentDescription = addLabel }.clickable(onClick = add),
+                contentAlignment = Alignment.Center,
+            ) { LineIcon(Icons.Plus, 24.dp, C.Yellow, 2.6f) }
+        }
+        shown.forEach { (i, m) -> MediaTile(m, { onOpen(i) }, Modifier.size(StripTile).testTag(PhotoTags.tile(i))) }
+    }
+}
+
 /** The title of the confirmation before removing [m]: a file or voice memo by its name, a photo or video by its kind. */
 @Composable
 internal fun removeMediaTitle(m: Media): String = when {
@@ -100,19 +135,16 @@ internal fun removeMediaTitle(m: Media): String = when {
 }
 
 /**
- * Full-screen view of one attachment, with arrows to the neighbours, as the web's media viewer: Download saves a copy,
- * and Remove (null: the asset is read-only) asks to delete it from the asset.
+ * Full-screen view of the one attachment [m] that was tapped (no swiping to the others), as the web's media viewer:
+ * Download saves a copy, and Remove (null: the asset is read-only) asks to delete it from the asset.
  */
 @Composable
 fun PhotoViewer(
-    media: List<Media>,
-    index: Int,
-    onIndex: (Int) -> Unit,
+    m: Media,
     onClose: () -> Unit,
     onDownload: (Media) -> Unit,
     onRemove: ((Media) -> Unit)?,
 ) {
-    val m = media[index]
     Column(Modifier.fillMaxSize().testTag(PhotoTags.VIEWER).background(C.shade(0.96f)).noRippleClick { }) {
         Row(
             Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 10.dp, bottom = 8.dp),
@@ -121,7 +153,6 @@ fun PhotoViewer(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Txt(m.title(), 15, 700)
-                Txt(stringResource(R.string.detail_photo_of, index + 1, media.size), 11, 400, C.Muted)
                 m.credit?.let { Txt(it, 10, 400, C.Muted, maxLines = 2) }
             }
             HeaderButton(Icons.Download, stringResource(R.string.media_download), C.Text, Modifier.testTag(PhotoTags.DOWNLOAD)) { onDownload(m) }
@@ -130,25 +161,14 @@ fun PhotoViewer(
             }
             CloseButton(onClose)
         }
-        Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.weight(1f).fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 20.dp),
+            contentAlignment = Alignment.Center,
+        ) {
             Box(
                 Modifier.fillMaxWidth().heightIn(max = 440.dp).fillMaxHeight().clip(r(14)).background(C.Raised),
                 contentAlignment = Alignment.Center,
-            ) { MediaFull(m) }
-            NavArrow(Icons.ChevronLeft, stringResource(R.string.detail_prev), index > 0, Modifier.align(Alignment.CenterStart).padding(start = 6.dp)) {
-                if (index > 0) onIndex(index - 1)
-            }
-            NavArrow(Icons.ChevronRight, stringResource(R.string.detail_next), index < media.size - 1, Modifier.align(Alignment.CenterEnd).padding(end = 6.dp)) {
-                if (index < media.size - 1) onIndex(index + 1)
-            }
-        }
-        Row(
-            Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-        ) {
-            media.indices.forEach { i ->
-                Box(Modifier.size(if (i == index) 18.dp else 6.dp, 6.dp).clip(r(3)).background(if (i == index) C.Yellow else C.RadioOff))
-            }
+            ) { key(m.id) { MediaFull(m) } }
         }
     }
 }
@@ -157,12 +177,4 @@ fun PhotoViewer(
 @Composable
 private fun HeaderButton(icon: Ico, description: String, tint: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
     RoundButton(48.dp, C.Btn, onClick, modifier.semantics { contentDescription = description }) { LineIcon(icon, 18.dp, tint, 2.6f) }
-}
-
-@Composable
-private fun NavArrow(icon: Ico, description: String, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    RoundButton(
-        48.dp, C.shade(0.7f), onClick,
-        modifier.alpha(if (enabled) 1f else 0.3f).semantics { contentDescription = description },
-    ) { LineIcon(icon, 20.dp, C.Text, 2.6f) }
 }

@@ -19,8 +19,10 @@ import com.sclera.sclerago.data.repository.AssetActivityRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetFormRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetValidationRepositoryImpl
 import com.sclera.sclerago.data.repository.ClassificationRepositoryImpl
+import com.sclera.sclerago.data.repository.JacsRepositoryImpl
 import com.sclera.sclerago.data.repository.PhotoRulesRepositoryImpl
 import com.sclera.sclerago.data.repository.SpecLookupRepositoryImpl
+import com.sclera.sclerago.data.repository.VoiceFillRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetDocumentsRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.data.repository.LocationRepositoryImpl
@@ -30,8 +32,10 @@ import com.sclera.sclerago.domain.repository.AssetActivityRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.repository.AssetValidationRepository
 import com.sclera.sclerago.domain.repository.ClassificationRepository
+import com.sclera.sclerago.domain.repository.JacsRepository
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
+import com.sclera.sclerago.domain.repository.VoiceFillRepository
 import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
@@ -63,7 +67,7 @@ object OfflineModule {
     fun masterFormats(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher) = MasterFormatsOfflineSource(db, io)
 
     @Provides @Singleton
-    fun documents(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher) = DocumentsOfflineSource(db, io)
+    fun documents(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher, blobs: MediaBlobs) = DocumentsOfflineSource(db, io, blobs)
 
     @Provides @Singleton
     fun validation(db: AdcDatabase, @IoDispatcher io: CoroutineDispatcher) = ValidationOfflineSource(db, io)
@@ -117,7 +121,9 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun assetValidation(impl: AssetValidationRepositoryImpl): AssetValidationRepository
     @Binds abstract fun photoRules(impl: PhotoRulesRepositoryImpl): PhotoRulesRepository
     @Binds abstract fun specLookups(impl: SpecLookupRepositoryImpl): SpecLookupRepository
+    @Binds abstract fun voiceFill(impl: VoiceFillRepositoryImpl): VoiceFillRepository
     @Binds abstract fun classification(impl: ClassificationRepositoryImpl): ClassificationRepository
+    @Binds abstract fun jacs(impl: JacsRepositoryImpl): JacsRepository
     @Binds abstract fun assetDocuments(impl: AssetDocumentsRepositoryImpl): AssetDocumentsRepository
     @Binds abstract fun locations(impl: LocationRepositoryImpl): LocationRepository
     @Binds abstract fun assetConfig(impl: AssetConfigRepositoryImpl): AssetConfigRepository

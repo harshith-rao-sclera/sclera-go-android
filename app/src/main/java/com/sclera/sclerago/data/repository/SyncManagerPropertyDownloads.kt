@@ -89,6 +89,8 @@ class SyncManagerPropertyDownloads @Inject constructor(
         scope.launch {
             val s = state.first { it.restored }
             s.currentId?.let { sync.select(it) }
+            // Every downloaded property's engine starts at once; reopen() then follows each one (and starts the rest).
+            sync.reopenAll()
             reopen(s.downloadedIds + setOfNotNull(s.currentId))
         }
     }

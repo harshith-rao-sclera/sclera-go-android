@@ -1,11 +1,15 @@
 package com.sclera.sclerago.data.remote.adc
 
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Headers
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 
 /**
@@ -29,6 +33,25 @@ interface AdcJobsService {
 
     @POST("properties/{property}/lookup-jobs/{job}/seen")
     suspend fun lookupSeen(@Path("property") property: String, @Path("job") job: String): Response<ResponseBody>
+
+    /**
+     * The phone's look-up (multipart): up to 3 `photos` (nameplate, label, equipment), `values` (JSON: field id -> what
+     * is typed) and optionally `masterFormatId`. The AI reads the photos, the fields still empty are looked up online
+     * by the model, and without a type it suggests one (`suggestedType`). Nothing is saved; it waits for the AI and the
+     * web search, so it gets the longer read timeout.
+     */
+    @Multipart
+    @Headers(AdcConfig.SLOW_CALL)
+    @POST("properties/{property}/lookup")
+    suspend fun lookUpOnPhone(@Path("property") property: String, @Part parts: List<MultipartBody.Part>): Response<ResponseBody>
+
+    /**
+     * Voice fill: what was said (already text) and the asset's Info form; the AI answers with values for the fields that
+     * were spoken about. Nothing is saved. `422` when nothing matched a field; the server gives the AI 15 seconds.
+     */
+    @Headers(AdcConfig.SLOW_CALL)
+    @POST("properties/{property}/voice-fill")
+    suspend fun voiceFill(@Path("property") property: String, @Body body: RequestBody): Response<ResponseBody>
 
     /** Validates one asset again: from its first failed or warning step, or every step with `{"fromStart": true}`. */
     @POST("properties/{property}/assets/{asset}/revalidate")

@@ -414,9 +414,6 @@
     <plurals name="assets_added_details">
         <item quantity="other">%1$d aset ditambahkan · detail diperlukan</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="other">%1$d aset diimpor · detail diperlukan</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="other">Hapus %1$d aset?</item>
     </plurals>

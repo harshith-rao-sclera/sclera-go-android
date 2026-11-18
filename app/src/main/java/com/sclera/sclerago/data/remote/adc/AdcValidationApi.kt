@@ -56,6 +56,8 @@ class AdcValidationApi @Inject constructor(private val service: AdcValidationSer
 
     suspend fun runReady(p: String, id: String): JobDto = call.json({ service.runReady(p, id) }) { one(JobDto.serializer(), it) }
 
+    suspend fun rerun(p: String, id: String): JobDto = call.json({ service.rerun(p, id) }) { one(JobDto.serializer(), it) }
+
     suspend fun discard(p: String, id: String) = call.unit { service.discard(p, id) }
 
     suspend fun results(p: String, job: String, outcome: String?, step: String?, q: String?, cursor: String?): PageDto<ResultDto> =

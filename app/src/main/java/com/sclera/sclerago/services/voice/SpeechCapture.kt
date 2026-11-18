@@ -45,6 +45,9 @@ class SpeechCapture(private val context: Context, private val listener: SpeechLi
     private var partial = ""
     private val sure = mutableListOf<Float>()
 
+    /** Passing errors in a row since the last words were heard. */
+    private var hiccups = 0
+
     val available: Boolean get() = SpeechRecognizer.isRecognitionAvailable(context)
 
     fun start() {
@@ -72,6 +75,7 @@ class SpeechCapture(private val context: Context, private val listener: SpeechLi
         said.clear()
         sure.clear()
         partial = ""
+        hiccups = 0
     }
 
     private fun listen() {
@@ -127,6 +131,7 @@ class SpeechCapture(private val context: Context, private val listener: SpeechLi
 
         override fun onResults(results: Bundle?) {
             if (!active) return
+            hiccups = 0
             results?.texts()?.firstOrNull()?.takeIf { it.isNotBlank() }?.let { partial = it }
             results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)?.firstOrNull()?.takeIf { it in 0f..1f }?.let { sure += it }
             sessionEnded()
@@ -138,6 +143,12 @@ class SpeechCapture(private val context: Context, private val listener: SpeechLi
                 // A pause with nothing new said: keep listening, unless asked to stop.
                 error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> sessionEnded()
                 stopping -> sessionEnded()
+                // A hiccup between sessions (the recognizer still busy with the last one): keep recording until the
+                // person taps stop, a few times in a row at most.
+                error in PASSING && hiccups < MAX_HICCUPS -> {
+                    hiccups++
+                    sessionEnded()
+                }
                 // No on-device model for the language: ask the recognizer's service instead.
                 offline && error in NO_LOCAL_MODEL -> {
                     offline = false
@@ -161,6 +172,10 @@ class SpeechCapture(private val context: Context, private val listener: SpeechLi
     private companion object {
         /** How long a pause the recognizer is asked to wait through (many ignore it; listening restarts anyway). */
         const val SILENCE_MS = 10_000L
+
+        /** Errors that pass: the recognizer still busy with the last session, or a client-side hiccup. */
+        val PASSING = setOf(SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_CLIENT)
+        const val MAX_HICCUPS = 5
 
         /** The errors that say the device has no model of its own for the language. */
         val NO_LOCAL_MODEL = setOf(

@@ -2,6 +2,9 @@ package com.sclera.sclerago.presentation.assets
 
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.formatDuration
+import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
+import com.sclera.sclerago.presentation.fileimport.FileImportReview
+import com.sclera.sclerago.presentation.fileimport.FileImportViewModel
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.common.asString
 import androidx.compose.ui.res.pluralStringResource
@@ -346,7 +349,9 @@ fun CameraCapture(
         ) {
             val side = Color(0xE63C3F45)
             RoundButton(52.dp, side, {
-                if (!isRecording) gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                // In Video mode the gallery shows only videos (they are easy to miss among the photos otherwise).
+                val only = if (videoMode) ActivityResultContracts.PickVisualMedia.VideoOnly else ActivityResultContracts.PickVisualMedia.ImageAndVideo
+                if (!isRecording) gallery.launch(PickVisualMediaRequest(only))
             }) { LineIcon(Icons.Gallery, 22.dp, C.Text) }
             Box(
                 Modifier.size(76.dp).alpha(if (granted) 1f else 0.4f).clip(CircleShape).border(4.dp, C.Text, CircleShape)
@@ -461,10 +466,10 @@ private fun CameraReview(vm: AppViewModel) {
 // ---------------------------------------------------------------- File
 
 @Composable
-fun FilePage(vm: AppViewModel) {
+fun FilePage(vm: AppViewModel, files: FileImportViewModel, online: Boolean) {
     val s = vm.state
     when {
-        s.revFile -> FileReview(vm)
+        s.revFile -> FileImportReview(files, onAddFiles = vm::backToFiles, onClose = vm::closeFiles, flash = vm::flash, online = online)
         s.fileOpen -> FileWaiting(vm)
         else -> SubList(vm, Tab.FILE, "File", vm::openFile, Icons.FileUploadBadge)
     }
@@ -480,24 +485,9 @@ private fun FileWaiting(vm: AppViewModel) {
     ) {
         LineIcon(Icons.FileUpload, 40.dp, C.Muted, 1.8f)
         Txt("Import from files", 16, 700)
-        Txt("Excel, CSV, PDF, photos or videos from your phone or cloud drives.", 12, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
+        Txt(stringResource(R.string.file_import_hint, MAX_DOCUMENT_UPLOAD_MB), 12, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
         Pill("Open file manager", vm::openFile, bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700)
         Pill("Cancel", vm::cancelFile, bg = Color.Transparent, fg = C.Muted, height = 40.dp)
-    }
-}
-
-@Composable
-private fun FileReview(vm: AppViewModel) {
-    val rev = vm.fileReview
-    ReviewScreen(
-        sub = pluralStringResource(R.plurals.review_files_sub, rev.size, rev.size),
-        addLabel = stringResource(R.string.review_add_files), onAdd = vm::backToFiles,
-        items = rev, onToggle = vm::toggleRev,
-        onDiscard = vm::discardFile, onGo = vm::onboardFile,
-    ) { ri ->
-        Box(Modifier.size(52.dp).background(C.Raised, r(10)), contentAlignment = Alignment.Center) {
-            Txt(ri.ext, 11, 800, ri.extColor)
-        }
     }
 }
 

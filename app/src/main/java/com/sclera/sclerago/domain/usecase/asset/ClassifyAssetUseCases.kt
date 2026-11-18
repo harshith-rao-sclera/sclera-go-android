@@ -9,7 +9,8 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
-import com.sclera.sclerago.domain.model.PhotoKind
+import com.sclera.sclerago.domain.model.readablePhotos
+import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.domain.model.TypeField
 import com.sclera.sclerago.domain.model.fieldKindOf
 import com.sclera.sclerago.domain.model.typeFieldKey
@@ -18,24 +19,28 @@ import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import javax.inject.Inject
 
 /**
- * Asks the server what an asset is, as anyone who can collect may: from its photos (nameplate first, then label, then
- * equipment photos, at most three) and what is typed, or just the type the person picked ([masterFormatId]) for its JACS codes.
+ * Asks the server what an asset is, as anyone who can collect may, the way the server takes it: an asset already on the
+ * server by its [assetId] (its saved answers and stored photos, with the photos on this device first); one still only
+ * on the phone by its photos (nameplate first, then label, then equipment photos, at most three) and what is typed; or
+ * just the type the person picked ([masterFormatId]) for its JACS codes.
  * Throws [OnlineException]: Forbidden without collect, Invalid when there is no photo and nothing typed.
  */
 class SuggestAssetTypeUseCase @Inject constructor(private val repo: ClassificationRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(details: ClassifyDetails, media: List<Media>, masterFormatId: String? = null): ClassificationResult {
+    suspend operator fun invoke(
+        details: ClassifyDetails,
+        media: List<Media>,
+        masterFormatId: String? = null,
+        assetId: String? = null,
+    ): ClassificationResult {
         guard.requireOnline(Permission.COLLECT)
+        val onServer = assetId?.takeIf(::isServerId)
         val photos = if (masterFormatId != null) emptyList() else classifyPhotos(media)
-        if (masterFormatId == null && photos.isEmpty() && details.isEmpty) throw OnlineException(OnlineError.Invalid)
-        return repo.suggest(details, photos, masterFormatId)
+        if (onServer == null && masterFormatId == null && photos.isEmpty() && details.isEmpty) throw OnlineException(OnlineError.Invalid)
+        return repo.suggest(details, photos, masterFormatId, onServer)
     }
 
-    /** The photos worth reading, best first: nameplate, label, equipment, then any other photo that answers no field. */
-    private fun classifyPhotos(media: List<Media>): List<Media> {
-        val photos = media.filter { !it.video && !it.isDoc && !it.audio && it.fieldId == null }
-        val order = listOf(PhotoKind.NAMEPLATE, PhotoKind.LABEL_ID, PhotoKind.ASSET, null)
-        return photos.sortedWith(compareBy({ order.indexOf(it.category) }, { -it.createdAt })).take(MAX_CLASSIFY_PHOTOS * 2)
-    }
+    /** The photos worth reading, in the shared order; a few spare in case one can't be read here. */
+    private fun classifyPhotos(media: List<Media>): List<Media> = readablePhotos(media, MAX_CLASSIFY_PHOTOS * 2)
 }
 
 /**

@@ -25,7 +25,9 @@ fun MediaImage(
     placeholder: Color = C.Raised,
 ) {
     val context = LocalContext.current
+    // produceState keeps its last value when the keys change, so each new photo sets its own picture (not the last one's).
     val bmp by produceState(if (media.isDoc) null else MediaLoader.cached(media.uri, maxPx), media.uri, maxPx) {
+        value = if (media.isDoc) null else MediaLoader.cached(media.uri, maxPx)
         if (value == null && !media.isDoc) value = MediaLoader.load(context, media.uri, media.video, maxPx)
     }
     Box(modifier.background(placeholder)) {

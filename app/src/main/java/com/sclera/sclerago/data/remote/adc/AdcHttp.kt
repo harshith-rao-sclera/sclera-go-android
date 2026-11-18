@@ -64,11 +64,23 @@ class AdcAuthenticator(private val tokens: AccessTokenProvider) : Authenticator 
     }
 }
 
+/** Gives a call that asks with [AdcConfig.SLOW_CALL_HEADER] that read timeout (capped), and drops the header. */
+internal class SlowCallInterceptor : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        val seconds = request.header(AdcConfig.SLOW_CALL_HEADER)?.toLongOrNull()?.coerceIn(1L, AdcConfig.SLOW_CALL_SECONDS)
+            ?: return chain.proceed(request)
+        val plain = request.newBuilder().removeHeader(AdcConfig.SLOW_CALL_HEADER).build()
+        return chain.withReadTimeout(seconds.toInt(), TimeUnit.SECONDS).proceed(plain)
+    }
+}
+
 /** The client for the ADC API: the shared client plus the token handling above and 30 s timeouts. No logging interceptor. */
 fun OkHttpClient.forAdc(tokens: AccessTokenProvider): OkHttpClient = newBuilder()
     .connectTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .readTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .writeTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    .addInterceptor(SlowCallInterceptor())
     .addInterceptor(AdcAuthInterceptor(tokens))
     .authenticator(AdcAuthenticator(tokens))
     .build()

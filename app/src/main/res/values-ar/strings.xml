@@ -440,10 +440,6 @@
         <item quantity="one">تمت إضافة %1$d أصل · يلزم إدخال التفاصيل</item>
         <item quantity="other">تمت إضافة %1$d أصل · يلزم إدخال التفاصيل</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">تم استيراد %1$d أصل · يلزم إدخال التفاصيل</item>
-        <item quantity="other">تم استيراد %1$d أصل · يلزم إدخال التفاصيل</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">حذف هذا الأصل؟</item>
         <item quantity="other">حذف %1$d أصل؟</item>

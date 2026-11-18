@@ -354,7 +354,7 @@ public class ImageSyncService {
                     "SELECT \"" + multimediaId + "\", \"table_name\", \"row_id\", \"column_name\", \"order\", \"content_type\" " +
                             "FROM \"" + multimediaTable + "\" " +
                             "WHERE \"media_changes\" IS NOT NULL " +
-//                            "AND \"content_type\" NOT LIKE '%video%' " +
+                            "AND \"content_type\" NOT LIKE '%video%' " +
                             "AND length(\"" + multimediaContent + "\") < " + (10 * 1024 * 1024) + " " +
                             "ORDER BY \"order\" ASC LIMIT 10;";
             cursor = dbConnection.rawQuery(query, null);
@@ -1315,12 +1315,13 @@ public class ImageSyncService {
     public boolean checkImageExists(String tableName, String columnName, String rowId, String order) {
         boolean exists = false;
         try (Cursor cursor = dbConnection.rawQuery(
-                "SELECT * " +
+                "SELECT 1 " +
                         "FROM " + multimediaTable +
                         " WHERE table_name = ?" +
                         " AND column_name = ?" +
                         " AND row_id = ?" +
-                        " AND `order` = ?",
+                        " AND `order` = ?" +
+                        " LIMIT 1",
                 new String[]{tableName, columnName, rowId, order})) {
 
             if (cursor != null && cursor.moveToFirst()) {

@@ -13,4 +13,7 @@ interface AssetDocumentsRepository {
 
     /** Takes the web page [documentId] off its asset. */
     suspend fun removeWebPage(documentId: String)
+
+    /** Deletes the uploaded file [documentId] (the file the asset was read from, or one uploaded on its Documents tab). */
+    suspend fun removeSourceFile(documentId: String)
 }

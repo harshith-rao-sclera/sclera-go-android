@@ -295,6 +295,13 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
         flash(startedMessage(started, ready = false))
     }
 
+    /** "Run again" on a finished run, as the web: the server starts the same run again, and it opens in its place. */
+    fun runAgain(run: ValRun) = onReady(run) {
+        val started = useCases.rerun(state.propertyId, run.id)
+        set { copy(runs = listOf(started) + runs.filter { it.id != started.id }, reviewJobId = started.id) }
+        flash(startedMessage(started, ready = false))
+    }
+
     /** "Discard" on a ready run. */
     fun discard(run: ValRun) = onReady(run) {
         useCases.discard(state.propertyId, run.id)

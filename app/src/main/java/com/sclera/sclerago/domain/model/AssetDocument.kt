@@ -58,10 +58,21 @@ data class AssetDocument(
     val hasFile: Boolean = false,
     /** The file's kind as the server names it (pdf, spreadsheet, word, text…), for its icon. */
     val fileKind: String? = null,
-) {
-    /** A web page can be removed from the asset; a model's manual belongs to every asset of that model. */
-    val removable: Boolean get() = source == DocumentSource.WEB_PAGE
-}
+    /** The uploaded file: who uploaded it (a user id), their name as far as this device knows, and when. */
+    val uploadedBy: String? = null,
+    val uploaderName: String? = null,
+    val uploadedAt: Long? = null,
+    /** The uploaded file's size and type ("application/pdf"). */
+    val sizeBytes: Long? = null,
+    val contentType: String? = null,
+    /** Where the kept file is opened on this device (the app's media provider); null when only a link is kept. */
+    val fileUri: String? = null,
+    /**
+     * It can be taken off: a web page by anyone who can collect; the uploaded file by whoever uploaded it, or anyone who
+     * can configure the property (the server's rule). A model's manual belongs to every asset of that model.
+     */
+    val removable: Boolean = false,
+)
 
 /** How the server matches a manufacturer or model to its manuals: lowercase letters and digits only. */
 fun modelKey(text: String?): String = (text ?: "").lowercase().filter { it in 'a'..'z' || it in '0'..'9' }

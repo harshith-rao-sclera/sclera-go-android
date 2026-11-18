@@ -1,8 +1,11 @@
 package com.sclera.sclerago.domain.usecase.asset
 
 import com.sclera.sclerago.domain.model.AssetDetails
+import com.sclera.sclerago.domain.model.DEFAULT_DATE_PICKER
+import com.sclera.sclerago.domain.model.DEFAULT_NOW
+import com.sclera.sclerago.domain.model.DEFAULT_TIME_PICKER
+import com.sclera.sclerago.domain.model.DEFAULT_TODAY
 import com.sclera.sclerago.domain.model.FieldCfg
-import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.system.TimeProvider
 import java.time.Instant
@@ -28,20 +31,18 @@ class BuildFormValuesUseCase @Inject constructor(private val time: TimeProvider)
         if (isNew) {
             val now = Instant.ofEpochMilli(time.nowMillis()).atZone(zone)
             fields.filter { it.visible && it.defaultValue.isNotBlank() }.forEach { f ->
-                values[f.key] = when {
-                    // Dates and times are stored as the web stores them: seconds since 1970 (UTC).
-                    f.kind == FieldKind.DATE && f.defaultValue == TODAY -> now.toLocalDate().atStartOfDay(zone).toEpochSecond().toString()
-                    f.kind == FieldKind.TIME && f.defaultValue == NOW -> now.toEpochSecond().toString()
-                    else -> f.defaultValue
+                // As the server's values.default_answer reads a default: "datepicker"/"timepicker" mean "picked on
+                // the form" (no value), "today"/"now" (any case) mean the current date or time. Dates and times are
+                // stored as the web's picker stores them: seconds since 1970 (UTC).
+                when (f.defaultValue.trim().lowercase()) {
+                    DEFAULT_DATE_PICKER, DEFAULT_TIME_PICKER -> Unit
+                    DEFAULT_TODAY -> values[f.key] = now.toLocalDate().atStartOfDay(zone).toEpochSecond().toString()
+                    DEFAULT_NOW -> values[f.key] = now.toEpochSecond().toString()
+                    else -> values[f.key] = f.defaultValue
                 }
             }
             values.putAll(prefill)
         }
         return values
-    }
-
-    private companion object {
-        const val TODAY = "Today"
-        const val NOW = "Now"
     }
 }

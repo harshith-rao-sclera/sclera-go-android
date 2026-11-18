@@ -1,8 +1,9 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.OfflineGate
 import java.util.Locale
 import java.text.NumberFormat
-import kotlinx.coroutines.delay
 import com.sclera.sclerago.domain.model.PropertyDownload
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.inProgress
@@ -112,13 +113,6 @@ fun PropertyListScreen(
     // Until a property is downloaded this is the app's first page, so Back leaves the app.
     BackHandler(enabled = app.hasProperty, onBack = app::closeAdmin)
     DisposableEffect(Unit) { onDispose(vm::reset) }
-    // Offline, properties that aren't downloaded fade out; check the connection while the page is shown.
-    LaunchedEffect(Unit) {
-        while (true) {
-            vm.checkConnection()
-            delay(CONNECTION_CHECK_MS)
-        }
-    }
     // What Import did (or why it couldn't), flashed like the page's own messages.
     LaunchedEffect(importer) { importer.notices.collect { app.flash(it) } }
     // Import opens empty each time, as the web's.
@@ -135,7 +129,7 @@ fun PropertyListScreen(
             state, app.currentProp,
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
             onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onRefresh = vm::refresh,
-            canManage = canManage, onInfo = vm::openEdit,
+            canManage = canManage, onInfo = vm::openEdit, onOffline = vm::explainOffline,
         )
         AnimatedVisibility(
             app.state.toastOn && !state.addOpen && state.editing == null,
@@ -188,6 +182,8 @@ internal fun PropertyListContent(
     canManage: Boolean = true,
     /** The info button on a property: opens it in the edit form. */
     onInfo: (Property) -> Unit = {},
+    /** An online-only button was tapped offline (download, New property, Import): say why it needs the server. */
+    onOffline: (OnlineOnly) -> Unit = {},
 ) {
     val gutter = pageGutter()
     var menuOpen by rememberSaveable { mutableStateOf(false) }
@@ -218,6 +214,7 @@ internal fun PropertyListContent(
                             },
                             onDownload = { onDownload(id) },
                             onInfo = { onInfo(row.property) },
+                            onOffline = { onOffline(OnlineOnly.DOWNLOAD_PROPERTY) },
                         )
                     }
                     when {
@@ -246,8 +243,14 @@ internal fun PropertyListContent(
             if (canManage) FabMenu(
                 menuOpen, { menuOpen = it },
                 listOf(
-                    FabAction(stringResource(R.string.property_fab_import), Icons.Table, PropertyTags.IMPORT, onImport),
-                    FabAction(stringResource(R.string.action_add), Icons.Pencil, PropertyTags.ADD, onAdd),
+                    FabAction(
+                        stringResource(R.string.property_fab_import), Icons.Table, PropertyTags.IMPORT, onImport,
+                        onBlocked = if (state.online) null else ({ onOffline(OnlineOnly.IMPORT_PROPERTIES) }),
+                    ),
+                    FabAction(
+                        stringResource(R.string.action_add), Icons.Pencil, PropertyTags.ADD, onAdd,
+                        onBlocked = if (state.online) null else ({ onOffline(OnlineOnly.NEW_PROPERTY) }),
+                    ),
                 ),
                 stringResource(R.string.property_add_fab), stringResource(R.string.action_close),
                 Modifier.testTag(PropertyTags.FAB),
@@ -281,7 +284,8 @@ private fun Header(state: PropertyListState) {
 /**
  * A property: round building icon and name, then where its offline data is: a download button, the download's
  * progress (percent, MB and a yellow edge along the bottom), a tick when it has just finished, or the chevron once
- * it is downloaded. Offline, a property that isn't downloaded is faded and can't be opened. The current property
+ * it is downloaded. Offline, a property that isn't downloaded is faded and can't be opened: its download button carries
+ * the offline badge, and a tap on it or the card says why ([onOffline]). The current property
  * is washed with yellow from its start side (fading out across the card), with a faint yellow border and a yellow building, and is
  * read out as the current property.
  */
@@ -296,6 +300,7 @@ private fun PropertyCard(
     onClick: () -> Unit,
     onDownload: () -> Unit,
     onInfo: () -> Unit = {},
+    onOffline: () -> Unit = {},
 ) {
     val running = download as? PropertyDownload.Running
     val unpacking = download is PropertyDownload.Unpacking
@@ -304,15 +309,21 @@ private fun PropertyCard(
     // The yellow wash starts on the icon's side, which is the right in right-to-left languages.
     val wash = listOf(C.Yellow.copy(alpha = 0.16f), C.Surface)
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val surface = if (current) Modifier.background(Brush.horizontalGradient(if (rtl) wash.reversed() else wash)) else Modifier.background(C.Surface)
+    val surface = when {
+        current -> Modifier.background(Brush.horizontalGradient(if (rtl) wash.reversed() else wash))
+        // Faded, but not as a whole: the download button's offline badge stays clear.
+        faint -> Modifier.background(C.Surface.copy(alpha = FaintAlpha))
+        else -> Modifier.background(C.Surface)
+    }
+    val fade = Modifier.alpha(if (faint) FaintAlpha else 1f)
     Box(
-        Modifier.fillMaxWidth().alpha(if (faint) FaintAlpha else 1f).clip(r(12)).then(surface)
+        Modifier.fillMaxWidth().clip(r(12)).then(surface)
             .border(1.dp, if (faint) Color.Transparent else if (current) C.Yellow.copy(alpha = 0.3f) else C.Border, r(12))
             .semantics {
                 selected = current
                 if (current) stateDescription = currentLabel
             }.testTag(PropertyTags.row(id))
-            .clickable(enabled = !faint, role = Role.Button, onClick = onClick),
+            .clickable(role = Role.Button, onClick = if (faint) onOffline else onClick),
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 10.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
@@ -320,15 +331,15 @@ private fun PropertyCard(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
-                Modifier.size(40.dp).clip(CircleShape).background(if (current) C.YTintBg else C.Raised)
+                fade.size(40.dp).clip(CircleShape).background(if (current) C.YTintBg else C.Raised)
                     .border(1.dp, if (current) C.YTintBd else C.Border, CircleShape),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Building, 17.dp, if (current) C.Yellow else C.Muted, 1.9f) }
-            Txt(name, 14, 600, modifier = Modifier.weight(1f), maxLines = 2)
+            Txt(name, 14, 600, modifier = Modifier.weight(1f).then(fade), maxLines = 2)
             // Property Info (the web's info icon on each property).
             val infoLabel = stringResource(R.string.property_info_open, name)
             Box(
-                Modifier.size(40.dp).clip(CircleShape).semantics { contentDescription = infoLabel }
+                fade.size(40.dp).clip(CircleShape).semantics { contentDescription = infoLabel }
                     .testTag(PropertyTags.info(id)).clickable(role = Role.Button, onClick = onInfo),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Info, 18.dp, C.Muted, 2f) }
@@ -353,14 +364,16 @@ private fun PropertyCard(
                     downloaded -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
                     }
-                    faint -> Unit
                     else -> {
+                        // Offline the download button stays, with the offline badge (the card is faded already).
                         val label = stringResource(R.string.property_download, name)
-                        Box(
-                            Modifier.size(48.dp).clip(CircleShape).semantics { contentDescription = label }
-                                .testTag(PropertyTags.download(id)).clickable(role = Role.Button, onClick = onDownload),
-                            contentAlignment = Alignment.Center,
-                        ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
+                        OfflineGate(faint, onOffline, badgeOffset = 8.dp) {
+                            Box(
+                                Modifier.size(48.dp).clip(CircleShape).semantics { contentDescription = label }
+                                    .testTag(PropertyTags.download(id)).clickable(role = Role.Button, onClick = onDownload),
+                                contentAlignment = Alignment.Center,
+                            ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
+                        }
                     }
                 }
             }
@@ -396,6 +409,3 @@ private fun DownloadProgress(name: String, d: PropertyDownload.Running, modifier
 
 /** How faded a property that can't be used offline looks (as in the design). */
 private const val FaintAlpha = 0.26f
-
-/** How often the page re-checks the connection while it is shown. */
-private const val CONNECTION_CHECK_MS = 3_000L

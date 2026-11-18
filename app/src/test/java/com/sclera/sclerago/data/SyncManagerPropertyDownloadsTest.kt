@@ -44,6 +44,7 @@ class SyncManagerPropertyDownloadsTest {
         }
 
         override fun downloadedProperties(): Set<String> = onDevice
+        override fun reopenAll() = Unit
         override fun stop() {
             flow.value = emptyMap()
         }

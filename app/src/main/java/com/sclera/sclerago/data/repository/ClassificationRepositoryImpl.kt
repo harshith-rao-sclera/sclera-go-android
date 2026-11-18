@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.repository
 
 import com.sclera.sclerago.data.local.TypeFieldsStore
 import com.sclera.sclerago.data.offline.AssetFileStore
+import com.sclera.sclerago.data.offline.MediaBlobs
 import com.sclera.sclerago.data.remote.adc.AdcClassifyApi
 import com.sclera.sclerago.data.remote.adc.ClassifyPhoto
 import com.sclera.sclerago.data.remote.adc.SuggestDetailsDto
@@ -13,6 +14,7 @@ import com.sclera.sclerago.domain.model.ClassifyDetails
 import com.sclera.sclerago.domain.model.JacsSuggestion
 import com.sclera.sclerago.domain.model.MAX_CLASSIFY_PHOTOS
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.MAX_AI_PHOTO_BYTES
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.PhotoReading
@@ -32,22 +34,35 @@ import javax.inject.Inject
 class ClassificationRepositoryImpl @Inject constructor(
     private val api: AdcClassifyApi,
     private val files: AssetFileStore,
+    private val blobs: MediaBlobs,
     private val store: TypeFieldsStore,
     private val downloads: PropertyDownloadRepository,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : ClassificationRepository {
     private fun property(): String? = downloads.downloads.value.currentId
 
-    override suspend fun suggest(details: ClassifyDetails, photos: List<Media>, masterFormatId: String?): ClassificationResult {
+    override suspend fun suggest(details: ClassifyDetails, photos: List<Media>, masterFormatId: String?, assetId: String?): ClassificationResult {
         val property = property() ?: throw OnlineException(OnlineError.NotFound)
-        // Only photos on this device can be sent; the server reads at most three, up to 10 MB each.
-        val sent = withContext(io) {
-            photos.asSequence().mapNotNull { files.photo(it, MAX_PHOTO_BYTES) }.take(MAX_CLASSIFY_PHOTOS)
-                .map { ClassifyPhoto(it.filename, it.contentType, it.bytes) }.toList()
+        val answer = try {
+            // An asset on the server: it reads its own photos; only those not uploaded yet go with it (sent ones come
+            // first and aren't checked against its own, so an uploaded one would be read twice).
+            val fresh = if (assetId != null) photos.filter { blobs.waitingUpload(MEDIA_TABLE, it.id) } else photos
+            api.suggest(property, details.toDto(), read(fresh), masterFormatId, assetId)
+        } catch (e: OnlineException) {
+            // The asset hasn't reached the server yet: ask as for one still on the phone, with every photo here.
+            if (assetId == null || e.error != OnlineError.NotFound) throw e
+            val sent = read(photos)
+            if (masterFormatId == null && sent.isEmpty() && details.isEmpty) throw OnlineException(OnlineError.Invalid)
+            api.suggest(property, details.toDto(), sent, masterFormatId, assetId = null)
         }
-        val answer = api.suggest(property, details.toDto(), sent, masterFormatId)
         withContext(io) { answer.suggestions.forEach { store.put(property, it.masterFormatId, it.fields.map { f -> f.toField() }) } }
         return answer.toResult()
+    }
+
+    /** The photos on this device that can be sent: the server reads at most three, up to 10 MB each. */
+    private suspend fun read(photos: List<Media>): List<ClassifyPhoto> = withContext(io) {
+        photos.asSequence().mapNotNull { files.photo(it, MAX_AI_PHOTO_BYTES) }.take(MAX_CLASSIFY_PHOTOS)
+            .map { ClassifyPhoto(it.filename, it.contentType, it.bytes) }.toList()
     }
 
     override suspend fun typeFields(masterFormatId: String): List<TypeField> {
@@ -73,8 +88,10 @@ class ClassificationRepositoryImpl @Inject constructor(
         }
     }
 
+    /** What is typed, as the server takes it: each core detail at most [MAX_DETAIL] characters. */
     private fun ClassifyDetails.toDto() = SuggestDetailsDto(
-        name = name.orNull(), manufacturer = manufacturer.orNull(), model = model.orNull(), serialNumber = serialNumber.orNull(),
+        name = name.orNull()?.take(MAX_DETAIL), manufacturer = manufacturer.orNull()?.take(MAX_DETAIL),
+        model = model.orNull()?.take(MAX_DETAIL), serialNumber = serialNumber.orNull()?.take(MAX_DETAIL),
         other = other.mapValues { it.value.trim() }.filter { it.key.isNotBlank() && it.value.isNotEmpty() }.takeIf { it.isNotEmpty() },
     )
 
@@ -86,9 +103,9 @@ class ClassificationRepositoryImpl @Inject constructor(
             )
         },
         jacsCodes = jacsCodes.map { JacsSuggestion(it.code, it.title.orNull(), it.confidence.coerceIn(0.0, 1.0), it.reason.orNull()) },
+        message = message.orNull(),
         read = read?.let { PhotoReading(it.manufacturer.orNull(), it.model.orNull(), it.kind.orNull()) }
             ?.takeIf { it.manufacturer != null || it.model != null || it.kind != null },
-        message = message.orNull(),
     )
 
     private fun sourceOf(text: String) = when (text) {
@@ -105,6 +122,8 @@ class ClassificationRepositoryImpl @Inject constructor(
     private fun String?.orNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
 
     private companion object {
-        const val MAX_PHOTO_BYTES = 10L * 1024 * 1024
+        const val MEDIA_TABLE = "asset_media"
+        /** The server's limit for name, manufacturer, model and serial number (`ClassifyDetails`). */
+        const val MAX_DETAIL = 300
     }
 }

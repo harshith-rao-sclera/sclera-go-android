@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
@@ -122,6 +123,8 @@ class PropertyViewModel @Inject constructor(
     init {
         // Properties are read from the server whenever the list opens; offline the saved list stays.
         load(pulled = false)
+        // Offline, properties that aren't downloaded fade out and the online-only buttons carry the offline badge.
+        viewModelScope.launch { downloads.isOnline.observe().collect { online.value = it } }
         viewModelScope.launch {
             downloads.observe().collect { d ->
                 val failed = d.active.filterValues { it is PropertyDownload.Failed }.keys
@@ -163,7 +166,7 @@ class PropertyViewModel @Inject constructor(
     fun openAdd() {
         if (!downloads.isOnline()) {
             online.value = false
-            flags.update { it.copy(notice = UiText.Res(R.string.property_offline_add)) }
+            explainOffline(OnlineOnly.NEW_PROPERTY)
             return
         }
         flags.update { it.copy(addOpen = true) }
@@ -176,7 +179,7 @@ class PropertyViewModel @Inject constructor(
     fun openImport() {
         if (!downloads.isOnline()) {
             online.value = false
-            flags.update { it.copy(notice = UiText.Res(R.string.property_offline_import)) }
+            explainOffline(OnlineOnly.IMPORT_PROPERTIES)
             return
         }
         flags.update { it.copy(importOpen = true) }
@@ -191,16 +194,19 @@ class PropertyViewModel @Inject constructor(
 
     fun consumeNotice() = flags.update { it.copy(notice = null) }
 
-    /** Re-checks the connection (the screen calls this every few seconds while it is shown). */
+    /** Reads the connection again now (between the changes the watch started in init brings). */
     fun checkConnection() {
         online.value = downloads.isOnline()
     }
+
+    /** An online-only button was tapped offline: says why it needs the server. */
+    fun explainOffline(why: OnlineOnly) = flags.update { it.copy(notice = UiText.Res(why.message)) }
 
     /** Download button: fetches [propertyId]'s data for working offline. Offline it can't, and says so. */
     fun download(propertyId: String) {
         if (!downloads.start(propertyId)) {
             online.value = false
-            flags.update { it.copy(notice = UiText.Res(R.string.property_download_offline)) }
+            explainOffline(OnlineOnly.DOWNLOAD_PROPERTY)
         }
     }
 
@@ -214,7 +220,7 @@ class PropertyViewModel @Inject constructor(
         // The connection dropped while the form was open: nothing is sent, and what was typed stays.
         if (!downloads.isOnline()) {
             online.value = false
-            return UiText.Res(R.string.property_offline_add)
+            return UiText.Res(OnlineOnly.NEW_PROPERTY.message)
         }
         adding = true
         flags.update { it.copy(addError = null) }
@@ -265,7 +271,7 @@ class PropertyViewModel @Inject constructor(
         if (downloads.isOnline()) return false
         online.value = false
         // With the form open the message shows in it (toasts are hidden behind it); otherwise as a toast.
-        val offline = UiText.Res(R.string.property_offline_edit)
+        val offline = UiText.Res(OnlineOnly.EDIT_PROPERTY.message)
         flags.update { if (it.editing != null) it.copy(editError = offline) else it.copy(notice = offline) }
         return true
     }
@@ -305,7 +311,7 @@ class PropertyViewModel @Inject constructor(
         if (adding) return null
         if (!downloads.isOnline()) {
             online.value = false
-            return UiText.Res(R.string.property_offline_edit)
+            return UiText.Res(OnlineOnly.EDIT_PROPERTY.message)
         }
         adding = true
         flags.update { it.copy(editError = null) }

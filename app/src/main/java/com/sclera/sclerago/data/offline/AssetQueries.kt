@@ -35,9 +35,13 @@ internal const val ALL_ASSET_VALUES =
 
 internal const val ASSET_VALUES_ONE = "SELECT * FROM asset_values WHERE asset_id = ?"
 
-/** The assets' validation decisions, newest first per asset (the first row of each asset is its latest). */
+/**
+ * The decisions reviewers made on the assets (results nobody decided on are left out, as the server's recollect rule
+ * does), newest decision first per asset (the first row of each asset is its latest); `%DECIDED%` is when it was decided.
+ */
 internal const val LATEST_DECISIONS =
-    "SELECT r.asset_id, r.decision FROM validation_results r WHERE r.asset_id IN (%IN%) AND %LIVE% ORDER BY r.created_at DESC, r.id DESC"
+    """SELECT r.asset_id, r.decision FROM validation_results r WHERE r.asset_id IN (%IN%) AND r.decision IS NOT NULL
+    AND %LIVE% ORDER BY %DECIDED% DESC, r.id DESC"""
 
 internal const val MEDIA_FOR = "SELECT * FROM asset_media WHERE asset_id IN (%IN%) AND %LIVE% ORDER BY position, created_at, id"
 
@@ -48,7 +52,8 @@ internal class Where(val sql: String, val args: List<String>)
 
 /** `assets` (alias `a`) rows [filter] keeps. [withStatus] false leaves the status out (for the status chips' counts). */
 internal fun AdcDatabase.assetWhere(filter: AssetFilter, withStatus: Boolean = true): Where {
-    val parts = mutableListOf(notRemoved("assets", "a"))
+    // In ADC (not removed, not in Managed Assets) and not a file import still waiting for review: what the server lists.
+    val parts = mutableListOf(listedAssets("a"))
     val args = mutableListOf<String>()
     filter.status?.takeIf { withStatus }?.let {
         // "AI suggestion" goes by the flag whatever the status, as the server's aiFillable count does (see Asset.isIn).

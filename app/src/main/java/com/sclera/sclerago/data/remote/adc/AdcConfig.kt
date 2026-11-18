@@ -9,6 +9,16 @@ object AdcConfig {
 
     const val TIMEOUT_SECONDS = 30L
 
+    /**
+     * A call that waits on the server's AI and web search (reading a photo with `lookup=true`) asks for a longer read
+     * timeout with this header, as `"$SLOW_CALL_HEADER: <seconds>"`; [SlowCallInterceptor] applies it and drops the header.
+     */
+    const val SLOW_CALL_HEADER = "X-Adc-Read-Timeout"
+    const val SLOW_CALL_SECONDS = 300L
+
+    /** The header line a slow call carries (for Retrofit's `@Headers`). */
+    const val SLOW_CALL = "$SLOW_CALL_HEADER: 300"
+
     /** Properties and people are read this many at a time, following `nextCursor`. */
     const val PAGE_SIZE = 200
 }

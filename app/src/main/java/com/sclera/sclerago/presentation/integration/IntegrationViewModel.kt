@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.integration
 
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -77,6 +78,9 @@ class IntegrationViewModel @Inject constructor(
             }
         }
     }
+
+    /** An online-only button was tapped offline: says why it needs the server. */
+    fun explainOffline(why: OnlineOnly) = flash(UiText.Res(why.message))
 
     private fun flash(msg: UiText) {
         set { copy(message = msg) }

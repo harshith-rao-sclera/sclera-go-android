@@ -432,10 +432,6 @@
         <item quantity="one">Додано активів: %1$d · потрібні дані</item>
         <item quantity="other">Додано активів: %1$d · потрібні дані</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">Імпортовано активів: %1$d · потрібні дані</item>
-        <item quantity="other">Імпортовано активів: %1$d · потрібні дані</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">Видалити цей актив?</item>
         <item quantity="other">Видалити активи: %1$d?</item>

@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
 
         // Application context, not `this`: Utility.context is static, so holding the
-        // Activity there would leak it across rotations / recreation.
+        // Activity there wou   ld leak it across rotations / recreation.
         Utility.context = applicationContext
 
         // The app is dark-only, so keep light status/nav bar icons regardless of system theme.

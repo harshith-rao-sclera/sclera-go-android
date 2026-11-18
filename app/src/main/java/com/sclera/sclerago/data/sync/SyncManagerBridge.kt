@@ -5,6 +5,7 @@ import com.sclera.sclerago.BuildConfig
 import com.sclera.sclerago.data.remote.AuthConfig
 import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper
 import com.sclera.sclerago.services.syncManager.SyncManager
+import com.sclera.sclerago.services.syncManager.SyncManagerRepository
 import com.sclera.sclerago.services.syncManager.SyncManagerService
 import com.sclera.sclerago.services.syncManager.constants.SyncConfigTables
 import com.sclera.sclerago.services.syncManager.utils.SyncUtils
@@ -63,6 +64,9 @@ class SyncManagerBridge @Inject constructor(
 
     fun isSelected(propertyId: String): Boolean = selected == propertyId
 
+    /** Properties whose engine [reopenAll] started and [begin] hasn't seen yet. Guarded by [lock]. */
+    private val reopened = mutableSetOf<String>()
+
     /** The engine's own "current instance" follows the selected property once its engine exists. */
     private fun pointEngineAtSelected() {
         val id = selected ?: return
@@ -103,6 +107,12 @@ class SyncManagerBridge @Inject constructor(
         Utility.context = context
         // A different user's data on this device is dropped before the new user's download starts.
         SyncManagerService.deleteDatabaseIfWrongUser(credentials.email)
+        // [reopenAll] has already started this one: it only needs the fresh credentials, not a second start.
+        if (reopened.remove(propertyId) && SyncUtils.adcInstances.containsKey(propertyId)) {
+            updateCredentials(credentials)
+            pointEngineAtSelected()
+            return@synchronized
+        }
         deleteLeftovers(propertyId)
         val config = JSONObject()
             .put("propertyId", propertyId)
@@ -119,8 +129,26 @@ class SyncManagerBridge @Inject constructor(
         pointEngineAtSelected()
     }
 
+    /**
+     * Restarts the engine of every property fully downloaded on this device at once, from the engine's saved config, for
+     * the signed-in user ([credentials]; another user's data is dropped first). Half-finished downloads are left to
+     * [begin], which shows their progress. The engines get [credentials] straight away, and the selected property's
+     * engine becomes the engine's current one. Blocking but short; call only while someone is signed in.
+     */
+    fun reopenAll(credentials: SyncCredentials) = synchronized(lock) {
+        Utility.context = context
+        SyncManagerService.deleteDatabaseIfWrongUser(credentials.email)
+        val ids = downloadedProperties() - SyncUtils.adcInstances.keys
+        if (ids.isEmpty()) return@synchronized
+        SyncManagerRepository().initializeAssetDBInstance(ids)
+        reopened += ids.filter { SyncUtils.adcInstances.containsKey(it) }
+        updateCredentials(credentials)
+        pointEngineAtSelected()
+    }
+
     /** Starts [propertyId] over with a fresh engine instance (a failed one cannot be reused cleanly); the others carry on. */
     fun restart(credentials: SyncCredentials, propertyId: String) = synchronized(lock) {
+        reopened.remove(propertyId)
         SyncManagerService.closeAssetDataSync(propertyId)
         begin(credentials, propertyId)
     }
@@ -161,6 +189,7 @@ class SyncManagerBridge @Inject constructor(
     /** Stops every engine and removes everything they stored: each property's database, the config rows and the static credentials. */
     fun wipe() = synchronized(lock) {
         selected = null
+        reopened.clear()
         runCatching { SyncManagerService.closeAllAssetDataSyncs() }
         SyncUtils.adcInstances.clear()
         SyncUtils.dbInstance = null

@@ -14,16 +14,17 @@ import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.captureName
-import com.sclera.sclerago.domain.model.isLockedFor
+import com.sclera.sclerago.domain.model.AssetLock
+import com.sclera.sclerago.domain.model.assetLock
 import com.sclera.sclerago.domain.model.mentions
 import com.sclera.sclerago.domain.model.scanKey
 import com.sclera.sclerago.domain.model.timeLabel
 import com.sclera.sclerago.domain.model.typeOf
-import com.sclera.sclerago.domain.model.withDefaultKind
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
 import com.sclera.sclerago.domain.repository.AuthRepository
@@ -33,6 +34,7 @@ import com.sclera.sclerago.domain.repository.LocalDataReloader
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.usecase.media.DownloadMediaUseCase
+import com.sclera.sclerago.domain.usecase.media.SortPhotosUseCase
 import com.sclera.sclerago.domain.system.next
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.validation.CheckInput
@@ -110,19 +112,24 @@ class SetAssetStatusUseCase @Inject constructor(
     /** The signed-in user may move assets to [status] (signing off is only for reviewers; its button is hidden otherwise). */
     fun allows(status: Status): Boolean = guard.allows(permissionFor(status))
 
+    /**
+     * As the web's Submit (`POST /assets/bulk/submit`, allowExceptions false by default): only complete assets are
+     * submitted; the incomplete drafted ones are returned, left in draft, unless [allowExceptions] makes them exceptions.
+     */
     suspend operator fun invoke(
         ids: Collection<String>,
         status: Status,
-        allowExceptions: Boolean = true,
-    ) {
+        allowExceptions: Boolean = false,
+    ): Set<String> {
         guard.requireOffline(permissionFor(status))
         // As the server: assets are signed off in a validation run (which keeps a record of who decided), never by a
         // status move.
         if (status == Status.VALIDATED) throw DataException(DataError.FORBIDDEN)
         // Submitting only moves assets still being collected; any other move of a submitted asset (back to draft) is an
-        // admin's, as the server's edit.
-        if (status != Status.SUBMITTED) requireUnlocked(repo, guard, ids)
-        repo.setStatus(ids, status, allowExceptions, photoRules.forMove(status))
+        // admin's, as the server's edit. Someone who isn't an admin submits only the assets assigned to them (the web's
+        // "not assigned" notice).
+        if (status != Status.SUBMITTED) requireUnlocked(repo, guard, ids) else requireAssigned(repo, guard, ids)
+        return repo.setStatus(ids, status, allowExceptions, photoRules.forMove(status))
     }
 }
 
@@ -158,19 +165,55 @@ class SaveAssetDetailsUseCase @Inject constructor(
     }
 }
 
-/** Whether the signed-in user may change an asset in [status]: only an admin may change a submitted or validated one. */
+/**
+ * Why the signed-in user may not change [asset] (the server's check_editable), or null when they may: an admin changes
+ * any asset; anyone else only one assigned to them that isn't submitted or validated.
+ */
 class CanEditAssetUseCase @Inject constructor(private val guard: PermissionGuard) {
-    operator fun invoke(status: Status): Boolean = !isLockedFor(status, guard.isAdmin())
+    fun lock(asset: Asset): AssetLock? = assetLock(asset.st, guard.isAdmin(), guard.isAssignedToMe(asset.assignedTo))
+
+    operator fun invoke(asset: Asset): Boolean = lock(asset) == null
 }
 
 /**
- * As the server's check_unlocked: once submitted (or signed off) an asset is changed by an admin only; anyone else gets
- * [DataException] FORBIDDEN and nothing changes. Unknown ids are left to the writer.
+ * As the server's check_editable: someone who isn't an admin changes only the assets assigned to them
+ * ([DataException] NOT_ASSIGNED), and none once submitted or signed off ([DataException] FORBIDDEN); nothing changes.
+ * Unknown ids are left to the writer.
  */
 internal fun requireUnlocked(repo: AssetRepository, guard: PermissionGuard, ids: Collection<String>) {
     if (guard.isAdmin()) return
-    val status = repo.catalog.value.assets.associate { it.id to it.st }
-    if (ids.any { id -> status[id]?.let { isLockedFor(it, isAdmin = false) } == true }) throw DataException(DataError.FORBIDDEN)
+    val wanted = ids.toSet()
+    val locks = repo.catalog.value.assets.filter { it.id in wanted }
+        .mapNotNull { assetLock(it.st, isAdmin = false, assignedToMe = guard.isAssignedToMe(it.assignedTo)) }
+    if (AssetLock.NOT_ASSIGNED in locks) throw DataException(DataError.NOT_ASSIGNED)
+    if (AssetLock.SUBMITTED in locks) throw DataException(DataError.FORBIDDEN)
+}
+
+/**
+ * Whether the signed-in user may pick asset [id] for a bulk action (the web's canWorkOn): an admin any asset, anyone
+ * else only the ones assigned to them.
+ */
+class CanWorkOnAssetUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
+    operator fun invoke(id: String): Boolean = checker()(id)
+
+    /** The signed-in user is an admin: they work on every asset (and act on change requests). */
+    fun isAdmin(): Boolean = guard.isAdmin()
+
+    /** The same check for many ids (say a select-all), worked out once over the property's assets. */
+    fun checker(): (String) -> Boolean {
+        if (guard.isAdmin()) return { true }
+        val mine = repo.catalog.value.assets.filter { guard.isAssignedToMe(it.assignedTo) }.mapTo(HashSet()) { it.id }
+        return { it in mine }
+    }
+}
+
+/** Someone who isn't an admin submits only the assets assigned to them (the web's submitIfAllowed); else NOT_ASSIGNED. */
+private fun requireAssigned(repo: AssetRepository, guard: PermissionGuard, ids: Collection<String>) {
+    if (guard.isAdmin()) return
+    val wanted = ids.toSet()
+    if (repo.catalog.value.assets.any { it.id in wanted && !guard.isAssignedToMe(it.assignedTo) }) {
+        throw DataException(DataError.NOT_ASSIGNED)
+    }
 }
 
 class DeleteAssetsUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
@@ -260,6 +303,7 @@ class CreateAssetUseCase @Inject constructor(
     private val ids: IdGenerator,
     private val guard: PermissionGuard,
     private val photoRules: PhotoRulesRepository,
+    private val sortPhotos: SortPhotosUseCase,
 ) {
     enum class Via { CAMERA, SCAN, MANUAL }
 
@@ -292,10 +336,11 @@ class CreateAssetUseCase @Inject constructor(
 
         val (asset, source) = when (via) {
             Via.CAMERA -> {
-                // From the Camera tab: the shot(s), plus anything added in the form. The shots are equipment photos, so the server reads them.
+                // From the Camera tab: the shot(s), plus anything added in the form. Each shot is read on the device and
+                // sorted into nameplate, label ID or asset; one that can't be read is an equipment (asset) photo, as before.
                 val first = captures.first()
                 val captured = (if (first.video) "Video ${first.durationText}" else "Photo") + " · captured " + timeLabel(first.createdAt).take(5)
-                val shots = captures.map { it.withDefaultKind() }
+                val shots = sortPhotos(captures, fallback = PhotoKind.ASSET)
                 Asset(id, name.ifBlank { captureName(first) }, formDetail ?: captured, place.loc, place.where, Source.CAMERA, st, typeOf(name), place.prop, shots + media, locationId = place.placeId) to Source.CAMERA
             }
             Via.SCAN -> {
@@ -369,6 +414,7 @@ class AssetUseCases @Inject constructor(
     val attachMedia: AttachMediaUseCase,
     val removeMedia: RemoveMediaUseCase,
     val downloadMedia: DownloadMediaUseCase,
+    val sortPhotos: SortPhotosUseCase,
     val add: AddAssetsUseCase,
     val create: CreateAssetUseCase,
     val matchDevices: MatchDevicesUseCase,
@@ -376,6 +422,7 @@ class AssetUseCases @Inject constructor(
     val buildList: BuildAssetListUseCase,
     val toggleSelection: ToggleSelectionUseCase,
     val selectAll: SelectAllUseCase,
+    val canWorkOn: CanWorkOnAssetUseCase,
     val evaluateChecks: EvaluateAssetChecksUseCase,
     val autofill: AutofillAssetUseCase,
     val formValues: BuildFormValuesUseCase,

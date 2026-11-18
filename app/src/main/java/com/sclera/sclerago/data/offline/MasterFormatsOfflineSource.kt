@@ -46,7 +46,7 @@ class MasterFormatsOfflineSource(private val db: AdcDatabase, private val io: Co
     }
 
     private fun loadClassification(): List<ClassCount> = db.whenTable(TABLE, emptyList()) {
-        val assetsLive = if (db.hasTable("assets")) db.notRemoved("assets", "a") else "1 = 1"
+        val assetsLive = if (db.hasTable("assets")) db.listedAssets("a") else "1 = 1"
         val sql = if (db.hasTable("assets")) FORMAT_COUNTS else FORMAT_COUNTS_NO_ASSETS
         val rows = db.query(sql.replace("%LIVE_ASSETS%", assetsLive).replace("%LIVE%", db.notRemoved(TABLE, "m")))
         group(rows)

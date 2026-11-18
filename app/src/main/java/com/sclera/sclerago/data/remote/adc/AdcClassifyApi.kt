@@ -13,10 +13,21 @@ import javax.inject.Singleton
 @Singleton
 class AdcClassifyApi @Inject constructor(private val service: AdcClassifyService, private val call: OnlineCall) {
 
-    /** What the asset is, from [details] and [photos] (at most 3), or just the type [masterFormatId] when given. */
-    suspend fun suggest(property: String, details: SuggestDetailsDto, photos: List<ClassifyPhoto>, masterFormatId: String?): SuggestDto {
+    /**
+     * What the asset is: an asset on the server by [assetId] (its saved answers and photos; [photos] sent now come
+     * first), else from [details] and [photos] (at most 3); or just the type [masterFormatId] when given.
+     */
+    suspend fun suggest(
+        property: String,
+        details: SuggestDetailsDto,
+        photos: List<ClassifyPhoto>,
+        masterFormatId: String?,
+        assetId: String?,
+    ): SuggestDto {
         val parts = buildList {
-            add(MultipartBody.Part.createFormData("details", AdcJson.encodeToString(SuggestDetailsDto.serializer(), details)))
+            // The server reads an asset's own answers when it has its id, and the details otherwise.
+            if (assetId != null) add(MultipartBody.Part.createFormData("assetId", assetId))
+            else add(MultipartBody.Part.createFormData("details", AdcJson.encodeToString(SuggestDetailsDto.serializer(), details)))
             photos.forEach { p -> add(MultipartBody.Part.createFormData("photos", p.filename, p.bytes.toRequestBody(p.contentType.toMediaType()))) }
             masterFormatId?.let { add(MultipartBody.Part.createFormData("masterFormatId", it)) }
         }
@@ -25,6 +36,12 @@ class AdcClassifyApi @Inject constructor(private val service: AdcClassifyService
 
     suspend fun typeFields(property: String, masterFormatId: String): MasterFormatFieldsDto =
         call.json({ service.typeFields(property, masterFormatId) }) { AdcJson.decodeFromString(MasterFormatFieldsDto.serializer(), it) }
+
+    suspend fun jacsCodes(query: String?, cursor: String?, limit: Int): PageDto<JacsCodeDto> =
+        call.json({ service.jacsCodes(query, cursor, limit) }) { AdcJson.decodeFromString(PageDto.serializer(JacsCodeDto.serializer()), it) }
+
+    suspend fun jacsMasterFormat(property: String, code: String): JacsMasterFormatDto =
+        call.json({ service.jacsMasterFormat(property, code) }) { AdcJson.decodeFromString(JacsMasterFormatDto.serializer(), it) }
 
     /** Every active type's fields of [property]. */
     suspend fun allTypeFields(property: String): List<MasterFormatFieldsDto> =

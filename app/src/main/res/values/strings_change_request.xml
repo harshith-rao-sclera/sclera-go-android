@@ -17,4 +17,49 @@
     <string name="change_request_withdrawn">Change request withdrawn</string>
     <string name="change_request_declined">Change request declined</string>
     <string name="change_request_reopened">Asset moved back to draft</string>
+    <string name="dash_chip_change_requests">Change requests</string>
+    <string name="dash_change_requested_badge">Change requested</string>
+    <string name="change_action_move_to_draft">Move to draft</string>
+    <string name="change_action_decline">Decline request</string>
+    <string name="change_action_update">Update request</string>
+    <string name="change_block_not_submitted">Some of the selected assets aren\'t submitted</string>
+    <string name="change_block_not_requested">Some of the selected assets have no change request</string>
+    <plurals name="change_bulk_request_title">
+        <item quantity="one">Ask to reopen %1$d asset</item>
+        <item quantity="other">Ask to reopen %1$d assets</item>
+    </plurals>
+    <plurals name="change_bulk_draft_title">
+        <item quantity="one">Move %1$d asset to draft?</item>
+        <item quantity="other">Move %1$d assets to draft?</item>
+    </plurals>
+    <string name="change_bulk_draft_body">They can be edited again, and their change requests close.</string>
+    <plurals name="change_bulk_decline_title">
+        <item quantity="one">Decline %1$d request?</item>
+        <item quantity="other">Decline %1$d requests?</item>
+    </plurals>
+    <plurals name="change_bulk_withdraw_title">
+        <item quantity="one">Withdraw %1$d request?</item>
+        <item quantity="other">Withdraw %1$d requests?</item>
+    </plurals>
+    <string name="change_bulk_close_body">The assets stay submitted.</string>
+    <plurals name="change_bulk_sent">
+        <item quantity="one">%1$d request sent</item>
+        <item quantity="other">%1$d requests sent</item>
+    </plurals>
+    <plurals name="change_bulk_drafted">
+        <item quantity="one">%1$d asset moved to draft</item>
+        <item quantity="other">%1$d assets moved to draft</item>
+    </plurals>
+    <plurals name="change_bulk_declined">
+        <item quantity="one">%1$d request declined</item>
+        <item quantity="other">%1$d requests declined</item>
+    </plurals>
+    <plurals name="change_bulk_withdrawn">
+        <item quantity="one">%1$d request withdrawn</item>
+        <item quantity="other">%1$d requests withdrawn</item>
+    </plurals>
+    <plurals name="change_bulk_failed">
+        <item quantity="one">%1$d couldn\'t be changed</item>
+        <item quantity="other">%1$d couldn\'t be changed</item>
+    </plurals>
 </resources>

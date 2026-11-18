@@ -16,8 +16,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.sqrt
 
 /**
- * Detects a deliberate shake: two separate jolts above ~1.9 g within 1.5 seconds.
- * A single bump (setting the phone down, walking), however long, does not trigger it.
+ * Detects a deliberate shake: two separate jolts above ~2.6 g within 1.5 seconds (a firm, intentional shake).
+ * A single bump (setting the phone down, walking, a quick wave), however long, does not trigger it.
  */
 private class ShakeDetector(private val onShake: () -> Unit) : SensorEventListener {
     private var firstJolt = 0L
@@ -54,8 +54,9 @@ private class ShakeDetector(private val onShake: () -> Unit) : SensorEventListen
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
     companion object {
-        const val THRESHOLD_G = 1.9f
-        const val RELEASE_G = 1.3f
+        // About 70% less sensitive than 1.5 g: a jolt must exceed resting gravity (1 g) by ~1.6 g instead of 0.5 g.
+        const val THRESHOLD_G = 2.6f
+        const val RELEASE_G = 1.5f
         const val MIN_GAP_MS = 150L
         const val WINDOW_MS = 1500L
         const val JOLTS = 2

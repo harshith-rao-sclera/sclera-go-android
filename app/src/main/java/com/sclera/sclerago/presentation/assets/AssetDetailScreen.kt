@@ -35,6 +35,9 @@ import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.DiscardChangesDialog
@@ -70,7 +73,7 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
     val ui = remember(asset.id) { FormUi() }
     val scroll = rememberScrollState()
 
-    // The web page waiting for its removal to be confirmed.
+    // The web page or uploaded file waiting for its removal to be confirmed.
     var removeDoc by remember(asset.id) { mutableStateOf<AssetDocument?>(null) }
     // The photo, video, voice memo or file waiting for its removal to be confirmed.
     var removeMedia by remember(asset.id) { mutableStateOf<Media?>(null) }
@@ -103,22 +106,38 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                 Column(
                     // Room at the end so the last card scrolls clear of the AI and mic buttons.
                     // The Info sections run edge to edge on a phone; the other tabs keep a margin, as on the web.
-                    Modifier.weight(1f).verticalScroll(scroll).padding(horizontal = if (onInfo) pageGutter() else maxOf(pageGutter(), PhoneSide))
+                    Modifier.weight(1f).verticalScroll(scroll).padding(
+                        horizontal = when {
+                            onInfo -> pageGutter()
+                            tab == DetailTabKind.COMMENTS -> 0.dp // the comments run the full width
+                            else -> maxOf(pageGutter(), PhoneSide)
+                        },
+                    )
                         .padding(top = 12.dp, bottom = 160.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     val open = { i: Int -> preview = i }
                     when {
                         onInfo -> {
+                            // The photos first, with a + that opens the camera (as the Media tab's Camera, into Other photos).
+                            InfoPhotoStrip(state.media, onAdd = if (locked) null else ({ actions.onAddPhoto(null) }), onOpen = open)
                             // A step that failed or needs a look shows first; tapping it opens the Validation tab.
                             ValidationBanner(state.validation) { chosen = DetailTabKind.VALIDATION }
                             AssetInfoTab(state, actions, ui, onModal = { modal = it })
                         }
-                        tab == DetailTabKind.VALIDATION -> ValidationTab(state.validation, state.validating, actions.onRevalidate.takeIf { state.canCheck })
+                        tab == DetailTabKind.VALIDATION -> {
+                            // Validating again is done by the server: offline the last synced results show under a banner.
+                            if (!state.online) OfflineBanner(OnlineOnly.REVALIDATE)
+                            ValidationTab(state.validation, state.validating, actions.onRevalidate.takeIf { state.canCheck && state.online })
+                        }
                         tab == DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents, locked) { removeDoc = it }
-                        tab == DetailTabKind.MEDIA -> MediaTab(state.media, state.photoRules, open)
+                        tab == DetailTabKind.MEDIA -> MediaTab(state.media, state.photoRules, open, sorting = state.sortingPhotos)
                         tab == DetailTabKind.COMMENTS -> {
-                            CommentBox(state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment)
+                            // The list runs edge to edge; the box keeps the other tabs' margin.
+                            CommentBox(
+                                state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment,
+                                Modifier.padding(horizontal = maxOf(pageGutter(), PhoneSide)),
+                            )
                             // As the web: a signed-off asset's comments can't be changed or removed.
                             CommentList(state.activity, readOnly = asset.st == Status.VALIDATED, onSave = actions.onUpdateComment) { removeComment = it }
                         }
@@ -134,7 +153,16 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                 FormFloatingButtons(
                     aiBusy = state.aiBusy, aiNotice = null, listening = mic.listening, heard = mic.heard,
                     onAi = actions.onAutofill, onMic = actions.onMic,
-                    modifier = Modifier.align(Alignment.BottomEnd),
+                    modifier = Modifier.align(Alignment.BottomEnd), reading = state.voiceReading, offline = !state.online,
+                )
+            }
+        }
+        // Validation: a floating ▶ that validates the asset, for anyone who may run checks once the server has it (as Info's Validate).
+        if (tab == DetailTabKind.VALIDATION && state.canCheck && isServerId(asset.id)) {
+            Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
+                ValidateFab(
+                    state.validating, offline = !state.online, onValidate = { actions.onRevalidate(false) },
+                    onOffline = { actions.onOffline(OnlineOnly.VALIDATE) }, modifier = Modifier.align(Alignment.BottomEnd),
                 )
             }
         }
@@ -154,8 +182,8 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
         }
 
         state.ai?.let { AiSuggestDialog(it, state, actions.ai) }
+        state.jacs?.let { JacsPickerSheet(it, state.value("jacs"), actions.jacs.picker) }
         state.voice?.let { VoiceFillSheet(it, state, actions.voice) }
-        state.classify?.let { ClassifySheet(it, actions.classify) }
 
         removeDoc?.let { doc ->
             ConfirmDialog(
@@ -165,18 +193,18 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                 onNo = { removeDoc = null },
                 onYes = {
                     removeDoc = null
-                    actions.onRemoveWebPage(doc.id)
+                    actions.onRemoveDocument(doc)
                 },
             )
         }
 
         preview?.let { i ->
-            if (i in state.media.indices) PhotoViewer(
-                state.media, i, onIndex = { preview = it }, onClose = { preview = null },
+            state.media.getOrNull(i)?.let { m -> PhotoViewer(
+                m, onClose = { preview = null },
                 onDownload = actions.onDownloadMedia,
                 // As the web: a saved asset's media can be removed unless it is read-only.
                 onRemove = if (isNew || locked) null else ({ removeMedia = it }),
-            )
+            ) }
         }
         removeMedia?.let { m ->
             ConfirmDialog(

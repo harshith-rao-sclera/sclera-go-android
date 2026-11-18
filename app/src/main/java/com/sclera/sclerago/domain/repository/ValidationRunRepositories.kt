@@ -67,6 +67,9 @@ interface ValidationRunRepository {
     /** Starts a run that was saved as ready. */
     suspend fun startReady(propertyId: String, id: String): ValRun
 
+    /** Runs a finished run [id] again: a new run with the same steps, settings and assets (the server's rerun). */
+    suspend fun rerun(propertyId: String, id: String): ValRun
+
     /** Discards a run that was saved as ready. */
     suspend fun discard(propertyId: String, id: String)
 

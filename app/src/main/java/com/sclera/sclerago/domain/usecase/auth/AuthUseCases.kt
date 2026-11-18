@@ -3,6 +3,7 @@ package com.sclera.sclerago.domain.usecase.auth
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.NetworkMonitor
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
@@ -28,6 +29,14 @@ class LogoutUseCase @Inject constructor(private val repository: AuthRepository) 
 
 class IsOnlineUseCase @Inject constructor(private val monitor: NetworkMonitor) {
     operator fun invoke(): Boolean = monitor.isOnline()
+}
+
+/** Whether the device is online, now and whenever that changes (what the online-only buttons and pages follow). */
+class ObserveOnlineUseCase @Inject constructor(private val monitor: NetworkMonitor) {
+    operator fun invoke(): Flow<Boolean> = monitor.observeOnline()
+
+    /** The answer right now, to start from before the first change arrives. */
+    fun now(): Boolean = monitor.isOnline()
 }
 
 /** Why an email can't be submitted on the login screen. */

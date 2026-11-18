@@ -45,6 +45,21 @@ internal fun AdcDatabase.notRemoved(table: String, alias: String = table): Strin
     if (hasColumn(table, "is_removed")) "$alias.is_removed = 0" else "1 = 1"
 
 /**
+ * `assets` rows (alias [alias]) that are in ADC, as the server sees them: not removed, and not handed to Managed Assets
+ * (its db/managed.py: only vdms_state 0 never moved, 1 being moved and 4 returned are seen).
+ */
+internal fun AdcDatabase.assetsInAdc(alias: String = "assets"): String {
+    val live = notRemoved("assets", alias)
+    return if (hasColumn("assets", "vdms_state")) "$live AND COALESCE($alias.vdms_state, 0) IN (0, 1, 4)" else live
+}
+
+/** [assetsInAdc], less the assets read from a file still waiting for review: what the server lists and counts. */
+internal fun AdcDatabase.listedAssets(alias: String = "assets"): String {
+    val inAdc = assetsInAdc(alias)
+    return if (hasColumn("assets", "needs_review")) "$inAdc AND COALESCE($alias.needs_review, 0) = 0" else inAdc
+}
+
+/**
  * `asset_values`' answers column, quoted: `field_values` since the server renamed it (its migration t0008: `values`
  * is a reserved word), `values` in a database downloaded before that.
  */

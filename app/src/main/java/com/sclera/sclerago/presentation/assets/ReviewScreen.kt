@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -25,6 +26,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.components.OfflineGate
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.Pill
@@ -45,21 +49,33 @@ object ReviewTags {
 }
 
 /**
- * Review and onboard: the camera shots or files picked, each becoming a draft asset. [items] with
+ * Review and onboard: the camera shots taken, or the files picked and the assets read from them. [items] with
  * `on` set are the ones that get onboarded. Content stays as wide as a list on tablets.
+ * [onAdd] null hides the add button; [goLabel] replaces the onboard button's text; while [busy] it does nothing;
+ * [footer] shows above the buttons; with [onOpen], tapping an item's text opens it (by id).
  */
 @Composable
 fun ReviewScreen(
     sub: String,
     addLabel: String,
-    onAdd: () -> Unit,
+    onAdd: (() -> Unit)?,
     items: List<ReviewItem>,
     onToggle: (String) -> Unit,
     onDiscard: () -> Unit,
     onGo: () -> Unit,
+    goLabel: String? = null,
+    busy: Boolean = false,
+    footer: (@Composable () -> Unit)? = null,
+    onOpen: ((String) -> Unit)? = null,
+    /** Offline, for a review the server does: [offlineBanner] says why at the top of the list. */
+    offlineBanner: OnlineOnly? = null,
+    /** Offline, when the go button needs the server: it is dimmed with a badge and a tap says this why ([onOffline]). */
+    offlineGo: OnlineOnly? = null,
+    onOffline: (OnlineOnly) -> Unit = {},
     thumb: @Composable (ReviewItem) -> Unit,
 ) {
     val on = items.count { it.on }
+    val canGo = on > 0 && !busy
     Column(Modifier.fillMaxSize()) {
         LazyColumn(
             Modifier.weight(1f),
@@ -73,9 +89,10 @@ fun ReviewScreen(
                         Txt(stringResource(R.string.review_title), 16, 700)
                         Txt(sub, 11, 400, C.Muted)
                     }
-                    Pill(addLabel, onAdd, Modifier.testTag(ReviewTags.ADD))
+                    if (onAdd != null) Pill(addLabel, onAdd, Modifier.testTag(ReviewTags.ADD))
                 }
             }
+            if (offlineBanner != null) item(key = "offline") { OfflineBanner(offlineBanner, Modifier.readableWidth()) }
             items(items, key = { it.id }) { ri ->
                 Row(
                     Modifier.readableWidth().testTag(ReviewTags.item(ri.id)).clip(r(14)).background(C.Surface)
@@ -85,13 +102,20 @@ fun ReviewScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     thumb(ri)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(
+                        Modifier.weight(1f).then(if (onOpen != null) Modifier.clip(r(8)).clickable { onOpen(ri.id) } else Modifier),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
                         Txt(ri.name, 14, 600)
                         Txt(ri.sub.asString(), 11, 400, C.Muted)
-                        Txt(
-                            stringResource(if (ri.ready) R.string.review_ready else R.string.review_needs_input),
-                            11, 600, if (ri.ready) C.Green else C.Orange,
-                        )
+                        if (ri.note != null) {
+                            Txt(ri.note.asString(), 11, 600, ri.noteColor.takeOrElse { C.Muted }, maxLines = 3)
+                        } else {
+                            Txt(
+                                stringResource(if (ri.ready) R.string.review_ready else R.string.review_needs_input),
+                                11, 600, if (ri.ready) C.Green else C.Orange,
+                            )
+                        }
                     }
                     val include = stringResource(R.string.review_include)
                     Box(
@@ -103,16 +127,18 @@ fun ReviewScreen(
             }
         }
         Box(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border), contentAlignment = Alignment.Center) {
-            Row(
-                Modifier.readableWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Pill(stringResource(R.string.action_discard), onDiscard, Modifier.testTag(ReviewTags.DISCARD), height = 48.dp, hPad = 18.dp, size = 14)
-                Pill(
-                    if (on > 0) pluralStringResource(R.plurals.review_onboard, on, on) else stringResource(R.string.review_select_items),
-                    onGo, Modifier.weight(1f).testTag(ReviewTags.GO), bg = if (on > 0) C.Yellow else C.Raised,
-                    fg = if (on > 0) C.OnYellow else C.Muted, height = 48.dp, size = 14, weight = 700,
-                )
+            Column(Modifier.readableWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                footer?.invoke()
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Pill(stringResource(R.string.action_discard), onDiscard, Modifier.testTag(ReviewTags.DISCARD), height = 48.dp, hPad = 18.dp, size = 14)
+                    OfflineGate(offlineGo != null, { offlineGo?.let(onOffline) }, Modifier.weight(1f)) {
+                        Pill(
+                            goLabel ?: if (on > 0) pluralStringResource(R.plurals.review_onboard, on, on) else stringResource(R.string.review_select_items),
+                            { if (!busy) onGo() }, Modifier.fillMaxWidth().testTag(ReviewTags.GO), bg = if (canGo) C.Yellow else C.Raised,
+                            fg = if (canGo) C.OnYellow else C.Muted, height = 48.dp, size = 14, weight = 700,
+                        )
+                    }
+                }
             }
         }
     }

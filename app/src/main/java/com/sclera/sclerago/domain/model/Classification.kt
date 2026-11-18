@@ -34,16 +34,17 @@ data class TypeSuggestion(
 /** A JACS code suggested for the first type: the [code] the asset stores, its catalogue [title], how sure (0..1) and why. */
 data class JacsSuggestion(val code: String, val title: String?, val confidence: Double, val reason: String?)
 
-/** What the photos said: offered to fill an empty manufacturer or model. [kind] is the kind of equipment. */
-data class PhotoReading(val manufacturer: String?, val model: String?, val kind: String?)
-
 /** The server's answer to "what is this asset?": up to 3 types best first, up to 3 JACS codes, what the photos said, and why it is empty or partial. */
 data class ClassificationResult(
     val suggestions: List<TypeSuggestion>,
     val jacsCodes: List<JacsSuggestion>,
-    val read: PhotoReading?,
     val message: String?,
+    /** What the photos said; the server says to offer it for an empty manufacturer and model. Null when they said nothing. */
+    val read: PhotoReading? = null,
 )
+
+/** What the photos said: [manufacturer] and [model] to fill empty fields, and [kind], the kind of equipment. */
+data class PhotoReading(val manufacturer: String?, val model: String?, val kind: String?)
 
 /** What is typed so far, sent with the photos (all optional). [other] is any other field as label to value. */
 data class ClassifyDetails(
@@ -56,8 +57,11 @@ data class ClassifyDetails(
     val isEmpty: Boolean get() = listOf(name, manufacturer, model).all { it.isNullOrBlank() }
 }
 
-/** How many photos the server reads to classify an asset. */
+/** How many photos the server reads to classify an asset or look up its specs. */
 const val MAX_CLASSIFY_PHOTOS = 3
+
+/** The largest photo the server takes for classifying or a look-up (10 MB). */
+const val MAX_AI_PHOTO_BYTES = 10L * 1024 * 1024
 
 /**
  * The details form key a type field's answer is kept under until the asset is saved and the field is made: the field

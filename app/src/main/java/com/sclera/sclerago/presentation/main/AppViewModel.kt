@@ -15,7 +15,6 @@ import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.Device
-import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.LocPick
@@ -33,7 +32,6 @@ import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
 import com.sclera.sclerago.domain.model.captureName
 import com.sclera.sclerago.domain.model.scanKey
 import com.sclera.sclerago.domain.model.timeLabel
-import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.domain.usecase.asset.AssetPlace
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
@@ -49,8 +47,6 @@ import com.sclera.sclerago.presentation.common.toUiText
 import com.sclera.sclerago.presentation.common.observedIn
 import com.sclera.sclerago.presentation.model.viaRes
 import com.sclera.sclerago.presentation.common.plural
-import com.sclera.sclerago.presentation.theme.C
-import com.sclera.sclerago.services.media.formatSize
 import com.sclera.sclerago.services.scan.ScanService
 import com.sclera.sclerago.services.scan.ScanServiceFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -120,8 +116,6 @@ data class UiState(
     val captures: List<Media> = emptyList(),
     val camSel: Set<String> = emptySet(),
     val videoMode: Boolean = false,
-    /** Documents chosen in the system file manager, waiting for review. */
-    val importFiles: List<ImportedFile> = emptyList(),
     /** Set when the File tab should launch the system file manager; the UI clears it. */
     val pendingFilePicker: Boolean = false,
     val revOff: Set<String> = emptySet(),
@@ -150,6 +144,9 @@ data class ReviewItem(
     val extColor: Color = Color.Transparent,
     val file: String = "",
     val media: Media? = null,
+    /** Shown instead of "ready" / "will need input" (a file's upload and reading, or a draft to check). */
+    val note: UiText? = null,
+    val noteColor: Color = Color.Unspecified,
 )
 
 data class DeviceRow(val device: Device, val isNew: Boolean)
@@ -374,26 +371,6 @@ class AppViewModel @Inject constructor(
                 ready = false, on = m.id !in state.revOff, media = m,
             )
         }
-
-    // Files
-    val fileReview: List<ReviewItem>
-        get() = state.importFiles.map { f ->
-            ReviewItem(
-                id = f.id, name = f.baseName, sub = UiText.Res(R.string.review_file_sub, listOf(f.name, formatSize(f.size))), ready = false,
-                on = f.id !in state.revOff, ext = f.ext, extColor = extColor(f), file = f.name,
-            )
-        }
-
-    private fun extColor(f: ImportedFile): Color {
-        val mime = f.mime ?: ""
-        return when {
-            f.ext in setOf("XLS", "XLSX", "CSV") || mime.contains("sheet") || mime.contains("excel") -> C.Green
-            f.ext == "PDF" || mime == "application/pdf" -> C.Red
-            mime.startsWith("image/") -> C.Blue
-            mime.startsWith("video/") -> C.Purple
-            else -> C.Soft
-        }
-    }
 
     // ---------- Actions ----------
 
@@ -744,39 +721,16 @@ class AppViewModel @Inject constructor(
     fun openFile() = set { copy(fileOpen = true, revFile = false, pendingFilePicker = true) }
     fun filePickerLaunched() = set { copy(pendingFilePicker = false) }
 
-    /** Result from the system file manager (empty list = cancelled). */
-    fun onFilesPicked(uris: List<Uri>) {
-        if (uris.isEmpty()) {
-            set { copy(fileOpen = false, revFile = importFiles.isNotEmpty()) }
-            return
-        }
-        viewModelScope.launch {
-            val files = fileUseCases.describeFiles(uris.map { it.toString() })
-            set {
-                val fresh = files.filter { f -> importFiles.none { it.uri == f.uri } }
-                copy(importFiles = importFiles + fresh, fileOpen = false, revFile = true)
-            }
-        }
-    }
+    /**
+     * The system file manager closed; [anyFiles]: files are waiting (picked now or before), so their review shows.
+     * Uploading and reading them is presentation/fileimport's FileImportViewModel.
+     */
+    fun onFilesPicked(anyFiles: Boolean) = set { copy(fileOpen = false, revFile = anyFiles) }
 
     fun backToFiles() = set { copy(pendingFilePicker = true) }
-    fun discardFile() = set { copy(revFile = false, fileOpen = false, importFiles = emptyList(), revOff = emptySet()) }
-    fun onboardFile() {
-        val picked = fileReview.filter { it.on }
-        if (picked.isEmpty()) return
-        val prop = currentProp
-        val loc = tgtLoc
-        val where = tgtWhere
-        val place = tgtPlace
-        set { copy(revOff = emptySet(), revFile = false, fileOpen = false, importFiles = emptyList()) }
-        write {
-            val made = assetUseCases.add(picked.size) { id, i ->
-                val r = picked[i]
-                Asset(id, r.name, r.file, loc, where, Source.FILE, Status.DRAFT, typeOf(r.name), prop, locationId = place)
-            }
-            flash(UiText.Plural(R.plurals.assets_imported_details, made.size))
-        }
-    }
+
+    /** The File tab's review is done with (added, discarded or emptied): back to its asset list. */
+    fun closeFiles() = set { copy(revFile = false, fileOpen = false) }
 
     // ---------- Validation ----------
 

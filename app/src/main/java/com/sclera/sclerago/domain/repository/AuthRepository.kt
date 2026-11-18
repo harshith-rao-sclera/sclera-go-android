@@ -1,7 +1,9 @@
 package com.sclera.sclerago.domain.repository
 
 import com.sclera.sclerago.domain.model.AuthState
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * The Sclera session: login completion, access-token generation/regeneration, session validation
@@ -30,4 +32,10 @@ interface AuthRepository {
 /** Whether the device currently has an internet connection. */
 interface NetworkMonitor {
     fun isOnline(): Boolean
+
+    /**
+     * Whether the device is online, now and whenever that changes. A monitor that can't watch the connection gives
+     * just its current answer.
+     */
+    fun observeOnline(): Flow<Boolean> = flowOf(isOnline())
 }

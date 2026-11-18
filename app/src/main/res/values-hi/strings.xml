@@ -424,10 +424,6 @@
         <item quantity="one">%1$d एसेट जोड़ा गया · विवरण चाहिए</item>
         <item quantity="other">%1$d एसेट जोड़े गए · विवरण चाहिए</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d एसेट आयात किया गया · विवरण चाहिए</item>
-        <item quantity="other">%1$d एसेट आयात किए गए · विवरण चाहिए</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">यह एसेट हटाएँ?</item>
         <item quantity="other">%1$d एसेट हटाएँ?</item>

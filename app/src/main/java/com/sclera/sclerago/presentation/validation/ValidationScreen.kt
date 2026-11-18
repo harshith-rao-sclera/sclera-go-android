@@ -1,5 +1,9 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.model.icon
@@ -122,9 +126,15 @@ fun ValidationScreen(
     /** The header's menu button: opens the side menu. */
     onMenu: () -> Unit = {},
     vm: ValidationViewModel = hiltViewModel(),
+    connectivity: ConnectivityViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(propertyId) { vm.bind(propertyId) }
     val s = vm.state
+    // Validations are run, kept and changed on the server: offline (or when the last read found no connection) the page
+    // shows what was last synced under a banner, and its run and change buttons are left out.
+    val online by connectivity.online.collectAsStateWithLifecycle()
+    val offline = s.offline || !online
+    LaunchedEffect(online) { if (online && s.offline) vm.reload() }
     val close = {
         vm.closeOverlays()
         onClose()
@@ -135,23 +145,23 @@ fun ValidationScreen(
             SubPageBar("Validation", propName, onMenu)
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 160.dp)) {
                 item(key = "top") { Spacer(Modifier.height(4.dp)) }
+                if (offline) item(key = "offline") { OfflineBanner(OnlineOnly.VALIDATION, Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
                 item(key = "lead") {
                     Txt(stringResource(R.string.val_lead), 12, 400, C.Muted, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), maxLines = 3)
                 }
-                if (s.offline) item(key = "offline") { EmptyNote("You're offline. This is what was last synced; running and changing validations needs a connection.") }
                 item(key = "templates") {
                     SectionTitle("Templates", null) {
                         if (s.catalogLoaded) Txt("Default order", 11, 600, C.Yellow, Modifier.clip(r(6)).clickable(onClick = vm::openOrder).padding(4.dp))
                     }
                     if (s.templates.isEmpty()) {
-                        EmptyNote(if (s.offline) "Templates load when you're online." else "Loading templates…")
+                        EmptyNote(if (offline) "Templates load when you're online." else "Loading templates…")
                     } else LazyRow(
                         contentPadding = PaddingValues(horizontal = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(s.templates, key = { it.key }) { t ->
                             TemplateCard(
-                                t, ai = t.steps.any { s.stepsByKey[it]?.usesAi == true }, canRun = s.canCheck && !s.offline,
+                                t, ai = t.steps.any { s.stepsByKey[it]?.usesAi == true }, canRun = s.canCheck && !offline,
                                 onRun = { vm.runOnAll(RunSource.Template(t.key)) },
                                 onChoose = { vm.openRunSheet(RunSource.Template(t.key), pick = true) },
                                 onChecks = { vm.showTemplate(t.key) },
@@ -174,10 +184,10 @@ fun ValidationScreen(
                 items(s.saved, key = { it.id }) { sv ->
                     SavedCard(
                         sv, s.stepsByKey,
-                        onRun = if (s.canCheck && !s.offline) ({ vm.openRunSheet(RunSource.Saved(sv.id)) }) else null,
+                        onRun = if (s.canCheck && !offline) ({ vm.openRunSheet(RunSource.Saved(sv.id)) }) else null,
                         // Only reviewers (validate) keep saved validations; anyone with check may run them.
-                        onEdit = if (s.canValidate && !s.offline) ({ vm.editValidation(sv) }) else null,
-                        onDelete = if (s.canValidate && !s.offline) ({ vm.askDelete(sv) }) else null,
+                        onEdit = if (s.canValidate && !offline) ({ vm.editValidation(sv) }) else null,
+                        onDelete = if (s.canValidate && !offline) ({ vm.askDelete(sv) }) else null,
                     )
                 }
                 item(key = "jobs-title") { SectionTitle("Recent jobs", s.runs.size) }
@@ -185,14 +195,14 @@ fun ValidationScreen(
                 items(s.runs, key = { "job-${it.id}" }) { j ->
                     JobRow(
                         j, busy = j.id in s.busyRuns, onReview = { vm.openReview(j.id) },
-                        onStart = if (s.canCheck && !s.offline) ({ vm.startReady(j) }) else null,
-                        onDiscard = if (s.canValidate && !s.offline) ({ vm.discard(j) }) else null,
+                        onStart = if (s.canCheck && !offline) ({ vm.startReady(j) }) else null,
+                        onDiscard = if (s.canValidate && !offline) ({ vm.discard(j) }) else null,
                     )
                 }
             }
         }
         // Create a validation (+, above) and run one (below), floating like the main screen's buttons.
-        if (s.reviewJobId == null && !s.offline) {
+        if (s.reviewJobId == null && !offline) {
             if (s.canValidate) AddFab(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(bottom = 68.dp)) { vm.newValidation() }
             if (s.canCheck && s.catalogLoaded) Box(
                 Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp).size(54.dp).fabShadow()
@@ -203,13 +213,10 @@ fun ValidationScreen(
 
         // Layers on top of the page.
         s.reviewJobId?.let { id ->
-            JobReview(s.propertyId, id, s.stepsByKey, assets, onOpenAsset, onBack = { vm.openReview(null) }, onRunAgain = { run ->
-                vm.openReview(null)
-                vm.openRunSheet(run.validationId?.let { RunSource.Saved(it) } ?: RunSource.Steps(run.steps))
-            })
+            JobReview(s.propertyId, id, s.stepsByKey, assets, onOpenAsset, onBack = { vm.openReview(null) }, onRunAgain = vm::runAgain)
         }
         s.templateDetails?.let { key -> s.templates.firstOrNull { it.key == key } }?.let { t ->
-            val canRun = s.canCheck && !s.offline
+            val canRun = s.canCheck && !offline
             ChecksSheet(
                 t.name, t.steps.mapNotNull { s.stepsByKey[it] }, { vm.showTemplate(null) },
                 onCustomize = if (s.canValidate) ({ vm.newValidation(t) }) else null,

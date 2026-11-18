@@ -4,6 +4,7 @@ import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -17,12 +18,21 @@ import retrofit2.http.Query
 interface AdcClassifyService {
     /** Multipart: `details` (JSON text), up to 3 `photos`, and optionally `masterFormatId` (the type picked). */
     @Multipart
+    @Headers(AdcConfig.SLOW_CALL)
     @POST("properties/{property}/classification/suggest")
     suspend fun suggest(@Path("property") property: String, @Part parts: List<MultipartBody.Part>): Response<ResponseBody>
 
     /** The fields an asset of one type gets (a retired type still answers). */
     @GET("properties/{property}/master-formats/{format}/fields")
     suspend fun typeFields(@Path("property") property: String, @Path("format") format: String): Response<ResponseBody>
+
+    /** The JACS catalog: codes matching every word of `q` (all when absent), best first, `{ data, nextCursor, hasMore }`. */
+    @GET("jacs-codes")
+    suspend fun jacsCodes(@Query("q") query: String?, @Query("cursor") cursor: String?, @Query("limit") limit: Int): Response<ResponseBody>
+
+    /** The property's master format for a JACS code, `{ code, masterFormat }` (`masterFormat` null when it has none). */
+    @GET("properties/{property}/jacs-codes/{code}/master-format")
+    suspend fun jacsMasterFormat(@Path("property") property: String, @Path("code") code: String): Response<ResponseBody>
 
     /** Every active type's fields, `{ data: [{ masterFormatId, fields }] }`; [ids] (comma-separated) narrows it. */
     @GET("properties/{property}/master-formats/fields")

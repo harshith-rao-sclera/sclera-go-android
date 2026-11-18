@@ -6,6 +6,8 @@ activityCompose = "1.13.0"
 lifecycle = "2.10.0"
 camerax = "1.6.2"
 media3 = "1.8.0"
+mlkitText = "16.0.1"
+mlkitBarcode = "17.3.0"
 exifinterface = "1.4.2"
 coreKtx = "1.17.0"
 coreSplashscreen = "1.0.1"
@@ -37,6 +39,8 @@ androidx-test-core = { group = "androidx.test", name = "core-ktx", version.ref =
 compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitText" }
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
 compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asset details → voice fill: record until stopped, the AI decides the fields. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="voice_listening">Recording… just talk about the asset. Tap ■ when you\'re done.</string>
+    <string name="voice_stop">Stop recording</string>
+    <string name="voice_reading">Reading what you said…</string>
+    <string name="voice_nothing_matched">Couldn\'t match anything you said to a field on this form.</string>
+    <string name="voice_not_used">Not used</string>
+</resources>

@@ -1,6 +1,12 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.IconMenu
+import com.sclera.sclerago.presentation.components.MenuAct
 import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.pageGutter
 import android.annotation.SuppressLint
@@ -29,7 +35,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -156,8 +161,10 @@ fun ConfigScreen(
     cfg: ConfigViewModel = hiltViewModel(),
     fields: FieldsConfigViewModel = hiltViewModel(),
     places: PlacesConfigViewModel = hiltViewModel(),
+    connectivity: ConnectivityViewModel = hiltViewModel(),
 ) {
     val s = vm.state
+    val online by connectivity.online.collectAsStateWithLifecycle()
     var addingField by remember { mutableStateOf(false) }
     // Configuration reads and writes the server (fields, places, settings, geofence): read again each time it opens.
     LaunchedEffect(vm.currentProp) {
@@ -192,12 +199,17 @@ fun ConfigScreen(
             // Every tab stays composed (as the web keeps them mounted), so unsaved work on one, such as fences being
             // drawn on the map, survives switching to another.
             HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = CFG_TABS.size - 1, key = { it }) { i ->
-                Box(Modifier.fillMaxSize()) {
-                    when (CFG_TABS[i].page) {
-                        CfgPage.BUILDING -> BuildingInfo(places, vm.propName)
-                        CfgPage.FIELDS -> AssetFields(fields, cfg, vm.propName, addingField) { addingField = it }
-                        CfgPage.GEO -> Geofencing(cfg)
-                        CfgPage.SETTINGS -> PropertySettingsPage(vm, cfg)
+                val page = CFG_TABS[i].page
+                Column(Modifier.fillMaxSize()) {
+                    // Asset fields, geofences and property settings are kept on the server; Building info works offline.
+                    if (!online) page.onlineOnly()?.let { OfflineBanner(it, Modifier.padding(horizontal = pageGutter() + 12.dp).padding(top = 10.dp)) }
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        when (page) {
+                            CfgPage.BUILDING -> BuildingInfo(places, vm.propName)
+                            CfgPage.FIELDS -> AssetFields(fields, cfg, vm.propName, addingField) { addingField = it }
+                            CfgPage.GEO -> Geofencing(cfg)
+                            CfgPage.SETTINGS -> PropertySettingsPage(vm, cfg)
+                        }
                     }
                 }
             }
@@ -229,6 +241,14 @@ fun ConfigScreen(
 }
 
 // ---------------------------------------------------------------- Tabs
+
+/** Why a Configuration tab needs the server, for its offline banner; null for one that works offline. */
+private fun CfgPage.onlineOnly(): OnlineOnly? = when (this) {
+    CfgPage.BUILDING -> null
+    CfgPage.FIELDS -> OnlineOnly.ASSET_FIELDS
+    CfgPage.GEO -> OnlineOnly.GEOFENCING
+    CfgPage.SETTINGS -> OnlineOnly.PROPERTY_SETTINGS
+}
 
 // ---------------------------------------------------------------- Building info
 
@@ -605,54 +625,6 @@ private fun BuildingFabs(
                     .clip(CircleShape).background(C.Btn).clickable(onClick = onSearch),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Search, 22.dp, C.Text, 2.2f) }
-        }
-    }
-}
-
-/**
- * One item in a ⋮ menu: icon, text, and what it does. [danger] items are red; [divider] draws a line above;
- * [selected] marks the current choice (yellow, with a tick).
- */
-internal class MenuAct(
-    val icon: Ico,
-    val label: String,
-    val danger: Boolean = false,
-    val enabled: Boolean = true,
-    val divider: Boolean = false,
-    val selected: Boolean = false,
-    val go: () -> Unit,
-)
-
-/** A rounded pop-up menu with an icon beside each item. */
-@Composable
-internal fun IconMenu(open: Boolean, onDismiss: () -> Unit, items: List<MenuAct>) {
-    DropdownMenu(
-        open, onDismiss,
-        modifier = Modifier.widthIn(min = 230.dp),
-        shape = r(24),
-        containerColor = Color(0xFF38393E),
-    ) {
-        items.forEach { m ->
-            if (m.divider) HorizontalDivider(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), color = C.Border2)
-            DropdownMenuItem(
-                text = {
-                    Txt(
-                        m.label, 13, if (m.selected) 700 else 500,
-                        when {
-                            !m.enabled -> C.Dim
-                            m.danger -> C.Red
-                            m.selected -> C.Yellow
-                            else -> C.Text
-                        },
-                        maxLines = 1,
-                    )
-                },
-                leadingIcon = { LineIcon(m.icon, 19.dp, if (m.enabled) C.Yellow else C.Yellow.copy(alpha = 0.6f), 2f) },
-                trailingIcon = if (m.selected) ({ LineIcon(Icons.Check, 16.dp, C.Yellow, 2.6f) }) else null,
-                enabled = m.enabled,
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                onClick = { onDismiss(); m.go() },
-            )
         }
     }
 }

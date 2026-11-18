@@ -11,9 +11,9 @@ import kotlinx.serialization.json.JsonPrimitive
 // The server's `assets.ai_suggestion`: whether AI suggestions (published specs) could fill any of the asset's empty
 // fields (its services/assets.py refresh_ai_suggestion, with extraction/lookup.py can_look_up and IDENTITY_KEYS).
 
-/** The asset's own fields: standard ones and those of this asset. */
+/** The asset's own fields: standard ones and those of this asset (not the types' field rows, which have no asset). */
 private const val AI_FIELDS = """SELECT key, name, type, is_active FROM asset_fields
-    WHERE (asset_id IS NULL OR asset_id = '' OR asset_id = ?) AND %LIVE%"""
+    WHERE (is_standard = 1 OR asset_id = ?) AND %LIVE%"""
 
 private const val AI_CORE = "SELECT name, manufacturer, model, serial_number FROM assets WHERE id = ?"
 

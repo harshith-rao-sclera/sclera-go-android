@@ -3,6 +3,7 @@ package com.sclera.sclerago.domain.usecase.property
 import com.sclera.sclerago.domain.model.PropertyDownloads
 import com.sclera.sclerago.domain.repository.NetworkMonitor
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
@@ -35,6 +36,9 @@ class ResumePropertyDownloadUseCase @Inject constructor(private val repo: Proper
 /** Whether the device is online right now: properties not downloaded can't be opened offline. */
 class IsDeviceOnlineUseCase @Inject constructor(private val network: NetworkMonitor) {
     operator fun invoke(): Boolean = network.isOnline()
+
+    /** Whether the device is online, now and whenever that changes. */
+    fun observe(): Flow<Boolean> = network.observeOnline()
 }
 
 /** The property download use cases, for injecting as one. */

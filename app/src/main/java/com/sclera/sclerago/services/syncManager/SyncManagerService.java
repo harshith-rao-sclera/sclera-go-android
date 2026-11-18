@@ -114,7 +114,7 @@ public class SyncManagerService {
 
                             finalCurrentInstance.startDataSyncingService();
                             finalCurrentInstance.startImageSyncingService();
-//                            finalCurrentInstance.startLargeDataSyncingService();
+                            finalCurrentInstance.startLargeDataSyncingService();
                         }
                     });
                 }

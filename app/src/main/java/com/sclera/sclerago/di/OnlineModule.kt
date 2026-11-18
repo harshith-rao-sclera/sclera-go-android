@@ -11,6 +11,7 @@ import com.sclera.sclerago.data.remote.adc.AdcApiService
 import com.sclera.sclerago.data.remote.adc.AdcClassifyService
 import com.sclera.sclerago.data.remote.adc.AdcConfig
 import com.sclera.sclerago.data.remote.adc.AdcConfigService
+import com.sclera.sclerago.data.remote.adc.AdcDocumentsService
 import com.sclera.sclerago.data.remote.adc.AdcJobsService
 import com.sclera.sclerago.data.remote.adc.AdcValidationService
 import com.sclera.sclerago.data.remote.adc.AdcIntegrationService
@@ -22,6 +23,7 @@ import com.sclera.sclerago.data.repository.AssetAssignmentRepositoryImpl
 import com.sclera.sclerago.data.repository.AuthRepositoryImpl
 import com.sclera.sclerago.data.repository.ConfigFieldsRepositoryImpl
 import com.sclera.sclerago.data.repository.ConfigPlacesRepositoryImpl
+import com.sclera.sclerago.data.repository.FileImportRepositoryImpl
 import com.sclera.sclerago.data.repository.GeofenceRepositoryImpl
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
@@ -37,6 +39,7 @@ import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
 import com.sclera.sclerago.domain.repository.ConfigFieldsRepository
 import com.sclera.sclerago.domain.repository.ConfigPlacesRepository
 import com.sclera.sclerago.domain.repository.CurrentAccessRepository
+import com.sclera.sclerago.domain.repository.FileImportRepository
 import com.sclera.sclerago.domain.repository.GeofenceRepository
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
@@ -86,6 +89,7 @@ abstract class OnlineModule {
     @Binds abstract fun geofence(impl: GeofenceRepositoryImpl): GeofenceRepository
     @Binds abstract fun configFields(impl: ConfigFieldsRepositoryImpl): ConfigFieldsRepository
     @Binds abstract fun configPlaces(impl: ConfigPlacesRepositoryImpl): ConfigPlacesRepository
+    @Binds abstract fun fileImport(impl: FileImportRepositoryImpl): FileImportRepository
 
     @Binds @IntoSet abstract fun clearCache(impl: EncryptedFileCache): UserDataCleaner
     @Binds @IntoSet abstract fun clearProperties(impl: PropertyStore): UserDataCleaner
@@ -117,6 +121,11 @@ abstract class OnlineModule {
         @Singleton
         fun adcJobsService(@AdcClient client: OkHttpClient): AdcJobsService =
             Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcJobsService::class.java)
+
+        @Provides
+        @Singleton
+        fun adcDocumentsService(@AdcClient client: OkHttpClient): AdcDocumentsService =
+            Retrofit.Builder().baseUrl(AdcConfig.API_URL).client(client).build().create(AdcDocumentsService::class.java)
 
         @Provides
         @Singleton

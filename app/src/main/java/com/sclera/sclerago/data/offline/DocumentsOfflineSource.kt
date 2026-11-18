@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
+import com.sclera.sclerago.data.mapper.parseDbTime
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.DocumentFileStatus
@@ -32,7 +33,7 @@ private val DOCUMENT_TABLES = arrayOf("documents", "web_documents", "assets", "a
  * read from (`documents`, by `assets.source_document_id`), the web pages its values came from and its model's manuals
  * (`web_documents`). Reads only.
  */
-class DocumentsOfflineSource(private val db: AdcDatabase, private val io: CoroutineDispatcher) {
+class DocumentsOfflineSource(private val db: AdcDatabase, private val io: CoroutineDispatcher, private val blobs: MediaBlobs) {
 
     fun documentsFlow(assetId: String): Flow<List<AssetDocument>> = db.watch(io, *DOCUMENT_TABLES) { load(assetId) }
 
@@ -41,7 +42,10 @@ class DocumentsOfflineSource(private val db: AdcDatabase, private val io: Corout
         sourceFile(asset) + sourcePages(assetId) + manuals(asset)
     }
 
-    /** The file the asset was read from; a photo shows in the Media tab instead, as on the web. */
+    /**
+     * The file the asset was read from (or uploaded on its Documents tab), with who uploaded it, when, its size and type;
+     * a photo shows in the Media tab instead, as on the web.
+     */
     private fun sourceFile(asset: DbRow): List<AssetDocument> {
         val id = asset.string("source_document_id")?.takeIf { it.isNotBlank() } ?: return emptyList()
         if (!db.hasTable("documents")) return emptyList()
@@ -52,6 +56,11 @@ class DocumentsOfflineSource(private val db: AdcDatabase, private val io: Corout
             AssetDocument(
                 id = id, source = DocumentSource.SOURCE_FILE, title = doc.string("filename").orEmpty(), url = null, publisher = null,
                 hasFile = true, fileKind = kind,
+                uploadedBy = doc.string("created_by")?.takeIf { it.isNotBlank() },
+                uploadedAt = parseDbTime(doc.string("created_at")),
+                sizeBytes = doc.long("size_bytes"),
+                contentType = doc.string("content_type")?.takeIf { it.isNotBlank() },
+                fileUri = blobs.uri("documents", id),
             ),
         )
     }
@@ -60,7 +69,8 @@ class DocumentsOfflineSource(private val db: AdcDatabase, private val io: Corout
         val rows = db.query(SOURCE_PAGES.replace("%LIVE%", db.notRemoved("web_documents")), listOf(assetId))
         val names = fieldNames(rows.flatMap { DbJson.stringList(it.string("field_ids")) }.distinct())
         rows.map { r ->
-            r.toDocument(DocumentSource.WEB_PAGE).copy(usedFor = DbJson.stringList(r.string("field_ids")).mapNotNull(names::get))
+            r.toDocument(DocumentSource.WEB_PAGE)
+                .copy(usedFor = DbJson.stringList(r.string("field_ids")).mapNotNull(names::get), removable = true)
         }
     }
 

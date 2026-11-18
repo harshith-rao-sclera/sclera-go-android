@@ -432,10 +432,6 @@
         <item quantity="one">נוסף %1$d נכס · נדרשים פרטים</item>
         <item quantity="other">נוספו %1$d נכסים · נדרשים פרטים</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">יובא %1$d נכס · נדרשים פרטים</item>
-        <item quantity="other">יובאו %1$d נכסים · נדרשים פרטים</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">למחוק את הנכס הזה?</item>
         <item quantity="other">למחוק %1$d נכסים?</item>

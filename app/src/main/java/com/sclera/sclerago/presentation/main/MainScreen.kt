@@ -33,6 +33,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -42,6 +43,9 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailRoute
 import com.sclera.sclerago.presentation.assets.CameraPage
@@ -74,18 +78,26 @@ import com.sclera.sclerago.presentation.integration.MoveToManagedSheet
 import com.sclera.sclerago.presentation.integration.MoveToManagedViewModel
 import com.sclera.sclerago.presentation.assign.AssignSheet
 import com.sclera.sclerago.presentation.assign.AssignViewModel
+import com.sclera.sclerago.presentation.fileimport.DraftEditSheet
+import com.sclera.sclerago.presentation.fileimport.FileImportViewModel
 
 private val TrackEasing = CubicBezierEasing(0.22f, 0.8f, 0.24f, 1f)
 
-/** What the File tab can import: spreadsheets, CSV, PDF, photos and videos. */
+/**
+ * What the File tab can upload, the files the server reads (its `readers.kind_of`): spreadsheets (xlsx, xlsm, xls,
+ * csv, tsv), PDFs, photos, videos, Word (docx) and text (txt, md, json, xml). Each pick is checked again by name.
+ */
 private val IMPORT_MIME_TYPES = arrayOf(
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel.sheet.macroEnabled.12",
     "application/vnd.ms-excel",
-    "text/csv",
-    "text/comma-separated-values",
     "application/pdf",
     "image/*",
     "video/*",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/*",
+    "application/json",
+    "application/xml",
 )
 
 @Composable
@@ -96,9 +108,14 @@ fun ScleraApp(
     assign: AssignViewModel = hiltViewModel(),
     summary: ManagedSummaryViewModel = hiltViewModel(),
     validation: ValidationViewModel = hiltViewModel(),
+    files: FileImportViewModel = hiltViewModel(),
     bulk: BulkEditViewModel = hiltViewModel(),
+    connectivity: ConnectivityViewModel = hiltViewModel(),
 ) {
     val s = vm.state
+    // Offline, the server-only actions are dimmed with a badge; a tap says why.
+    val online by connectivity.online.collectAsStateWithLifecycle()
+    val explainOffline = { why: OnlineOnly -> vm.flash(UiText.Res(why.message)) }
     // Validate (selection bar or an asset): the assets the Run validation sheet opens on, as the web's QuickValidate.
     var quickIds by rememberSaveable { mutableStateOf<List<String>?>(null) }
     val lists by list.state.collectAsStateWithLifecycle()
@@ -148,7 +165,10 @@ fun ScleraApp(
     }
 
     // The File tab hands off to Android's own file manager (Storage Access Framework).
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.onFilesPicked(it) }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        files.add(uris)
+        vm.onFilesPicked(uris.isNotEmpty() || files.hasWork)
+    }
     LaunchedEffect(s.pendingFilePicker) {
         if (s.pendingFilePicker) {
             vm.filePickerLaunched()
@@ -157,7 +177,7 @@ fun ScleraApp(
     }
 
     val detail = vm.detailAsset
-    val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || s.valOpen || s.cfgOpen || s.intOpen || s.adminPage != null || move.state.sheet != null || summary.shown != null || assign.sheet != null || bulk.sheet != null
+    val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || s.valOpen || s.cfgOpen || s.intOpen || s.adminPage != null || move.state.sheet != null || summary.shown != null || assign.sheet != null || bulk.sheet != null || files.state.edit != null
     val detailView: @Composable (Asset) -> Unit = { d ->
         AssetDetailRoute(
             asset = d,
@@ -211,7 +231,7 @@ fun ScleraApp(
                         Tab.NET -> NetworkPage(vm)
                         Tab.ASSETS -> AssetsPage(vm)
                         Tab.CAMERA -> CameraPage(vm)
-                        Tab.FILE -> FilePage(vm)
+                        Tab.FILE -> FilePage(vm, files, online)
                     }
                 }
 
@@ -250,6 +270,9 @@ fun ScleraApp(
                         onDelete = list::askDelete,
                         onMove = if (move.offered(lists.pickedAssets)) ({ move.tap(lists.picked, onValidatedFilter) }) else null,
                         moveDimmed = move.blockedReason(onValidatedFilter) != null,
+                        offline = !online,
+                        onOffline = explainOffline,
+                        onChange = if (lists.changeOptions.isNotEmpty()) list::openChangeMenu else null,
                     )
                 }
                 // Scanned devices ticked on the Bluetooth / Network list: add them all as assets.
@@ -312,6 +335,7 @@ fun ScleraApp(
         summary.shown?.let { ManagedSummarySheet(it, summary::close) }
         move.state.sheet?.let { sheet -> MoveToManagedSheet(move.state.networks, sheet, move, onSubmitted = list::clearSelection) }
         assign.sheet?.let { sheet -> AssignSheet(sheet, assign, onSubmitted = list::clearSelection) }
+        if (files.state.edit != null) DraftEditSheet(files)
         quickIds?.let { ids -> QuickValidate(vm.currentProp, vm.assets, ids, vm::flash, onClose = { quickIds = null }, vm = validation) }
         s.pv?.let { CapturePreview(it, vm::closePreview) }
         SideMenu(vm)
@@ -341,6 +365,20 @@ fun ScleraApp(
                 onYes = list::deleteSelected,
             )
         }
+        // Submit left incomplete assets in draft (as the web's Submit): offer to submit them as exceptions.
+        if (lists.leftIncomplete.isNotEmpty()) {
+            val n = lists.leftIncomplete.size
+            BackHandler(onBack = list::leaveIncompleteInDraft)
+            ConfirmDialog(
+                icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
+                title = pluralStringResource(R.plurals.submit_incomplete_title, n, n),
+                body = pluralStringResource(R.plurals.submit_incomplete_body, n),
+                no = stringResource(R.string.action_leave_in_draft), yes = stringResource(R.string.action_submit_as_exceptions), yesBg = C.Yellow,
+                onNo = list::leaveIncompleteInDraft,
+                onYes = list::submitIncompleteAsExceptions,
+            )
+        }
+        SelectionChangeDialogs(lists, list)
     }
 }
 

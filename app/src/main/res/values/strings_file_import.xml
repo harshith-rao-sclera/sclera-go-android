@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Assets → File tab: upload files, the server reads the assets in them, review and add them. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="file_import_hint">Excel, CSV, PDF, photos, videos, Word or text files · max %1$d MB each. You review the assets found before adding.</string>
+    <string name="file_import_ready">Ready to upload</string>
+    <string name="file_import_unreadable">Can\'t be read. Use a spreadsheet, PDF, photo, video, Word or text file.</string>
+    <string name="file_import_empty">This file is empty.</string>
+    <string name="file_import_too_large">Over %1$d MB, the most one file can be.</string>
+    <string name="file_import_uploading">Uploading %1$d%%</string>
+    <string name="file_import_reading">Reading…</string>
+    <string name="file_import_none_found">No assets found</string>
+    <string name="file_import_failed">Couldn\'t read it: %1$s</string>
+    <string name="file_import_failed_plain">Couldn\'t read it.</string>
+    <string name="file_import_timed_out">Couldn\'t read it: timed out. Try again later.</string>
+    <string name="file_import_reading_files">Reading files…</string>
+    <string name="file_import_nothing_found">No assets found. Try other files or add them by hand.</string>
+    <string name="file_import_no_place">No place given</string>
+    <string name="file_import_draft_sub">%1$s · %2$s</string>
+    <string name="file_import_from">From %1$s</string>
+    <string name="file_import_from_photos">From %1$s · %2$s</string>
+    <string name="file_import_adding">Adding…</string>
+    <string name="file_import_left_out">Not added as fields: %1$s.</string>
+    <string name="file_import_unsure">AI unsure</string>
+    <string name="file_import_saving">Saving…</string>
+    <string name="file_import_tap_to_correct">Tap to check and correct.</string>
+    <string name="file_import_sample">Download sample</string>
+    <string name="file_import_sample_hint">Blank spreadsheet with this property\'s fields</string>
+    <string name="file_import_sample_saved">Sample saved.</string>
+    <plurals name="file_import_files_sub">
+        <item quantity="one">%1$d file selected · the assets found in it are shown for review</item>
+        <item quantity="other">%1$d files selected · the assets found in them are shown for review</item>
+    </plurals>
+    <plurals name="file_import_read">
+        <item quantity="one">Read %1$d file</item>
+        <item quantity="other">Read %1$d files</item>
+    </plurals>
+    <plurals name="file_import_found">
+        <item quantity="one">Found %1$d asset</item>
+        <item quantity="other">Found %1$d assets</item>
+    </plurals>
+    <plurals name="file_import_drafts_sub">
+        <item quantity="one">%1$d asset read from your files · check it before adding</item>
+        <item quantity="other">%1$d assets read from your files · check them before adding</item>
+    </plurals>
+    <plurals name="file_import_photos">
+        <item quantity="one">%1$d photo</item>
+        <item quantity="other">%1$d photos</item>
+    </plurals>
+    <plurals name="file_import_check">
+        <item quantity="one">Check %1$d value the AI was unsure of</item>
+        <item quantity="other">Check %1$d values the AI was unsure of</item>
+    </plurals>
+    <plurals name="file_import_create_fields">
+        <item quantity="one">Save %1$d other detail as a field. Matching fields are reused.</item>
+        <item quantity="other">Save %1$d other details as fields. Matching fields are reused.</item>
+    </plurals>
+    <plurals name="file_import_added">
+        <item quantity="one">Added %1$d asset.</item>
+        <item quantity="other">Added %1$d assets.</item>
+    </plurals>
+    <plurals name="file_import_places_created">
+        <item quantity="one">%1$d new place.</item>
+        <item quantity="other">%1$d new places.</item>
+    </plurals>
+    <plurals name="file_import_types_created">
+        <item quantity="one">%1$d new type.</item>
+        <item quantity="other">%1$d new types.</item>
+    </plurals>
+    <plurals name="file_import_fields_created">
+        <item quantity="one">%1$d new field.</item>
+        <item quantity="other">%1$d new fields.</item>
+    </plurals>
+    <plurals name="file_import_unplaced">
+        <item quantity="one">%1$d added without a place.</item>
+        <item quantity="other">%1$d added without a place.</item>
+    </plurals>
+    <plurals name="file_import_unclassified">
+        <item quantity="one">%1$d added without a type.</item>
+        <item quantity="other">%1$d added without a type.</item>
+    </plurals>
+    <plurals name="file_import_discarded">
+        <item quantity="one">Discarded %1$d asset read from files.</item>
+        <item quantity="other">Discarded %1$d assets read from files.</item>
+    </plurals>
+</resources>

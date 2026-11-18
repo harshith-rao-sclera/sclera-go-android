@@ -414,9 +414,6 @@
     <plurals name="assets_added_details">
         <item quantity="other">Đã thêm %1$d tài sản · cần chi tiết</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="other">Đã nhập %1$d tài sản · cần chi tiết</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="other">Xóa %1$d tài sản?</item>
     </plurals>

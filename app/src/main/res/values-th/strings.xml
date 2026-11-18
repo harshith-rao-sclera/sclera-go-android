@@ -414,9 +414,6 @@
     <plurals name="assets_added_details">
         <item quantity="other">เพิ่มสินทรัพย์ %1$d รายการแล้ว · ต้องกรอกรายละเอียด</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="other">นำเข้าสินทรัพย์ %1$d รายการแล้ว · ต้องกรอกรายละเอียด</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="other">ลบสินทรัพย์ %1$d รายการไหม</item>
     </plurals>

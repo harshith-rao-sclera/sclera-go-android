@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.components.ActionDock
 import com.sclera.sclerago.presentation.components.SelectionSummary
 import com.sclera.sclerago.presentation.components.BottomTabBar
@@ -112,11 +113,16 @@ fun SelectionDock(
     moveDimmed: Boolean = false,
     /** Edit the selected assets' location (the web's Edit); null hides it. */
     onEdit: (() -> Unit)? = null,
+    /** Offline: Validate, Assign and Move are dimmed with a badge, and a tap says why ([onOffline]). */
+    offline: Boolean = false,
+    onOffline: (OnlineOnly) -> Unit = {},
+    /** The change-request actions; null hides it (nothing selected is submitted). */
+    onChange: (() -> Unit)? = null,
 ) {
     Column(modifier.testTag(DashTags.DOCK)) {
         ActionDock(
             onValidate = onValidate, onAssign = onAssign, onSubmit = onSubmit, onDelete = onDelete, floating = true,
-            onMove = onMove, moveDimmed = moveDimmed, onEdit = onEdit,
+            onMove = onMove, moveDimmed = moveDimmed, onEdit = onEdit, offline = offline, onOffline = onOffline, onChange = onChange,
         ) {
             SelectionSummary(count, visible, allPicked, onClear, onSelectAll, Modifier.testTag(DashTags.SELECT_ALL))
         }

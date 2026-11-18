@@ -40,7 +40,7 @@ class AssetRepositoryImpl @Inject constructor(
 
     override suspend fun add(assets: List<NewAsset>) = writer.add(assets)
 
-    override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean, photoRules: List<PhotoRule>) =
+    override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean, photoRules: List<PhotoRule>): Set<String> =
         writer.setStatus(ids, status, allowExceptions, photoRules)
 
     override suspend fun saveDetails(id: String, values: Map<String, String>, sources: Map<String, String>, place: LocValue?) {

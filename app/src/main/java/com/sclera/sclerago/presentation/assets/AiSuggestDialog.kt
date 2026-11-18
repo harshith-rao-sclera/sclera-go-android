@@ -37,7 +37,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.LookupType
 import com.sclera.sclerago.domain.model.SURE_ENOUGH
+import com.sclera.sclerago.domain.model.typeFieldName
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Capsule
@@ -63,6 +65,8 @@ class AiDialogActions(
     val onLookUp: () -> Unit = {},
     val onChangeModel: () -> Unit = {},
     val onToggle: (key: String) -> Unit = {},
+    /** Ticks or unticks the suggested type. */
+    val onToggleType: () -> Unit = {},
     val onEdit: (key: String, value: String) -> Unit = { _, _ -> },
     val onApply: () -> Unit = {},
 )
@@ -71,6 +75,7 @@ class AiDialogActions(
 object AiTags {
     const val DIALOG = "ai-dialog"
     const val APPLY = "ai-apply"
+    const val TYPE = "ai-type"
     fun row(key: String) = "ai-row-$key"
 }
 
@@ -152,7 +157,11 @@ private fun Searching(d: AiDialogState) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         LineIcon(Icons.Sparkles, 20.dp, C.Cyan, 2.2f)
         Txt(
-            if (what.isNotEmpty()) stringResource(R.string.ai_searching_for, what) else stringResource(R.string.ai_searching),
+            when {
+                d.fromPhoto -> stringResource(R.string.ai_reading_photo)
+                what.isNotEmpty() -> stringResource(R.string.ai_searching_for, what)
+                else -> stringResource(R.string.ai_searching)
+            },
             14, 700, modifier = Modifier.weight(1f), maxLines = 3,
         )
     }
@@ -213,10 +222,32 @@ private fun Results(d: AiDialogState, state: AssetDetailState, actions: AiDialog
     if (typed.isNotEmpty()) {
         Txt(stringResource(R.string.ai_also_saves, typed.joinToString(", ") { (f, v) -> "$f “$v”" }), 12, 400, C.Soft, maxLines = 4)
     }
-    if (d.picks.isEmpty()) return
+    // The type the AI thinks it is (when it isn't the asset's): its fields' values go in only with it.
+    val type = lookup?.suggestedType?.takeIf { d.typeOn != null }
+    if (type != null) TypeRow(type, d.typeOn == true, actions.onToggleType)
+    // As the web: the type's fields' values show only while the type is ticked (they go in only with it).
+    val hidden = if (d.typeOn == false) type?.values?.keys.orEmpty() else emptySet()
+    val rows = d.picks.entries.filter { it.key !in hidden }
+    if (rows.isNotEmpty()) PickedRows(d, rows, state, actions)
+    // What the photos say that no field takes, shown as the server sends it (never saved).
+    val extra = lookup?.extra.orEmpty()
+    if (extra.isNotEmpty()) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Txt(stringResource(R.string.ai_also_on_photo), 12, 700, C.Muted)
+            extra.forEach { Txt(stringResource(R.string.ai_photo_note, it.name, it.value), 12, 500, C.Soft, maxLines = 3) }
+        }
+    }
+    if (lookup?.manualsSearch == true) Txt(stringResource(R.string.ai_manuals_search), 12, 400, C.Soft, maxLines = 3)
+}
+
+/** The suggested values: a tick, the field, the value (editable), how sure, and the page it came from. */
+@Composable
+private fun PickedRows(d: AiDialogState, rows: List<Map.Entry<String, AiPick>>, state: AssetDetailState, actions: AiDialogActions) {
+    val lookup = d.lookup
+    val spec = FieldSpec(state.fields)
     val uri = LocalUriHandler.current
     Column(Modifier.fillMaxWidth().clip(r(12)).border(1.dp, C.Border, r(12))) {
-        d.picks.entries.forEachIndexed { n, (key, pick) ->
+        rows.forEachIndexed { n, (key, pick) ->
             val sure = lookup?.confidence?.get(key) ?: 1.0
             val source = lookup?.sources?.get(key)
             Column(
@@ -225,7 +256,12 @@ private fun Results(d: AiDialogState, state: AssetDetailState, actions: AiDialog
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     TickBox(pick.on) { actions.onToggle(key) }
-                    Txt(spec.label(key).removeSuffix(" *"), 13, 700, modifier = Modifier.weight(1f), maxLines = 2)
+                    // A field the suggested type brings isn't on the asset yet: it is named by the type.
+                    Txt(typeFieldName(key) ?: spec.label(key).removeSuffix(" *"), 13, 700, modifier = Modifier.weight(1f), maxLines = 2)
+                }
+                // The photo disagrees with what is saved: both are shown, and it is only changed when ticked.
+                if (lookup?.differs?.contains(key) == true) {
+                    Txt(stringResource(R.string.ai_saved_value, state.value(key)), 12, 500, C.Orange, Modifier.padding(start = 46.dp), maxLines = 3)
                 }
                 PlainField(
                     pick.value, { actions.onEdit(key, it) }, "",
@@ -241,6 +277,28 @@ private fun Results(d: AiDialogState, state: AssetDetailState, actions: AiDialog
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * The type the AI thinks the asset is, ticked to go into the form: "Type", its path, how sure and where from, its JACS
+ * code, and why.
+ */
+@Composable
+private fun TypeRow(t: LookupType, on: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().testTag(AiTags.TYPE).clip(r(12)).border(1.dp, if (on) C.Yellow else C.Border, r(12))
+            .background(if (on) C.YTintBg else C.Surface).padding(end = 10.dp, top = 6.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        TickBox(on, onToggle)
+        Column(Modifier.weight(1f).padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Txt(stringResource(R.string.ai_type_title), 11, 700, C.Muted)
+            Txt(t.label ?: listOfNotNull(t.systemType, t.assetType, t.subtype).filter { it.isNotBlank() }.joinToString(" › "), 14, 700, maxLines = 3)
+            Txt(stringResource(R.string.ai_sure, (t.confidence * 100).roundToInt()), 11, 700, if (t.confidence < SURE_ENOUGH) C.Orange else C.Green)
+            t.jacsCode?.let { Txt(stringResource(R.string.ai_type_jacs, it), 12, 500, C.Soft, maxLines = 1) }
+            if (t.reason.isNotBlank()) Txt(t.reason, 12, 400, C.Soft, maxLines = 4)
         }
     }
 }
@@ -295,7 +353,8 @@ private fun Footer(d: AiDialogState, typedCount: Int, actions: AiDialogActions) 
                 }
             }
             AiPhase.RESULTS -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val n = d.picks.count { it.value.on && it.value.value.isNotBlank() } + typedCount
+                val dropped = if (d.typeOn == false) d.lookup?.suggestedType?.values?.keys.orEmpty() else emptySet()
+                val n = d.picks.count { (k, p) -> p.on && p.value.isNotBlank() && k !in dropped } + typedCount + (if (d.typeOn == true) 1 else 0)
                 Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
                 Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
                 Box(Modifier.weight(1f))

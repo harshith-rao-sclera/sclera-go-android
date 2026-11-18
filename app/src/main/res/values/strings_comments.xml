@@ -10,9 +10,10 @@
     <string name="detail_add_comment">Add comment</string>
     <string name="detail_comment_someone">Someone</string>
     <string name="detail_comment_edited">edited</string>
-    <string name="detail_comment_edit">Edit comment</string>
+    <string name="detail_comment_edit">Edit</string>
     <string name="detail_comment_save">Save comment</string>
-    <string name="detail_comment_delete">Delete comment</string>
+    <string name="detail_comment_delete">Delete</string>
+    <string name="detail_comment_options">Comment options</string>
     <string name="detail_comment_delete_title">Delete comment?</string>
     <string name="detail_comment_delete_body">\"%1$s\" will be deleted.</string>
 </resources>

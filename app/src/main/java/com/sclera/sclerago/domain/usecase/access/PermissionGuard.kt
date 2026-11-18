@@ -36,6 +36,15 @@ class PermissionGuard @Inject constructor(private val access: CurrentAccessRepos
     fun isAdmin(): Boolean = (access.state.value as? AccessState.Loaded)?.access?.isAdmin == true
 
     /**
+     * An asset assigned to [assignedTo] (a user id) is the signed-in user's, as the server's check_editable compares it.
+     * True while the access isn't known yet, so nothing is locked on a guess (the server still decides).
+     */
+    fun isAssignedToMe(assignedTo: String?): Boolean {
+        val me = (access.state.value as? AccessState.Loaded)?.access?.userId ?: return true
+        return assignedTo != null && assignedTo == me
+    }
+
+    /**
      * The user is a plain "user", as the web works it out from the permissions (`legacyRole`): someone who can only
      * collect and check (or only look); anyone who can validate, configure or manage is not. The `role` text from
      * `/me` isn't used, as on the web. False until the access has been fetched.

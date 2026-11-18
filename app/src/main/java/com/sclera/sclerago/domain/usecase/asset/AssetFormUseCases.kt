@@ -1,6 +1,10 @@
 package com.sclera.sclerago.domain.usecase.asset
 
 import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.model.DataError
+import com.sclera.sclerago.domain.model.DataException
+import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.LocNode
@@ -11,7 +15,12 @@ import com.sclera.sclerago.domain.model.SpecLookup
 import com.sclera.sclerago.domain.model.placeNames
 import com.sclera.sclerago.domain.model.reclassify
 import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.MAX_CLASSIFY_PHOTOS
+import com.sclera.sclerago.domain.model.readablePhotos
+import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
+import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.repository.AssetValidationRepository
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
@@ -23,6 +32,7 @@ import com.sclera.sclerago.domain.validation.AssetValidation
 import com.sclera.sclerago.domain.validation.combineValidation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -102,14 +112,66 @@ class SpecLookupUseCase @Inject constructor(private val repo: SpecLookupReposito
 
     suspend fun seen(lookupId: String) = repo.seen(lookupId)
 
+    /** The photos the phone's look-up sends, as the server reads them (a few spare in case one can't be read here). */
+    fun photosToRead(media: List<Media>): List<Media> = readablePhotos(media, MAX_CLASSIFY_PHOTOS * 2)
+
+    /** The phone's look-up from [photos] and the form's [typed] values (POST /properties/{id}/lookup). */
+    suspend fun lookUpOnPhone(assetId: String, photos: List<Media>, typed: Map<String, String>, masterFormatId: String?): SpecLookup {
+        guard.requireOnline(Permission.COLLECT)
+        return repo.lookUpOnPhone(assetId, photos, typed, masterFormatId)
+    }
+
     private companion object {
         const val POLL_MS = 2_500L
     }
 }
 
-/** The asset's documents for its Documents tab (source file, the pages its values came from, its model's manuals). */
-class ObserveAssetDocumentsUseCase @Inject constructor(private val repo: AssetDocumentsRepository) {
-    operator fun invoke(assetId: String): Flow<List<AssetDocument>> = repo.observe(assetId)
+/**
+ * The asset's documents for its Documents tab (source file, the pages its values came from, its model's manuals). The
+ * uploaded file carries who uploaded it as far as this device knows (the signed-in user's own name, else the people
+ * list) and whether the signed-in user may delete it ([canRemoveSourceFile]).
+ */
+class ObserveAssetDocumentsUseCase @Inject constructor(
+    private val repo: AssetDocumentsRepository,
+    private val access: AccessRepository,
+    private val auth: AuthRepository,
+    private val guard: PermissionGuard,
+) {
+    operator fun invoke(assetId: String): Flow<List<AssetDocument>> {
+        val rights = combine(guard.observe(Permission.COLLECT), guard.observe(Permission.CONFIGURE)) { collect, configure -> collect to configure }
+        return combine(repo.observe(assetId), access.people, auth.state, rights) { docs, people, session, (collect, configure) ->
+            val me = guard.userId()
+            val myName = (session as? AuthState.SignedIn)?.session?.displayName?.takeIf { it.isNotBlank() }
+            val names = people.associate { it.id to it.name }
+            docs.map { d ->
+                if (d.source != DocumentSource.SOURCE_FILE) return@map d
+                val mine = me != null && d.uploadedBy == me
+                d.copy(
+                    uploaderName = (if (mine) myName else null) ?: d.uploadedBy?.let(names::get),
+                    removable = canRemoveSourceFile(mine, collect, configure),
+                )
+            }
+        }
+    }
+}
+
+/** The server's rule for deleting an uploaded file: its uploader with collect, anyone else with configure. */
+internal fun canRemoveSourceFile(mine: Boolean, collect: Boolean, configure: Boolean): Boolean = if (mine) collect else configure
+
+/** Deletes the asset's uploaded file [document], as the server allows ([canRemoveSourceFile]; else FORBIDDEN). */
+class RemoveSourceFileUseCase @Inject constructor(
+    private val repo: AssetDocumentsRepository,
+    private val assets: AssetRepository,
+    private val guard: PermissionGuard,
+) {
+    suspend operator fun invoke(assetId: String, document: AssetDocument) {
+        val mine = guard.userId()?.let { it == document.uploadedBy } == true
+        if (!canRemoveSourceFile(mine, guard.allows(Permission.COLLECT), guard.allows(Permission.CONFIGURE))) {
+            throw DataException(DataError.FORBIDDEN)
+        }
+        requireUnlocked(assets, guard, listOf(assetId))
+        repo.removeSourceFile(document.id)
+    }
 }
 
 /** Takes a web page off an asset, as anyone who can collect may (the web's remove on a source page). */
@@ -140,5 +202,6 @@ class AssetFormUseCases @Inject constructor(
     val lookups: SpecLookupUseCase,
     val documents: ObserveAssetDocumentsUseCase,
     val removeWebPage: RemoveWebPageUseCase,
-    val spokenFields: ReadSpokenFieldsUseCase = ReadSpokenFieldsUseCase(),
+    val removeSourceFile: RemoveSourceFileUseCase,
+    val voiceFill: FillByVoiceUseCase,
 )

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asset details → Media: photos just added are read on the device and sorted into nameplate, label ID or asset. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="media_sorting">Sorting photos…</string>
+</resources>

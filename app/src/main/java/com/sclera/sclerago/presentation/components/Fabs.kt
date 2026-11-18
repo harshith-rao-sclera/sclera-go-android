@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,7 +51,10 @@ val FabSize = 54.dp
 /** Widest the expanded search capsule gets. */
 val SearchCapsuleWidth = 330.dp
 
-/** A 54dp circular floating button with one icon; [description] is its accessibility label. */
+/**
+ * A 54dp circular floating button with one icon; [description] is its accessibility label. While [busy] it shows a
+ * spinner in place of the icon and can't be tapped.
+ */
 @Composable
 fun CircleFab(
     icon: Ico,
@@ -61,12 +65,16 @@ fun CircleFab(
     fg: Color = C.OnYellow,
     iconSize: Dp = 24.dp,
     stroke: Float = 2.8f,
+    busy: Boolean = false,
 ) {
     Box(
         modifier.size(FabSize).fabShadow().clip(CircleShape).background(bg)
-            .semantics { contentDescription = description }.clickable(onClick = onClick),
+            .semantics { contentDescription = description }.clickable(enabled = !busy, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { LineIcon(icon, iconSize, fg, stroke) }
+    ) {
+        if (busy) CircularProgressIndicator(Modifier.size(iconSize), color = fg, strokeWidth = 2.5.dp)
+        else LineIcon(icon, iconSize, fg, stroke)
+    }
 }
 
 /**
@@ -120,7 +128,17 @@ fun SearchFab(
 }
 
 /** One choice of a [FabMenu]: its label, icon and what it does ([tag] is its test tag). */
-class FabAction(val label: String, val icon: Ico, val tag: String, val onClick: () -> Unit)
+class FabAction(
+    val label: String,
+    val icon: Ico,
+    val tag: String,
+    val onClick: () -> Unit,
+    /** Non-null while the action needs the server and the device is offline: dimmed with a badge, a tap calls this (to say why). */
+    val onBlocked: (() -> Unit)?,
+) {
+    /** An action that works offline; [onClick] last, so it can be passed as a trailing lambda. */
+    constructor(label: String, icon: Ico, tag: String, onClick: () -> Unit) : this(label, icon, tag, onClick, null)
+}
 
 /**
  * A yellow + floating button that opens into its [actions] above it, each a dark pill with its label and a yellow
@@ -141,18 +159,21 @@ fun FabMenu(
         AnimatedVisibility(open, enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut()) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 actions.forEach { a ->
-                    Row(
-                        Modifier.height(48.dp).testTag(a.tag).fabShadow(Capsule).clip(Capsule).background(C.Btn).border(1.dp, C.Border2, Capsule)
-                            .clickable {
-                                onOpenChange(false)
-                                a.onClick()
-                            }
-                            .padding(start = 18.dp, end = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Txt(a.label, 14, 700)
-                        LineIcon(a.icon, 17.dp, C.Yellow, 2.2f)
+                    // Offline, an online-only action stays in the menu (and the menu open) and a tap says why.
+                    OfflineGate(a.onBlocked != null, { a.onBlocked?.invoke() }, badgeOffset = 2.dp) {
+                        Row(
+                            Modifier.height(48.dp).testTag(a.tag).fabShadow(Capsule).clip(Capsule).background(C.Btn).border(1.dp, C.Border2, Capsule)
+                                .clickable {
+                                    onOpenChange(false)
+                                    a.onClick()
+                                }
+                                .padding(start = 18.dp, end = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Txt(a.label, 14, 700)
+                            LineIcon(a.icon, 17.dp, C.Yellow, 2.2f)
+                        }
                     }
                 }
             }

@@ -1,5 +1,11 @@
 package com.sclera.sclerago.presentation.integration
 
+import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.OfflineGate
+import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -70,9 +76,11 @@ fun IntegrationScreen(
     /** The header's menu button: opens the side menu. */
     onMenu: () -> Unit = {},
     vm: IntegrationViewModel = hiltViewModel(),
+    connectivity: ConnectivityViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(propertyId) { vm.bind(propertyId) }
     val s = vm.state
+    val online by connectivity.online.collectAsStateWithLifecycle()
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(C.Bg).testTag("integration_page")) {
         Column(Modifier.fillMaxSize()) {
@@ -82,6 +90,8 @@ fun IntegrationScreen(
                     .padding(bottom = 72.dp), // room for the floating +
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                // The link is read and made on the server: offline the page says so (what was last read still shows).
+                if (!online) OfflineBanner(OnlineOnly.INTEGRATION)
                 when {
                     s.loading -> ListLoader(stringResource(R.string.int_loading))
                     s.link == null -> EmptyNote(stringResource(R.string.int_none))
@@ -92,11 +102,15 @@ fun IntegrationScreen(
         // Add Integration: the floating + as on the other pages. Always there, as the web's button; greyed out and inert
         // once the property is linked, while loading, or for the "user" role.
         val canAdd = s.link == null && !s.loading && s.canAdd
-        CircleFab(
-            Icons.Plus, stringResource(R.string.int_add_title), { if (canAdd) vm.startAdding() },
-            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp)
-                .alpha(if (canAdd) 1f else 0.4f).testTag("integration_add"),
-        )
+        OfflineGate(
+            !online && canAdd, { vm.explainOffline(OnlineOnly.INTEGRATION) },
+            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp), badgeOffset = 2.dp,
+        ) {
+            CircleFab(
+                Icons.Plus, stringResource(R.string.int_add_title), { if (canAdd) vm.startAdding() },
+                Modifier.alpha(if (canAdd) 1f else 0.4f).testTag("integration_add"),
+            )
+        }
         s.adding?.let { a -> AddSheet(a, vm.nameOf(null), vm) }
         AnimatedVisibility(
             s.message != null,

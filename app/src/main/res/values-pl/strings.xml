@@ -432,10 +432,6 @@
         <item quantity="one">%1$d zasób dodany · wymagane dane</item>
         <item quantity="other">Dodane zasoby: %1$d · wymagane dane</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d zasób zaimportowany · wymagane dane</item>
-        <item quantity="other">Zaimportowane zasoby: %1$d · wymagane dane</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">Usunąć ten zasób?</item>
         <item quantity="other">Usunąć zasoby: %1$d?</item>

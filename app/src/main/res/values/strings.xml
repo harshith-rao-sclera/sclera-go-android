@@ -47,7 +47,7 @@
     <string name="property_downloaded">Downloaded</string>
     <string name="property_download_size">%1$s / %2$s MB</string>
     <string name="property_download_failed">Couldn’t download %1$s. Try again.</string>
-    <string name="property_download_offline">You’re offline. Connect to download a property.</string>
+    <string name="property_download_offline">You’re offline. Properties are downloaded from the server. Try again when you’re connected.</string>
     <string name="import_title">Import</string>
     <string name="import_choose_file">Tap to choose a file</string>
     <string name="import_choose_different">Tap to choose a different file</string>
@@ -115,9 +115,9 @@
     <string name="property_details_failed">Unable to get details</string>
     <string name="property_update_failed">Unable to update property</string>
     <string name="property_delete_failed">Unable to delete</string>
-    <string name="property_offline_add">You’re offline. Connect to the internet to add a property.</string>
-    <string name="property_offline_import">You’re offline. Connect to the internet to import properties.</string>
-    <string name="property_offline_edit">You’re offline. Connect to the internet to edit or delete this property.</string>
+    <string name="property_offline_add">You’re offline. New properties are created on the server. Try again when you’re connected.</string>
+    <string name="property_offline_import">You’re offline. Properties are imported by the server. Try again when you’re connected.</string>
+    <string name="property_offline_edit">You’re offline. Property changes are saved on the server. Try again when you’re connected.</string>
     <string name="property_delete_title">Delete Property?</string>
     <string name="property_delete_label">Delete %1$s</string>
     <string name="property_delete_body">%1$s will be deleted</string>
@@ -449,6 +449,26 @@
     <string name="ai_nothing_else">There\'s nothing else published specs could fill for this asset. Apply to save what you typed.</string>
     <string name="ai_also_saves">Also saves what you typed: %1$s.</string>
     <string name="ai_sure">%1$d%% sure</string>
+    <string name="ai_auto_reading">Reading the photos to fill the form…</string>
+    <string name="ai_auto_offline">Photos saved. You’re offline, so the AI didn’t fill the form. Use AI suggestions when you’re back online.</string>
+    <string name="ai_auto_failed">The AI couldn’t read the photos: %1$s</string>
+    <string name="ai_auto_nothing">The AI read the photos but found nothing new to fill.</string>
+    <string name="ai_auto_done">AI filled %1$s. Check the yellow ones, then save.</string>
+    <string name="ai_auto_type">the type</string>
+    <string name="ai_auto_jacs">the JACS code</string>
+    <string name="ai_auto_list">%1$s, %2$s</string>
+    <string name="ai_auto_and">%1$s and %2$s</string>
+    <plurals name="ai_auto_fields">
+        <item quantity="one">%1$d field</item>
+        <item quantity="other">%1$d fields</item>
+    </plurals>
+    <string name="ai_also_on_photo">Also on the photo</string>
+    <string name="ai_photo_note">%1$s: %2$s</string>
+    <string name="ai_manuals_search">Looking for this model’s manuals on the manufacturer’s site. They’ll show in the asset’s documents.</string>
+    <string name="ai_type_title">Type</string>
+    <string name="ai_type_jacs">JACS code %1$s</string>
+    <string name="ai_reading_photo">Reading the asset’s photo, then looking up the rest…</string>
+    <string name="ai_saved_value">The photo disagrees. Saved: %1$s</string>
     <string name="ai_change_model">Change model</string>
     <string name="ai_look_again">Look up again</string>
     <string name="ai_need_model">Add the model first: specs are looked up by manufacturer and model.</string>
@@ -467,10 +487,21 @@
     <string name="detail_sub_type">Sub type</string>
     <string name="detail_jacs_code">JACS Code</string>
     <string name="classify_suggest">Suggest type</string>
-    <string name="classify_title">What is this asset?</string>
-    <string name="classify_subtitle">Reads the photos and what\'s typed, and suggests a type from this property\'s list. Nothing is saved until you save.</string>
-    <string name="classify_loading">Reading the photos and details…</string>
-    <string name="classify_types">Type</string>
+    <string name="jacs_title">JACS code</string>
+    <string name="jacs_subtitle">Pick the asset’s code. Its type is set from it too.</string>
+    <string name="jacs_search_hint">Search codes, titles or equipment</string>
+    <string name="jacs_use_typed">Use this code</string>
+    <string name="jacs_none">No JACS code</string>
+    <string name="jacs_no_match">No JACS code matches. You can still use what you typed.</string>
+    <string name="jacs_more">Load more</string>
+    <string name="jacs_type_set">Type set from the JACS code: %1$s</string>
+    <string name="classify_working">Working out what it is…</string>
+    <string name="classify_again">Suggest again</string>
+    <string name="classify_meta">%1$d%% · %2$s · %3$s</string>
+    <plurals name="classify_fields">
+        <item quantity="one">%1$d field</item>
+        <item quantity="other">%1$d fields</item>
+    </plurals>
     <string name="classify_none">None of this property\'s types fit. Pick the type from the list.</string>
     <string name="classify_jacs_loading">Finding JACS codes for this type…</string>
     <string name="classify_jacs_none">No JACS code suggested for this type.</string>
@@ -479,8 +510,6 @@
     <string name="classify_from_chosen">Picked</string>
     <string name="classify_read_title">Use what the photo says</string>
     <string name="classify_read_body">Fills an empty manufacturer and model: %1$s</string>
-    <string name="classify_apply">Apply</string>
-    <string name="classify_applied">Type applied. Its fields are below; save to keep them.</string>
     <string name="classify_need_input">Add a photo, or type the name, manufacturer or model first.</string>
     <string name="classify_failed">Couldn\'t suggest a type. Try again.</string>
     <string name="detail_yes">Yes</string>
@@ -540,6 +569,20 @@
         <item quantity="one">%1$d asset submitted</item>
         <item quantity="other">%1$d assets submitted</item>
     </plurals>
+    <plurals name="assets_submitted_as_exceptions">
+        <item quantity="one">%1$d asset submitted as an exception</item>
+        <item quantity="other">%1$d assets submitted as exceptions</item>
+    </plurals>
+    <plurals name="submit_incomplete_title">
+        <item quantity="one">%1$d asset is incomplete</item>
+        <item quantity="other">%1$d assets are incomplete</item>
+    </plurals>
+    <plurals name="submit_incomplete_body">
+        <item quantity="one">It has empty mandatory fields or missing photos, so it was left in draft. Submit it as an exception?</item>
+        <item quantity="other">They have empty mandatory fields or missing photos, so they were left in draft. Submit them as exceptions?</item>
+    </plurals>
+    <string name="action_leave_in_draft">Leave in draft</string>
+    <string name="action_submit_as_exceptions">Submit as exceptions</string>
     <plurals name="assets_deleted">
         <item quantity="one">%1$d asset deleted</item>
         <item quantity="other">%1$d assets deleted</item>
@@ -555,10 +598,6 @@
     <plurals name="assets_added_details">
         <item quantity="one">%1$d asset added · details needed</item>
         <item quantity="other">%1$d assets added · details needed</item>
-    </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d asset imported · details needed</item>
-        <item quantity="other">%1$d assets imported · details needed</item>
     </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">Delete this asset?</item>
@@ -599,6 +638,10 @@
     <string name="data_error_name_taken">That name is already used here. Choose another one.</string>
     <string name="data_error_in_use">This cannot be removed while it still contains floors, locations or assets.</string>
     <string name="data_error_failed">The change could not be saved. Please try again.</string>
+    <string name="asset_lock_not_assigned">Not assigned to you. Ask an admin to assign it to you to make changes.</string>    <plurals name="assets_not_selectable">
+        <item quantity="one">%1$d asset isn\'t assigned to you, so it wasn\'t selected</item>
+        <item quantity="other">%1$d assets aren\'t assigned to you, so they weren\'t selected</item>
+    </plurals>
     <string name="online_error_offline">You are offline. Connect to the internet and try again.</string>
     <string name="online_error_session">Your session has ended. Please sign in again.</string>
     <string name="online_error_forbidden">You do not have permission to do this.</string>

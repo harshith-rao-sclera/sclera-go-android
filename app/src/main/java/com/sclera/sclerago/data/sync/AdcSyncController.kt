@@ -55,6 +55,16 @@ class AdcSyncController @Inject constructor(
         launchRun(propertyId, restart)
     }
 
+    /** Safe on the main thread: the engine and disk work runs on [io], once the signed-in user's credentials are known. */
+    override fun reopenAll() {
+        scope.launch(io) {
+            if (bridge.usesTestDatabase()) return@launch
+            // No credentials (signed out meanwhile, or the session never loaded): nothing is started.
+            val credentials = withTimeoutOrNull(CREDENTIALS_WAIT_MS) { credentialsProvider.credentials.filterNotNull().first() } ?: return@launch
+            runCatching { bridge.reopenAll(credentials) }
+        }
+    }
+
     /** Safe on the main thread: only records the choice (no engine or disk work). */
     override fun select(propertyId: String?) {
         bridge.select(propertyId)

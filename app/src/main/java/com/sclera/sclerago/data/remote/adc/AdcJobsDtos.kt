@@ -25,8 +25,51 @@ data class LookupJobDto(
     val typedValues: Map<String, JsonElement> = emptyMap(),
     val seenAt: String? = null,
     val createdAt: String? = null,
+    /** The type the AI thinks the asset is, when it isn't the one it has; values for its fields are in [values]. */
+    val suggestedType: TypeSuggestionDto? = null,
+    /** On start: the search for the model's manuals it started, if any. */
+    val manualJobId: String? = null,
+)
+
+/**
+ * The phone's look-up (`POST /properties/{id}/lookup`): values keyed by field id (the standard fields', and the
+ * suggested type's), how sure, the page a looked-up value came from, which were read off the photos, where the photos
+ * disagree with what is there, and the type the AI thinks it is.
+ */
+@Serializable
+data class SpecSuggestionsDto(
+    val product: String? = null,
+    val values: Map<String, JsonElement> = emptyMap(),
+    val confidence: Map<String, Double> = emptyMap(),
+    val sources: Map<String, String> = emptyMap(),
+    val fromPhoto: List<String> = emptyList(),
+    val differs: List<String> = emptyList(),
+    val message: String? = null,
+    val suggestedType: TypeSuggestionDto? = null,
+    /** What the photos say that none of the fields takes: `[{name, value}]`. */
+    val extra: List<Map<String, String>> = emptyList(),
+    /** The search for the model's manuals it started, if any. */
+    val manualJobId: String? = null,
 )
 
 /** A validation run: [status] is ready, queued, running, completed or failed. */
 @Serializable
 data class ValidationJobDto(val id: String, val status: String = "")
+
+/**
+ * What the voice fill read (`POST /properties/{id}/voice-fill`): [values] keyed by the form keys the phone sent, in each
+ * field's shape (text, a number, true / false, a list of options); how sure of each; the keys whose value differs from
+ * the form's; and what was said that no field took (shown, never saved).
+ */
+@Serializable
+data class VoiceFillDto(
+    val values: Map<String, JsonElement> = emptyMap(),
+    val confidence: Map<String, Double> = emptyMap(),
+    val differs: List<String> = emptyList(),
+    val unmatched: List<VoiceUnmatchedDto> = emptyList(),
+    val message: String? = null,
+)
+
+/** Something said that no field took, and why. */
+@Serializable
+data class VoiceUnmatchedDto(val text: String = "", val reason: String = "")

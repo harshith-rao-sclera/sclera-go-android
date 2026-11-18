@@ -18,6 +18,16 @@ class MediaBlobs @Inject constructor(private val db: AdcDatabase, @ApplicationCo
     /** What a file is: its type, its name (from its row) and its size. */
     data class Info(val contentType: String?, val fileName: String?, val sizeBytes: Long)
 
+    /**
+     * The file of row [rowId] of [table] is still waiting to be uploaded, so the server doesn't have it yet (the engine
+     * flags `media_changes` until it is sent). False when the database has no file for it.
+     */
+    fun waitingUpload(table: String, rowId: String): Boolean {
+        if (table !in TABLES || !db.isOpen || !db.hasTable(MULTIMEDIA)) return false
+        if (!db.hasColumn(MULTIMEDIA, "media_changes")) return true
+        return db.queryOne(WAITING, listOf(table, rowId)) != null
+    }
+
     /** Where the file of row [rowId] of [table] is opened: `content://<app>.media/<table>/<rowId>`. */
     fun uri(table: String, rowId: String): String = "content://${authority(context)}/$table/$rowId"
 
@@ -47,6 +57,7 @@ class MediaBlobs @Inject constructor(private val db: AdcDatabase, @ApplicationCo
         fun authority(context: Context): String = context.packageName + ".media"
 
         private const val MULTIMEDIA = "multimedia"
+        private const val WAITING = "SELECT 1 FROM multimedia WHERE table_name = ? AND row_id = ? AND media_changes IS NOT NULL LIMIT 1"
         private const val CONTENT = "multimedia_content"
         private const val WHERE = "table_name = ? AND row_id = ? AND multimedia_content IS NOT NULL ORDER BY \"order\""
         private const val INFO =

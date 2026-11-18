@@ -29,6 +29,9 @@ private val SPEC_UNITS = listOf("rated_power_kw" to "kW", "voltage" to "V", "spe
 /** The app's field keys a scanned device is looked up in. */
 private val SCAN_KEYS = listOf("ble", "ip", "label", "note")
 
+/** The server's VdmsState RETURNING (3) and RETURNED (4): Managed Assets sent the asset back to be collected again. */
+private val VDMS_SENT_BACK = setOf(3, 4)
+
 private val ASSET_TABLES = arrayOf(
     "assets", "asset_values", "asset_media", "buildings", "floors", "locations", "master_formats", "asset_fields", "validation_results",
 )
@@ -131,7 +134,7 @@ class AssetsOfflineSource(
     }
 
     private fun loadFull(assetId: String, propertyId: String): AssetFull? = db.whenTable("assets", null) {
-        val row = db.queryOne(ASSET_BY_ID.replace("%LIVE%", db.notRemoved("assets", "a")), listOf(assetId))
+        val row = db.queryOne(ASSET_BY_ID.replace("%LIVE%", db.assetsInAdc("a")), listOf(assetId))
         row?.let {
             val asset = toAssets(listOf(it), propertyId).first()
             val valuesRow = db.whenTable("asset_values", null) { db.queryOne(ASSET_VALUES_ONE, listOf(assetId)) }
@@ -164,15 +167,16 @@ class AssetsOfflineSource(
             asset.copy(
                 detail = detailLine(asset.detail, values[id].orEmpty()),
                 where = place?.where ?: index.floorOrBuilding(asset.floorId, asset.buildingId),
-                // As the server reads it: still drafted, and its newest validation result sent it back.
-                recollect = row.string("status") == "drafted" && id in sentBack,
+                // As the server's recollect_condition: still drafted, and either a reviewer's latest decision sent it back
+                // or Managed Assets (VDMS) returned it.
+                recollect = row.string("status") == "drafted" && (id in sentBack || row.int("vdms_state") in VDMS_SENT_BACK),
             )
         }
     }
 
     private fun loadDetails(assetIds: Collection<String>): Map<String, AssetDetails> = db.whenTable("assets", emptyMap()) {
         if (assetIds.isEmpty()) return@whenTable emptyMap()
-        val rows = db.queryIn(ASSETS_BY_IDS.replace("%LIVE%", db.notRemoved("assets", "a")), assetIds)
+        val rows = db.queryIn(ASSETS_BY_IDS.replace("%LIVE%", db.assetsInAdc("a")), assetIds)
         val values = db.whenTable("asset_values", emptyList()) { db.queryIn(ASSET_VALUES_ROWS, assetIds) }.associateBy { it.string("asset_id").orEmpty() }
         val formatById = formats.byId()
         rows.associate { row ->
@@ -214,9 +218,11 @@ class AssetsOfflineSource(
             .groupBy({ it.string("asset_id").orEmpty() }, { row -> row.toMedia(blobs.uri("asset_media", row.string("id").orEmpty())) })
     }
 
-    /** Of [ids], the assets whose newest validation result sent them back to be collected again (decision "recollect"). */
+    /** Of [ids], the assets whose latest validation decision sent them back to be collected again (decision "recollect"). */
     private fun sentBack(ids: List<String>): Set<String> = db.whenTable("validation_results", emptySet()) {
-        db.queryIn(LATEST_DECISIONS.replace("%LIVE%", db.notRemoved("validation_results", "r")), ids)
+        val decided = if (db.hasColumn("validation_results", "decided_at")) "r.decided_at" else "r.created_at"
+        val sql = LATEST_DECISIONS.replace("%LIVE%", db.notRemoved("validation_results", "r")).replace("%DECIDED%", decided)
+        db.queryIn(sql, ids)
             .groupBy { it.string("asset_id").orEmpty() }
             .filterValues { rows -> rows.first().string("decision") == "recollect" }
             .keys

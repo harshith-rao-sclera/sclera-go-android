@@ -29,6 +29,7 @@ fun rememberAssetListBinding(
         query = s.query,
         onChip = { list.setStatusFilter(tab, it.status) },
         onRecollect = { list.toggleRecollect(tab) },
+        onChangeRequests = { list.toggleChangeRequests(tab) },
         onToggle = list::toggle,
         onOpen = { id -> if (s.selecting) list.toggle(id) else app.openAsset(id) },
         loading = s.loading,

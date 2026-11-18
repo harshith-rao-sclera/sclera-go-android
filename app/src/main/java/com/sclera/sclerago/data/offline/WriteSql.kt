@@ -72,7 +72,7 @@ internal const val COMMENT_UPDATE = """UPDATE asset_activity SET text = ?, versi
 internal const val COMMENT_ROW = "SELECT text FROM asset_activity WHERE id = ? AND asset_id = ? AND kind = 'comment' AND %LIVE%"
 
 /** The fields an edit's history line lists changes of, in form order: standard ones, then the asset's own (the server's field_order). */
-internal const val HISTORY_FIELDS = """SELECT id, key, name, type FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '' OR asset_id = ?)
+internal const val HISTORY_FIELDS = """SELECT id, key, name, type FROM asset_fields WHERE (is_standard = 1 OR asset_id = ?)
     AND %LIVE% ORDER BY CASE WHEN is_standard = 1 THEN 0 ELSE 1 END, position, key"""
 
 /** A new place for an asset, written with the rest of an edit (which bumps the revision once). */
@@ -125,6 +125,12 @@ internal const val ASSET_SET_SOURCE_DOCUMENT = """UPDATE assets SET source_docum
 
 /** Drops a removed media's file (the media removed, or its asset deleted) but keeps its `multimedia` row (the sync engine's record of it). */
 internal const val MULTIMEDIA_CLEAR = "UPDATE multimedia SET multimedia_content = NULL WHERE table_name = 'asset_media' AND row_id = ?"
+
+/** Drops a removed uploaded file's content, keeping its `multimedia` row as [MULTIMEDIA_CLEAR] does. */
+internal const val MULTIMEDIA_CLEAR_DOCUMENT = "UPDATE multimedia SET multimedia_content = NULL WHERE table_name = 'documents' AND row_id = ?"
+
+/** The uploaded file [id], if it is still there. */
+internal const val DOCUMENT_ROW = "SELECT id FROM documents WHERE id = ? AND %LIVE%"
 
 internal const val IMAGE_CONFIG = "SELECT image_config FROM global_timestamp WHERE id = '1'"
 
@@ -189,8 +195,11 @@ internal const val FIELD_KEY_TAKEN = "SELECT 1 FROM asset_fields WHERE key = ? A
 /** One asset's own fields (a type's fields among them). */
 internal const val OWN_FIELDS = "SELECT * FROM asset_fields WHERE asset_id = ? AND %LIVE%"
 
-/** The names of the standard fields, which a type's field may not take. */
-internal const val STANDARD_FIELD_NAMES = "SELECT name FROM asset_fields WHERE (asset_id IS NULL OR asset_id = '') AND %LIVE%"
+/**
+ * The names of the standard fields, which a type's field may not take. A row with no asset is not enough: a type's
+ * own field rows have no asset either (server migration t0014), so only `is_standard` says "standard".
+ */
+internal const val STANDARD_FIELD_NAMES = "SELECT name FROM asset_fields WHERE is_standard = 1 AND %LIVE%"
 
 /** A field another type brought that the new type has too: it is the new type's field now (the server's `apply_type`). */
 internal const val FIELD_RETYPE = "UPDATE asset_fields SET master_format_id = ?, version = version + 1, updated_at = ? WHERE id = ?"

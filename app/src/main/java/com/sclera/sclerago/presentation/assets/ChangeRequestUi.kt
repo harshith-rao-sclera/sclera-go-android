@@ -109,7 +109,14 @@ internal fun AdminChangeRequestCard(
 
 /** Asking an admin to reopen a submitted asset: what needs changing (optional), then Send request or Cancel. */
 @Composable
-internal fun ChangeRequestDialog(note: String, onNote: (String) -> Unit, onSend: () -> Unit, onCancel: () -> Unit) {
+internal fun ChangeRequestDialog(
+    note: String,
+    onNote: (String) -> Unit,
+    onSend: () -> Unit,
+    onCancel: () -> Unit,
+    /** The heading; one asset's by default (the selection's says how many). */
+    title: String = stringResource(R.string.change_request_title),
+) {
     Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onCancel).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
             Modifier.widthIn(max = 360.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
@@ -119,7 +126,7 @@ internal fun ChangeRequestDialog(note: String, onNote: (String) -> Unit, onSend:
             Box(Modifier.size(44.dp).background(C.WarnRow, CircleShape), contentAlignment = Alignment.Center) {
                 LineIcon(Icons.Pencil, 20.dp, C.Orange, 2.2f)
             }
-            Txt(stringResource(R.string.change_request_title), 16, 700)
+            Txt(title, 16, 700)
             Txt(stringResource(R.string.change_request_body), 13, 400, C.Muted, maxLines = 4)
             Box(Modifier.testTag(ChangeRequestTags.NOTE)) {
                 LabeledInput(

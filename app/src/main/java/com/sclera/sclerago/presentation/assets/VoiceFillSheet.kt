@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.model.FieldKind
-import com.sclera.sclerago.domain.model.SURE_ENOUGH
+import com.sclera.sclerago.domain.model.VOICE_SURE_ENOUGH
 import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Pill
@@ -47,9 +47,10 @@ object VoiceTags {
 }
 
 /**
- * The voice fill sheet, shown after speaking: how many fields were heard and how many would change what the form has,
- * what was said, then one row per field with a tick, its name, the value heard, what the form has now (when that
- * differs) and how sure the recognizer was. Apply puts the ticked values into the form to save.
+ * The voice fill sheet, shown after speaking: how many fields were filled and how many would change what the form has,
+ * what was said, then one row per field with a tick, its name, the value, what the form has now (when that differs)
+ * and how sure the AI was (values it was unsure of start unticked), then what was said that no field took. Apply puts
+ * the ticked values into the form to save.
  */
 @Composable
 fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFillActions) {
@@ -57,7 +58,8 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
     val differs = v.picks.count { (key, pick) -> state.value(key).let { it.isNotEmpty() && it != pick.value } }
     BottomSheet(onDismiss = actions.onClose) {
         Column(Modifier.weight(1f, fill = false).testTag(VoiceTags.SHEET)) {
-            val summary = if (v.picks.isEmpty()) stringResource(R.string.voice_none)
+            // Nothing found: the AI found no field for it; the phone's own reading (offline) needs the field names said.
+            val summary = if (v.picks.isEmpty()) stringResource(if (v.byAi) R.string.voice_nothing_matched else R.string.voice_none)
             else pluralStringResource(R.plurals.voice_filled, v.picks.size, v.picks.size) +
                 if (differs > 0) " " + pluralStringResource(R.plurals.voice_differs, differs, differs) else ""
             SheetTitleRow(stringResource(R.string.voice_title), summary, actions.onClose)
@@ -86,11 +88,21 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                                     if (now.isNotEmpty() && now != pick.value) {
                                         Txt(stringResource(R.string.voice_now, shown(kind, now)), 12, 600, C.Orange, maxLines = 4)
                                     }
-                                    v.sure?.let { sure ->
-                                        Txt(stringResource(R.string.ai_sure, (sure * 100).roundToInt()), 11, 700, if (sure < SURE_ENOUGH) C.Orange else C.Green)
+                                    v.sure[key]?.let { sure ->
+                                        Txt(stringResource(R.string.ai_sure, (sure * 100).roundToInt()), 11, 700, if (sure < VOICE_SURE_ENOUGH) C.Orange else C.Green)
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+                // What was said that no field took (shown, never saved), as the server lists it.
+                if (v.unmatched.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Txt(stringResource(R.string.voice_not_used), 11, 500, C.Soft)
+                        v.unmatched.forEach { u ->
+                            Txt("“${u.text}”", 12, 500, C.Muted, maxLines = 3)
+                            u.reason?.let { Txt(it, 11, 400, C.Soft, Modifier.padding(start = 8.dp), maxLines = 3) }
                         }
                     }
                 }

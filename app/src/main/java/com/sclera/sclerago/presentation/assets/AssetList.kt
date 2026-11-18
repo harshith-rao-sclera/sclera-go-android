@@ -46,7 +46,7 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.EmptyReason
-import com.sclera.sclerago.domain.model.RecollectCount
+import com.sclera.sclerago.domain.model.ToggleChip
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
 import com.sclera.sclerago.presentation.components.Capsule
@@ -70,6 +70,7 @@ object AssetListTags {
     const val LOADING = "asset-list-loading"
     const val INFO = "asset-list-info"
     const val RECOLLECT = "asset-chip-RECOLLECT"
+    const val CHANGE_REQUESTS = "asset-chip-CHANGE_REQUESTS"
     fun row(id: String) = "asset-row-$id"
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
 }
@@ -87,7 +88,7 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
         Column(Modifier.fillMaxWidth().background(C.Bg)) {
             Column(Modifier.align(Alignment.CenterHorizontally).readableWidth()) {
                 header?.invoke()
-                StatusChips(data.chips, list.onChip, data.recollect, list.onRecollect, list.onInfo)
+                StatusChips(data.chips, list.onChip, data.recollect, list.onRecollect, data.changeRequests, list.onChangeRequests, list.onInfo)
             }
         }
     }
@@ -111,12 +112,14 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
 private fun StatusChips(
     chips: List<StatusCount>,
     onChip: (StatusCount) -> Unit,
-    recollect: RecollectCount,
+    recollect: ToggleChip,
     onRecollect: () -> Unit,
+    changeRequests: ToggleChip?,
+    onChangeRequests: () -> Unit,
     onInfo: (() -> Unit)?,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.weight(1f)) { ChipRow(chips, onChip, recollect, onRecollect) }
+        Box(Modifier.weight(1f)) { ChipRow(chips, onChip, recollect, onRecollect, changeRequests, onChangeRequests) }
         // The web's info button beside the list tools: the Managed Assets Summary.
         onInfo?.let {
             val label = stringResource(R.string.ms_button)
@@ -128,7 +131,14 @@ private fun StatusChips(
 }
 
 @Composable
-private fun ChipRow(chips: List<StatusCount>, onChip: (StatusCount) -> Unit, recollect: RecollectCount, onRecollect: () -> Unit) {
+private fun ChipRow(
+    chips: List<StatusCount>,
+    onChip: (StatusCount) -> Unit,
+    recollect: ToggleChip,
+    onRecollect: () -> Unit,
+    changeRequests: ToggleChip?,
+    onChangeRequests: () -> Unit,
+) {
     val state = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val step = with(LocalDensity.current) { 180.dp.toPx() }
@@ -142,6 +152,14 @@ private fun ChipRow(chips: List<StatusCount>, onChip: (StatusCount) -> Unit, rec
             item(key = "RECOLLECT") {
                 ChipBox(stringResource(R.string.dash_chip_recollect), recollect.count, recollect.selected, AssetListTags.RECOLLECT, onRecollect) {
                     LineIcon(Icons.Refresh, 11.dp, C.Orange, 2.8f)
+                }
+            }
+            // The web's Change requests tab: submitted assets someone asked an admin to reopen.
+            changeRequests?.let { cr ->
+                item(key = "CHANGE_REQUESTS") {
+                    ChipBox(stringResource(R.string.dash_chip_change_requests), cr.count, cr.selected, AssetListTags.CHANGE_REQUESTS, onChangeRequests) {
+                        LineIcon(Icons.Alert, 11.dp, C.Orange, 2.8f)
+                    }
                 }
             }
         }
@@ -216,6 +234,7 @@ fun AssetRow(
         onToggle()
     }
     val recollectLabel = stringResource(R.string.dash_recollect_badge)
+    val changeRequestedLabel = stringResource(R.string.dash_change_requested_badge)
     val rowBg by animateColorAsState(if (picked) C.PickedRow else C.Surface, label = "row")
     val icBg by animateColorAsState(if (picked) C.Yellow else C.Raised, label = "icbg")
     val icBd by animateColorAsState(if (picked) C.Yellow else if (selMode) C.RadioOff else C.Raised, label = "icbd")
@@ -250,6 +269,10 @@ fun AssetRow(
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
                 // The web's "Recollect" badge: sent back to be collected again.
                 if (a.recollect) LineIcon(Icons.Refresh, 17.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = recollectLabel })
+                // The web card's "Change requested" badge: someone asked an admin to reopen it.
+                if (a.changeRequest != null) {
+                    LineIcon(Icons.Alert, 17.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = changeRequestedLabel })
+                }
                 LineIcon(a.src.icon, 18.dp, a.src.color, 2f)
                 if (a.loc != null) LineIcon(Icons.Pin, 18.dp, C.Yellow, 2.1f)
                 else LineIcon(Icons.Unmapped, 18.dp, C.Orange, 2.1f)
@@ -295,4 +318,6 @@ class AssetListBinding(
     val onInfo: (() -> Unit)? = null,
     /** The Recollect chip: narrows the list to assets sent back to be collected again, or turns that off. */
     val onRecollect: () -> Unit = {},
+    /** The Change requests chip: narrows the list to assets someone asked an admin to reopen, or turns that off. */
+    val onChangeRequests: () -> Unit = {},
 )

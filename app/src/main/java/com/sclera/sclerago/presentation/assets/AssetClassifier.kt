@@ -39,7 +39,8 @@ data class ClassifyState(
     val code: String? = null,
     /** The picked type's JACS codes are being asked for. */
     val codesLoading: Boolean = false,
-    val useReading: Boolean = true,
+    /** What the photos said is ticked to go into an empty manufacturer and model (the user ticks it). */
+    val useReading: Boolean = false,
     val error: UiText? = null,
 ) {
     val pickedType: TypeSuggestion? get() = result?.suggestions?.firstOrNull { it.masterFormatId == picked }
@@ -62,6 +63,9 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
     private var fieldsJob: Job? = null
     private var refreshed = false
     private var details = ClassifyDetails()
+
+    /** The asset asked about when the server has it as saved (its own answers and photos are used); null otherwise. */
+    private var assetId: String? = null
 
     /** Forgets the sheet and the type fields (another asset opened, or the screen closed). */
     fun reset() {
@@ -101,7 +105,8 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
      * Opens the sheet and asks what the asset is from its [media] and the form: name, manufacturer, model and serial
      * number, plus up to [MAX_OTHER_DETAILS] other filled [fields] as hints ([value] reads the form).
      */
-    fun open(fields: List<FieldCfg>, value: (String) -> String, media: List<Media>) {
+    fun open(fields: List<FieldCfg>, value: (String) -> String, media: List<Media>, assetId: String? = null) {
+        this.assetId = assetId
         val other = fields
             .filter { it.key !in NOT_OTHER && typeFieldName(it.key) == null }
             .mapNotNull { f -> value(f.key).trim().takeIf { it.isNotEmpty() }?.let { f.label to it } }
@@ -111,8 +116,8 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
         sheet.value = ClassifyState(ClassifyPhase.LOADING)
         sheetJob = scope.launch {
             sheet.value = try {
-                val r = useCases.suggest(details, media)
-                ClassifyState(ClassifyPhase.RESULTS, r, r.suggestions.firstOrNull()?.masterFormatId, r.jacsCodes, r.jacsCodes.firstOrNull()?.code)
+                // Nothing is picked yet: a pick goes straight into the form, so the user makes it.
+                ClassifyState(ClassifyPhase.RESULTS, useCases.suggest(details, media, assetId = assetId))
             } catch (e: OnlineException) {
                 ClassifyState(ClassifyPhase.ERROR, error = e.error.classifyText())
             }
@@ -126,18 +131,18 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
         if (masterFormatId == s.picked) return
         sheetJob?.cancel()
         if (masterFormatId == r.suggestions.firstOrNull()?.masterFormatId) {
-            sheet.update { it?.copy(picked = masterFormatId, codes = r.jacsCodes, code = r.jacsCodes.firstOrNull()?.code, codesLoading = false) }
+            sheet.update { it?.copy(picked = masterFormatId, codes = r.jacsCodes, code = null, codesLoading = false) }
             return
         }
         sheet.update { it?.copy(picked = masterFormatId, codes = emptyList(), code = null, codesLoading = true) }
         sheetJob = scope.launch {
             val codes = try {
-                useCases.suggest(details, emptyList(), masterFormatId).jacsCodes
+                useCases.suggest(details, emptyList(), masterFormatId, assetId).jacsCodes
             } catch (_: OnlineException) {
                 // The type can still be applied; the JACS code is then left as it is.
                 emptyList()
             }
-            sheet.update { cur -> if (cur?.picked == masterFormatId) cur.copy(codes = codes, code = codes.firstOrNull()?.code, codesLoading = false) else cur }
+            sheet.update { cur -> if (cur?.picked == masterFormatId) cur.copy(codes = codes, code = null, codesLoading = false) else cur }
         }
     }
 
@@ -146,30 +151,32 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
 
     fun toggleReading() = sheet.update { it?.copy(useReading = !it.useReading) }
 
+    /** What the photos said is ticked. */
+    fun usesReading(): Boolean = sheet.value?.useReading == true
+
+    /** The manufacturer and model the photos said, as form values (none when they said neither). */
+    fun readingValues(): Map<String, String> {
+        val read = sheet.value?.result?.read ?: return emptyMap()
+        return buildMap {
+            read.manufacturer?.let { put("make", it) }
+            read.model?.let { put("model", it) }
+        }
+    }
+
     fun close() {
         sheetJob?.cancel()
         sheet.value = null
     }
 
-    /**
-     * The form values the picks set, given the form's [value] by key: the type's system, asset and sub type, the JACS code
-     * picked, and (when ticked) the manufacturer and model read off the photos where the form has none. Null without a type.
-     */
-    fun chosenValues(value: (String) -> String): Map<String, String>? {
-        val s = sheet.value ?: return null
-        val type = s.pickedType ?: return null
-        return buildMap {
-            put("sys", type.systemType)
-            put("typ", type.assetType ?: UNCLASSIFIED)
-            put("sub", type.subtype ?: UNCLASSIFIED)
-            s.code?.let { put("jacs", it) }
-            val read = s.result?.read
-            if (s.useReading && read != null) {
-                read.manufacturer?.takeIf { value("make").isBlank() }?.let { put("make", it) }
-                read.model?.takeIf { value("model").isBlank() }?.let { put("model", it) }
-            }
-        }
+    /** The picked type's system, asset and sub type as form values; null while no type is picked. */
+    fun typeValues(): Map<String, String>? {
+        val type = sheet.value?.pickedType ?: return null
+        return mapOf("sys" to type.systemType, "typ" to (type.assetType ?: UNCLASSIFIED), "sub" to (type.subtype ?: UNCLASSIFIED))
     }
+
+    /** The JACS code picked; null when none is. */
+    fun pickedCode(): String? = sheet.value?.code
+
 
     /** With no photo and nothing typed the server has nothing to go on (the asset need not be synced). */
     private fun OnlineError.classifyText(): UiText = if (this == OnlineError.Invalid) UiText.Res(R.string.classify_need_input) else toUiText()

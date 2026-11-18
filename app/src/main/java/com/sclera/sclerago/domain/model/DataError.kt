@@ -14,6 +14,9 @@ enum class DataError {
     /** The signed-in user's group does not allow it (what the server last said; the server still decides). */
     FORBIDDEN,
 
+    /** Someone who isn't an admin changes or submits only the assets assigned to them (the server's check_editable). */
+    NOT_ASSIGNED,
+
     /** A photo or file is bigger than the 5MB an asset keeps (and couldn't be made smaller). */
     FILE_TOO_LARGE,
 

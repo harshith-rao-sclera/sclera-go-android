@@ -67,7 +67,7 @@ class PlacesOfflineSource(private val db: AdcDatabase, private val io: Coroutine
 
     /** Assets per building, floor and location id: one grouped query. */
     private fun counts(): Map<String, Int> = db.whenTable("assets", emptyMap()) {
-        val live = db.notRemoved("assets")
+        val live = db.listedAssets()
         val sql = listOf("building_id", "floor_id", "location_id").joinToString(" UNION ALL ") { col ->
             "SELECT $col AS id, COUNT(*) AS n FROM assets WHERE $col IS NOT NULL AND $live GROUP BY $col"
         }

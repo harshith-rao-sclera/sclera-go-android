@@ -5,6 +5,7 @@ import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.FieldKeys
 import com.sclera.sclerago.data.mapper.toFieldCfg
 import com.sclera.sclerago.data.sync.AdcDatabase
+import com.sclera.sclerago.domain.model.DraftField
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.FieldDef
@@ -51,6 +52,17 @@ class FieldsOfflineSource(private val db: AdcDatabase, private val io: Coroutine
                     else -> row.toFieldCfg()?.let { FormEntry.Input(it.key) }
                 }
             }
+        }
+    }
+
+    /**
+     * The active standard fields in their configured order, by the server's id and key, without the photo, video and voice
+     * memo fields (what the web's "Add assets from files" shows a file's values in).
+     */
+    suspend fun activeStandard(): List<DraftField> = withContext(io) {
+        loadStandard().filter { it.bool("is_active") && it.string("type") !in MEDIA_TYPES }.mapNotNull { row ->
+            val id = row.string("id")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            DraftField(id, row.string("key").orEmpty(), row.string("name").orEmpty())
         }
     }
 

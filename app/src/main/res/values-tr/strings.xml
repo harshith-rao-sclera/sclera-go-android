@@ -424,10 +424,6 @@
         <item quantity="one">%1$d varlık eklendi · ayrıntı gerekli</item>
         <item quantity="other">%1$d varlık eklendi · ayrıntı gerekli</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d varlık içe aktarıldı · ayrıntı gerekli</item>
-        <item quantity="other">%1$d varlık içe aktarıldı · ayrıntı gerekli</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">Bu varlık silinsin mi?</item>
         <item quantity="other">%1$d varlık silinsin mi?</item>

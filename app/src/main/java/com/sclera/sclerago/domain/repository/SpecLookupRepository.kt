@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.repository
 
+import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.SpecLookup
 
 /**
@@ -18,4 +19,12 @@ interface SpecLookupRepository {
 
     /** Tells the server the suggestions were shown. */
     suspend fun seen(lookupId: String)
+
+    /**
+     * The phone's look-up (`POST /properties/{id}/lookup`), for an asset not on the server yet or with no model typed:
+     * the AI reads [photos] (at most 3 are sent), the fields still empty are looked up online, and a type is suggested.
+     * [typed] are the form's values by field key. With [masterFormatId] (the asset's type) that type's fields are filled
+     * too and no type is suggested. Answers as a finished [SpecLookup]; Invalid with no photo and no model.
+     */
+    suspend fun lookUpOnPhone(assetId: String, photos: List<Media>, typed: Map<String, String>, masterFormatId: String?): SpecLookup
 }

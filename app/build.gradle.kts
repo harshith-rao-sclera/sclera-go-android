@@ -98,6 +98,10 @@ dependencies {
     implementation(libs.media3.transformer)
     implementation(libs.media3.effect)
     implementation(libs.media3.common)
+    // Reads photos on the device (text and QR/barcodes) to sort them into nameplate, label ID or asset
+    // (services/vision/MlKitPhotoReader.kt). The bundled models work offline from the first launch.
+    implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkit.barcode.scanning)
     implementation(libs.exifinterface)
     // Bluetooth / Wi-Fi / access point scanning (scan/ package)
     implementation(libs.core.ktx)

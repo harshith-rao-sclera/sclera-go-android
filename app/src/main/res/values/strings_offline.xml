@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Offline: why each online-only button or page needs the server. Every message reads "You're offline. [why it needs the
+    server] Try again when you're connected." The property list's messages are in strings.xml (property_download_offline,
+    property_offline_add, property_offline_import, property_offline_edit). English only for now.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Read out for an online-only button while offline (it is dimmed with the no-Wi-Fi badge). -->
+    <string name="offline_needs_connection">Needs a connection</string>
+
+    <string name="offline_ai_suggestions">You’re offline. AI suggestions are looked up by the server. Try again when you’re connected.</string>
+    <string name="offline_voice_fill">You’re offline. What you say is read by the server’s AI to fill in the fields. Try again when you’re connected.</string>
+    <string name="offline_suggest_type">You’re offline. Type suggestions come from the server, but you can still pick the type yourself. Try again when you’re connected.</string>
+    <string name="offline_revalidate">You’re offline. Validating again runs on the server, so these are the results from the last sync. Try again when you’re connected.</string>
+    <string name="offline_validate">You’re offline. Validation runs on the server. Try again when you’re connected.</string>
+    <string name="offline_assign">You’re offline. Assets are assigned on the server. Try again when you’re connected.</string>
+    <string name="offline_move_to_managed">You’re offline. Assets are moved to managed assets through the server. Try again when you’re connected.</string>
+
+    <string name="offline_files">You’re offline. Files are uploaded to the server and read there, so the ones picked wait here. Try again when you’re connected.</string>
+    <string name="offline_read_file">You’re offline. Reading a file means uploading it to the server. Try again when you’re connected.</string>
+    <string name="offline_add_file_assets">You’re offline. The assets found in files are added on the server. Try again when you’re connected.</string>
+
+    <string name="offline_users">You’re offline. People, groups and access are managed on the server. Try again when you’re connected.</string>
+    <string name="offline_integration">You’re offline. The VDMS link is read and made on the server. Try again when you’re connected.</string>
+    <string name="offline_validation">You’re offline. Validations are run and changed on the server, so this is what was last synced. Try again when you’re connected.</string>
+
+    <string name="offline_asset_fields">You’re offline. Asset fields are read and changed on the server. Try again when you’re connected.</string>
+    <string name="offline_geofencing">You’re offline. Geofences are read and saved on the server. Try again when you’re connected.</string>
+    <string name="offline_property_settings">You’re offline. Property settings are read and saved on the server. Try again when you’re connected.</string>
+</resources>

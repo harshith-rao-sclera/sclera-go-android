@@ -7,15 +7,24 @@ import com.sclera.sclerago.services.syncManager.enums.SyncMode;
 import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
 import com.sclera.sclerago.utility.Utility;
 
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @SuppressLint("Range")
 public class SyncManagerRepository {
-    public void initializeAssetDBInstance() {
+    /**
+     * Restarts the engine of each property in {@code propertyIds} (those fully downloaded on this device) from the saved
+     * config rows, each syncing on its own; a property already running, or not in the set, is left alone. The caller
+     * gives the engines fresh credentials afterwards.
+     */
+    public void initializeAssetDBInstance(Set<String> propertyIds) {
+        if (propertyIds == null || propertyIds.isEmpty()) {
+            return;
+        }
+        int numberOfThreads = Math.min(propertyIds.size(), Runtime.getRuntime().availableProcessors());
+        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
         try {
-            int numberOfThreads = Runtime.getRuntime().availableProcessors(); // You can adjust the number of threads
-            ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
 
             // Query the globalDB for all existing entries
             String[] columns = {
@@ -46,7 +55,7 @@ public class SyncManagerRepository {
                     String cloudUrl = cursor.getString(cursor.getColumnIndex(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_CLOUD_URL));
                     String propertyId = cursor.getString(cursor.getColumnIndex(GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID));
 
-                    if (SyncManager.isValidPropertyId(propertyId) && !SyncUtils.adcInstances.containsKey(propertyId)) {
+                    if (propertyIds.contains(propertyId) && SyncManager.isValidPropertyId(propertyId) && !SyncUtils.adcInstances.containsKey(propertyId)) {
                         SyncManager syncManager = new SyncManager(user, url, token, sessionId, sessionUrl, orgId, Utility.context, propertyId);
                         SyncUtils.adcInstances.put(propertyId, syncManager);
                         if (SyncUtils.dbInstance == null) {
@@ -82,12 +91,16 @@ public class SyncManagerRepository {
                     }
 
                 } while (cursor.moveToNext());
-
+            }
+            if (cursor != null) {
                 cursor.close();
             }
 
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            // The submitted tasks still run; the pool's threads end once they have.
+            executorService.shutdown();
         }
     }
 

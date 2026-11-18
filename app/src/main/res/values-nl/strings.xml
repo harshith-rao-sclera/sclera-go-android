@@ -424,10 +424,6 @@
         <item quantity="one">%1$d asset toegevoegd · details nodig</item>
         <item quantity="other">%1$d assets toegevoegd · details nodig</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d asset geïmporteerd · details nodig</item>
-        <item quantity="other">%1$d assets geïmporteerd · details nodig</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">Deze asset verwijderen?</item>
         <item quantity="other">%1$d assets verwijderen?</item>

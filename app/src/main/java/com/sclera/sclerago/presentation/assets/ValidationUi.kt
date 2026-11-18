@@ -34,6 +34,8 @@ import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.StepResult
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.CircleFab
+import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.bottomBorder
@@ -50,6 +52,7 @@ object ValidationTags {
     const val RUN = "validation-run"
     const val NONE = "validation-none"
     const val BANNER = "validation-banner"
+    const val FAB = "validation-fab"
     fun step(rule: String) = "validation-step-$rule"
 }
 
@@ -211,6 +214,22 @@ fun ValidationTab(validation: AssetValidation?, validating: Boolean, onRun: ((fr
                 else -> stringResource(R.string.val_hint_any)
             },
             11, 400, C.Muted, maxLines = 4,
+        )
+    }
+}
+
+/**
+ * The Validation tab's floating ▶, like the Info tab's yellow round buttons: validates the asset at the server (from its
+ * first step to look at, as Revalidate; an asset never validated gets the server's Quick check). While a run is going it
+ * spins and can't be tapped. Validating needs the server: [offline], it is dimmed with the offline badge and a tap calls
+ * [onOffline] (to say why).
+ */
+@Composable
+fun ValidateFab(validating: Boolean, offline: Boolean, onValidate: () -> Unit, onOffline: () -> Unit, modifier: Modifier = Modifier) {
+    OfflineGate(offline && !validating, onOffline, modifier.padding(end = 16.dp, bottom = 16.dp), badgeOffset = 2.dp) {
+        CircleFab(
+            Icons.Play, stringResource(if (validating) R.string.val_checking else R.string.val_validate), onValidate,
+            Modifier.testTag(ValidationTags.FAB), stroke = 2.2f, busy = validating,
         )
     }
 }

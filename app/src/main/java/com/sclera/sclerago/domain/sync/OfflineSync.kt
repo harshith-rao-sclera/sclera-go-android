@@ -17,6 +17,12 @@ interface OfflineSync {
      */
     fun download(propertyId: String)
 
+    /**
+     * Starts syncing every property fully downloaded on the device straight away, in the background, for the signed-in
+     * user. Call only while someone is signed in; [download] still follows each one (it doesn't start them twice).
+     */
+    fun reopenAll()
+
     /** Makes [propertyId] (null: none) the property whose data the app reads; the others keep syncing. */
     fun select(propertyId: String?)
 

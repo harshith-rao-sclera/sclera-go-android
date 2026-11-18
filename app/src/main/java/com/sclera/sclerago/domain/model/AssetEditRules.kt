@@ -6,6 +6,26 @@ private val LOCKED_STATUSES = setOf(Status.SUBMITTED, Status.VALIDATED)
 /** Whether the server would refuse a change to an asset in [status] by this user (an admin when [isAdmin]). */
 fun isLockedFor(status: Status, isAdmin: Boolean): Boolean = !isAdmin && status in LOCKED_STATUSES
 
+/** Why the server refuses a change to an asset (its check_editable); the web's lockedReason. */
+enum class AssetLock {
+    /** Someone who isn't an admin changes only the assets assigned to them. */
+    NOT_ASSIGNED,
+
+    /** Submitted or signed off: only an admin may change it. */
+    SUBMITTED,
+}
+
+/**
+ * As the server's check_editable (and the web's lockedForMe): an admin may change any asset; anyone else only one
+ * assigned to them ([assignedToMe]) that isn't submitted or signed off. Null when the change is allowed.
+ */
+fun assetLock(status: Status, isAdmin: Boolean, assignedToMe: Boolean): AssetLock? = when {
+    isAdmin -> null
+    !assignedToMe -> AssetLock.NOT_ASSIGNED
+    status in LOCKED_STATUSES -> AssetLock.SUBMITTED
+    else -> null
+}
+
 /**
  * The mandatory fields of the form that are still empty: active, mandatory and blank in [values] (by field key). The
  * system, asset and sub type count as empty while they are still [UNCLASSIFIED], as the form shows them.

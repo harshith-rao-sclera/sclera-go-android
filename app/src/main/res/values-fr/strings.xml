@@ -428,10 +428,6 @@
         <item quantity="one">%1$d actif ajouté · détails requis</item>
         <item quantity="other">%1$d actifs ajoutés · détails requis</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d actif importé · détails requis</item>
-        <item quantity="other">%1$d actifs importés · détails requis</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">Supprimer cet actif ?</item>
         <item quantity="other">Supprimer %1$d actifs ?</item>

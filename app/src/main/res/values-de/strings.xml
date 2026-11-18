@@ -424,10 +424,6 @@
         <item quantity="one">%1$d Asset hinzugefügt · Angaben erforderlich</item>
         <item quantity="other">%1$d Assets hinzugefügt · Angaben erforderlich</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d Asset importiert · Angaben erforderlich</item>
-        <item quantity="other">%1$d Assets importiert · Angaben erforderlich</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">Dieses Asset löschen?</item>
         <item quantity="other">%1$d Assets löschen?</item>

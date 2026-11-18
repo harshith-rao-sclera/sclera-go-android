@@ -414,9 +414,6 @@
     <plurals name="assets_added_details">
         <item quantity="other">已新增 %1$d 項資產 · 需要補充詳細資料</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="other">已匯入 %1$d 項資產 · 需要補充詳細資料</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="other">刪除 %1$d 項資產？</item>
     </plurals>

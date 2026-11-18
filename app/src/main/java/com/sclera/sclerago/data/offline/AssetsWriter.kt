@@ -173,18 +173,24 @@ class AssetsWriter(
      * Submitting follows the server's rule (`POST /assets/bulk/submit`): only drafted or exception assets are submitted; one
      * with a mandatory field empty, or fewer photos of a kind than [photoRules] ask for, becomes an exception when
      * [allowExceptions] and is left as it is otherwise; assets that are already submitted or validated stay as they are.
+     * Returns the drafted assets submitting left in draft because they are incomplete.
      */
     suspend fun setStatus(
         assetIds: Collection<String>,
         status: Status,
         allowExceptions: Boolean = true,
         photoRules: List<PhotoRule> = emptyList(),
-    ) = db.write(io) {
+    ): Set<String> = db.write(io) {
         val now = now()
         val required = if (status == Status.SUBMITTED) requiredKeys() else null
+        val leftIncomplete = mutableSetOf<String>()
         assetIds.forEach { id ->
             val row = assetState(id) ?: return@forEach
-            val moved = if (required == null) status else submitTarget(row, id, required, photoRules, allowExceptions) ?: return@forEach
+            val moved = if (required == null) status else submitTarget(row, id, required, photoRules, allowExceptions)
+            if (moved == null) {
+                if (row.string("status") == "drafted") leftIncomplete += id
+                return@forEach
+            }
             val target = statusToDb(moved)
             val unchanged = row.string("status") == target.status && row.bool("validated") == target.validated &&
                 (target.aiSuggestion == null || row.bool("ai_suggestion") == target.aiSuggestion)
@@ -198,6 +204,7 @@ class AssetsWriter(
             // Back in draft is what a change request asked for, so it closes (the server's close_change_request).
             if (target.status == "drafted" && hasColumn("assets", "change_requested_at")) execute(ASSET_CLOSE_CHANGE_REQUEST, listOf(id), setOf("assets"))
         }
+        leftIncomplete
     }
 
     /** What submitting asset [id] makes of it, or null to leave it alone. */
@@ -339,6 +346,16 @@ class AssetsWriter(
     /** Takes the web page [documentId] off its asset (marked removed for the sync, as the server's DELETE does). */
     suspend fun removeWebDocument(documentId: String) = db.write(io) {
         removeRows("web_documents", "id = ? AND asset_id IS NOT NULL AND asset_id <> ''", listOf(documentId), now())
+    }
+
+    /**
+     * Deletes the uploaded file [documentId] as the server's `DELETE /documents/{id}`: the `documents` row is marked removed
+     * and its content dropped (its `multimedia` row stays, as for media). The asset keeps its other documents.
+     */
+    suspend fun removeSourceDocument(documentId: String) = db.write(io) {
+        if (!hasTable("documents") || !exists(DOCUMENT_ROW.live("documents"), listOf(documentId))) throw DataException(DataError.FAILED)
+        if (hasTable("multimedia")) execute(MULTIMEDIA_CLEAR_DOCUMENT, listOf(documentId), setOf("multimedia"))
+        removeRows("documents", "id = ?", listOf(documentId), now())
     }
 
     // ---- inside a transaction

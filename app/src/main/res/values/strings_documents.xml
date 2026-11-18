@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asset details → Documents: the uploaded file's card (its kind, who uploaded it, open and delete). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="doc_one_file">An asset has one file; a new one takes this one\'s place.</string>
+    <string name="doc_type_spreadsheet">Spreadsheet</string>
+    <string name="doc_type_pdf">PDF</string>
+    <string name="doc_type_word">Word document</string>
+    <string name="doc_type_text">Text</string>
+    <string name="doc_type_video">Video</string>
+    <string name="doc_uploader_unknown">Unknown user</string>
+    <string name="doc_open_cd">Open %1$s</string>
+    <string name="doc_open_with">Open with</string>
+</resources>

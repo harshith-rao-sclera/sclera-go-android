@@ -428,10 +428,6 @@
         <item quantity="one">%1$d activo añadido · faltan datos</item>
         <item quantity="other">%1$d activos añadidos · faltan datos</item>
     </plurals>
-    <plurals name="assets_imported_details">
-        <item quantity="one">%1$d activo importado · faltan datos</item>
-        <item quantity="other">%1$d activos importados · faltan datos</item>
-    </plurals>
     <plurals name="dash_delete_title">
         <item quantity="one">¿Eliminar este activo?</item>
         <item quantity="other">¿Eliminar %1$d activos?</item>

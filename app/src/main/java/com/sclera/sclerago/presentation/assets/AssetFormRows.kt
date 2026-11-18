@@ -59,6 +59,7 @@ object DetailTags {
     const val TAB_INFO = "detail-tab-info"
     const val TAB_VALIDATION = "detail-tab-validation"
     const val TAB_EMPTY = "detail-tab-empty"
+    const val NOT_ASSIGNED = "detail-not-assigned"
     const val COMMENT_FIELD = "detail-comment-field"
     const val COMMENT_POST = "detail-comment-post"
     const val SAVE = "detail-save"
@@ -214,6 +215,39 @@ private fun BadgeText(key: String, badge: FieldBadge) {
         FieldBadge.OCR -> stringResource(R.string.detail_badge_ocr) to C.Purple
     }
     Txt(text, 10, 700, color, Modifier.testTag(DetailTags.badge(key)), spacing = 0.3f)
+}
+
+/** A row whose value is chosen in a sheet: label, the value (or [empty] in grey), and a chevron; [onOpen] opens the sheet. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun PickRow(
+    key: String,
+    label: String,
+    value: String,
+    empty: String,
+    edited: Boolean,
+    onOpen: () -> Unit,
+    rowBg: Color = Color.Transparent,
+    mono: Boolean = false,
+    badge: FieldBadge = FieldBadge.NONE,
+    requester: BringIntoViewRequester? = null,
+) {
+    val readOnly = LocalReadOnly.current
+    Row(
+        Modifier.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
+            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg).clickable(enabled = !readOnly, onClick = onOpen)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        FieldLabel(label, Modifier.width(92.dp))
+        Txt(
+            value.ifEmpty { empty }, if (mono) 13 else 14, 600, if (value.isEmpty()) C.Muted else C.Text,
+            Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp), maxLines = 1,
+        )
+        BadgeText(key, badge)
+        if (!readOnly) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
+    }
 }
 
 /** A dropdown row: label and the chosen option. */

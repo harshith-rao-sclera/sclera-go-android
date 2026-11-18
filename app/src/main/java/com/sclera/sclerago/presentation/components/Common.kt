@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -348,6 +349,11 @@ fun ActionDock(
     moveDimmed: Boolean = false,
     /** Edit the selected assets (their location); null hides it. */
     onEdit: (() -> Unit)? = null,
+    /** Offline: Validate, Assign and Move need the server, so they are dimmed with a badge and a tap says why ([onOffline]). */
+    offline: Boolean = false,
+    onOffline: (OnlineOnly) -> Unit = {},
+    /** The change-request actions for submitted assets (request, move to draft, decline, withdraw); null hides it. */
+    onChange: (() -> Unit)? = null,
     leading: @Composable RowScope.() -> Unit,
 ) {
     // Floating: inset from the edges with rounded corners and a shadow; otherwise flush with a top border.
@@ -364,14 +370,27 @@ fun ActionDock(
     ) {
         leading()
         // With more actions each one is a little narrower, so the selection summary keeps room on phones.
-        val actions = listOfNotNull(onValidate, onEdit, onAssign, onSubmit, onMove).size + 1
+        val actions = listOfNotNull(onValidate, onEdit, onAssign, onSubmit, onChange, onMove).size + 1
         val narrow = actions >= 5
         val item = Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
-        onValidate?.let { DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it, item) }
+        onValidate?.let {
+            OfflineGate(offline, { onOffline(OnlineOnly.VALIDATE) }, item, badgeOffset = 4.dp) {
+                DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it, Modifier.fillMaxWidth())
+            }
+        }
         onEdit?.let { DockAction(stringResource(R.string.action_edit), Icons.Pencil, C.Orange, it, item) }
-        onAssign?.let { DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it, item) }
+        onAssign?.let {
+            OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item, badgeOffset = 4.dp) {
+                DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth())
+            }
+        }
         onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item) }
-        onMove?.let { DockAction(stringResource(R.string.mv_action), Icons.Send, C.Green, it, item.alpha(if (moveDimmed) 0.35f else 1f)) }
+        onChange?.let { DockAction(stringResource(R.string.action_change), Icons.Alert, C.Orange, it, item) }
+        onMove?.let {
+            OfflineGate(offline, { onOffline(OnlineOnly.MOVE_TO_MANAGED) }, item, badgeOffset = 4.dp) {
+                DockAction(stringResource(R.string.mv_action), Icons.Send, C.Green, it, Modifier.fillMaxWidth().alpha(if (moveDimmed && !offline) 0.35f else 1f))
+            }
+        }
         DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, if (narrow) item else deleteModifier)
     }
 }
@@ -387,6 +406,9 @@ fun ActionCard(
     onSubmit: (() -> Unit)?,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Offline: Validate and Assign need the server, so they are dimmed with a badge and a tap says why ([onOffline]). */
+    offline: Boolean = false,
+    onOffline: (OnlineOnly) -> Unit = {},
 ) {
     val shape = r(14)
     Row(
@@ -395,9 +417,19 @@ fun ActionCard(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val item = Modifier.weight(1f)
+        // Offline, a gated action shrinks to its icon and label so the badge sits on it; online it fills its cell as before.
+        val gated = if (offline) Modifier.widthIn(min = 64.dp) else Modifier.fillMaxWidth()
         // Validate stays in place but greyed out when the asset is already validated.
-        DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, onValidate ?: {}, item.alpha(if (onValidate != null) 1f else 0.35f), enabled = onValidate != null)
-        DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, onAssign, item)
+        if (onValidate != null) {
+            OfflineGate(offline, { onOffline(OnlineOnly.VALIDATE) }, item.fillMaxHeight(), badgeOffset = 6.dp) {
+                DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, onValidate, gated)
+            }
+        } else {
+            DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, {}, item.alpha(0.35f), enabled = false)
+        }
+        OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item.fillMaxHeight(), badgeOffset = 6.dp) {
+            DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, onAssign, gated)
+        }
         onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item) }
         DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, item)
     }

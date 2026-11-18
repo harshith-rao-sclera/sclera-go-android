@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.Status
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -35,6 +37,7 @@ import com.sclera.sclerago.domain.model.ANSWER_YES
 import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.domain.usecase.asset.AssetPerson
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
 import androidx.compose.ui.platform.LocalConfiguration
 import com.sclera.sclerago.domain.model.UNCHECKED
@@ -94,17 +97,24 @@ class AssetDetailActions(
     val onRevalidate: (fromStart: Boolean) -> Unit = {},
     /** Open the camera for a photo of [kind] (null: other photos) (Media tab +). */
     val onAddPhoto: (kind: PhotoKind?) -> Unit = {},
-    /** Take a web page off the asset (Documents tab, after the confirmation). */
-    val onRemoveWebPage: (documentId: String) -> Unit = {},
+    /** Take a web page or the uploaded file off the asset (Documents tab, after the confirmation). */
+    val onRemoveDocument: (AssetDocument) -> Unit = {},
     /** Save a copy of a photo, video, voice memo or file (the media viewer's Download). */
     val onDownloadMedia: (Media) -> Unit = {},
     /** Remove a photo, video, voice memo or file from the asset (the media viewer's Remove, after the confirmation). */
     val onRemoveMedia: (Media) -> Unit = {},
     /** Open the "Suggest type" sheet (System details). */
     val onSuggestType: () -> Unit = {},
+    /** What the JACS code row and its picker do. */
+    val jacs: JacsActions = JacsActions(),
     /** What the "Suggest type" sheet's buttons do. */
     val classify: ClassifyActions = ClassifyActions(),
+    /** An online-only action was tapped while offline: say why it needs the server. */
+    val onOffline: (OnlineOnly) -> Unit = {},
 )
+
+/** Opening the JACS code picker, and what it does. */
+class JacsActions(val onOpen: () -> Unit = {}, val picker: JacsPickerActions = JacsPickerActions())
 
 /** The form's own view state: which sections are closed and where a Fix button should scroll to. */
 @Stable
@@ -218,9 +228,10 @@ fun AssetInfoTab(
     ) {
         systemShown.forEach { k ->
             if (k == "jacs") {
-                FieldRow(
-                    k, labels.getValue(k), v(k), { actions.onEdit(k, it) }, state.dirty(k), state.badgeFor(k),
-                    mono = true, requester = ui.requester(k),
+                // Picked from the JACS catalog (or typed there), which sets the type too.
+                PickRow(
+                    k, labels.getValue(k), v(k), stringResource(R.string.jacs_none), state.dirty(k), actions.jacs.onOpen,
+                    mono = true, badge = state.badgeFor(k), requester = ui.requester(k),
                 )
             } else {
                 val choices = when (k) {
@@ -235,12 +246,12 @@ fun AssetInfoTab(
                 )
             }
         }
-        // The server suggests the type and JACS code from the photos and what is typed (the asset need not be synced).
+        // The server suggests the type and JACS code from the photos and what is typed (the asset need not be synced);
+        // its suggestions show here, and a pick goes straight into the rows above.
         if (!locked) {
-            Pill(
-                stringResource(R.string.classify_suggest), actions.onSuggestType,
-                Modifier.padding(horizontal = 12.dp).padding(top = 8.dp).fillMaxWidth().testTag(DetailTags.SUGGEST_TYPE),
-                height = 44.dp, size = 13, weight = 600,
+            ClassifyPanel(
+                state.classify, actions.onSuggestType, actions.classify, Modifier.padding(horizontal = 12.dp).padding(top = 8.dp),
+                offline = !state.online,
             )
         }
     }
@@ -273,7 +284,13 @@ fun AssetInfoTab(
 
     if (!isNew) {
         StatusLine(asset, Modifier.padding(horizontal = 12.dp).padding(top = 2.dp))
-        if (locked) {
+        if (locked && state.lock == AssetLock.NOT_ASSIGNED) {
+            // Someone else's: read-only until an admin assigns it to this user (the web's lock note).
+            NotAssignedCard(
+                modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
+                onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
+            )
+        } else if (locked) {
             // Submitted: read-only. Someone who needs to change it asks an admin to reopen it (a change request).
             SubmittedCard(
                 modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
@@ -326,6 +343,8 @@ fun AssetInfoTab(
                 onSubmit = { onModal(submitModal) },
                 onDelete = { onModal(DetailModal.DELETE) },
                 modifier = Modifier.padding(horizontal = 12.dp),
+                offline = !state.online,
+                onOffline = actions.onOffline,
             )
         }
     } else {

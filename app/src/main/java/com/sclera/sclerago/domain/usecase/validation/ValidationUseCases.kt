@@ -111,6 +111,17 @@ class StartReadyRunUseCase @Inject constructor(private val repo: ValidationRunRe
     }
 }
 
+/**
+ * "Run again" on a finished run, as the server's rerun: a new run with its steps, settings and assets (assets deleted
+ * since are left out; a new-or-changed run checks what changed since). Needs [Permission.CHECK].
+ */
+class RerunUseCase @Inject constructor(private val repo: ValidationRunRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(propertyId: String, id: String): ValRun {
+        guard.requireOnline(Permission.CHECK)
+        return repo.rerun(propertyId, id)
+    }
+}
+
 /** Discards a run that hasn't started. Reviewers only. */
 class DiscardRunUseCase @Inject constructor(private val repo: ValidationRunRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(propertyId: String, id: String) {
@@ -134,5 +145,6 @@ class ValidationUseCases @Inject constructor(
     val runs: GetValidationRunsUseCase,
     val start: StartValidationRunUseCase,
     val startReady: StartReadyRunUseCase,
+    val rerun: RerunUseCase,
     val discard: DiscardRunUseCase,
 )

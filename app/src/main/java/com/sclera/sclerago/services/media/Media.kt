@@ -8,6 +8,7 @@ import android.graphics.Matrix
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -85,6 +86,8 @@ object MediaLoader {
         val key = "$uri@$maxPx"
         cache.get(key)?.let { return@withContext it.asImageBitmap() }
         val bmp = runCatching { if (video) videoFrame(context, Uri.parse(uri), maxPx) else image(context, Uri.parse(uri), maxPx) }
+            // Says why it failed (the kind of error only: no address or file name).
+            .onFailure { Log.w(TAG, "Picture could not be loaded: ${it.javaClass.simpleName}") }
             .getOrNull() ?: return@withContext null
         cache.put(key, bmp)
         bmp.asImageBitmap()
@@ -148,18 +151,48 @@ object MediaLoader {
         else if (uri.scheme == "http") null
         else context.contentResolver.openInputStream(uri)
 
+    /**
+     * A photo at most [maxPx] on its longer side, turned upright. It is read once and decoded from that copy: a photo
+     * kept in the offline database comes through a pipe that can't be read again or rewound, so its size, picture and
+     * rotation can't each open it.
+     */
     private fun image(context: Context, uri: Uri, maxPx: Int): Bitmap? {
+        val bytes = open(context, uri)?.use { readAtMost(it, MAX_DECODE_BYTES) }
+        if (bytes == null) {
+            Log.w(TAG, "Photo could not be read (missing, or over ${MAX_DECODE_BYTES / (1024 * 1024)} MB)")
+            return null
+        }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        open(context, uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         var sample = 1
         while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxPx) sample *= 2
-        val bmp = open(context, uri)?.use {
-            BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
-        } ?: return null
-        val rotation = runCatching { open(context, uri)?.use { ExifInterface(it).rotationDegrees } ?: 0 }.getOrDefault(0)
+        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+        if (bmp == null) {
+            Log.w(TAG, "Photo could not be decoded (${bytes.size} bytes, ${bounds.outWidth}x${bounds.outHeight})")
+            return null
+        }
+        val rotation = runCatching { ExifInterface(bytes.inputStream()).rotationDegrees }.getOrDefault(0)
         return if (rotation == 0) bmp
         else Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, Matrix().apply { postRotate(rotation.toFloat()) }, true)
     }
+
+    /** All of [input], or null when it is longer than [max] bytes. */
+    private fun readAtMost(input: java.io.InputStream, max: Long): ByteArray? {
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(64 * 1024)
+        while (true) {
+            val n = input.read(buf)
+            if (n < 0) break
+            if (out.size() + n > max) return null
+            out.write(buf, 0, n)
+        }
+        return out.toByteArray()
+    }
+
+    private const val TAG = "MediaLoader"
+
+    /** The largest photo read to show (a camera photo is a few MB). */
+    private const val MAX_DECODE_BYTES = 40L * 1024 * 1024
 
     private fun videoFrame(context: Context, uri: Uri, maxPx: Int): Bitmap? {
         val r = MediaMetadataRetriever()

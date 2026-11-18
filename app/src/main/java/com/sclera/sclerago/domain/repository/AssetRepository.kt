@@ -22,14 +22,15 @@ interface AssetRepository {
     /**
      * Moves assets to [status]. Submitting follows the server's rule: an asset with a mandatory field empty, or fewer
      * photos of a kind than [photoRules] ask for, becomes an exception when [allowExceptions] and stays as it is
-     * otherwise; one already submitted or validated is left alone.
+     * otherwise; one already submitted or validated is left alone. Returns the drafted assets submitting left in draft
+     * because they are incomplete (none when [allowExceptions] or when not submitting).
      */
     suspend fun setStatus(
         ids: Collection<String>,
         status: Status,
         allowExceptions: Boolean = true,
         photoRules: List<PhotoRule> = emptyList(),
-    )
+    ): Set<String>
 
     /**
      * Keeps the values from an asset's details form. [sources] (form field key -> web page) are where applied AI

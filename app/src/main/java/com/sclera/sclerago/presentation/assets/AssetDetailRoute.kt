@@ -124,7 +124,7 @@ fun AssetDetailRoute(
         onAutofill = vm::openAi,
         ai = AiDialogActions(
             onClose = vm::closeAi, onIdentity = vm::editAiIdentity, onLookUp = vm::lookUp, onChangeModel = vm::changeAiModel,
-            onToggle = vm::toggleAiPick, onEdit = vm::editAiPick, onApply = vm::applyAi,
+            onToggle = vm::toggleAiPick, onToggleType = vm::toggleAiType, onEdit = vm::editAiPick, onApply = vm::applyAi,
         ),
         onMic = voice::toggle,
         voice = VoiceFillActions(
@@ -144,16 +144,20 @@ fun AssetDetailRoute(
         onUpdateComment = vm::updateComment,
         onRemoveComment = vm::removeComment,
         onRevalidate = vm::revalidate,
-        onRemoveWebPage = vm::removeWebPage,
+        onRemoveDocument = vm::removeDocument,
         onDownloadMedia = { m ->
             downloading = m
             mediaSave.launch(m)
         },
         onRemoveMedia = vm::removeMedia,
         onSuggestType = vm::openClassify,
+        onOffline = { onNotice(UiText.Res(it.message)) },
+        jacs = JacsActions(
+            onOpen = vm::openJacs,
+            picker = JacsPickerActions(onQuery = vm::searchJacs, onMore = vm::moreJacs, onPick = vm::pickJacs, onClose = vm::closeJacs),
+        ),
         classify = ClassifyActions(
-            onClose = vm::closeClassify, onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,
-            onToggleReading = vm::toggleClassifyReading, onApply = vm::applyClassify,
+            onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode, onToggleReading = vm::toggleClassifyReading,
         ),
         onAddPhoto = { kind ->
             // What the camera takes goes to [kind]'s card (Other photos for none); photo, video and gallery are in the camera.

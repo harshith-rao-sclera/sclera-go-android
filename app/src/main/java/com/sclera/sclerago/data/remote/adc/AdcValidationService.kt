@@ -64,6 +64,10 @@ interface AdcValidationService {
     @POST("properties/{p}/validation-jobs/{job}/run")
     suspend fun runReady(@Path("p") property: String, @Path("job") job: String): Response<ResponseBody>
 
+    /** A finished run again: a new run with the same steps, settings and assets. */
+    @POST("properties/{p}/validation-jobs/{job}/rerun")
+    suspend fun rerun(@Path("p") property: String, @Path("job") job: String): Response<ResponseBody>
+
     @DELETE("properties/{p}/validation-jobs/{job}")
     suspend fun discard(@Path("p") property: String, @Path("job") job: String): Response<ResponseBody>
 

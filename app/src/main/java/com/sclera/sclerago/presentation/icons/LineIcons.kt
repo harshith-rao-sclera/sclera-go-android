@@ -83,6 +83,12 @@ object Icons {
         s("M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"),
         sf(circle(12f, 19.5f, 1.2f)),
     )
+    /** No connection: the Wi-Fi arcs struck through (online-only buttons and pages while offline). */
+    val NoWifi = Ico(
+        s("M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"),
+        sf(circle(12f, 19.5f, 1.2f)),
+        s("M3 3l18 18"),
+    )
     val AccessPoint = Ico(
         s(rect(3f, 14f, 18f, 6f, 2f)), s("M7 17h.01M11 17h.01"),
         s("M8.5 10.5a5 5 0 0 1 7 0M5.5 7.5a9.5 9.5 0 0 1 13 0"),
@@ -163,6 +169,8 @@ object Icons {
     val Upload = Ico(s("M12 15V4M7 9l5-5 5 5"), s("M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"))
     val Trash = Ico(s("M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"))
     val Mic = Ico(s(rect(9f, 3f, 6f, 11f, 3f)), s("M5 11a7 7 0 0 0 14 0M12 18v3"))
+    /** Stop recording (a filled square). */
+    val Stop = Ico(f(rect(6.5f, 6.5f, 11f, 11f, 2.5f)))
     /** Switch to another property (two opposite arrows). */
     val Switch = Ico(s("M4 8h14M14 4l4 4-4 4"), s("M20 16H6M10 12l-4 4 4 4"))
     /** A group of users (what its people can open and do). */

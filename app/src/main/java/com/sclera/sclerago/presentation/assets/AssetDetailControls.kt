@@ -28,6 +28,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -50,12 +54,14 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.formatDayAndTime
 import com.sclera.sclerago.presentation.components.Capsule
+import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.model.chipBd
 import com.sclera.sclerago.presentation.model.chipBg
 import com.sclera.sclerago.presentation.model.chipFg
@@ -63,6 +69,7 @@ import com.sclera.sclerago.presentation.model.labelRes
 import com.sclera.sclerago.presentation.model.viaRes
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import kotlinx.coroutines.delay
 
 /** The Save / Submit card at the end of an asset form. */
 @Composable
@@ -73,6 +80,27 @@ fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         content = content,
     )
+}
+
+/**
+ * End of the form of an asset assigned to someone else: read-only for anyone but an admin (the server's check_editable,
+ * the web's lock note). [onValidate] (null hides it) runs checks on it, which changes nothing on the asset.
+ */
+@Composable
+fun NotAssignedCard(modifier: Modifier, onValidate: (() -> Unit)? = null) {
+    Column(
+        modifier.fillMaxWidth().clip(r(14)).background(C.WarnRow).border(1.dp, C.Border, r(14)).padding(10.dp)
+            .testTag(DetailTags.NOT_ASSIGNED),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(38.dp).clip(r(10)).background(C.WarnRow), contentAlignment = Alignment.Center) {
+                LineIcon(Icons.Lock, 20.dp, C.Orange, 2.2f)
+            }
+            Txt(stringResource(R.string.asset_lock_not_assigned), 12, 500, C.Orange, maxLines = 3, modifier = Modifier.weight(1f))
+        }
+        onValidate?.let { Pill(stringResource(R.string.action_validate), it, Modifier.fillMaxWidth(), height = 48.dp, size = 14, weight = 700) }
+    }
 }
 
 /**
@@ -201,7 +229,10 @@ fun DetailTab(
     }
 }
 
-/** The two floating buttons: AI fill above, voice below, with a short message beside the active one ([heard]: the words heard so far). */
+/**
+ * The two floating buttons: AI fill above, voice below, with a short message beside the active one ([heard]: the words
+ * heard so far). Both need the server: [offline], each is dimmed with the offline badge, and a tap says why in its bubble.
+ */
 @Composable
 fun FormFloatingButtons(
     aiBusy: Boolean,
@@ -211,12 +242,34 @@ fun FormFloatingButtons(
     onAi: () -> Unit,
     onMic: () -> Unit,
     modifier: Modifier = Modifier,
+    /** What was said is being read by the AI. */
+    reading: Boolean = false,
+    offline: Boolean = false,
 ) {
+    // Which button's offline reason shows in its bubble, for a few seconds after a tap.
+    var why by remember { mutableStateOf<OnlineOnly?>(null) }
+    LaunchedEffect(why, offline) {
+        if (!offline) why = null
+        if (why != null) {
+            delay(OFFLINE_TIP_MS)
+            why = null
+        }
+    }
     Column(modifier.padding(end = 16.dp, bottom = 16.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AiFillButton(aiBusy, aiNotice, onAi)
-        MicButton(listening, heard, onMic)
+        // A look-up or recording already running carries on (and can be stopped) whatever the connection.
+        val aiOffline = offline && !aiBusy
+        val aiWhy = if (why == OnlineOnly.AI_SUGGESTIONS) UiText.Res(OnlineOnly.AI_SUGGESTIONS.message) else aiNotice
+        AiFillButton(aiBusy, aiWhy, onAi, aiOffline, onBlocked = { why = OnlineOnly.AI_SUGGESTIONS })
+        MicButton(
+            listening, reading, heard, onMic, offline && !listening && !reading,
+            why = if (why == OnlineOnly.VOICE_FILL) stringResource(OnlineOnly.VOICE_FILL.message) else null,
+            onBlocked = { why = OnlineOnly.VOICE_FILL },
+        )
     }
 }
+
+/** How long a floating button's offline reason stays in its bubble. */
+private const val OFFLINE_TIP_MS = 4_000L
 
 @Composable
 private fun Bubble(text: String, maxLines: Int) {
@@ -230,42 +283,65 @@ private fun Bubble(text: String, maxLines: Int) {
 
 /** Small floating button above the mic: fills empty fields with AI suggestions. */
 @Composable
-private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit) {
+private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit, offline: Boolean, onBlocked: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         val tip = if (busy) stringResource(R.string.detail_ai_busy) else notice?.asString()
-        if (tip != null) Bubble(tip, 2)
+        if (tip != null) Bubble(tip, if (offline) 4 else 2)
         val inf = rememberInfiniteTransition(label = "ai")
         val spin by inf.animateFloat(0f, 360f, infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Restart), label = "spin")
         val description = stringResource(R.string.detail_ai_fill)
-        Box(
-            Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().clip(CircleShape).background(C.Surface).border(1.dp, C.Border2, CircleShape)
-                .semantics { contentDescription = description }.clickable(onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.rotate(spin) else Modifier) }
+        OfflineGate(offline, onBlocked, badgeOffset = 2.dp) {
+            Box(
+                Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().clip(CircleShape).background(C.Surface).border(1.dp, C.Border2, CircleShape)
+                    .semantics { contentDescription = description }.clickable(onClick = onClick),
+                contentAlignment = Alignment.Center,
+            ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.rotate(spin) else Modifier) }
+        }
     }
 }
 
+/**
+ * The voice button, like play and stop: tap to start recording, talk about the asset as long as needed (pauses don't
+ * end it), tap ■ to stop. Then the AI reads it ([reading]) and the voice fill sheet shows what it found.
+ */
 @Composable
-private fun MicButton(listening: Boolean, heard: String, onClick: () -> Unit) {
+private fun MicButton(
+    listening: Boolean,
+    reading: Boolean,
+    heard: String,
+    onClick: () -> Unit,
+    offline: Boolean,
+    why: String?,
+    onBlocked: () -> Unit,
+) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (listening) Bubble(heard.ifBlank { stringResource(R.string.detail_listening) }, 3)
-        val description = stringResource(R.string.detail_voice_fill)
-        Box(contentAlignment = Alignment.Center) {
-            if (listening) {
-                val inf = rememberInfiniteTransition(label = "mic")
-                val p by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "p")
-                Canvas(Modifier.size(54.dp)) {
-                    listOf(p, (p + 0.5f) % 1f).forEach { t ->
-                        drawCircle(C.Yellow.copy(alpha = 0.8f * (1f - t)), (27f + 18f * t).dp.toPx(), style = Stroke(2.dp.toPx()))
+        when {
+            why != null -> Bubble(why, 4)
+            reading -> Bubble(stringResource(R.string.voice_reading), 2)
+            listening -> Bubble(heard.ifBlank { stringResource(R.string.voice_listening) }, 3)
+        }
+        val description = stringResource(if (listening) R.string.voice_stop else R.string.detail_voice_fill)
+        OfflineGate(offline, onBlocked, badgeOffset = 2.dp) {
+            Box(contentAlignment = Alignment.Center) {
+                if (listening) {
+                    val inf = rememberInfiniteTransition(label = "mic")
+                    val p by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "p")
+                    Canvas(Modifier.size(54.dp)) {
+                        listOf(p, (p + 0.5f) % 1f).forEach { t ->
+                            drawCircle(C.Red.copy(alpha = 0.8f * (1f - t)), (27f + 18f * t).dp.toPx(), style = Stroke(2.dp.toPx()))
+                        }
                     }
                 }
+                Box(
+                    // Recording: a stop square to tap when done. Reading: dimmed and not tappable until the sheet shows.
+                    Modifier.size(54.dp).testTag(FloatingTags.MIC).alpha(if (reading) 0.5f else 1f).fabShadow().clip(CircleShape)
+                        .background(if (listening) C.Red else C.Yellow)
+                        .semantics { contentDescription = description }.clickable(enabled = !reading, onClick = onClick),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (listening) LineIcon(Icons.Stop, 24.dp, C.White, 2.2f) else LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f)
+                }
             }
-            Box(
-                // Faded while listening, so the mic shows it is on.
-                Modifier.size(54.dp).testTag(FloatingTags.MIC).alpha(if (listening) 0.6f else 1f).fabShadow().clip(CircleShape).background(C.Yellow)
-                    .semantics { contentDescription = description }.clickable(onClick = onClick),
-                contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f) }
         }
     }
 }
