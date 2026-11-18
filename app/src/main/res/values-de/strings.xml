@@ -272,7 +272,6 @@
     <string name="val_quality">Datenqualität %1$d/100</string>
     <string name="val_every_step_from">Alle Schritte aus %1$d Validierungen, jeweils mit dem neuesten Ergebnis: %2$s.</string>
     <string name="val_starts_here">Beginnt hier</string>
-    <string name="val_suggested">Vorschlag: %1$s</string>
     <string name="val_no_issues">Für diesen Schritt ist nichts aufgeführt.</string>
     <string name="val_run_every">Alle Schritte ausführen</string>
     <string name="val_hint_from">Die Schritte 1–%1$d bleiben bestanden; die Prüfung beginnt erneut bei %2$s.</string>
@@ -311,7 +310,6 @@
     <string name="memo_not_on_device">Diese Notiz ist noch nicht auf diesem Telefon und kann offline nicht abgespielt werden.</string>
     <string name="media_tag_file">Datei</string>
     <string name="ai_title">KI-Vorschläge</string>
-    <string name="ai_subtitle">Füllt die leeren Felder von %1$s anhand der veröffentlichten Spezifikationen des Modells. Erst beim Übernehmen wird etwas gespeichert.</string>
     <string name="ai_identify_lead">Spezifikationen werden nach Hersteller und Modell gesucht. Geben Sie das Modell (und, falls bekannt, den Hersteller) ein, um sie zu finden.</string>
     <string name="ai_make_label">Hersteller</string>
     <string name="ai_model_label">Modell</string>
@@ -327,8 +325,6 @@
     <string name="ai_step_match">Werte werden den Feldern dieses Assets zugeordnet</string>
     <string name="ai_wait_short">Dabei wird das Web durchsucht, das kann bis zu einer Minute dauern.</string>
     <string name="ai_wait_long">Die Suche läuft noch. Manche Modelle sind schwerer zu finden.</string>
-    <string name="ai_close_note">Schließen beendet die Suche nicht.</string>
-    <string name="ai_close_keep">Schließen und weiterarbeiten</string>
     <string name="ai_try_again">Erneut versuchen</string>
     <string name="ai_found">%1$s gefunden. %2$s</string>
     <string name="ai_nothing_else">Für dieses Asset können veröffentlichte Spezifikationen nichts weiter ausfüllen. Übernehmen Sie, um Ihre Eingaben zu speichern.</string>

@@ -268,7 +268,6 @@
     <string name="val_quality">คุณภาพข้อมูล %1$d/100</string>
     <string name="val_every_step_from">ทุกขั้นตอนจากการตรวจสอบ %1$d ครั้ง แต่ละขั้นตอนแสดงผลล่าสุด: %2$s</string>
     <string name="val_starts_here">เริ่มที่นี่</string>
-    <string name="val_suggested">คำแนะนำ: %1$s</string>
     <string name="val_no_issues">ไม่มีรายการสำหรับขั้นตอนนี้</string>
     <string name="val_run_every">เรียกใช้ทุกขั้นตอน</string>
     <string name="val_hint_from">ขั้นตอนที่ 1–%1$d ยังคงผ่าน การตรวจสอบจะเริ่มใหม่ที่ %2$s</string>
@@ -307,7 +306,6 @@
     <string name="memo_not_on_device">เมโมนี้ยังไม่อยู่ในโทรศัพท์เครื่องนี้ จึงเล่นแบบออฟไลน์ไม่ได้</string>
     <string name="media_tag_file">ไฟล์</string>
     <string name="ai_title">คำแนะนำจาก AI</string>
-    <string name="ai_subtitle">กรอกช่องที่ว่างของ %1$s จากข้อมูลจำเพาะที่เผยแพร่ของรุ่นนี้ จะไม่มีการบันทึกจนกว่าคุณจะนำไปใช้</string>
     <string name="ai_identify_lead">ข้อมูลจำเพาะจะค้นหาตามผู้ผลิตและรุ่น เพิ่มรุ่น (และผู้ผลิต หากทราบ) เพื่อค้นหา</string>
     <string name="ai_make_label">ผู้ผลิต</string>
     <string name="ai_model_label">รุ่น</string>
@@ -323,8 +321,6 @@
     <string name="ai_step_match">กำลังจับคู่ค่ากับช่องของสินทรัพย์นี้</string>
     <string name="ai_wait_short">การค้นหานี้ใช้เว็บ จึงอาจใช้เวลาถึงหนึ่งนาที</string>
     <string name="ai_wait_long">ยังค้นหาอยู่ บางรุ่นใช้เวลาค้นหานานกว่า</string>
-    <string name="ai_close_note">การปิดจะไม่หยุดการค้นหา</string>
-    <string name="ai_close_keep">ปิดและทำงานต่อ</string>
     <string name="ai_try_again">ลองอีกครั้ง</string>
     <string name="ai_found">พบ %1$s แล้ว %2$s</string>
     <string name="ai_nothing_else">ข้อมูลจำเพาะที่เผยแพร่ไม่มีข้อมูลอื่นที่จะกรอกให้สินทรัพย์นี้ได้อีก นำไปใช้เพื่อบันทึกสิ่งที่คุณพิมพ์</string>

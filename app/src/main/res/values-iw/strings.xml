@@ -280,7 +280,6 @@
     <string name="val_quality">איכות נתונים %1$d/100</string>
     <string name="val_every_step_from">כל השלבים מתוך %1$d אימותים, כל אחד עם התוצאה האחרונה שלו: %2$s.</string>
     <string name="val_starts_here">מתחיל כאן</string>
-    <string name="val_suggested">הצעה: %1$s</string>
     <string name="val_no_issues">אין פריטים לשלב הזה.</string>
     <string name="val_run_every">הרצת כל השלבים</string>
     <string name="val_hint_from">שלבים 1–%1$d נשארים במצב עבר; הבדיקה מתחילה מחדש בשלב %2$s.</string>
@@ -319,7 +318,6 @@
     <string name="memo_not_on_device">התזכורת הזו עדיין לא נמצאת בטלפון הזה, ולכן אי אפשר להפעיל אותה במצב לא מקוון.</string>
     <string name="media_tag_file">קובץ</string>
     <string name="ai_title">הצעות AI</string>
-    <string name="ai_subtitle">ממלא את השדות הריקים של %1$s לפי המפרט שפורסם לדגם. שום דבר לא נשמר עד שתחילו את ההצעות.</string>
     <string name="ai_identify_lead">המפרט מחופש לפי יצרן ודגם. הוסיפו את הדגם (ואת היצרן, אם הוא ידוע לכם) כדי למצוא אותו.</string>
     <string name="ai_make_label">יצרן</string>
     <string name="ai_model_label">דגם</string>
@@ -335,8 +333,6 @@
     <string name="ai_step_match">התאמת ערכים לשדות של הנכס הזה</string>
     <string name="ai_wait_short">החיפוש מתבצע באינטרנט, ולכן הוא עשוי להימשך עד דקה.</string>
     <string name="ai_wait_long">עדיין מחפש. מציאת חלק מהדגמים לוקחת יותר זמן.</string>
-    <string name="ai_close_note">הסגירה לא עוצרת את החיפוש.</string>
-    <string name="ai_close_keep">סגירה והמשך עבודה</string>
     <string name="ai_try_again">ניסיון חוזר</string>
     <string name="ai_found">נמצא %1$s. %2$s</string>
     <string name="ai_nothing_else">אין עוד מה שהמפרט שפורסם יכול למלא בנכס הזה. החילו כדי לשמור את מה שהקלדתם.</string>

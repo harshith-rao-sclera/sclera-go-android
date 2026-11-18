@@ -58,7 +58,6 @@ import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.PhotoKind
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -101,15 +100,15 @@ data class DetailTabItem(val kind: DetailTabKind, val fails: Int? = null)
 
 /**
  * The tabs [state] shows, worked out from the asset as the web's asset panel does: Info, Validation,
- * Documents, Media, Comments and History (the web's tabs). A new asset isn't saved yet, so it has no validation, comments
- * or history: Info, Documents and Media (the files picked for it).
+ * Documents, Media, Comments and History (the web's tabs). A new asset isn't saved yet, so it has no validation,
+ * documents, comments or history: Info and Media (the photos, videos and files picked for it).
  */
 fun detailTabs(state: AssetDetailState): List<DetailTabItem> {
     if (state.asset == null) return emptyList()
     return buildList {
         add(DetailTabItem(DetailTabKind.INFO))
         if (!state.isNew) add(DetailTabItem(DetailTabKind.VALIDATION))
-        add(DetailTabItem(DetailTabKind.DOCUMENTS))
+        if (!state.isNew) add(DetailTabItem(DetailTabKind.DOCUMENTS))
         add(DetailTabItem(DetailTabKind.MEDIA))
         if (!state.isNew) {
             add(DetailTabItem(DetailTabKind.COMMENTS))
@@ -248,9 +247,9 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
 
 /** "Sorting photos…" with a small spinner, read out as one line. */
 @Composable
-private fun SortingNote() {
+private fun SortingNote(modifier: Modifier = Modifier) {
     Row(
-        Modifier.fillMaxWidth().testTag("media-sorting").background(C.YTintBg, r(12)).padding(horizontal = 12.dp, vertical = 10.dp)
+        modifier.fillMaxWidth().testTag("media-sorting").background(C.YTintBg, r(12)).padding(horizontal = 12.dp, vertical = 10.dp)
             .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -308,32 +307,17 @@ private fun sizeText(bytes: Long): String =
     if (bytes >= 1024 * 1024) "%.1f MB".format(bytes / (1024f * 1024f)) else "${(bytes / 1024).coerceAtLeast(1)} KB"
 
 /**
- * The Media tab: "Photos", with a card per kind of photo the property's photo rules count (how many it has against what
- * is needed or allowed, and its photos), one for the other photos, then "Videos", then "Voice memos and files". Tapping a
- * photo or file opens it. Adding is done with the floating buttons ([MediaFabs]).
+ * The Media tab, edge to edge like Info: a card per kind of photo the property's photo rules count (how many it has against
+ * what is needed or allowed, and its photos), one for the other photos, then "Videos", then "Voice memos and files". Tapping
+ * a photo or file opens it. Adding is done with the floating buttons ([MediaFabs]).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MediaTab(media: List<Media>, rules: List<PhotoRule>, onOpen: (Int) -> Unit, sorting: Boolean = false) {
     // Photos just added are read on the device and sorted into their kinds before they show.
-    if (sorting) SortingNote()
+    if (sorting) SortingNote(Modifier.padding(horizontal = 12.dp))
     val indexed = media.withIndex().toList()
     val photos = indexed.filter { (_, m) -> !m.video && !m.isDoc && !m.audio }
-    val locale = LocalConfiguration.current.locales[0]
-    // "Still needs 1 more nameplate photo, 2 more asset photos"
-    val short = rules.mapNotNull { r ->
-        val need = r.min - photos.count { it.value.category == r.kind }
-        if (need > 0) pluralStringResource(R.plurals.media_need_more, need, need, stringResource(r.kind.nameRes()).lowercase(locale)) else null
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Txt(stringResource(R.string.media_photos), 15, 700)
-        if (short.isNotEmpty()) {
-            Txt(
-                stringResource(R.string.media_still_needs, short.joinToString(", ")), 11, 700, C.Orange,
-                Modifier.weight(1f, fill = false).background(C.WarnRow, Capsule).padding(horizontal = 8.dp, vertical = 3.dp), maxLines = 2,
-            )
-        }
-    }
     rules.forEach { r ->
         val mine = photos.filter { it.value.category == r.kind }
         if (r.max == 0 && mine.isEmpty()) return@forEach
@@ -353,16 +337,30 @@ fun MediaTab(media: List<Media>, rules: List<PhotoRule>, onOpen: (Int) -> Unit, 
     FileList(stringResource(R.string.media_memos_files), indexed.filter { (_, m) -> !m.video && (m.isDoc || m.audio) }, onOpen)
 }
 
-/** A titled list of videos, voice memos or files: each with its kind, name, size or length; tapping one opens it. */
+/**
+ * A titled card of videos, voice memos or files, looking like the photo cards: each with its kind, name, size or
+ * length; tapping one opens it.
+ */
 @Composable
 private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
-    Txt(title, 15, 700, modifier = Modifier.padding(top = 6.dp), maxLines = 2)
-    if (files.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
-    else Column(Modifier.fillMaxWidth().clip(r(12)).border(1.dp, C.Border, r(12))) {
+    Column(
+        // Full width, like the Info sections.
+        Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Txt(title, 14, 700, maxLines = 2)
+        if (files.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
+        else Column(Modifier.fillMaxWidth()) { FileRows(files, onOpen) }
+    }
+}
+
+/** The rows of a [FileList], split by lines. */
+@Composable
+private fun FileRows(files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
         files.forEachIndexed { n, (i, m) ->
             Row(
                 Modifier.fillMaxWidth().testTag(PhotoTags.tile(i)).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
-                    .clickable { onOpen(i) }.heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 8.dp),
+                    .clickable { onOpen(i) }.heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -381,7 +379,6 @@ private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (I
                 LineIcon(if (m.video || m.audio) Icons.Play else Icons.Download, 15.dp, C.Yellow, 2.2f)
             }
         }
-    }
 }
 
 /** One photo card: its name with a count chip, what it shows, and its photos (or "None yet."). */
@@ -397,7 +394,8 @@ private fun PhotoCard(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(horizontal = 10.dp, vertical = 8.dp),
+        // Full width, like the Info sections.
+        modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

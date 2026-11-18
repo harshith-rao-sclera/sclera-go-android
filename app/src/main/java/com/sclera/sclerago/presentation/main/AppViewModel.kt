@@ -6,9 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sclera.sclerago.domain.model.MAX_PHOTOS_PER_ASSET
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AuthState
@@ -29,9 +31,7 @@ import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
-import com.sclera.sclerago.domain.model.captureName
 import com.sclera.sclerago.domain.model.scanKey
-import com.sclera.sclerago.domain.model.timeLabel
 import com.sclera.sclerago.domain.usecase.asset.AssetPlace
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
@@ -83,7 +83,6 @@ data class UiState(
     val loc: LocFilter = LocFilter.ALL,
     val camOpen: Boolean = true,
     val fileOpen: Boolean = true,
-    val revCam: Boolean = false,
     val revFile: Boolean = false,
     val netMode: NetMode = NetMode.WIFI,
     /** Bluetooth / Network: true = "Scan" segment, false = "Assets" segment. */
@@ -260,11 +259,11 @@ class AppViewModel @Inject constructor(
 
     val detailAsset: Asset?
         get() = if (state.newAsset) {
-            val cam = state.newMedia.firstOrNull()
+            // No name to start with (not "Asset from photo …"): the AI reads one off the Camera tab's photo, or it is typed.
             Asset(
-                "", cam?.let { captureName(it) } ?: "", "", tgtLoc, tgtWhere,
+                "", "", "", tgtLoc, tgtWhere,
                 state.newSrc, Status.DRAFT, AssetType.GENERIC, currentProp,
-                media = state.newMedia,
+                media = state.newMedia, locationId = tgtPlace,
             )
         } else state.assetId?.let { id -> assets.firstOrNull { it.id == id } }
 
@@ -280,7 +279,7 @@ class AppViewModel @Inject constructor(
     }
 
     val showDetail: Boolean get() = detailAsset != null
-    val camSub: Boolean get() = !state.revCam && !state.camOpen
+    val camSub: Boolean get() = !state.camOpen
     val fileSub: Boolean get() = !state.revFile && !state.fileOpen
     val listy: Boolean
         get() = when (state.tab) {
@@ -363,37 +362,40 @@ class AppViewModel @Inject constructor(
     private val netNew: Int get() = netNewState.value
 
     // Camera: every selected capture becomes its own draft asset.
-    val camReview: List<ReviewItem>
-        get() = state.captures.filter { it.id in state.camSel }.map { m ->
-            ReviewItem(
-                id = m.id, name = captureName(m),
-                sub = if (m.video) UiText.Res(R.string.review_video_sub, listOf(m.durationText)) else UiText.Res(R.string.review_photo_sub),
-                ready = false, on = m.id !in state.revOff, media = m,
-            )
-        }
-
     // ---------- Actions ----------
 
     fun goTab(t: Tab) {
-        val from = state.tab
         set {
             var o = copy(tab = t, assetId = null, newAsset = false, newMedia = emptyList(), devPick = emptySet(), devAll = false, devSkip = emptySet())
-            if (t == Tab.CAMERA) o = o.copy(camOpen = true, revCam = false)
+            if (t == Tab.CAMERA) o = o.copy(camOpen = true)
             if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = true)
             // Scanning tabs always open on their Scan segment, not their asset list.
             if (t == Tab.BT) o = o.copy(btScan = true)
             if (t == Tab.NET) o = o.copy(netScan = true)
             o
         }
-        // Opening a scanning tab starts its scan. Leaving one stops the radio scans (they cost battery);
-        // a network sweep already under way is left to finish.
+        // Opening a scanning tab starts its scan; leaving it stops the scan (the watch in init, see [scanShown]).
         when (t) {
             Tab.BT -> scans.start(ScanService.Target.BLUETOOTH, auto = true)
             Tab.NET -> scans.start(netTarget, auto = true)
             else -> {}
         }
-        if (from == Tab.BT && t != Tab.BT) scans.stop(ScanService.Target.BLUETOOTH)
-        if (from == Tab.NET && t != Tab.NET) scans.stop(ScanService.Target.ACCESS_POINTS)
+    }
+
+    /**
+     * [t]'s scan list is on screen: its tab on its Scan segment (for the Network tab, in [t]'s mode), with no asset
+     * details or side-menu page over it. Anywhere else the scan is stopped.
+     */
+    /** Scans that were running when their list left the screen, to start again when it is back. */
+    private var interrupted = emptySet<ScanService.Target>()
+
+    private fun scanShown(t: ScanService.Target): Boolean {
+        val s = state
+        val uncovered = s.assetId == null && !s.newAsset && !s.valOpen && !s.cfgOpen && !s.intOpen && s.adminPage == null
+        return uncovered && when (t) {
+            ScanService.Target.BLUETOOTH -> s.tab == Tab.BT && s.btScan
+            ScanService.Target.NETWORK, ScanService.Target.ACCESS_POINTS -> s.tab == Tab.NET && s.netScan && t == netTarget
+        }
     }
 
     fun onPageSettled(page: Int) {
@@ -404,12 +406,16 @@ class AppViewModel @Inject constructor(
     /** The bottom tabs this property shows: Bluetooth / Network are hidden when their onboarding is off. */
     val navTabs: List<Tab> get() = Tab.entries - onboardingOff.value[currentProp].orEmpty().map { it.tab }.toSet()
 
-    /** Shake gesture: jump straight to the live camera from anywhere. */
-    fun openCameraByShake() {
+    /**
+     * Shake gesture: jump straight to the live camera, only from the Assets page itself (its list on screen, with no
+     * asset, sheet, preview, side menu or side-menu page over it). Anywhere else a shake does nothing. True when it opened.
+     */
+    fun openCameraByShake(): Boolean {
         val s = state
-        if (s.tab == Tab.CAMERA && s.camOpen && !s.revCam && s.sheet == Sheet.NONE && s.pv == null) return
-        goTab(Tab.CAMERA)
-        set { copy(sheet = Sheet.NONE, pv = null) }
+        val onAssetsPage = s.tab == Tab.ASSETS && listInteractive && s.pv == null && !s.menuOpen &&
+            !s.valOpen && !s.cfgOpen && !s.intOpen && s.adminPage == null
+        if (onAssetsPage) goTab(Tab.CAMERA)
+        return onAssetsPage
     }
 
     fun tapLocTab(f: LocFilter) {
@@ -480,8 +486,9 @@ class AppViewModel @Inject constructor(
     fun pickLoc(r: LocPick) {
         val v = locValue(r)
         val detail = detailAsset
-        if (state.sheetFor == SheetFor.ASSET && detail != null && detail.id.isNotEmpty()) {
-            // Not written yet: the details keep it with their other changes until Save.
+        if (state.sheetFor == SheetFor.ASSET && detail != null) {
+            // Not written yet: the details keep it with their other changes until Save (or, for a new asset, until
+            // it is created).
             set { copy(sheet = Sheet.NONE, detailPlace = v) }
         } else set {
             copy(
@@ -614,11 +621,13 @@ class AppViewModel @Inject constructor(
         values: Map<String, String> = emptyMap(),
         submit: Boolean = false,
         exception: Boolean = false,
+        picked: LocValue? = null,
     ): CreateAssetUseCase.Via {
         val s = state
         // The form is for camera shots and hand-made assets; scanned devices are added directly (addDevices).
         val via = assetUseCases.create.viaFor(s.newMedia, null)
-        val place = AssetPlace(currentProp, tgtLoc, tgtWhere, tgtPlace)
+        // The place picked in the form, else where the location filter put it.
+        val place = picked?.let { AssetPlace(currentProp, it.loc, it.where, it.placeId) } ?: AssetPlace(currentProp, tgtLoc, tgtWhere, tgtPlace)
         val savedAs = UiText.Res(
             when {
                 !submit -> R.string.asset_added_draft
@@ -659,14 +668,36 @@ class AppViewModel @Inject constructor(
     // ---------- Camera ----------
 
     fun cancelCam() = set { copy(camOpen = false) }
-    fun openCam() = set { copy(camOpen = true, revCam = false) }
-    fun toggleStrip(id: String) = set { copy(camSel = if (id in camSel) camSel - id else camSel + id) }
-    fun toCamReview() = set { copy(revCam = true, revOff = emptySet()) }
-    fun setVideoMode(v: Boolean) = set { copy(videoMode = v) }
-    fun backToCam() = set { copy(revCam = false, camOpen = true) }
+    fun openCam() = set { copy(camOpen = true) }
+    /** Ticks or unticks a shot in the strip; past the photos one asset may have, it says so instead. */
+    fun toggleStrip(id: String) {
+        val s = state
+        if (id in s.camSel) return set { copy(camSel = camSel - id) }
+        val m = s.captures.firstOrNull { it.id == id } ?: return
+        if (!m.video && tickedPhotos() >= MAX_PHOTOS_PER_ASSET) return flash(UiText.Res(R.string.camera_asset_full, listOf(MAX_PHOTOS_PER_ASSET)))
+        set { copy(camSel = camSel + id) }
+    }
 
-    /** A photo/video from the in-app camera: straight to the new asset's details, with the shot attached. */
-    fun addCapture(m: Media) = openNewWithMedia(listOf(m))
+    private fun tickedPhotos(): Int = state.captures.count { it.id in state.camSel && !it.video }
+    fun setVideoMode(v: Boolean) = set { copy(videoMode = v) }
+
+    /**
+     * A photo/video from the in-app camera joins the strip, ticked while one asset still has room for it, and the camera
+     * stays open for more; Done ([doneCapturing]) makes one asset of the ticked ones.
+     */
+    fun addCapture(m: Media) {
+        val room = m.video || tickedPhotos() < MAX_PHOTOS_PER_ASSET
+        set { copy(captures = captures + m, camSel = if (room) camSel + m.id else camSel) }
+        if (!room) flash(UiText.Res(R.string.camera_asset_full, listOf(MAX_PHOTOS_PER_ASSET)))
+    }
+
+    /** Done in the camera: the ticked shots open one new asset's details (sorted into their kinds, then read by the AI). */
+    fun doneCapturing() {
+        val picked = state.captures.filter { it.id in state.camSel }
+        if (picked.isEmpty()) return
+        set { copy(captures = captures.filter { it.id !in camSel }, camSel = emptySet(), camOpen = false) }
+        openNewWithMedia(picked)
+    }
 
     /** Gallery button in the camera: the picked photos/videos open one new asset's details. */
     fun addPicked(uris: List<Uri>) {
@@ -676,44 +707,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun discardCam() {
-        fileUseCases.deleteOwned(state.captures.filter { it.id in state.camSel })
-        set {
-            copy(
-                revCam = false, camOpen = true, captures = captures.filter { it.id !in camSel },
-                camSel = emptySet(), revOff = emptySet(),
-            )
-        }
-    }
-
     fun toggleRev(id: String) = set { copy(revOff = if (id in revOff) revOff - id else revOff + id) }
-
-    fun onboardCam() {
-        val picked = camReview.filter { it.on }
-        if (picked.isEmpty()) return
-        val prop = currentProp
-        val loc = tgtLoc
-        val where = tgtWhere
-        val place = tgtPlace
-        val used = picked.map { it.id }.toSet()
-        set {
-            copy(
-                revOff = emptySet(), revCam = false, camOpen = false, camSel = camSel - used,
-                captures = captures.filter { it.id !in used },
-            )
-        }
-        write {
-            val made = assetUseCases.add(picked.size) { id, i ->
-                val r = picked[i]
-                val m = r.media!!
-                Asset(
-                    id, r.name, (if (m.video) "Video ${m.durationText}" else "Photo") + " · captured " + timeLabel(m.createdAt).take(5),
-                    loc, where, Source.CAMERA, Status.DRAFT, AssetType.GENERIC, prop, listOf(m), locationId = place,
-                )
-            }
-            flash(UiText.Plural(R.plurals.assets_added_details, made.size))
-        }
-    }
 
     // ---------- Files ----------
 
@@ -768,6 +762,25 @@ class AppViewModel @Inject constructor(
                 if (state.tab !in navTabs) goTab(Tab.ASSETS)
             }
         }
+        // Bluetooth and network scans (the network sweep included) run only while their scan list is on screen:
+        // another tab, the tab's Assets list, an asset's details or a side-menu page stops them (they cost battery).
+        // A scan stopped that way starts again when its list is back on screen; one the user paused stays paused.
+        viewModelScope.launch {
+            snapshotFlow { ScanService.Target.entries.filter(::scanShown).toSet() }.collect { shown ->
+                ScanService.Target.entries.forEach { t ->
+                    when {
+                        t in shown && t in interrupted -> {
+                            interrupted = interrupted - t
+                            scans.start(t, auto = true)
+                        }
+                        t !in shown && scans.isScanning(t) -> {
+                            interrupted = interrupted + t
+                            scans.stop(t)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -785,6 +798,7 @@ class AppViewModel @Inject constructor(
     private fun resetForNewSession() {
         toastJob?.cancel()
         ScanService.Target.entries.forEach { scans.stop(it) }
+        interrupted = emptySet()
         state = UiState()
     }
 

@@ -386,8 +386,18 @@
         <item quantity="one">%1$d step needs attention</item>
         <item quantity="other">%1$d steps need attention</item>
     </plurals>
-    <string name="val_suggested">Suggested: %1$s</string>
     <string name="val_no_issues">Nothing listed for this step.</string>
+    <string name="val_issue_type">Type</string>
+    <string name="val_issue_location">Location</string>
+    <string name="val_issue_duplicates">Duplicates</string>
+    <string name="val_issue_name">Name</string>
+    <string name="val_issue_empty">Empty</string>
+    <string name="val_issue_not_set">Not set</string>
+    <string name="val_issue_partial">Partial</string>
+    <string name="val_issue_change_to">change to</string>
+    <string name="val_issue_accepted">accepted</string>
+    <string name="val_issue_dismissed">dismissed</string>
+    <string name="val_issue_resolved">resolved</string>
     <string name="val_run_every">Run every step</string>
     <string name="val_hint_from">Steps 1–%1$d keep their pass; checking starts again at %2$s.</string>
     <string name="val_hint_step1">Step 1 keeps its pass; checking starts again at %1$s.</string>
@@ -426,7 +436,6 @@
     <string name="memo_not_on_device">This memo isn’t on this phone yet, so it can’t be played offline.</string>
     <string name="media_tag_file">File</string>
     <string name="ai_title">AI suggestions</string>
-    <string name="ai_subtitle">Fills %1$s\'s empty fields from the model\'s published specifications. Nothing is saved until you apply and save.</string>
     <string name="ai_identify_lead">Specs are looked up by manufacturer and model. Add the model (and the manufacturer, if you know it) to find them.</string>
     <string name="ai_make_label">Manufacturer</string>
     <string name="ai_model_label">Model</string>
@@ -442,8 +451,6 @@
     <string name="ai_step_match">Matching values to this asset\'s fields</string>
     <string name="ai_wait_short">This searches the web, so it can take up to a minute.</string>
     <string name="ai_wait_long">Still searching. Some models take longer to find.</string>
-    <string name="ai_close_note">Closing doesn\'t stop the search.</string>
-    <string name="ai_close_keep">Close and keep working</string>
     <string name="ai_try_again">Try again</string>
     <string name="ai_found">Found %1$s. %2$s</string>
     <string name="ai_nothing_else">There\'s nothing else published specs could fill for this asset. Apply to save what you typed.</string>
@@ -462,13 +469,11 @@
         <item quantity="one">%1$d field</item>
         <item quantity="other">%1$d fields</item>
     </plurals>
-    <string name="ai_also_on_photo">Also on the photo</string>
+    <string name="ai_also_on_photo">Also on the photos</string>
     <string name="ai_photo_note">%1$s: %2$s</string>
     <string name="ai_manuals_search">Looking for this model’s manuals on the manufacturer’s site. They’ll show in the asset’s documents.</string>
     <string name="ai_type_title">Type</string>
     <string name="ai_type_jacs">JACS code %1$s</string>
-    <string name="ai_reading_photo">Reading the asset’s photo, then looking up the rest…</string>
-    <string name="ai_saved_value">The photo disagrees. Saved: %1$s</string>
     <string name="ai_change_model">Change model</string>
     <string name="ai_look_again">Look up again</string>
     <string name="ai_need_model">Add the model first: specs are looked up by manufacturer and model.</string>
@@ -487,6 +492,8 @@
     <string name="detail_sub_type">Sub type</string>
     <string name="detail_jacs_code">JACS Code</string>
     <string name="classify_suggest">Suggest type</string>
+    <string name="classify_jacs_loading">Finding JACS codes for this type…</string>
+    <string name="classify_jacs_none">No JACS code suggested for this type.</string>
     <string name="jacs_title">JACS code</string>
     <string name="jacs_subtitle">Pick the asset’s code. Its type is set from it too.</string>
     <string name="jacs_search_hint">Search codes, titles or equipment</string>
@@ -503,13 +510,9 @@
         <item quantity="other">%1$d fields</item>
     </plurals>
     <string name="classify_none">None of this property\'s types fit. Pick the type from the list.</string>
-    <string name="classify_jacs_loading">Finding JACS codes for this type…</string>
-    <string name="classify_jacs_none">No JACS code suggested for this type.</string>
     <string name="classify_from_same_model">Same model</string>
     <string name="classify_from_ai">AI</string>
     <string name="classify_from_chosen">Picked</string>
-    <string name="classify_read_title">Use what the photo says</string>
-    <string name="classify_read_body">Fills an empty manufacturer and model: %1$s</string>
     <string name="classify_need_input">Add a photo, or type the name, manufacturer or model first.</string>
     <string name="classify_failed">Couldn\'t suggest a type. Try again.</string>
     <string name="detail_yes">Yes</string>

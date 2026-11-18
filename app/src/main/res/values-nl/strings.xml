@@ -272,7 +272,6 @@
     <string name="val_quality">Datakwaliteit %1$d/100</string>
     <string name="val_every_step_from">Alle stappen uit %1$d validaties, elk met het nieuwste resultaat: %2$s.</string>
     <string name="val_starts_here">Begint hier</string>
-    <string name="val_suggested">Voorstel: %1$s</string>
     <string name="val_no_issues">Niets vermeld voor deze stap.</string>
     <string name="val_run_every">Alle stappen uitvoeren</string>
     <string name="val_hint_from">Stappen 1–%1$d blijven geslaagd; de controle begint opnieuw bij %2$s.</string>
@@ -311,7 +310,6 @@
     <string name="memo_not_on_device">Deze memo staat nog niet op deze telefoon en kan dus niet offline worden afgespeeld.</string>
     <string name="media_tag_file">Bestand</string>
     <string name="ai_title">AI-suggesties</string>
-    <string name="ai_subtitle">Vult de lege velden van %1$s in op basis van de gepubliceerde specificaties van het model. Er wordt pas iets opgeslagen als je toepast.</string>
     <string name="ai_identify_lead">Specificaties worden gezocht op fabrikant en model. Voeg het model toe (en de fabrikant, als je die weet) om ze te vinden.</string>
     <string name="ai_make_label">Fabrikant</string>
     <string name="ai_model_label">Model</string>
@@ -327,8 +325,6 @@
     <string name="ai_step_match">Waarden koppelen aan de velden van dit object</string>
     <string name="ai_wait_short">Er wordt op internet gezocht, dus dit kan tot een minuut duren.</string>
     <string name="ai_wait_long">Nog steeds aan het zoeken. Sommige modellen zijn lastiger te vinden.</string>
-    <string name="ai_close_note">Sluiten stopt het zoeken niet.</string>
-    <string name="ai_close_keep">Sluiten en verder werken</string>
     <string name="ai_try_again">Opnieuw proberen</string>
     <string name="ai_found">%1$s gevonden. %2$s</string>
     <string name="ai_nothing_else">Gepubliceerde specificaties kunnen voor dit object niets anders invullen. Pas toe om op te slaan wat je hebt getypt.</string>

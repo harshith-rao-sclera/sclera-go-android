@@ -280,7 +280,6 @@
     <string name="val_quality">Якість даних %1$d/100</string>
     <string name="val_every_step_from">Усі кроки з перевірок (%1$d), у кожного — останній результат: %2$s.</string>
     <string name="val_starts_here">Починається тут</string>
-    <string name="val_suggested">Пропозиція: %1$s</string>
     <string name="val_no_issues">Для цього кроку нічого немає.</string>
     <string name="val_run_every">Виконати всі кроки</string>
     <string name="val_hint_from">Кроки 1–%1$d залишаються пройденими; перевірка почнеться знову з кроку «%2$s».</string>
@@ -319,7 +318,6 @@
     <string name="memo_not_on_device">Цієї нотатки ще немає на телефоні, тому її не можна відтворити офлайн.</string>
     <string name="media_tag_file">Файл</string>
     <string name="ai_title">Пропозиції ШІ</string>
-    <string name="ai_subtitle">Заповнює порожні поля активу %1$s за опублікованими характеристиками моделі. Нічого не зберігається, доки ви не застосуєте.</string>
     <string name="ai_identify_lead">Характеристики шукаються за виробником і моделлю. Щоб знайти їх, вкажіть модель (і виробника, якщо знаєте).</string>
     <string name="ai_make_label">Виробник</string>
     <string name="ai_model_label">Модель</string>
@@ -335,8 +333,6 @@
     <string name="ai_step_match">Зіставлення значень із полями цього активу</string>
     <string name="ai_wait_short">Пошук іде в інтернеті, тож може тривати до хвилини.</string>
     <string name="ai_wait_long">Пошук триває. Деякі моделі знайти складніше.</string>
-    <string name="ai_close_note">Закриття не зупиняє пошук.</string>
-    <string name="ai_close_keep">Закрити й продовжити роботу</string>
     <string name="ai_try_again">Повторити</string>
     <string name="ai_found">Знайдено: %1$s. %2$s</string>
     <string name="ai_nothing_else">Опубліковані характеристики більше нічого не можуть заповнити для цього активу. Застосуйте, щоб зберегти введене.</string>

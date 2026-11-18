@@ -272,7 +272,6 @@
     <string name="val_quality">Veri kalitesi %1$d/100</string>
     <string name="val_every_step_from">%1$d doğrulamadaki tüm adımlar, her biri en son sonucuyla: %2$s.</string>
     <string name="val_starts_here">Buradan başlar</string>
-    <string name="val_suggested">Öneri: %1$s</string>
     <string name="val_no_issues">Bu adım için listelenen bir şey yok.</string>
     <string name="val_run_every">Tüm adımları çalıştır</string>
     <string name="val_hint_from">1–%1$d. adımlar geçmiş sayılır; kontrol %2$s adımından yeniden başlar.</string>
@@ -311,7 +310,6 @@
     <string name="memo_not_on_device">Bu not henüz bu telefonda değil, bu yüzden çevrimdışı oynatılamaz.</string>
     <string name="media_tag_file">Dosya</string>
     <string name="ai_title">YZ önerileri</string>
-    <string name="ai_subtitle">%1$s varlığının boş alanlarını modelin yayımlanmış teknik özelliklerinden doldurur. Siz uygulayana kadar hiçbir şey kaydedilmez.</string>
     <string name="ai_identify_lead">Teknik özellikler üretici ve modele göre aranır. Bulmak için modeli (biliyorsanız üreticiyi de) ekleyin.</string>
     <string name="ai_make_label">Üretici</string>
     <string name="ai_model_label">Model</string>
@@ -327,8 +325,6 @@
     <string name="ai_step_match">Değerler bu varlığın alanlarıyla eşleştiriliyor</string>
     <string name="ai_wait_short">Web\'de arama yapıldığı için bu işlem bir dakikayı bulabilir.</string>
     <string name="ai_wait_long">Arama sürüyor. Bazı modelleri bulmak daha uzun sürer.</string>
-    <string name="ai_close_note">Kapatmak aramayı durdurmaz.</string>
-    <string name="ai_close_keep">Kapat ve çalışmaya devam et</string>
     <string name="ai_try_again">Tekrar dene</string>
     <string name="ai_found">%1$s bulundu. %2$s</string>
     <string name="ai_nothing_else">Yayımlanmış teknik özelliklerin bu varlık için doldurabileceği başka bir şey yok. Yazdıklarınızı kaydetmek için uygulayın.</string>

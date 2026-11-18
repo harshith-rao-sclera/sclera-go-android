@@ -272,7 +272,6 @@
     <string name="val_quality">डेटा गुणवत्ता %1$d/100</string>
     <string name="val_every_step_from">%1$d सत्यापनों के सभी चरण, हर एक अपने नवीनतम परिणाम के साथ: %2$s।</string>
     <string name="val_starts_here">यहाँ से शुरू</string>
-    <string name="val_suggested">सुझाव: %1$s</string>
     <string name="val_no_issues">इस चरण के लिए कुछ भी सूचीबद्ध नहीं है।</string>
     <string name="val_run_every">सभी चरण चलाएँ</string>
     <string name="val_hint_from">चरण 1–%1$d पास बने रहते हैं; जाँच %2$s से फिर शुरू होती है।</string>
@@ -311,7 +310,6 @@
     <string name="memo_not_on_device">यह मेमो अभी इस फ़ोन पर नहीं है, इसलिए इसे ऑफ़लाइन नहीं चलाया जा सकता।</string>
     <string name="media_tag_file">फ़ाइल</string>
     <string name="ai_title">AI सुझाव</string>
-    <string name="ai_subtitle">मॉडल के प्रकाशित स्पेसिफ़िकेशन से %1$s के खाली फ़ील्ड भरता है। जब तक आप लागू नहीं करते, कुछ भी सेव नहीं होता।</string>
     <string name="ai_identify_lead">स्पेसिफ़िकेशन निर्माता और मॉडल के आधार पर खोजे जाते हैं। उन्हें खोजने के लिए मॉडल (और पता हो तो निर्माता) जोड़ें।</string>
     <string name="ai_make_label">निर्माता</string>
     <string name="ai_model_label">मॉडल</string>
@@ -327,8 +325,6 @@
     <string name="ai_step_match">मानों को इस एसेट के फ़ील्ड से मिलाया जा रहा है</string>
     <string name="ai_wait_short">यह वेब पर खोजता है, इसलिए इसमें एक मिनट तक लग सकता है।</string>
     <string name="ai_wait_long">अभी भी खोज जारी है। कुछ मॉडल ढूँढ़ने में ज़्यादा समय लगता है।</string>
-    <string name="ai_close_note">बंद करने से खोज नहीं रुकती।</string>
-    <string name="ai_close_keep">बंद करें और काम जारी रखें</string>
     <string name="ai_try_again">फिर से कोशिश करें</string>
     <string name="ai_found">%1$s मिला। %2$s</string>
     <string name="ai_nothing_else">इस एसेट के लिए प्रकाशित स्पेसिफ़िकेशन से भरने को और कुछ नहीं है। आपने जो लिखा है उसे सेव करने के लिए लागू करें।</string>

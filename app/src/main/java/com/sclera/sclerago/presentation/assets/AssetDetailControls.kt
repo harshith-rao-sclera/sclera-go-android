@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
@@ -288,14 +287,16 @@ private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit, of
         val tip = if (busy) stringResource(R.string.detail_ai_busy) else notice?.asString()
         if (tip != null) Bubble(tip, if (offline) 4 else 2)
         val inf = rememberInfiniteTransition(label = "ai")
-        val spin by inf.animateFloat(0f, 360f, infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Restart), label = "spin")
+        // Working (a look-up, or filling the form from new photos): the sparkle blinks inside a cyan ring.
+        val blink by inf.animateFloat(1f, 0.25f, infiniteRepeatable(tween(550), RepeatMode.Reverse), label = "blink")
         val description = stringResource(R.string.detail_ai_fill)
         OfflineGate(offline, onBlocked, badgeOffset = 2.dp) {
             Box(
-                Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().clip(CircleShape).background(C.Surface).border(1.dp, C.Border2, CircleShape)
+                Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().clip(CircleShape).background(C.Surface)
+                    .border(if (busy) 2.dp else 1.dp, if (busy) C.Cyan.copy(alpha = 0.4f + 0.6f * blink) else C.Border2, CircleShape)
                     .semantics { contentDescription = description }.clickable(onClick = onClick),
                 contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.rotate(spin) else Modifier) }
+            ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.alpha(blink) else Modifier) }
         }
     }
 }

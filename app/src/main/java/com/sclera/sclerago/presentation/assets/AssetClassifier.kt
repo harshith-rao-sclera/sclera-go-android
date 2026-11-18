@@ -21,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -39,8 +40,6 @@ data class ClassifyState(
     val code: String? = null,
     /** The picked type's JACS codes are being asked for. */
     val codesLoading: Boolean = false,
-    /** What the photos said is ticked to go into an empty manufacturer and model (the user ticks it). */
-    val useReading: Boolean = false,
     val error: UiText? = null,
 ) {
     val pickedType: TypeSuggestion? get() = result?.suggestions?.firstOrNull { it.masterFormatId == picked }
@@ -146,21 +145,17 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
         }
     }
 
-    /** Picks the JACS code [code], or none when it is already picked. */
-    fun pickCode(code: String) = sheet.update { cur -> cur?.copy(code = code.takeIf { it != cur.code }) }
-
-    fun toggleReading() = sheet.update { it?.copy(useReading = !it.useReading) }
-
-    /** What the photos said is ticked. */
-    fun usesReading(): Boolean = sheet.value?.useReading == true
-
-    /** The manufacturer and model the photos said, as form values (none when they said neither). */
-    fun readingValues(): Map<String, String> {
-        val read = sheet.value?.result?.read ?: return emptyMap()
-        return buildMap {
-            read.manufacturer?.let { put("make", it) }
-            read.model?.let { put("model", it) }
-        }
+    /**
+     * The JACS code that goes with the picked type [masterFormatId]: its likeliest, once its codes are known (they come
+     * with the first type, and are asked for another). It becomes the picked code; null when the type has none, or
+     * another type was picked meanwhile.
+     */
+    suspend fun likeliestCode(masterFormatId: String): String? {
+        val s = sheet.first { it == null || it.picked != masterFormatId || !it.codesLoading }
+        if (s == null || s.picked != masterFormatId) return null
+        val code = s.codes.firstOrNull()?.code ?: return null
+        sheet.update { cur -> if (cur?.picked == masterFormatId) cur.copy(code = code) else cur }
+        return code
     }
 
     fun close() {
@@ -176,6 +171,12 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
 
     /** The JACS code picked; null when none is. */
     fun pickedCode(): String? = sheet.value?.code
+
+    /** Picks [code], one of the picked type's JACS codes. */
+    fun pickCode(code: String) = sheet.update { cur -> if (cur?.codes?.any { it.code == code } == true) cur.copy(code = code) else cur }
+
+    /** [code], picked in the JACS Code row, becomes the picked type's code when it is one of the type's suggested codes. */
+    fun noteCode(code: String) = sheet.update { cur -> if (cur?.codes?.any { it.code == code } == true) cur.copy(code = code) else cur }
 
 
     /** With no photo and nothing typed the server has nothing to go on (the asset need not be synced). */

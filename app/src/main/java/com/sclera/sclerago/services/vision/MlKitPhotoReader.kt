@@ -53,21 +53,35 @@ class MlKitPhotoReader @Inject constructor(
         }
     }
 
-    /** The photo at [uri] as an [InputImage]: scaled down to at most [MAX_SIDE] and turned per its EXIF orientation. */
+    /**
+     * The photo at [uri] as an [InputImage]: scaled down to at most [MAX_SIDE] and turned per its EXIF orientation. It is
+     * read once and decoded from that copy (a photo kept in the offline database comes through a pipe that can't be read
+     * again). Reading only the size returns no bitmap, so only the size it fills in is checked.
+     */
     private fun decode(uri: Uri): InputImage? {
-        val resolver = context.contentResolver
+        val bytes = context.contentResolver.openInputStream(uri)?.use { readAtMost(it, MAX_BYTES) } ?: return null
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         var sample = 1
         while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= MAX_SIDE) sample *= 2
-        val bitmap: Bitmap = resolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
-        } ?: return null
-        val rotation = runCatching {
-            resolver.openInputStream(uri)?.use { ExifInterface(it).rotationDegrees } ?: 0
-        }.getOrDefault(0)
+        val bitmap: Bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+            ?: return null
+        val rotation = runCatching { ExifInterface(bytes.inputStream()).rotationDegrees }.getOrDefault(0)
         return InputImage.fromBitmap(bitmap, rotation)
+    }
+
+    /** All of [input], or null when it is longer than [max] bytes. */
+    private fun readAtMost(input: java.io.InputStream, max: Long): ByteArray? {
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(64 * 1024)
+        while (true) {
+            val n = input.read(buf)
+            if (n < 0) break
+            if (out.size() + n > max) return null
+            out.write(buf, 0, n)
+        }
+        return out.toByteArray()
     }
 
     private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
@@ -79,5 +93,8 @@ class MlKitPhotoReader @Inject constructor(
     private companion object {
         /** Big enough for a nameplate's small print and a label's code; small enough to read quickly. */
         const val MAX_SIDE = 2048
+
+        /** The largest photo read (a camera photo is a few MB). */
+        const val MAX_BYTES = 40L * 1024 * 1024
     }
 }

@@ -138,11 +138,9 @@ class PlacesConfigViewModel @Inject constructor(private val useCases: PlacesConf
 
     /** Deletes [places]; [onDeleted] runs when every one is gone. */
     fun delete(places: List<LocNode>, onDeleted: () -> Unit = {}) = send {
-        val r = useCases.delete(propertyId, places)
-        if (r.problem != null) {
-            say(r.problem.message(places.firstOrNull()?.kind ?: NodeKind.LOCATION))
-        } else if (r.deleted > 0) {
-            say(UiText.Plural(R.plurals.cfg_places_deleted, r.deleted))
+        val deleted = useCases.delete(propertyId, places)
+        if (deleted > 0) {
+            say(UiText.Plural(R.plurals.cfg_places_deleted, deleted))
             onDeleted()
         }
     }
@@ -171,8 +169,5 @@ private fun PlaceProblem.message(kind: NodeKind): UiText = UiText.Res(
             NodeKind.FLOOR -> R.string.cfg_floor_exists
             NodeKind.LOCATION -> R.string.cfg_location_exists
         }
-        PlaceProblem.BUILDING_HAS_FLOORS -> R.string.cfg_building_has_floors
-        PlaceProblem.FLOOR_HAS_LOCATIONS -> R.string.cfg_floor_has_locations
-        PlaceProblem.IN_USE -> R.string.cfg_place_in_use
     },
 )

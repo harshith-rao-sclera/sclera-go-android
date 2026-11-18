@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Taking several photos at once, within the property's photo limits. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="camera_asset_full">One asset takes up to %1$d photos. Untick one to tick another.</string>
+    <string name="camera_room_full">No more photos fit here: %1$d left for this kind. Untick one to tick another.</string>
+    <plurals name="photos_to_other">
+        <item quantity="one">%1$d photo went to Other photos: its kind already has the most photos this property allows.</item>
+        <item quantity="other">%1$d photos went to Other photos: their kind already has the most photos this property allows.</item>
+    </plurals>
+</resources>

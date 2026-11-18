@@ -274,6 +274,8 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
     var sel by remember(floor?.id) { mutableStateOf(setOf<String>()) }
     var nameAsk by remember { mutableStateOf<NameAsk?>(null) }
     var deleteAsk by remember { mutableStateOf<DeleteAsk?>(null) }
+    // Delete confirmations are built in click handlers, so they read the strings from here.
+    val res = LocalContext.current.resources
     var openLoc by remember { mutableStateOf<String?>(null) }
     var adding by remember { mutableStateOf(false) }
     // Add floor sheet for this building (null: closed).
@@ -299,7 +301,10 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
         if (floors.isNotEmpty()) add(MenuAct(Icons.Floor, "Edit floors") { floorsSheet = true })
         add(MenuAct(Icons.Import, "Import buildings") { importer.launch(IMPORT_SHEET_TYPES) })
         if (building != null) add(MenuAct(Icons.Trash, "Delete ${building.name}", danger = true, divider = true) {
-            deleteAsk = DeleteAsk("Delete ${building.name}?", "This can’t be undone.") {
+            deleteAsk = DeleteAsk(
+                res.getString(R.string.cfg_delete_place_title, building.name),
+                res.getString(R.string.cfg_delete_building_body, building.name),
+            ) {
                 places.delete(listOf(building)) { bId = null; fId = null }
             }
         })
@@ -378,7 +383,10 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
                 Pill("Clear", { sel = emptySet() }, height = 40.dp, hPad = 14.dp)
                 Pill("Delete", {
                     val ids = sel
-                    deleteAsk = DeleteAsk("Delete ${plural(ids.size, "location", "locations")}?", "This can’t be undone.") {
+                    deleteAsk = DeleteAsk(
+                        res.getQuantityString(R.plurals.cfg_delete_locations_title, ids.size, ids.size),
+                        res.getQuantityString(R.plurals.cfg_delete_locations_body, ids.size),
+                    ) {
                         places.delete(locs.filter { it.id in ids }) { sel = emptySet() }
                     }
                 }, bg = Color(0xFF2A1919), fg = C.Red, height = 40.dp, hPad = 16.dp, weight = 700)
@@ -398,7 +406,10 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
         LocationSheet(l, onClose = { openLoc = null },
             onSave = { n, t, c -> floorOf(tree, l.id)?.let { places.updateLocation(it, l, n, t, c) } },
             onDelete = {
-                deleteAsk = DeleteAsk("Delete ${l.name}?", "This can’t be undone.") { places.delete(listOf(l)) { openLoc = null } }
+                deleteAsk = DeleteAsk(
+                    res.getString(R.string.cfg_delete_place_title, l.name),
+                    res.getString(R.string.cfg_delete_location_body, l.name),
+                ) { places.delete(listOf(l)) { openLoc = null } }
             })
     }
     buildingSheet?.let { id ->
@@ -801,12 +812,8 @@ private fun EditFloorsSheet(b: LocNode, onClose: () -> Unit, onSave: (List<LocNo
                 }
             }
             if (removed.isNotEmpty()) {
-                // The server refuses to delete a floor that still has locations.
-                val locs = removed.sumOf { it.kids.orEmpty().size }
-                Txt(
-                    if (locs > 0) stringResource(R.string.cfg_floor_has_locations) else "Removing ${removed.joinToString { it.name }} when you save.",
-                    12, 500, C.Orange, maxLines = 3,
-                )
+                // The server deletes a floor's locations with it; assets there stay, without a floor or location.
+                Txt(stringResource(R.string.cfg_floors_removed_note, removed.joinToString { it.name }), 12, 500, C.Orange, maxLines = 3)
             }
         }
         SheetButtons("Save", floors.all { it.name.isNotBlank() }, onClose) { onSave(floors) }

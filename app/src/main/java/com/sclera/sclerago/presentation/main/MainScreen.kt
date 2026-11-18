@@ -149,11 +149,10 @@ fun ScleraApp(
     LaunchedEffect(assign) { assign.notices.collect { vm.flash(it) } }
     LaunchedEffect(bulk) { bulk.notices.collect { vm.flash(it) } }
 
-    // Shake the phone (two firm shakes) to jump straight to the camera.
+    // On the Assets page, shake the phone (two firm shakes) to jump straight to the camera; elsewhere a shake does nothing.
     val view = LocalView.current
     ShakeEffect {
-        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        vm.openCameraByShake()
+        if (vm.openCameraByShake()) view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }
 
     // The scans need runtime permissions. When the scan service asks, a sheet explains why first
@@ -184,9 +183,9 @@ fun ScleraApp(
             isNew = s.newAsset,
             onBack = vm::closeDetail,
             onChangeLoc = vm::openLocAsset,
-            onCreate = { name, info, media, values, submit, exception ->
+            onCreate = { name, info, media, values, submit, exception, place ->
                 // A hand-made asset is shown in the full list, whatever status was being filtered.
-                if (vm.createAsset(name, info, media, values, submit, exception) == CreateAssetUseCase.Via.MANUAL) list.setStatusFilter(Tab.ASSETS, null)
+                if (vm.createAsset(name, info, media, values, submit, exception, place) == CreateAssetUseCase.Via.MANUAL) list.setStatusFilter(Tab.ASSETS, null)
             },
             onDelete = vm::deleteAsset,
             onNotice = vm::flash,

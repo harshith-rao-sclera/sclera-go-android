@@ -268,7 +268,6 @@
     <string name="val_quality">資料品質 %1$d/100</string>
     <string name="val_every_step_from">來自 %1$d 次驗證的所有步驟，各附最新結果：%2$s。</string>
     <string name="val_starts_here">從這裡開始</string>
-    <string name="val_suggested">建議：%1$s</string>
     <string name="val_no_issues">此步驟沒有列出任何內容。</string>
     <string name="val_run_every">執行所有步驟</string>
     <string name="val_hint_from">第 1–%1$d 步維持通過；檢查將從%2$s重新開始。</string>
@@ -307,7 +306,6 @@
     <string name="memo_not_on_device">這則備忘錄尚未下載到這支手機，無法離線播放。</string>
     <string name="media_tag_file">檔案</string>
     <string name="ai_title">AI 建議</string>
-    <string name="ai_subtitle">根據型號公開的規格填寫 %1$s 的空白欄位。套用之前不會儲存任何內容。</string>
     <string name="ai_identify_lead">規格會依製造商和型號查詢。請新增型號（若知道，也請新增製造商）以找到規格。</string>
     <string name="ai_make_label">製造商</string>
     <string name="ai_model_label">型號</string>
@@ -323,8 +321,6 @@
     <string name="ai_step_match">正在將數值對應到此資產的欄位</string>
     <string name="ai_wait_short">此作業會搜尋網路，最多可能需要一分鐘。</string>
     <string name="ai_wait_long">仍在搜尋。有些型號需要更長時間才能找到。</string>
-    <string name="ai_close_note">關閉不會停止搜尋。</string>
-    <string name="ai_close_keep">關閉並繼續工作</string>
     <string name="ai_try_again">重試</string>
     <string name="ai_found">已找到 %1$s。%2$s</string>
     <string name="ai_nothing_else">公開規格無法再為此資產填寫其他內容。請套用以儲存您輸入的內容。</string>

@@ -14,6 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -23,12 +27,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.validation.AssetValidation
+import com.sclera.sclerago.domain.validation.IssueLabel
+import com.sclera.sclerago.domain.validation.IssueNow
 import com.sclera.sclerago.domain.validation.IssueSeverity
+import com.sclera.sclerago.domain.validation.IssueStatus
 import com.sclera.sclerago.domain.validation.StepIssue
 import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.StepResult
@@ -262,7 +271,10 @@ private fun StepRow(step: StepResult, v: AssetValidation, startsHere: Boolean, d
     }
 }
 
-/** One problem a step found: a dot for how serious, the message, the suggested fix and, once handled, its status. */
+/**
+ * One problem a step found, as the web shows it: "Field  old → new" when there's a fix to offer, else the label and the
+ * message. Tapping it shows the full message and the fix's reason (the web's tooltip); a handled one shows its status.
+ */
 @Composable
 private fun IssueRow(issue: StepIssue) {
     val dot = when (issue.severity) {
@@ -270,13 +282,57 @@ private fun IssueRow(issue: StepIssue) {
         IssueSeverity.WARNING -> C.Orange
         IssueSeverity.INFO -> C.Muted
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val label = issue.label?.let { issueLabelText(it) }
+    val now = issue.now
+    val next = issue.next
+    val details = listOfNotNull(issue.message.takeIf { label != null && next != null }, issue.suggestion?.reason?.takeIf { it.isNotBlank() })
+    var open by remember(issue.id) { mutableStateOf(false) }
+    Row(
+        Modifier.fillMaxWidth().alpha(if (issue.closed) 0.6f else 1f)
+            .then(if (details.isNotEmpty()) Modifier.clickable(role = Role.Button) { open = !open } else Modifier),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Box(Modifier.padding(top = 5.dp).size(6.dp).background(dot, CircleShape))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(issue.message, 12, 400, maxLines = 6)
-            issue.suggestion?.let { Txt(stringResource(R.string.val_suggested, it), 11, 500, C.Soft, maxLines = 3) }
-            if (issue.status != "open") Txt("(${issue.status})", 10, 500, C.Muted)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (label != null) Txt(label, 12, 600, maxLines = 2)
+                if (label != null && next != null) {
+                    if (now != null) Txt(issueNowText(now), 12, 400, if (now is IssueNow.Text) C.Soft else C.Muted, maxLines = 2)
+                    val changeTo = stringResource(R.string.val_issue_change_to)
+                    Txt("→", 12, 400, C.Muted, modifier = Modifier.semantics { contentDescription = changeTo })
+                    Txt(next, 12, 600, maxLines = 2, modifier = Modifier.weight(1f, fill = false))
+                } else {
+                    Txt(issue.message, 12, 400, maxLines = 6, modifier = Modifier.weight(1f, fill = false))
+                }
+            }
+            if (open) details.forEach { Txt(it, 11, 400, C.Muted, maxLines = 6) }
         }
+        issueStatusText(issue.status)?.let { Txt(it, 10, 500, C.Muted) }
     }
+}
+
+@Composable
+private fun issueLabelText(label: IssueLabel): String = when (label) {
+    is IssueLabel.Field -> label.name
+    IssueLabel.Type -> stringResource(R.string.val_issue_type)
+    IssueLabel.Location -> stringResource(R.string.val_issue_location)
+    IssueLabel.Duplicates -> stringResource(R.string.val_issue_duplicates)
+    IssueLabel.Name -> stringResource(R.string.val_issue_name)
+}
+
+@Composable
+private fun issueNowText(now: IssueNow): String = when (now) {
+    is IssueNow.Text -> now.text
+    IssueNow.Empty -> stringResource(R.string.val_issue_empty)
+    IssueNow.NotSet -> stringResource(R.string.val_issue_not_set)
+    IssueNow.Partial -> stringResource(R.string.val_issue_partial)
+}
+
+@Composable
+private fun issueStatusText(status: IssueStatus): String? = when (status) {
+    IssueStatus.OPEN -> null
+    IssueStatus.ACCEPTED -> stringResource(R.string.val_issue_accepted)
+    IssueStatus.DISMISSED -> stringResource(R.string.val_issue_dismissed)
+    IssueStatus.RESOLVED -> stringResource(R.string.val_issue_resolved)
 }
 

@@ -32,6 +32,7 @@ import com.sclera.sclerago.presentation.components.MediaFull
 import com.sclera.sclerago.presentation.components.MediaImage
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.bottomBorder
+import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.noRippleClick
 import com.sclera.sclerago.presentation.components.r
@@ -111,8 +112,9 @@ internal fun InfoPhotoStrip(media: List<Media>, onAdd: (() -> Unit)?, onOpen: (I
     if (onAdd == null && shown.isEmpty()) return
     val addLabel = stringResource(R.string.detail_menu_camera)
     Row(
-        Modifier.fillMaxWidth().testTag(PhotoTags.STRIP).bottomBorder(C.Border).horizontalScroll(rememberScrollState())
-            .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+        // A full-width band like the Info sections under it.
+        Modifier.fillMaxWidth().testTag(PhotoTags.STRIP).background(C.Surface).topBorder(C.Border).bottomBorder(C.Border)
+            .horizontalScroll(rememberScrollState()).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         onAdd?.let { add ->

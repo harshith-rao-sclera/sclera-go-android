@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The AI suggestions sheet, as the iOS app's. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="ai_sheet_subtitle">Suggests %1$s’s type and field values from the model’s published specifications; you choose what to keep. Nothing is saved until you apply and save.</string>
+    <string name="ai_step_photos">Reading the photos</string>
+    <string name="ai_keep_open">Keep this open until it finishes; closing stops it.</string>
+    <string name="ai_photo_differs">The photo shows something else than the form has: %1$s</string>
+    <string name="ai_from_photo">From the photo</string>
+    <string name="ai_photo_note_name">%1$s:</string>
+    <string name="ai_sum_nothing">Nothing to fill.</string>
+    <string name="ai_apply_type">Apply type</string>
+    <string name="ai_apply_type_plus">Apply type + %1$d</string>
+    <plurals name="ai_sum_read">
+        <item quantity="one">Read %1$d field.</item>
+        <item quantity="other">Read %1$d fields.</item>
+    </plurals>
+    <plurals name="ai_sum_differ">
+        <item quantity="one">%1$d different from saved. Check it.</item>
+        <item quantity="other">%1$d different from saved. Check them.</item>
+    </plurals>
+    <plurals name="ai_sum_fill">
+        <item quantity="one">%1$d field to fill.</item>
+        <item quantity="other">%1$d fields to fill.</item>
+    </plurals>
+</resources>

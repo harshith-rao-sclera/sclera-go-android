@@ -28,6 +28,8 @@ import com.sclera.sclerago.domain.model.SURE_ENOUGH
 import com.sclera.sclerago.domain.model.VOICE_SURE_ENOUGH
 import com.sclera.sclerago.domain.model.LookupStatus
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.fitPhotoRules
+import com.sclera.sclerago.domain.model.photoRoom
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.missingRequiredFields
 import com.sclera.sclerago.domain.model.photoCounts
@@ -370,6 +372,35 @@ class AssetDetailViewModel @Inject constructor(
         form.value = Form()
         target.value = Target(asset, isNew, prefill)
         classifier.refreshOnce()
+        if (isNew) startWithCaptures(asset)
+    }
+
+    /**
+     * A new asset opened with photos already taken (the Camera tab): they are handled as photos added on the page are —
+     * sorted on the device into nameplate, label ID or asset (one that can't be read keeps no kind), then the form is
+     * filled from them by the AI.
+     */
+    private fun startWithCaptures(asset: Asset) {
+        if (asset.media.none { !it.video && !it.audio && !it.isDoc }) return
+        viewModelScope.launch {
+            if (useCases.sortPhotos.needed(asset.media)) {
+                form.update { it.copy(sorting = it.sorting + 1) }
+                val sorted = try {
+                    useCases.sortPhotos(asset.media, fallback = null)
+                } finally {
+                    form.update { it.copy(sorting = it.sorting - 1) }
+                }
+                target.update { t -> if (t != null && t.isNew && t.asset.id == asset.id) t.copy(asset = t.asset.copy(media = sorted)) else t }
+            }
+            // Several shots may sort into one kind: those past its most go to Other photos.
+            val shots = target.value?.takeIf { it.isNew && it.asset.id == asset.id }?.asset?.media.orEmpty()
+            val (fitted, moved) = fitPhotoRules(state.value.photoRules, emptyList(), shots)
+            if (moved > 0) {
+                target.update { t -> if (t != null && t.isNew && t.asset.id == asset.id) t.copy(asset = t.asset.copy(media = fitted)) else t }
+                message.emit(UiText.Plural(R.plurals.photos_to_other, moved))
+            }
+            if (target.value?.let { it.isNew && it.asset.id == asset.id } == true) photoFill.schedule()
+        }
     }
 
     fun close() {
@@ -462,6 +493,9 @@ class AssetDetailViewModel @Inject constructor(
     /** The kind of photo the next photos added are (a Media tab card's Add); null: other photos. */
     private var photoKind: PhotoKind? = null
 
+    /** How many more photos the camera may add now: room in the kind of the card it was opened from, else in the asset. */
+    fun cameraRoom(): Int = photoRoom(state.value.photoRules, state.value.media, photoKind)
+
     fun choosePhotoKind(kind: PhotoKind?) {
         photoKind = kind
     }
@@ -502,10 +536,13 @@ class AssetDetailViewModel @Inject constructor(
         addPicked(listOf(if (isDocument) doc.copy(sourceDocument = true, category = null) else doc))
     }
 
-    private fun addPicked(media: List<Media>) {
+    private fun addPicked(picked: List<Media>) {
         val s = state.value
         val asset = s.asset ?: return
-        if (media.isEmpty()) return
+        if (picked.isEmpty()) return
+        // A kind that is full (by its card, or as sorted off the photo) passes the extra photos to Other photos.
+        val (media, moved) = fitPhotoRules(s.photoRules, s.media, picked)
+        if (moved > 0) message.tryEmit(UiText.Plural(R.plurals.photos_to_other, moved))
         // Photos (not videos, memos or files alone) fill the form, as on iOS, once they have joined the page.
         val photos = media.any { !it.video && !it.audio && !it.isDoc }
         if (s.isNew) {
@@ -612,6 +649,7 @@ class AssetDetailViewModel @Inject constructor(
         if (state.value.locked) return
         jacsPicker.close()
         val value = code.trim()
+        classifier.noteCode(value)
         form.update { it.copy(edits = it.edits + ("jacs" to value), aiSources = it.aiSources - "jacs", savedFlash = false) }
         if (value.isEmpty()) return
         viewModelScope.launch {
@@ -641,7 +679,8 @@ class AssetDetailViewModel @Inject constructor(
 
     /**
      * Picks a suggested type and puts its system, asset and sub type into the form at once (the form then shows the
-     * type's fields); a JACS code picked for the last type is taken out. Nothing is saved until Save.
+     * type's fields), then its likeliest JACS code once that is known; the code that came with the last type picked is
+     * taken out first. Nothing is saved until Save.
      */
     fun pickSuggestedType(masterFormatId: String) {
         val s = state.value
@@ -651,28 +690,19 @@ class AssetDetailViewModel @Inject constructor(
         val update = classifier.typeValues() ?: return
         editFromSuggestion(update, remove = oldCode?.let { mapOf("jacs" to it) }.orEmpty())
         classifier.showTypeFields(s.formats, s.fields, s.values + update)
+        viewModelScope.launch {
+            val code = classifier.likeliestCode(masterFormatId) ?: return@launch
+            if (state.value.classify?.picked == masterFormatId) editFromSuggestion(mapOf("jacs" to code))
+        }
     }
 
-    /** Picks a suggested JACS code into the form, or (picked again) takes it out. */
+    /** Picks another of the picked type's JACS codes into the form, in place of the one that went in with the type. */
     fun pickSuggestedCode(code: String) {
         if (state.value.locked) return
         val oldCode = classifier.pickedCode()
+        if (code == oldCode) return
         classifier.pickCode(code)
-        val newCode = classifier.pickedCode()
-        editFromSuggestion(newCode?.let { mapOf("jacs" to it) }.orEmpty(), remove = oldCode?.let { mapOf("jacs" to it) }.orEmpty())
-    }
-
-    /**
-     * Ticks what the photos said into an empty manufacturer and model, as the server says to offer it, or (unticked)
-     * takes it out again where the form still holds it.
-     */
-    fun toggleClassifyReading() {
-        val s = state.value
-        if (s.locked) return
-        classifier.toggleReading()
-        val read = classifier.readingValues()
-        if (classifier.usesReading()) editFromSuggestion(read.filterKeys { s.value(it).isBlank() })
-        else editFromSuggestion(emptyMap(), remove = read)
+        editFromSuggestion(mapOf("jacs" to code), remove = oldCode?.let { mapOf("jacs" to it) }.orEmpty())
     }
 
     /** Adds [add] to the form's edits and drops the edits in [remove] that still hold what the suggestion put there. */
@@ -758,7 +788,19 @@ class AssetDetailViewModel @Inject constructor(
     }
 
     /** Closes the dialog; a look-up still running carries on and says when it is done. */
-    fun closeAi() = form.update { it.copy(aiOpen = false) }
+    /**
+     * Closes the AI suggestions sheet. As the iOS app, a search under way is stopped (the sheet says so); results stay
+     * to come back to.
+     */
+    fun closeAi() {
+        val phase = form.value.ai?.phase
+        if (phase == AiPhase.SEARCHING || phase == AiPhase.LOADING) {
+            aiJob?.cancel()
+            form.update { it.copy(ai = null, aiOpen = false) }
+        } else {
+            form.update { it.copy(aiOpen = false) }
+        }
+    }
 
     // ---- Change requests (a submitted asset): ask an admin to reopen it, withdraw or decline, or reopen it (admins)
 
@@ -835,8 +877,9 @@ class AssetDetailViewModel @Inject constructor(
                 put("sys", t.systemType)
                 put("typ", t.assetType ?: UNCLASSIFIED)
                 put("sub", t.subtype ?: UNCLASSIFIED)
-                // As the web, which classifies with the type's JACS code: it replaces the asset's.
-                t.jacsCode?.let { put("jacs", it) }
+                // As the web, which classifies with the type's JACS code: it replaces the asset's when the type changes
+                // (the asset's own type keeps the code it has, unless it has none).
+                t.jacsCode?.takeIf { d.lookup?.let(::offersType) == true || s.value("jacs").isBlank() }?.let { put("jacs", it) }
             }
         }.orEmpty()
         val update = typedIdentity(d) + typeValues + picked
@@ -941,12 +984,16 @@ class AssetDetailViewModel @Inject constructor(
             setAi { it.copy(phase = AiPhase.ERROR, error = lookup.statusDetail?.let { d -> UiText.Raw(d) } ?: UiText.Res(R.string.ai_failed)) }
             return
         }
-        // A value the photo disagrees with starts unticked: the server says to show both and never overwrite silently.
+        // As the iOS app: each value at least SURE_ENOUGH sure starts ticked, a value the photo shows differently too
+        // (the sheet shows what the form has beside it, so nothing is replaced unseen).
         val values = fillable(lookup) + typeFillable(lookup)
-        val picks = values.mapValues { (k, v) -> AiPick(k !in lookup.differs && (lookup.confidence[k] ?: 1.0) >= SURE_ENOUGH, v) }
-        // As the web: the type starts ticked only when the asset has no type and the AI is sure enough.
-        val type = lookup.suggestedType?.takeIf { offersType(lookup) }
-        val typeOn = type?.let { t -> state.value.value("sys").let { it.isBlank() || it == UNCLASSIFIED } && t.confidence >= SURE_ENOUGH }
+        val picks = values.mapValues { (k, v) -> AiPick((lookup.confidence[k] ?: 1.0) >= SURE_ENOUGH, v) }
+        // The type shows even when it is the asset's own (ticked: it changes nothing); another type starts ticked only
+        // when the asset has none and the AI is sure enough.
+        val type = lookup.suggestedType
+        val typeOn = type?.let { t ->
+            !offersType(lookup) || (state.value.value("sys").let { it.isBlank() || it == UNCLASSIFIED } && t.confidence >= SURE_ENOUGH)
+        }
         setAi { it.copy(phase = AiPhase.RESULTS, lookup = lookup, picks = picks, typeOn = typeOn) }
         if (!lookup.seen && form.value.aiOpen) {
             try {

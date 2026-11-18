@@ -40,16 +40,73 @@ data class AssetRunRecord(
 data class StepIssue(
     val id: String,
     val jobId: String,
+    val target: IssueTarget,
+    /** The field it is about (the server's fieldName: "JACS code" for the code), null when about no field. */
+    val fieldName: String?,
     val rule: String,
     val severity: IssueSeverity,
+    /** A short fragment that doesn't repeat the field name: the field is shown as [label]. */
     val message: String,
-    /** The first suggested fix, as text. */
-    val suggestion: String?,
-    /** open, accepted, dismissed or resolved. */
-    val status: String,
+    val currentValue: IssueValue?,
+    /** The best suggested fix. */
+    val suggestion: IssueSuggestion?,
+    val status: IssueStatus,
 ) {
     val step: String get() = stepOf(rule)
+
+    val closed: Boolean get() = status != IssueStatus.OPEN
+
+    /** What it is about, as the web's short label: the field, the asset's type, or what a check with no field looks at. */
+    val label: IssueLabel?
+        get() = when {
+            target == IssueTarget.CLASSIFICATION -> IssueLabel.Type
+            !fieldName.isNullOrBlank() -> IssueLabel.Field(fieldName)
+            else -> NO_FIELD_LABEL[rule]
+        }
+
+    /** The value it has now, shown before the arrow (null: not shown), as the web's currentText. */
+    val now: IssueNow?
+        get() = when {
+            target == IssueTarget.CLASSIFICATION -> when {
+                // Same model, another type: the message starts with the type it has ("HVAC › Fans: differs from…").
+                rule != CLASSIFICATION_SET -> message.substringBefore(": ").takeIf { it.isNotEmpty() }?.let(IssueNow::Text)
+                severity == IssueSeverity.ERROR -> IssueNow.NotSet
+                else -> IssueNow.Partial
+            }
+            currentValue == null || (currentValue.json.startsWith("\"") && currentValue.text.isBlank()) -> IssueNow.Empty
+            currentValue.json.startsWith("{") -> null
+            else -> currentValue.text.takeIf { it.isNotEmpty() }?.let(IssueNow::Text)
+        }
+
+    /** The value the fix would give, shown after the arrow (null: no fix to offer). */
+    val next: String? get() = suggestion?.shown?.takeIf { it.isNotBlank() }
 }
+
+/** What an issue is about, shown as its label. */
+sealed interface IssueLabel {
+    data class Field(val name: String) : IssueLabel
+    data object Type : IssueLabel
+    data object Location : IssueLabel
+    data object Duplicates : IssueLabel
+    data object Name : IssueLabel
+}
+
+/** An issue's value now: a value, or one of the web's "none" words. */
+sealed interface IssueNow {
+    data class Text(val text: String) : IssueNow
+    data object Empty : IssueNow
+    data object NotSet : IssueNow
+    data object Partial : IssueNow
+}
+
+private const val CLASSIFICATION_SET = "classification_set"
+
+/** The label of a check that is about no field (the web's NO_FIELD_LABEL). */
+private val NO_FIELD_LABEL = mapOf(
+    "location_set" to IssueLabel.Location,
+    "possible_duplicates" to IssueLabel.Duplicates,
+    "consistent_naming" to IssueLabel.Name,
+)
 
 /** One step of the asset's validation: its latest outcome and the run it came from. */
 data class StepResult(val rule: String, val outcome: StepOutcome, val jobId: String, val jobName: String, val checkedAt: Long?)

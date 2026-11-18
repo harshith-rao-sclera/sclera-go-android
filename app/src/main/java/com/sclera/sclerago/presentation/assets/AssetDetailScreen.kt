@@ -65,7 +65,8 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
     val isNew = state.isNew
     val locked = state.locked
     val tabs = detailTabs(state)
-    var chosen by rememberSaveable(asset.id) { mutableStateOf(DetailTabKind.INFO) }
+    // Going from one asset to the next keeps the tab that's open (Media stays Media), as on the web; a newly opened details screen starts on Info.
+    var chosen by rememberSaveable { mutableStateOf(DetailTabKind.INFO) }
     val tab = shownTab(tabs, chosen)
     val onInfo = tab == DetailTabKind.INFO
     var modal by remember(asset.id) { mutableStateOf(DetailModal.NONE) }
@@ -108,7 +109,7 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                     // The Info sections run edge to edge on a phone; the other tabs keep a margin, as on the web.
                     Modifier.weight(1f).verticalScroll(scroll).padding(
                         horizontal = when {
-                            onInfo -> pageGutter()
+                            onInfo || tab == DetailTabKind.MEDIA -> pageGutter()
                             tab == DetailTabKind.COMMENTS -> 0.dp // the comments run the full width
                             else -> maxOf(pageGutter(), PhoneSide)
                         },

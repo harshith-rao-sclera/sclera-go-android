@@ -268,7 +268,6 @@
     <string name="val_quality">データ品質 %1$d/100</string>
     <string name="val_every_step_from">%1$d 回の検証のすべてのステップと、それぞれの最新結果: %2$s。</string>
     <string name="val_starts_here">ここから開始</string>
-    <string name="val_suggested">提案: %1$s</string>
     <string name="val_no_issues">このステップには項目がありません。</string>
     <string name="val_run_every">すべてのステップを実行</string>
     <string name="val_hint_from">ステップ 1～%1$d は合格のままです。確認は %2$s から再開されます。</string>
@@ -307,7 +306,6 @@
     <string name="memo_not_on_device">このメモはまだこの端末にないため、オフラインでは再生できません。</string>
     <string name="media_tag_file">ファイル</string>
     <string name="ai_title">AI の提案</string>
-    <string name="ai_subtitle">モデルの公開仕様から %1$s の空のフィールドを入力します。適用するまで何も保存されません。</string>
     <string name="ai_identify_lead">仕様はメーカーとモデルで検索します。見つけるには、モデル（わかればメーカーも）を入力してください。</string>
     <string name="ai_make_label">メーカー</string>
     <string name="ai_model_label">モデル</string>
@@ -323,8 +321,6 @@
     <string name="ai_step_match">値をこの資産のフィールドに照合しています</string>
     <string name="ai_wait_short">ウェブを検索するため、最大 1 分ほどかかることがあります。</string>
     <string name="ai_wait_long">まだ検索中です。見つけるのに時間がかかるモデルもあります。</string>
-    <string name="ai_close_note">閉じても検索は停止しません。</string>
-    <string name="ai_close_keep">閉じて作業を続ける</string>
     <string name="ai_try_again">再試行</string>
     <string name="ai_found">%1$s が見つかりました。%2$s</string>
     <string name="ai_nothing_else">公開仕様からこの資産に入力できる項目は他にありません。入力した内容を保存するには適用してください。</string>

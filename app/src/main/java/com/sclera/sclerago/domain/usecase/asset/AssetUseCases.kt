@@ -15,10 +15,10 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.PhotoKind
+import com.sclera.sclerago.domain.model.fitPhotoRules
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
-import com.sclera.sclerago.domain.model.captureName
 import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.assetLock
 import com.sclera.sclerago.domain.model.mentions
@@ -340,8 +340,10 @@ class CreateAssetUseCase @Inject constructor(
                 // sorted into nameplate, label ID or asset; one that can't be read is an equipment (asset) photo, as before.
                 val first = captures.first()
                 val captured = (if (first.video) "Video ${first.durationText}" else "Photo") + " · captured " + timeLabel(first.createdAt).take(5)
-                val shots = sortPhotos(captures, fallback = PhotoKind.ASSET)
-                Asset(id, name.ifBlank { captureName(first) }, formDetail ?: captured, place.loc, place.where, Source.CAMERA, st, typeOf(name), place.prop, shots + media, locationId = place.placeId) to Source.CAMERA
+                // Several shots may sort into one kind: those past its most go to Other photos rather than failing.
+                val shots = fitPhotoRules(photoRules.rules().first(), emptyList(), sortPhotos(captures, fallback = PhotoKind.ASSET) + media).first
+                // The name is what the form has (typed, or read off the photo by the AI); no "Asset from photo …" stand-in.
+                Asset(id, name, formDetail ?: captured, place.loc, place.where, Source.CAMERA, st, typeOf(name), place.prop, shots, locationId = place.placeId) to Source.CAMERA
             }
             Via.SCAN -> {
                 // From a scan: keep the device's own line, and the type the scan identified unless the name says what it is.

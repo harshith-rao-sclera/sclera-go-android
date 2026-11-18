@@ -276,7 +276,6 @@
     <string name="val_quality">Qualità dei dati %1$d/100</string>
     <string name="val_every_step_from">Tutti i passaggi da %1$d convalide, ciascuno con il risultato più recente: %2$s.</string>
     <string name="val_starts_here">Inizia qui</string>
-    <string name="val_suggested">Suggerimento: %1$s</string>
     <string name="val_no_issues">Nulla da segnalare per questo passaggio.</string>
     <string name="val_run_every">Esegui tutti i passaggi</string>
     <string name="val_hint_from">I passaggi 1–%1$d restano superati; la verifica riparte da %2$s.</string>
@@ -315,7 +314,6 @@
     <string name="memo_not_on_device">Questo memo non è ancora su questo telefono, quindi non può essere riprodotto offline.</string>
     <string name="media_tag_file">File</string>
     <string name="ai_title">Suggerimenti IA</string>
-    <string name="ai_subtitle">Compila i campi vuoti di %1$s con le specifiche pubblicate del modello. Nulla viene salvato finché non applichi.</string>
     <string name="ai_identify_lead">Le specifiche vengono cercate per produttore e modello. Aggiungi il modello (e il produttore, se lo conosci) per trovarle.</string>
     <string name="ai_make_label">Produttore</string>
     <string name="ai_model_label">Modello</string>
@@ -331,8 +329,6 @@
     <string name="ai_step_match">Abbinamento dei valori ai campi di questo asset</string>
     <string name="ai_wait_short">La ricerca avviene sul web, quindi può richiedere fino a un minuto.</string>
     <string name="ai_wait_long">Ricerca ancora in corso. Alcuni modelli richiedono più tempo.</string>
-    <string name="ai_close_note">La chiusura non interrompe la ricerca.</string>
-    <string name="ai_close_keep">Chiudi e continua a lavorare</string>
     <string name="ai_try_again">Riprova</string>
     <string name="ai_found">Trovato %1$s. %2$s</string>
     <string name="ai_nothing_else">Le specifiche pubblicate non possono compilare altro per questo asset. Applica per salvare ciò che hai scritto.</string>

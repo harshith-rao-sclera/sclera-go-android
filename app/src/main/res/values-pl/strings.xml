@@ -280,7 +280,6 @@
     <string name="val_quality">Jakość danych %1$d/100</string>
     <string name="val_every_step_from">Wszystkie kroki z weryfikacji (%1$d), każdy z najnowszym wynikiem: %2$s.</string>
     <string name="val_starts_here">Zaczyna się tutaj</string>
-    <string name="val_suggested">Sugestia: %1$s</string>
     <string name="val_no_issues">Brak pozycji dla tego kroku.</string>
     <string name="val_run_every">Uruchom wszystkie kroki</string>
     <string name="val_hint_from">Kroki 1–%1$d pozostają zaliczone; sprawdzanie zaczyna się od nowa od kroku %2$s.</string>
@@ -319,7 +318,6 @@
     <string name="memo_not_on_device">Tej notatki nie ma jeszcze na tym telefonie, więc nie można jej odtworzyć offline.</string>
     <string name="media_tag_file">Plik</string>
     <string name="ai_title">Sugestie AI</string>
-    <string name="ai_subtitle">Uzupełnia puste pola zasobu %1$s na podstawie opublikowanej specyfikacji modelu. Nic nie zostanie zapisane, dopóki nie zastosujesz zmian.</string>
     <string name="ai_identify_lead">Specyfikacja jest wyszukiwana według producenta i modelu. Dodaj model (i producenta, jeśli go znasz), aby ją znaleźć.</string>
     <string name="ai_make_label">Producent</string>
     <string name="ai_model_label">Model</string>
@@ -335,8 +333,6 @@
     <string name="ai_step_match">Dopasowywanie wartości do pól tego zasobu</string>
     <string name="ai_wait_short">Wyszukiwanie odbywa się w internecie, więc może potrwać do minuty.</string>
     <string name="ai_wait_long">Wyszukiwanie nadal trwa. Niektóre modele trudniej znaleźć.</string>
-    <string name="ai_close_note">Zamknięcie nie przerywa wyszukiwania.</string>
-    <string name="ai_close_keep">Zamknij i pracuj dalej</string>
     <string name="ai_try_again">Spróbuj ponownie</string>
     <string name="ai_found">Znaleziono %1$s. %2$s</string>
     <string name="ai_nothing_else">Opublikowana specyfikacja nie pozwala uzupełnić niczego więcej w tym zasobie. Zastosuj, aby zapisać to, co wpisano.</string>

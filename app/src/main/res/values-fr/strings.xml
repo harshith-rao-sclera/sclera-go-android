@@ -276,7 +276,6 @@
     <string name="val_quality">Qualité des données %1$d/100</string>
     <string name="val_every_step_from">Toutes les étapes de %1$d validations, chacune avec son dernier résultat : %2$s.</string>
     <string name="val_starts_here">Commence ici</string>
-    <string name="val_suggested">Suggestion : %1$s</string>
     <string name="val_no_issues">Rien n’est signalé pour cette étape.</string>
     <string name="val_run_every">Exécuter toutes les étapes</string>
     <string name="val_hint_from">Les étapes 1 à %1$d restent réussies ; la vérification reprend à %2$s.</string>
@@ -315,7 +314,6 @@
     <string name="memo_not_on_device">Ce mémo n’est pas encore sur ce téléphone et ne peut donc pas être lu hors connexion.</string>
     <string name="media_tag_file">Fichier</string>
     <string name="ai_title">Suggestions de l’IA</string>
-    <string name="ai_subtitle">Remplit les champs vides de %1$s à partir des spécifications publiées du modèle. Rien n’est enregistré tant que vous n’appliquez pas.</string>
     <string name="ai_identify_lead">Les spécifications sont recherchées par fabricant et modèle. Ajoutez le modèle (et le fabricant, si vous le connaissez) pour les trouver.</string>
     <string name="ai_make_label">Fabricant</string>
     <string name="ai_model_label">Modèle</string>
@@ -331,8 +329,6 @@
     <string name="ai_step_match">Correspondance des valeurs avec les champs de cet actif</string>
     <string name="ai_wait_short">La recherche se fait sur le Web et peut prendre jusqu’à une minute.</string>
     <string name="ai_wait_long">Recherche toujours en cours. Certains modèles sont plus longs à trouver.</string>
-    <string name="ai_close_note">Fermer n’arrête pas la recherche.</string>
-    <string name="ai_close_keep">Fermer et continuer à travailler</string>
     <string name="ai_try_again">Réessayer</string>
     <string name="ai_found">%1$s trouvé. %2$s</string>
     <string name="ai_nothing_else">Les spécifications publiées ne peuvent rien remplir d’autre pour cet actif. Appliquez pour enregistrer votre saisie.</string>

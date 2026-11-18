@@ -17,7 +17,6 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.MAX_AI_PHOTO_BYTES
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
-import com.sclera.sclerago.domain.model.PhotoReading
 import com.sclera.sclerago.domain.model.SuggestionSource
 import com.sclera.sclerago.domain.model.TypeField
 import com.sclera.sclerago.domain.model.TypeSuggestion
@@ -104,8 +103,6 @@ class ClassificationRepositoryImpl @Inject constructor(
         },
         jacsCodes = jacsCodes.map { JacsSuggestion(it.code, it.title.orNull(), it.confidence.coerceIn(0.0, 1.0), it.reason.orNull()) },
         message = message.orNull(),
-        read = read?.let { PhotoReading(it.manufacturer.orNull(), it.model.orNull(), it.kind.orNull()) }
-            ?.takeIf { it.manufacturer != null || it.model != null || it.kind != null },
     )
 
     private fun sourceOf(text: String) = when (text) {

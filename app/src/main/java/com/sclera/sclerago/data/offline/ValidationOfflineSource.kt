@@ -4,20 +4,15 @@ import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.parseDbTime
 import com.sclera.sclerago.data.mapper.toAssetResult
+import com.sclera.sclerago.data.mapper.toRunIssue
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.validation.AssetResult
 import com.sclera.sclerago.domain.validation.AssetRunRecord
-import com.sclera.sclerago.domain.validation.IssueSeverity
 import com.sclera.sclerago.domain.validation.RECENT_RESULTS
 import com.sclera.sclerago.domain.validation.StepIssue
 import com.sclera.sclerago.domain.validation.StepOutcome
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 
 private const val LATEST_RESULT = """
     SELECT * FROM validation_results WHERE asset_id = ? AND %LIVE% ORDER BY created_at DESC, id DESC LIMIT 1"""
@@ -32,6 +27,8 @@ private const val ASSET_RUNS = """
 
 private const val ASSET_ISSUES = "SELECT * FROM validation_issues WHERE asset_id = ? AND %LIVE% ORDER BY id"
 
+private const val FIELD_NAMES_TYPES = "SELECT id, name, type FROM asset_fields WHERE %LIVE%"
+
 /** An asset's validation results and issues as sync brought them (its Validation tab and its list badge). Reads only. */
 class ValidationOfflineSource(private val db: AdcDatabase, private val io: CoroutineDispatcher) {
 
@@ -40,7 +37,7 @@ class ValidationOfflineSource(private val db: AdcDatabase, private val io: Corou
      * what the asset's Validation tab is built from (see `combineValidation`).
      */
     fun assetRunsFlow(assetId: String): Flow<Pair<List<AssetRunRecord>, List<StepIssue>>> =
-        db.watch(io, "validation_jobs", "validation_results", "validation_issues") { loadAssetRuns(assetId) to loadAssetIssues(assetId) }
+        db.watch(io, "validation_jobs", "validation_results", "validation_issues", "asset_fields") { loadAssetRuns(assetId) to loadAssetIssues(assetId) }
 
     private fun loadAssetRuns(assetId: String): List<AssetRunRecord> = db.whenTable("validation_results", emptyList()) {
         if (!db.hasTable("validation_jobs")) return@whenTable emptyList()
@@ -59,28 +56,28 @@ class ValidationOfflineSource(private val db: AdcDatabase, private val io: Corou
     }
 
     private fun loadAssetIssues(assetId: String): List<StepIssue> = db.whenTable("validation_issues", emptyList()) {
+        val names = fieldNamesTypes()
         db.query(ASSET_ISSUES.replace("%LIVE%", db.notRemoved("validation_issues")), listOf(assetId)).map { r ->
+            val issue = r.toRunIssue(names)
             StepIssue(
-                id = r.string("id").orEmpty(),
-                jobId = r.string("job_id").orEmpty(),
-                rule = r.string("rule").orEmpty(),
-                severity = when (r.string("severity")) {
-                    "error" -> IssueSeverity.ERROR
-                    "warning" -> IssueSeverity.WARNING
-                    else -> IssueSeverity.INFO
-                },
-                message = r.string("message").orEmpty(),
-                suggestion = firstSuggestion(r.string("suggestions")),
-                status = r.string("status") ?: "open",
+                id = issue.id,
+                jobId = issue.jobId,
+                target = issue.target,
+                fieldName = issue.fieldName,
+                rule = issue.rule,
+                severity = issue.severity,
+                message = issue.message,
+                currentValue = issue.currentValue,
+                suggestion = issue.suggestions.firstOrNull(),
+                status = issue.status,
             )
         }
     }
 
-    /** The first suggested fix of an issue's `suggestions` JSON (`[{value, label, …}]`), as text. */
-    private fun firstSuggestion(json: String?): String? {
-        val first = (runCatching { Json.parseToJsonElement(json.orEmpty()) }.getOrNull() as? JsonArray)?.firstOrNull() as? JsonObject ?: return null
-        fun text(key: String) = (first[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
-        return text("label") ?: text("value")
+    /** Every field's name and type by id: an issue names its field as the server's fieldName does. */
+    private fun fieldNamesTypes(): Map<String, Pair<String, String>> = db.whenTable("asset_fields", emptyMap()) {
+        db.query(FIELD_NAMES_TYPES.replace("%LIVE%", db.notRemoved("asset_fields")))
+            .associate { it.string("id").orEmpty() to (it.string("name").orEmpty() to it.string("type").orEmpty()) }
     }
 
     /** [assetId]'s result in the newest job that checked it. Blocking. */

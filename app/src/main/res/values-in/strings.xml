@@ -268,7 +268,6 @@
     <string name="val_quality">Kualitas data %1$d/100</string>
     <string name="val_every_step_from">Semua langkah dari %1$d validasi, masing-masing dengan hasil terbarunya: %2$s.</string>
     <string name="val_starts_here">Mulai di sini</string>
-    <string name="val_suggested">Saran: %1$s</string>
     <string name="val_no_issues">Tidak ada yang tercantum untuk langkah ini.</string>
     <string name="val_run_every">Jalankan semua langkah</string>
     <string name="val_hint_from">Langkah 1–%1$d tetap lulus; pemeriksaan dimulai lagi dari %2$s.</string>
@@ -307,7 +306,6 @@
     <string name="memo_not_on_device">Memo ini belum ada di ponsel ini, jadi tidak dapat diputar secara offline.</string>
     <string name="media_tag_file">File</string>
     <string name="ai_title">Saran AI</string>
-    <string name="ai_subtitle">Mengisi kolom kosong %1$s dari spesifikasi model yang dipublikasikan. Tidak ada yang disimpan sampai Anda menerapkannya.</string>
     <string name="ai_identify_lead">Spesifikasi dicari berdasarkan produsen dan model. Tambahkan model (dan produsen, jika Anda tahu) untuk menemukannya.</string>
     <string name="ai_make_label">Produsen</string>
     <string name="ai_model_label">Model</string>
@@ -323,8 +321,6 @@
     <string name="ai_step_match">Mencocokkan nilai dengan kolom aset ini</string>
     <string name="ai_wait_short">Pencarian dilakukan di web, jadi bisa memakan waktu hingga satu menit.</string>
     <string name="ai_wait_long">Masih mencari. Beberapa model butuh waktu lebih lama untuk ditemukan.</string>
-    <string name="ai_close_note">Menutup tidak menghentikan pencarian.</string>
-    <string name="ai_close_keep">Tutup dan lanjutkan bekerja</string>
     <string name="ai_try_again">Coba lagi</string>
     <string name="ai_found">%1$s ditemukan. %2$s</string>
     <string name="ai_nothing_else">Tidak ada lagi yang dapat diisi dari spesifikasi yang dipublikasikan untuk aset ini. Terapkan untuk menyimpan yang Anda ketik.</string>

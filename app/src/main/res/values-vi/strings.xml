@@ -268,7 +268,6 @@
     <string name="val_quality">Chất lượng dữ liệu %1$d/100</string>
     <string name="val_every_step_from">Mọi bước từ %1$d lần xác thực, mỗi bước kèm kết quả mới nhất: %2$s.</string>
     <string name="val_starts_here">Bắt đầu từ đây</string>
-    <string name="val_suggested">Đề xuất: %1$s</string>
     <string name="val_no_issues">Không có mục nào cho bước này.</string>
     <string name="val_run_every">Chạy mọi bước</string>
     <string name="val_hint_from">Các bước 1–%1$d giữ kết quả đạt; việc kiểm tra bắt đầu lại từ %2$s.</string>
@@ -307,7 +306,6 @@
     <string name="memo_not_on_device">Ghi chú này chưa có trên điện thoại nên không thể phát khi ngoại tuyến.</string>
     <string name="media_tag_file">Tệp</string>
     <string name="ai_title">Gợi ý AI</string>
-    <string name="ai_subtitle">Điền các trường trống của %1$s từ thông số kỹ thuật đã công bố của model. Không có gì được lưu cho đến khi bạn áp dụng.</string>
     <string name="ai_identify_lead">Thông số được tra cứu theo nhà sản xuất và model. Hãy thêm model (và nhà sản xuất, nếu bạn biết) để tìm.</string>
     <string name="ai_make_label">Nhà sản xuất</string>
     <string name="ai_model_label">Model</string>
@@ -323,8 +321,6 @@
     <string name="ai_step_match">Đang khớp giá trị với các trường của tài sản này</string>
     <string name="ai_wait_short">Quá trình này tìm kiếm trên web nên có thể mất tới một phút.</string>
     <string name="ai_wait_long">Vẫn đang tìm. Một số model cần nhiều thời gian hơn để tìm.</string>
-    <string name="ai_close_note">Đóng không làm dừng tìm kiếm.</string>
-    <string name="ai_close_keep">Đóng và tiếp tục làm việc</string>
     <string name="ai_try_again">Thử lại</string>
     <string name="ai_found">Đã tìm thấy %1$s. %2$s</string>
     <string name="ai_nothing_else">Thông số đã công bố không thể điền thêm gì cho tài sản này. Hãy áp dụng để lưu nội dung bạn đã nhập.</string>

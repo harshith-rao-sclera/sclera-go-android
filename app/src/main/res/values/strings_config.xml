@@ -82,9 +82,18 @@
     <string name="cfg_building_exists">This building already exists</string>
     <string name="cfg_floor_exists">This floor already exists</string>
     <string name="cfg_location_exists">This location already exists</string>
-    <string name="cfg_building_has_floors">This building still has floors. Delete or move them first, or hide the building.</string>
-    <string name="cfg_floor_has_locations">This floor still has locations. Delete or move them first, or hide the floor.</string>
-    <string name="cfg_place_in_use">This location is still in use.</string>
+    <string name="cfg_delete_place_title">Delete %1$s?</string>
+    <string name="cfg_delete_building_body">%1$s, its floors and their locations will be deleted. Assets there are kept, without a building, floor or location.</string>
+    <string name="cfg_floors_removed_note">%1$s and their locations will be deleted when you save. Assets there are kept, without a floor or location.</string>
+    <string name="cfg_delete_location_body">%1$s will be deleted. Assets there are kept, without a location.</string>
+    <plurals name="cfg_delete_locations_title">
+        <item quantity="one">Delete %1$d location?</item>
+        <item quantity="other">Delete %1$d locations?</item>
+    </plurals>
+    <plurals name="cfg_delete_locations_body">
+        <item quantity="one">Assets in this location are kept, without a location.</item>
+        <item quantity="other">Assets in these locations are kept, without a location.</item>
+    </plurals>
     <plurals name="cfg_locations_added">
         <item quantity="one">%1$d location added</item>
         <item quantity="other">%1$d locations added</item>

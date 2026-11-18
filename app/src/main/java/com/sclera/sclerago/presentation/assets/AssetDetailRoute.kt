@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import android.widget.Toast
+
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -20,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
@@ -42,7 +45,8 @@ fun AssetDetailRoute(
     onBack: () -> Unit,
     onChangeLoc: () -> Unit,
     /** [exception]: submitted with a mandatory field empty or too few photos, so it goes in as an exception. */
-    onCreate: (name: String, detail: String, media: List<Media>, values: Map<String, String>, submit: Boolean, exception: Boolean) -> Unit,
+    /** Creates the new asset; [place] is the location picked in its form (null: where it started). */
+    onCreate: (name: String, detail: String, media: List<Media>, values: Map<String, String>, submit: Boolean, exception: Boolean, place: LocValue?) -> Unit,
     onDelete: (String) -> Unit,
     onNotice: (UiText) -> Unit,
     /** A place picked for this asset in the location sheet, to keep as an unsaved change; [onPlaceTaken] once kept. */
@@ -112,7 +116,7 @@ fun AssetDetailRoute(
             val serial = state.value("serial")
             onCreate(
                 state.value("name"), if (serial.isNotEmpty()) "S/N $serial" else state.value("model"),
-                state.newPicks, state.values, submit, submit && !state.complete,
+                state.newPicks, state.values, submit, submit && !state.complete, state.pendingPlace,
             )
         },
         onValidate = onValidate,
@@ -157,7 +161,7 @@ fun AssetDetailRoute(
             picker = JacsPickerActions(onQuery = vm::searchJacs, onMore = vm::moreJacs, onPick = vm::pickJacs, onClose = vm::closeJacs),
         ),
         classify = ClassifyActions(
-            onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode, onToggleReading = vm::toggleClassifyReading,
+            onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,
         ),
         onAddPhoto = { kind ->
             // What the camera takes goes to [kind]'s card (Other photos for none); photo, video and gallery are in the camera.
@@ -180,8 +184,23 @@ fun AssetDetailRoute(
                 active = true,
                 captures = camCaps, selected = camSel,
                 videoMode = camVideo, onVideoMode = { camVideo = it },
-                onCapture = { m -> attach(listOf(m)); camOpen = false },
-                onToggle = { id -> camSel = if (id in camSel) camSel - id else camSel + id },
+                // Each shot joins the strip, ticked while the kind (or asset) has room; Done adds the ticked ones.
+                onCapture = { m ->
+                    camCaps = camCaps + m
+                    if (m.video || selectedPhotos(camCaps, camSel) < vm.cameraRoom()) camSel = camSel + m.id
+                    else Toast.makeText(context, context.getString(R.string.camera_room_full, vm.cameraRoom()), Toast.LENGTH_SHORT).show()
+                },
+                onToggle = { id ->
+                    val m = camCaps.firstOrNull { it.id == id }
+                    camSel = when {
+                        id in camSel -> camSel - id
+                        m == null || m.video || selectedPhotos(camCaps, camSel) < vm.cameraRoom() -> camSel + id
+                        else -> {
+                            Toast.makeText(context, context.getString(R.string.camera_room_full, vm.cameraRoom()), Toast.LENGTH_SHORT).show()
+                            camSel
+                        }
+                    }
+                },
                 onGalleryPicked = { uris ->
                     if (uris.isNotEmpty()) scope.launch {
                         attach(describeVisualMedia(context, uris))
@@ -201,3 +220,6 @@ fun AssetDetailRoute(
 }
 
 private const val MAX_PICKS = 20
+
+/** How many photos (not videos) of [caps] are ticked in [selected]. */
+private fun selectedPhotos(caps: List<Media>, selected: Set<String>): Int = caps.count { it.id in selected && !it.video }

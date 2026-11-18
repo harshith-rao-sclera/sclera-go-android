@@ -268,7 +268,6 @@
     <string name="val_quality">数据质量 %1$d/100</string>
     <string name="val_every_step_from">来自 %1$d 次验证的所有步骤，各附最新结果：%2$s。</string>
     <string name="val_starts_here">从此处开始</string>
-    <string name="val_suggested">建议：%1$s</string>
     <string name="val_no_issues">此步骤没有列出任何内容。</string>
     <string name="val_run_every">运行所有步骤</string>
     <string name="val_hint_from">第 1–%1$d 步保持通过；检查将从%2$s重新开始。</string>
@@ -307,7 +306,6 @@
     <string name="memo_not_on_device">此备忘录尚未下载到这部手机，无法离线播放。</string>
     <string name="media_tag_file">文件</string>
     <string name="ai_title">AI 建议</string>
-    <string name="ai_subtitle">根据型号公开的规格填写 %1$s 的空白字段。应用之前不会保存任何内容。</string>
     <string name="ai_identify_lead">规格按制造商和型号查找。请添加型号（如果知道，也请添加制造商）以查找规格。</string>
     <string name="ai_make_label">制造商</string>
     <string name="ai_model_label">型号</string>
@@ -323,8 +321,6 @@
     <string name="ai_step_match">正在将数值匹配到此资产的字段</string>
     <string name="ai_wait_short">此操作会搜索网络，最多可能需要一分钟。</string>
     <string name="ai_wait_long">仍在搜索。有些型号需要更长时间才能找到。</string>
-    <string name="ai_close_note">关闭不会停止搜索。</string>
-    <string name="ai_close_keep">关闭并继续工作</string>
     <string name="ai_try_again">重试</string>
     <string name="ai_found">已找到 %1$s。%2$s</string>
     <string name="ai_nothing_else">公开规格无法再为此资产填写其他内容。请应用以保存您输入的内容。</string>

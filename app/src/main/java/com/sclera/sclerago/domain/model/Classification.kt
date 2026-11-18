@@ -34,17 +34,13 @@ data class TypeSuggestion(
 /** A JACS code suggested for the first type: the [code] the asset stores, its catalogue [title], how sure (0..1) and why. */
 data class JacsSuggestion(val code: String, val title: String?, val confidence: Double, val reason: String?)
 
-/** The server's answer to "what is this asset?": up to 3 types best first, up to 3 JACS codes, what the photos said, and why it is empty or partial. */
+/** The server's answer to "what is this asset?": up to 3 types best first, up to 3 JACS codes, and why it is empty or partial. */
 data class ClassificationResult(
     val suggestions: List<TypeSuggestion>,
     val jacsCodes: List<JacsSuggestion>,
     val message: String?,
-    /** What the photos said; the server says to offer it for an empty manufacturer and model. Null when they said nothing. */
-    val read: PhotoReading? = null,
 )
 
-/** What the photos said: [manufacturer] and [model] to fill empty fields, and [kind], the kind of equipment. */
-data class PhotoReading(val manufacturer: String?, val model: String?, val kind: String?)
 
 /** What is typed so far, sent with the photos (all optional). [other] is any other field as label to value. */
 data class ClassifyDetails(

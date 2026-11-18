@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.components
 
+import android.content.Context
+import android.media.MediaPlayer
 import android.net.Uri
 import android.widget.VideoView
 import androidx.activity.compose.BackHandler
@@ -35,6 +37,9 @@ import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.Preview
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val SheetShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
 
@@ -352,14 +357,16 @@ fun MediaFull(media: Media) {
 private fun AudioFull(media: Media) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var playing by remember(media.uri) { mutableStateOf(false) }
-    val player = remember(media.uri) {
+    var loading by remember(media.uri) { mutableStateOf(true) }
+    // Opened off the main thread (a memo kept in the offline database is copied out first), and released when this
+    // memo goes away; null when it isn't on this device.
+    val player by produceState<MediaPlayer?>(null, media.uri) {
         val uri = Uri.parse(media.uri)
-        if (uri.scheme != "file" && uri.scheme != "content") null
-        else runCatching { android.media.MediaPlayer().apply { setDataSource(context, uri); prepare() } }.getOrNull()
-    }
-    DisposableEffect(player) {
-        player?.setOnCompletionListener { playing = false }
-        onDispose { player?.release() }
+        val opened = if (uri.scheme == "file" || uri.scheme == "content") openPlayer(context, uri) else null
+        opened?.setOnCompletionListener { playing = false }
+        value = opened
+        loading = false
+        awaitDispose { opened?.release() }
     }
     Column(
         Modifier.fillMaxSize().padding(24.dp),
@@ -371,18 +378,38 @@ private fun AudioFull(media: Media) {
         }
         Txt(media.fileName ?: stringResource(R.string.media_tag_audio), 15, 600, maxLines = 3)
         if (media.durationMs > 0) Txt(media.durationText, 12, 400, C.Muted)
-        if (player == null) {
-            Txt(stringResource(R.string.memo_not_on_device), 12, 400, C.Muted, maxLines = 3)
-        } else {
-            Pill(
+        val ready = player
+        when {
+            loading -> Unit
+            ready == null -> Txt(stringResource(R.string.memo_not_on_device), 12, 400, C.Muted, maxLines = 3)
+            else -> Pill(
                 stringResource(if (playing) R.string.memo_pause else R.string.memo_play),
                 {
-                    if (playing) player.pause() else player.start()
+                    if (playing) ready.pause() else ready.start()
                     playing = !playing
                 },
                 Modifier.testTag("memo-play"), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 24.dp, size = 14, weight = 700,
             )
         }
+    }
+}
+
+/**
+ * A player prepared for [uri] off the main thread, or null when the memo can't be opened (not on this device, or not
+ * playable). A player that doesn't open, or whose screen closes while it opens, is released here so none is left behind.
+ */
+private suspend fun openPlayer(context: Context, uri: Uri): MediaPlayer? {
+    val player = MediaPlayer()
+    return try {
+        withContext(Dispatchers.IO) {
+            player.setDataSource(context, uri)
+            player.prepare()
+        }
+        player
+    } catch (e: Exception) {
+        player.release()
+        if (e is CancellationException) throw e
+        null
     }
 }
 

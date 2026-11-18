@@ -276,7 +276,6 @@
     <string name="val_quality">Qualidade dos dados %1$d/100</string>
     <string name="val_every_step_from">Todas as etapas de %1$d validações, cada uma com seu resultado mais recente: %2$s.</string>
     <string name="val_starts_here">Começa aqui</string>
-    <string name="val_suggested">Sugestão: %1$s</string>
     <string name="val_no_issues">Nada listado para esta etapa.</string>
     <string name="val_run_every">Executar todas as etapas</string>
     <string name="val_hint_from">As etapas 1–%1$d mantêm a aprovação; a verificação recomeça em %2$s.</string>
@@ -315,7 +314,6 @@
     <string name="memo_not_on_device">Este memo ainda não está neste telefone, então não pode ser reproduzido off-line.</string>
     <string name="media_tag_file">Arquivo</string>
     <string name="ai_title">Sugestões da IA</string>
-    <string name="ai_subtitle">Preenche os campos vazios de %1$s com as especificações publicadas do modelo. Nada é salvo até você aplicar.</string>
     <string name="ai_identify_lead">As especificações são buscadas por fabricante e modelo. Adicione o modelo (e o fabricante, se souber) para encontrá-las.</string>
     <string name="ai_make_label">Fabricante</string>
     <string name="ai_model_label">Modelo</string>
@@ -331,8 +329,6 @@
     <string name="ai_step_match">Associando valores aos campos deste ativo</string>
     <string name="ai_wait_short">A busca é feita na web, então pode levar até um minuto.</string>
     <string name="ai_wait_long">Ainda buscando. Alguns modelos demoram mais para ser encontrados.</string>
-    <string name="ai_close_note">Fechar não interrompe a busca.</string>
-    <string name="ai_close_keep">Fechar e continuar trabalhando</string>
     <string name="ai_try_again">Tentar novamente</string>
     <string name="ai_found">%1$s encontrado. %2$s</string>
     <string name="ai_nothing_else">Não há mais nada que as especificações publicadas possam preencher neste ativo. Aplique para salvar o que você digitou.</string>

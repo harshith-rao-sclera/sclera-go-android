@@ -288,7 +288,6 @@
     <string name="val_quality">جودة البيانات %1$d/100</string>
     <string name="val_every_step_from">كل الخطوات من عمليات التحقق (%1$d)، ولكل منها أحدث نتيجة: %2$s.</string>
     <string name="val_starts_here">يبدأ هنا</string>
-    <string name="val_suggested">مقترح: %1$s</string>
     <string name="val_no_issues">لا يوجد شيء مدرج لهذه الخطوة.</string>
     <string name="val_run_every">تشغيل كل الخطوات</string>
     <string name="val_hint_from">تحتفظ الخطوات 1–%1$d بنجاحها، ويبدأ الفحص من جديد عند %2$s.</string>
@@ -327,7 +326,6 @@
     <string name="memo_not_on_device">هذه المذكرة ليست على هذا الهاتف بعد، لذا لا يمكن تشغيلها دون اتصال.</string>
     <string name="media_tag_file">ملف</string>
     <string name="ai_title">اقتراحات الذكاء الاصطناعي</string>
-    <string name="ai_subtitle">يملأ الحقول الفارغة في %1$s من المواصفات المنشورة للطراز. لا يُحفظ شيء حتى تطبّق الاقتراحات.</string>
     <string name="ai_identify_lead">يتم البحث عن المواصفات حسب الشركة المصنّعة والطراز. أضف الطراز (والشركة المصنّعة إن كنت تعرفها) للعثور عليها.</string>
     <string name="ai_make_label">الشركة المصنّعة</string>
     <string name="ai_model_label">الطراز</string>
@@ -343,8 +341,6 @@
     <string name="ai_step_match">مطابقة القيم مع حقول هذا الأصل</string>
     <string name="ai_wait_short">يتم البحث على الويب، لذا قد يستغرق ذلك حتى دقيقة.</string>
     <string name="ai_wait_long">لا يزال البحث جاريًا. يستغرق العثور على بعض الطرازات وقتًا أطول.</string>
-    <string name="ai_close_note">الإغلاق لا يوقف البحث.</string>
-    <string name="ai_close_keep">إغلاق ومتابعة العمل</string>
     <string name="ai_try_again">إعادة المحاولة</string>
     <string name="ai_found">تم العثور على %1$s. %2$s</string>
     <string name="ai_nothing_else">لا يوجد شيء آخر يمكن للمواصفات المنشورة ملؤه لهذا الأصل. طبّق لحفظ ما كتبته.</string>

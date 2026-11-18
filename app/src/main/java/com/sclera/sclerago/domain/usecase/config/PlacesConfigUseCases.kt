@@ -23,15 +23,6 @@ import javax.inject.Inject
 enum class PlaceProblem {
     /** A building, floor or location of that name is already there. */
     DUPLICATE,
-
-    /** A building that still has floors can't be deleted. */
-    BUILDING_HAS_FLOORS,
-
-    /** A floor that still has locations can't be deleted. */
-    FLOOR_HAS_LOCATIONS,
-
-    /** The place is still in use (assets are there). */
-    IN_USE,
 }
 
 /** A conflict from the server ([OnlineError.Conflict]) as [problem]; other failures are thrown on. */
@@ -136,7 +127,7 @@ class SaveBuildingUseCase @Inject constructor(private val repo: ConfigPlacesRepo
 
 /**
  * Edit floors sheet: the building's floors in their new order, with names, types, codes and visibility; floors left
- * out are deleted (refused while a floor still has locations). Null when saved, else why not.
+ * out are deleted with their locations (assets there stay, without a floor or location). Null when saved, else why not.
  */
 class SaveFloorsUseCase @Inject constructor(private val repo: ConfigPlacesRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(propertyId: String, building: LocNode, floors: List<LocNode>): PlaceProblem? {
@@ -144,11 +135,8 @@ class SaveFloorsUseCase @Inject constructor(private val repo: ConfigPlacesReposi
         val kept = floors.filter { it.id in before }.map { it.copy(name = it.name.cleanName(), type = it.type.cleanType(), code = it.code.cleanCode()) }
         if (kept.map { it.name.lowercase() }.toSet().size != kept.size) return PlaceProblem.DUPLICATE
         val removed = before.values.filter { old -> kept.none { it.id == old.id } }
-        if (removed.any { it.kids.orEmpty().isNotEmpty() }) return PlaceProblem.FLOOR_HAS_LOCATIONS
         guard.requireOnline(Permission.CONFIGURE)
-        removed.forEach { f ->
-            conflictAs(PlaceProblem.IN_USE) { repo.delete(propertyId, NodeKind.FLOOR, f.id) }.onFailure { return (it as PlaceRefused).problem }
-        }
+        removed.forEach { f -> repo.delete(propertyId, NodeKind.FLOOR, f.id) }
         kept.forEachIndexed { position, f ->
             val old = before.getValue(f.id)
             val change = PlaceChange(
@@ -182,24 +170,15 @@ class UpdateLocationUseCase @Inject constructor(private val repo: ConfigPlacesRe
 }
 
 /**
- * Deletes [places] (buildings, floors or locations) as the server allows: a building with floors, a floor with
- * locations, or a place in use is refused. Stops at the first refusal. Returns how many were deleted and why it stopped.
+ * Deletes [places] (buildings, floors or locations) as the server does: a building's floors and their locations go
+ * with it, a floor's locations with it, and assets there stay without that place. Returns how many were deleted.
  */
 class DeletePlacesUseCase @Inject constructor(private val repo: ConfigPlacesRepository, private val guard: PermissionGuard) {
-    data class Deleted(val deleted: Int, val problem: PlaceProblem?)
-
-    suspend operator fun invoke(propertyId: String, places: List<LocNode>): Deleted {
-        places.firstOrNull { it.kind == NodeKind.BUILDING && it.kids.orEmpty().isNotEmpty() }?.let { return Deleted(0, PlaceProblem.BUILDING_HAS_FLOORS) }
-        places.firstOrNull { it.kind == NodeKind.FLOOR && it.kids.orEmpty().isNotEmpty() }?.let { return Deleted(0, PlaceProblem.FLOOR_HAS_LOCATIONS) }
-        if (places.isEmpty()) return Deleted(0, null)
+    suspend operator fun invoke(propertyId: String, places: List<LocNode>): Int {
+        if (places.isEmpty()) return 0
         guard.requireOnline(Permission.CONFIGURE)
-        var n = 0
-        places.forEach { p ->
-            val refused = conflictAs(PlaceProblem.IN_USE) { repo.delete(propertyId, p.kind, p.id) }.exceptionOrNull()
-            if (refused != null) return Deleted(n, (refused as PlaceRefused).problem)
-            n++
-        }
-        return Deleted(n, null)
+        places.forEach { p -> repo.delete(propertyId, p.kind, p.id) }
+        return places.size
     }
 }
 

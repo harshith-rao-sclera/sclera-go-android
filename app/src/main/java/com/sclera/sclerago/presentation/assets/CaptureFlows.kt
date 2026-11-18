@@ -6,8 +6,6 @@ import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
 import com.sclera.sclerago.presentation.fileimport.FileImportReview
 import com.sclera.sclerago.presentation.fileimport.FileImportViewModel
 import com.sclera.sclerago.R
-import com.sclera.sclerago.presentation.common.asString
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.sclera.sclerago.presentation.main.rememberAssetListBinding
 import android.Manifest
@@ -75,7 +73,6 @@ import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
-import com.sclera.sclerago.presentation.main.Preview
 import com.sclera.sclerago.presentation.main.Sheet
 import com.sclera.sclerago.presentation.main.Tab
 import com.sclera.sclerago.presentation.theme.C
@@ -93,7 +90,6 @@ private val Glass = Color(0xB3141518) // rgba(20,21,24,0.7)
 fun CameraPage(vm: AppViewModel) {
     val s = vm.state
     when {
-        s.revCam -> CameraReview(vm)
         s.camOpen -> CameraView(vm)
         else -> SubList(vm, Tab.CAMERA, "Camera", vm::openCam)
     }
@@ -111,7 +107,7 @@ private fun CameraView(vm: AppViewModel) {
         captures = s.captures, selected = s.camSel,
         videoMode = s.videoMode, onVideoMode = vm::setVideoMode,
         onCapture = vm::addCapture, onToggle = vm::toggleStrip, onGalleryPicked = vm::addPicked,
-        onClose = vm::cancelCam, onDone = vm::toCamReview,
+        onClose = vm::cancelCam, onDone = vm::doneCapturing,
     )
 }
 
@@ -434,33 +430,6 @@ private fun PermissionPrompt(blocked: Boolean, onAllow: () -> Unit, modifier: Mo
 @Composable
 private fun ModePill(label: String, on: Boolean, onClick: () -> Unit) {
     Pill(label, onClick, bg = if (on) C.Yellow else Color.Transparent, fg = if (on) C.OnYellow else C.Muted, hPad = 18.dp, size = 14, weight = 700)
-}
-
-@Composable
-private fun CameraReview(vm: AppViewModel) {
-    val rev = vm.camReview
-    ReviewScreen(
-        sub = pluralStringResource(R.plurals.review_items_sub, rev.size, rev.size),
-        addLabel = stringResource(R.string.review_add_more), onAdd = vm::backToCam,
-        items = rev, onToggle = vm::toggleRev,
-        onDiscard = vm::discardCam, onGo = vm::onboardCam,
-    ) { ri ->
-        val m = ri.media
-        val sub = ri.sub.asString()
-        Box(
-            Modifier.size(56.dp).clip(r(10)).clickable {
-                if (m != null) vm.showPreview(Preview(ri.name, sub, Color.Black, plate = false, video = m.video, media = m))
-            },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (m != null) MediaImage(m, Modifier.fillMaxSize(), maxPx = 200)
-            if (m?.video == true) LineIcon(Icons.Play, 20.dp, C.White)
-            Box(
-                Modifier.align(Alignment.BottomEnd).padding(4.dp).size(18.dp).background(Color(0xA6141518), r(5)),
-                contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Expand, 11.dp, C.White, 2.6f) }
-        }
-    }
 }
 
 // ---------------------------------------------------------------- File

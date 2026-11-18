@@ -30,6 +30,42 @@ fun readablePhotos(media: List<Media>, max: Int): List<Media> {
 /** The order photos are taken in, a group at a time; null is a photo without a kind yet ("Other photos"). */
 private val PHOTO_GROUPS = listOf(PhotoKind.NAMEPLATE, PhotoKind.LABEL_ID, PhotoKind.ASSET, null)
 
+/** A photo of the asset itself (not a video, voice memo or file, nor a field's answer): the kind that photo rules count. */
+private fun Media.isAssetPhoto(): Boolean = !video && !audio && !isDoc && fieldId == null
+
+/**
+ * How many more photos of [kind] an asset holding [have] may take: its rule's most less those it has (none for a kind
+ * the rules don't allow); for no kind (Other photos, sorted when added), what is left of [MAX_PHOTOS_PER_ASSET].
+ */
+fun photoRoom(rules: List<PhotoRule>, have: List<Media>, kind: PhotoKind?): Int {
+    val photos = have.filter { it.isAssetPhoto() }
+    val left = if (kind == null) MAX_PHOTOS_PER_ASSET - photos.size
+    else (rules.firstOrNull { it.kind == kind }?.max ?: MAX_PHOTOS_PER_ASSET) - photos.count { it.category == kind }
+    return left.coerceAtLeast(0)
+}
+
+/**
+ * [adding] kept within the photo rules beside [have], in order: a photo whose kind (from its card, or sorted off the
+ * photo) already has the most the rules allow goes to no kind (Other photos), which the server takes without a limit,
+ * rather than refusing the lot. Returns the photos, and how many were moved.
+ */
+fun fitPhotoRules(rules: List<PhotoRule>, have: List<Media>, adding: List<Media>): Pair<List<Media>, Int> {
+    val counts = PhotoKind.entries.associateWith { k -> have.count { it.isAssetPhoto() && it.category == k } }.toMutableMap()
+    var moved = 0
+    val fitted = adding.map { m ->
+        val kind = m.category?.takeIf { m.isAssetPhoto() } ?: return@map m
+        val max = rules.firstOrNull { it.kind == kind }?.max ?: return@map m
+        if (counts.getValue(kind) < max) {
+            counts[kind] = counts.getValue(kind) + 1
+            m
+        } else {
+            moved++
+            m.copy(category = null)
+        }
+    }
+    return fitted to moved
+}
+
 /** How many photos of [kind] each asset needs ([min]) and may have ([max]), as the property's settings say. */
 data class PhotoRule(val kind: PhotoKind, val min: Int, val max: Int)
 

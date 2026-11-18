@@ -42,14 +42,9 @@ data class SuggestedCodeDto(val code: String, val title: String? = null, val con
 data class SuggestDto(
     val suggestions: List<SuggestedTypeDto> = emptyList(),
     val jacsCodes: List<SuggestedCodeDto> = emptyList(),
-    /** What the photos and details said, when AI was asked. */
-    val read: PhotoReadDto? = null,
     val message: String? = null,
 )
 
-/** What the photos said: the manufacturer, model and kind of equipment. */
-@Serializable
-data class PhotoReadDto(val manufacturer: String? = null, val model: String? = null, val kind: String? = null)
 
 /** The `details` part of a suggestion request; empty values are left out. */
 @Serializable

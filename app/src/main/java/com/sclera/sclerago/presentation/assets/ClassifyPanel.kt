@@ -26,7 +26,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
-import com.sclera.sclerago.domain.model.PhotoReading
 import com.sclera.sclerago.domain.model.SURE_ENOUGH
 import com.sclera.sclerago.domain.model.SuggestionSource
 import com.sclera.sclerago.domain.model.TypeSuggestion
@@ -45,9 +44,8 @@ import kotlin.math.roundToInt
 /** What the type suggestions under System details do when picked: each pick goes into the form at once. */
 class ClassifyActions(
     val onPickType: (masterFormatId: String) -> Unit = {},
+    /** Picks another of the picked type's JACS codes. */
     val onPickCode: (code: String) -> Unit = {},
-    /** Ticks or unticks what the photos said, for an empty manufacturer and model. */
-    val onToggleReading: () -> Unit = {},
 )
 
 /** Test tags of the type suggestions. */
@@ -60,8 +58,9 @@ object ClassifyTags {
 /**
  * "Suggest type" under System details, as the iOS app: the button (a spinner and "Working out what it is…" while the
  * server reads the photos and details), then inline below it up to three of the property's types, best first, with how
- * sure, where from, how many fields the type has, and why. Picking one fills the system, asset and sub type at once;
- * then the JACS codes for it, and what the photos said, for an empty manufacturer and model. Nothing is saved until Save.
+ * sure, where from, how many fields the type has, and why. Picking one fills the system, asset and sub type at once,
+ * and its likeliest JACS code as soon as that is known; the type's JACS codes then show below it, to pick another.
+ * Nothing is saved until Save.
  */
 @Composable
 internal fun ClassifyPanel(
@@ -111,7 +110,6 @@ private fun Results(c: ClassifyState, actions: ClassifyActions) {
     r.message?.let { Txt(it, 12, 500, C.Soft, maxLines = 5) }
     if (r.suggestions.isEmpty()) {
         if (r.message == null) Txt(stringResource(R.string.classify_none), 12, 500, C.Soft, maxLines = 4)
-        r.read?.let { Reading(it, c.useReading, actions.onToggleReading) }
         return
     }
     Choices(r.suggestions, { it.masterFormatId }, { it.masterFormatId == c.picked }, actions.onPickType, ClassifyTags::type) { s ->
@@ -126,7 +124,7 @@ private fun Results(c: ClassifyState, actions: ClassifyActions) {
         if (s.reason.isNotBlank()) Txt(s.reason, 12, 400, C.Soft, maxLines = 3)
     }
 
-    // The JACS codes are the picked type's, so they show once a type is picked.
+    // The picked type's JACS codes, best first: its likeliest is filled with the type; another can be picked here.
     if (c.picked != null) {
         Txt(stringResource(R.string.detail_jacs_code), 12, 700, C.Muted, modifier = Modifier.padding(top = 2.dp))
         when {
@@ -137,25 +135,6 @@ private fun Results(c: ClassifyState, actions: ClassifyActions) {
                 Txt(stringResource(R.string.ai_sure, (j.confidence * 100).roundToInt()), 11, 700, sureColor(j.confidence))
                 j.reason?.let { Txt(it, 12, 400, C.Soft, maxLines = 3) }
             }
-        }
-    }
-
-    r.read?.let { Reading(it, c.useReading, actions.onToggleReading) }
-}
-
-/** What the photos said, ticked to fill an empty manufacturer and model (unticked takes it out again). */
-@Composable
-private fun Reading(read: PhotoReading, on: Boolean, onToggle: () -> Unit) {
-    val said = listOfNotNull(read.manufacturer, read.model, read.kind).joinToString(" · ")
-    if (said.isEmpty()) return
-    Row(
-        Modifier.fillMaxWidth().clip(r(12)).border(1.dp, C.Border, r(12)).background(C.Surface).padding(end = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TickBox(on, onToggle)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(stringResource(R.string.classify_read_title), 13, 700)
-            Txt(stringResource(R.string.classify_read_body, said), 12, 400, C.Soft, maxLines = 4)
         }
     }
 }
