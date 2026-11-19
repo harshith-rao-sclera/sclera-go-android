@@ -10,6 +10,7 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.VdmsLinkRepository
@@ -40,8 +41,8 @@ class AssetRepositoryImpl @Inject constructor(
 
     override suspend fun add(assets: List<NewAsset>) = writer.add(assets)
 
-    override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean, photoRules: List<PhotoRule>): Set<String> =
-        writer.setStatus(ids, status, allowExceptions, photoRules)
+    override suspend fun setStatus(ids: Collection<String>, status: Status, photoRules: List<PhotoRule>): SubmitOutcome =
+        writer.setStatus(ids, status, photoRules)
 
     override suspend fun saveDetails(id: String, values: Map<String, String>, sources: Map<String, String>, place: LocValue?) {
         writer.saveDetails(id, values, sources, place)

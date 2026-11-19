@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.usecase.asset.CloneAssetUseCase
+import com.sclera.sclerago.domain.model.CloneRequest
+import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
 import com.sclera.sclerago.domain.usecase.asset.ChangeRequestUseCases
 import androidx.lifecycle.ViewModel
@@ -10,6 +13,7 @@ import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.AssetDetails
+import com.sclera.sclerago.domain.model.DataError
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.IMAGE_KIND
@@ -108,6 +112,9 @@ data class AssetDetailState(
     val validating: Boolean = false,
     /** The change request note being written (null: its dialog is closed). */
     val changeNote: String? = null,
+    /** The Clone sheet is open / its copies are being made. */
+    val cloneOpen: Boolean = false,
+    val cloning: Boolean = false,
     /** The signed-in user made the asset's change request. */
     val changeRequestMine: Boolean = false,
     /** Who made the asset's change request (name, else email); null when they aren't known on this device. */
@@ -235,6 +242,7 @@ class AssetDetailViewModel @Inject constructor(
     private val jacsCodes: JacsUseCases,
     private val planPhotoFill: PlanPhotoFillUseCase,
     observeOnline: ObserveOnlineUseCase,
+    private val cloneAsset: CloneAssetUseCase,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
 
@@ -274,6 +282,8 @@ class AssetDetailViewModel @Inject constructor(
         val sorting: Int = 0,
         /** The change request note being written; null while its dialog is closed. */
         val changeNote: String? = null,
+        val cloneOpen: Boolean = false,
+        val cloning: Boolean = false,
     )
 
     private val target = MutableStateFlow<Target?>(null)
@@ -352,6 +362,7 @@ class AssetDetailViewModel @Inject constructor(
                 commentDraft = f.commentDraft, commentError = f.commentProblem?.problemText(), commentPosting = f.commentPosting,
                 validation = if (t.isNew) null else db.validation, validating = f.validating,
                 changeNote = f.changeNote, changeRequestMine = changeRequests.isMine(asset.changeRequest), admin = changeRequests.isAdmin(),
+                cloneOpen = f.cloneOpen && !t.isNew, cloning = f.cloning,
                 changeRequester = changeRequests.requesterName(asset.changeRequest),
                 lock = if (t.isNew) null else canEditAsset.lock(asset),
                 canCheck = formData.revalidate.allowed(),
@@ -361,10 +372,24 @@ class AssetDetailViewModel @Inject constructor(
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetDetailState())
 
-    /** Shows [asset]; does nothing when that asset is already open, so edits survive recomposition. */
+    /**
+     * Shows [asset]; when that asset is already open its edits are kept (they survive recomposition). A new asset that is
+     * already open only takes [asset]'s place: the top bar's location, which changes when another location tab is chosen
+     * (a place picked in the form itself still comes first).
+     */
     fun open(asset: Asset, isNew: Boolean, prefill: Map<String, String> = emptyMap()) {
         val current = target.value
-        if (current != null && current.asset.id == asset.id && current.isNew == isNew) return
+        if (current != null && current.asset.id == asset.id && current.isNew == isNew) {
+            if (isNew) {
+                target.value = current.copy(
+                    asset = current.asset.copy(
+                        loc = asset.loc, where = asset.where, locationId = asset.locationId,
+                        buildingId = asset.buildingId, floorId = asset.floorId,
+                    ),
+                )
+            }
+            return
+        }
         aiJob?.cancel()
         classifier.reset()
         jacsPicker.close()
@@ -805,6 +830,46 @@ class AssetDetailViewModel @Inject constructor(
     // ---- Change requests (a submitted asset): ask an admin to reopen it, withdraw or decline, or reopen it (admins)
 
     /** Opens the change request dialog, with the note already sent when asking again. */
+    /**
+     * Clone (the web's header button): opens its sheet. It copies the asset as saved, so with unsaved changes it says to
+     * save or discard them first.
+     */
+    fun openClone() {
+        val s = state.value
+        if (s.asset == null || s.isNew) return
+        if (s.dirtyCount > 0) {
+            message.tryEmit(UiText.Res(R.string.clone_save_first))
+            return
+        }
+        form.update { it.copy(cloneOpen = true) }
+    }
+
+    fun closeClone() = form.update { if (it.cloning) it else it.copy(cloneOpen = false) }
+
+    /**
+     * Makes [copies] copies of the open asset taking its place down to [place] and the saved values of the fields [keys]
+     * (app field keys; the type stays only with its system, asset and sub type all picked). Photos are never copied.
+     */
+    fun clone(copies: Int, place: ClonePlace, keys: Set<String>) {
+        val s = state.value
+        val source = s.asset ?: return
+        if (s.isNew || form.value.cloning) return
+        val values = s.saved.filterKeys { it in keys && it != "name" }.filterValues { it.isNotBlank() }
+        val request = CloneRequest(copies = copies, place = place, values = values, keepType = CLONE_TYPE_KEYS.all { it in keys })
+        form.update { it.copy(cloning = true) }
+        viewModelScope.launch {
+            try {
+                cloneAsset(source, request)
+                form.update { it.copy(cloneOpen = false) }
+                message.emit(UiText.Res(R.string.clone_done))
+            } catch (e: DataException) {
+                message.emit(if (e.error == DataError.FAILED) UiText.Res(R.string.clone_failed) else e.error.toUiText())
+            } finally {
+                form.update { it.copy(cloning = false) }
+            }
+        }
+    }
+
     fun openChangeRequest() = form.update { it.copy(changeNote = state.value.asset?.changeRequest?.note.orEmpty()) }
 
     fun editChangeNote(text: String) = form.update { it.copy(changeNote = text.take(CHANGE_NOTE_MAX)) }

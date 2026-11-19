@@ -3,6 +3,7 @@ package com.sclera.sclerago.presentation.assets
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -24,9 +26,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -101,7 +106,7 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
 
     Box(modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            TopBar(state, onBack = ::back, onName = { actions.onEdit("name", it) })
+            TopBar(state, onBack = ::back, onName = { actions.onEdit("name", it) }, onClone = actions.onOpenClone)
             if (tabs.isNotEmpty()) DetailTabBar(tabs, tab) { chosen = it }
             CompositionLocalProvider(LocalReadOnly provides locked) {
                 Column(
@@ -129,7 +134,7 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                         tab == DetailTabKind.VALIDATION -> {
                             // Validating again is done by the server: offline the last synced results show under a banner.
                             if (!state.online) OfflineBanner(OnlineOnly.REVALIDATE)
-                            ValidationTab(state.validation, state.validating, actions.onRevalidate.takeIf { state.canCheck && state.online })
+                            ValidationTab(state.validation, onOpenRun = actions.onOpenRun)
                         }
                         tab == DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents, locked) { removeDoc = it }
                         tab == DetailTabKind.MEDIA -> MediaTab(state.media, state.photoRules, open, sorting = state.sortingPhotos)
@@ -185,6 +190,7 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
         state.ai?.let { AiSuggestDialog(it, state, actions.ai) }
         state.jacs?.let { JacsPickerSheet(it, state.value("jacs"), actions.jacs.picker) }
         state.voice?.let { VoiceFillSheet(it, state, actions.voice) }
+        if (state.cloneOpen) CloneSheet(state, actions.onClone, actions.onCloseClone)
 
         removeDoc?.let { doc ->
             ConfirmDialog(
@@ -314,7 +320,7 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
 }
 
 @Composable
-private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String) -> Unit) {
+private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String) -> Unit, onClone: () -> Unit) {
     val name = state.value("name")
     val headLine = when {
         state.isNew -> if (name.isNotEmpty()) C.Border2 else C.Yellow
@@ -343,6 +349,25 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
             ) {
                 LineIcon(Icons.Check, 11.dp, C.Green, 3f)
                 Txt(stringResource(R.string.detail_saved), 10, 700, C.Green)
+            }
+        }
+        // Clone (the web's header button): copies of this asset as saved; with unsaved changes it is dimmed and says why.
+        // A yellow outlined pill with its icon and label, as the iOS app's; the tap area is the full 48dp high.
+        if (!state.isNew) {
+            Box(
+                Modifier.heightIn(min = 48.dp).clip(Capsule).clickable(role = Role.Button, onClick = onClone)
+                    .alpha(if (state.dirtyCount == 0) 1f else 0.4f).testTag(DetailTags.CLONE),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    Modifier.height(36.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.Yellow.copy(alpha = 0.7f), Capsule)
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    LineIcon(Icons.Clone, 16.dp, C.Yellow, 2.2f)
+                    Txt(stringResource(R.string.clone_action), 14, 700, C.Yellow)
+                }
             }
         }
     }

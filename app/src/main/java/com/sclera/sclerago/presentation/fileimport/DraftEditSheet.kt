@@ -52,7 +52,20 @@ fun DraftEditSheet(vm: FileImportViewModel) {
                     FieldLabel(f.name)
                     if (unsure) Txt(stringResource(R.string.file_import_unsure), 11, 600, C.Orange)
                 }
-                SheetInput(edit.values[f.id].orEmpty(), { vm.editValue(f.id, it) }, "", enabled = !edit.saving)
+                // Values read from files can be long (descriptions, notes): they wrap so all of the text shows.
+                SheetInput(edit.values[f.id].orEmpty(), { vm.editValue(f.id, it) }, "", enabled = !edit.saving, multiLine = true)
+            }
+        }
+        // What the file says about its type, and its notes (the web's review table shows both).
+        when {
+            draft.typeMatched == false -> Txt(stringResource(R.string.file_import_type_unmatched), 12, 500, C.Orange, maxLines = 3)
+            draft.typeNamed != null && draft.typeNamed != draft.type.joinToString(" › ") ->
+                Txt(stringResource(R.string.file_import_type_named, draft.typeNamed), 12, 400, C.Muted, maxLines = 3)
+        }
+        draft.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FieldLabel(stringResource(R.string.file_import_notes))
+                Txt(notes, 13, 400, C.Soft, maxLines = 20)
             }
         }
     }

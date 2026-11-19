@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A validation run's Review page and its asset sheet, as the iOS app's. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="rev_title">Review</string>
+    <string name="rev_started">Started %1$s</string>
+    <plurals name="rev_steps">
+        <item quantity="one">%1$d step</item>
+        <item quantity="other">%1$d steps</item>
+    </plurals>
+
+    <!-- Summary -->
+    <string name="rev_quality">Data quality</string>
+    <string name="rev_quality_of">/100</string>
+    <string name="rev_of_assets_checked">of %1$d assets checked</string>
+    <string name="rev_stat_failed">Failed</string>
+    <string name="rev_stat_look">Need a look</string>
+    <string name="rev_stat_passed">Passed</string>
+    <string name="rev_export_csv">Export CSV</string>
+    <string name="rev_run_again">Run again</string>
+    <plurals name="rev_apply_confident">
+        <item quantity="one">Apply %1$d confident fix</item>
+        <item quantity="other">Apply %1$d confident fixes</item>
+    </plurals>
+
+    <!-- Fields to fix -->
+    <string name="rev_fields_title">Fields to fix</string>
+    <string name="rev_fields_sub">Open issues, by the field they’re in.</string>
+    <string name="rev_fields_none">No field-level issues.</string>
+    <plurals name="rev_n_issues">
+        <item quantity="one">%1$d issue</item>
+        <item quantity="other">%1$d issues</item>
+    </plurals>
+
+    <!-- Review progress -->
+    <string name="rev_progress_title">Review progress</string>
+    <string name="rev_progress_sub">How the review of this run is going.</string>
+    <string name="rev_issues_label">Issues</string>
+    <string name="rev_assets_label">Assets</string>
+    <string name="rev_still_open">Still open</string>
+    <string name="rev_sent_back">Sent back</string>
+    <string name="rev_to_decide">To decide</string>
+    <string name="rev_ai_applied">%1$d of %2$d AI suggestions applied</string>
+
+    <!-- Validation steps -->
+    <string name="rev_steps_title">Validation steps</string>
+    <string name="rev_steps_sub">Every asset goes through these steps in order. Select a step to see the assets that didn’t pass it.</string>
+    <string name="rev_step_failed">%1$d failed</string>
+    <string name="rev_step_look">%1$d need a look</string>
+    <string name="rev_step_passed">%1$d passed</string>
+    <string name="rev_step_waiting">Waiting</string>
+    <string name="rev_step_na">Not applicable</string>
+
+    <!-- Assets -->
+    <string name="rev_assets_sub">Open an asset to see each step, apply fixes and sign it off.</string>
+    <string name="rev_filter_all">All</string>
+    <string name="rev_search_assets">Search assets</string>
+    <string name="rev_no_assets">No assets here.</string>
+    <string name="rev_load_more">Load more</string>
+    <string name="rev_open_of">%1$d open of %2$d</string>
+    <string name="rev_handled_all">All %1$d handled</string>
+
+    <!-- Asset sheet -->
+    <string name="rev_mark_validated">Mark as validated</string>
+    <string name="rev_exclude">Exclude</string>
+    <plurals name="rev_fix_to_validate">
+        <item quantity="one">Fix or dismiss the open issue to mark it as validated.</item>
+        <item quantity="other">Fix or dismiss the %1$d open issues to mark it as validated.</item>
+    </plurals>
+    <string name="rev_tab_checks">Checks</string>
+    <string name="rev_tab_info">Asset info</string>
+    <string name="rev_place">%1$s › %2$s</string>
+    <string name="rev_no_location">No location yet</string>
+    <string name="rev_fields_filled">%1$s · %2$d of %3$d fields filled</string>
+    <string name="rev_st_collecting">Being collected</string>
+    <string name="rev_st_submitted">Submitted</string>
+    <string name="rev_st_exception">Exception</string>
+    <string name="rev_st_validated">Validated</string>
+    <string name="rev_info_location">Location</string>
+    <string name="rev_info_status">Status</string>
+    <string name="rev_info_hint">Fix the fields on the asset, then run the validation again to check them.</string>
+</resources>

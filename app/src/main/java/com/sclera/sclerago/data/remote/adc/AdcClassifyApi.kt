@@ -43,6 +43,15 @@ class AdcClassifyApi @Inject constructor(private val service: AdcClassifyService
     suspend fun jacsMasterFormat(property: String, code: String): JacsMasterFormatDto =
         call.json({ service.jacsMasterFormat(property, code) }) { AdcJson.decodeFromString(JacsMasterFormatDto.serializer(), it) }
 
+    suspend fun assetIcons(): PageDto<AssetIconDto> =
+        call.json({ service.assetIcons() }) { AdcJson.decodeFromString(PageDto.serializer(AssetIconDto.serializer()), it) }
+
+    /** The SVG of the icon [name], as text. */
+    suspend fun assetIconSvg(name: String): String = call.bytes { service.assetIcon(name) }.toString(Charsets.UTF_8)
+
+    suspend fun classification(property: String): ClassificationDto =
+        call.json({ service.classification(property) }) { AdcJson.decodeFromString(ClassificationDto.serializer(), it) }
+
     /** Every active type's fields of [property]. */
     suspend fun allTypeFields(property: String): List<MasterFormatFieldsDto> =
         call.json({ service.allTypeFields(property, ids = null) }) { AdcJson.decodeFromString(MasterFormatFieldsListDto.serializer(), it).data }

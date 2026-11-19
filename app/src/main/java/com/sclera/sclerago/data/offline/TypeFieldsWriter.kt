@@ -77,6 +77,44 @@ internal class TypeFieldsWriter(private val lookup: TypeFieldsLookup, private va
         return TypeChange(keys, added, removed)
     }
 
+    /**
+     * A copy (Clone) takes the answers to [sourceId]'s own fields (its type's, or added to it), as the web's clone does: by
+     * name, each goes to [copyId]'s own field of that name (its type's, already added), and a field the copy hasn't got is
+     * added to it with its answer. [answers] (the copy's, by field key) are moved to the copy's keys in place. A name a
+     * standard field already has is left out (the server refuses it there).
+     */
+    fun AdcDatabase.copyOwnFields(sourceId: String, copyId: String, answers: MutableMap<String, String>, now: String) {
+        if (!hasTable(TABLE)) return
+        val answered = query(live(OWN_FIELDS, TABLE), listOf(sourceId)).filter { !answers[it.string("key").orEmpty()].isNullOrBlank() }
+        if (answered.isEmpty()) return
+        val copyKeys = query(live(OWN_FIELDS, TABLE), listOf(copyId))
+            .associate { it.string("name").orEmpty().lowercase() to it.string("key").orEmpty() }.toMutableMap()
+        val standard = query(live(STANDARD_FIELD_NAMES, TABLE)).map { it.string("name").orEmpty().lowercase() }.toSet()
+        var position = 1 + (query(live(OWN_FIELDS, TABLE), listOf(copyId)).mapNotNull { it.int("position") }.maxOrNull() ?: -1)
+        answered.forEach { f ->
+            val name = f.string("name").orEmpty()
+            val sourceKey = f.string("key").orEmpty()
+            val value = answers.getValue(sourceKey)
+            val target = copyKeys[name.lowercase()] ?: run {
+                if (name.isBlank() || name.lowercase() in standard) return@forEach
+                val key = freeKey()
+                val row = linkedMapOf<String, Any?>(
+                    "id" to ids.next(), "key" to key, "asset_id" to copyId, "name" to name, "type" to f.string("type"),
+                    "options" to f.string("options"), "is_required" to 0, "is_active" to 1, "is_standard" to null, "is_builtin" to 0,
+                    "position" to position++, "help_text" to f.string("help_text"), "checks" to "{}", "aliases" to "[]",
+                    "version" to 1, "created_at" to now, "updated_at" to now,
+                )
+                execute("INSERT INTO $TABLE (${row.keys.joinToString()}) VALUES (${placeholders(row.size)})", row.values.toList(), setOf(TABLE))
+                copyKeys[name.lowercase()] = key
+                key
+            }
+            if (target != sourceKey) {
+                answers.remove(sourceKey)
+                answers[target] = value
+            }
+        }
+    }
+
     /** The server's key for an asset's own field: 10 lower-case hex characters (the random end of a new id), not yet taken. */
     private fun AdcDatabase.freeKey(): String {
         while (true) {

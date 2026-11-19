@@ -18,6 +18,7 @@ import com.sclera.sclerago.domain.validation.FieldChoice
 import com.sclera.sclerago.domain.validation.IssueValue
 import com.sclera.sclerago.domain.validation.MergeAsset
 import com.sclera.sclerago.domain.validation.ResultFilter
+import com.sclera.sclerago.domain.validation.ReviewAssetInfo
 import com.sclera.sclerago.domain.validation.RunAssetResult
 import com.sclera.sclerago.domain.validation.RunExport
 import com.sclera.sclerago.domain.validation.RunInsights
@@ -41,6 +42,9 @@ data class AssetPanelState(
     val typed: Map<String, String> = emptyMap(),
     /** Issues with a call in flight. */
     val busy: Set<String> = emptySet(),
+    /** The asset as it is on this phone (Asset info); null until read, or when it isn't on this phone. */
+    val info: ReviewAssetInfo? = null,
+    val infoLoading: Boolean = true,
 )
 
 /** Merging duplicates: the assets, the one kept and the value chosen per field (by the asset it comes from). */
@@ -368,6 +372,10 @@ class RunReviewViewModel @Inject constructor(
         }
         set { copy(panel = AssetPanelState(assetId)) }
         viewModelScope.launch { reloadPanel(assetId) }
+        viewModelScope.launch {
+            val info = useCases.assetInfo(assetId)
+            set { copy(panel = panel?.takeIf { it.assetId == assetId }?.copy(info = info, infoLoading = false)) }
+        }
     }
 
     private suspend fun reloadPanel(assetId: String) {

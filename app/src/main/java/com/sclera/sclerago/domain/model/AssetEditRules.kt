@@ -1,5 +1,11 @@
 package com.sclera.sclerago.domain.model
 
+/**
+ * What submitting assets did (the server's AssetBulkSubmitResult): [submitted] complete ones, [exceptions] that went in
+ * with mandatory fields or photos missing, and [unchanged] ones already submitted or validated.
+ */
+data class SubmitOutcome(val submitted: Int = 0, val exceptions: Int = 0, val unchanged: Int = 0)
+
 /** The statuses the server locks: only an admin may change a submitted or validated (saved) asset. */
 private val LOCKED_STATUSES = setOf(Status.SUBMITTED, Status.VALIDATED)
 
@@ -8,7 +14,7 @@ fun isLockedFor(status: Status, isAdmin: Boolean): Boolean = !isAdmin && status 
 
 /** Why the server refuses a change to an asset (its check_editable); the web's lockedReason. */
 enum class AssetLock {
-    /** Someone who isn't an admin changes only the assets assigned to them. */
+    /** Assigned to someone else: someone who isn't an admin changes only assets assigned to them or to nobody. */
     NOT_ASSIGNED,
 
     /** Submitted or signed off: only an admin may change it. */
@@ -16,12 +22,12 @@ enum class AssetLock {
 }
 
 /**
- * As the server's check_editable (and the web's lockedForMe): an admin may change any asset; anyone else only one
- * assigned to them ([assignedToMe]) that isn't submitted or signed off. Null when the change is allowed.
+ * As the server's check_editable (and the web's lockedForMe): an admin may change any asset; anyone else one that
+ * isn't someone else's ([assignedElsewhere]) and isn't submitted or signed off. Null when the change is allowed.
  */
-fun assetLock(status: Status, isAdmin: Boolean, assignedToMe: Boolean): AssetLock? = when {
+fun assetLock(status: Status, isAdmin: Boolean, assignedElsewhere: Boolean): AssetLock? = when {
     isAdmin -> null
-    !assignedToMe -> AssetLock.NOT_ASSIGNED
+    assignedElsewhere -> AssetLock.NOT_ASSIGNED
     status in LOCKED_STATUSES -> AssetLock.SUBMITTED
     else -> null
 }

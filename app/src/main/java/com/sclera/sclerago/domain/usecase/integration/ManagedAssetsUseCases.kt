@@ -5,16 +5,21 @@ import com.sclera.sclerago.domain.model.ManagedCounts
 import com.sclera.sclerago.domain.model.PlaceScope
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.VdmsAssignee
 import com.sclera.sclerago.domain.repository.ManagedAssetsRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import javax.inject.Inject
 
 // Move to Managed Assets (asset list selection): validated assets go to the property's linked VDMS, as on the web.
 
-/** "Move to Managed assets" is offered only when at least one of [assets] is validated (the server moves only those). */
-class MoveOfferedUseCase @Inject constructor() {
-    operator fun invoke(assets: Collection<Asset>): Boolean = assets.any { it.st == Status.VALIDATED }
+/**
+ * "Move to Managed assets" is offered to someone who may validate ([Permission.VALIDATE], as the server) when at least
+ * one of [assets] is validated (the server moves only those).
+ */
+class MoveOfferedUseCase @Inject constructor(private val guard: PermissionGuard) {
+    operator fun invoke(assets: Collection<Asset>): Boolean = guard.allows(Permission.VALIDATE) && assets.any { it.st == Status.VALIDATED }
 }
 
 /** The linked VDMS's network names; a moved asset goes on one of them. */
@@ -29,10 +34,11 @@ class SearchAssigneesUseCase @Inject constructor(private val repo: ManagedAssets
 
 /**
  * Moves [assetIds] to Managed Assets on [networkName] (required), assigned to [assignee] (optional email).
- * Returns how many will move (0: none of them could be), or null when the server doesn't say.
+ * Returns how many will move (0: none of them could be), or null when the server doesn't say. Needs [Permission.VALIDATE].
  */
-class MoveToManagedAssetsUseCase @Inject constructor(private val repo: ManagedAssetsRepository) {
+class MoveToManagedAssetsUseCase @Inject constructor(private val repo: ManagedAssetsRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(propertyId: String, assetIds: Collection<String>, networkName: String, assignee: String?): Int? {
+        guard.requireOnline(Permission.VALIDATE)
         val ids = assetIds.filter { it.isNotBlank() }
         if (ids.isEmpty() || networkName.isBlank()) throw OnlineException(OnlineError.Invalid)
         return repo.move(propertyId, ids, networkName, assignee?.takeIf { it.isNotBlank() })

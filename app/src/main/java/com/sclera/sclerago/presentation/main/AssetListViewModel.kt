@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
 import com.sclera.sclerago.domain.usecase.asset.ChangeAction
@@ -61,8 +63,6 @@ data class AssetListState(
     val pickedAssets: List<Asset> = emptyList(),
     /** The status chip each tab is filtered by (null: all). */
     val statusFilter: Map<Tab, Status?> = emptyMap(),
-    /** Drafted assets the last Submit left in draft because they are incomplete: the user may submit them as exceptions. */
-    val leftIncomplete: Set<String> = emptySet(),
     /** The change-request actions for the selection (none: the dock's Change action is hidden). */
     val changeOptions: List<ChangeActionOption> = emptyList(),
     /** The menu of [changeOptions] is open. */
@@ -103,7 +103,6 @@ class AssetListViewModel @Inject constructor(
         /** The tabs narrowed to assets someone asked an admin to reopen (the Change requests chip). */
         val changeRequests: Set<Tab> = emptySet(),
         val refreshing: Boolean = false,
-        val leftIncomplete: Set<String> = emptySet(),
         val changeMenu: Boolean = false,
         val changeAction: ChangeAction? = null,
         val changeNote: String = "",
@@ -122,7 +121,6 @@ class AssetListViewModel @Inject constructor(
         AssetListState(
             lists, pickedAssets.mapTo(HashSet()) { it.id }, u.query, u.searchOpen, u.confirmDelete,
             loading = !catalog.loaded, refreshing = u.refreshing, pickedAssets = pickedAssets, statusFilter = u.statusFilter,
-            leftIncomplete = u.leftIncomplete,
             changeOptions = changeRequests.actions(pickedAssets),
             changeMenu = u.changeMenu, changeAction = u.changeAction, changeNote = u.changeNote,
         )
@@ -174,6 +172,9 @@ class AssetListViewModel @Inject constructor(
         if (!selectable && id !in ui.value.picked) message.tryEmit(UiText.Res(R.string.asset_lock_not_assigned))
         ui.update { it.copy(picked = useCases.toggleSelection(it.picked, id, selectable)) }
     }
+    /** Whether the selection's Edit, Submit and Delete show: the signed-in user may collect (a viewer may not). */
+    fun mayCollect(): Boolean = useCases.canWorkOn.canCollect()
+
     fun clearSelection() = ui.update { if (it.picked.isEmpty()) it else it.copy(picked = emptySet()) }
 
     /**
@@ -192,33 +193,30 @@ class AssetListViewModel @Inject constructor(
     // ---- Bulk actions
 
     /**
-     * As the web's Submit: only the complete assets are submitted. Incomplete drafted ones stay in draft and the user is
-     * asked whether to submit them as exceptions ([submitIncompleteAsExceptions]), as the web's exception list does.
+     * As the web's Submit: complete assets are submitted, incomplete ones (mandatory fields or photos missing) go in as
+     * exceptions, and the user is told how many of each.
      */
     fun submitSelected() {
         val ids = state.value.picked
         if (ids.isEmpty()) return
         ui.update { it.copy(picked = emptySet()) }
-        write {
-            val left = useCases.setStatus(ids, Status.SUBMITTED)
-            val submitted = ids.size - left.size
-            if (submitted > 0) message.emit(UiText.Plural(R.plurals.assets_submitted, submitted))
-            if (left.isNotEmpty()) ui.update { it.copy(leftIncomplete = left) }
-        }
+        write { message.emit(useCases.setStatus(ids, Status.SUBMITTED).toUiText()) }
     }
 
-    /** Submits the assets the last Submit left in draft, as exceptions (the web's "submit-exception"). */
-    fun submitIncompleteAsExceptions() {
-        val ids = ui.value.leftIncomplete
-        ui.update { it.copy(leftIncomplete = emptySet()) }
-        if (ids.isEmpty()) return
-        write {
-            useCases.setStatus(ids, Status.SUBMITTED, allowExceptions = true)
-            message.emit(UiText.Plural(R.plurals.assets_submitted_as_exceptions, ids.size))
+    /** What a submit did, as the web's submitOutcome: submitted, moved to Exception, already submitted. */
+    private fun SubmitOutcome.toUiText(): UiText {
+        val parts = listOfNotNull(
+            UiText.Plural(R.plurals.assets_submitted, submitted).takeIf { submitted > 0 },
+            UiText.Plural(R.plurals.assets_moved_to_exception, exceptions).takeIf { exceptions > 0 },
+            UiText.Plural(R.plurals.assets_already_submitted, unchanged).takeIf { unchanged > 0 },
+        )
+        return when (parts.size) {
+            0 -> UiText.Res(R.string.submit_nothing)
+            1 -> parts.single()
+            2 -> UiText.Res(R.string.submit_outcome_two, parts)
+            else -> UiText.Res(R.string.submit_outcome_three, parts)
         }
     }
-
-    fun leaveIncompleteInDraft() = ui.update { it.copy(leftIncomplete = emptySet()) }
 
     // ---- Change requests on the selection (the web's selection bar)
 
@@ -234,6 +232,9 @@ class AssetListViewModel @Inject constructor(
                     when (blocked) {
                         ChangeActionBlock.NOT_ALL_SUBMITTED -> R.string.change_block_not_submitted
                         ChangeActionBlock.NOT_ALL_REQUESTED -> R.string.change_block_not_requested
+                        ChangeActionBlock.NOT_ALL_EXCEPTIONS -> R.string.change_block_not_exceptions
+                        ChangeActionBlock.ASSIGNED_ELSEWHERE -> R.string.change_block_assigned_elsewhere
+                        ChangeActionBlock.SOME_ARE_DRAFTS -> R.string.change_block_some_drafts
                     },
                 ),
             )
@@ -261,9 +262,16 @@ class AssetListViewModel @Inject constructor(
         }
     }
 
+    /** Who made [request] (name, else email), when known on this device. */
+    fun requesterName(request: ChangeRequest): String? = changeRequests.requesterName(request)
+
+    /** The signed-in user made [request]. */
+    fun isMine(request: ChangeRequest): Boolean = changeRequests.isMine(request)
+
     private val ChangeAction.donePlural: Int
         get() = when (this) {
             ChangeAction.REQUEST, ChangeAction.UPDATE_REQUEST -> R.plurals.change_bulk_sent
+            ChangeAction.APPROVE -> R.plurals.change_bulk_approved
             ChangeAction.MOVE_TO_DRAFT -> R.plurals.change_bulk_drafted
             ChangeAction.DECLINE -> R.plurals.change_bulk_declined
             ChangeAction.WITHDRAW -> R.plurals.change_bulk_withdrawn

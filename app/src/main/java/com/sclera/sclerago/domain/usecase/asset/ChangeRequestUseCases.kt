@@ -51,29 +51,48 @@ private fun isMine(guard: PermissionGuard, request: ChangeRequest?): Boolean =
     request?.requestedBy != null && request.requestedBy == guard.userId()
 
 /** A change-request action on several assets at once (the web's selection bar). */
-enum class ChangeAction { MOVE_TO_DRAFT, DECLINE, REQUEST, UPDATE_REQUEST, WITHDRAW }
+/** APPROVE: the admin's yes to a change request (back to draft, assigned to whoever asked). */
+enum class ChangeAction { APPROVE, MOVE_TO_DRAFT, DECLINE, REQUEST, UPDATE_REQUEST, WITHDRAW }
 
 /** Why an action is offered but can't be used for these assets (the web's disabledReason). */
-enum class ChangeActionBlock { NOT_ALL_SUBMITTED, NOT_ALL_REQUESTED }
+enum class ChangeActionBlock { NOT_ALL_SUBMITTED, NOT_ALL_REQUESTED, NOT_ALL_EXCEPTIONS, ASSIGNED_ELSEWHERE, SOME_ARE_DRAFTS }
 
 /** One action offered for the selection; [blocked] says why it can't be used (null: it can). */
 data class ChangeActionOption(val action: ChangeAction, val blocked: ChangeActionBlock? = null)
 
 /**
- * The change-request actions for [assets], as the web's changeRequestActions: none unless one of them is submitted or
- * signed off. An admin moves them back to draft (closing their requests) or declines the requests; anyone else asks for
- * a change (or updates their request), and withdraws when every one of them is their own request.
+ * The change-request actions for [assets], as the web's changeRequestActions:
+ * - only exceptions (nothing submitted): anyone who may work on them moves them back to draft, no request needed;
+ * - an admin, when every one has a request: approve (back to draft, to whoever asked) or decline them; otherwise move
+ *   submitted, signed-off and exception assets back to draft, and decline the requests there are;
+ * - anyone else: ask for a change (or update their requests), and withdraw when every one is their own request.
  */
 class ChangeRequestActionsUseCase @Inject constructor(private val guard: PermissionGuard) {
     operator fun invoke(assets: List<Asset>): List<ChangeActionOption> {
-        if (assets.isEmpty() || assets.none { isLockedFor(it.st, isAdmin = false) }) return emptyList()
-        val notSubmitted = ChangeActionBlock.NOT_ALL_SUBMITTED.takeUnless { assets.all { isLockedFor(it.st, isAdmin = false) } }
+        if (assets.isEmpty()) return emptyList()
+        val locked = { a: Asset -> isLockedFor(a.st, isAdmin = false) }
+        val exception = { a: Asset -> a.st == Status.EXCEPTION }
+        if (assets.none(locked)) {
+            if (assets.none(exception)) return emptyList()
+            val blocked = when {
+                !assets.all(exception) -> ChangeActionBlock.NOT_ALL_EXCEPTIONS
+                !guard.isAdmin() && assets.any { guard.isAssignedElsewhere(it.assignedTo) } -> ChangeActionBlock.ASSIGNED_ELSEWHERE
+                else -> null
+            }
+            return listOf(ChangeActionOption(ChangeAction.MOVE_TO_DRAFT, blocked))
+        }
+        val notSubmitted = ChangeActionBlock.NOT_ALL_SUBMITTED.takeUnless { assets.all(locked) }
         val asked = assets.filter { it.changeRequest != null }
         if (guard.isAdmin()) {
-            val draft = ChangeActionOption(ChangeAction.MOVE_TO_DRAFT, notSubmitted)
+            if (asked.size == assets.size) {
+                return listOf(ChangeActionOption(ChangeAction.APPROVE), ChangeActionOption(ChangeAction.DECLINE))
+            }
+            val draft = ChangeActionOption(
+                ChangeAction.MOVE_TO_DRAFT,
+                ChangeActionBlock.SOME_ARE_DRAFTS.takeUnless { assets.all { locked(it) || exception(it) } },
+            )
             if (asked.isEmpty()) return listOf(draft)
-            val notAll = ChangeActionBlock.NOT_ALL_REQUESTED.takeUnless { asked.size == assets.size }
-            return listOf(draft, ChangeActionOption(ChangeAction.DECLINE, notAll))
+            return listOf(draft, ChangeActionOption(ChangeAction.DECLINE, ChangeActionBlock.NOT_ALL_REQUESTED))
         }
         val allAsked = asked.size == assets.size
         val request = ChangeActionOption(if (allAsked) ChangeAction.UPDATE_REQUEST else ChangeAction.REQUEST, notSubmitted)
@@ -100,7 +119,8 @@ class ApplyChangeActionUseCase @Inject constructor(
                 when (action) {
                     ChangeAction.REQUEST, ChangeAction.UPDATE_REQUEST -> request(asset.id, note)
                     ChangeAction.DECLINE, ChangeAction.WITHDRAW -> close(asset.id, asset.changeRequest ?: throw DataException(DataError.FAILED))
-                    ChangeAction.MOVE_TO_DRAFT -> setStatus(listOf(asset.id), Status.DRAFT)
+                    // Back in draft approves an open request: the writer gives the asset to whoever asked.
+                    ChangeAction.APPROVE, ChangeAction.MOVE_TO_DRAFT -> setStatus(listOf(asset.id), Status.DRAFT)
                 }
                 done++
             } catch (_: DataException) {

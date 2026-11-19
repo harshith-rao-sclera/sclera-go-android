@@ -2,10 +2,12 @@
 <!--
   Network security: HTTPS only, system certificate authorities only, and the Sclera hosts are pinned.
 
-  Pins are the SHA-256 of the public key (SPKI) of the Let's Encrypt intermediate "YR1" and the roots
-  "ISRG Root YR" and "ISRG Root X1", not of the leaf certificates, which renew every 90 days. Any one
-  of the three matching is enough, so a change of intermediate does not lock people out. Pins stop
-  being enforced after the expiration date (then normal validation applies); renew them before then:
+  Pins are the SHA-256 of the public key (SPKI) of Let's Encrypt's intermediates and roots, not of the leaf
+  certificates, which renew every 90 days:
+    RSA chain (accounts.sclera.com):     intermediate "YR1", roots "ISRG Root YR" and "ISRG Root X1";
+    ECDSA chain (adc-qa.sclera.com):     intermediate "YE1", roots "ISRG Root YE" and "ISRG Root X2".
+  Any one matching is enough, so a change of intermediate does not lock people out. Pins stop being enforced
+  after the expiration date (then normal validation applies); renew them before then:
     openssl s_client -connect accounts.sclera.com:443 -showcerts   (then hash each certificate's public key)
 -->
 <network-security-config>
@@ -21,12 +23,16 @@
             <pin digest="SHA-256">LoMHBotttiDko50Gi13uXW71eIy7LAttI+rYT8wXF4w=</pin>
             <pin digest="SHA-256">fk6IOKit1ild5647BH06ujSIq5XbCgqlbYl6ANhhi88=</pin>
             <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
+            <pin digest="SHA-256">brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=</pin>
+            <pin digest="SHA-256">sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w=</pin>
+            <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin>
         </pin-set>
     </domain-config>
 
     <!--
-      The asset data collection API (adc.vdms163.qa-gateway.scleravdms.com for QA) is outside sclera.com and its
-      certificate chain is not known yet, so no pins are set: HTTPS only, system certificate authorities only.
+      The old QA gateway of the asset data collection API (adc.vdms163.qa-gateway.scleravdms.com; QA is now
+      adc-qa.sclera.com, pinned above) is outside sclera.com and its certificate chain is not known, so no pins are
+      set: HTTPS only, system certificate authorities only.
       TODO: pin its public keys (with a backup pin) once the gateway's certificates are agreed, and add the
       production host when its URL is known.
     -->

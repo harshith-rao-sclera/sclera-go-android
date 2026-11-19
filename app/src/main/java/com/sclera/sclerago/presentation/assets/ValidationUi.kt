@@ -45,7 +45,6 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.OfflineGate
-import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
@@ -58,10 +57,10 @@ import java.util.Locale
 
 /** Test tags of the asset's validation strip and tab. */
 object ValidationTags {
-    const val RUN = "validation-run"
     const val NONE = "validation-none"
     const val BANNER = "validation-banner"
     const val FAB = "validation-fab"
+    const val OPEN_RUN = "validation-open-run"
     fun step(rule: String) = "validation-step-$rule"
 }
 
@@ -88,14 +87,6 @@ private fun toneOf(o: StepOutcome?): Color = when (o) {
     StepOutcome.WARNING -> C.Orange
     StepOutcome.PASSED -> C.Green
     else -> C.Muted
-}
-
-/** The run button's words: Validate, Revalidate from step n, or Revalidate. */
-@Composable
-private fun runLabel(v: AssetValidation?): String = when {
-    v == null -> stringResource(R.string.val_validate)
-    v.firstProblem != null -> stringResource(R.string.val_revalidate_from, v.firstProblem)
-    else -> stringResource(R.string.val_revalidate)
 }
 
 /** A round mark of how validation stands: a tick, a cross, "!" or nothing yet. */
@@ -152,11 +143,14 @@ fun ValidationBanner(validation: AssetValidation?, onOpen: () -> Unit) {
 /**
  * The Validation tab: a header with how many steps need attention (or that every step passed) and the data quality,
  * then one card with every step in order: its mark, name and outcome, "Starts here" on the first to look at, and what
- * each step that failed or needs a look found. Then the run buttons and what a run keeps. [onRun] is null for someone
- * without the check permission: the run buttons are left out.
+ * each step that failed or needs a look found. Validating again is the floating ▶ ([ValidateFab]).
  */
 @Composable
-fun ValidationTab(validation: AssetValidation?, validating: Boolean, onRun: ((fromStart: Boolean) -> Unit)?) {
+fun ValidationTab(
+    validation: AssetValidation?,
+    /** "Open in Validation": the Validation page on the asset's run (its first problem's run, else its latest); null hides it. */
+    onOpenRun: ((jobId: String) -> Unit)? = null,
+) {
     val v = validation
     if (v == null) {
         // Nothing has been run on it: just say so, as the web does (runs are started from the Validation page).
@@ -187,6 +181,15 @@ fun ValidationTab(validation: AssetValidation?, validating: Boolean, onRun: ((fr
             Txt(stringResource(R.string.val_quality, v.score), 12, 500, C.Muted)
         }
     }
+    // As the web's jobToOpen: the run where it first went wrong, else its latest.
+    val runToOpen = v.problems.firstOrNull()?.value?.jobId?.takeIf { it.isNotBlank() } ?: v.jobId.takeIf { it.isNotBlank() }
+    if (onOpenRun != null && runToOpen != null) {
+        Txt(
+            stringResource(R.string.val_open_in_validation), 13, 700, C.Yellow,
+            Modifier.clip(r(8)).clickable(role = Role.Button) { onOpenRun(runToOpen) }.heightIn(min = 48.dp)
+                .padding(horizontal = 4.dp, vertical = 14.dp).testTag(ValidationTags.OPEN_RUN),
+        )
+    }
     if (v.runs.size > 1) {
         val runs = v.runs.map { "${it.jobName} ${agoText(it.checkedAt)}" }.joinToString(", ")
         Txt(stringResource(R.string.val_every_step_from, v.runs.size, runs), 11, 400, C.Soft, maxLines = 4)
@@ -196,34 +199,6 @@ fun ValidationTab(validation: AssetValidation?, validating: Boolean, onRun: ((fr
         v.steps.forEachIndexed { i, step ->
             StepRow(step, v, startsHere = v.firstProblem == i + 1, divider = i > 0)
         }
-    }
-    // Actions: only for someone who may run checks (the server's check permission).
-    if (onRun == null) return
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Pill(
-                if (validating) stringResource(R.string.val_checking) else runLabel(v), { if (!validating) onRun(false) },
-                Modifier.testTag(ValidationTags.RUN).alpha(if (validating) 0.6f else 1f),
-                bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 16.dp, size = 12, weight = 700,
-            )
-            val first = v.firstProblem
-            if (first != null && first >= 2 && !validating) {
-                Txt(
-                    stringResource(R.string.val_run_every), 12, 700, C.Yellow,
-                    Modifier.clip(r(8)).clickable { onRun(true) }.heightIn(min = 44.dp).padding(horizontal = 6.dp, vertical = 12.dp),
-                )
-            }
-        }
-        val first = v.firstProblem
-        val firstName = first?.let { stepNameText(v.steps[it - 1].rule).asString() }
-        Txt(
-            when {
-                first != null && first >= 3 -> stringResource(R.string.val_hint_from, first - 1, firstName.orEmpty())
-                first == 2 -> stringResource(R.string.val_hint_step1, firstName.orEmpty())
-                else -> stringResource(R.string.val_hint_any)
-            },
-            11, 400, C.Muted, maxLines = 4,
-        )
     }
 }
 

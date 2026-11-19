@@ -12,18 +12,41 @@
     <string name="change_request_by">%1$s asked for a change · %2$s</string>
     <string name="change_request_withdraw">Withdraw request</string>
     <string name="change_request_decline">Decline</string>
-    <string name="change_request_reopen">Reopen for editing</string>
+    <string name="change_request_reopen">Approve</string>
     <string name="change_request_sent">Change request sent</string>
     <string name="change_request_withdrawn">Change request withdrawn</string>
     <string name="change_request_declined">Change request declined</string>
-    <string name="change_request_reopened">Asset moved back to draft</string>
+    <string name="change_request_reopened">Request approved: the asset is back in Draft, with whoever asked</string>
     <string name="dash_chip_change_requests">Change requests</string>
     <string name="dash_change_requested_badge">Change requested</string>
     <string name="change_action_move_to_draft">Move to draft</string>
-    <string name="change_action_decline">Decline request</string>
     <string name="change_action_update">Update request</string>
     <string name="change_block_not_submitted">Some of the selected assets aren\'t submitted</string>
     <string name="change_block_not_requested">Some of the selected assets have no change request</string>
+    <string name="change_block_not_exceptions">Some of the selected assets aren\'t exceptions</string>
+    <string name="change_block_assigned_elsewhere">Some of the selected assets are assigned to someone else</string>
+    <string name="change_block_some_drafts">Some of the selected assets are already drafts</string>
+    <plurals name="change_action_approve">
+        <item quantity="one">Approve request</item>
+        <item quantity="other">Approve requests</item>
+    </plurals>
+    <plurals name="change_action_decline_all">
+        <item quantity="one">Decline request</item>
+        <item quantity="other">Decline requests</item>
+    </plurals>
+    <string name="change_bulk_approve_title">Approve change request</string>
+    <plurals name="change_bulk_approve_body">
+        <item quantity="one">The asset goes back to Draft and is assigned to %2$s, so the change can be made, then it\'s submitted again.</item>
+        <item quantity="other">The assets go back to Draft and are assigned to %2$s, so the change can be made, then they\'re submitted again.</item>
+    </plurals>
+    <string name="change_whoever_asked">whoever asked</string>
+    <plurals name="change_bulk_approved">
+        <item quantity="one">Request approved: the asset is back in Draft, with whoever asked</item>
+        <item quantity="other">%1$d requests approved: the assets are back in Draft, with whoever asked</item>
+    </plurals>
+    <string name="change_request_note_line">What needs changing: %1$s</string>
+    <string name="change_request_note_none">No note added</string>
+    <string name="change_requests_more">+%1$d more</string>
     <plurals name="change_bulk_request_title">
         <item quantity="one">Ask to reopen %1$d asset</item>
         <item quantity="other">Ask to reopen %1$d assets</item>
@@ -33,9 +56,10 @@
         <item quantity="other">Move %1$d assets to draft?</item>
     </plurals>
     <string name="change_bulk_draft_body">They can be edited again, and their change requests close.</string>
-    <plurals name="change_bulk_decline_title">
-        <item quantity="one">Decline %1$d request?</item>
-        <item quantity="other">Decline %1$d requests?</item>
+    <string name="change_bulk_decline_title">Decline change request</string>
+    <plurals name="change_bulk_decline_body">
+        <item quantity="one">The asset stays submitted as it is, and the request is closed.</item>
+        <item quantity="other">The assets stay submitted as they are, and the requests are closed.</item>
     </plurals>
     <plurals name="change_bulk_withdraw_title">
         <item quantity="one">Withdraw %1$d request?</item>

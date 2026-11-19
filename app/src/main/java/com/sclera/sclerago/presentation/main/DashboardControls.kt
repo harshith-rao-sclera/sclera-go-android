@@ -103,9 +103,10 @@ fun SelectionDock(
     onSelectAll: () -> Unit,
     /** Sign the selected assets off; null hides it (only reviewers may). */
     onValidate: (() -> Unit)?,
-    onAssign: () -> Unit,
-    onSubmit: () -> Unit,
-    onDelete: () -> Unit,
+    /** Assign, Submit and Delete; null hides each (someone who may not collect). */
+    onAssign: (() -> Unit)?,
+    onSubmit: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
     modifier: Modifier = Modifier,
     /** Move to managed assets; null hides it (nothing selected is validated). */
     onMove: (() -> Unit)? = null,

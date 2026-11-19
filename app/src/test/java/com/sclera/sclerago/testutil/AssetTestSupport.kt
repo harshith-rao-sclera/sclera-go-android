@@ -70,9 +70,9 @@ class InMemoryAssetRepository(
         }
     }
 
-    override suspend fun setStatus(ids: Collection<String>, status: Status, allowExceptions: Boolean, photoRules: List<com.sclera.sclerago.domain.model.PhotoRule>): Set<String> {
+    override suspend fun setStatus(ids: Collection<String>, status: Status, photoRules: List<com.sclera.sclerago.domain.model.PhotoRule>): com.sclera.sclerago.domain.model.SubmitOutcome {
         ids.update { it.copy(st = status) }
-        return emptySet()
+        return com.sclera.sclerago.domain.model.SubmitOutcome()
     }
 
     override suspend fun saveDetails(id: String, values: Map<String, String>) {

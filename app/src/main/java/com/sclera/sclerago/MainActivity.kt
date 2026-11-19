@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sclera.sclerago.presentation.main.AssetIconsHost
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.presentation.launch.LaunchHost
 import com.sclera.sclerago.presentation.launch.LaunchViewModel
@@ -46,7 +47,7 @@ class MainActivity : ComponentActivity() {
                     // Any session-ending error (expired, blocked, signed in elsewhere) flips this to SignedOut.
                     when (val auth = session.authState.collectAsStateWithLifecycle().value) {
                         is AuthState.SignedOut -> LoginScreen(reason = auth.reason)
-                        is AuthState.SignedIn -> ScleraApp()
+                        is AuthState.SignedIn -> AssetIconsHost { ScleraApp() }
                     }
                 }
             }

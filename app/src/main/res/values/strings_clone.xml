@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Clone an asset (the asset page's Clone, worded as the web's Clone dialog). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="clone_action">Clone</string>
+    <string name="clone_title">Clone</string>
+    <string name="clone_sub">Each copy is a new draft, without a name.</string>
+    <string name="clone_copies_title">Enter the number of copies</string>
+    <string name="clone_quantity">Quantity</string>
+    <string name="clone_quantity_hint">Enter no of copies</string>
+    <string name="clone_quantity_range">Enter a number between 1 and 100</string>
+    <string name="clone_pick_title">Select the fields to be cloned</string>
+    <string name="clone_location">Location details</string>
+    <string name="clone_building">Building</string>
+    <string name="clone_floor">Floor</string>
+    <string name="clone_location_one">Location</string>
+    <string name="clone_system">System details</string>
+    <string name="clone_system_type">System Type</string>
+    <string name="clone_asset_type">Asset Type</string>
+    <string name="clone_sub_type">Sub Type</string>
+    <string name="clone_jacs">JACS Code</string>
+    <string name="clone_technician">Technician input</string>
+    <string name="clone_mandatory">Mandatory validation fields</string>
+    <string name="clone_custom">Custom fields</string>
+    <string name="clone_go">Clone</string>
+    <string name="clone_going">Cloning…</string>
+    <string name="clone_done">Assets cloned successfully</string>
+    <string name="clone_failed">Unable to clone assets</string>
+    <string name="clone_save_first">Save or discard your changes first, then clone.</string>
+</resources>

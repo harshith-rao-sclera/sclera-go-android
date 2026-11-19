@@ -38,6 +38,12 @@ data class DraftDto(
     val sourceRef: String? = null,
     val notes: String? = null,
     val photos: Int = 0,
+    /** The property's type it gets (the type names above are that type's). */
+    val masterFormatId: String? = null,
+    /** Whether the type the file names is one of the property's: false = added without a type; null = the file names none. */
+    val typeMatched: Boolean? = null,
+    /** What the file called its type, when it matched one of the property's. */
+    val typeNamed: String? = null,
 )
 
 @Serializable

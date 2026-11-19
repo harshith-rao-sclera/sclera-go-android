@@ -3,8 +3,10 @@ package com.sclera.sclerago.domain.usecase.assign
 import com.sclera.sclerago.domain.model.AssignResult
 import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import javax.inject.Inject
 
 // Assign asset (asset list selection and asset details), as the web's: the assets go to one person.
@@ -31,10 +33,14 @@ class FindAssigneesUseCase @Inject constructor(private val access: AccessReposit
 
 /**
  * Gives [assetIds] of [propertyId] to [email]; no email takes them off whoever has them. Someone not here yet is
- * added as a Collector on the property by the server. Throws [OnlineException].
+ * added as a Collector on the property by the server. Needs [Permission.COLLECT], as the server. Throws [OnlineException].
  */
-class AssignAssetsUseCase @Inject constructor(private val repo: AssetAssignmentRepository) {
+class AssignAssetsUseCase @Inject constructor(private val repo: AssetAssignmentRepository, private val guard: PermissionGuard) {
+    /** Whether the signed-in user may assign assets (so the action shows). */
+    fun allowed(): Boolean = guard.allows(Permission.COLLECT)
+
     suspend operator fun invoke(propertyId: String, assetIds: Collection<String>, email: String?): AssignResult {
+        guard.requireOnline(Permission.COLLECT)
         val ids = assetIds.filter { it.isNotBlank() }
         if (ids.isEmpty()) return AssignResult(0, null, null, added = false, givenAccess = false)
         return repo.assign(propertyId, ids, email?.trim()?.takeIf { it.isNotEmpty() })

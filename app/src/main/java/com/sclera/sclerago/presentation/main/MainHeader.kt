@@ -4,8 +4,11 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -150,12 +154,15 @@ private fun RowScope.LocCell(
     val fg by animateColorAsState(if (on) C.Yellow else C.Soft, tween(300), label = "fg")
     val ic by animateColorAsState(if (on) C.Yellow else C.Muted, tween(300), label = "ic")
     val bar by animateColorAsState(if (on) C.Yellow else Color.Transparent, tween(300), label = "bar")
+    // The label and the chevron are pressed apart but show one press shade over the whole tab.
+    val press = remember { MutableInteractionSource() }
     Row(
-        Modifier.weight(weight).fillMaxHeight().background(bg).then(if (divider) Modifier.endBorder(C.Border) else Modifier)
-            .bottomBorder(bar, 3.dp),
+        Modifier.weight(weight).fillMaxHeight().background(bg).indication(press, LocalIndication.current)
+            .then(if (divider) Modifier.endBorder(C.Border) else Modifier).bottomBorder(bar, 3.dp),
     ) {
         Row(
-            Modifier.weight(1f).fillMaxHeight().testTag(DashTags.location(filter)).clickable { onPick(filter) }
+            Modifier.weight(1f).fillMaxHeight().testTag(DashTags.location(filter))
+                .clickable(interactionSource = press, indication = null) { onPick(filter) }
                 .padding(start = 10.dp, end = if (on && onChevron != null) 0.dp else 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
@@ -165,7 +172,8 @@ private fun RowScope.LocCell(
         }
         if (on && onChevron != null) {
             Box(
-                Modifier.width(34.dp).fillMaxHeight().testTag(DashTags.chevron(filter)).clickable { onChevron(filter) },
+                Modifier.width(34.dp).fillMaxHeight().testTag(DashTags.chevron(filter))
+                    .clickable(interactionSource = press, indication = null) { onChevron(filter) },
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.ChevronDown, 15.dp, fg, 2.8f) }
         }

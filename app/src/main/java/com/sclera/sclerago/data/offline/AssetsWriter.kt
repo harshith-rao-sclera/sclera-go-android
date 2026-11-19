@@ -18,6 +18,7 @@ import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.model.photosShort
 import com.sclera.sclerago.domain.model.sourceToDb
 import com.sclera.sclerago.domain.model.statusToDb
@@ -63,6 +64,8 @@ class AssetsWriter(
     private val formats: MasterFormatsOfflineSource,
     private val files: AssetFileStore,
     typeFieldsLookup: TypeFieldsLookup = TypeFieldsLookup { emptyList() },
+    /** A user's name by id, for "Asset assigned to …" history lines (null when not known on this device: "someone"). */
+    private val nameOf: (userId: String) -> String? = { null },
 ) {
     private val typeFields = TypeFieldsWriter(typeFieldsLookup, ids)
 
@@ -160,6 +163,7 @@ class AssetsWriter(
         if (lines.isNotEmpty()) history(id, "updated", "Asset updated", changesJson(lines), now)
         typeChange?.takeIf { it.changed }?.let { typeHistory(id, classification.formatId, it, now) }
         refreshAiSuggestion(id, row.bool("ai_suggestion"))
+        takeIfUnassigned(id, now)
     }
 
     /** Keeps asset [id]'s `ai_suggestion` right after its answers or fields changed, as the server's refresh_ai_suggestion. */
@@ -170,59 +174,65 @@ class AssetsWriter(
 
     /**
      * Moves [assetIds] to [status], with the flags that go with it (see `statusToDb`); assets already there are left alone.
-     * Submitting follows the server's rule (`POST /assets/bulk/submit`): only drafted or exception assets are submitted; one
-     * with a mandatory field empty, or fewer photos of a kind than [photoRules] ask for, becomes an exception when
-     * [allowExceptions] and is left as it is otherwise; assets that are already submitted or validated stay as they are.
-     * Returns the drafted assets submitting left in draft because they are incomplete.
+     * Submitting follows the server's rule (`POST /assets/bulk/submit`): only drafted or exception assets are submitted;
+     * one with a mandatory field empty, or fewer photos of a kind than [photoRules] ask for, goes in as an exception;
+     * assets already submitted or validated stay as they are. Back in draft approves a change request: the asset goes to
+     * whoever asked, and the request closes. An asset assigned to nobody becomes the mover's (take_if_unassigned).
      */
     suspend fun setStatus(
         assetIds: Collection<String>,
         status: Status,
-        allowExceptions: Boolean = true,
         photoRules: List<PhotoRule> = emptyList(),
-    ): Set<String> = db.write(io) {
+    ): SubmitOutcome = db.write(io) {
         val now = now()
         val required = if (status == Status.SUBMITTED) requiredKeys() else null
-        val leftIncomplete = mutableSetOf<String>()
+        var submitted = 0
+        var exceptions = 0
+        var unchanged = 0
         assetIds.forEach { id ->
             val row = assetState(id) ?: return@forEach
-            val moved = if (required == null) status else submitTarget(row, id, required, photoRules, allowExceptions)
+            val moved = if (required == null) status else submitTarget(row, id, required, photoRules)
             if (moved == null) {
-                if (row.string("status") == "drafted") leftIncomplete += id
+                unchanged++
                 return@forEach
             }
+            if (required != null) if (moved == Status.SUBMITTED) submitted++ else exceptions++
             val target = statusToDb(moved)
-            val unchanged = row.string("status") == target.status && row.bool("validated") == target.validated &&
+            val same = row.string("status") == target.status && row.bool("validated") == target.validated &&
                 (target.aiSuggestion == null || row.bool("ai_suggestion") == target.aiSuggestion)
-            if (unchanged) return@forEach
+            if (same) return@forEach // an exception still incomplete stays one
             execute(
                 ASSET_UPDATE_STATUS,
                 listOf(target.status, target.validated.bit(), target.aiSuggestion?.bit(), now, id),
                 setOf("assets"),
             )
             statusLine(moved, wasDrafted = row.string("status") == "drafted")?.let { (action, text) -> history(id, action, text, null, now) }
-            // Back in draft is what a change request asked for, so it closes (the server's close_change_request).
-            if (target.status == "drafted" && hasColumn("assets", "change_requested_at")) execute(ASSET_CLOSE_CHANGE_REQUEST, listOf(id), setOf("assets"))
+            if (target.status == "drafted" && hasColumn("assets", "change_requested_at")) approveChangeRequest(id, now)
+            takeIfUnassigned(id, now)
         }
-        leftIncomplete
+        SubmitOutcome(submitted, exceptions, unchanged)
     }
 
-    /** What submitting asset [id] makes of it, or null to leave it alone. */
-    private fun AdcDatabase.submitTarget(
-        row: DbRow,
-        id: String,
-        required: RequiredKeys,
-        photoRules: List<PhotoRule>,
-        allowExceptions: Boolean,
-    ): Status? {
+    /**
+     * Back in draft is what a change request asked for (the server's PATCH `status: drafted`): the asset goes to whoever
+     * asked, so they can make the change, and the request closes (close_change_request).
+     */
+    private fun AdcDatabase.approveChangeRequest(id: String, now: String) {
+        val requester = queryOne(ASSET_CHANGE_REQUESTER, listOf(id))?.string("change_requested_by")?.takeIf { it.isNotBlank() }
+        if (requester != null && hasColumn("assets", "assigned_to") &&
+            queryOne(ASSET_ASSIGNEE, listOf(id))?.string("assigned_to") != requester
+        ) {
+            assignTo(id, requester, now)
+        }
+        execute(ASSET_CLOSE_CHANGE_REQUEST, listOf(id), setOf("assets"))
+    }
+
+    /** What submitting asset [id] makes of it (submitted when complete, an exception otherwise), or null to leave it alone. */
+    private fun AdcDatabase.submitTarget(row: DbRow, id: String, required: RequiredKeys, photoRules: List<PhotoRule>): Status? {
         if (row.string("status") != "drafted" && row.string("status") != "exception") return null
         val answers = DbJson.stringMap(queryOne(ASSET_VALUES_ROW, listOf(id))?.answersJson())
         val complete = required.missingFor(id, row, answers).isEmpty() && photosShort(photoRules, photoCounts(id)).isEmpty()
-        return when {
-            complete -> Status.SUBMITTED
-            allowExceptions -> Status.EXCEPTION
-            else -> null
-        }
+        return if (complete) Status.SUBMITTED else Status.EXCEPTION
     }
 
     /** Puts [assetIds] in the place [location] names (no place id clears it). */
@@ -239,6 +249,7 @@ class AssetsWriter(
                 setOf("assets"),
             )
             history(id, "updated", "Asset updated", changesJson(placeChanges(old, place)), now)
+            takeIfUnassigned(id, now)
         }
     }
 
@@ -299,6 +310,7 @@ class AssetsWriter(
                 if (!exists(ASSET_STATE.live("assets"), listOf(id))) throw DataException(DataError.FAILED)
                 val now = now()
                 ready.forEach { insertMedia(id, it, now) }
+                takeIfUnassigned(id, now)
             }
             files.discardOriginals(media)
         } finally {
@@ -319,6 +331,7 @@ class AssetsWriter(
             // What the AI read off the photo goes with it (the server's CASCADE from asset_media).
             removeRows(MEDIA_READINGS, "media_id = ?", listOf(mediaId), now)
             removeRows("asset_media", "id = ?", listOf(mediaId), now)
+            takeIfUnassigned(assetId, now)
         }
         files.forget(listOf(mediaId))
     }
@@ -344,8 +357,11 @@ class AssetsWriter(
     }
 
     /** Takes the web page [documentId] off its asset (marked removed for the sync, as the server's DELETE does). */
-    suspend fun removeWebDocument(documentId: String) = db.write(io) {
-        removeRows("web_documents", "id = ? AND asset_id IS NOT NULL AND asset_id <> ''", listOf(documentId), now())
+    suspend fun removeWebDocument(documentId: String): Unit = db.write(io) {
+        val now = now()
+        val assetId = queryOne(WEB_DOCUMENT_ASSET, listOf(documentId))?.string("asset_id")?.takeIf { it.isNotBlank() }
+        removeRows("web_documents", "id = ? AND asset_id IS NOT NULL AND asset_id <> ''", listOf(documentId), now)
+        if (assetId != null) takeIfUnassigned(assetId, now)
     }
 
     /**
@@ -359,6 +375,23 @@ class AssetsWriter(
     }
 
     // ---- inside a transaction
+
+    /**
+     * As the server's take_if_unassigned: an asset assigned to nobody becomes the asset of whoever changes it, with a
+     * line in its history. Called on a change that is saved.
+     */
+    private fun AdcDatabase.takeIfUnassigned(id: String, now: String) {
+        val me = user.userId() ?: return
+        if (!hasColumn("assets", "assigned_to")) return
+        if (!queryOne(ASSET_ASSIGNEE, listOf(id))?.string("assigned_to").isNullOrBlank()) return
+        assignTo(id, me, now)
+    }
+
+    /** Asset [id] goes to user [userId], with the server's record_assignment line in its history. */
+    private fun AdcDatabase.assignTo(id: String, userId: String, now: String) {
+        execute(ASSET_SET_ASSIGNEE, listOf(userId, now, id), setOf("assets"))
+        history(id, "assigned", "Asset assigned to ${nameOf(userId)?.takeIf { it.isNotBlank() } ?: "someone"}", null, now)
+    }
 
     private fun AdcDatabase.insertAsset(item: NewAsset, now: String) {
         val asset = item.asset
@@ -387,6 +420,8 @@ class AssetsWriter(
         // A new asset of a type gets the type's fields, as the server's POST /assets does.
         val typeChange = classification.formatId?.let { with(typeFields) { applyType(asset.id, it, extra, now) } }
         typeChange?.let { putTypeAnswers(extra, typed, it) }
+        // A copy (Clone) takes the original's own fields by name, as the web's clone does.
+        item.copyOf?.let { source -> with(typeFields) { copyOwnFields(source, asset.id, extra, now) } }
         execute(withAnswers(ASSET_VALUES_INSERT), listOf(asset.id, "{}", "{}", DbJson.write(extra)), setOf("asset_values"))
         history(asset.id, "created", "Asset created", null, now)
         typeChange?.takeIf { it.changed }?.let { typeHistory(asset.id, classification.formatId, it, now) }
@@ -397,12 +432,12 @@ class AssetsWriter(
     /**
      * Adds [media] as a row of asset [assetId] with its file in `multimedia` (the only copy: screens read it from there
      * through the media provider, and the sync uploads it from there). Without a `multimedia` table the file has nowhere
-     * to go, so it is refused.
+     * to go, so it is refused, as is a file that can't be read.
      */
     private fun AdcDatabase.insertMedia(assetId: String, media: Media, now: String) {
         if (!hasTable("multimedia")) throw DataException(DataError.FAILED)
-        val mediaId = ids.next()
         val stored = files.read(media) ?: throw DataException(DataError.FAILED)
+        val mediaId = ids.next()
         // A file uploaded from the Documents tab is the asset's source document, when the server takes it as a document
         // (a photo stays a photo, which the Media tab shows).
         if (media.sourceDocument && hasTable("documents")) {

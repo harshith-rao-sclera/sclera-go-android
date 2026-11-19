@@ -116,6 +116,8 @@ class FileImportRepositoryImpl @Inject constructor(
             sourceRef = sourceRef,
             notes = notes,
             photos = photos,
+            typeMatched = typeMatched,
+            typeNamed = typeNamed?.takeIf { it.isNotBlank() },
         )
     }
 

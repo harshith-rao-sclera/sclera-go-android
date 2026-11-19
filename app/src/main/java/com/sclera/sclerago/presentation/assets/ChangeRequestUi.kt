@@ -71,14 +71,17 @@ internal fun ChangeRequestLine(request: ChangeRequest, mine: Boolean, requester:
                 },
                 12, 700, C.Orange, maxLines = 2,
             )
-            request.note?.let { Txt("“$it”", 12, 400, C.Soft, maxLines = 6) }
+            // As the web: what needs changing, or that nothing was said.
+            val note = request.note?.takeIf { it.isNotBlank() }
+            if (note != null) Txt(stringResource(R.string.change_request_note_line, note), 12, 400, C.Soft, maxLines = 6)
+            else Txt(stringResource(R.string.change_request_note_none), 12, 400, C.Muted, italic = true)
         }
     }
 }
 
 /**
  * For an admin (who can change a submitted asset): the change request someone made, with Decline (or Withdraw, for
- * their own) and Reopen for editing, which moves the asset back to draft and so closes the request.
+ * their own) and Approve, which moves the asset back to draft, assigns it to whoever asked and closes the request.
  */
 @Composable
 internal fun AdminChangeRequestCard(

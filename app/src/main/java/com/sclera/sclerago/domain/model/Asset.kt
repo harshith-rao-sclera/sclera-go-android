@@ -93,9 +93,9 @@ fun Asset.isIn(status: Status): Boolean = if (status == Status.AI) aiSuggestion 
 /**
  * An asset to add. [asset] carries its media and, in [Asset.locationId], the id of the place it goes (a building,
  * floor or location); [values] are the details form answers to keep with it; [deviceId] is the scanned device it was
- * made from, if any.
+ * made from, if any. [copyOf]: it is a copy of that asset (Clone), so it takes the original's own fields by name.
  */
-data class NewAsset(val asset: Asset, val values: Map<String, String> = emptyMap(), val deviceId: String? = null)
+data class NewAsset(val asset: Asset, val values: Map<String, String> = emptyMap(), val deviceId: String? = null, val copyOf: String? = null)
 
 /**
  * One device found by a Bluetooth, Wi-Fi network or access point scan, as a scan page row.

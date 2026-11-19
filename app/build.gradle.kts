@@ -32,7 +32,7 @@ android {
 
     // The asset data collection API: QA for debug builds; release builds read `ADC_API_URL_RELEASE` from
     // gradle.properties (the production URL is not agreed yet, so it falls back to QA). Always https, ends in "/".
-    val adcQaApiUrl = "https://adc.vdms163.qa-gateway.scleravdms.com/api/v1/"
+    val adcQaApiUrl = "https://adc-qa.sclera.com/api/v1/"
     val adcReleaseApiUrl = (providers.gradleProperty("ADC_API_URL_RELEASE").orNull ?: adcQaApiUrl)
         .also { require(it.startsWith("https://")) { "ADC_API_URL_RELEASE must be an https URL" } }
         .let { if (it.endsWith("/")) it else "$it/" }

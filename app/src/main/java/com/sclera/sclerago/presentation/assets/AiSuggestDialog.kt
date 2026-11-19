@@ -81,6 +81,7 @@ object AiTags {
     const val APPLY = "ai-apply"
     const val TYPE = "ai-type"
     const val CANCEL = "ai-cancel"
+    const val NOTHING = "ai-nothing"
     fun row(key: String) = "ai-row-$key"
 }
 
@@ -101,6 +102,9 @@ fun AiSuggestDialog(d: AiDialogState, state: AssetDetailState, actions: AiDialog
     BottomSheet(onDismiss = actions.onClose) {
         Column(Modifier.weight(1f, fill = false).testTag(AiTags.DIALOG)) {
             Header(state.value("name").ifBlank { state.asset?.name.orEmpty() }, actions.onClose)
+            // The manufacturer and model typed go into the form with the suggestions, so they count towards Apply.
+            val typedCount = listOf("make" to d.make, "model" to d.model).count { (k, v) -> v.trim().isNotEmpty() && v.trim() != state.value(k) }
+            val nothing = d.nothingToApply(typedCount)
             Column(
                 Modifier.weight(1f, fill = d.phase == AiPhase.SEARCHING).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -110,13 +114,34 @@ fun AiSuggestDialog(d: AiDialogState, state: AssetDetailState, actions: AiDialog
                     AiPhase.IDENTIFY -> Identify(d, state, actions)
                     AiPhase.SEARCHING -> Searching(d)
                     AiPhase.ERROR -> Txt(d.error?.asString() ?: stringResource(R.string.ai_failed), 13, 500, maxLines = 6)
-                    AiPhase.RESULTS -> Results(d, state, actions)
+                    AiPhase.RESULTS -> if (nothing) NothingFound(d) else Results(d, state, actions)
                 }
             }
-            // The manufacturer and model typed go into the form with the suggestions, so they count towards Apply.
-            val typedCount = listOf("make" to d.make, "model" to d.model).count { (k, v) -> v.trim().isNotEmpty() && v.trim() != state.value(k) }
-            Footer(d, typedCount, actions)
+            Footer(d, typedCount, nothing, actions)
         }
+    }
+}
+
+/** A look-up that came back with nothing to tick or save (the web's "nothing"): no fields, no type, nothing typed. */
+private fun AiDialogState.nothingToApply(typedCount: Int): Boolean =
+    phase == AiPhase.RESULTS && picks.values.none { it.value.isNotBlank() } && lookup?.suggestedType == null && typedCount == 0
+
+/** Said once, plainly: the server's message (or "No suggestions") and the model it looked up. */
+@Composable
+private fun NothingFound(d: AiDialogState) {
+    val lookedUp = d.lookup?.product?.takeIf { it.isNotBlank() }
+        ?: listOf(d.make, d.model).map { it.trim() }.filter { it.isNotEmpty() }.joinToString(" ")
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 18.dp).testTag(AiTags.NOTHING),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LineIcon(Icons.Sparkles, 26.dp, C.Cyan.copy(alpha = 0.6f), 2.2f)
+        Txt(
+            d.lookup?.message?.trim()?.removeSuffix(".")?.takeIf { it.isNotEmpty() } ?: stringResource(R.string.ai_no_suggestions),
+            15, 700, maxLines = 4, align = TextAlign.Center,
+        )
+        if (lookedUp.isNotEmpty()) Txt(lookedUp, 12, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
     }
 }
 
@@ -403,7 +428,7 @@ private const val PRODUCT_MARK = "\u0001"
 
 /** The sheet's buttons for its phase. */
 @Composable
-private fun Footer(d: AiDialogState, typedCount: Int, actions: AiDialogActions) {
+private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions: AiDialogActions) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -431,7 +456,15 @@ private fun Footer(d: AiDialogState, typedCount: Int, actions: AiDialogActions) 
                     Pill(stringResource(R.string.ai_try_again), actions.onLookUp, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 13, weight = 700)
                 }
             }
-            AiPhase.RESULTS -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Nothing to apply: no Apply to press, just another model, another look, or Done.
+            AiPhase.RESULTS -> if (nothing) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
+                Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
+                Pill(
+                    stringResource(R.string.action_done), actions.onClose, Modifier.weight(1f),
+                    bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 12.dp, size = 13, weight = 700,
+                )
+            } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val dropped = if (d.typeOn == false) d.lookup?.suggestedType?.values?.keys.orEmpty() else emptySet()
                 val n = d.picks.count { (k, p) -> p.on && p.value.isNotBlank() && k !in dropped } + typedCount
                 val withType = d.typeOn == true

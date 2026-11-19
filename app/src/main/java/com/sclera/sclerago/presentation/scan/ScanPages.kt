@@ -38,6 +38,7 @@ import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SegHeader
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.components.readableWidth
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -62,7 +63,7 @@ fun BluetoothPage(vm: AppViewModel) {
     val list = rememberAssetListBinding(vm, Tab.BT)
     // Only the assets refresh; the scan side finds devices on its own.
     PullRefresh(list.refreshing, list.onRefresh, Modifier.fillMaxSize(), enabled = !s.btScan) {
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             val seg: @Composable () -> Unit = {
                 SegHeader(listOf("Assets", "Scan"), if (s.btScan) 1 else 0) { vm.setBtScan(it == 1) }
             }
@@ -79,6 +80,7 @@ fun BluetoothPage(vm: AppViewModel) {
                     devices = vm.btDevices,
                     mono = false,
                     onOpen = vm::openDevice,
+                    onAdd = vm::addDevice,
                     picks = devicePicks(vm),
                     blocked = ScanService.Target.BLUETOOTH.takeIf { vm.scanBlocked(it) },
                     onRetry = { vm.retryScan(ScanService.Target.BLUETOOTH) },
@@ -94,7 +96,7 @@ fun NetworkPage(vm: AppViewModel) {
     val s = vm.state
     val list = rememberAssetListBinding(vm, Tab.NET)
     PullRefresh(list.refreshing, list.onRefresh, Modifier.fillMaxSize(), enabled = !s.netScan) {
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             val head: @Composable () -> Unit = {
                 Column(Modifier.background(C.Bg)) {
                     Row(Modifier.fillMaxWidth().background(C.Strip).bottomBorder(C.Border)) {
@@ -118,6 +120,7 @@ fun NetworkPage(vm: AppViewModel) {
                     devices = vm.netDevices,
                     mono = true,
                     onOpen = vm::openDevice,
+                    onAdd = vm::addDevice,
                     picks = devicePicks(vm),
                     blocked = vm.netTarget.takeIf { vm.scanBlocked(it) },
                     onRetry = { vm.retryScan(vm.netTarget) },
@@ -184,6 +187,7 @@ private fun LazyListScope.scanSection(
     devices: List<DeviceRow>,
     mono: Boolean,
     onOpen: (Device) -> Unit,
+    onAdd: (Device) -> Unit,
     picks: DevicePicks,
     blocked: ScanService.Target? = null,
     onRetry: () -> Unit = {},
@@ -197,7 +201,7 @@ private fun LazyListScope.scanSection(
         val on = on()
         val (title, sub, progress) = card()
         Column(
-            Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(16)).background(C.Surface)
+            Modifier.readableWidth().padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 6.dp).clip(r(16)).background(C.Surface)
                 .border(1.dp, C.Border, r(16)).clickable(onClick = onToggle).padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -226,7 +230,7 @@ private fun LazyListScope.scanSection(
     // "N not added yet" and Select all, once there is anything to add.
     if (picks.addable > 0) item(key = "selectall") {
         Row(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 12.dp),
+            Modifier.readableWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
@@ -249,24 +253,22 @@ private fun LazyListScope.scanSection(
     items(devices, key = { it.device.id }, contentType = { "device" }) { d ->
         val picked = d.device.id in picks.picked
         // While ticking, tapping a device that can be added ticks it; long-press starts ticking. Otherwise a tap opens
-        // a device's asset; a new device is added only with its + button.
+        // the device's asset, or for a new device the add-asset form filled in with what the scan found; its + button
+        // adds it straight away as a draft.
         val tap = {
-            when {
-                picks.selecting && d.isNew -> picks.toggle(d.device.id)
-                !d.isNew -> onOpen(d.device)
-                else -> {}
-            }
+            if (picks.selecting && d.isNew) picks.toggle(d.device.id) else onOpen(d.device)
         }
+        // The same card spacing as the asset rows (AssetRow): 8dp at the sides, 3dp between cards.
         Row(
-            Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().clip(r(14))
+            Modifier.readableWidth().padding(horizontal = 8.dp, vertical = 1.5.dp).heightIn(min = 64.dp).clip(r(12))
                 .background(if (picked) C.PickedRow else C.Surface)
-                .border(1.dp, if (picked) C.YTintBd else C.Border, r(14))
+                .border(1.dp, if (picked) C.YTintBd else C.Border, r(12))
                 .combinedClickable(onClick = tap, onLongClick = { if (d.isNew) picks.toggle(d.device.id) })
-                .padding(start = 12.dp, top = 10.dp, bottom = 10.dp, end = 10.dp),
+                .padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DeviceIconTile(d.device)
+            DeviceIconTile()
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(d.device.name, 13, 600)
                 Txt(d.device.sub, 11, 400, C.Muted, mono = mono)
@@ -278,7 +280,7 @@ private fun LazyListScope.scanSection(
             } else if (d.isNew) {
                 Box(
                     Modifier.size(38.dp).clip(r(10)).background(C.YTintBg).border(1.dp, C.YTintBd, r(10))
-                        .clickable { onOpen(d.device) },
+                        .clickable { onAdd(d.device) },
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.PlusSmall, 18.dp, C.Yellow, 2.6f) }
             } else {

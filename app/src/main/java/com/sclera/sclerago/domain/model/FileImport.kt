@@ -62,6 +62,13 @@ data class AssetDraft(
     val notes: String? = null,
     /** Its photos: the pictures on its row of a spreadsheet. */
     val photos: Int = 0,
+    /**
+     * Whether the type the file names is one of the property's (the server matches it while reading): false = it will
+     * be added without a type; null = the file names none.
+     */
+    val typeMatched: Boolean? = null,
+    /** What the file called its type, when it matched one of the property's (it may be worded differently). */
+    val typeNamed: String? = null,
 ) {
     /** Building › floor › location, as far as the file said. */
     val place: List<String> get() = listOfNotNull(buildingName, floorName, locationName).filter { it.isNotBlank() }

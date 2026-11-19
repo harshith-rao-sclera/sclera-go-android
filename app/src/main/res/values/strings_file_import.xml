@@ -82,4 +82,8 @@
         <item quantity="one">Discarded %1$d asset read from files.</item>
         <item quantity="other">Discarded %1$d assets read from files.</item>
     </plurals>
+    <string name="file_import_no_matching_type">No matching type</string>
+    <string name="file_import_type_unmatched">Not a type of this property. Added without a type.</string>
+    <string name="file_import_type_named">File: %1$s</string>
+    <string name="file_import_notes">Notes</string>
 </resources>

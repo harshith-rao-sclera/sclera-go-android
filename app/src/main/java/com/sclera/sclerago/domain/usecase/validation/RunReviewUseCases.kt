@@ -136,4 +136,5 @@ class RunReviewUseCases @Inject constructor(
     val applyConfident: ApplyConfidentFixesUseCase,
     val decide: DecideAssetsUseCase,
     val merge: MergeDuplicatesUseCase,
+    val assetInfo: GetReviewAssetInfoUseCase,
 )

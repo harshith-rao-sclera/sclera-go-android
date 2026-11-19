@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.Status
@@ -60,7 +61,7 @@ class AssetDetailActions(
     val onBack: () -> Unit = {},
     val onChangeLoc: () -> Unit = {},
     /** Assign the asset to a person (the web's Assign asset). */
-    val onAssign: () -> Unit = {},
+    val onAssign: (() -> Unit)? = null,
     val onEdit: (key: String, value: String) -> Unit = { _, _ -> },
     val onDiscardEdits: () -> Unit = {},
     val onSave: () -> Unit = {},
@@ -69,6 +70,8 @@ class AssetDetailActions(
     /** Create the new asset, as a draft or (true) submitted. */
     val onCreate: (submit: Boolean) -> Unit = {},
     val onValidate: () -> Unit = {},
+    /** "Open in Validation": the Validation page on the run the asset is in (by its id). */
+    val onOpenRun: (jobId: String) -> Unit = {},
     val onDelete: () -> Unit = {},
     /** Change requests on a submitted asset: open the dialog, edit its note, send or cancel, withdraw / decline, reopen. */
     val changeRequest: ChangeRequestActions = ChangeRequestActions(),
@@ -111,6 +114,10 @@ class AssetDetailActions(
     val classify: ClassifyActions = ClassifyActions(),
     /** An online-only action was tapped while offline: say why it needs the server. */
     val onOffline: (OnlineOnly) -> Unit = {},
+    /** Clone (top bar): open its sheet / make the copies picked in it / close it. */
+    val onOpenClone: () -> Unit = {},
+    val onClone: (copies: Int, place: ClonePlace, keys: Set<String>) -> Unit = { _, _, _ -> },
+    val onCloseClone: () -> Unit = {},
 )
 
 /** Opening the JACS code picker, and what it does. */

@@ -26,11 +26,28 @@
 
     <!-- New / edit validation -->
     <string name="val_save">Save</string>
+    <string name="val_editor_new">New validation</string>
+    <string name="val_editor_edit">Edit validation</string>
+    <string name="val_editor_name">Name</string>
+    <string name="val_editor_name_hint">e.g. Main Validation</string>
+    <string name="val_editor_description">Description (optional)</string>
+    <string name="val_editor_description_hint">What this is for</string>
+    <string name="val_editor_save_and_run">Save and run</string>
+    <string name="val_editor_steps">Steps</string>
+    <string name="val_editor_clear_all">Clear all</string>
+    <string name="val_editor_steps_hint">Every asset goes through these in order. Drag the handle or use the arrows to reorder.</string>
+    <string name="val_editor_start_from">Start from</string>
+    <string name="val_editor_no_steps">No steps yet. Add steps from the library below, or start from a template.</string>
+    <string name="val_editor_library">Steps library</string>
+    <string name="val_editor_library_hint">Press Add to put a step at the end of the pipeline.</string>
+    <string name="val_editor_search">Search steps</string>
+    <string name="val_editor_library_offline">Steps load when you\'re online.</string>
+    <string name="val_editor_no_match">No step matches “%1$s”.</string>
+    <string name="val_editor_added">Added</string>
 
     <!-- Run review -->
     <string name="rev_export_saved">Results saved</string>
     <string name="rev_export_failed">Couldn\'t save the file.</string>
-    <string name="rev_to_review_chip">To review</string>
     <string name="rev_decision_validated">Validated</string>
     <string name="rev_decision_recollect">Recollect</string>
     <string name="rev_decision_excluded">Excluded</string>
@@ -43,7 +60,6 @@
     <!-- One asset of a run -->
     <string name="rev_first_problem">First problem at step %1$d: %2$s</string>
     <string name="rev_passed_every">Passed every step</string>
-    <string name="rev_score">Score %1$d</string>
     <string name="rev_open_asset">Open asset</string>
     <string name="rev_asset_not_here">This asset isn\'t on this phone yet; it shows once it has synced.</string>
     <string name="rev_n_open">%1$d open</string>
@@ -136,17 +152,11 @@
     <string name="val_undo">Undo</string>
     <!-- Job review, worded as the web's -->
     <string name="rev_took">Took %1$s</string>
-    <string name="rev_checked_of">%1$d of %2$d assets checked</string>
     <string name="rev_status_starting">Starting</string>
     <string name="rev_status_stopped">Stopped at %1$d%%</string>
     <string name="rev_status_finished">Finished</string>
     <string name="rev_time_left">About %1$s left · results appear as assets are checked</string>
     <string name="rev_estimating">Estimating time left… · results appear as assets are checked</string>
-    <plurals name="rev_issues_to_review">
-        <item quantity="one">%1$d issue to review</item>
-        <item quantity="other">%1$d issues to review</item>
-    </plurals>
-    <string name="rev_checked_at">Checked %1$s</string>
     <string name="rev_showing">Showing %1$d</string>
     <string name="rev_showing_all">Showing %1$d of these</string>
     <string name="rev_locked_note">This asset has been submitted, so only a reviewer can change it. Request a change to fix it.</string>

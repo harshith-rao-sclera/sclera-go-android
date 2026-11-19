@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -153,9 +154,16 @@ fun CheckBox(on: Boolean, shape: Shape = r(7), offColor: Color = C.RadioOff, che
 }
 
 @Composable
-fun Segmented(labels: List<String>, selected: Int, onSelect: (Int) -> Unit, icons: List<Ico?> = emptyList()) {
+fun Segmented(
+    labels: List<String>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    icons: List<Ico?> = emptyList(),
+    /** Its width: 200dp, or e.g. the full width. */
+    modifier: Modifier = Modifier.width(200.dp),
+) {
     Row(
-        Modifier.width(200.dp).clip(r(10)).background(C.Surface).border(1.dp, C.Border, r(10)).padding(3.dp),
+        modifier.clip(r(10)).background(C.Surface).border(1.dp, C.Border, r(10)).padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         labels.forEachIndexed { i, l ->
@@ -230,7 +238,10 @@ fun PlainField(
     /** When set, the keyboard shows a search key that calls it (e.g. the geofence address search). */
     onSubmit: (() -> Unit)? = null,
 ) {
-    var field by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+    // Not being edited, a field shows its text from the start (a long one-line value isn't scrolled to its end);
+    // being edited, a value that comes in from outside puts the cursor at its end, ready to type on.
+    var focused by remember { mutableStateOf(false) }
+    var field by remember { mutableStateOf(TextFieldValue(value, TextRange.Zero)) }
     // What was typed and sent to [onChange] but hasn't come back as [value] yet, oldest first.
     val typed = remember { ArrayDeque<String>() }
     if (value == field.text) {
@@ -241,7 +252,7 @@ fun PlainField(
             repeat(echo + 1) { typed.removeFirst() }
         } else {
             typed.clear()
-            field = TextFieldValue(value, TextRange(value.length))
+            field = TextFieldValue(value, if (focused) TextRange(value.length) else TextRange.Zero)
         }
     }
     BasicTextField(
@@ -254,7 +265,10 @@ fun PlainField(
                 onChange(next.text)
             }
         },
-        modifier = modifier,
+        modifier = modifier.onFocusChanged { f ->
+            if (focused && !f.isFocused) field = field.copy(selection = TextRange.Zero)
+            focused = f.isFocused
+        },
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
             keyboardType = keyboard,
             imeAction = if (onSubmit != null) androidx.compose.ui.text.input.ImeAction.Search else androidx.compose.ui.text.input.ImeAction.Default,
@@ -341,7 +355,7 @@ fun ActionDock(
     onValidate: (() -> Unit)?,
     onAssign: (() -> Unit)?,
     onSubmit: (() -> Unit)?,
-    onDelete: () -> Unit,
+    onDelete: (() -> Unit)?,
     floating: Boolean = false,
     deleteModifier: Modifier = Modifier.width(56.dp),
     /** Move to managed assets; null hides it. [moveDimmed] greys it out (it still answers a tap, to say why). */
@@ -370,7 +384,7 @@ fun ActionDock(
     ) {
         leading()
         // With more actions each one is a little narrower, so the selection summary keeps room on phones.
-        val actions = listOfNotNull(onValidate, onEdit, onAssign, onSubmit, onChange, onMove).size + 1
+        val actions = listOfNotNull(onValidate, onEdit, onAssign, onSubmit, onChange, onMove, onDelete).size
         val narrow = actions >= 5
         val item = Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
         onValidate?.let {
@@ -391,7 +405,7 @@ fun ActionDock(
                 DockAction(stringResource(R.string.mv_action), Icons.Send, C.Green, it, Modifier.fillMaxWidth().alpha(if (moveDimmed && !offline) 0.35f else 1f))
             }
         }
-        DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, if (narrow) item else deleteModifier)
+        onDelete?.let { DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, it, if (narrow) item else deleteModifier) }
     }
 }
 
@@ -402,7 +416,8 @@ fun ActionDock(
 @Composable
 fun ActionCard(
     onValidate: (() -> Unit)?,
-    onAssign: () -> Unit,
+    /** Assign; null shows it greyed out (someone who may not assign). */
+    onAssign: (() -> Unit)?,
     onSubmit: (() -> Unit)?,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -427,8 +442,13 @@ fun ActionCard(
         } else {
             DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, {}, item.alpha(0.35f), enabled = false)
         }
-        OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item.fillMaxHeight(), badgeOffset = 6.dp) {
-            DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, onAssign, gated)
+        // Assign, likewise, stays in place greyed out for someone who may not assign.
+        if (onAssign != null) {
+            OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item.fillMaxHeight(), badgeOffset = 6.dp) {
+                DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, onAssign, gated)
+            }
+        } else {
+            DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, {}, item.alpha(0.35f), enabled = false)
         }
         onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item) }
         DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, item)

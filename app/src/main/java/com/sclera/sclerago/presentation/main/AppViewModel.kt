@@ -111,6 +111,8 @@ data class UiState(
     val newSrc: Source = Source.MANUAL,
     /** Photos/videos the new-asset form opens with (Camera tab: the shot just taken). */
     val newMedia: List<Media> = emptyList(),
+    /** The scanned device the new-asset form was opened for (tapped on the Bluetooth / Network scan list). */
+    val newDevice: Device? = null,
     /** Photos/videos taken (or picked) in the Camera tab, newest first. */
     val captures: List<Media> = emptyList(),
     val camSel: Set<String> = emptySet(),
@@ -124,6 +126,8 @@ data class UiState(
     val menuOpen: Boolean = false,
     // ---- Validation page
     val valOpen: Boolean = false,
+    /** A run to open on the Validation page as it opens ("Open in Validation" from an asset); null once it has. */
+    val valJobId: String? = null,
     // ---- Configuration page
     val cfgOpen: Boolean = false,
     // ---- Integration page
@@ -241,11 +245,16 @@ class AppViewModel @Inject constructor(
             }
         }
 
-    /** Where new assets go: the location chosen in the filter (its name, its "where" text and its id), else nowhere. */
+    /**
+     * Where new assets go: the location chosen in the filter (its name, its "where" text and its id), also while the
+     * property tab is showing every asset; nowhere while the Unmapped tab is open, or when no location has been chosen.
+     */
+    private val usesChosenLocation: Boolean
+        get() = state.loc == LocFilter.SPEC || (state.loc == LocFilter.ALL && state.specSel.isNotEmpty())
     private val tgtLoc: String?
-        get() = if (state.loc == LocFilter.SPEC) state.specLocs.singleOrNull() ?: state.specPath.lastOrNull() else null
-    private val tgtWhere: String get() = if (state.loc == LocFilter.SPEC) state.specWhere else ""
-    private val tgtPlace: String? get() = if (state.loc == LocFilter.SPEC) state.specSel.ifEmpty { null } else null
+        get() = if (usesChosenLocation) state.specLocs.singleOrNull() ?: state.specPath.lastOrNull() else null
+    private val tgtWhere: String get() = if (usesChosenLocation) state.specWhere else ""
+    private val tgtPlace: String? get() = if (usesChosenLocation) state.specSel.ifEmpty { null } else null
 
     /** The property being worked on: the downloaded one opened last; empty until a property is downloaded. */
     val currentProp: String get() = downloadFlow.value.currentId.orEmpty()
@@ -260,12 +269,18 @@ class AppViewModel @Inject constructor(
     val detailAsset: Asset?
         get() = if (state.newAsset) {
             // No name to start with (not "Asset from photo …"): the AI reads one off the Camera tab's photo, or it is typed.
+            // A scanned device starts with what the scan found: its name, its line (IP / MAC, model) and its type.
+            val d = state.newDevice
             Asset(
-                "", "", "", tgtLoc, tgtWhere,
-                state.newSrc, Status.DRAFT, AssetType.GENERIC, currentProp,
+                "", d?.let(::deviceName).orEmpty(), d?.sub.orEmpty(), tgtLoc, tgtWhere,
+                state.newSrc, Status.DRAFT, d?.type ?: AssetType.GENERIC, currentProp,
                 media = state.newMedia, locationId = tgtPlace,
             )
         } else state.assetId?.let { id -> assets.firstOrNull { it.id == id } }
+
+    /** What the new-asset form starts with: for a scanned device, what the scan found (a note, its BLE tag / IP). */
+    val newPrefill: Map<String, String>
+        get() = state.newDevice?.takeIf { state.newAsset }?.let { prefillFor(it, state.newSrc) }.orEmpty()
 
     /** What an asset made from scanned device [d] starts with: a note saying where it came from, and its BLE tag / IP. */
     private fun prefillFor(d: Device, src: Source): Map<String, String> {
@@ -366,7 +381,7 @@ class AppViewModel @Inject constructor(
 
     fun goTab(t: Tab) {
         set {
-            var o = copy(tab = t, assetId = null, newAsset = false, newMedia = emptyList(), devPick = emptySet(), devAll = false, devSkip = emptySet())
+            var o = copy(tab = t, assetId = null, newAsset = false, newMedia = emptyList(), newDevice = null, devPick = emptySet(), devAll = false, devSkip = emptySet())
             if (t == Tab.CAMERA) o = o.copy(camOpen = true)
             if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = true)
             // Scanning tabs always open on their Scan segment, not their asset list.
@@ -574,10 +589,15 @@ class AppViewModel @Inject constructor(
      * A scanned device: open its asset if it already has one (a tap on the row), otherwise add it straight away as a
      * draft (its + button), as Add does for ticked devices (no form to fill in first; tap it then to open the new asset).
      */
+    /** Opens a scanned device: its asset when it has one, else the new-asset form filled in with what the scan found. */
     fun openDevice(d: Device) {
         val existing = assetUseCases.matchDevices(listOf(d), scanSource, assets)[d.id]
-        if (existing != null) set { copy(assetId = existing, newAsset = false) } else addDevices(listOf(d))
+        if (existing != null) set { copy(assetId = existing, newAsset = false) }
+        else set { copy(newAsset = true, newSrc = scanSource, newMedia = emptyList(), newDevice = d, assetId = null) }
     }
+
+    /** Adds a scanned device straight away as a draft asset (its + button), filled in from what the scan found. */
+    fun addDevice(d: Device) = addDevices(listOf(d))
 
     /** Adds [devices] as draft assets in the current place, filled in from each device (name, type, BLE tag / IP, a note). */
     private fun addDevices(devices: List<Device>) {
@@ -597,11 +617,11 @@ class AppViewModel @Inject constructor(
 
     fun openAsset(id: String) = set { copy(assetId = id, newAsset = false) }
 
-    fun openNew() = set { copy(newAsset = true, newSrc = Source.MANUAL, newMedia = emptyList(), assetId = null) }
+    fun openNew() = set { copy(newAsset = true, newSrc = Source.MANUAL, newMedia = emptyList(), newDevice = null, assetId = null) }
     fun closeDetail() {
         // A camera shot that never became an asset is thrown away with the form.
         if (state.newAsset) fileUseCases.deleteOwned(state.newMedia)
-        set { copy(assetId = null, newAsset = false, newMedia = emptyList()) }
+        set { copy(assetId = null, newAsset = false, newMedia = emptyList(), newDevice = null) }
     }
 
     /** Camera tab: open the new-asset details with these photos/videos already attached. */
@@ -609,7 +629,7 @@ class AppViewModel @Inject constructor(
         if (media.isEmpty()) return
         set {
             copy(
-                newAsset = true, newSrc = Source.CAMERA, newMedia = media, assetId = null,
+                newAsset = true, newSrc = Source.CAMERA, newMedia = media, newDevice = null, assetId = null,
             )
         }
     }
@@ -624,8 +644,8 @@ class AppViewModel @Inject constructor(
         picked: LocValue? = null,
     ): CreateAssetUseCase.Via {
         val s = state
-        // The form is for camera shots and hand-made assets; scanned devices are added directly (addDevices).
-        val via = assetUseCases.create.viaFor(s.newMedia, null)
+        // Camera shots, a scanned device (tapped on the scan list) or by hand.
+        val via = assetUseCases.create.viaFor(s.newMedia, s.newDevice)
         // The place picked in the form, else where the location filter put it.
         val place = picked?.let { AssetPlace(currentProp, it.loc, it.where, it.placeId) } ?: AssetPlace(currentProp, tgtLoc, tgtWhere, tgtPlace)
         val savedAs = UiText.Res(
@@ -638,12 +658,14 @@ class AppViewModel @Inject constructor(
         when (via) {
             // From the Camera tab: stay on the camera for the next one.
             CreateAssetUseCase.Via.CAMERA -> set { copy(newAsset = false, newMedia = emptyList()) }
-            CreateAssetUseCase.Via.MANUAL, CreateAssetUseCase.Via.SCAN -> set { copy(newAsset = false, tab = Tab.ASSETS) }
+            // From a scan: stay on the scan list for the next device.
+            CreateAssetUseCase.Via.SCAN -> set { copy(newAsset = false, newDevice = null) }
+            CreateAssetUseCase.Via.MANUAL -> set { copy(newAsset = false, tab = Tab.ASSETS) }
         }
         write {
             val created = assetUseCases.create(
                 name, detail, media, values, submit, place,
-                captures = s.newMedia, device = null, deviceSource = s.newSrc,
+                captures = s.newMedia, device = s.newDevice, deviceSource = s.newSrc,
             )
             when (created.via) {
                 CreateAssetUseCase.Via.CAMERA -> flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(Source.CAMERA.viaRes))))
@@ -736,7 +758,15 @@ class AppViewModel @Inject constructor(
     fun openValidation() = set {
         copy(valOpen = true, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
     }
-    fun closeValidation() = set { copy(valOpen = false, tab = Tab.ASSETS, assetId = null, newAsset = false) }
+    fun closeValidation() = set { copy(valOpen = false, valJobId = null, tab = Tab.ASSETS, assetId = null, newAsset = false) }
+
+    /** "Open in Validation" from an asset: the Validation page, on the run [jobId] (the asset closes). */
+    fun openValidationRun(jobId: String) = set {
+        copy(valOpen = true, valJobId = jobId, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
+    }
+
+    /** The Validation page opened the run asked for. */
+    fun validationRunShown() = set { copy(valJobId = null) }
 
     // ---------- Integration ----------
 

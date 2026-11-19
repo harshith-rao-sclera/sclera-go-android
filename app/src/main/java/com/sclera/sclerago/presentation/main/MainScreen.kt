@@ -33,7 +33,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -191,8 +190,10 @@ fun ScleraApp(
             onNotice = vm::flash,
             pickedPlace = s.detailPlace,
             onPlaceTaken = vm::detailPlaceTaken,
-            onAssign = { assign.open(setOf(d.id)) },
+            onAssign = if (assign.mayAssign()) ({ assign.open(setOf(d.id)) }) else null,
             onValidate = { quickIds = listOf(d.id) },
+            onOpenRun = vm::openValidationRun,
+            prefill = vm.newPrefill,
         )
     }
 
@@ -263,10 +264,10 @@ fun ScleraApp(
                         onClear = list::clearSelection,
                         onSelectAll = { list.selectAll(s.tab) },
                         onValidate = if (validation.mayCheck()) ({ quickIds = lists.picked.toList() }) else null,
-                        onAssign = { assign.open(lists.picked) },
-                        onEdit = if (onValidatedFilter) null else ({ bulk.open(lists.picked) }),
-                        onSubmit = list::submitSelected,
-                        onDelete = list::askDelete,
+                        onAssign = if (assign.mayAssign()) ({ assign.open(lists.picked) }) else null,
+                        onEdit = if (onValidatedFilter || !list.mayCollect()) null else ({ bulk.open(lists.picked) }),
+                        onSubmit = if (list.mayCollect()) list::submitSelected else null,
+                        onDelete = if (list.mayCollect()) list::askDelete else null,
                         onMove = if (move.offered(lists.pickedAssets)) ({ move.tap(lists.picked, onValidatedFilter) }) else null,
                         moveDimmed = move.blockedReason(onValidatedFilter) != null,
                         offline = !online,
@@ -295,7 +296,10 @@ fun ScleraApp(
 
         // Validation page (side menu) covers the whole app; an asset opened from its results sits on top.
         if (s.valOpen) {
-            ValidationScreen(vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation, onMenu = vm::openMenu)
+            ValidationScreen(
+                vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation, onMenu = vm::openMenu,
+                openJobId = s.valJobId, onJobOpened = vm::validationRunShown,
+            )
             if (detail != null) {
                 Box(Modifier.fillMaxSize().background(C.Bg).statusBarsPadding().navigationBarsPadding()) { detailView(detail) }
             }
@@ -362,19 +366,6 @@ fun ScleraApp(
                 no = stringResource(R.string.action_cancel), yes = stringResource(R.string.action_delete),
                 onNo = list::cancelDelete,
                 onYes = list::deleteSelected,
-            )
-        }
-        // Submit left incomplete assets in draft (as the web's Submit): offer to submit them as exceptions.
-        if (lists.leftIncomplete.isNotEmpty()) {
-            val n = lists.leftIncomplete.size
-            BackHandler(onBack = list::leaveIncompleteInDraft)
-            ConfirmDialog(
-                icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
-                title = pluralStringResource(R.plurals.submit_incomplete_title, n, n),
-                body = pluralStringResource(R.plurals.submit_incomplete_body, n),
-                no = stringResource(R.string.action_leave_in_draft), yes = stringResource(R.string.action_submit_as_exceptions), yesBg = C.Yellow,
-                onNo = list::leaveIncompleteInDraft,
-                onYes = list::submitIncompleteAsExceptions,
             )
         }
         SelectionChangeDialogs(lists, list)

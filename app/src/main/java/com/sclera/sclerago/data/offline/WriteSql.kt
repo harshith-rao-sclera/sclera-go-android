@@ -35,6 +35,18 @@ internal const val ASSET_DROP_CHANGE_REQUEST = """UPDATE assets SET change_reque
 internal const val ASSET_CLOSE_CHANGE_REQUEST = """UPDATE assets SET change_requested_by = NULL, change_requested_at = NULL,
     change_request_note = NULL WHERE id = ? AND change_requested_at IS NOT NULL"""
 
+/** Who an asset is assigned to. */
+internal const val ASSET_ASSIGNEE = "SELECT assigned_to FROM assets WHERE id = ?"
+
+/** The asset a web page (manual, datasheet) is attached to. */
+internal const val WEB_DOCUMENT_ASSET = "SELECT asset_id FROM web_documents WHERE id = ?"
+
+/** Who asked for a change to an asset (null when nobody has). */
+internal const val ASSET_CHANGE_REQUESTER = "SELECT change_requested_by FROM assets WHERE id = ?"
+
+/** An asset goes to someone (an unassigned asset claimed by whoever changes it, or an approved change request's asker). */
+internal const val ASSET_SET_ASSIGNEE = "UPDATE assets SET assigned_to = ?, version = version + 1, updated_at = ? WHERE id = ?"
+
 /** New values for an asset's answers: bumps the revision validation's "new or changed" compares. */
 internal const val ASSET_UPDATE_VALUES = """UPDATE assets SET name = ?, manufacturer = ?, model = ?, serial_number = ?, master_format_id = ?,
     jacs_code_id = ?, classification_source = ?, values_revision = values_revision + 1, values_changed_at = ?,

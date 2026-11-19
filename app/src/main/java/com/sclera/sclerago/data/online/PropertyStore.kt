@@ -1,6 +1,6 @@
 package com.sclera.sclerago.data.online
 
-import com.sclera.sclerago.data.local.EncryptedCache
+import com.sclera.sclerago.data.local.PropertyTable
 import com.sclera.sclerago.data.mapper.PropertyRecord
 import com.sclera.sclerago.data.mapper.channelsOff
 import com.sclera.sclerago.data.mapper.settingsBody
@@ -8,7 +8,6 @@ import com.sclera.sclerago.data.mapper.toBody
 import com.sclera.sclerago.data.mapper.toRecord
 import com.sclera.sclerago.data.offline.PropertyOfflineSource
 import com.sclera.sclerago.data.remote.adc.AdcApi
-import com.sclera.sclerago.data.remote.adc.AdcJson
 import com.sclera.sclerago.data.remote.adc.PhotoRulesDto
 import com.sclera.sclerago.data.remote.adc.PropertyDto
 import com.sclera.sclerago.data.remote.adc.SettingsDto
@@ -18,7 +17,10 @@ import com.sclera.sclerago.di.IoDispatcher
 import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -28,21 +30,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.builtins.ListSerializer
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * The user's properties and their settings. They come from the offline database when it has a `properties`
- * table, otherwise from the API ([AdcApi]); the last API list is kept encrypted ([EncryptedCache], it holds
- * contact details and access codes) so it still shows offline. Writes are online only.
- * Loaded when someone signs in; forgotten on sign-out (the cache file is removed by the cache's own cleaner).
+ * table, otherwise from the API ([AdcApi]); the API's list is kept in `global_config.db`'s `properties` table
+ * ([PropertyTable]: synced rows, access codes and contacts encrypted) and read from there, so it shows offline.
+ * Writes are online only. Loaded when someone signs in; forgotten on sign-out (the table's rows are deleted).
  */
 @Singleton
 class PropertyStore @Inject constructor(
     private val api: AdcApi,
     private val session: OnlineSession,
-    private val cache: EncryptedCache,
+    private val table: PropertyTable,
+    private val downloads: PropertyDownloadRepository,
     private val offline: PropertyOfflineSource,
     private val db: AdcDatabase,
     @ApplicationScope private val scope: CoroutineScope,
@@ -70,6 +72,12 @@ class PropertyStore @Inject constructor(
     val photoRules: StateFlow<Map<String, PhotoRulesDto>> = _photoRules
 
     init {
+        // is_synced follows the downloads: 1 once a property's offline data is on this device, 0 when it isn't.
+        scope.launch {
+            downloads.downloads.map { it.downloadedIds }.distinctUntilChanged().collect { ids ->
+                withContext(io) { runCatching { table.markSynced(ids) } }
+            }
+        }
         scope.launch {
             session.user.collectLatest { user ->
                 if (user == null) {
@@ -154,8 +162,7 @@ class PropertyStore @Inject constructor(
         _disabled.value = _disabled.value + (propertyId to off)
         if (dtos.none { it.id == propertyId }) return
         dtos = dtos.map { if (it.id == propertyId) it.copy(settings = settings) else it }
-        val list = dtos
-        withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(LIST, list)) } }
+        keep(dtos)
     }
 
     /**
@@ -173,7 +180,7 @@ class PropertyStore @Inject constructor(
         rememberSettings(loaded)
         _disabled.value = _disabled.value.mapValues { (id, off) -> settingsOff[id] ?: off }
         dtos = loaded
-        withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(LIST, loaded)) } }
+        keep(loaded)
     }
 
     private fun rememberSettings(list: List<PropertyDto>) {
@@ -183,6 +190,7 @@ class PropertyStore @Inject constructor(
 
     override fun clear() {
         offlineJob?.cancel()
+        scope.launch(io) { runCatching { table.clear() } }
         settingsOff = emptyMap()
         dtos = emptyList()
         publish(emptyList())
@@ -193,19 +201,24 @@ class PropertyStore @Inject constructor(
         withContext(io) { db.isOpen && runCatching { db.hasTable(TABLE) }.getOrDefault(false) }
 
     private suspend fun readCache() {
-        val text = withContext(io) { cache.read(CACHE) } ?: return
-        runCatching { AdcJson.decodeFromString(LIST, text) }.getOrNull()?.let {
-            dtos = it
-            rememberSettings(it)
-            publish(it.map(PropertyDto::toRecord))
-        }
+        val kept = withContext(io) { runCatching { table.read() }.getOrNull() }?.takeIf { it.isNotEmpty() } ?: return
+        dtos = kept
+        rememberSettings(kept)
+        publish(kept.map(PropertyDto::toRecord))
     }
 
     private suspend fun setDtos(list: List<PropertyDto>) {
         dtos = list
         rememberSettings(list)
         publish(list.map(PropertyDto::toRecord))
-        withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(LIST, list)) } }
+        keep(list)
+    }
+
+    /** Keeps [list] in `global_config.db`'s `properties` table (downloaded ones marked synced), for the next start and offline. */
+    private suspend fun keep(list: List<PropertyDto>) {
+        val organisation = runCatching { session.organisation() }.getOrNull()
+        val synced = downloads.downloads.value.downloadedIds
+        withContext(io) { runCatching { table.replace(list, organisation, synced) } }
     }
 
     /** Shows [records]; each one's onboarding switches come from its last known server settings when there are any. */
@@ -216,7 +229,5 @@ class PropertyStore @Inject constructor(
 
     private companion object {
         const val TABLE = "properties"
-        const val CACHE = "properties"
-        val LIST = ListSerializer(PropertyDto.serializer())
     }
 }

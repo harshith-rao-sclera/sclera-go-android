@@ -184,6 +184,12 @@ object Icons {
     // Validation templates
     val Bolt = Ico(s("M13 2.5L4.5 13.5H11l-1 8 8.5-11H12z"))
     val Copy = Ico(s(rect(8f, 8f, 12.5f, 12.5f, 2f)), s("M16 8V5.5A2 2 0 0 0 14 3.5H5.5a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2H8"))
+
+    /** Clone an asset: [Copy] with a plus in the front sheet. */
+    val Clone = Ico(
+        s(rect(8f, 8f, 12.5f, 12.5f, 2f)), s("M16 8V5.5A2 2 0 0 0 14 3.5H5.5a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2H8"),
+        s("M14.25 11.5v5.5M11.5 14.25h5.5"),
+    )
     val ScanAi = Ico(
         s("M3.5 8V5.5a2 2 0 0 1 2-2H8M16 3.5h2.5a2 2 0 0 1 2 2V8M20.5 16v2.5a2 2 0 0 1-2 2H16M8 20.5H5.5a2 2 0 0 1-2-2V16"),
         f("M12,7Q12.45,11.55 17,12Q12.45,12.45 12,17Q11.55,12.45 7,12Q11.55,11.55 12,7Z"),
@@ -224,28 +230,4 @@ object Icons {
     val ChevronCircle = Ico(s(circle(12f, 12f, 9f)), s("M8.5 10.5L12 14l3.5-3.5"))
     val ArrowUp = Ico(s("M12 19V5M6 11l6-6 6 6"))
     val ArrowDown = Ico(s("M12 5v14M6 13l6 6 6-6"))
-
-    // Asset types
-    val Motor = Ico(s(rect(2.5f, 7f, 13f, 10f, 2f)), s("M15.5 10.5H19v3h-3.5M19 12h2.5M6 7V5h6v2M5.5 10.5h7M5.5 13.5h7"))
-    val Pump = Ico(s(circle(10f, 13f, 6f)), s(circle(10f, 13f, 2f)), s("M16 13h5.5M10 7V3.5h6"))
-    val Chiller = Ico(s("M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6"), s("M9.5 4l2.5 2 2.5-2M9.5 20l2.5-2 2.5 2"))
-    val Fan = Ico(
-        s(circle(12f, 12f, 1.8f)),
-        s(
-            "M12 10.2C11 6.5 12 3 15 3c2.2 0 2.8 2.4 1.4 4-1.2 1.4-2.9 2.3-4.4 3.2z" +
-                "M13.8 12c3.7-1 7.2 0 7.2 3 0 2.2-2.4 2.8-4 1.4-1.4-1.2-2.3-2.9-3.2-4.4z" +
-                "M12 13.8c1 3.7 0 7.2-3 7.2-2.2 0-2.8-2.4-1.4-4 1.2-1.4 2.9-2.3 4.4-3.2z" +
-                "M10.2 12C6.5 13 3 12 3 9c0-2.2 2.4-2.8 4-1.4 1.4 1.2 2.3 2.9 3.2 4.4z"
-        ),
-    )
-    val Controller = Ico(
-        s(rect(6f, 6f, 12f, 12f, 2f)), s(rect(9.5f, 9.5f, 5f, 5f, 1f)),
-        s("M9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"),
-    )
-    val Cctv = Ico(s("M2.5 7L17 10.2l-1.5 5L2 12z"), s("M17 11.5l4.5-1v5l-5 .6M7 13.4V19H3"))
-    val Panel = Ico(s(rect(5f, 2.5f, 14f, 19f, 1.5f)), s("M12.8 7L10 12h4l-2.8 5"))
-    val Computer = Ico(s(rect(3f, 4f, 18f, 12f, 1.5f)), s("M8.5 20h7M12 16v4"))
-    val Phone = Ico(s(rect(7f, 2.5f, 10f, 19f, 2.2f)), s("M11 18.5h2"))
-    val Speaker = Ico(s(rect(5f, 2.5f, 14f, 19f, 2.5f)), s(circle(12f, 14.5f, 3.5f)), s(circle(12f, 7.2f, 1.2f)))
-    val Sensor = Ico(s("M14 14.5V5a2 2 0 0 0-4 0v9.5a4 4 0 1 0 4 0z"), s("M12 9v7"))
 }

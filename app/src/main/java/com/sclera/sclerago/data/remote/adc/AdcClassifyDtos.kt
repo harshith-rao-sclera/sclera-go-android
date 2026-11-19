@@ -95,5 +95,35 @@ data class MasterFormatBriefDto(val id: String, val systemType: String = "", val
 @Serializable
 data class JacsMasterFormatDto(val code: String = "", val masterFormat: MasterFormatBriefDto? = null)
 
+/** One asset icon (`GET /v1/asset-icons`). */
+@Serializable
+data class AssetIconDto(val name: String = "", val label: String = "")
+
+/** A sub type of the classification, with its icon. */
+@Serializable
+data class ClassSubtypeDto(val masterFormatId: String, val name: String = "", val icon: String = "generic")
+
+/** An asset type of the classification, with its icon and sub types. */
+@Serializable
+data class ClassAssetTypeDto(
+    val name: String = "",
+    val icon: String = "generic",
+    val masterFormatId: String? = null,
+    val subtypes: List<ClassSubtypeDto> = emptyList(),
+)
+
+/** A system type of the classification, with its icon and asset types. */
+@Serializable
+data class ClassSystemTypeDto(
+    val name: String = "",
+    val icon: String = "generic",
+    val masterFormatId: String? = null,
+    val assetTypes: List<ClassAssetTypeDto> = emptyList(),
+)
+
+/** `GET /properties/{id}/classification`: the property's types grouped by name. */
+@Serializable
+data class ClassificationDto(val systemTypes: List<ClassSystemTypeDto> = emptyList())
+
 /** A photo sent with a suggestion request. */
 class ClassifyPhoto(val filename: String, val contentType: String, val bytes: ByteArray)

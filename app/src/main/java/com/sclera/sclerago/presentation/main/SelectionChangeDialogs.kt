@@ -6,10 +6,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +27,7 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.usecase.asset.ChangeAction
 import com.sclera.sclerago.domain.usecase.asset.ChangeActionOption
 import com.sclera.sclerago.presentation.assets.ChangeRequestDialog
+import com.sclera.sclerago.presentation.assets.ChangeRequestLine
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.blockSwipe
@@ -48,7 +53,7 @@ internal fun SelectionChangeDialogs(state: AssetListState, list: AssetListViewMo
     val count = state.pickedAssets.size
     if (state.changeMenu && state.changeOptions.isNotEmpty()) {
         BackHandler(onBack = list::closeChange)
-        ChangeMenu(state.changeOptions, onPick = list::pickChange, onCancel = list::closeChange)
+        ChangeMenu(state.changeOptions, count, onPick = list::pickChange, onCancel = list::closeChange)
     }
     when (val action = state.changeAction) {
         null -> Unit
@@ -59,29 +64,83 @@ internal fun SelectionChangeDialogs(state: AssetListState, list: AssetListViewMo
                 title = pluralStringResource(R.plurals.change_bulk_request_title, count, count),
             )
         }
-        ChangeAction.MOVE_TO_DRAFT, ChangeAction.DECLINE, ChangeAction.WITHDRAW -> {
+        ChangeAction.WITHDRAW -> {
             BackHandler(onBack = list::closeChange)
-            val (title, body) = when (action) {
-                ChangeAction.MOVE_TO_DRAFT ->
-                    pluralStringResource(R.plurals.change_bulk_draft_title, count, count) to stringResource(R.string.change_bulk_draft_body)
-                ChangeAction.DECLINE ->
-                    pluralStringResource(R.plurals.change_bulk_decline_title, count, count) to stringResource(R.string.change_bulk_close_body)
-                else ->
-                    pluralStringResource(R.plurals.change_bulk_withdraw_title, count, count) to stringResource(R.string.change_bulk_close_body)
-            }
             ConfirmDialog(
                 icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
-                title = title, body = body,
-                no = stringResource(R.string.action_cancel), yes = optionLabel(action), yesBg = C.Yellow,
+                title = pluralStringResource(R.plurals.change_bulk_withdraw_title, count, count),
+                body = stringResource(R.string.change_bulk_close_body),
+                no = stringResource(R.string.action_cancel), yes = optionLabel(action, count), yesBg = C.Yellow,
+                onNo = list::closeChange, onYes = list::applyChange,
+            )
+        }
+        ChangeAction.APPROVE, ChangeAction.MOVE_TO_DRAFT, ChangeAction.DECLINE -> {
+            BackHandler(onBack = list::closeChange)
+            val assets = state.pickedAssets
+            val (title, body) = when (action) {
+                ChangeAction.APPROVE -> {
+                    // Who the assets go to: the one person who asked, else "whoever asked" (as the web says it).
+                    val askers = assets.mapNotNull { a -> a.changeRequest?.let { list.requesterName(it) } }.distinct()
+                    val to = askers.singleOrNull() ?: stringResource(R.string.change_whoever_asked)
+                    stringResource(R.string.change_bulk_approve_title) to pluralStringResource(R.plurals.change_bulk_approve_body, count, count, to)
+                }
+                ChangeAction.DECLINE ->
+                    stringResource(R.string.change_bulk_decline_title) to pluralStringResource(R.plurals.change_bulk_decline_body, count)
+                else ->
+                    pluralStringResource(R.plurals.change_bulk_draft_title, count, count) to stringResource(R.string.change_bulk_draft_body)
+            }
+            // What was asked, so the admin reads it before acting: up to five requests, then how many more.
+            val asked = assets.filter { it.changeRequest != null }
+            ChangeConfirm(
+                title = title, body = body, yes = optionLabel(action, count),
+                requests = {
+                    asked.take(MAX_REQUESTS_SHOWN).forEach { a ->
+                        val request = checkNotNull(a.changeRequest)
+                        if (count > 1) Txt(a.name, 12, 700, C.Text)
+                        ChangeRequestLine(request, list.isMine(request), list.requesterName(request))
+                    }
+                    if (asked.size > MAX_REQUESTS_SHOWN) {
+                        Txt(stringResource(R.string.change_requests_more, asked.size - MAX_REQUESTS_SHOWN), 12, 500, C.Muted)
+                    }
+                },
                 onNo = list::closeChange, onYes = list::applyChange,
             )
         }
     }
 }
 
+private const val MAX_REQUESTS_SHOWN = 5
+
+/** A yes/no for a change-request action, with the requests it acts on listed under the explanation. */
+@Composable
+private fun ChangeConfirm(
+    title: String,
+    body: String,
+    yes: String,
+    requests: @Composable ColumnScope.() -> Unit,
+    onNo: () -> Unit,
+    onYes: () -> Unit,
+) {
+    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onNo).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.widthIn(max = 400.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
+                .border(1.dp, C.Border2, r(18)).noRippleClick { }.padding(20.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Txt(title, 16, 700)
+            Txt(body, 13, 400, C.Muted, maxLines = 6)
+            requests()
+            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Pill(stringResource(R.string.action_cancel), onNo, Modifier.weight(1f), height = 48.dp, size = 14)
+                Pill(yes, onYes, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700)
+            }
+        }
+    }
+}
+
 /** The actions offered for the selection, one per row; a blocked one is dimmed and says why when tapped. */
 @Composable
-private fun ChangeMenu(options: List<ChangeActionOption>, onPick: (ChangeActionOption) -> Unit, onCancel: () -> Unit) {
+private fun ChangeMenu(options: List<ChangeActionOption>, count: Int, onPick: (ChangeActionOption) -> Unit, onCancel: () -> Unit) {
     Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onCancel).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
             Modifier.widthIn(max = 360.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
@@ -91,7 +150,7 @@ private fun ChangeMenu(options: List<ChangeActionOption>, onPick: (ChangeActionO
             Txt(stringResource(R.string.dash_chip_change_requests), 16, 700)
             options.forEach { option ->
                 Pill(
-                    optionLabel(option.action), { onPick(option) },
+                    optionLabel(option.action, count), { onPick(option) },
                     Modifier.fillMaxWidth().alpha(if (option.blocked != null) 0.4f else 1f).testTag(SelectionChangeTags.option(option.action)),
                     height = 48.dp, size = 14,
                 )
@@ -101,13 +160,13 @@ private fun ChangeMenu(options: List<ChangeActionOption>, onPick: (ChangeActionO
     }
 }
 
+/** The action's label as the web's: Approve / Decline say "requests" for several assets. */
 @Composable
-private fun optionLabel(action: ChangeAction): String = stringResource(
-    when (action) {
-        ChangeAction.REQUEST -> R.string.change_request_action
-        ChangeAction.UPDATE_REQUEST -> R.string.change_action_update
-        ChangeAction.MOVE_TO_DRAFT -> R.string.change_action_move_to_draft
-        ChangeAction.DECLINE -> R.string.change_action_decline
-        ChangeAction.WITHDRAW -> R.string.change_request_withdraw
-    },
-)
+private fun optionLabel(action: ChangeAction, count: Int): String = when (action) {
+    ChangeAction.APPROVE -> pluralStringResource(R.plurals.change_action_approve, count)
+    ChangeAction.DECLINE -> pluralStringResource(R.plurals.change_action_decline_all, count)
+    ChangeAction.REQUEST -> stringResource(R.string.change_request_action)
+    ChangeAction.UPDATE_REQUEST -> stringResource(R.string.change_action_update)
+    ChangeAction.MOVE_TO_DRAFT -> stringResource(R.string.change_action_move_to_draft)
+    ChangeAction.WITHDRAW -> stringResource(R.string.change_request_withdraw)
+}

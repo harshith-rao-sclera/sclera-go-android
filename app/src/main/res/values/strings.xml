@@ -375,6 +375,7 @@
     <string name="val_step_consistent">Consistent</string>
     <string name="val_step_verified">Verified</string>
     <string name="val_quality">Data quality %1$d/100</string>
+    <string name="val_open_in_validation">Open in Validation</string>
     <string name="val_every_step_from">Every step from %1$d validations, each with its latest result: %2$s.</string>
     <string name="val_starts_here">Starts here</string>
     <string name="val_banner">%1$d of %2$d steps need attention · %3$s</string>
@@ -476,6 +477,8 @@
     <string name="ai_type_jacs">JACS code %1$s</string>
     <string name="ai_change_model">Change model</string>
     <string name="ai_look_again">Look up again</string>
+    <string name="ai_no_suggestions">No suggestions</string>
+    <string name="action_done">Done</string>
     <string name="ai_need_model">Add the model first: specs are looked up by manufacturer and model.</string>
     <string name="ai_failed">Couldn\'t look up the specs. Try again.</string>
     <string name="ai_done_failed">Couldn\'t look up specs for %1$s. %2$s</string>
@@ -572,20 +575,17 @@
         <item quantity="one">%1$d asset submitted</item>
         <item quantity="other">%1$d assets submitted</item>
     </plurals>
-    <plurals name="assets_submitted_as_exceptions">
-        <item quantity="one">%1$d asset submitted as an exception</item>
-        <item quantity="other">%1$d assets submitted as exceptions</item>
+    <plurals name="assets_moved_to_exception">
+        <item quantity="one">%1$d asset moved to Exception (mandatory fields or photos missing)</item>
+        <item quantity="other">%1$d assets moved to Exception (mandatory fields or photos missing)</item>
     </plurals>
-    <plurals name="submit_incomplete_title">
-        <item quantity="one">%1$d asset is incomplete</item>
-        <item quantity="other">%1$d assets are incomplete</item>
+    <plurals name="assets_already_submitted">
+        <item quantity="one">%1$d asset already submitted</item>
+        <item quantity="other">%1$d assets already submitted</item>
     </plurals>
-    <plurals name="submit_incomplete_body">
-        <item quantity="one">It has empty mandatory fields or missing photos, so it was left in draft. Submit it as an exception?</item>
-        <item quantity="other">They have empty mandatory fields or missing photos, so they were left in draft. Submit them as exceptions?</item>
-    </plurals>
-    <string name="action_leave_in_draft">Leave in draft</string>
-    <string name="action_submit_as_exceptions">Submit as exceptions</string>
+    <string name="submit_outcome_two">%1$s. %2$s.</string>
+    <string name="submit_outcome_three">%1$s. %2$s. %3$s.</string>
+    <string name="submit_nothing">Nothing to submit</string>
     <plurals name="assets_deleted">
         <item quantity="one">%1$d asset deleted</item>
         <item quantity="other">%1$d assets deleted</item>
@@ -641,9 +641,10 @@
     <string name="data_error_name_taken">That name is already used here. Choose another one.</string>
     <string name="data_error_in_use">This cannot be removed while it still contains floors, locations or assets.</string>
     <string name="data_error_failed">The change could not be saved. Please try again.</string>
-    <string name="asset_lock_not_assigned">Not assigned to you. Ask an admin to assign it to you to make changes.</string>    <plurals name="assets_not_selectable">
-        <item quantity="one">%1$d asset isn\'t assigned to you, so it wasn\'t selected</item>
-        <item quantity="other">%1$d assets aren\'t assigned to you, so they weren\'t selected</item>
+    <string name="asset_lock_not_assigned">Assigned to someone else. Ask an admin to assign it to you to make changes.</string>
+    <plurals name="assets_not_selectable">
+        <item quantity="one">%1$d asset is assigned to someone else, so it wasn\'t selected</item>
+        <item quantity="other">%1$d assets are assigned to someone else, so they weren\'t selected</item>
     </plurals>
     <string name="online_error_offline">You are offline. Connect to the internet and try again.</string>
     <string name="online_error_session">Your session has ended. Please sign in again.</string>

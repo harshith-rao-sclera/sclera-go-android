@@ -49,6 +49,9 @@ class AssignViewModel @Inject constructor(private val useCases: AssignUseCases) 
         close()
     }
 
+    /** Whether Assign shows: the signed-in user may assign (Collect). */
+    fun mayAssign(): Boolean = useCases.assign.allowed()
+
     /** Opens the sheet for [ids], empty (as the web does: the new API doesn't say who has an asset). */
     fun open(ids: Set<String>) {
         if (ids.isEmpty() || propertyId.isEmpty()) return

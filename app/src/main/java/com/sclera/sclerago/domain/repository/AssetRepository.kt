@@ -7,6 +7,7 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.SubmitOutcome
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -21,16 +22,15 @@ interface AssetRepository {
 
     /**
      * Moves assets to [status]. Submitting follows the server's rule: an asset with a mandatory field empty, or fewer
-     * photos of a kind than [photoRules] ask for, becomes an exception when [allowExceptions] and stays as it is
-     * otherwise; one already submitted or validated is left alone. Returns the drafted assets submitting left in draft
-     * because they are incomplete (none when [allowExceptions] or when not submitting).
+     * photos of a kind than [photoRules] ask for, goes in as an exception; one already submitted or validated is left
+     * alone. Back in draft approves a change request (the asset goes to whoever asked). An asset assigned to nobody
+     * becomes the mover's. Returns what submitting did (all zero when not submitting).
      */
     suspend fun setStatus(
         ids: Collection<String>,
         status: Status,
-        allowExceptions: Boolean = true,
         photoRules: List<PhotoRule> = emptyList(),
-    ): Set<String>
+    ): SubmitOutcome
 
     /**
      * Keeps the values from an asset's details form. [sources] (form field key -> web page) are where applied AI

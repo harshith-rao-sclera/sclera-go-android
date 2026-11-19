@@ -2,10 +2,13 @@ package com.sclera.sclerago.presentation.assets
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +46,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.presentation.icons.assetIco
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetListData
@@ -239,12 +244,15 @@ fun AssetRow(
     val icBg by animateColorAsState(if (picked) C.Yellow else C.Raised, label = "icbg")
     val icBd by animateColorAsState(if (picked) C.Yellow else if (selMode) C.RadioOff else C.Raised, label = "icbd")
     val cardBd by animateColorAsState(if (picked) C.YTintBd else C.Border, label = "cardbd")
+    // The icon (select) and the rest (open) are pressed apart but show one press shade over the whole card.
+    val press = remember { MutableInteractionSource() }
     Row(
         modifier.padding(horizontal = 8.dp, vertical = 1.5.dp).height(IntrinsicSize.Min)
-            .clip(r(12)).background(rowBg).border(1.dp, cardBd, r(12)),
+            .clip(r(12)).background(rowBg).border(1.dp, cardBd, r(12)).indication(press, LocalIndication.current),
     ) {
         Box(
-            Modifier.width(56.dp).fillMaxHeight().combinedClickable(onClick = onToggle, onLongClick = longPress),
+            Modifier.width(56.dp).fillMaxHeight()
+                .combinedClickable(interactionSource = press, indication = null, onClick = onToggle, onLongClick = longPress),
             contentAlignment = Alignment.CenterEnd,
         ) {
             Box(
@@ -252,11 +260,12 @@ fun AssetRow(
                 contentAlignment = Alignment.Center,
             ) {
                 if (picked) LineIcon(Icons.Check, 22.dp, C.OnYellow, 3f)
-                else LineIcon(a.type.icon, 20.dp, C.Yellow, 1.9f)
+                else LineIcon(assetIco(a), 20.dp, C.Yellow, 1.9f)
             }
         }
         Row(
-            Modifier.weight(1f).heightIn(min = 64.dp).combinedClickable(onClick = onOpen, onLongClick = longPress)
+            Modifier.weight(1f).heightIn(min = 64.dp)
+                .combinedClickable(interactionSource = press, indication = null, onClick = onOpen, onLongClick = longPress)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),

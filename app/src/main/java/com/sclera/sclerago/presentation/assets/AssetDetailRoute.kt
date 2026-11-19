@@ -53,12 +53,17 @@ fun AssetDetailRoute(
     pickedPlace: LocValue? = null,
     onPlaceTaken: () -> Unit = {},
     /** Assign the asset to a person (the web's Assign asset). */
-    onAssign: () -> Unit = {},
+    onAssign: (() -> Unit)? = null,
     /** Validate: run checks on this asset (the web's asset bar opens Run validation on it). */
     onValidate: () -> Unit = {},
+    /** "Open in Validation": the Validation page on the run [jobId] the asset is in. */
+    onOpenRun: (jobId: String) -> Unit = {},
+    /** What a new asset's form starts with (a scanned device's note, BLE tag / IP). */
+    prefill: Map<String, String> = emptyMap(),
     vm: AssetDetailViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(asset.id, isNew) { vm.open(asset, isNew) }
+    // A new asset's place is the top bar's location, so it is passed again when another location tab is chosen.
+    LaunchedEffect(asset.id, isNew, if (isNew) asset.locationId else null) { vm.open(asset, isNew, prefill) }
     DisposableEffect(vm) { onDispose { vm.close() } }
     LaunchedEffect(vm) { vm.notices.collect(onNotice) }
     LaunchedEffect(pickedPlace) {
@@ -120,6 +125,7 @@ fun AssetDetailRoute(
             )
         },
         onValidate = onValidate,
+        onOpenRun = onOpenRun,
         onDelete = { onDelete(asset.id) },
         changeRequest = ChangeRequestActions(
             onOpen = vm::openChangeRequest, onNote = vm::editChangeNote, onSend = vm::sendChangeRequest,
@@ -156,6 +162,9 @@ fun AssetDetailRoute(
         onRemoveMedia = vm::removeMedia,
         onSuggestType = vm::openClassify,
         onOffline = { onNotice(UiText.Res(it.message)) },
+        onOpenClone = vm::openClone,
+        onClone = vm::clone,
+        onCloseClone = vm::closeClone,
         jacs = JacsActions(
             onOpen = vm::openJacs,
             picker = JacsPickerActions(onQuery = vm::searchJacs, onMore = vm::moreJacs, onPick = vm::pickJacs, onClose = vm::closeJacs),

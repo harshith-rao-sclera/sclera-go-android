@@ -67,6 +67,7 @@ object DetailTags {
     const val STATUS_LINE = "detail-status-line"
     const val LOCATION = "detail-location"
     const val SUGGEST_TYPE = "detail-suggest-type"
+    const val CLONE = "detail-clone"
 }
 
 /** What a field value came from, shown at the end of its row. */

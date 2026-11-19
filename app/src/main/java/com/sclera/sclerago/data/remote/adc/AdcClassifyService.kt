@@ -34,6 +34,19 @@ interface AdcClassifyService {
     @GET("properties/{property}/jacs-codes/{code}/master-format")
     suspend fun jacsMasterFormat(@Path("property") property: String, @Path("code") code: String): Response<ResponseBody>
 
+    /** Every asset icon, `{ data: [{ name, label, url }] }` (no sign-in needed). */
+    @GET("asset-icons")
+    suspend fun assetIcons(): Response<ResponseBody>
+
+    /** One asset icon's SVG (24×24, drawn in currentColor). */
+    @GET("asset-icons/{name}.svg")
+    suspend fun assetIcon(@Path("name") name: String): Response<ResponseBody>
+
+    /** The property's types grouped by name, each level with its icon name (thousands of types: a slow call). */
+    @Headers(AdcConfig.SLOW_CALL)
+    @GET("properties/{property}/classification")
+    suspend fun classification(@Path("property") property: String): Response<ResponseBody>
+
     /** Every active type's fields, `{ data: [{ masterFormatId, fields }] }`; [ids] (comma-separated) narrows it. */
     @GET("properties/{property}/master-formats/fields")
     suspend fun allTypeFields(@Path("property") property: String, @Query("ids") ids: String?): Response<ResponseBody>

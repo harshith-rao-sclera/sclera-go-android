@@ -30,17 +30,26 @@ fun statusToDb(status: Status): DbStatus = when (status) {
     Status.VALIDATED -> DbStatus("saved", validated = true, aiSuggestion = null)
 }
 
-/** The app's [Source] for a stored `source` text: "document" is a file import; anything unknown is [Source.MANUAL]. */
+/**
+ * The app's [Source] for a stored `source` text, as the synced databases hold it: "camera" (made from the Camera tab),
+ * "document" (a file import), "bluetooth", "wifi"; anything else is [Source.MANUAL].
+ */
 fun sourceFromDb(source: String?): Source = when (source) {
     "bluetooth" -> Source.BT
     "wifi" -> Source.WIFI
+    "camera" -> Source.CAMERA
     "document" -> Source.FILE
     else -> Source.MANUAL
 }
 
-/** The `source` text to store: the API accepts only manual, bluetooth and wifi, so the rest become manual. */
+/**
+ * The `source` text to store, the same words [sourceFromDb] reads, so an asset keeps its source when it is written
+ * again (an edit doesn't turn a camera asset or a file import into "manual"). Access points have no word of their own.
+ */
 fun sourceToDb(source: Source): String = when (source) {
     Source.BT -> "bluetooth"
     Source.WIFI -> "wifi"
-    Source.CAMERA, Source.AP, Source.FILE, Source.MANUAL -> "manual"
+    Source.CAMERA -> "camera"
+    Source.FILE -> "document"
+    Source.AP, Source.MANUAL -> "manual"
 }

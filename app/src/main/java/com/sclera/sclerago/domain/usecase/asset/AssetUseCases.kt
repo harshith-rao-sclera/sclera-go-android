@@ -19,6 +19,7 @@ import com.sclera.sclerago.domain.model.fitPhotoRules
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.assetLock
 import com.sclera.sclerago.domain.model.mentions
@@ -113,23 +114,19 @@ class SetAssetStatusUseCase @Inject constructor(
     fun allows(status: Status): Boolean = guard.allows(permissionFor(status))
 
     /**
-     * As the web's Submit (`POST /assets/bulk/submit`, allowExceptions false by default): only complete assets are
-     * submitted; the incomplete drafted ones are returned, left in draft, unless [allowExceptions] makes them exceptions.
+     * As the web's Submit (`POST /assets/bulk/submit`): complete assets are submitted, incomplete ones go in as
+     * exceptions; returns the counts.
      */
-    suspend operator fun invoke(
-        ids: Collection<String>,
-        status: Status,
-        allowExceptions: Boolean = false,
-    ): Set<String> {
+    suspend operator fun invoke(ids: Collection<String>, status: Status): SubmitOutcome {
         guard.requireOffline(permissionFor(status))
         // As the server: assets are signed off in a validation run (which keeps a record of who decided), never by a
         // status move.
         if (status == Status.VALIDATED) throw DataException(DataError.FORBIDDEN)
         // Submitting only moves assets still being collected; any other move of a submitted asset (back to draft) is an
-        // admin's, as the server's edit. Someone who isn't an admin submits only the assets assigned to them (the web's
-        // "not assigned" notice).
+        // admin's, as the server's edit. Someone who isn't an admin submits only the assets assigned to them or to nobody
+        // (the server's bulk submit refuses the lot otherwise).
         if (status != Status.SUBMITTED) requireUnlocked(repo, guard, ids) else requireAssigned(repo, guard, ids)
-        return repo.setStatus(ids, status, allowExceptions, photoRules.forMove(status))
+        return repo.setStatus(ids, status, photoRules.forMove(status))
     }
 }
 
@@ -161,37 +158,37 @@ class SaveAssetDetailsUseCase @Inject constructor(
         requireUnlocked(repo, guard, listOf(id))
         repo.saveDetails(id, values, sources, place)
         // Without a status the asset keeps its own, as the server's edit does.
-        if (status != null) repo.setStatus(listOf(id), status, allowExceptions = true, photoRules = photoRules.forMove(status))
+        if (status != null) repo.setStatus(listOf(id), status, photoRules.forMove(status))
     }
 }
 
 /**
  * Why the signed-in user may not change [asset] (the server's check_editable), or null when they may: an admin changes
- * any asset; anyone else only one assigned to them that isn't submitted or validated.
+ * any asset; anyone else one assigned to them or to nobody that isn't submitted or validated.
  */
 class CanEditAssetUseCase @Inject constructor(private val guard: PermissionGuard) {
-    fun lock(asset: Asset): AssetLock? = assetLock(asset.st, guard.isAdmin(), guard.isAssignedToMe(asset.assignedTo))
+    fun lock(asset: Asset): AssetLock? = assetLock(asset.st, guard.isAdmin(), guard.isAssignedElsewhere(asset.assignedTo))
 
     operator fun invoke(asset: Asset): Boolean = lock(asset) == null
 }
 
 /**
- * As the server's check_editable: someone who isn't an admin changes only the assets assigned to them
+ * As the server's check_editable: someone who isn't an admin changes no asset assigned to someone else
  * ([DataException] NOT_ASSIGNED), and none once submitted or signed off ([DataException] FORBIDDEN); nothing changes.
- * Unknown ids are left to the writer.
+ * Unknown ids are left to the writer. (An asset assigned to nobody becomes theirs when the writer saves the change.)
  */
 internal fun requireUnlocked(repo: AssetRepository, guard: PermissionGuard, ids: Collection<String>) {
     if (guard.isAdmin()) return
     val wanted = ids.toSet()
     val locks = repo.catalog.value.assets.filter { it.id in wanted }
-        .mapNotNull { assetLock(it.st, isAdmin = false, assignedToMe = guard.isAssignedToMe(it.assignedTo)) }
+        .mapNotNull { assetLock(it.st, isAdmin = false, assignedElsewhere = guard.isAssignedElsewhere(it.assignedTo)) }
     if (AssetLock.NOT_ASSIGNED in locks) throw DataException(DataError.NOT_ASSIGNED)
     if (AssetLock.SUBMITTED in locks) throw DataException(DataError.FORBIDDEN)
 }
 
 /**
- * Whether the signed-in user may pick asset [id] for a bulk action (the web's canWorkOn): an admin any asset, anyone
- * else only the ones assigned to them.
+ * Whether the signed-in user may pick asset [id] for a bulk action (the web's mayWorkOn): an admin any asset, anyone
+ * else one assigned to them or to nobody.
  */
 class CanWorkOnAssetUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
     operator fun invoke(id: String): Boolean = checker()(id)
@@ -199,19 +196,25 @@ class CanWorkOnAssetUseCase @Inject constructor(private val repo: AssetRepositor
     /** The signed-in user is an admin: they work on every asset (and act on change requests). */
     fun isAdmin(): Boolean = guard.isAdmin()
 
+    /** The signed-in user may add, edit, submit and delete assets ([Permission.COLLECT]); a viewer may not. */
+    fun canCollect(): Boolean = guard.allows(Permission.COLLECT)
+
     /** The same check for many ids (say a select-all), worked out once over the property's assets. */
     fun checker(): (String) -> Boolean {
         if (guard.isAdmin()) return { true }
-        val mine = repo.catalog.value.assets.filter { guard.isAssignedToMe(it.assignedTo) }.mapTo(HashSet()) { it.id }
-        return { it in mine }
+        val elsewhere = repo.catalog.value.assets.filter { guard.isAssignedElsewhere(it.assignedTo) }.mapTo(HashSet()) { it.id }
+        return { it !in elsewhere }
     }
 }
 
-/** Someone who isn't an admin submits only the assets assigned to them (the web's submitIfAllowed); else NOT_ASSIGNED. */
+/**
+ * Someone who isn't an admin submits no asset assigned to someone else (the server's bulk submit refuses the lot with
+ * NOT_ASSIGNED).
+ */
 private fun requireAssigned(repo: AssetRepository, guard: PermissionGuard, ids: Collection<String>) {
     if (guard.isAdmin()) return
     val wanted = ids.toSet()
-    if (repo.catalog.value.assets.any { it.id in wanted && !guard.isAssignedToMe(it.assignedTo) }) {
+    if (repo.catalog.value.assets.any { it.id in wanted && guard.isAssignedElsewhere(it.assignedTo) }) {
         throw DataException(DataError.NOT_ASSIGNED)
     }
 }
@@ -359,7 +362,7 @@ class CreateAssetUseCase @Inject constructor(
         // Its AI flag is worked out from its empty fields once it is written, as the server's POST /assets.
         repo.add(listOf(NewAsset(asset, values, device?.id)))
         // With a mandatory field empty or too few photos it goes in as an exception (the screen asks about that first).
-        if (submit) repo.setStatus(listOf(id), Status.SUBMITTED, allowExceptions = true, photoRules = photoRules.forMove(Status.SUBMITTED))
+        if (submit) repo.setStatus(listOf(id), Status.SUBMITTED, photoRules.forMove(Status.SUBMITTED))
         return Created(id, via, source)
     }
 }

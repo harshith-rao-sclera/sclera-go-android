@@ -1,12 +1,13 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.pageGutter
-import com.sclera.sclerago.presentation.model.icon
+import com.sclera.sclerago.presentation.icons.assetIco
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.validation.RunMode
@@ -125,10 +126,19 @@ fun ValidationScreen(
     onClose: () -> Unit,
     /** The header's menu button: opens the side menu. */
     onMenu: () -> Unit = {},
+    /** A run to open as the page opens ("Open in Validation" from an asset); [onJobOpened] once it has. */
+    openJobId: String? = null,
+    onJobOpened: () -> Unit = {},
     vm: ValidationViewModel = hiltViewModel(),
     connectivity: ConnectivityViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(propertyId) { vm.bind(propertyId) }
+    LaunchedEffect(openJobId) {
+        openJobId?.let {
+            vm.openReview(it)
+            onJobOpened()
+        }
+    }
     val s = vm.state
     // Validations are run, kept and changed on the server: offline (or when the last read found no connection) the page
     // shows what was last synced under a banner, and its run and change buttons are left out.
@@ -213,7 +223,7 @@ fun ValidationScreen(
 
         // Layers on top of the page.
         s.reviewJobId?.let { id ->
-            JobReview(s.propertyId, id, s.stepsByKey, assets, onOpenAsset, onBack = { vm.openReview(null) }, onRunAgain = vm::runAgain)
+            JobReview(s.propertyId, id, s.stepsByKey, assets, propName, onOpenAsset, onBack = { vm.openReview(null) }, onRunAgain = vm::runAgain)
         }
         s.templateDetails?.let { key -> s.templates.firstOrNull { it.key == key } }?.let { t ->
             val canRun = s.canCheck && !offline
@@ -228,7 +238,7 @@ fun ValidationScreen(
         s.runSheet?.takeIf { !it.quick }?.let { RunSheetView(vm, s, it, assets) }
         s.runSheet?.takeIf { it.picking && !it.quick }?.let { AssetPicker(vm, it, assets) }
         s.orderSheet?.let { OrderSheet(vm, s, it) }
-        s.editor?.let { EditorPage(vm, s, it, propName) }
+        s.editor?.let { EditorPage(vm, s, it) }
         s.confirmDelete?.let { v ->
             ConfirmDialog(
                 icon = Icons.Trash, iconBg = Color(0xFF2A1919), iconFg = C.Red,
@@ -635,7 +645,7 @@ internal fun AssetPicker(vm: ValidationViewModel, sh: RunSheetState, assets: Lis
                 ) {
                     CheckBox(a.id in sh.chosen)
                     Box(Modifier.size(34.dp).clip(r(9)).background(C.Raised), contentAlignment = Alignment.Center) {
-                        LineIcon(a.type.icon, 17.dp, C.Yellow, 1.9f)
+                        LineIcon(assetIco(a), 17.dp, C.Yellow, 1.9f)
                     }
                     Column(Modifier.weight(1f)) {
                         Txt(a.name.ifBlank { stringResource(R.string.val_unnamed) }, 13, 600)
@@ -743,35 +753,45 @@ private fun OrderSheet(vm: ValidationViewModel, s: ValidationUiState, o: OrderSh
  * template, reorder with the handle or arrows; the gear shows a step and what it looks at) and the steps to add.
  */
 @Composable
-private fun EditorPage(vm: ValidationViewModel, s: ValidationUiState, e: EditorState, propName: String) {
+private fun EditorPage(vm: ValidationViewModel, s: ValidationUiState, e: EditorState) {
     // Leaving with anything changed asks first.
-    Box(Modifier.fillMaxSize()) { GuardedClose(e.dirty, vm::closeEditor) { close -> EditorPageBody(vm, s, e, propName, close) } }
+    Box(Modifier.fillMaxSize()) { GuardedClose(e.dirty, vm::closeEditor) { close -> EditorPageBody(vm, s, e, close) } }
 }
 
 @Composable
-private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: EditorState, propName: String, close: () -> Unit) {
+private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: EditorState, close: () -> Unit) {
     BackHandler(onBack = close)
     var q by remember { mutableStateOf("") }
     var infoFor by remember { mutableStateOf<String?>(null) }
     val ok = e.complete && !e.saving
     val steps = s.stepsByKey
     Column(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }.blockSwipe()) {
-        PageBar(if (e.id == null) "New validation" else "Edit validation", propName, close, property = true)
+        PageBar(stringResource(if (e.id == null) R.string.val_editor_new else R.string.val_editor_edit), null, close)
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).navigationBarsPadding().imePadding().padding(horizontal = 6.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Name, description, save
             CfgCard {
-                Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    LabeledInput("Name", e.name, vm::setEditorName, "e.g. Main Validation", compact = true)
-                    LabeledInput("Description (optional)", e.description, vm::setEditorDescription, "What this is for", compact = true)
+                Column(Modifier.padding(EditorCardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LabeledInput(
+                        stringResource(R.string.val_editor_name), e.name, vm::setEditorName,
+                        stringResource(R.string.val_editor_name_hint), compact = true,
+                    )
+                    LabeledInput(
+                        stringResource(R.string.val_editor_description), e.description, vm::setEditorDescription,
+                        stringResource(R.string.val_editor_description_hint), compact = true,
+                    )
                     Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Pill("Cancel", close, height = 38.dp, hPad = 14.dp, size = 13)
-                        Pill("Save", { if (ok) vm.saveEditor(andRun = false) }, Modifier.alpha(if (ok) 1f else 0.5f), height = 38.dp, hPad = 16.dp, size = 13)
+                        Pill(stringResource(R.string.val_cancel), close, height = 44.dp, hPad = 16.dp, size = 13, weight = 700)
+                        Pill(
+                            stringResource(R.string.val_save), { if (ok) vm.saveEditor(andRun = false) }, Modifier.alpha(if (ok) 1f else 0.5f),
+                            height = 44.dp, hPad = 18.dp, size = 13, weight = 700,
+                        )
                         if (s.canCheck) Pill(
-                            "Save and run", { if (ok) vm.saveEditor(andRun = true) }, Modifier.weight(1f).alpha(if (ok) 1f else 0.5f),
-                            bg = if (ok) C.Yellow else C.Btn, fg = if (ok) C.OnYellow else C.Text, height = 38.dp, size = 13, weight = 700,
+                            stringResource(R.string.val_editor_save_and_run), { if (ok) vm.saveEditor(andRun = true) },
+                            Modifier.weight(1f).alpha(if (ok) 1f else 0.5f),
+                            bg = if (ok) C.Yellow else C.Btn, fg = if (ok) C.OnYellow else C.Text, height = 44.dp, size = 13, weight = 700,
                         )
                     }
                 }
@@ -779,28 +799,35 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
 
             // Steps
             CfgCard {
-                Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.padding(EditorCardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Txt("Steps", 14, 700)
-                        Box(Modifier.size(20.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
-                            Txt(e.steps.size.toString(), 10, 700, C.Soft)
-                        }
+                        Txt(stringResource(R.string.val_editor_steps), 15, 700)
+                        Box(
+                            Modifier.heightIn(min = 20.dp).widthIn(min = 20.dp).clip(Capsule).background(C.Raised).padding(horizontal = 6.dp),
+                            contentAlignment = Alignment.Center,
+                        ) { Txt(e.steps.size.toString(), 10, 700, C.Soft) }
                         Spacer(Modifier.weight(1f))
-                        if (e.steps.isNotEmpty()) Txt("Clear all", 11, 600, C.Soft, Modifier.clip(r(8)).clickable(onClick = vm::clearSteps).padding(4.dp))
+                        if (e.steps.isNotEmpty()) {
+                            Txt(
+                                stringResource(R.string.val_editor_clear_all), 11, 600, C.Soft,
+                                Modifier.clip(r(8)).clickable(onClick = vm::clearSteps).padding(4.dp),
+                            )
+                        }
                     }
-                    Txt("Every asset goes through these in order. Drag the handle or use the arrows to reorder.", 11, 400, C.Muted, maxLines = 3)
+                    Txt(stringResource(R.string.val_editor_steps_hint), 11, 400, C.Soft, maxLines = 3)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Txt("Start from", 11, 500, C.Muted)
+                        Txt(stringResource(R.string.val_editor_start_from), 11, 500, C.Soft)
                         Spacer(Modifier.width(8.dp))
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             s.templates.forEach { t ->
                                 // The template the steps came from stands out, as on the web.
                                 val on = e.templateKey == t.key
                                 Box(
-                                    Modifier.clip(Capsule).background(if (on) C.YTintBg else C.Surface)
+                                    Modifier.heightIn(min = 34.dp).clip(Capsule).background(if (on) C.YTintBg else Color.Transparent)
                                         .border(1.dp, if (on) C.Yellow else C.Border2, Capsule).clickable { vm.startFrom(t) }
-                                        .padding(horizontal = 11.dp, vertical = 6.dp),
-                                ) { Txt(t.name.substringBefore(" and"), 11, 600) }
+                                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) { Txt(t.name, 11, 700, if (on) C.Yellow else C.Text) }
                             }
                             if (e.undo != null) {
                                 Txt(
@@ -811,7 +838,11 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
                         }
                     }
                     if (e.steps.isEmpty()) {
-                        Txt("No steps yet. Add steps below, or start from a template.", 11, 400, C.Muted, maxLines = 2)
+                        Txt(
+                            stringResource(R.string.val_editor_no_steps), 11, 400, C.Soft,
+                            Modifier.padding(top = 2.dp).fillMaxWidth().dashedBorder(C.Border2, 1.dp, 12.dp).padding(horizontal = 14.dp, vertical = 16.dp),
+                            maxLines = 3,
+                        )
                     }
                     // Drag the handle to reorder (or use the arrows).
                     ReorderableSteps(e.steps, vm::moveStep) { i, id, modifier, handle ->
@@ -826,10 +857,10 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
 
             // Steps to add
             CfgCard {
-                Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Txt("Checks", 14, 700)
-                    Txt("Press Add to put a step at the end of the steps.", 11, 400, C.Muted)
-                    SearchField(q, { q = it }, "Search checks")
+                Column(Modifier.padding(EditorCardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Txt(stringResource(R.string.val_editor_library), 15, 700)
+                    Txt(stringResource(R.string.val_editor_library_hint), 11, 400, C.Soft, maxLines = 2)
+                    SearchField(q, { q = it }, stringResource(R.string.val_editor_search))
                     val query = q.trim()
                     val all = s.steps.filter { r ->
                         query.isEmpty() || r.name.contains(query, true) || r.description.contains(query, true) ||
@@ -838,11 +869,11 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
                     listOf(StepGroup.FIELD, StepGroup.GROUP, StepGroup.AI).map { g -> groupText(g) to all.filter { it.group == g } }
                         .filter { it.second.isNotEmpty() }
                         .forEach { (title, list) ->
-                            Txt(title.uppercase(), 10, 600, C.Muted, Modifier.padding(top = 4.dp), spacing = 0.8f)
+                            Txt(title.uppercase(), 10, 700, C.Soft, Modifier.padding(top = 6.dp, bottom = 2.dp), spacing = 0.8f)
                             list.forEach { r -> CheckRow(r, r.key in e.steps) { vm.addStep(r.key) } }
                         }
-                    if (s.steps.isEmpty()) Txt("Steps load when you're online.", 11, 400, C.Muted)
-                    else if (all.isEmpty()) Txt("No check matches “$query”.", 11, 400, C.Muted)
+                    if (s.steps.isEmpty()) Txt(stringResource(R.string.val_editor_library_offline), 11, 400, C.Muted)
+                    else if (all.isEmpty()) Txt(stringResource(R.string.val_editor_no_match, query), 11, 400, C.Muted, maxLines = 2)
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -850,6 +881,9 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
     }
     infoFor?.let { id -> steps[id] }?.let { r -> StepInfoSheet(vm, s, e, r) { infoFor = null } }
 }
+
+/** The inside margin of the editor's cards (name, steps, steps library). */
+private val EditorCardPadding = PaddingValues(14.dp)
 
 /** What a step in the editor is set to: its kind, plus its fields and severity when set. */
 private fun stepSetting(e: EditorState, key: String, group: StepGroup?): String {
@@ -951,20 +985,24 @@ private fun StepIcon(icon: Ico, enabled: Boolean, onClick: () -> Unit, flip: Boo
     }
 }
 
-/** A step that can be added; greyed "Added" once it's one of the steps. */
+/**
+ * A step in the Steps library: its name (and AI badge), what it covers, then the checks it runs, with "+ Add" at the
+ * top end; greyed "Added" once it's one of the steps.
+ */
 @Composable
 private fun CheckRow(rule: ValStep, added: Boolean, onAdd: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(r(11)).background(C.Bg).border(1.dp, C.Border, r(11)).padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(start = 12.dp, end = 10.dp, top = 10.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Txt(rule.name, 12, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                Txt(rule.name, 13, 700, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
                 if (rule.usesAi) AiBadge()
             }
-            Txt(rule.description, 10, 400, C.Muted, maxLines = 2)
+            Txt(rule.description, 11, 600, C.Soft, maxLines = 3)
+            if (rule.checks.isNotEmpty()) Txt(rule.checks.joinToString(" · ") { it.name }, 10, 400, C.Muted, maxLines = 3)
         }
         if (added) {
             Row(
@@ -973,7 +1011,7 @@ private fun CheckRow(rule: ValStep, added: Boolean, onAdd: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 LineIcon(Icons.Check, 12.dp, C.Muted, 2.4f)
-                Txt("Added", 11, 600, C.Muted)
+                Txt(stringResource(R.string.val_editor_added), 11, 600, C.Muted)
             }
         } else {
             Row(
@@ -982,7 +1020,7 @@ private fun CheckRow(rule: ValStep, added: Boolean, onAdd: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 LineIcon(Icons.PlusSmall, 12.dp, C.Text, 2.6f)
-                Txt("Add", 11, 700)
+                Txt(stringResource(R.string.action_add), 11, 700)
             }
         }
     }

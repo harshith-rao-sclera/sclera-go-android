@@ -3,19 +3,30 @@ package com.sclera.sclerago.presentation.validation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -34,9 +45,11 @@ import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.presentation.components.BottomSheet
-import com.sclera.sclerago.presentation.components.PlainField
+import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.Pill
+import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.RadioDot
+import com.sclera.sclerago.presentation.components.Segmented
 import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
@@ -47,8 +60,9 @@ import com.sclera.sclerago.presentation.theme.Txt
 import kotlin.math.roundToInt
 
 /**
- * One asset of the run: its decision, then each step with the issues found there. Open issues offer their suggested
- * values (Apply), a typed value, merging duplicates, or keeping the asset as it is; handled ones can be undone.
+ * One asset of the run, as the iOS app's: its outcome and first problem, the decision (Mark as validated, Recollect,
+ * Exclude), where it is and how complete, then two tabs. Checks: each step with the issues found there (apply a
+ * suggested or typed value, merge duplicates, or keep it as it is; handled ones can be undone). Asset info: its fields.
  */
 @Composable
 internal fun RunAssetSheet(
@@ -56,6 +70,7 @@ internal fun RunAssetSheet(
     p: AssetPanelState,
     steps: Map<String, ValStep>,
     assets: List<Asset>,
+    propName: String,
     s: RunReviewUiState,
     vm: RunReviewViewModel,
     onOpenAsset: (String) -> Unit,
@@ -64,71 +79,76 @@ internal fun RunAssetSheet(
     val close = { vm.openAsset(null) }
     val local = assets.firstOrNull { it.id == p.assetId }
     val locked = local != null && isLockedFor(local.st, isAdmin = s.canValidate)
+    var tab by rememberSaveable(p.assetId) { mutableIntStateOf(0) }
     BottomSheet(close, maxHeightFraction = 0.95f) {
         val name = res?.assetName?.takeIf { it.isNotBlank() } ?: local?.name ?: stringResource(R.string.val_unnamed)
-        val first = res?.let { r -> run.steps.indexOfFirst { r.outcomeOf(it).problem } }?.takeIf { it >= 0 }
-        SheetHeader(
-            name,
-            when {
-                res == null -> null
-                first != null -> stringResource(R.string.rev_first_problem, first + 1, stepShort(steps, run.steps[first]))
-                else -> stringResource(R.string.rev_passed_every)
-            },
-            close,
-        )
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
+            Txt(name, 18, 800, modifier = Modifier.weight(1f).padding(top = 6.dp), maxLines = 2)
+            CloseButton(close, size = 36.dp, iconSize = 16.dp)
+        }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                res?.let { SmallChip(outcomeLabel(it.outcome), outcomeColor(it.outcome), outcomeColor(it.outcome).copy(alpha = 0.14f)) }
-                res?.let { Txt(stringResource(R.string.rev_score, it.score), 11, 600, scoreColor(it.score.toDouble())) }
-                local?.where?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, C.Muted, Modifier.weight(1f), maxLines = 2) }
+            if (res != null) {
+                val first = run.steps.indexOfFirst { res.outcomeOf(it).problem }.takeIf { it >= 0 }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (res.outcome != StepOutcome.SKIPPED) {
+                        SmallChip(outcomeLabel(res.outcome), outcomeColor(res.outcome), outcomeColor(res.outcome).copy(alpha = 0.16f))
+                    }
+                    Txt(
+                        first?.let { stringResource(R.string.rev_first_problem, it + 1, stepShort(steps, run.steps[it])) }
+                            ?: stringResource(R.string.rev_passed_every),
+                        11, 500, C.Muted, Modifier.weight(1f), maxLines = 2,
+                    )
+                }
+                val open = if (p.loading) res.openCount else p.issues.count { it.status == IssueStatus.OPEN }
+                DecisionRow(res.decision, res.decisionNote, open, s, p, vm)
             }
-            if (local != null) {
-                TextAction(stringResource(R.string.rev_open_asset), { onOpenAsset(local.id) }, icon = Icons.ChevronRight)
-            } else {
-                Txt(stringResource(R.string.rev_asset_not_here), 11, 400, C.Muted, maxLines = 3)
-            }
-            if (res != null) DecisionBox(res.decision, res.decisionNote, s, p, vm)
-
-            if (p.loading) Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
-            run.steps.forEachIndexed { i, key ->
-                val issues = p.issues.filter { it.step == key }
-                StepBlock(i, key, steps, res?.outcomeOf(key) ?: StepOutcome.SKIPPED, issues, p, s, vm, locked)
-            }
-            // Issues of a step the run no longer lists (e.g. a renamed check) still show.
-            p.issues.filter { it.step !in run.steps }.forEach { IssueRow(it, p, s, vm, locked) }
-        }
-    }
-}
-
-@Composable
-private fun DecisionBox(decision: Decision?, note: String?, s: RunReviewUiState, p: AssetPanelState, vm: RunReviewViewModel) {
-    Column(
-        Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (decision != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallChip(decisionLabel(decision), decisionColor(decision), decisionColor(decision).copy(alpha = 0.14f))
-                note?.takeIf { it.isNotBlank() }?.let { Txt("“$it”", 12, 400, C.Soft, Modifier.weight(1f), maxLines = 3) }
-            }
-            if (s.canValidate) TextAction(stringResource(R.string.rev_undo_decision), { vm.decide(listOf(p.assetId), Decision.CLEAR) }, color = C.Soft, enabled = !s.busy, icon = Icons.Refresh)
-        } else if (!s.canValidate) {
-            Txt(stringResource(R.string.rev_reviewer_signs_off), 12, 400, C.Muted, maxLines = 3)
-        } else {
-            Txt(stringResource(R.string.rev_to_review_chip), 12, 600, C.Muted)
-            DecisionButtons(
-                s.busy,
-                onValidate = { vm.decide(listOf(p.assetId), Decision.VALIDATED) },
-                onRecollect = { vm.askRecollect(listOf(p.assetId)) },
-                onExclude = { vm.decide(listOf(p.assetId), Decision.EXCLUDED) },
+            ReviewAssetStrip(name, local, propName, p.info)
+            Segmented(
+                listOf(stringResource(R.string.rev_tab_checks), stringResource(R.string.rev_tab_info)), tab, { tab = it },
+                modifier = Modifier.fillMaxWidth(),
             )
+            if (tab == 1) {
+                ReviewAssetInfoTab(local, p.info, p.infoLoading, onOpenAsset)
+            } else {
+                if (p.loading) Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
+                run.steps.forEachIndexed { i, key ->
+                    val issues = p.issues.filter { it.step == key }
+                    StepBlock(i, key, steps, res?.outcomeOf(key) ?: StepOutcome.SKIPPED, issues, p, s, vm, locked)
+                }
+                // Issues of a step the run no longer lists (e.g. a renamed check) still show.
+                p.issues.filter { it.step !in run.steps }.forEach { IssueRow(it, p, s, vm, locked) }
+            }
         }
     }
 }
 
+/** Mark as validated, Recollect or Exclude (reviewers), with how many issues are still open; or the decision made. */
+@Composable
+private fun DecisionRow(decision: Decision?, note: String?, open: Int, s: RunReviewUiState, p: AssetPanelState, vm: RunReviewViewModel) {
+    when {
+        decision != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SmallChip(decisionLabel(decision), decisionColor(decision), decisionColor(decision).copy(alpha = 0.16f))
+            Txt(note?.takeIf { it.isNotBlank() }?.let { "“$it”" }.orEmpty(), 12, 400, C.Soft, Modifier.weight(1f), maxLines = 3)
+            if (s.canValidate) {
+                TextAction(stringResource(R.string.rev_undo_decision), { vm.decide(listOf(p.assetId), Decision.CLEAR) }, color = C.Soft, enabled = !s.busy, icon = Icons.Refresh)
+            }
+        }
+        !s.canValidate -> Txt(stringResource(R.string.rev_reviewer_signs_off), 12, 400, C.Muted, maxLines = 3)
+        else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill(stringResource(R.string.rev_mark_validated), { if (!s.busy) vm.decide(listOf(p.assetId), Decision.VALIDATED) }, height = 38.dp, hPad = 14.dp, size = 12, weight = 700)
+                Pill(stringResource(R.string.rev_decision_recollect), { if (!s.busy) vm.askRecollect(listOf(p.assetId)) }, height = 38.dp, hPad = 14.dp, size = 12, weight = 700)
+                Pill(stringResource(R.string.rev_exclude), { if (!s.busy) vm.decide(listOf(p.assetId), Decision.EXCLUDED) }, height = 38.dp, hPad = 14.dp, size = 12, weight = 700)
+            }
+            if (open > 0) Txt(pluralStringResource(R.plurals.rev_fix_to_validate, open, open), 11, 400, C.Muted, maxLines = 2)
+        }
+    }
+}
+
+/** A step of the asset: how it went there (and how many issues are open), what it checks, and its issues. */
 @Composable
 private fun StepBlock(
     index: Int,
@@ -142,46 +162,61 @@ private fun StepBlock(
     locked: Boolean,
 ) {
     val open = issues.count { it.status == IssueStatus.OPEN }
-    Column(
-        Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            LineIcon(outcomeIcon(outcome), 16.dp, outcomeColor(outcome), 2.2f)
-            Txt("${index + 1}. ${stepName(steps, key)}", 13, 700, modifier = Modifier.weight(1f))
-            Txt(
-                outcomeLabel(outcome) + if (issues.isEmpty()) "" else " · " +
-                    if (open > 0) stringResource(R.string.rev_n_open, open) else stringResource(R.string.rev_all_handled),
-                11, 500, C.Muted,
-            )
+    val c = outcomeColor(outcome)
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.size(24.dp).clip(CircleShape).background(c.copy(alpha = 0.16f)).border(1.5.dp, c, CircleShape), contentAlignment = Alignment.Center) {
+            when (outcome) {
+                StepOutcome.FAILED -> LineIcon(Icons.Close, 12.dp, c, 3f)
+                StepOutcome.WARNING -> Txt("!", 13, 800, c)
+                StepOutcome.PASSED -> LineIcon(Icons.Check, 12.dp, c, 3f)
+                StepOutcome.SKIPPED -> LineIcon(Icons.Minus, 12.dp, c, 3f)
+            }
         }
-        if (issues.isEmpty() && (outcome == StepOutcome.PASSED || outcome == StepOutcome.SKIPPED)) {
-            Txt(steps[key]?.description?.takeIf { outcome == StepOutcome.PASSED } ?: stringResource(R.string.rev_step_not_applicable), 11, 400, C.Muted, maxLines = 3)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Txt("${index + 1}. ${stepName(steps, key)}", 14, 700, modifier = Modifier.weight(1f), maxLines = 2)
+                    Txt(
+                        outcomeLabel(outcome) + if (issues.isEmpty()) "" else " · " +
+                            if (open > 0) stringResource(R.string.rev_n_open, open) else stringResource(R.string.rev_all_handled),
+                        11, 700, c,
+                    )
+                }
+                val about = if (outcome == StepOutcome.SKIPPED && issues.isEmpty()) stringResource(R.string.rev_step_not_applicable) else steps[key]?.description
+                about?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, C.Muted, maxLines = 3) }
+            }
+            issues.forEach { IssueRow(it, p, s, vm, locked) }
         }
-        issues.forEach { IssueRow(it, p, s, vm, locked) }
     }
 }
 
+/** An issue: a bar in its severity's colour, what it is about and what is wrong, then what can be done (or was). */
 @Composable
 private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, vm: RunReviewViewModel, locked: Boolean) {
     val busy = issue.id in p.busy
+    val open = issue.status == IssueStatus.OPEN
     val sevColor = when (issue.severity) {
         IssueSeverity.ERROR -> C.Red
         IssueSeverity.WARNING -> C.Orange
         IssueSeverity.INFO -> C.Blue
     }
+    val bar = if (open) sevColor else C.Border2
     Column(
-        Modifier.fillMaxWidth().clip(r(10)).background(C.Bg).border(1.dp, if (issue.status == IssueStatus.OPEN) sevColor.copy(alpha = 0.5f) else C.Border, r(10))
-            .padding(10.dp).alpha(if (busy) 0.6f else 1f),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        Modifier.fillMaxWidth().clip(r(10)).background(C.Bg).drawBehind { drawRect(bar, size = Size(3.dp.toPx(), size.height)) }
+            .border(1.dp, C.Border, r(10)).alpha(if (busy) 0.6f else 1f).padding(start = 13.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Dot(sevColor, 7.dp)
-            Txt(listOfNotNull(issue.fieldName, issue.ruleName.takeIf { it.isNotBlank() }).joinToString(" · "), 11, 700, C.Soft, Modifier.weight(1f), maxLines = 2)
-            if (issue.suggestions.any { it.sourceUrl != null }) SmallChip(stringResource(R.string.rev_from_web), C.Blue, C.Blue.copy(alpha = 0.14f))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val about = listOfNotNull(issue.fieldName, issue.ruleName.takeIf { it.isNotBlank() }).joinToString(" · ")
+            val fromWeb = issue.suggestions.any { it.sourceUrl != null }
+            if (about.isNotBlank() || fromWeb) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Txt(about, 10, 600, C.Muted, Modifier.weight(1f), maxLines = 2)
+                    if (fromWeb) SmallChip(stringResource(R.string.rev_from_web), C.Blue, C.Blue.copy(alpha = 0.14f))
+                }
+            }
+            Txt(issue.message, 13, 700, C.Text, maxLines = 6)
+            if (open) OpenIssue(issue, p, s, vm, busy, locked) else ClosedIssue(issue, s, vm, busy)
         }
-        Txt(issue.message, 12, 400, C.Text, maxLines = 6)
-        if (issue.status == IssueStatus.OPEN) OpenIssue(issue, p, s, vm, busy, locked) else ClosedIssue(issue, s, vm, busy)
     }
 }
 
@@ -211,9 +246,11 @@ private fun OpenIssue(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, 
             Pill(stringResource(R.string.val_save), { if (!busy && typed.isNotBlank()) vm.applyTyped(issue) }, Modifier.alpha(if (typed.isNotBlank()) 1f else 0.4f), height = 44.dp)
         }
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (issue.related.isNotEmpty() && s.canValidate) TextAction(stringResource(R.string.rev_merge), { vm.openMerge(issue) }, enabled = !busy, icon = Icons.Copy)
-        TextAction(
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (issue.related.isNotEmpty() && s.canValidate) {
+            Pill(stringResource(R.string.rev_merge), { if (!busy) vm.openMerge(issue) }, height = 34.dp, hPad = 14.dp, size = 12, weight = 700)
+        }
+        Pill(
             stringResource(
                 when {
                     issue.related.isNotEmpty() -> R.string.rev_not_duplicate
@@ -222,7 +259,7 @@ private fun OpenIssue(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, 
                     else -> R.string.rev_dismiss
                 },
             ),
-            { vm.dismiss(issue) }, color = C.Soft, enabled = !busy,
+            { if (!busy) vm.dismiss(issue) }, height = 34.dp, hPad = 14.dp, size = 12, weight = 700,
         )
     }
 }

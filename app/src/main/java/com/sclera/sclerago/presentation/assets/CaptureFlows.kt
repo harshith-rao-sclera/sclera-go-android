@@ -15,7 +15,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -59,10 +58,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sclera.sclerago.presentation.components.Capsule
-import com.sclera.sclerago.presentation.components.MediaFull
 import com.sclera.sclerago.presentation.components.MediaImage
-import com.sclera.sclerago.presentation.components.noRippleClick
-import androidx.compose.ui.platform.testTag
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.RoundButton
@@ -162,8 +158,6 @@ fun CameraCapture(
     var recording by remember { mutableStateOf<Recording?>(null) }
     var recNanos by remember { mutableLongStateOf(0L) }
     val shutterFlash = remember { Animatable(0f) }
-    // What was just taken, shown full size until it is saved or discarded (not added until then).
-    var taken by remember { mutableStateOf<Media?>(null) }
 
     LaunchedEffect(videoMode) {
         controller.setEnabledUseCases(if (videoMode) CameraController.VIDEO_CAPTURE else CameraController.IMAGE_CAPTURE)
@@ -195,8 +189,9 @@ fun CameraCapture(
             ImageCapture.OutputFileOptions.Builder(f).build(),
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
+                // Shots go straight into the strip (several can be taken in a row); one not wanted is unticked there.
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    taken = Media("c-${f.name}", Uri.fromFile(f).toString(), video = false, owned = true)
+                    onCapture(Media("c-${f.name}", Uri.fromFile(f).toString(), video = false, owned = true))
                 }
 
                 override fun onError(e: ImageCaptureException) {
@@ -223,7 +218,7 @@ fun CameraCapture(
                     recording = null
                     val ms = ev.recordingStats.recordedDurationNanos / 1_000_000
                     if (ev.error != VideoRecordEvent.Finalize.ERROR_NO_VALID_DATA && f.exists() && f.length() > 0) {
-                        taken = Media("c-${f.name}", Uri.fromFile(f).toString(), video = true, durationMs = ms, owned = true)
+                        onCapture(Media("c-${f.name}", Uri.fromFile(f).toString(), video = true, durationMs = ms, owned = true))
                     } else {
                         f.delete()
                         Toast.makeText(context, "Video too short — hold for a moment longer.", Toast.LENGTH_SHORT).show()
@@ -366,42 +361,6 @@ fun CameraCapture(
         ) {
             ModePill("Video", videoMode) { if (!isRecording) onVideoMode(true) }
             ModePill("Photo", !videoMode) { if (!isRecording) onVideoMode(false) }
-        }
-
-        taken?.let { m ->
-            TakenReview(
-                m,
-                onDiscard = { Uri.parse(m.uri).path?.let { File(it).delete() }; taken = null },
-                onSave = { taken = null; onCapture(m) },
-            )
-        }
-    }
-}
-
-/**
- * The photo or video just taken, full size (a video plays), before it is added: Discard deletes the file, Save adds it.
- * Back discards it, as the camera's own retake.
- */
-@Composable
-private fun TakenReview(media: Media, onDiscard: () -> Unit, onSave: () -> Unit) {
-    BackHandler(onBack = onDiscard)
-    Column(Modifier.fillMaxSize().background(Color.Black).noRippleClick { }.systemBarsPadding()) {
-        Box(Modifier.weight(1f).fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-            MediaFull(media)
-        }
-        Row(
-            Modifier.align(Alignment.CenterHorizontally).widthIn(max = 480.dp).fillMaxWidth()
-                .padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Pill(
-                stringResource(R.string.capture_discard), onDiscard, Modifier.weight(1f).testTag("capture-discard"),
-                fg = C.Red, height = 50.dp, size = 15, weight = 700,
-            )
-            Pill(
-                stringResource(R.string.capture_save), onSave, Modifier.weight(1f).testTag("capture-save"),
-                bg = C.Yellow, fg = C.OnYellow, height = 50.dp, size = 15, weight = 700,
-            )
         }
     }
 }

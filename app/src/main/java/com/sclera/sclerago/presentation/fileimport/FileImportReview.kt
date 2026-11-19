@@ -212,10 +212,20 @@ private fun FoundDraft.toItem(off: Set<String>): ReviewItem {
         UiText.Res(R.string.file_import_from_photos, listOf(source, UiText.Plural(R.plurals.file_import_photos, draft.photos)))
     } else UiText.Res(R.string.file_import_from, listOf(source))
     val unsure = draft.unsure
+    // As the web's review table: a type the file names that isn't one of the property's is said, as it goes in without one.
+    val notes = listOfNotNull(
+        UiText.Plural(R.plurals.file_import_check, unsure).takeIf { unsure > 0 },
+        UiText.Res(R.string.file_import_no_matching_type).takeIf { draft.typeMatched == false },
+    )
     return ReviewItem(
         id = draft.id, name = draft.name.ifBlank { source }, sub = UiText.Res(R.string.file_import_draft_sub, listOf(where, from)),
         ready = unsure == 0, on = draft.id !in off, ext = file.ext, extColor = file.extColor(), file = file.name,
-        note = if (unsure > 0) UiText.Plural(R.plurals.file_import_check, unsure) else null, noteColor = C.Orange,
+        note = when (notes.size) {
+            0 -> null
+            1 -> notes.single()
+            else -> UiText.Res(R.string.file_import_draft_sub, notes)
+        },
+        noteColor = C.Orange,
     )
 }
 

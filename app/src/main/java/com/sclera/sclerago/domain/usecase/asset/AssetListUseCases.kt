@@ -13,18 +13,17 @@ import javax.inject.Inject
 
 /**
  * The rows and chips of one asset list: [assets] of the tab's sources, narrowed by location, search text and the chosen
- * chip. As the web's tabs (the server's /assets/summary for the whole property), the chip counts don't follow the
- * location or the search; only the rows do. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
+ * chip. The chip counts (status, Recollect and Change requests) follow the chosen location (all of the property,
+ * one location or the unmapped assets) but not the search text. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
  * so it can overlap the other chips. The Change requests chip shows for admins ([AssetListQuery.showChangeRequests]),
  * who act on the requests, and for anyone else only while there are some (as on the web).
  */
 class BuildAssetListUseCase @Inject constructor() {
     operator fun invoke(assets: List<Asset>, query: AssetListQuery): AssetListData {
         val text = query.text.trim().lowercase()
-        val tab = assets.filter { query.sources == null || it.src in query.sources }
-        val shown = tab
-            .filter { inLocation(it, query.location) }
-            .filter { text.isEmpty() || "${it.name} ${it.detail}".lowercase().contains(text) }
+        // The tab's assets in the chosen location: what the chips count.
+        val tab = assets.filter { (query.sources == null || it.src in query.sources) && inLocation(it, query.location) }
+        val shown = tab.filter { text.isEmpty() || "${it.name} ${it.detail}".lowercase().contains(text) }
         val changesOn = query.changeRequests
         val chosen = query.status.takeUnless { changesOn }
         val recollectOn = query.recollect && chosen == null && !changesOn

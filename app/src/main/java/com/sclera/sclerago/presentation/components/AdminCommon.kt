@@ -148,7 +148,10 @@ internal fun FieldLabel(text: String, optional: Boolean = false) {
     }
 }
 
-/** Text input of the sheets: 48 high, dark, rounded 12. */
+/**
+ * Text input of the sheets: 48 high, dark, rounded 12. With [multiLine], long text wraps and the box grows from 48
+ * instead of scrolling sideways on one line (so all of it shows and the cursor can be placed anywhere in it).
+ */
 @Composable
 internal fun SheetInput(
     value: String,
@@ -156,12 +159,15 @@ internal fun SheetInput(
     placeholder: String,
     enabled: Boolean = true,
     keyboard: KeyboardType = KeyboardType.Text,
+    multiLine: Boolean = false,
 ) {
+    val box = Modifier.fillMaxWidth().then(if (multiLine) Modifier.heightIn(min = 48.dp) else Modifier.height(48.dp))
+        .alpha(if (enabled) 1f else 0.55f).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12))
     PlainField(
         value, onChange, placeholder,
-        Modifier.fillMaxWidth().height(48.dp).alpha(if (enabled) 1f else 0.55f).clip(r(12)).background(C.Bg)
-            .border(1.dp, C.Border, r(12)).padding(horizontal = 14.dp).wrapContentHeight(Alignment.CenterVertically),
-        size = 15, readOnly = !enabled, keyboard = keyboard,
+        if (multiLine) box.padding(horizontal = 14.dp, vertical = 13.dp)
+        else box.padding(horizontal = 14.dp).wrapContentHeight(Alignment.CenterVertically),
+        size = 15, readOnly = !enabled, keyboard = keyboard, singleLine = !multiLine,
     )
 }
 

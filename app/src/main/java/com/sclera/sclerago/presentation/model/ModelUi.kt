@@ -1,7 +1,6 @@
 package com.sclera.sclerago.presentation.model
 
 import androidx.compose.ui.graphics.Color
-import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.presentation.icons.Ico
@@ -49,25 +48,6 @@ val Source.color: Color
         Source.WIFI, Source.AP -> Color(0xFF4CC487)
         Source.FILE -> Color(0xFFFF9A45)
         Source.MANUAL -> C.Soft
-    }
-
-// ---------------------------------------------------------------- Asset type
-
-val AssetType.icon: Ico
-    get() = when (this) {
-        AssetType.MOTOR -> Icons.Motor
-        AssetType.PUMP -> Icons.Pump
-        AssetType.CHILLER -> Icons.Chiller
-        AssetType.FAN -> Icons.Fan
-        AssetType.CONTROLLER -> Icons.Controller
-        AssetType.CCTV -> Icons.Cctv
-        AssetType.PANEL -> Icons.Panel
-        AssetType.AP -> Icons.AccessPoint
-        AssetType.COMPUTER -> Icons.Computer
-        AssetType.PHONE -> Icons.Phone
-        AssetType.SPEAKER -> Icons.Speaker
-        AssetType.SENSOR -> Icons.Sensor
-        AssetType.GENERIC -> Icons.Box
     }
 
 // ---------------------------------------------------------------- Text

@@ -20,6 +20,7 @@ import com.sclera.sclerago.data.repository.AssetFormRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetValidationRepositoryImpl
 import com.sclera.sclerago.data.repository.ClassificationRepositoryImpl
 import com.sclera.sclerago.data.repository.JacsRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetIconRepositoryImpl
 import com.sclera.sclerago.data.repository.PhotoRulesRepositoryImpl
 import com.sclera.sclerago.data.repository.SpecLookupRepositoryImpl
 import com.sclera.sclerago.data.repository.VoiceFillRepositoryImpl
@@ -33,6 +34,7 @@ import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.repository.AssetValidationRepository
 import com.sclera.sclerago.domain.repository.ClassificationRepository
 import com.sclera.sclerago.domain.repository.JacsRepository
+import com.sclera.sclerago.domain.repository.AssetIconRepository
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
 import com.sclera.sclerago.domain.repository.VoiceFillRepository
@@ -41,6 +43,9 @@ import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.LocationRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
+import com.sclera.sclerago.domain.repository.AccessRepository
+import com.sclera.sclerago.domain.repository.AuthRepository
+import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.repository.UserDataCleaner
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.TimeProvider
@@ -51,6 +56,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import kotlinx.coroutines.CoroutineDispatcher
+import javax.inject.Provider
 import javax.inject.Singleton
 
 /** The sources and writers over the offline database. */
@@ -101,10 +107,18 @@ object OfflineModule {
         files: AssetFileStore,
         typeFields: TypeFieldsStore,
         downloads: PropertyDownloadRepository,
+        // Lazily: these repositories are made after the writer (sign-out wipes through it).
+        people: Provider<AccessRepository>,
+        auth: Provider<AuthRepository>,
     ) = AssetsWriter(
         db, io, time, ids, user, places, formats, files,
         // The fields kept on the device for the current property's types (an asset of a type gets them when saved).
         TypeFieldsLookup { formatId -> downloads.downloads.value.currentId?.let { typeFields.get(it, formatId) }.orEmpty() },
+        // Names for "Asset assigned to …": the people list kept here (admins'), else the signed-in user's own name.
+        nameOf = { userId ->
+            people.get().people.value.firstOrNull { it.id == userId }?.name?.takeIf { it.isNotBlank() }
+                ?: (auth.get().state.value as? AuthState.SignedIn)?.session?.displayName?.takeIf { userId == user.credentials.value?.userId }
+        },
     )
 }
 
@@ -124,6 +138,7 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun voiceFill(impl: VoiceFillRepositoryImpl): VoiceFillRepository
     @Binds abstract fun classification(impl: ClassificationRepositoryImpl): ClassificationRepository
     @Binds abstract fun jacs(impl: JacsRepositoryImpl): JacsRepository
+    @Binds abstract fun assetIcons(impl: AssetIconRepositoryImpl): AssetIconRepository
     @Binds abstract fun assetDocuments(impl: AssetDocumentsRepositoryImpl): AssetDocumentsRepository
     @Binds abstract fun locations(impl: LocationRepositoryImpl): LocationRepository
     @Binds abstract fun assetConfig(impl: AssetConfigRepositoryImpl): AssetConfigRepository

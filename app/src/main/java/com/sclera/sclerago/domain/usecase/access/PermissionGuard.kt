@@ -36,12 +36,13 @@ class PermissionGuard @Inject constructor(private val access: CurrentAccessRepos
     fun isAdmin(): Boolean = (access.state.value as? AccessState.Loaded)?.access?.isAdmin == true
 
     /**
-     * An asset assigned to [assignedTo] (a user id) is the signed-in user's, as the server's check_editable compares it.
-     * True while the access isn't known yet, so nothing is locked on a guess (the server still decides).
+     * An asset assigned to [assignedTo] (a user id) is someone else's, as the server's assigned_elsewhere: it has an
+     * assignee who isn't the signed-in user. One assigned to nobody is anyone's to work on. False while the access isn't
+     * known yet, so nothing is locked on a guess (the server still decides). Admins are checked separately.
      */
-    fun isAssignedToMe(assignedTo: String?): Boolean {
-        val me = (access.state.value as? AccessState.Loaded)?.access?.userId ?: return true
-        return assignedTo != null && assignedTo == me
+    fun isAssignedElsewhere(assignedTo: String?): Boolean {
+        val me = (access.state.value as? AccessState.Loaded)?.access?.userId ?: return false
+        return !assignedTo.isNullOrBlank() && assignedTo != me
     }
 
     /**
