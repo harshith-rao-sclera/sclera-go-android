@@ -489,4 +489,51 @@
         <item quantity="two">נמצא מפרט עבור %1$s: %2$d הצעות מוכנות.</item>
         <item quantity="other">נמצא מפרט עבור %1$s: %2$d הצעות מוכנות.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">תגיות</string>
+    <string name="tag_bar_count">%1$d מתוך %2$d</string>
+    <string name="tag_kind_qr">קוד QR</string>
+    <string name="tag_kind_barcode">ברקוד</string>
+    <string name="tag_kind_nfc">תג NFC</string>
+    <string name="tag_tagged_qr">קוד QR תויג</string>
+    <string name="tag_tagged_barcode">ברקוד תויג</string>
+    <string name="tag_tagged_nfc">תג NFC תויג</string>
+    <string name="tag_cancel">ביטול</string>
+    <string name="tag_torch">פנס</string>
+    <string name="tag_scan_qr_title">סריקת קוד QR</string>
+    <string name="tag_scan_qr_hint">כוון את המצלמה אל תווית ה-QR</string>
+    <string name="tag_scan_qr_sub">הסריקה מתבצעת מעצמה</string>
+    <string name="tag_scan_barcode_title">סריקת ברקוד</string>
+    <string name="tag_scan_barcode_hint">ישר את הברקוד בתוך המסגרת</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 ועוד</string>
+    <string name="tag_nfc_ready">מוכן לסריקה</string>
+    <string name="tag_nfc_hold_message">קרב את החלק העליון של הטלפון לתג NFC</string>
+    <string name="tag_rescan_title">לסרוק שוב את קוד ה-QR?</string>
+    <string name="tag_rescan_message">תג ה-QR הנוכחי יוחלף בסריקה החדשה.</string>
+    <string name="tag_rescan_confirm">סרוק שוב</string>
+    <string name="tag_working">בודק את התג…</string>
+    <string name="tag_move_title">להעביר את התג?</string>
+    <string name="tag_move_message">התג הזה נמצא על נכס אחר שלא נשלח. להעביר אותו לנכס הזה?</string>
+    <string name="tag_move_message_named">התג הזה נמצא על %1$s שלא נשלח. להעביר אותו לנכס הזה?</string>
+    <string name="tag_move_confirm">העבר תג</string>
+    <string name="tag_error_generic">משהו השתבש. נסה שוב.</string>
+    <string name="tag_error_empty">אין שום דבר בתג.</string>
+    <string name="tag_error_blank_nfc">תג ה-NFC הזה ריק, ולכן אי אפשר לתייג אותו.</string>
+    <string name="tag_error_unknown_id">קוד ה-QR של Sclera הזה לא מוכר. אי אפשר להשתמש בו כאן.</string>
+    <string name="tag_error_taken_by_vdms">התג הזה כבר מתויג במערכת VDMS הראשית.</string>
+    <string name="tag_error_other_property">התג הזה כבר מתויג לנכס אחר.</string>
+    <string name="tag_error_submitted">התג הזה נמצא על נכס שנשלח ואי אפשר להזיז אותו.</string>
+    <string name="tag_error_submitted_named">התג הזה נמצא על הנכס שנשלח %1$s ואי אפשר להזיז אותו.</string>
+    <string name="tag_error_taken_by_draft">התג הזה כבר נמצא על נכס אחר.</string>
+    <string name="tag_error_registration">לא ניתן היה לרשום את התג החדש. נסה שוב מאוחר יותר.</string>
+    <string name="tag_error_claimed_elsewhere">מישהו אחר תייג את הקוד הזה קודם.</string>
+    <string name="tag_error_offline">אין חיבור. ברקודים ותגי NFC נבדקים בשרת, לכן נסה שוב כשתהיה מחובר.</string>
+    <string name="tag_error_photo_required">צלם תמונה של קוד ה-QR כדי לתייג אותו ללא חיבור.</string>
+    <string name="tag_error_camera_denied">אפשר גישה למצלמה בהגדרות כדי לסרוק תג.</string>
+    <string name="tag_error_camera_unavailable">הטלפון הזה לא יכול לסרוק תגים באמצעות המצלמה.</string>
+    <string name="tag_error_nfc_unavailable">הטלפון הזה לא יכול לקרוא תגי NFC.</string>
+    <string name="tag_error_nfc_disabled">הפעל NFC בהגדרות כדי לסרוק תג.</string>
+    <string name="tag_error_nfc_failed">לא ניתן היה לקרוא את תג ה-NFC. נסה שוב.</string>
+    <string name="tag_error_nfc_timed_out">סריקת ה-NFC חרגה מהזמן. נסה שוב.</string>
 </resources>

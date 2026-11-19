@@ -16,6 +16,9 @@ data class SignOffOutcome(val validated: Int = 0, val notSubmitted: List<String>
 private val LOCKED_STATUSES = setOf(Status.SUBMITTED, Status.VALIDATED)
 
 /** Whether the server would refuse a change to an asset in [status] by this user (an admin when [isAdmin]). */
+/** The asset was submitted or signed off: its tags can't be changed, whoever is signed in. */
+fun isSubmittedOrSignedOff(status: Status): Boolean = status in LOCKED_STATUSES
+
 fun isLockedFor(status: Status, isAdmin: Boolean): Boolean = !isAdmin && status in LOCKED_STATUSES
 
 /** Why the server refuses a change to an asset (its check_editable); the web's lockedReason. */

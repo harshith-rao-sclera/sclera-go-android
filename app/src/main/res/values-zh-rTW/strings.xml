@@ -457,4 +457,51 @@
     <plurals name="ai_done_found">
         <item quantity="other">已找到 %1$s 的規格：%2$d 項建議已就緒。</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">標籤</string>
+    <string name="tag_bar_count">%1$d / %2$d</string>
+    <string name="tag_kind_qr">QR 碼</string>
+    <string name="tag_kind_barcode">條碼</string>
+    <string name="tag_kind_nfc">NFC 標籤</string>
+    <string name="tag_tagged_qr">QR 碼已綁定</string>
+    <string name="tag_tagged_barcode">條碼已綁定</string>
+    <string name="tag_tagged_nfc">NFC 標籤已綁定</string>
+    <string name="tag_cancel">取消</string>
+    <string name="tag_torch">手電筒</string>
+    <string name="tag_scan_qr_title">掃描 QR 碼</string>
+    <string name="tag_scan_qr_hint">將相機對準 QR 標籤</string>
+    <string name="tag_scan_qr_sub">自動掃描</string>
+    <string name="tag_scan_barcode_title">掃描條碼</string>
+    <string name="tag_scan_barcode_hint">將條碼對準框內</string>
+    <string name="tag_scan_barcode_sub">EAN、UPC、Code 128 等</string>
+    <string name="tag_nfc_ready">準備掃描</string>
+    <string name="tag_nfc_hold_message">將手機頂部靠近 NFC 標籤</string>
+    <string name="tag_rescan_title">重新掃描 QR 碼？</string>
+    <string name="tag_rescan_message">目前的 QR 標籤將被新掃描的結果取代。</string>
+    <string name="tag_rescan_confirm">重新掃描</string>
+    <string name="tag_working">正在檢查標籤…</string>
+    <string name="tag_move_title">移動此標籤？</string>
+    <string name="tag_move_message">此標籤位於另一個尚未提交的資產上。要將其移到此資產嗎？</string>
+    <string name="tag_move_message_named">此標籤位於尚未提交的 %1$s 上。要將其移到此資產嗎？</string>
+    <string name="tag_move_confirm">移動標籤</string>
+    <string name="tag_error_generic">發生問題。請再試一次。</string>
+    <string name="tag_error_empty">標籤中沒有內容。</string>
+    <string name="tag_error_blank_nfc">此 NFC 標籤是空的，無法綁定。</string>
+    <string name="tag_error_unknown_id">無法辨識此 Sclera QR 碼，無法在此使用。</string>
+    <string name="tag_error_taken_by_vdms">此標籤已在主要 VDMS 系統中綁定。</string>
+    <string name="tag_error_other_property">此標籤已綁定到另一個物業。</string>
+    <string name="tag_error_submitted">此標籤位於已提交的資產上，無法移動。</string>
+    <string name="tag_error_submitted_named">此標籤位於已提交的資產 %1$s 上，無法移動。</string>
+    <string name="tag_error_taken_by_draft">此標籤已在另一個資產上。</string>
+    <string name="tag_error_registration">無法註冊新標籤。請稍後再試。</string>
+    <string name="tag_error_claimed_elsewhere">其他人已先綁定此 QR 碼。</string>
+    <string name="tag_error_offline">你已離線。條碼和 NFC 標籤需在伺服器上檢查，請連線後再試。</string>
+    <string name="tag_error_photo_required">請拍攝 QR 碼照片，以便離線標記。</string>
+    <string name="tag_error_camera_denied">請在「設定」中允許相機存取以掃描標籤。</string>
+    <string name="tag_error_camera_unavailable">此手機無法用相機掃描標籤。</string>
+    <string name="tag_error_nfc_unavailable">此手機無法讀取 NFC 標籤。</string>
+    <string name="tag_error_nfc_disabled">請在「設定」中開啟 NFC 以掃描標籤。</string>
+    <string name="tag_error_nfc_failed">無法讀取 NFC 標籤。請再試一次。</string>
+    <string name="tag_error_nfc_timed_out">NFC 掃描逾時。請再試一次。</string>
 </resources>

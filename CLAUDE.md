@@ -259,6 +259,7 @@ Still open:
 - An asset made from a scan is named after the scanned device (an access point's SSID, a Bluetooth device's own name,
   which can be a person's), and that name is sent to the AI with the other fields. Kept by product decision; the
   scan's addresses (IP, MAC, BLE address, BSSID) are not stored on the asset or sent.
+- QR tags saved offline keep their photo (base64) and direction in the unencrypted global config database (`qr_code_table`, `client_qr_code_table`, `sync_status = '1'`) until a sync sends them; they are excluded from backups and wiped on sign-out, but need the same encrypted engine as below. The sync that sends them (push) is not built on Android yet.
 - The synced offline SQLite databases (one per property, `ASSET_DATA_COLLECTION_<propertyId>.db`, app-private `databases/`) are unencrypted at rest, and the Java sync engine also keeps the access token and session id in plain text in `global_config.db`; both need an encrypted SQLite engine (e.g. SQLCipher). They are excluded from backups and wiped on sign-out.
 
 ## 9. Working agreements

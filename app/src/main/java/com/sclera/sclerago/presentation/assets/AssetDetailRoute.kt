@@ -29,6 +29,10 @@ import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.components.SaveMediaAs
+import com.sclera.sclerago.presentation.tagging.TagFlowActions
+import com.sclera.sclerago.presentation.tagging.TagFlowHost
+import com.sclera.sclerago.presentation.tagging.TagViewModel
+import com.sclera.sclerago.presentation.tagging.TagsActions
 import com.sclera.sclerago.services.media.describeAttachments
 import com.sclera.sclerago.services.media.describeDocument
 import com.sclera.sclerago.services.media.describeVisualMedia
@@ -66,9 +70,11 @@ fun AssetDetailRoute(
     /** What the scan found out about the device a new asset is made from: the AI is asked about it once it opens. */
     scan: ScanFacts? = null,
     vm: AssetDetailViewModel = hiltViewModel(),
+    tagVm: TagViewModel = hiltViewModel(),
 ) {
     // A new asset's place is the top bar's location, so it is passed again when another location tab is chosen.
     LaunchedEffect(asset.id, isNew, if (isNew) asset.locationId else null) { vm.open(asset, isNew, prefill, scan) }
+    LaunchedEffect(asset.id, asset.tagged) { tagVm.open(asset.id, asset.propertyId, asset.tagged) }
     DisposableEffect(vm) { onDispose { vm.close() } }
     LaunchedEffect(vm) { vm.notices.collect(onNotice) }
     LaunchedEffect(pickedPlace) {
@@ -78,6 +84,7 @@ fun AssetDetailRoute(
         }
     }
     val state by vm.state.collectAsStateWithLifecycle()
+    val tagState by tagVm.state.collectAsStateWithLifecycle()
     // The view model catches up one frame after the asset changes; until then there is nothing to show.
     if (state.asset?.id != asset.id) return
 
@@ -181,6 +188,7 @@ fun AssetDetailRoute(
         classify = ClassifyActions(
             onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,
         ),
+        tags = TagsActions(onStart = tagVm::start),
         onAddPhoto = { kind ->
             // What the camera takes goes to [kind]'s card (Other photos for none); photo, video and gallery are in the camera.
             vm.choosePhotoKind(kind)
@@ -188,7 +196,15 @@ fun AssetDetailRoute(
             camOpen = true
         },
     )
-    AssetDetailScreen(state, actions, mic = voice.state)
+    AssetDetailScreen(state, actions, mic = voice.state, tags = tagState)
+    TagFlowHost(
+        tagState,
+        TagFlowActions(
+            onCancel = tagVm::cancel, onScan = tagVm::scanned, onScannerFailure = tagVm::scannerFailed, onNfcRead = tagVm::nfcRead,
+            onNfcFailure = tagVm::nfcFailed, onConfirmRescan = tagVm::confirmRescan, onConfirmMove = tagVm::confirmMove,
+            onToastShown = tagVm::toastShown,
+        ),
+    )
 
     if (memoOpen) {
         VoiceMemoSheet(onSaved = { memo -> attach(listOf(memo)) }, onClose = { memoOpen = false }, onFailed = onNotice)

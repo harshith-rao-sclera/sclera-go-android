@@ -54,6 +54,7 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.main.changeActionLabel
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.model.labelRes
+import com.sclera.sclerago.presentation.tagging.TagsActions
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
@@ -130,6 +131,8 @@ class AssetDetailActions(
     val onCloseClone: () -> Unit = {},
     /** Add field (the end of the Info tab's fields): a field for this asset only. */
     val addField: AddFieldActions = AddFieldActions(),
+    /** What the Tags bar's icons do. */
+    val tags: TagsActions = TagsActions(),
 )
 
 /** Opening the JACS code picker, and what it does. */

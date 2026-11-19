@@ -85,6 +85,8 @@ data class Asset(
     val validationMark: ValidationMark? = null,
     /** How many of its steps failed or need a look. */
     val validationProblems: Int = 0,
+    /** The kinds of tag the synced data says it carries (the assets table's is_qr_tagged, is_barcode_tagged, is_nfc_tagged). */
+    val tagged: Set<TagKind> = emptySet(),
 )
 
 /** A validation result worth showing on an asset's row: the web's "Failed validation" and "Needs a look". */

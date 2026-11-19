@@ -482,4 +482,51 @@
         <item quantity="one">Spécifications trouvées pour %1$s : %2$d suggestion prête.</item>
         <item quantity="other">Spécifications trouvées pour %1$s : %2$d suggestions prêtes.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Étiquettes</string>
+    <string name="tag_bar_count">%1$d sur %2$d</string>
+    <string name="tag_kind_qr">Code QR</string>
+    <string name="tag_kind_barcode">Code-barres</string>
+    <string name="tag_kind_nfc">Étiquette NFC</string>
+    <string name="tag_tagged_qr">Code QR étiqueté</string>
+    <string name="tag_tagged_barcode">Code-barres étiqueté</string>
+    <string name="tag_tagged_nfc">Étiquette NFC étiquetée</string>
+    <string name="tag_cancel">Annuler</string>
+    <string name="tag_torch">Lampe torche</string>
+    <string name="tag_scan_qr_title">Scanner le code QR</string>
+    <string name="tag_scan_qr_hint">Pointez la caméra vers l\'étiquette QR</string>
+    <string name="tag_scan_qr_sub">Le scan se fait automatiquement</string>
+    <string name="tag_scan_barcode_title">Scanner le code-barres</string>
+    <string name="tag_scan_barcode_hint">Alignez le code-barres dans le cadre</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 et plus</string>
+    <string name="tag_nfc_ready">Prêt à scanner</string>
+    <string name="tag_nfc_hold_message">Approchez le haut de votre téléphone de l\'étiquette NFC</string>
+    <string name="tag_rescan_title">Rescanner le code QR ?</string>
+    <string name="tag_rescan_message">L\'étiquette QR actuelle sera remplacée par le nouveau scan.</string>
+    <string name="tag_rescan_confirm">Rescanner</string>
+    <string name="tag_working">Vérification de l\'étiquette…</string>
+    <string name="tag_move_title">Déplacer cette étiquette ?</string>
+    <string name="tag_move_message">Cette étiquette est sur un autre actif qui n\'a pas été soumis. La déplacer vers cet actif ?</string>
+    <string name="tag_move_message_named">Cette étiquette est sur %1$s, qui n\'a pas été soumis. La déplacer vers cet actif ?</string>
+    <string name="tag_move_confirm">Déplacer l\'étiquette</string>
+    <string name="tag_error_generic">Une erreur s\'est produite. Réessayez.</string>
+    <string name="tag_error_empty">L\'étiquette est vide.</string>
+    <string name="tag_error_blank_nfc">Cette étiquette NFC est vide, elle ne peut donc pas être étiquetée.</string>
+    <string name="tag_error_unknown_id">Ce code QR Sclera est inconnu. Il ne peut pas être utilisé ici.</string>
+    <string name="tag_error_taken_by_vdms">Cette étiquette est déjà enregistrée dans le système VDMS principal.</string>
+    <string name="tag_error_other_property">Cette étiquette est déjà associée à une autre propriété.</string>
+    <string name="tag_error_submitted">Cette étiquette est sur un actif soumis et ne peut pas être déplacée.</string>
+    <string name="tag_error_submitted_named">Cette étiquette est sur l\'actif soumis %1$s et ne peut pas être déplacée.</string>
+    <string name="tag_error_taken_by_draft">Cette étiquette est déjà sur un autre actif.</string>
+    <string name="tag_error_registration">La nouvelle étiquette n\'a pas pu être enregistrée. Réessayez plus tard.</string>
+    <string name="tag_error_claimed_elsewhere">Quelqu\'un d\'autre a étiqueté ce code en premier.</string>
+    <string name="tag_error_offline">Vous êtes hors ligne. Les codes-barres et les étiquettes NFC sont vérifiés sur le serveur, réessayez une fois connecté.</string>
+    <string name="tag_error_photo_required">Prenez une photo du code QR pour l\'étiqueter hors ligne.</string>
+    <string name="tag_error_camera_denied">Autorisez l\'accès à la caméra dans les Réglages pour scanner une étiquette.</string>
+    <string name="tag_error_camera_unavailable">Ce téléphone ne peut pas scanner les étiquettes avec la caméra.</string>
+    <string name="tag_error_nfc_unavailable">Ce téléphone ne peut pas lire les étiquettes NFC.</string>
+    <string name="tag_error_nfc_disabled">Activez le NFC dans les Réglages pour scanner une étiquette.</string>
+    <string name="tag_error_nfc_failed">L\'étiquette NFC n\'a pas pu être lue. Réessayez.</string>
+    <string name="tag_error_nfc_timed_out">Le scan NFC a expiré. Réessayez.</string>
 </resources>

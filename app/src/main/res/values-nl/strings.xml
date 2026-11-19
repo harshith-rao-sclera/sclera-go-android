@@ -478,4 +478,51 @@
         <item quantity="one">Specificaties gevonden voor %1$s: %2$d suggestie klaar.</item>
         <item quantity="other">Specificaties gevonden voor %1$s: %2$d suggesties klaar.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Tags</string>
+    <string name="tag_bar_count">%1$d van %2$d</string>
+    <string name="tag_kind_qr">QR-code</string>
+    <string name="tag_kind_barcode">Barcode</string>
+    <string name="tag_kind_nfc">NFC-tag</string>
+    <string name="tag_tagged_qr">QR-code getagd</string>
+    <string name="tag_tagged_barcode">Barcode getagd</string>
+    <string name="tag_tagged_nfc">NFC-tag getagd</string>
+    <string name="tag_cancel">Annuleren</string>
+    <string name="tag_torch">Zaklamp</string>
+    <string name="tag_scan_qr_title">QR-code scannen</string>
+    <string name="tag_scan_qr_hint">Richt de camera op het QR-label</string>
+    <string name="tag_scan_qr_sub">Scant automatisch</string>
+    <string name="tag_scan_barcode_title">Barcode scannen</string>
+    <string name="tag_scan_barcode_hint">Zet de barcode binnen het kader</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 en meer</string>
+    <string name="tag_nfc_ready">Klaar om te scannen</string>
+    <string name="tag_nfc_hold_message">Houd de bovenkant van je telefoon bij de NFC-tag</string>
+    <string name="tag_rescan_title">QR-code opnieuw scannen?</string>
+    <string name="tag_rescan_message">De huidige QR-tag wordt vervangen door de nieuwe scan.</string>
+    <string name="tag_rescan_confirm">Opnieuw scannen</string>
+    <string name="tag_working">Tag controleren…</string>
+    <string name="tag_move_title">Deze tag verplaatsen?</string>
+    <string name="tag_move_message">Deze tag zit op een ander asset dat niet is ingediend. Naar dit asset verplaatsen?</string>
+    <string name="tag_move_message_named">Deze tag zit op %1$s, dat niet is ingediend. Naar dit asset verplaatsen?</string>
+    <string name="tag_move_confirm">Tag verplaatsen</string>
+    <string name="tag_error_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="tag_error_empty">De tag bevat niets.</string>
+    <string name="tag_error_blank_nfc">Deze NFC-tag is leeg en kan niet worden getagd.</string>
+    <string name="tag_error_unknown_id">Deze Sclera QR-code is onbekend. Hij kan hier niet worden gebruikt.</string>
+    <string name="tag_error_taken_by_vdms">Deze tag is al getagd in het hoofd-VDMS-systeem.</string>
+    <string name="tag_error_other_property">Deze tag is al getagd voor een andere locatie.</string>
+    <string name="tag_error_submitted">Deze tag zit op een ingediend asset en kan niet worden verplaatst.</string>
+    <string name="tag_error_submitted_named">Deze tag zit op het ingediende asset %1$s en kan niet worden verplaatst.</string>
+    <string name="tag_error_taken_by_draft">Deze tag zit al op een ander asset.</string>
+    <string name="tag_error_registration">De nieuwe tag kon niet worden geregistreerd. Probeer het later opnieuw.</string>
+    <string name="tag_error_claimed_elsewhere">Iemand anders heeft deze code eerder getagd.</string>
+    <string name="tag_error_offline">Je bent offline. Barcodes en NFC-tags worden op de server gecontroleerd, probeer het opnieuw als je verbonden bent.</string>
+    <string name="tag_error_photo_required">Maak een foto van de QR-code om hem offline te taggen.</string>
+    <string name="tag_error_camera_denied">Sta cameratoegang toe in Instellingen om een tag te scannen.</string>
+    <string name="tag_error_camera_unavailable">Deze telefoon kan tags niet met de camera scannen.</string>
+    <string name="tag_error_nfc_unavailable">Deze telefoon kan geen NFC-tags lezen.</string>
+    <string name="tag_error_nfc_disabled">Zet NFC aan in Instellingen om een tag te scannen.</string>
+    <string name="tag_error_nfc_failed">De NFC-tag kon niet worden gelezen. Probeer het opnieuw.</string>
+    <string name="tag_error_nfc_timed_out">De NFC-scan is verlopen. Probeer het opnieuw.</string>
 </resources>

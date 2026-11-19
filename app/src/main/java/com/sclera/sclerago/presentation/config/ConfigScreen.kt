@@ -105,6 +105,7 @@ import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.MenuAct
 import com.sclera.sclerago.presentation.components.NavItem
 import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.components.OnOffSwitch
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.ReportUnsaved

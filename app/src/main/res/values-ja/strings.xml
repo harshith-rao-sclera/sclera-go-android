@@ -457,4 +457,51 @@
     <plurals name="ai_done_found">
         <item quantity="other">%1$s の仕様が見つかりました: %2$d 件の提案があります。</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">タグ</string>
+    <string name="tag_bar_count">%2$d 件中 %1$d 件</string>
+    <string name="tag_kind_qr">QRコード</string>
+    <string name="tag_kind_barcode">バーコード</string>
+    <string name="tag_kind_nfc">NFCタグ</string>
+    <string name="tag_tagged_qr">QRコードをタグ付けしました</string>
+    <string name="tag_tagged_barcode">バーコードをタグ付けしました</string>
+    <string name="tag_tagged_nfc">NFCタグをタグ付けしました</string>
+    <string name="tag_cancel">キャンセル</string>
+    <string name="tag_torch">ライト</string>
+    <string name="tag_scan_qr_title">QRコードをスキャン</string>
+    <string name="tag_scan_qr_hint">カメラをQRラベルに向けてください</string>
+    <string name="tag_scan_qr_sub">自動でスキャンされます</string>
+    <string name="tag_scan_barcode_title">バーコードをスキャン</string>
+    <string name="tag_scan_barcode_hint">バーコードを枠内に合わせてください</string>
+    <string name="tag_scan_barcode_sub">EAN、UPC、Code 128など</string>
+    <string name="tag_nfc_ready">スキャン準備完了</string>
+    <string name="tag_nfc_hold_message">スマートフォンの上部をNFCタグに近づけてください</string>
+    <string name="tag_rescan_title">QRコードを再スキャンしますか？</string>
+    <string name="tag_rescan_message">現在のQRタグは新しいスキャンに置き換えられます。</string>
+    <string name="tag_rescan_confirm">再スキャン</string>
+    <string name="tag_working">タグを確認中…</string>
+    <string name="tag_move_title">このタグを移動しますか？</string>
+    <string name="tag_move_message">このタグは送信されていない別の資産に付いています。この資産に移動しますか？</string>
+    <string name="tag_move_message_named">このタグは送信されていない %1$s に付いています。この資産に移動しますか？</string>
+    <string name="tag_move_confirm">タグを移動</string>
+    <string name="tag_error_generic">問題が発生しました。もう一度お試しください。</string>
+    <string name="tag_error_empty">タグに内容がありません。</string>
+    <string name="tag_error_blank_nfc">このNFCタグは空のため、タグ付けできません。</string>
+    <string name="tag_error_unknown_id">このSclera QRコードは不明です。ここでは使用できません。</string>
+    <string name="tag_error_taken_by_vdms">このタグはメインのVDMSシステムですでにタグ付けされています。</string>
+    <string name="tag_error_other_property">このタグはすでに別の物件にタグ付けされています。</string>
+    <string name="tag_error_submitted">このタグは送信済みの資産に付いているため、移動できません。</string>
+    <string name="tag_error_submitted_named">このタグは送信済みの資産 %1$s に付いているため、移動できません。</string>
+    <string name="tag_error_taken_by_draft">このタグはすでに別の資産に付いています。</string>
+    <string name="tag_error_registration">新しいタグを登録できませんでした。後でもう一度お試しください。</string>
+    <string name="tag_error_claimed_elsewhere">他のユーザーが先にこのコードをタグ付けしました。</string>
+    <string name="tag_error_offline">オフラインです。バーコードとNFCタグはサーバーで確認されるため、接続してからもう一度お試しください。</string>
+    <string name="tag_error_photo_required">オフラインでタグ付けするには、QRコードの写真を撮影してください。</string>
+    <string name="tag_error_camera_denied">タグをスキャンするには、設定でカメラへのアクセスを許可してください。</string>
+    <string name="tag_error_camera_unavailable">このスマートフォンではカメラでタグをスキャンできません。</string>
+    <string name="tag_error_nfc_unavailable">このスマートフォンはNFCタグを読み取れません。</string>
+    <string name="tag_error_nfc_disabled">タグをスキャンするには、設定でNFCをオンにしてください。</string>
+    <string name="tag_error_nfc_failed">NFCタグを読み取れませんでした。もう一度お試しください。</string>
+    <string name="tag_error_nfc_timed_out">NFCスキャンがタイムアウトしました。もう一度お試しください。</string>
 </resources>

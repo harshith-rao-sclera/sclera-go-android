@@ -457,4 +457,51 @@
     <plurals name="ai_done_found">
         <item quantity="other">Spesifikasi ditemukan untuk %1$s: %2$d saran siap.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Tag</string>
+    <string name="tag_bar_count">%1$d dari %2$d</string>
+    <string name="tag_kind_qr">Kode QR</string>
+    <string name="tag_kind_barcode">Barcode</string>
+    <string name="tag_kind_nfc">Tag NFC</string>
+    <string name="tag_tagged_qr">Kode QR ditandai</string>
+    <string name="tag_tagged_barcode">Barcode ditandai</string>
+    <string name="tag_tagged_nfc">Tag NFC ditandai</string>
+    <string name="tag_cancel">Batal</string>
+    <string name="tag_torch">Senter</string>
+    <string name="tag_scan_qr_title">Pindai kode QR</string>
+    <string name="tag_scan_qr_hint">Arahkan kamera ke label QR</string>
+    <string name="tag_scan_qr_sub">Dipindai otomatis</string>
+    <string name="tag_scan_barcode_title">Pindai barcode</string>
+    <string name="tag_scan_barcode_hint">Posisikan barcode di dalam kotak</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128, dan lainnya</string>
+    <string name="tag_nfc_ready">Siap memindai</string>
+    <string name="tag_nfc_hold_message">Dekatkan bagian atas ponsel ke tag NFC</string>
+    <string name="tag_rescan_title">Pindai ulang kode QR?</string>
+    <string name="tag_rescan_message">Tag QR saat ini akan diganti dengan hasil pindai baru.</string>
+    <string name="tag_rescan_confirm">Pindai ulang</string>
+    <string name="tag_working">Memeriksa tag…</string>
+    <string name="tag_move_title">Pindahkan tag ini?</string>
+    <string name="tag_move_message">Tag ini ada pada aset lain yang belum dikirim. Pindahkan ke aset ini?</string>
+    <string name="tag_move_message_named">Tag ini ada pada %1$s yang belum dikirim. Pindahkan ke aset ini?</string>
+    <string name="tag_move_confirm">Pindahkan tag</string>
+    <string name="tag_error_generic">Terjadi kesalahan. Coba lagi.</string>
+    <string name="tag_error_empty">Tag ini kosong.</string>
+    <string name="tag_error_blank_nfc">Tag NFC ini kosong, jadi tidak bisa ditandai.</string>
+    <string name="tag_error_unknown_id">Kode QR Sclera ini tidak dikenal. Tidak dapat digunakan di sini.</string>
+    <string name="tag_error_taken_by_vdms">Tag ini sudah ditandai di sistem VDMS utama.</string>
+    <string name="tag_error_other_property">Tag ini sudah ditandai ke properti lain.</string>
+    <string name="tag_error_submitted">Tag ini ada pada aset yang sudah dikirim dan tidak dapat dipindahkan.</string>
+    <string name="tag_error_submitted_named">Tag ini ada pada aset yang sudah dikirim %1$s dan tidak dapat dipindahkan.</string>
+    <string name="tag_error_taken_by_draft">Tag ini sudah ada pada aset lain.</string>
+    <string name="tag_error_registration">Tag baru tidak dapat didaftarkan. Coba lagi nanti.</string>
+    <string name="tag_error_claimed_elsewhere">Orang lain menandai kode ini lebih dulu.</string>
+    <string name="tag_error_offline">Anda sedang offline. Barcode dan tag NFC diperiksa di server, jadi coba lagi saat terhubung.</string>
+    <string name="tag_error_photo_required">Ambil foto kode QR untuk menandainya secara offline.</string>
+    <string name="tag_error_camera_denied">Izinkan akses kamera di Pengaturan untuk memindai tag.</string>
+    <string name="tag_error_camera_unavailable">Ponsel ini tidak dapat memindai tag dengan kamera.</string>
+    <string name="tag_error_nfc_unavailable">Ponsel ini tidak dapat membaca tag NFC.</string>
+    <string name="tag_error_nfc_disabled">Aktifkan NFC di Pengaturan untuk memindai tag.</string>
+    <string name="tag_error_nfc_failed">Tag NFC tidak dapat dibaca. Coba lagi.</string>
+    <string name="tag_error_nfc_timed_out">Pemindaian NFC habis waktu. Coba lagi.</string>
 </resources>

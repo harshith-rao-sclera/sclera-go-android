@@ -4,6 +4,7 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.domain.model.MasterFormat
+import com.sclera.sclerago.domain.model.TagKind
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.sourceFromDb
 import com.sclera.sclerago.domain.model.sourceToDb
@@ -73,6 +74,11 @@ fun DbRow.toAsset(
             )
         },
         assignedTo = string("assigned_to")?.takeIf { it.isNotBlank() },
+        tagged = buildSet {
+            if (bool("is_qr_tagged")) add(TagKind.QR)
+            if (bool("is_barcode_tagged")) add(TagKind.BARCODE)
+            if (bool("is_nfc_tagged")) add(TagKind.NFC)
+        },
     )
 }
 

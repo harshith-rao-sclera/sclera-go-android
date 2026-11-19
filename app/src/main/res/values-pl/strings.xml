@@ -492,4 +492,51 @@
         <item quantity="many">Znaleziono specyfikację dla %1$s: %2$d gotowych sugestii.</item>
         <item quantity="other">Znaleziono specyfikację dla %1$s: %2$d gotowej sugestii.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Tagi</string>
+    <string name="tag_bar_count">%1$d z %2$d</string>
+    <string name="tag_kind_qr">Kod QR</string>
+    <string name="tag_kind_barcode">Kod kreskowy</string>
+    <string name="tag_kind_nfc">Tag NFC</string>
+    <string name="tag_tagged_qr">Kod QR otagowany</string>
+    <string name="tag_tagged_barcode">Kod kreskowy otagowany</string>
+    <string name="tag_tagged_nfc">Tag NFC otagowany</string>
+    <string name="tag_cancel">Anuluj</string>
+    <string name="tag_torch">Latarka</string>
+    <string name="tag_scan_qr_title">Skanuj kod QR</string>
+    <string name="tag_scan_qr_hint">Skieruj aparat na etykietę QR</string>
+    <string name="tag_scan_qr_sub">Skanuje się automatycznie</string>
+    <string name="tag_scan_barcode_title">Skanuj kod kreskowy</string>
+    <string name="tag_scan_barcode_hint">Ustaw kod kreskowy wewnątrz ramki</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 i inne</string>
+    <string name="tag_nfc_ready">Gotowe do skanowania</string>
+    <string name="tag_nfc_hold_message">Przyłóż górną część telefonu do tagu NFC</string>
+    <string name="tag_rescan_title">Zeskanować kod QR ponownie?</string>
+    <string name="tag_rescan_message">Obecny tag QR zostanie zastąpiony nowym skanem.</string>
+    <string name="tag_rescan_confirm">Skanuj ponownie</string>
+    <string name="tag_working">Sprawdzanie tagu…</string>
+    <string name="tag_move_title">Przenieść ten tag?</string>
+    <string name="tag_move_message">Ten tag jest na innym zasobie, który nie został wysłany. Przenieść go do tego zasobu?</string>
+    <string name="tag_move_message_named">Ten tag jest na %1$s, który nie został wysłany. Przenieść go do tego zasobu?</string>
+    <string name="tag_move_confirm">Przenieś tag</string>
+    <string name="tag_error_generic">Coś poszło nie tak. Spróbuj ponownie.</string>
+    <string name="tag_error_empty">Tag jest pusty.</string>
+    <string name="tag_error_blank_nfc">Ten tag NFC jest pusty, więc nie można go otagować.</string>
+    <string name="tag_error_unknown_id">Ten kod QR Sclera jest nieznany. Nie można go tu użyć.</string>
+    <string name="tag_error_taken_by_vdms">Ten tag jest już otagowany w głównym systemie VDMS.</string>
+    <string name="tag_error_other_property">Ten tag jest już przypisany do innej nieruchomości.</string>
+    <string name="tag_error_submitted">Ten tag jest na wysłanym zasobie i nie można go przenieść.</string>
+    <string name="tag_error_submitted_named">Ten tag jest na wysłanym zasobie %1$s i nie można go przenieść.</string>
+    <string name="tag_error_taken_by_draft">Ten tag jest już na innym zasobie.</string>
+    <string name="tag_error_registration">Nie udało się zarejestrować nowego tagu. Spróbuj później.</string>
+    <string name="tag_error_claimed_elsewhere">Ktoś inny otagował ten kod wcześniej.</string>
+    <string name="tag_error_offline">Jesteś offline. Kody kreskowe i tagi NFC są sprawdzane na serwerze, więc spróbuj ponownie po połączeniu.</string>
+    <string name="tag_error_photo_required">Zrób zdjęcie kodu QR, aby oznaczyć go offline.</string>
+    <string name="tag_error_camera_denied">Zezwól na dostęp do aparatu w Ustawieniach, aby zeskanować tag.</string>
+    <string name="tag_error_camera_unavailable">Ten telefon nie może skanować tagów aparatem.</string>
+    <string name="tag_error_nfc_unavailable">Ten telefon nie może odczytywać tagów NFC.</string>
+    <string name="tag_error_nfc_disabled">Włącz NFC w Ustawieniach, aby zeskanować tag.</string>
+    <string name="tag_error_nfc_failed">Nie udało się odczytać tagu NFC. Spróbuj ponownie.</string>
+    <string name="tag_error_nfc_timed_out">Skanowanie NFC przekroczyło limit czasu. Spróbuj ponownie.</string>
 </resources>
