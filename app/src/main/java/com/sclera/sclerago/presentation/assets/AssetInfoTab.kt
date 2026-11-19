@@ -49,6 +49,7 @@ import com.sclera.sclerago.presentation.components.ActionCard
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.model.labelRes
+import com.sclera.sclerago.presentation.tagging.TagsActions
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
@@ -111,6 +112,8 @@ class AssetDetailActions(
     val classify: ClassifyActions = ClassifyActions(),
     /** An online-only action was tapped while offline: say why it needs the server. */
     val onOffline: (OnlineOnly) -> Unit = {},
+    /** What the Tags bar's icons do. */
+    val tags: TagsActions = TagsActions(),
 )
 
 /** Opening the JACS code picker, and what it does. */

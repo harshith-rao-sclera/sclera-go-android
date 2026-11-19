@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -106,4 +108,14 @@ internal fun LabeledInput(
 @Composable
 internal fun CfgCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)), content = content)
+}
+
+/** An on/off switch with a yellow track when on. */
+@Composable
+fun OnOffSwitch(on: Boolean, modifier: Modifier = Modifier, onChange: (Boolean) -> Unit) {
+    val track by animateColorAsState(if (on) C.Yellow else C.RadioOff, label = "switch")
+    val x by animateDpAsState(if (on) 22.dp else 2.dp, label = "thumb")
+    Box(modifier.size(50.dp, 30.dp).clip(Capsule).background(track).clickable { onChange(!on) }) {
+        Box(Modifier.padding(start = x, top = 3.dp).size(24.dp).clip(CircleShape).background(Color.White))
+    }
 }

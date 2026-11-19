@@ -256,6 +256,7 @@ Still open:
   are shown in plain form; they must be encrypted when they are persisted or come from the API.
 - Release logs: confirm `Log.d/i/w` are stripped or free of identifiers (R8 keep rules).
 - `./gradlew dependencyCheckAnalyze` is configured but needs an `NVD_API_KEY`; run it and record the result.
+- QR tags saved offline keep their photo (base64) and direction in the unencrypted global config database (`qr_code_table`, `client_qr_code_table`, `sync_status = '1'`) until a sync sends them; they are excluded from backups and wiped on sign-out, but need the same encrypted engine as below. The sync that sends them (push) is not built on Android yet.
 - The synced offline SQLite databases (one per property, `ASSET_DATA_COLLECTION_<propertyId>.db`, app-private `databases/`) are unencrypted at rest, and the Java sync engine also keeps the access token and session id in plain text in `global_config.db`; both need an encrypted SQLite engine (e.g. SQLCipher). They are excluded from backups and wiped on sign-out.
 
 ## 9. Working agreements

@@ -479,4 +479,51 @@
         <item quantity="one">%1$s için teknik özellikler bulundu: %2$d öneri hazır.</item>
         <item quantity="other">%1$s için teknik özellikler bulundu: %2$d öneri hazır.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Etiketler</string>
+    <string name="tag_bar_count">%1$d / %2$d</string>
+    <string name="tag_kind_qr">QR kodu</string>
+    <string name="tag_kind_barcode">Barkod</string>
+    <string name="tag_kind_nfc">NFC etiketi</string>
+    <string name="tag_tagged_qr">QR kodu etiketlendi</string>
+    <string name="tag_tagged_barcode">Barkod etiketlendi</string>
+    <string name="tag_tagged_nfc">NFC etiketi etiketlendi</string>
+    <string name="tag_cancel">İptal</string>
+    <string name="tag_torch">El feneri</string>
+    <string name="tag_scan_qr_title">QR kodunu tara</string>
+    <string name="tag_scan_qr_hint">Kamerayı QR etiketine doğrultun</string>
+    <string name="tag_scan_qr_sub">Kendiliğinden taranır</string>
+    <string name="tag_scan_barcode_title">Barkodu tara</string>
+    <string name="tag_scan_barcode_hint">Barkodu kutunun içine hizalayın</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 ve daha fazlası</string>
+    <string name="tag_nfc_ready">Taramaya hazır</string>
+    <string name="tag_nfc_hold_message">Telefonunuzun üst kısmını NFC etiketine yaklaştırın</string>
+    <string name="tag_rescan_title">QR kodu yeniden taransın mı?</string>
+    <string name="tag_rescan_message">Mevcut QR etiketi yeni taramayla değiştirilecek.</string>
+    <string name="tag_rescan_confirm">Yeniden tara</string>
+    <string name="tag_working">Etiket kontrol ediliyor…</string>
+    <string name="tag_move_title">Bu etiket taşınsın mı?</string>
+    <string name="tag_move_message">Bu etiket, gönderilmemiş başka bir varlıkta. Bu varlığa taşınsın mı?</string>
+    <string name="tag_move_message_named">Bu etiket, gönderilmemiş %1$s varlığında. Bu varlığa taşınsın mı?</string>
+    <string name="tag_move_confirm">Etiketi taşı</string>
+    <string name="tag_error_generic">Bir şeyler ters gitti. Tekrar deneyin.</string>
+    <string name="tag_error_empty">Etiketin içinde hiçbir şey yok.</string>
+    <string name="tag_error_blank_nfc">Bu NFC etiketi boş, bu yüzden etiketlenemez.</string>
+    <string name="tag_error_unknown_id">Bu Sclera QR kodu tanınmıyor. Burada kullanılamaz.</string>
+    <string name="tag_error_taken_by_vdms">Bu etiket ana VDMS sisteminde zaten etiketlenmiş.</string>
+    <string name="tag_error_other_property">Bu etiket zaten başka bir mülke etiketlenmiş.</string>
+    <string name="tag_error_submitted">Bu etiket gönderilmiş bir varlıkta ve taşınamaz.</string>
+    <string name="tag_error_submitted_named">Bu etiket, gönderilmiş %1$s varlığında ve taşınamaz.</string>
+    <string name="tag_error_taken_by_draft">Bu etiket zaten başka bir varlıkta.</string>
+    <string name="tag_error_registration">Yeni etiket kaydedilemedi. Daha sonra tekrar deneyin.</string>
+    <string name="tag_error_claimed_elsewhere">Bu kodu başka biri önce etiketledi.</string>
+    <string name="tag_error_offline">Çevrimdışısınız. Barkodlar ve NFC etiketleri sunucuda kontrol edilir, bağlandığınızda tekrar deneyin.</string>
+    <string name="tag_error_photo_required">Çevrimdışı etiketlemek için QR kodunun fotoğrafını çekin.</string>
+    <string name="tag_error_camera_denied">Etiket taramak için Ayarlar\'dan kamera erişimine izin verin.</string>
+    <string name="tag_error_camera_unavailable">Bu telefon etiketleri kamerayla tarayamıyor.</string>
+    <string name="tag_error_nfc_unavailable">Bu telefon NFC etiketlerini okuyamıyor.</string>
+    <string name="tag_error_nfc_disabled">Etiket taramak için Ayarlar\'dan NFC\'yi açın.</string>
+    <string name="tag_error_nfc_failed">NFC etiketi okunamadı. Tekrar deneyin.</string>
+    <string name="tag_error_nfc_timed_out">NFC taraması zaman aşımına uğradı. Tekrar deneyin.</string>
 </resources>

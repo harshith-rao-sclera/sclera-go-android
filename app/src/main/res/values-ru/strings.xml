@@ -493,4 +493,51 @@
         <item quantity="many">Характеристики для %1$s найдены: готово %2$d предложений.</item>
         <item quantity="other">Характеристики для %1$s найдены: готово %2$d предложения.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Метки</string>
+    <string name="tag_bar_count">%1$d из %2$d</string>
+    <string name="tag_kind_qr">QR-код</string>
+    <string name="tag_kind_barcode">Штрихкод</string>
+    <string name="tag_kind_nfc">NFC-метка</string>
+    <string name="tag_tagged_qr">QR-код привязан</string>
+    <string name="tag_tagged_barcode">Штрихкод привязан</string>
+    <string name="tag_tagged_nfc">NFC-метка привязана</string>
+    <string name="tag_cancel">Отмена</string>
+    <string name="tag_torch">Фонарик</string>
+    <string name="tag_scan_qr_title">Сканировать QR-код</string>
+    <string name="tag_scan_qr_hint">Наведите камеру на QR-этикетку</string>
+    <string name="tag_scan_qr_sub">Сканирует автоматически</string>
+    <string name="tag_scan_barcode_title">Сканировать штрихкод</string>
+    <string name="tag_scan_barcode_hint">Совместите штрихкод с рамкой</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 и другие</string>
+    <string name="tag_nfc_ready">Готово к сканированию</string>
+    <string name="tag_nfc_hold_message">Поднесите верхнюю часть телефона к NFC-метке</string>
+    <string name="tag_rescan_title">Сканировать QR-код заново?</string>
+    <string name="tag_rescan_message">Текущая QR-метка будет заменена новым сканированием.</string>
+    <string name="tag_rescan_confirm">Сканировать заново</string>
+    <string name="tag_working">Проверка метки…</string>
+    <string name="tag_move_title">Переместить эту метку?</string>
+    <string name="tag_move_message">Эта метка привязана к другому активу, который не отправлен. Переместить её на этот актив?</string>
+    <string name="tag_move_message_named">Эта метка привязана к активу %1$s, который не отправлен. Переместить её на этот актив?</string>
+    <string name="tag_move_confirm">Переместить метку</string>
+    <string name="tag_error_generic">Что-то пошло не так. Повторите попытку.</string>
+    <string name="tag_error_empty">В метке нет данных.</string>
+    <string name="tag_error_blank_nfc">Эта NFC-метка пуста, поэтому её нельзя привязать.</string>
+    <string name="tag_error_unknown_id">Этот QR-код Sclera неизвестен. Его нельзя использовать здесь.</string>
+    <string name="tag_error_taken_by_vdms">Эта метка уже привязана в основной системе VDMS.</string>
+    <string name="tag_error_other_property">Эта метка уже привязана к другому объекту.</string>
+    <string name="tag_error_submitted">Эта метка привязана к отправленному активу, её нельзя переместить.</string>
+    <string name="tag_error_submitted_named">Эта метка привязана к отправленному активу %1$s, её нельзя переместить.</string>
+    <string name="tag_error_taken_by_draft">Эта метка уже привязана к другому активу.</string>
+    <string name="tag_error_registration">Не удалось зарегистрировать новую метку. Повторите попытку позже.</string>
+    <string name="tag_error_claimed_elsewhere">Этот код уже привязал кто-то другой.</string>
+    <string name="tag_error_offline">Нет подключения. Штрихкоды и метки NFC проверяются на сервере, повторите попытку при подключении.</string>
+    <string name="tag_error_photo_required">Сфотографируйте QR-код, чтобы пометить его офлайн.</string>
+    <string name="tag_error_camera_denied">Разрешите доступ к камере в настройках, чтобы сканировать метку.</string>
+    <string name="tag_error_camera_unavailable">Этот телефон не может сканировать метки камерой.</string>
+    <string name="tag_error_nfc_unavailable">Этот телефон не может считывать NFC-метки.</string>
+    <string name="tag_error_nfc_disabled">Включите NFC в настройках, чтобы сканировать метку.</string>
+    <string name="tag_error_nfc_failed">Не удалось считать NFC-метку. Повторите попытку.</string>
+    <string name="tag_error_nfc_timed_out">Время сканирования NFC истекло. Повторите попытку.</string>
 </resources>

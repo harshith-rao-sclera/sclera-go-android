@@ -507,4 +507,51 @@
         <item quantity="many">تم العثور على مواصفات %1$s: %2$d اقتراحًا جاهزًا.</item>
         <item quantity="other">تم العثور على مواصفات %1$s: %2$d اقتراح جاهز.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">العلامات</string>
+    <string name="tag_bar_count">%1$d من %2$d</string>
+    <string name="tag_kind_qr">رمز QR</string>
+    <string name="tag_kind_barcode">باركود</string>
+    <string name="tag_kind_nfc">علامة NFC</string>
+    <string name="tag_tagged_qr">تم وسم رمز QR</string>
+    <string name="tag_tagged_barcode">تم وسم الباركود</string>
+    <string name="tag_tagged_nfc">تم وسم علامة NFC</string>
+    <string name="tag_cancel">إلغاء</string>
+    <string name="tag_torch">المصباح</string>
+    <string name="tag_scan_qr_title">مسح رمز QR</string>
+    <string name="tag_scan_qr_hint">وجّه الكاميرا نحو ملصق QR</string>
+    <string name="tag_scan_qr_sub">يتم المسح تلقائيًا</string>
+    <string name="tag_scan_barcode_title">مسح الباركود</string>
+    <string name="tag_scan_barcode_hint">ضع الباركود داخل الإطار</string>
+    <string name="tag_scan_barcode_sub">EAN وUPC وCode 128 وغيرها</string>
+    <string name="tag_nfc_ready">جاهز للمسح</string>
+    <string name="tag_nfc_hold_message">قرّب أعلى هاتفك من علامة NFC</string>
+    <string name="tag_rescan_title">إعادة مسح رمز QR؟</string>
+    <string name="tag_rescan_message">سيتم استبدال علامة QR الحالية بالمسح الجديد.</string>
+    <string name="tag_rescan_confirm">إعادة المسح</string>
+    <string name="tag_working">جارٍ فحص العلامة…</string>
+    <string name="tag_move_title">نقل هذه العلامة؟</string>
+    <string name="tag_move_message">هذه العلامة موجودة على أصل آخر لم يتم إرساله. هل تريد نقلها إلى هذا الأصل؟</string>
+    <string name="tag_move_message_named">هذه العلامة موجودة على %1$s الذي لم يتم إرساله. هل تريد نقلها إلى هذا الأصل؟</string>
+    <string name="tag_move_confirm">نقل العلامة</string>
+    <string name="tag_error_generic">حدث خطأ ما. حاول مرة أخرى.</string>
+    <string name="tag_error_empty">لا يوجد شيء في العلامة.</string>
+    <string name="tag_error_blank_nfc">علامة NFC هذه فارغة، لذا لا يمكن وسمها.</string>
+    <string name="tag_error_unknown_id">رمز Sclera QR هذا غير معروف. لا يمكن استخدامه هنا.</string>
+    <string name="tag_error_taken_by_vdms">هذه العلامة موسومة بالفعل في نظام VDMS الرئيسي.</string>
+    <string name="tag_error_other_property">هذه العلامة موسومة بالفعل لعقار آخر.</string>
+    <string name="tag_error_submitted">هذه العلامة على أصل تم إرساله ولا يمكن نقلها.</string>
+    <string name="tag_error_submitted_named">هذه العلامة على الأصل الذي تم إرساله %1$s ولا يمكن نقلها.</string>
+    <string name="tag_error_taken_by_draft">هذه العلامة موجودة بالفعل على أصل آخر.</string>
+    <string name="tag_error_registration">تعذّر تسجيل العلامة الجديدة. حاول لاحقًا.</string>
+    <string name="tag_error_claimed_elsewhere">سبقك شخص آخر إلى وسم هذا الرمز.</string>
+    <string name="tag_error_offline">أنت غير متصل. يتم فحص الباركود وعلامات NFC على الخادم، لذا حاول مرة أخرى عند الاتصال.</string>
+    <string name="tag_error_photo_required">التقط صورة لرمز QR لوضع العلامة عليه بدون اتصال.</string>
+    <string name="tag_error_camera_denied">اسمح بالوصول إلى الكاميرا من الإعدادات لمسح علامة.</string>
+    <string name="tag_error_camera_unavailable">لا يمكن لهذا الهاتف مسح العلامات بالكاميرا.</string>
+    <string name="tag_error_nfc_unavailable">لا يمكن لهذا الهاتف قراءة علامات NFC.</string>
+    <string name="tag_error_nfc_disabled">فعّل NFC من الإعدادات لمسح علامة.</string>
+    <string name="tag_error_nfc_failed">تعذّرت قراءة علامة NFC. حاول مرة أخرى.</string>
+    <string name="tag_error_nfc_timed_out">انتهت مهلة مسح NFC. حاول مرة أخرى.</string>
 </resources>

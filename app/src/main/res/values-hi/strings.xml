@@ -479,4 +479,51 @@
         <item quantity="one">%1$s के स्पेसिफ़िकेशन मिले: %2$d सुझाव तैयार है।</item>
         <item quantity="other">%1$s के स्पेसिफ़िकेशन मिले: %2$d सुझाव तैयार हैं।</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">टैग</string>
+    <string name="tag_bar_count">%2$d में से %1$d</string>
+    <string name="tag_kind_qr">QR कोड</string>
+    <string name="tag_kind_barcode">बारकोड</string>
+    <string name="tag_kind_nfc">NFC टैग</string>
+    <string name="tag_tagged_qr">QR कोड टैग किया गया</string>
+    <string name="tag_tagged_barcode">बारकोड टैग किया गया</string>
+    <string name="tag_tagged_nfc">NFC टैग टैग किया गया</string>
+    <string name="tag_cancel">रद्द करें</string>
+    <string name="tag_torch">टॉर्च</string>
+    <string name="tag_scan_qr_title">QR कोड स्कैन करें</string>
+    <string name="tag_scan_qr_hint">कैमरा QR लेबल की ओर रखें</string>
+    <string name="tag_scan_qr_sub">यह अपने आप स्कैन होता है</string>
+    <string name="tag_scan_barcode_title">बारकोड स्कैन करें</string>
+    <string name="tag_scan_barcode_hint">बारकोड को बॉक्स के अंदर रखें</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 और अन्य</string>
+    <string name="tag_nfc_ready">स्कैन के लिए तैयार</string>
+    <string name="tag_nfc_hold_message">अपने फ़ोन का ऊपरी हिस्सा NFC टैग के पास रखें</string>
+    <string name="tag_rescan_title">QR कोड दोबारा स्कैन करें?</string>
+    <string name="tag_rescan_message">मौजूदा QR टैग नए स्कैन से बदल दिया जाएगा।</string>
+    <string name="tag_rescan_confirm">दोबारा स्कैन करें</string>
+    <string name="tag_working">टैग जाँचा जा रहा है…</string>
+    <string name="tag_move_title">यह टैग हटाएँ?</string>
+    <string name="tag_move_message">यह टैग किसी दूसरे एसेट पर है जो सबमिट नहीं हुआ है। इसे इस एसेट पर ले जाएँ?</string>
+    <string name="tag_move_message_named">यह टैग %1$s पर है जो सबमिट नहीं हुआ है। इसे इस एसेट पर ले जाएँ?</string>
+    <string name="tag_move_confirm">टैग ले जाएँ</string>
+    <string name="tag_error_generic">कुछ गड़बड़ हो गई। फिर कोशिश करें।</string>
+    <string name="tag_error_empty">टैग में कुछ नहीं है।</string>
+    <string name="tag_error_blank_nfc">यह NFC टैग खाली है, इसलिए इसे टैग नहीं किया जा सकता।</string>
+    <string name="tag_error_unknown_id">यह Sclera QR कोड पहचाना नहीं गया। इसे यहाँ इस्तेमाल नहीं किया जा सकता।</string>
+    <string name="tag_error_taken_by_vdms">यह टैग मुख्य VDMS सिस्टम में पहले से टैग किया गया है।</string>
+    <string name="tag_error_other_property">यह टैग पहले से किसी दूसरी संपत्ति से जुड़ा है।</string>
+    <string name="tag_error_submitted">यह टैग सबमिट किए गए एसेट पर है और इसे हटाया नहीं जा सकता।</string>
+    <string name="tag_error_submitted_named">यह टैग सबमिट किए गए एसेट %1$s पर है और इसे ले जाया नहीं जा सकता।</string>
+    <string name="tag_error_taken_by_draft">यह टैग पहले से किसी दूसरे एसेट पर है।</string>
+    <string name="tag_error_registration">नया टैग रजिस्टर नहीं हो सका। बाद में फिर कोशिश करें।</string>
+    <string name="tag_error_claimed_elsewhere">किसी और ने यह कोड पहले टैग कर दिया।</string>
+    <string name="tag_error_offline">आप ऑफ़लाइन हैं। बारकोड और NFC टैग सर्वर पर जाँचे जाते हैं, इसलिए कनेक्ट होने पर फिर से कोशिश करें।</string>
+    <string name="tag_error_photo_required">ऑफ़लाइन टैग करने के लिए QR कोड की फ़ोटो लें।</string>
+    <string name="tag_error_camera_denied">टैग स्कैन करने के लिए सेटिंग में कैमरा एक्सेस की अनुमति दें।</string>
+    <string name="tag_error_camera_unavailable">यह फ़ोन कैमरे से टैग स्कैन नहीं कर सकता।</string>
+    <string name="tag_error_nfc_unavailable">यह फ़ोन NFC टैग नहीं पढ़ सकता।</string>
+    <string name="tag_error_nfc_disabled">टैग स्कैन करने के लिए सेटिंग में NFC चालू करें।</string>
+    <string name="tag_error_nfc_failed">NFC टैग पढ़ा नहीं जा सका। फिर कोशिश करें।</string>
+    <string name="tag_error_nfc_timed_out">NFC स्कैन का समय समाप्त हो गया। फिर कोशिश करें।</string>
 </resources>

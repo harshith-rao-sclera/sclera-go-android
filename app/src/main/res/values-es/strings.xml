@@ -483,4 +483,51 @@
         <item quantity="one">Especificaciones encontradas para %1$s: %2$d sugerencia lista.</item>
         <item quantity="other">Especificaciones encontradas para %1$s: %2$d sugerencias listas.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Etiquetas</string>
+    <string name="tag_bar_count">%1$d de %2$d</string>
+    <string name="tag_kind_qr">Código QR</string>
+    <string name="tag_kind_barcode">Código de barras</string>
+    <string name="tag_kind_nfc">Etiqueta NFC</string>
+    <string name="tag_tagged_qr">Código QR etiquetado</string>
+    <string name="tag_tagged_barcode">Código de barras etiquetado</string>
+    <string name="tag_tagged_nfc">Etiqueta NFC etiquetada</string>
+    <string name="tag_cancel">Cancelar</string>
+    <string name="tag_torch">Linterna</string>
+    <string name="tag_scan_qr_title">Escanear código QR</string>
+    <string name="tag_scan_qr_hint">Apunta la cámara a la etiqueta QR</string>
+    <string name="tag_scan_qr_sub">Se escanea solo</string>
+    <string name="tag_scan_barcode_title">Escanear código de barras</string>
+    <string name="tag_scan_barcode_hint">Alinea el código de barras dentro del recuadro</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 y más</string>
+    <string name="tag_nfc_ready">Listo para escanear</string>
+    <string name="tag_nfc_hold_message">Acerca la parte superior del teléfono a la etiqueta NFC</string>
+    <string name="tag_rescan_title">¿Volver a escanear el código QR?</string>
+    <string name="tag_rescan_message">La etiqueta QR actual se reemplazará por el nuevo escaneo.</string>
+    <string name="tag_rescan_confirm">Volver a escanear</string>
+    <string name="tag_working">Comprobando la etiqueta…</string>
+    <string name="tag_move_title">¿Mover esta etiqueta?</string>
+    <string name="tag_move_message">Esta etiqueta está en otro activo que no se ha enviado. ¿Moverla a este activo?</string>
+    <string name="tag_move_message_named">Esta etiqueta está en %1$s, que no se ha enviado. ¿Moverla a este activo?</string>
+    <string name="tag_move_confirm">Mover etiqueta</string>
+    <string name="tag_error_generic">Algo salió mal. Inténtalo de nuevo.</string>
+    <string name="tag_error_empty">La etiqueta está vacía.</string>
+    <string name="tag_error_blank_nfc">Esta etiqueta NFC está vacía, así que no se puede etiquetar.</string>
+    <string name="tag_error_unknown_id">Este código QR de Sclera no se reconoce. No se puede usar aquí.</string>
+    <string name="tag_error_taken_by_vdms">Esta etiqueta ya está etiquetada en el sistema VDMS principal.</string>
+    <string name="tag_error_other_property">Esta etiqueta ya está asignada a otra propiedad.</string>
+    <string name="tag_error_submitted">Esta etiqueta está en un activo enviado y no se puede mover.</string>
+    <string name="tag_error_submitted_named">Esta etiqueta está en el activo enviado %1$s y no se puede mover.</string>
+    <string name="tag_error_taken_by_draft">Esta etiqueta ya está en otro activo.</string>
+    <string name="tag_error_registration">No se pudo registrar la nueva etiqueta. Inténtalo más tarde.</string>
+    <string name="tag_error_claimed_elsewhere">Otra persona etiquetó este código primero.</string>
+    <string name="tag_error_offline">Sin conexión. Los códigos de barras y las etiquetas NFC se comprueban en el servidor, así que inténtalo de nuevo cuando tengas conexión.</string>
+    <string name="tag_error_photo_required">Haz una foto del código QR para etiquetarlo sin conexión.</string>
+    <string name="tag_error_camera_denied">Permite el acceso a la cámara en Ajustes para escanear una etiqueta.</string>
+    <string name="tag_error_camera_unavailable">Este teléfono no puede escanear etiquetas con la cámara.</string>
+    <string name="tag_error_nfc_unavailable">Este teléfono no puede leer etiquetas NFC.</string>
+    <string name="tag_error_nfc_disabled">Activa NFC en Ajustes para escanear una etiqueta.</string>
+    <string name="tag_error_nfc_failed">No se pudo leer la etiqueta NFC. Inténtalo de nuevo.</string>
+    <string name="tag_error_nfc_timed_out">El escaneo NFC agotó el tiempo. Inténtalo de nuevo.</string>
 </resources>

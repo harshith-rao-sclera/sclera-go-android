@@ -182,6 +182,16 @@ object Icons {
     val Minus = Ico(s("M6 12h12"))
 
     // Validation templates
+    val Qr = Ico(
+        s(rect(3f, 3f, 7f, 7f, 1.4f)), s(rect(14f, 3f, 7f, 7f, 1.4f)), s(rect(3f, 14f, 7f, 7f, 1.4f)),
+        f(rect(5.4f, 5.4f, 2.2f, 2.2f)), f(rect(16.4f, 5.4f, 2.2f, 2.2f)), f(rect(5.4f, 16.4f, 2.2f, 2.2f)),
+        f(rect(14f, 14f, 3f, 3f)), f(rect(19f, 14f, 2f, 2f)), f(rect(14f, 19f, 2f, 2f)), f(rect(18f, 18f, 3f, 3f)),
+    )
+    val Barcode = Ico(
+        f(rect(3f, 4f, 1.05f, 16f)), f(rect(5.6f, 4f, 0.75f, 16f)), f(rect(7.8f, 4f, 1.8f, 16f)), f(rect(11.4f, 4f, 0.75f, 16f)),
+        f(rect(13.4f, 4f, 1.2f, 16f)), f(rect(16.2f, 4f, 0.75f, 16f)), f(rect(18.2f, 4f, 2.1f, 16f)),
+    )
+    val Nfc = Ico(f(circle(6f, 12f, 1.9f)), s("M10.5 8.5a5 5 0 010 7M14 5.8a9 9 0 010 12.4M17.5 3.2a13 13 0 010 17.6"))
     val Bolt = Ico(s("M13 2.5L4.5 13.5H11l-1 8 8.5-11H12z"))
     val Copy = Ico(s(rect(8f, 8f, 12.5f, 12.5f, 2f)), s("M16 8V5.5A2 2 0 0 0 14 3.5H5.5a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2H8"))
     val ScanAi = Ico(

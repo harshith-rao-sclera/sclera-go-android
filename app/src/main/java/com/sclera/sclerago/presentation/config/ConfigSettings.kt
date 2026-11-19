@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CfgCard
+import com.sclera.sclerago.presentation.components.OnOffSwitch
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
@@ -76,16 +77,6 @@ internal fun KindChip(kind: FieldKind) {
 /** One row of a Configuration list, carded like an Assets list row: 4dp from the screen edge, 3dp apart. */
 internal fun Modifier.listCard() =
     padding(horizontal = 4.dp, vertical = 1.5.dp).fillMaxWidth().clip(r(8)).background(C.Surface).border(1.dp, C.Border, r(8))
-
-/** An on/off switch with a yellow track when on. */
-@Composable
-internal fun OnOffSwitch(on: Boolean, onChange: (Boolean) -> Unit) {
-    val track by animateColorAsState(if (on) C.Yellow else C.RadioOff, label = "switch")
-    val x by animateDpAsState(if (on) 22.dp else 2.dp, label = "thumb")
-    Box(Modifier.size(50.dp, 30.dp).clip(Capsule).background(track).clickable { onChange(!on) }) {
-        Box(Modifier.padding(start = x, top = 3.dp).size(24.dp).clip(CircleShape).background(Color.White))
-    }
-}
 
 /** Cancel + a yellow main button along the bottom of a sheet. */
 @Composable

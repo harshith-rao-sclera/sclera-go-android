@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <!-- Reading an NFC tag to tag an asset; phones without NFC still work (QR code and barcode). -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Reference photos for the sample assets are loaded from Wikimedia Commons (cached on device). -->
     <uses-permission android:name="android.permission.INTERNET" />

@@ -458,4 +458,51 @@
     <plurals name="ai_done_found">
         <item quantity="other">Đã tìm thấy thông số cho %1$s: %2$d gợi ý sẵn sàng.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Thẻ</string>
+    <string name="tag_bar_count">%1$d trên %2$d</string>
+    <string name="tag_kind_qr">Mã QR</string>
+    <string name="tag_kind_barcode">Mã vạch</string>
+    <string name="tag_kind_nfc">Thẻ NFC</string>
+    <string name="tag_tagged_qr">Đã gắn thẻ mã QR</string>
+    <string name="tag_tagged_barcode">Đã gắn thẻ mã vạch</string>
+    <string name="tag_tagged_nfc">Đã gắn thẻ NFC</string>
+    <string name="tag_cancel">Hủy</string>
+    <string name="tag_torch">Đèn pin</string>
+    <string name="tag_scan_qr_title">Quét mã QR</string>
+    <string name="tag_scan_qr_hint">Hướng camera vào nhãn QR</string>
+    <string name="tag_scan_qr_sub">Tự động quét</string>
+    <string name="tag_scan_barcode_title">Quét mã vạch</string>
+    <string name="tag_scan_barcode_hint">Căn mã vạch vào trong khung</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 và nhiều loại khác</string>
+    <string name="tag_nfc_ready">Sẵn sàng quét</string>
+    <string name="tag_nfc_hold_message">Đưa phần đầu điện thoại lại gần thẻ NFC</string>
+    <string name="tag_rescan_title">Quét lại mã QR?</string>
+    <string name="tag_rescan_message">Thẻ QR hiện tại sẽ được thay bằng lần quét mới.</string>
+    <string name="tag_rescan_confirm">Quét lại</string>
+    <string name="tag_working">Đang kiểm tra thẻ…</string>
+    <string name="tag_move_title">Di chuyển thẻ này?</string>
+    <string name="tag_move_message">Thẻ này đang ở trên một tài sản khác chưa được gửi. Chuyển sang tài sản này?</string>
+    <string name="tag_move_message_named">Thẻ này đang ở trên %1$s chưa được gửi. Chuyển sang tài sản này?</string>
+    <string name="tag_move_confirm">Di chuyển thẻ</string>
+    <string name="tag_error_generic">Đã xảy ra lỗi. Hãy thử lại.</string>
+    <string name="tag_error_empty">Thẻ không có nội dung.</string>
+    <string name="tag_error_blank_nfc">Thẻ NFC này trống nên không thể gắn thẻ.</string>
+    <string name="tag_error_unknown_id">Mã QR Sclera này không được nhận dạng. Không thể dùng ở đây.</string>
+    <string name="tag_error_taken_by_vdms">Thẻ này đã được gắn trong hệ thống VDMS chính.</string>
+    <string name="tag_error_other_property">Thẻ này đã được gắn cho một cơ sở khác.</string>
+    <string name="tag_error_submitted">Thẻ này ở trên tài sản đã gửi nên không thể di chuyển.</string>
+    <string name="tag_error_submitted_named">Thẻ này ở trên tài sản đã gửi %1$s nên không thể di chuyển.</string>
+    <string name="tag_error_taken_by_draft">Thẻ này đã ở trên một tài sản khác.</string>
+    <string name="tag_error_registration">Không thể đăng ký thẻ mới. Hãy thử lại sau.</string>
+    <string name="tag_error_claimed_elsewhere">Người khác đã gắn thẻ mã này trước.</string>
+    <string name="tag_error_offline">Bạn đang ngoại tuyến. Mã vạch và thẻ NFC được kiểm tra trên máy chủ, hãy thử lại khi có kết nối.</string>
+    <string name="tag_error_photo_required">Chụp ảnh mã QR để gắn thẻ ngoại tuyến.</string>
+    <string name="tag_error_camera_denied">Cho phép truy cập camera trong Cài đặt để quét thẻ.</string>
+    <string name="tag_error_camera_unavailable">Điện thoại này không thể quét thẻ bằng camera.</string>
+    <string name="tag_error_nfc_unavailable">Điện thoại này không thể đọc thẻ NFC.</string>
+    <string name="tag_error_nfc_disabled">Bật NFC trong Cài đặt để quét thẻ.</string>
+    <string name="tag_error_nfc_failed">Không đọc được thẻ NFC. Hãy thử lại.</string>
+    <string name="tag_error_nfc_timed_out">Quét NFC đã hết thời gian. Hãy thử lại.</string>
 </resources>

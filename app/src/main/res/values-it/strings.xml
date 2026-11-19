@@ -483,4 +483,51 @@
         <item quantity="one">Specifiche trovate per %1$s: %2$d suggerimento pronto.</item>
         <item quantity="other">Specifiche trovate per %1$s: %2$d suggerimenti pronti.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Tag</string>
+    <string name="tag_bar_count">%1$d di %2$d</string>
+    <string name="tag_kind_qr">Codice QR</string>
+    <string name="tag_kind_barcode">Codice a barre</string>
+    <string name="tag_kind_nfc">Tag NFC</string>
+    <string name="tag_tagged_qr">Codice QR associato</string>
+    <string name="tag_tagged_barcode">Codice a barre associato</string>
+    <string name="tag_tagged_nfc">Tag NFC associato</string>
+    <string name="tag_cancel">Annulla</string>
+    <string name="tag_torch">Torcia</string>
+    <string name="tag_scan_qr_title">Scansiona codice QR</string>
+    <string name="tag_scan_qr_hint">Inquadra l\'etichetta QR con la fotocamera</string>
+    <string name="tag_scan_qr_sub">Si scansiona da solo</string>
+    <string name="tag_scan_barcode_title">Scansiona codice a barre</string>
+    <string name="tag_scan_barcode_hint">Allinea il codice a barre dentro il riquadro</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 e altri</string>
+    <string name="tag_nfc_ready">Pronto per la scansione</string>
+    <string name="tag_nfc_hold_message">Avvicina la parte superiore del telefono al tag NFC</string>
+    <string name="tag_rescan_title">Scansionare di nuovo il codice QR?</string>
+    <string name="tag_rescan_message">Il tag QR attuale verrà sostituito dalla nuova scansione.</string>
+    <string name="tag_rescan_confirm">Scansiona di nuovo</string>
+    <string name="tag_working">Controllo del tag…</string>
+    <string name="tag_move_title">Spostare questo tag?</string>
+    <string name="tag_move_message">Questo tag è su un altro asset non ancora inviato. Spostarlo su questo asset?</string>
+    <string name="tag_move_message_named">Questo tag è su %1$s, non ancora inviato. Spostarlo su questo asset?</string>
+    <string name="tag_move_confirm">Sposta tag</string>
+    <string name="tag_error_generic">Qualcosa è andato storto. Riprova.</string>
+    <string name="tag_error_empty">Il tag è vuoto.</string>
+    <string name="tag_error_blank_nfc">Questo tag NFC è vuoto, quindi non può essere associato.</string>
+    <string name="tag_error_unknown_id">Questo codice QR Sclera non è riconosciuto. Non può essere usato qui.</string>
+    <string name="tag_error_taken_by_vdms">Questo tag è già associato nel sistema VDMS principale.</string>
+    <string name="tag_error_other_property">Questo tag è già associato a un\'altra proprietà.</string>
+    <string name="tag_error_submitted">Questo tag è su un asset inviato e non può essere spostato.</string>
+    <string name="tag_error_submitted_named">Questo tag è sull\'asset inviato %1$s e non può essere spostato.</string>
+    <string name="tag_error_taken_by_draft">Questo tag è già su un altro asset.</string>
+    <string name="tag_error_registration">Non è stato possibile registrare il nuovo tag. Riprova più tardi.</string>
+    <string name="tag_error_claimed_elsewhere">Qualcun altro ha associato prima questo codice.</string>
+    <string name="tag_error_offline">Sei offline. I codici a barre e i tag NFC vengono verificati sul server, quindi riprova quando sei connesso.</string>
+    <string name="tag_error_photo_required">Scatta una foto del codice QR per taggarlo offline.</string>
+    <string name="tag_error_camera_denied">Consenti l\'accesso alla fotocamera nelle Impostazioni per scansionare un tag.</string>
+    <string name="tag_error_camera_unavailable">Questo telefono non può scansionare i tag con la fotocamera.</string>
+    <string name="tag_error_nfc_unavailable">Questo telefono non può leggere i tag NFC.</string>
+    <string name="tag_error_nfc_disabled">Attiva NFC nelle Impostazioni per scansionare un tag.</string>
+    <string name="tag_error_nfc_failed">Non è stato possibile leggere il tag NFC. Riprova.</string>
+    <string name="tag_error_nfc_timed_out">La scansione NFC è scaduta. Riprova.</string>
 </resources>

@@ -458,4 +458,51 @@
     <plurals name="ai_done_found">
         <item quantity="other">พบข้อมูลจำเพาะสำหรับ %1$s: คำแนะนำพร้อมแล้ว %2$d รายการ</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">แท็ก</string>
+    <string name="tag_bar_count">%1$d จาก %2$d</string>
+    <string name="tag_kind_qr">คิวอาร์โค้ด</string>
+    <string name="tag_kind_barcode">บาร์โค้ด</string>
+    <string name="tag_kind_nfc">แท็ก NFC</string>
+    <string name="tag_tagged_qr">ติดแท็กคิวอาร์โค้ดแล้ว</string>
+    <string name="tag_tagged_barcode">ติดแท็กบาร์โค้ดแล้ว</string>
+    <string name="tag_tagged_nfc">ติดแท็ก NFC แล้ว</string>
+    <string name="tag_cancel">ยกเลิก</string>
+    <string name="tag_torch">ไฟฉาย</string>
+    <string name="tag_scan_qr_title">สแกนคิวอาร์โค้ด</string>
+    <string name="tag_scan_qr_hint">หันกล้องไปที่ป้าย QR</string>
+    <string name="tag_scan_qr_sub">สแกนอัตโนมัติ</string>
+    <string name="tag_scan_barcode_title">สแกนบาร์โค้ด</string>
+    <string name="tag_scan_barcode_hint">จัดบาร์โค้ดให้อยู่ในกรอบ</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 และอื่น ๆ</string>
+    <string name="tag_nfc_ready">พร้อมสแกน</string>
+    <string name="tag_nfc_hold_message">แตะด้านบนของโทรศัพท์ใกล้แท็ก NFC</string>
+    <string name="tag_rescan_title">สแกนคิวอาร์โค้ดอีกครั้งไหม</string>
+    <string name="tag_rescan_message">แท็ก QR ปัจจุบันจะถูกแทนที่ด้วยการสแกนใหม่</string>
+    <string name="tag_rescan_confirm">สแกนอีกครั้ง</string>
+    <string name="tag_working">กำลังตรวจสอบแท็ก…</string>
+    <string name="tag_move_title">ย้ายแท็กนี้ไหม</string>
+    <string name="tag_move_message">แท็กนี้อยู่บนสินทรัพย์อื่นที่ยังไม่ได้ส่ง ย้ายมายังสินทรัพย์นี้ไหม</string>
+    <string name="tag_move_message_named">แท็กนี้อยู่บน %1$s ที่ยังไม่ได้ส่ง ย้ายมายังสินทรัพย์นี้ไหม</string>
+    <string name="tag_move_confirm">ย้ายแท็ก</string>
+    <string name="tag_error_generic">เกิดข้อผิดพลาด ลองอีกครั้ง</string>
+    <string name="tag_error_empty">แท็กนี้ไม่มีข้อมูล</string>
+    <string name="tag_error_blank_nfc">แท็ก NFC นี้ว่างเปล่า จึงติดแท็กไม่ได้</string>
+    <string name="tag_error_unknown_id">ไม่รู้จักคิวอาร์โค้ด Sclera นี้ ใช้ที่นี่ไม่ได้</string>
+    <string name="tag_error_taken_by_vdms">แท็กนี้ถูกติดไว้ในระบบ VDMS หลักแล้ว</string>
+    <string name="tag_error_other_property">แท็กนี้ถูกติดไว้กับสถานที่อื่นแล้ว</string>
+    <string name="tag_error_submitted">แท็กนี้อยู่บนสินทรัพย์ที่ส่งแล้ว ย้ายไม่ได้</string>
+    <string name="tag_error_submitted_named">แท็กนี้อยู่บนสินทรัพย์ที่ส่งแล้ว %1$s ย้ายไม่ได้</string>
+    <string name="tag_error_taken_by_draft">แท็กนี้อยู่บนสินทรัพย์อื่นแล้ว</string>
+    <string name="tag_error_registration">ลงทะเบียนแท็กใหม่ไม่ได้ ลองอีกครั้งภายหลัง</string>
+    <string name="tag_error_claimed_elsewhere">มีคนอื่นติดแท็กโค้ดนี้ก่อนแล้ว</string>
+    <string name="tag_error_offline">คุณออฟไลน์อยู่ บาร์โค้ดและแท็ก NFC จะถูกตรวจสอบที่เซิร์ฟเวอร์ ลองอีกครั้งเมื่อเชื่อมต่อแล้ว</string>
+    <string name="tag_error_photo_required">ถ่ายภาพ QR โค้ดเพื่อแท็กแบบออฟไลน์</string>
+    <string name="tag_error_camera_denied">อนุญาตการเข้าถึงกล้องในการตั้งค่าเพื่อสแกนแท็ก</string>
+    <string name="tag_error_camera_unavailable">โทรศัพท์เครื่องนี้สแกนแท็กด้วยกล้องไม่ได้</string>
+    <string name="tag_error_nfc_unavailable">โทรศัพท์เครื่องนี้อ่านแท็ก NFC ไม่ได้</string>
+    <string name="tag_error_nfc_disabled">เปิด NFC ในการตั้งค่าเพื่อสแกนแท็ก</string>
+    <string name="tag_error_nfc_failed">อ่านแท็ก NFC ไม่ได้ ลองอีกครั้ง</string>
+    <string name="tag_error_nfc_timed_out">การสแกน NFC หมดเวลา ลองอีกครั้ง</string>
 </resources>

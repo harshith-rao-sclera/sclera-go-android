@@ -483,4 +483,51 @@
         <item quantity="one">Especificações encontradas para %1$s: %2$d sugestão pronta.</item>
         <item quantity="other">Especificações encontradas para %1$s: %2$d sugestões prontas.</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">Tags</string>
+    <string name="tag_bar_count">%1$d de %2$d</string>
+    <string name="tag_kind_qr">Código QR</string>
+    <string name="tag_kind_barcode">Código de barras</string>
+    <string name="tag_kind_nfc">Tag NFC</string>
+    <string name="tag_tagged_qr">Código QR marcado</string>
+    <string name="tag_tagged_barcode">Código de barras marcado</string>
+    <string name="tag_tagged_nfc">Tag NFC marcada</string>
+    <string name="tag_cancel">Cancelar</string>
+    <string name="tag_torch">Lanterna</string>
+    <string name="tag_scan_qr_title">Escanear código QR</string>
+    <string name="tag_scan_qr_hint">Aponte a câmera para a etiqueta QR</string>
+    <string name="tag_scan_qr_sub">Ele escaneia sozinho</string>
+    <string name="tag_scan_barcode_title">Escanear código de barras</string>
+    <string name="tag_scan_barcode_hint">Alinhe o código de barras dentro da caixa</string>
+    <string name="tag_scan_barcode_sub">EAN, UPC, Code 128 e mais</string>
+    <string name="tag_nfc_ready">Pronto para escanear</string>
+    <string name="tag_nfc_hold_message">Aproxime a parte de cima do celular da tag NFC</string>
+    <string name="tag_rescan_title">Escanear o código QR novamente?</string>
+    <string name="tag_rescan_message">A tag QR atual será substituída pelo novo escaneamento.</string>
+    <string name="tag_rescan_confirm">Escanear novamente</string>
+    <string name="tag_working">Verificando a tag…</string>
+    <string name="tag_move_title">Mover esta tag?</string>
+    <string name="tag_move_message">Esta tag está em outro ativo que não foi enviado. Movê-la para este ativo?</string>
+    <string name="tag_move_message_named">Esta tag está em %1$s, que não foi enviado. Movê-la para este ativo?</string>
+    <string name="tag_move_confirm">Mover tag</string>
+    <string name="tag_error_generic">Algo deu errado. Tente novamente.</string>
+    <string name="tag_error_empty">A tag está vazia.</string>
+    <string name="tag_error_blank_nfc">Esta tag NFC está vazia, então não pode ser marcada.</string>
+    <string name="tag_error_unknown_id">Este código QR da Sclera não é reconhecido. Não pode ser usado aqui.</string>
+    <string name="tag_error_taken_by_vdms">Esta tag já está marcada no sistema VDMS principal.</string>
+    <string name="tag_error_other_property">Esta tag já está marcada em outra propriedade.</string>
+    <string name="tag_error_submitted">Esta tag está em um ativo enviado e não pode ser movida.</string>
+    <string name="tag_error_submitted_named">Esta tag está no ativo enviado %1$s e não pode ser movida.</string>
+    <string name="tag_error_taken_by_draft">Esta tag já está em outro ativo.</string>
+    <string name="tag_error_registration">Não foi possível registrar a nova tag. Tente novamente mais tarde.</string>
+    <string name="tag_error_claimed_elsewhere">Outra pessoa marcou este código primeiro.</string>
+    <string name="tag_error_offline">Você está offline. Códigos de barras e tags NFC são verificados no servidor, então tente novamente quando estiver conectado.</string>
+    <string name="tag_error_photo_required">Tire uma foto do código QR para marcá-lo offline.</string>
+    <string name="tag_error_camera_denied">Permita o acesso à câmera em Ajustes para escanear uma tag.</string>
+    <string name="tag_error_camera_unavailable">Este celular não consegue escanear tags com a câmera.</string>
+    <string name="tag_error_nfc_unavailable">Este celular não consegue ler tags NFC.</string>
+    <string name="tag_error_nfc_disabled">Ative o NFC em Ajustes para escanear uma tag.</string>
+    <string name="tag_error_nfc_failed">Não foi possível ler a tag NFC. Tente novamente.</string>
+    <string name="tag_error_nfc_timed_out">O escaneamento NFC expirou. Tente novamente.</string>
 </resources>

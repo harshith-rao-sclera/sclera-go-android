@@ -458,4 +458,51 @@
     <plurals name="ai_done_found">
         <item quantity="other">已找到 %1$s 的规格：%2$d 条建议已就绪。</item>
     </plurals>
+
+    <!-- Asset tagging (QR code, barcode, NFC) -->
+    <string name="tag_bar_title">标签</string>
+    <string name="tag_bar_count">%1$d / %2$d</string>
+    <string name="tag_kind_qr">二维码</string>
+    <string name="tag_kind_barcode">条形码</string>
+    <string name="tag_kind_nfc">NFC 标签</string>
+    <string name="tag_tagged_qr">二维码已绑定</string>
+    <string name="tag_tagged_barcode">条形码已绑定</string>
+    <string name="tag_tagged_nfc">NFC 标签已绑定</string>
+    <string name="tag_cancel">取消</string>
+    <string name="tag_torch">手电筒</string>
+    <string name="tag_scan_qr_title">扫描二维码</string>
+    <string name="tag_scan_qr_hint">将相机对准二维码标签</string>
+    <string name="tag_scan_qr_sub">自动扫描</string>
+    <string name="tag_scan_barcode_title">扫描条形码</string>
+    <string name="tag_scan_barcode_hint">将条形码对准框内</string>
+    <string name="tag_scan_barcode_sub">EAN、UPC、Code 128 等</string>
+    <string name="tag_nfc_ready">准备扫描</string>
+    <string name="tag_nfc_hold_message">将手机顶部靠近 NFC 标签</string>
+    <string name="tag_rescan_title">重新扫描二维码？</string>
+    <string name="tag_rescan_message">当前的二维码标签将被新扫描的结果替换。</string>
+    <string name="tag_rescan_confirm">重新扫描</string>
+    <string name="tag_working">正在检查标签…</string>
+    <string name="tag_move_title">移动此标签？</string>
+    <string name="tag_move_message">此标签位于另一个尚未提交的资产上。要将其移到此资产吗？</string>
+    <string name="tag_move_message_named">此标签位于尚未提交的 %1$s 上。要将其移到此资产吗？</string>
+    <string name="tag_move_confirm">移动标签</string>
+    <string name="tag_error_generic">出了点问题。请重试。</string>
+    <string name="tag_error_empty">标签中没有内容。</string>
+    <string name="tag_error_blank_nfc">此 NFC 标签为空，无法绑定。</string>
+    <string name="tag_error_unknown_id">无法识别此 Sclera 二维码，无法在此使用。</string>
+    <string name="tag_error_taken_by_vdms">此标签已在主 VDMS 系统中绑定。</string>
+    <string name="tag_error_other_property">此标签已绑定到另一个物业。</string>
+    <string name="tag_error_submitted">此标签位于已提交的资产上，无法移动。</string>
+    <string name="tag_error_submitted_named">此标签位于已提交的资产 %1$s 上，无法移动。</string>
+    <string name="tag_error_taken_by_draft">此标签已在另一个资产上。</string>
+    <string name="tag_error_registration">无法注册新标签。请稍后重试。</string>
+    <string name="tag_error_claimed_elsewhere">其他人已先绑定了此二维码。</string>
+    <string name="tag_error_offline">你已离线。条形码和 NFC 标签需在服务器上检查，请联网后重试。</string>
+    <string name="tag_error_photo_required">请拍摄二维码照片，以便离线标记。</string>
+    <string name="tag_error_camera_denied">请在“设置”中允许相机访问以扫描标签。</string>
+    <string name="tag_error_camera_unavailable">此手机无法用相机扫描标签。</string>
+    <string name="tag_error_nfc_unavailable">此手机无法读取 NFC 标签。</string>
+    <string name="tag_error_nfc_disabled">请在“设置”中开启 NFC 以扫描标签。</string>
+    <string name="tag_error_nfc_failed">无法读取 NFC 标签。请重试。</string>
+    <string name="tag_error_nfc_timed_out">NFC 扫描超时。请重试。</string>
 </resources>

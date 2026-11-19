@@ -45,6 +45,10 @@ class SyncManagerBridge @Inject constructor(
 
     private fun testConnection(): SQLiteDatabase? = testDatabase.orElse(null)?.connection()
 
+    /** The app-wide config database (the synced QR tag tables live in it), or null before it exists. */
+    fun globalDatabase(): SQLiteDatabase? =
+        if (context.getDatabasePath(GLOBAL_DB).exists()) GlobalConfigDatabaseHelper.initializeInstance(context).globalDB else null
+
     /** True when a debug test database is present: it is read instead of the engine's, and no sync runs. */
     fun usesTestDatabase(): Boolean = testConnection() != null
 

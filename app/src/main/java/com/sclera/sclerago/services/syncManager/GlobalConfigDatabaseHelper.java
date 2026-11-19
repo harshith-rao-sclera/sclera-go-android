@@ -45,6 +45,8 @@ public class GlobalConfigDatabaseHelper {
     public static final String QR_CODE_COLUMN_MOVABLE = "movable";
     public static final String QR_CODE_COLUMN_IMAGE = "image";
     public static final String QR_CODE_COLUMN_ADC_CHECK = "adc_qr_code_check";
+    /** "1" while an offline tag is waiting to be sent to the server (set by the app when a QR code is tagged offline). */
+    public static final String QR_CODE_COLUMN_SYNC_STATUS = "sync_status";
 
 
     public static final String TABLE_NAME_CLIENT_QR_CODE = "client_qr_code_table";
@@ -63,6 +65,7 @@ public class GlobalConfigDatabaseHelper {
     public static final String CLIENT_QR_CODE_COLUMN_DIRECTION = "direction";
     public static final String CLIENT_QR_CODE_COLUMN_MOVABLE = "movable";
     public static final String CLIENT_QR_CODE_COLUMN_ADC_CHECK = "adc_client_qr_code_check";
+    public static final String CLIENT_QR_CODE_COLUMN_SYNC_STATUS = "sync_status";
 
 
     public static final String TABLE_NAME_NFC_RECORDS = "nfc_records";
@@ -216,7 +219,8 @@ public class GlobalConfigDatabaseHelper {
                     QR_CODE_COLUMN_IMAGE + " TEXT, " +
                     QR_CODE_COLUMN_DIRECTION + " TEXT, " +
                     QR_CODE_COLUMN_MOVABLE + " INTEGER DEFAULT 1, " +
-                    QR_CODE_COLUMN_ADC_CHECK + " INTEGER DEFAULT 0);";
+                    QR_CODE_COLUMN_ADC_CHECK + " INTEGER DEFAULT 0, " +
+                    QR_CODE_COLUMN_SYNC_STATUS + " TEXT);";
 
 
     private static final String TABLE_CREATE_CLIENT_QR_CODE =
@@ -235,7 +239,8 @@ public class GlobalConfigDatabaseHelper {
                     CLIENT_QR_CODE_COLUMN_IMAGE + " TEXT, " +
                     CLIENT_QR_CODE_COLUMN_DIRECTION + " TEXT, " +
                     CLIENT_QR_CODE_COLUMN_ADC_CHECK + " INTEGER DEFAULT 0, " +
-                    CLIENT_QR_CODE_COLUMN_MOVABLE + " INTEGER DEFAULT 1);";
+                    CLIENT_QR_CODE_COLUMN_MOVABLE + " INTEGER DEFAULT 1, " +
+                    CLIENT_QR_CODE_COLUMN_SYNC_STATUS + " TEXT);";
 
     private static final String TABLE_CREATE_NFC_RECORDS =
             "CREATE TABLE IF NOT EXISTS " + TABLE_NAME_NFC_RECORDS + " (" +

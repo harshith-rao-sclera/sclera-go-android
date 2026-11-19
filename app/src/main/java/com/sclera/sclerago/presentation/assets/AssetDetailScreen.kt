@@ -50,6 +50,9 @@ import com.sclera.sclerago.presentation.components.readableWidth
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.model.chipBg
+import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
+import com.sclera.sclerago.presentation.tagging.TagUiState
+import com.sclera.sclerago.presentation.tagging.TagsBar
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
@@ -60,7 +63,13 @@ import com.sclera.sclerago.presentation.theme.Txt
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modifier: Modifier = Modifier, mic: MicState = MicState()) {
+fun AssetDetailScreen(
+    state: AssetDetailState,
+    actions: AssetDetailActions,
+    modifier: Modifier = Modifier,
+    mic: MicState = MicState(),
+    tags: TagUiState = TagUiState(),
+) {
     val asset = state.asset ?: return
     val isNew = state.isNew
     val locked = state.locked
@@ -120,7 +129,8 @@ fun AssetDetailScreen(state: AssetDetailState, actions: AssetDetailActions, modi
                     val open = { i: Int -> preview = i }
                     when {
                         onInfo -> {
-                            // The photos first, with a + that opens the camera (as the Media tab's Camera, into Other photos).
+                            // The Tags bar first (a new asset has its id already, so it can be tagged too), then the photos, with a + that opens the camera (as the Media tab's Camera, into Other photos).
+                            TagsBar(tags, actions.tags, enabled = !isSubmittedOrSignedOff(asset.st))
                             InfoPhotoStrip(state.media, onAdd = if (locked) null else ({ actions.onAddPhoto(null) }), onOpen = open)
                             // A step that failed or needs a look shows first; tapping it opens the Validation tab.
                             ValidationBanner(state.validation) { chosen = DetailTabKind.VALIDATION }

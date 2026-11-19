@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.config
 
 import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.OnOffSwitch
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle

@@ -78,6 +78,8 @@ data class Asset(
     val assignedTo: String? = null,
     /** Its manufacturer and model ("Daikin · VRV IV"); empty when neither is filled in. [detail] adds its specs to these. */
     val makeModel: String = "",
+    /** The kinds of tag the synced data says it carries (the assets table's is_qr_tagged, is_barcode_tagged, is_nfc_tagged). */
+    val tagged: Set<TagKind> = emptySet(),
 )
 
 /** A request to reopen a submitted asset: who asked ([requestedBy], a user id), when, and what needs changing. */
