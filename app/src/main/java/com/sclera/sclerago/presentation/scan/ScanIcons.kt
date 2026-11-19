@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.presentation.components.r
-import com.sclera.sclerago.presentation.icons.Icons
+import com.sclera.sclerago.presentation.icons.genericAssetIco
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 
@@ -19,7 +19,7 @@ import com.sclera.sclerago.presentation.theme.C
  */
 @Composable
 fun DeviceIconTile() {
-    Box(Modifier.size(42.dp).clip(r(11)).background(C.Raised), contentAlignment = Alignment.Center) {
-        LineIcon(Icons.Box, 21.dp, C.Yellow, 1.9f)
+    Box(Modifier.size(34.dp).clip(r(9)).background(C.Raised), contentAlignment = Alignment.Center) {
+        LineIcon(genericAssetIco(), 16.dp, C.Yellow, 1.9f)
     }
 }

@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.EmptyNote
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.PageBar
 import com.sclera.sclerago.presentation.components.Pill
@@ -171,30 +173,47 @@ private fun SelectionBar(s: RunReviewUiState, vm: RunReviewViewModel) {
             if (!allShown) Pill(stringResource(R.string.val_select_shown, s.results.size), { vm.selectAllShown(true) }, height = 40.dp, hPad = 14.dp)
             Pill("Clear", vm::clearSelection, height = 40.dp, hPad = 14.dp)
         }
-        DecisionButtons(s.busy, onValidate = { vm.decide(ids, Decision.VALIDATED) }, onRecollect = { vm.askRecollect(ids) }, onExclude = { vm.decide(ids, Decision.EXCLUDED) })
+        val checkOnly = s.results.any { it.assetId in s.selected && it.checkOnly }
+        DecisionButtons(
+            s.busy, onValidate = { vm.decide(ids, Decision.VALIDATED) }, onRecollect = { vm.askRecollect(ids) },
+            onExclude = { vm.decide(ids, Decision.EXCLUDED) }, validateBlocked = checkOnly,
+        )
+        if (checkOnly) Txt(stringResource(R.string.rev_submit_first), 11, 400, C.Muted, maxLines = 2)
     }
 }
 
 @Composable
-internal fun DecisionButtons(busy: Boolean, onValidate: () -> Unit, onRecollect: () -> Unit, onExclude: () -> Unit) {
+internal fun DecisionButtons(
+    busy: Boolean,
+    onValidate: () -> Unit,
+    onRecollect: () -> Unit,
+    onExclude: () -> Unit,
+    /** Some of the assets aren't submitted: marking as validated is off (submit first). */
+    validateBlocked: Boolean = false,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Pill("Validated", { if (!busy) onValidate() }, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700)
-        Pill("Recollect", { if (!busy) onRecollect() }, Modifier.weight(1f), height = 40.dp)
-        Pill("Exclude", { if (!busy) onExclude() }, Modifier.weight(1f), bg = Color(0xFF2A1919), fg = C.Red, height = 40.dp, weight = 700)
+        Pill(
+            stringResource(R.string.rev_mark_validated), { if (!busy && !validateBlocked) onValidate() },
+            Modifier.weight(1f).alpha(if (validateBlocked) 0.4f else 1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700,
+        )
+        Pill(stringResource(R.string.rev_decision_recollect), { if (!busy) onRecollect() }, Modifier.weight(1f), height = 40.dp)
+        Pill(stringResource(R.string.rev_exclude), { if (!busy) onExclude() }, Modifier.weight(1f), bg = Color(0xFF2A1919), fg = C.Red, height = 40.dp, weight = 700)
     }
 }
 
 /** "What should the field team collect again?" before sending assets back to drafts. */
 @Composable
 private fun RecollectSheet(count: Int, s: RunReviewUiState, vm: RunReviewViewModel) {
-    BottomSheet({ vm.askRecollect(null) }) {
-        SheetHeader("Send ${plural(count, "asset", "assets")} back", "They go back to drafts for the field team.") { vm.askRecollect(null) }
-        Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            LabeledInput("Note (optional)", s.recollectNote, vm::setRecollectNote, "What should the field team collect again?", singleLine = false, minLines = 3)
-        }
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp).topBorder(C.Border).padding(horizontal = 10.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Cancel", { vm.askRecollect(null) }, height = 40.dp, hPad = 18.dp)
-            Pill("Send for recollection", { if (!s.busy) vm.sendRecollect() }, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700)
+    GuardedClose(s.recollectNote.isNotBlank(), { vm.askRecollect(null) }) { close ->
+        BottomSheet(close) {
+            SheetHeader("Send ${plural(count, "asset", "assets")} back", "They go back to drafts for the field team.", close)
+            Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LabeledInput("Note (optional)", s.recollectNote, vm::setRecollectNote, "What should the field team collect again?", singleLine = false, minLines = 3)
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp).topBorder(C.Border).padding(horizontal = 10.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill("Cancel", close, height = 40.dp, hPad = 18.dp)
+                Pill("Send for recollection", { if (!s.busy) vm.sendRecollect() }, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700)
+            }
         }
     }
 }

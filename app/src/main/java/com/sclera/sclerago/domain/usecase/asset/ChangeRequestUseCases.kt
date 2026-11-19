@@ -50,12 +50,16 @@ class CloseChangeRequestUseCase @Inject constructor(private val repo: ChangeRequ
 private fun isMine(guard: PermissionGuard, request: ChangeRequest?): Boolean =
     request?.requestedBy != null && request.requestedBy == guard.userId()
 
-/** A change-request action on several assets at once (the web's selection bar). */
-/** APPROVE: the admin's yes to a change request (back to draft, assigned to whoever asked). */
-enum class ChangeAction { APPROVE, MOVE_TO_DRAFT, DECLINE, REQUEST, UPDATE_REQUEST, WITHDRAW }
+/**
+ * A status action on several assets at once (the web's selection bar). APPROVE: the admin's yes to a change request (back
+ * to draft, assigned to whoever asked). MARK_VALIDATED: an admin signs submitted assets off without a validation run.
+ */
+enum class ChangeAction { MARK_VALIDATED, APPROVE, MOVE_TO_DRAFT, DECLINE, REQUEST, UPDATE_REQUEST, WITHDRAW }
 
 /** Why an action is offered but can't be used for these assets (the web's disabledReason). */
-enum class ChangeActionBlock { NOT_ALL_SUBMITTED, NOT_ALL_REQUESTED, NOT_ALL_EXCEPTIONS, ASSIGNED_ELSEWHERE, SOME_ARE_DRAFTS }
+enum class ChangeActionBlock {
+    NOT_ALL_SUBMITTED, NOT_ALL_REQUESTED, NOT_ALL_EXCEPTIONS, ASSIGNED_ELSEWHERE, SOME_ARE_DRAFTS, SIGN_OFF_NOT_SUBMITTED,
+}
 
 /** One action offered for the selection; [blocked] says why it can't be used (null: it can). */
 data class ChangeActionOption(val action: ChangeAction, val blocked: ChangeActionBlock? = null)
@@ -109,10 +113,16 @@ class ApplyChangeActionUseCase @Inject constructor(
     private val request: RequestChangeUseCase,
     private val close: CloseChangeRequestUseCase,
     private val setStatus: SetAssetStatusUseCase,
+    private val markValidated: MarkAssetsValidatedUseCase,
 ) {
     data class Result(val done: Int, val failed: Int)
 
     suspend operator fun invoke(action: ChangeAction, assets: List<Asset>, note: String = ""): Result {
+        // One sign-off for the lot, as the web's bulk validate: those not signed off (not submitted) count as failed.
+        if (action == ChangeAction.MARK_VALIDATED) {
+            val done = markValidated(assets.map { it.id }).validated
+            return Result(done, assets.size - done)
+        }
         var done = 0
         assets.forEach { asset ->
             try {
@@ -121,6 +131,7 @@ class ApplyChangeActionUseCase @Inject constructor(
                     ChangeAction.DECLINE, ChangeAction.WITHDRAW -> close(asset.id, asset.changeRequest ?: throw DataException(DataError.FAILED))
                     // Back in draft approves an open request: the writer gives the asset to whoever asked.
                     ChangeAction.APPROVE, ChangeAction.MOVE_TO_DRAFT -> setStatus(listOf(asset.id), Status.DRAFT)
+                    ChangeAction.MARK_VALIDATED -> Unit // signed off above, all at once
                 }
                 done++
             } catch (_: DataException) {
@@ -136,6 +147,8 @@ class ChangeRequestUseCases @Inject constructor(
     val request: RequestChangeUseCase,
     val close: CloseChangeRequestUseCase,
     val actions: ChangeRequestActionsUseCase,
+    val signOff: SignOffActionUseCase,
+    val markValidated: MarkAssetsValidatedUseCase,
     val apply: ApplyChangeActionUseCase,
     private val guard: PermissionGuard,
     private val access: AccessRepository,

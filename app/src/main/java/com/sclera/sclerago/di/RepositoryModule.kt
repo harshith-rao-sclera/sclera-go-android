@@ -5,7 +5,9 @@ import com.sclera.sclerago.data.repository.FileRepositoryImpl
 import com.sclera.sclerago.data.repository.OnlineAutofillRepository
 import com.sclera.sclerago.domain.repository.AutofillRepository
 import com.sclera.sclerago.domain.repository.FileRepository
+import com.sclera.sclerago.data.repository.AssetSignOffRepositoryImpl
 import com.sclera.sclerago.data.repository.ChangeRequestRepositoryImpl
+import com.sclera.sclerago.domain.repository.AssetSignOffRepository
 import com.sclera.sclerago.data.repository.SyncManagerPropertyDownloads
 import com.sclera.sclerago.domain.repository.ChangeRequestRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
@@ -33,6 +35,7 @@ abstract class RepositoryModule {
 abstract class PropertyDownloadModule {
     @Binds abstract fun propertyDownloads(impl: SyncManagerPropertyDownloads): PropertyDownloadRepository
     @Binds abstract fun changeRequests(impl: ChangeRequestRepositoryImpl): ChangeRequestRepository
+    @Binds abstract fun signOff(impl: AssetSignOffRepositoryImpl): AssetSignOffRepository
     @Binds @IntoSet abstract fun clearPropertyDownloads(impl: SyncManagerPropertyDownloads): UserDataCleaner
 }
 

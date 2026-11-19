@@ -1,31 +1,38 @@
 package com.sclera.sclerago.presentation.property
 
-import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.Property
-import com.sclera.sclerago.domain.usecase.media.WritePropertyTemplateUseCase
+import com.sclera.sclerago.domain.model.PropertyDownload
+import com.sclera.sclerago.domain.model.PropertyDownloads
 import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
+import com.sclera.sclerago.domain.usecase.property.AddressUseCases
+import com.sclera.sclerago.domain.usecase.property.DeletePropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.FilterPropertySummariesUseCase
+import com.sclera.sclerago.domain.usecase.property.GetPropertyUseCase
+import com.sclera.sclerago.domain.usecase.property.ObserveCanManagePropertiesUseCase
 import com.sclera.sclerago.domain.usecase.property.ObserveOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertiesUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertySummariesUseCase
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.property.RefreshPropertiesUseCase
 import com.sclera.sclerago.domain.usecase.property.SetOnboardingUseCase
-import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
+import com.sclera.sclerago.domain.usecase.property.SuggestCitiesUseCase
+import com.sclera.sclerago.domain.usecase.property.SuggestCountriesUseCase
+import com.sclera.sclerago.domain.usecase.property.SuggestStatesUseCase
+import com.sclera.sclerago.domain.usecase.property.UpdatePropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.ValidatePropertyUseCase
 import com.sclera.sclerago.presentation.common.UiText
-import com.sclera.sclerago.domain.model.PropertyDownload
-import com.sclera.sclerago.domain.model.PropertyDownloads
+import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.testutil.FakeCatalogRepository
 import com.sclera.sclerago.testutil.FakeFileRepository
-import com.sclera.sclerago.testutil.NoOnboarding
-import com.sclera.sclerago.testutil.allowAllGuard
 import com.sclera.sclerago.testutil.FakeNetworkMonitor
 import com.sclera.sclerago.testutil.FakePropertyDownloads
 import com.sclera.sclerago.testutil.FakePropertyRepository
+import com.sclera.sclerago.testutil.NoAddresses
+import com.sclera.sclerago.testutil.NoOnboarding
 import com.sclera.sclerago.testutil.SAMPLE_PROPERTIES
+import com.sclera.sclerago.testutil.allowAllGuard
 import com.sclera.sclerago.testutil.propertyDownloadUseCases
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,7 +46,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.io.ByteArrayOutputStream
 
 /** ViewModel → use cases → the real in-memory repositories. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -56,14 +62,16 @@ class PropertyViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val onboarding = NoOnboarding()
         val guard = allowAllGuard()
+        val addresses = NoAddresses()
         vm = PropertyViewModel(
             PropertyUseCases(
-                ObservePropertiesUseCase(properties), AddPropertyUseCase(properties, guard), ValidatePropertyUseCase(properties),
+                ObservePropertiesUseCase(properties), AddPropertyUseCase(properties, guard), ValidatePropertyUseCase(),
                 RefreshPropertiesUseCase(properties), ObserveOnboardingUseCase(onboarding), SetOnboardingUseCase(onboarding, guard),
-                ObservePropertySummariesUseCase(properties, assets), FilterPropertySummariesUseCase(), ValidateImportFileUseCase(),
+                ObservePropertySummariesUseCase(properties, assets), FilterPropertySummariesUseCase(), ObserveCanManagePropertiesUseCase(guard),
+                GetPropertyUseCase(properties), UpdatePropertyUseCase(properties), DeletePropertyUseCase(properties),
             ),
-            WritePropertyTemplateUseCase(files),
             propertyDownloadUseCases(downloads, network),
+            AddressUseCases(SuggestCountriesUseCase(addresses), SuggestStatesUseCase(addresses), SuggestCitiesUseCase(addresses)),
         )
     }
 
@@ -105,51 +113,23 @@ class PropertyViewModelTest {
     }
 
     @Test
-    fun addProperty_validDraft_addsItClosesTheSheetAndSetsANotice() {
+    fun addProperty_validDraft_addsItAndClosesTheSheet() {
         vm.openAdd()
         assertNull(vm.addProperty(Property("", "Depot", false, type = "Warehouse")))
         val s = vm.state.value
         assertFalse(s.addOpen)
         assertTrue(s.rows.any { it.property.name == "Depot" && it.assets == 0 })
-        assertEquals(UiText.Res(R.string.property_added, listOf("Depot")), s.notice)
-        vm.consumeNotice()
-        assertNull(vm.state.value.notice)
     }
 
     @Test
     fun addProperty_invalidDraft_returnsWhyAndChangesNothing() {
         vm.openAdd()
         val before = vm.state.value.propertyTotal
-        assertEquals(UiText.Res(R.string.property_problem_name), vm.addProperty(Property("", " ", false, type = "Office")))
-        assertEquals(UiText.Res(R.string.property_problem_type), vm.addProperty(Property("", "New", false)))
-        assertEquals(
-            UiText.Res(R.string.property_problem_duplicate, listOf("test 861")),
-            vm.addProperty(Property("", " test 861 ", false, type = "Office")),
-        )
+        assertEquals(UiText.Res(R.string.property_fill_required), vm.addProperty(Property("", " ", false, type = "Office")))
+        assertEquals(UiText.Res(R.string.property_fill_required), vm.addProperty(Property("", "New", false, type = "")))
         assertEquals(before, vm.state.value.propertyTotal)
         assertTrue(vm.state.value.addOpen)
         assertNull(vm.state.value.notice)
-    }
-
-    @Test
-    fun importProblem_mapsTheRulesToMessages() {
-        assertNull(vm.importProblem("sites.xlsx", 10))
-        assertEquals(UiText.Res(R.string.import_error_type), vm.importProblem("sites.csv", 10))
-        assertEquals(UiText.Res(R.string.import_error_size), vm.importProblem("sites.xlsx", 101L * 1024 * 1024))
-    }
-
-    @Test
-    fun importFile_closesTheSheetAndSaysImportIsNotConnected() {
-        vm.openImport()
-        vm.importFile("sites.xlsx")
-        assertFalse(vm.state.value.importOpen)
-        assertEquals(UiText.Res(R.string.property_import_notice, listOf("sites.xlsx")), vm.state.value.notice)
-    }
-
-    @Test
-    fun writeSample_asksTheFileRepositoryForTheTemplate() {
-        vm.writeSample(ByteArrayOutputStream())
-        assertTrue(files.templateWritten)
     }
 
     // ---- Downloads

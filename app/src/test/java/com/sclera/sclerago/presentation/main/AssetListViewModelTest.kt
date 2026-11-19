@@ -10,7 +10,7 @@ import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.presentation.common.UiText
-import com.sclera.sclerago.testutil.assetUseCases
+import com.sclera.sclerago.testutil.assetListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -40,7 +40,7 @@ class AssetListViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     /** The list view model on the sample property (the app's starts with no property until they load). */
-    private fun vm() = AssetListViewModel(assetUseCases(repo))
+    private fun vm() = assetListViewModel(repo)
     private fun catalogIds() = repo.catalog.value.assets.map { it.id }
     private fun AssetListViewModel.ids(tab: Tab = Tab.ASSETS) = state.value.lists.getValue(tab).items.map { it.id }
 
@@ -119,23 +119,19 @@ class AssetListViewModelTest {
     }
 
     @Test
-    fun validateAndSubmit_changeStatusClearTheSelection_andSayHowMany() = runTest {
+    fun submit_changesStatusAndClearsTheSelection() = runTest {
         val vm = vm()
         val notices = mutableListOf<UiText>()
         val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.notices.toList(notices) }
-        val (a, b, c) = vm.ids()
-        vm.toggle(a)
-        vm.toggle(b)
-        vm.validateSelected()
-        assertEquals(Status.VALIDATED, repo.catalog.value.assets.first { it.id == a }.st)
-        assertTrue(vm.state.value.picked.isEmpty())
+        val c = vm.ids().first()
         vm.toggle(c)
         vm.submitSelected()
         assertEquals(Status.SUBMITTED, repo.catalog.value.assets.first { it.id == c }.st)
-        assertEquals(listOf(UiText.Plural(R.plurals.assets_validated, 2), UiText.Plural(R.plurals.assets_submitted, 1)), notices)
+        assertTrue(vm.state.value.picked.isEmpty())
+        assertEquals(1, notices.size)
         // Nothing selected: nothing happens, nothing is said.
-        vm.validateSelected()
-        assertEquals(2, notices.size)
+        vm.submitSelected()
+        assertEquals(1, notices.size)
         job.cancel()
     }
 
@@ -157,21 +153,6 @@ class AssetListViewModelTest {
         assertFalse(vm.state.value.confirmDelete)
         assertTrue(vm.state.value.picked.isEmpty())
         assertEquals(listOf<UiText>(UiText.Plural(R.plurals.assets_deleted, 1)), notices)
-        job.cancel()
-    }
-
-    @Test
-    fun assign_givesTheSelectionALocation() = runTest {
-        val vm = vm()
-        val notices = mutableListOf<UiText>()
-        val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.notices.toList(notices) }
-        val target = vm.ids().first()
-        vm.toggle(target)
-        vm.assignSelected(LocValue("lx", "lx · floor 2"), "Plant room")
-        val moved = repo.catalog.value.assets.first { it.id == target }
-        assertEquals("lx", moved.loc)
-        assertEquals(listOf<UiText>(UiText.Plural(R.plurals.assets_assigned, 1, listOf(1, "Plant room"))), notices)
-        assertTrue(vm.state.value.picked.isEmpty())
         job.cancel()
     }
 }

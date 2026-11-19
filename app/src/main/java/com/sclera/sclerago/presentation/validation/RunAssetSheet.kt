@@ -46,6 +46,7 @@ import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.CloseButton
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.RadioDot
@@ -76,50 +77,52 @@ internal fun RunAssetSheet(
     onOpenAsset: (String) -> Unit,
 ) {
     val res = s.panelResult
-    val close = { vm.openAsset(null) }
+    val leave = { vm.openAsset(null) }
     val local = assets.firstOrNull { it.id == p.assetId }
     val locked = local != null && isLockedFor(local.st, isAdmin = s.canValidate)
     var tab by rememberSaveable(p.assetId) { mutableIntStateOf(0) }
-    BottomSheet(close, maxHeightFraction = 0.95f) {
-        val name = res?.assetName?.takeIf { it.isNotBlank() } ?: local?.name ?: stringResource(R.string.val_unnamed)
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
-            Txt(name, 18, 800, modifier = Modifier.weight(1f).padding(top = 6.dp), maxLines = 2)
-            CloseButton(close, size = 36.dp, iconSize = 16.dp)
-        }
-        Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (res != null) {
-                val first = run.steps.indexOfFirst { res.outcomeOf(it).problem }.takeIf { it >= 0 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (res.outcome != StepOutcome.SKIPPED) {
-                        SmallChip(outcomeLabel(res.outcome), outcomeColor(res.outcome), outcomeColor(res.outcome).copy(alpha = 0.16f))
-                    }
-                    Txt(
-                        first?.let { stringResource(R.string.rev_first_problem, it + 1, stepShort(steps, run.steps[it])) }
-                            ?: stringResource(R.string.rev_passed_every),
-                        11, 500, C.Muted, Modifier.weight(1f), maxLines = 2,
-                    )
-                }
-                val open = if (p.loading) res.openCount else p.issues.count { it.status == IssueStatus.OPEN }
-                DecisionRow(res.decision, res.decisionNote, open, s, p, vm)
+    GuardedClose(p.typed.values.any { it.isNotBlank() }, leave) { close ->
+        BottomSheet(close, maxHeightFraction = 0.95f) {
+            val name = res?.assetName?.takeIf { it.isNotBlank() } ?: local?.name ?: stringResource(R.string.val_unnamed)
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
+                Txt(name, 18, 800, modifier = Modifier.weight(1f).padding(top = 6.dp), maxLines = 2)
+                CloseButton(close, size = 36.dp, iconSize = 16.dp)
             }
-            ReviewAssetStrip(name, local, propName, p.info)
-            Segmented(
-                listOf(stringResource(R.string.rev_tab_checks), stringResource(R.string.rev_tab_info)), tab, { tab = it },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (tab == 1) {
-                ReviewAssetInfoTab(local, p.info, p.infoLoading, onOpenAsset)
-            } else {
-                if (p.loading) Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
-                run.steps.forEachIndexed { i, key ->
-                    val issues = p.issues.filter { it.step == key }
-                    StepBlock(i, key, steps, res?.outcomeOf(key) ?: StepOutcome.SKIPPED, issues, p, s, vm, locked)
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (res != null) {
+                    val first = run.steps.indexOfFirst { res.outcomeOf(it).problem }.takeIf { it >= 0 }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (res.outcome != StepOutcome.SKIPPED) {
+                            SmallChip(outcomeLabel(res.outcome), outcomeColor(res.outcome), outcomeColor(res.outcome).copy(alpha = 0.16f))
+                        }
+                        Txt(
+                            first?.let { stringResource(R.string.rev_first_problem, it + 1, stepShort(steps, run.steps[it])) }
+                                ?: stringResource(R.string.rev_passed_every),
+                            11, 500, C.Muted, Modifier.weight(1f), maxLines = 2,
+                        )
+                    }
+                    val open = if (p.loading) res.openCount else p.issues.count { it.status == IssueStatus.OPEN }
+                    DecisionRow(res.decision, res.decisionNote, open, s, p, vm, checkOnly = res.checkOnly)
                 }
-                // Issues of a step the run no longer lists (e.g. a renamed check) still show.
-                p.issues.filter { it.step !in run.steps }.forEach { IssueRow(it, p, s, vm, locked) }
+                ReviewAssetStrip(name, local, propName, p.info)
+                Segmented(
+                    listOf(stringResource(R.string.rev_tab_checks), stringResource(R.string.rev_tab_info)), tab, { tab = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (tab == 1) {
+                    ReviewAssetInfoTab(local, p.info, p.infoLoading, onOpenAsset)
+                } else {
+                    if (p.loading) Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
+                    run.steps.forEachIndexed { i, key ->
+                        val issues = p.issues.filter { it.step == key }
+                        StepBlock(i, key, steps, res?.outcomeOf(key) ?: StepOutcome.SKIPPED, issues, p, s, vm, locked)
+                    }
+                    // Issues of a step the run no longer lists (e.g. a renamed check) still show.
+                    p.issues.filter { it.step !in run.steps }.forEach { IssueRow(it, p, s, vm, locked) }
+                }
             }
         }
     }
@@ -127,7 +130,16 @@ internal fun RunAssetSheet(
 
 /** Mark as validated, Recollect or Exclude (reviewers), with how many issues are still open; or the decision made. */
 @Composable
-private fun DecisionRow(decision: Decision?, note: String?, open: Int, s: RunReviewUiState, p: AssetPanelState, vm: RunReviewViewModel) {
+private fun DecisionRow(
+    decision: Decision?,
+    note: String?,
+    open: Int,
+    s: RunReviewUiState,
+    p: AssetPanelState,
+    vm: RunReviewViewModel,
+    /** A draft or exception: the run is a check, so Mark as validated is off until it is submitted (as the web). */
+    checkOnly: Boolean = false,
+) {
     when {
         decision != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SmallChip(decisionLabel(decision), decisionColor(decision), decisionColor(decision).copy(alpha = 0.16f))
@@ -139,11 +151,15 @@ private fun DecisionRow(decision: Decision?, note: String?, open: Int, s: RunRev
         !s.canValidate -> Txt(stringResource(R.string.rev_reviewer_signs_off), 12, 400, C.Muted, maxLines = 3)
         else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill(stringResource(R.string.rev_mark_validated), { if (!s.busy) vm.decide(listOf(p.assetId), Decision.VALIDATED) }, height = 38.dp, hPad = 14.dp, size = 12, weight = 700)
+                Pill(
+                    stringResource(R.string.rev_mark_validated), { if (!s.busy && !checkOnly) vm.decide(listOf(p.assetId), Decision.VALIDATED) },
+                    Modifier.alpha(if (checkOnly) 0.4f else 1f), height = 38.dp, hPad = 14.dp, size = 12, weight = 700,
+                )
                 Pill(stringResource(R.string.rev_decision_recollect), { if (!s.busy) vm.askRecollect(listOf(p.assetId)) }, height = 38.dp, hPad = 14.dp, size = 12, weight = 700)
                 Pill(stringResource(R.string.rev_exclude), { if (!s.busy) vm.decide(listOf(p.assetId), Decision.EXCLUDED) }, height = 38.dp, hPad = 14.dp, size = 12, weight = 700)
             }
-            if (open > 0) Txt(pluralStringResource(R.plurals.rev_fix_to_validate, open, open), 11, 400, C.Muted, maxLines = 2)
+            if (checkOnly) Txt(stringResource(R.string.rev_check_only_hint), 11, 400, C.Muted, maxLines = 3)
+            else if (open > 0) Txt(pluralStringResource(R.plurals.rev_fix_to_validate, open, open), 11, 400, C.Muted, maxLines = 2)
         }
     }
 }
@@ -327,57 +343,59 @@ private fun ClosedIssue(issue: RunIssue, s: RunReviewUiState, vm: RunReviewViewM
 @Composable
 internal fun MergeSheet(m: MergeState, s: RunReviewUiState, vm: RunReviewViewModel) {
     val names = s.fields.associate { it.id to it.name }
-    BottomSheet(vm::closeMerge, maxHeightFraction = 0.95f) {
-        SheetHeader(stringResource(R.string.rev_merge_title), stringResource(R.string.rev_merge_sub), vm::closeMerge)
-        Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (m.loading) Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
-            if (m.assets.isNotEmpty()) Txt(stringResource(R.string.rev_merge_keep), 12, 700, C.Yellow)
-            m.assets.forEach { a ->
-                OptionCard(a.name.ifBlank { stringResource(R.string.val_unnamed) }, a.place, m.keepId == a.id, { vm.setMergeKeep(a.id) })
-            }
-            val differing = m.differing
-            if (m.assets.isNotEmpty()) {
-                Txt(stringResource(R.string.rev_merge_differ), 12, 700, C.Yellow, Modifier.padding(top = 8.dp))
-                if (differing.isEmpty()) Txt(stringResource(R.string.rev_merge_same), 12, 400, C.Muted)
-            }
-            differing.forEach { f ->
-                Column(
-                    Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Txt(names[f] ?: stringResource(R.string.rev_field), 12, 700, C.Soft)
-                    m.assets.forEach { a ->
-                        val v = a.values[f]?.text.orEmpty()
-                        val on = m.choice[f] == a.id
-                        Row(
-                            Modifier.fillMaxWidth().clip(r(8)).clickable(role = Role.RadioButton) { vm.chooseMergeValue(f, a.id) }
-                                .heightIn(min = 44.dp).padding(horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            RadioDot(on)
-                            Column(Modifier.weight(1f)) {
-                                Txt(v.ifBlank { stringResource(R.string.rev_empty) }, 12, 600, if (v.isBlank()) C.Muted else C.Text, maxLines = 3)
-                                Txt(a.name, 10, 400, C.Muted)
+    GuardedClose(m.changed, vm::closeMerge) { close ->
+        BottomSheet(close, maxHeightFraction = 0.95f) {
+            SheetHeader(stringResource(R.string.rev_merge_title), stringResource(R.string.rev_merge_sub), close)
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (m.loading) Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
+                if (m.assets.isNotEmpty()) Txt(stringResource(R.string.rev_merge_keep), 12, 700, C.Yellow)
+                m.assets.forEach { a ->
+                    OptionCard(a.name.ifBlank { stringResource(R.string.val_unnamed) }, a.place, m.keepId == a.id, { vm.setMergeKeep(a.id) })
+                }
+                val differing = m.differing
+                if (m.assets.isNotEmpty()) {
+                    Txt(stringResource(R.string.rev_merge_differ), 12, 700, C.Yellow, Modifier.padding(top = 8.dp))
+                    if (differing.isEmpty()) Txt(stringResource(R.string.rev_merge_same), 12, 400, C.Muted)
+                }
+                differing.forEach { f ->
+                    Column(
+                        Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Txt(names[f] ?: stringResource(R.string.rev_field), 12, 700, C.Soft)
+                        m.assets.forEach { a ->
+                            val v = a.values[f]?.text.orEmpty()
+                            val on = m.choice[f] == a.id
+                            Row(
+                                Modifier.fillMaxWidth().clip(r(8)).clickable(role = Role.RadioButton) { vm.chooseMergeValue(f, a.id) }
+                                    .heightIn(min = 44.dp).padding(horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                RadioDot(on)
+                                Column(Modifier.weight(1f)) {
+                                    Txt(v.ifBlank { stringResource(R.string.rev_empty) }, 12, 600, if (v.isBlank()) C.Muted else C.Text, maxLines = 3)
+                                    Txt(a.name, 10, 400, C.Muted)
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-        if (m.assets.size > 1) {
-            val gone = m.assets.size - 1
-            Txt(
-                pluralStringResource(R.plurals.rev_merge_deleted, gone, gone), 11, 400, C.Muted,
-                Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 8.dp),
-            )
-        }
-        Row(Modifier.fillMaxWidth().then(if (m.assets.size > 1) Modifier else Modifier.topBorder(C.Border)).padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill(stringResource(R.string.val_cancel), vm::closeMerge, height = 44.dp)
-            YellowButton(stringResource(R.string.rev_merge_button), vm::merge, Modifier.weight(1f), enabled = !m.loading && !m.saving && m.keepId != null)
+            if (m.assets.size > 1) {
+                val gone = m.assets.size - 1
+                Txt(
+                    pluralStringResource(R.plurals.rev_merge_deleted, gone, gone), 11, 400, C.Muted,
+                    Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                )
+            }
+            Row(Modifier.fillMaxWidth().then(if (m.assets.size > 1) Modifier else Modifier.topBorder(C.Border)).padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill(stringResource(R.string.val_cancel), close, height = 44.dp)
+                YellowButton(stringResource(R.string.rev_merge_button), vm::merge, Modifier.weight(1f), enabled = !m.loading && !m.saving && m.keepId != null)
+            }
         }
     }
 }

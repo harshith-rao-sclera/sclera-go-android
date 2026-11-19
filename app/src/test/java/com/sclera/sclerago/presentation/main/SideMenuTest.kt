@@ -38,13 +38,12 @@ class SideMenuTest {
     private fun show(
         active: MenuItem = MenuItem.ASSETS,
         session: UserSession? = SampleSession,
-        validationCount: Int = 4,
         open: Boolean = true,
     ) {
         compose.setContent {
             ScleraTheme {
                 SideMenuPanel(
-                    open, session, "Test 861", assetCount = 25, validationCount = validationCount, active = active,
+                    open, session, "Test 861", assetCount = 25, active = active,
                     onClose = { closed++ }, onPick = { picked += it }, onSignOut = { signedOut++ },
                 )
             }

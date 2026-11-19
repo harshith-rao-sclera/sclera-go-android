@@ -72,7 +72,9 @@ fun LocationPicker(
     fun countOf(n: LocNode): Int = if (n.kind == NodeKind.LOCATION) n.count else n.kids.orEmpty().sumOf { countOf(it) }
     fun leaves(n: LocNode): List<String> = if (n.kind == NodeKind.LOCATION) listOf(n.name) else n.kids.orEmpty().flatMap { leaves(it) }
 
-    var sel by remember { mutableStateOf(if (byId.containsKey(startSel)) startSel else null) }
+    // What it opened on: another place picked but not confirmed makes closing ask before discarding it.
+    val startPick = if (byId.containsKey(startSel)) startSel else null
+    var sel by remember { mutableStateOf(startPick) }
     var open by remember { mutableStateOf(sel?.let { s -> chain(s).filter { it.kids != null }.map { it.id }.toSet() } ?: emptySet()) }
     var q by remember { mutableStateOf("") }
     val ql = q.trim().lowercase()
@@ -108,110 +110,112 @@ fun LocationPicker(
         else -> ""
     }
 
-    BackHandler(onBack = onClose)
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onClose).statusBarsPadding()) {
-        Column(
-            (if (isTablet()) sheetFrame(C.Surface, heightFraction = 0.9f, fill = true)
-            else Modifier.padding(top = 40.dp).fillMaxSize().clip(SheetShape).background(C.Surface).topBorder(C.Border)
-                .noRippleClick { }.navigationBarsPadding()).imePadding(),
-        ) {
-            Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt("Select location", 17, 700)
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            LineIcon(Icons.Property, 13.dp, C.Muted, 2.2f)
-                            Txt(propName, 11, 500, C.Muted)
-                        }
-                    }
-                    CloseButton(onClose)
-                }
-                if (tree.isNotEmpty()) {
-                    SearchField(q, { q = it }, "Search building, floor or location")
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        itemVerticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        selChain.forEachIndexed { i, n ->
-                            if (i > 0) LineIcon(Icons.ChevronRight, 12.dp, C.Dim, 2.6f)
-                            val last = i == selChain.size - 1
-                            Box(
-                                Modifier.heightIn(min = 32.dp).clip(Capsule).background(if (last) C.YTintBg else C.Raised)
-                                    .border(1.dp, if (last) C.YTintBd else C.ChipBd, Capsule).clickable { pick(n.id) }
-                                    .padding(horizontal = 10.dp),
-                                contentAlignment = Alignment.Center,
-                            ) { Txt(n.name, 11, 600, if (last) C.Yellow else C.Text) }
-                        }
-                    }
-                }
-            }
-
-            LazyColumn(
-                Modifier.weight(1f),
-                contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(if (ql.isNotEmpty()) 4.dp else 2.dp),
+    GuardedClose(sel != startPick, onClose) { close ->
+        BackHandler(onBack = close)
+        Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(close).statusBarsPadding()) {
+            Column(
+                Modifier.swipeDownToClose(close).then(if (isTablet()) sheetFrame(C.Surface, heightFraction = 0.9f, fill = true)
+                else Modifier.padding(top = 40.dp).fillMaxSize().clip(SheetShape).background(C.Surface).topBorder(C.Border)
+                    .noRippleClick { }.navigationBarsPadding()).imePadding(),
             ) {
-                if (ql.isNotEmpty()) {
-                    items(results, key = { "r-" + it.id }) { n ->
-                        val c = chain(n.id)
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(r(12)).clickable { pick(n.id) }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Txt("Select location", 17, 700)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                LineIcon(Icons.Property, 13.dp, C.Muted, 2.2f)
+                                Txt(propName, 11, 500, C.Muted)
+                            }
+                        }
+                        CloseButton(close)
+                    }
+                    if (tree.isNotEmpty()) {
+                        SearchField(q, { q = it }, "Search building, floor or location")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            itemVerticalAlignment = Alignment.CenterVertically,
                         ) {
-                            KindIcon(n.kind, C.Yellow)
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Txt(n.name, 14, 600)
-                                Txt(if (c.size > 1) c.dropLast(1).joinToString(" › ") { it.name } else "Building", 11, 400, C.Muted)
+                            selChain.forEachIndexed { i, n ->
+                                if (i > 0) LineIcon(Icons.ChevronRight, 12.dp, C.Dim, 2.6f)
+                                val last = i == selChain.size - 1
+                                Box(
+                                    Modifier.heightIn(min = 32.dp).clip(Capsule).background(if (last) C.YTintBg else C.Raised)
+                                        .border(1.dp, if (last) C.YTintBd else C.ChipBd, Capsule).clickable { pick(n.id) }
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) { Txt(n.name, 11, 600, if (last) C.Yellow else C.Text) }
                             }
                         }
                     }
-                } else {
-                    items(rows, key = { if (it is TreeRow.Node) it.node.id else "e-" + (it as TreeRow.Empty).depth + it.text }) { row ->
-                        when (row) {
-                            is TreeRow.Empty -> Txt(
-                                row.text, 12, 400, Color(0xFF8B8F97),
-                                Modifier.heightIn(min = 40.dp).padding(start = (4 + row.depth * 20 + 36).dp).wrapContentHeight(),
-                            )
-                            is TreeRow.Node -> TreeNodeRow(
-                                row.node, row.depth, row.node.id == sel, row.node.id in onPath, row.node.id in open,
-                                subFor(row.node), countOf(row.node),
-                                onToggle = { open = open.toggle(row.node.id) },
-                                onPick = { pick(row.node.id) },
-                            )
+                }
+
+                LazyColumn(
+                    Modifier.weight(1f),
+                    contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (ql.isNotEmpty()) 4.dp else 2.dp),
+                ) {
+                    if (ql.isNotEmpty()) {
+                        items(results, key = { "r-" + it.id }) { n ->
+                            val c = chain(n.id)
+                            Row(
+                                Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(r(12)).clickable { pick(n.id) }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                KindIcon(n.kind, C.Yellow)
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Txt(n.name, 14, 600)
+                                    Txt(if (c.size > 1) c.dropLast(1).joinToString(" › ") { it.name } else "Building", 11, 400, C.Muted)
+                                }
+                            }
+                        }
+                    } else {
+                        items(rows, key = { if (it is TreeRow.Node) it.node.id else "e-" + (it as TreeRow.Empty).depth + it.text }) { row ->
+                            when (row) {
+                                is TreeRow.Empty -> Txt(
+                                    row.text, 12, 400, Color(0xFF8B8F97),
+                                    Modifier.heightIn(min = 40.dp).padding(start = (4 + row.depth * 20 + 36).dp).wrapContentHeight(),
+                                )
+                                is TreeRow.Node -> TreeNodeRow(
+                                    row.node, row.depth, row.node.id == sel, row.node.id in onPath, row.node.id in open,
+                                    subFor(row.node), countOf(row.node),
+                                    onToggle = { open = open.toggle(row.node.id) },
+                                    onPick = { pick(row.node.id) },
+                                )
+                            }
                         }
                     }
+                    if (emptyText.isNotEmpty()) item { Txt(emptyText, 13, 400, C.Muted, Modifier.padding(10.dp, 16.dp), maxLines = 3) }
                 }
-                if (emptyText.isNotEmpty()) item { Txt(emptyText, 13, 400, C.Muted, Modifier.padding(10.dp, 16.dp), maxLines = 3) }
-            }
 
-            Row(
-                Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt("SELECTED", 10, 500, C.Muted, spacing = 0.6f)
-                    Txt(node?.name ?: "Nothing selected", 15, 700)
-                    Txt(
-                        if (node == null) "Pick a building, floor or location"
-                        else if (selChain.size > 1) names.dropLast(1).joinToString(" › ") else "Whole building",
-                        11, 400, C.Muted,
+                Row(
+                    Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Txt("SELECTED", 10, 500, C.Muted, spacing = 0.6f)
+                        Txt(node?.name ?: "Nothing selected", 15, 700)
+                        Txt(
+                            if (node == null) "Pick a building, floor or location"
+                            else if (selChain.size > 1) names.dropLast(1).joinToString(" › ") else "Whole building",
+                            11, 400, C.Muted,
+                        )
+                    }
+                    Pill(
+                        "Confirm",
+                        {
+                            node?.let {
+                                onPick(LocPick(it.id, it.name, leaves(it), names.reversed().take(2).joinToString(" · "), names))
+                            }
+                        },
+                        bg = if (node != null) C.Yellow else C.Raised, fg = if (node != null) C.OnYellow else C.Muted,
+                        height = 48.dp, hPad = 22.dp, size = 14, weight = 700,
                     )
                 }
-                Pill(
-                    "Confirm",
-                    {
-                        node?.let {
-                            onPick(LocPick(it.id, it.name, leaves(it), names.reversed().take(2).joinToString(" · "), names))
-                        }
-                    },
-                    bg = if (node != null) C.Yellow else C.Raised, fg = if (node != null) C.OnYellow else C.Muted,
-                    height = 48.dp, hPad = 22.dp, size = 14, weight = 700,
-                )
             }
         }
     }

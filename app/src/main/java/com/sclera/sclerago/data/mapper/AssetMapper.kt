@@ -15,6 +15,12 @@ import com.sclera.sclerago.domain.model.typeOf
 /** Standard fields that are columns of the assets table, as app field key to column. */
 private val ASSET_COLUMNS = mapOf("name" to "name", "make" to "manufacturer", "model" to "model", "serial" to "serial_number")
 
+/**
+ * The Description field's `assets` column, which the server adds as a built-in field. A database downloaded before has
+ * no such column: there Description stays in `asset_values` with the other added fields (check with hasColumn).
+ */
+const val DESCRIPTION_COLUMN = "description"
+
 /** An answer below this confidence is shown as "low confidence" on the details screen. */
 private const val LOW_CONFIDENCE = 0.7
 
@@ -84,6 +90,8 @@ fun DbRow.toAssetDetails(valuesRow: DbRow? = null, format: MasterFormat? = null)
             it.subtype?.let { t -> put("sub", t) }
         }
         valuesRow?.let { putAll(DbJson.stringMap(it.answersJson()).mapKeys { (k, _) -> FieldKeys.toApp(k) }) }
+        // The Description column once the server has it; an answer kept in asset_values before shows until it is set.
+        string(DESCRIPTION_COLUMN)?.takeIf { it.isNotBlank() }?.let { put(DESCRIPTION_COLUMN, it) }
     }
     val confidence = DbJson.doubleMap(valuesRow?.string("confidence")).mapKeys { (k, _) -> FieldKeys.toApp(k) }
     val sources = DbJson.stringMap(valuesRow?.string("sources")).mapKeys { (k, _) -> FieldKeys.toApp(k) }
@@ -121,10 +129,14 @@ fun Asset.toAssetRow(): Map<String, Any?> {
     )
 }
 
-/** Splits a details form into the values that are `assets` columns (name, manufacturer, model, serial number) and the rest. */
-fun splitAssetValues(values: Map<String, String>): AssetValueSplit {
-    val columns = values.filterKeys { it in ASSET_COLUMNS }.mapKeys { (k, _) -> ASSET_COLUMNS.getValue(k) }
-    val extra = values.filterKeys { it !in ASSET_COLUMNS && it !in CLASSIFICATION_KEYS }.mapKeys { (k, _) -> FieldKeys.toDb(k) }
+/**
+ * Splits a details form into the values that are `assets` columns (name, manufacturer, model, serial number, and
+ * [moreColumns] the database has, such as [DESCRIPTION_COLUMN]) and the rest.
+ */
+fun splitAssetValues(values: Map<String, String>, moreColumns: Set<String> = emptySet()): AssetValueSplit {
+    val columnOf = ASSET_COLUMNS + moreColumns.associateWith { it }
+    val columns = values.filterKeys { it in columnOf }.mapKeys { (k, _) -> columnOf.getValue(k) }
+    val extra = values.filterKeys { it !in columnOf && it !in CLASSIFICATION_KEYS }.mapKeys { (k, _) -> FieldKeys.toDb(k) }
     return AssetValueSplit(columns, extra)
 }
 

@@ -58,19 +58,26 @@ internal fun SelectionChangeDialogs(state: AssetListState, list: AssetListViewMo
     when (val action = state.changeAction) {
         null -> Unit
         ChangeAction.REQUEST, ChangeAction.UPDATE_REQUEST -> {
-            BackHandler(onBack = list::closeChange)
             ChangeRequestDialog(
                 note = state.changeNote, onNote = list::setChangeNote, onSend = list::applyChange, onCancel = list::closeChange,
                 title = pluralStringResource(R.plurals.change_bulk_request_title, count, count),
+                dirty = state.changeNoteChanged,
+            )
+        }
+        ChangeAction.MARK_VALIDATED -> {
+            BackHandler(onBack = list::closeChange)
+            ChangeConfirm(
+                title = stringResource(R.string.sign_off_action), body = pluralStringResource(R.plurals.sign_off_body, count),
+                yes = changeActionLabel(action, count), requests = {}, onNo = list::closeChange, onYes = list::applyChange,
             )
         }
         ChangeAction.WITHDRAW -> {
             BackHandler(onBack = list::closeChange)
             ConfirmDialog(
                 icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
-                title = pluralStringResource(R.plurals.change_bulk_withdraw_title, count, count),
+                title = pluralStringResource(R.plurals.change_bulk_withdraw_title, count,        count),
                 body = stringResource(R.string.change_bulk_close_body),
-                no = stringResource(R.string.action_cancel), yes = optionLabel(action, count), yesBg = C.Yellow,
+                no = stringResource(R.string.action_cancel), yes = changeActionLabel(action, count), yesBg = C.Yellow,
                 onNo = list::closeChange, onYes = list::applyChange,
             )
         }
@@ -92,7 +99,7 @@ internal fun SelectionChangeDialogs(state: AssetListState, list: AssetListViewMo
             // What was asked, so the admin reads it before acting: up to five requests, then how many more.
             val asked = assets.filter { it.changeRequest != null }
             ChangeConfirm(
-                title = title, body = body, yes = optionLabel(action, count),
+                title = title, body = body, yes = changeActionLabel(action, count),
                 requests = {
                     asked.take(MAX_REQUESTS_SHOWN).forEach { a ->
                         val request = checkNotNull(a.changeRequest)
@@ -147,10 +154,11 @@ private fun ChangeMenu(options: List<ChangeActionOption>, count: Int, onPick: (C
                 .border(1.dp, C.Border2, r(18)).noRippleClick { }.padding(20.dp).testTag(SelectionChangeTags.MENU),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Txt(stringResource(R.string.dash_chip_change_requests), 16, 700)
+            // The dock's Change button: sign-off and change-request actions alike.
+            Txt(stringResource(R.string.action_change), 16, 700)
             options.forEach { option ->
                 Pill(
-                    optionLabel(option.action, count), { onPick(option) },
+                    changeActionLabel(option.action, count), { onPick(option) },
                     Modifier.fillMaxWidth().alpha(if (option.blocked != null) 0.4f else 1f).testTag(SelectionChangeTags.option(option.action)),
                     height = 48.dp, size = 14,
                 )
@@ -160,9 +168,10 @@ private fun ChangeMenu(options: List<ChangeActionOption>, count: Int, onPick: (C
     }
 }
 
-/** The action's label as the web's: Approve / Decline say "requests" for several assets. */
+/** The action's label as the web's: Approve / Decline say "requests" for several assets (also the asset bar's, for one). */
 @Composable
-private fun optionLabel(action: ChangeAction, count: Int): String = when (action) {
+internal fun changeActionLabel(action: ChangeAction, count: Int): String = when (action) {
+    ChangeAction.MARK_VALIDATED -> stringResource(R.string.sign_off_action)
     ChangeAction.APPROVE -> pluralStringResource(R.plurals.change_action_approve, count)
     ChangeAction.DECLINE -> pluralStringResource(R.plurals.change_action_decline_all, count)
     ChangeAction.REQUEST -> stringResource(R.string.change_request_action)

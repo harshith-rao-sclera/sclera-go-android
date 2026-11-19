@@ -5,6 +5,7 @@ import com.sclera.sclerago.data.mapper.toRunIssue
 import com.sclera.sclerago.data.mapper.toValRun
 import com.sclera.sclerago.data.mapper.toValidationDef
 import com.sclera.sclerago.data.sync.AdcDatabase
+import com.sclera.sclerago.domain.model.statusFromDb
 import com.sclera.sclerago.domain.validation.IssueStatus
 import com.sclera.sclerago.domain.validation.RunAssetResult
 import com.sclera.sclerago.domain.validation.RunIssue
@@ -26,7 +27,11 @@ private const val VR_RUN = "SELECT * FROM validation_jobs WHERE id = ? AND %LIVE
 
 private const val VR_RESULTS = "SELECT * FROM validation_results WHERE job_id = ? AND %LIVE% ORDER BY created_at DESC, id DESC"
 
-private const val VR_ISSUES = "SELECT * FROM validation_issues WHERE job_id = ? AND %LIVE%%ASSET% ORDER BY id"
+/** The status of each asset in [VR_RESULTS] now, so a run on drafts and exceptions reads as a check (the server's assetStatus). */
+private const val VR_ASSET_STATUSES = """
+    SELECT id, status, validated FROM assets WHERE id IN (SELECT asset_id FROM validation_results WHERE job_id = ?) AND %LIVE%"""
+
+private const val VR_ISSUES ="SELECT * FROM validation_issues WHERE job_id = ? AND %LIVE%%ASSET% ORDER BY id"
 
 private const val VR_OPEN_COUNTS = """
     SELECT asset_id, COUNT(*) AS n FROM validation_issues WHERE job_id = ? AND status = 'open' AND %LIVE% GROUP BY asset_id"""
@@ -65,8 +70,17 @@ class ValidationRunsOfflineSource(private val db: AdcDatabase, private val io: C
             val open = db.whenTable("validation_issues", emptyMap()) {
                 db.query(VR_OPEN_COUNTS.live("validation_issues"), listOf(jobId)).associate { it.string("asset_id").orEmpty() to (it.int("n") ?: 0) }
             }
+            val statuses = db.whenTable("assets", emptyMap()) {
+                db.query(VR_ASSET_STATUSES.live("assets"), listOf(jobId))
+                    .associate { it.string("id").orEmpty() to statusFromDb(it.string("status"), it.bool("validated")) }
+            }
             db.query(VR_RESULTS.live("validation_results"), listOf(jobId)).map { r ->
-                r.toRunAssetResult().let { it.copy(openCount = if (it.decision != null && it.decision.name == "EXCLUDED") 0 else open[it.assetId] ?: 0) }
+                r.toRunAssetResult().let {
+                    it.copy(
+                        openCount = if (it.decision != null && it.decision.name == "EXCLUDED") 0 else open[it.assetId] ?: 0,
+                        assetStatus = statuses[it.assetId],
+                    )
+                }
             }
         }
     }

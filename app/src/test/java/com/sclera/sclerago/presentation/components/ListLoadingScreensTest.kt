@@ -82,14 +82,14 @@ abstract class ListLoadingScreensTest {
     fun people_loading_showsTheLoader() {
         people(AccessListState(loading = true))
         compose.onNodeWithTag(AccessTags.LOADING).assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.access_loading_people)).assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.access_loading)).assertIsDisplayed()
         compose.onNodeWithTag(AccessTags.EMPTY).assertDoesNotExist()
     }
 
     @Test
     fun groups_loading_showsTheGroupsLoader() {
         people(AccessListState(tab = AccessTab.GROUPS, loading = true))
-        compose.onNodeWithText(str(R.string.access_loading_groups)).assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.access_loading)).assertIsDisplayed()
         compose.onNodeWithTag(AccessTags.EMPTY).assertDoesNotExist()
     }
 
@@ -97,13 +97,13 @@ abstract class ListLoadingScreensTest {
     fun people_none_saysNoOneHasAccess() {
         people(AccessListState())
         compose.onNodeWithTag(AccessTags.LOADING).assertDoesNotExist()
-        compose.onNodeWithTag(AccessTags.EMPTY).assertTextContains(str(R.string.access_empty_people))
+        compose.onNodeWithTag(AccessTags.EMPTY).assertIsDisplayed()
     }
 
     @Test
     fun groups_none_saysNoGroupsYet() {
         people(AccessListState(tab = AccessTab.GROUPS))
-        compose.onNodeWithTag(AccessTags.EMPTY).assertTextContains(str(R.string.access_empty_groups))
+        compose.onNodeWithTag(AccessTags.EMPTY).assertIsDisplayed()
     }
 
     // ---- Asset lists

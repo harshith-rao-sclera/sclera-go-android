@@ -350,7 +350,6 @@
     <string name="detail_sec_fields">Поля активу</string>
     <string name="detail_building">Будівля</string>
     <string name="detail_floor">Поверх</string>
-    <string name="detail_set_location">Указати розташування</string>
     <string name="detail_system_type">Тип системи</string>
     <string name="detail_asset_type">Тип активу</string>
     <string name="detail_sub_type">Підтип</string>

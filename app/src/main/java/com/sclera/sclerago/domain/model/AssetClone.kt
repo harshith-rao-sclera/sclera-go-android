@@ -8,8 +8,8 @@ enum class ClonePlace { NONE, BUILDING, FLOOR, LOCATION }
 
 /**
  * What the copies of an asset take from it, as the web's Clone: how many copies, how much of its place, the form values
- * picked (app field keys; never its name, which each copy is given afresh) and whether its type stays. Photos are never
- * copied: each copy starts without any.
+ * picked (app field keys; its name too when ticked, as the web copies it with the field values) and whether its type
+ * stays. Photos are never copied: each copy starts without any.
  */
 data class CloneRequest(
     val copies: Int,

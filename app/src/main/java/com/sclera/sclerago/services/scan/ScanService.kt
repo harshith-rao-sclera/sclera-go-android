@@ -68,6 +68,15 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
     /** Scans the user paused themselves (as opposed to finishing on their own). */
     private var paused by mutableStateOf(emptySet<Target>())
 
+    /**
+     * Scans that ran to the end on their own. Opening their page again doesn't start them over ([start] with `auto`);
+     * only the user's tap on the radar card does. Forgotten by [forgetFinished] (a new session).
+     */
+    private var finished = emptySet<Target>()
+
+    /** Scans [stop] was called for: their end is not a finish of their own. */
+    private var stopping = emptySet<Target>()
+
     /** The scan waiting on a runtime permission prompt, or null; answer with [onPermissionResult]. */
     var permissionAsk by mutableStateOf<Target?>(null)
         private set
@@ -99,8 +108,9 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
         scope.launch { lan.subnet.collect { lanSubnet = it?.toString() } }
         scope.launch {
             lan.phase.collect { p ->
-                setScanning(Target.NETWORK, p.isScanning)
+                // The failure first, so a failed sweep isn't taken for one that ran to the end.
                 if (p is NetworkScanner.Phase.Failed) issues = issues + (Target.NETWORK to p.label)
+                setScanning(Target.NETWORK, p.isScanning)
             }
         }
         scope.launch { aps.accessPoints.asRows { list -> list.map { it.toRow() } }.collect { apRows = it } }
@@ -109,7 +119,14 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
     }
 
     private fun setScanning(t: Target, on: Boolean) {
+        val was = t in scanning
         scanning = if (on) scanning + t else scanning - t
+        when {
+            on -> finished = finished - t
+            // It ended: because it was stopped, because it failed, or on its own (it ran to 100 %).
+            was && t in stopping -> stopping = stopping - t
+            was && t !in issues -> finished = finished + t
+        }
         // The radio scans run for a fixed window, so their progress is the time gone. The network
         // sweep reports its own (see init).
         if (t == Target.NETWORK) return
@@ -154,10 +171,13 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
      * why it can't run when the radio is off, location is off or there is no network.
      *
      * [auto] is for starts the user didn't ask for directly (opening a tab): those don't ask again for a
-     * permission that was refused, so the page can show how to allow it instead of re-prompting each visit.
+     * permission that was refused, so the page can show how to allow it instead of re-prompting each visit, and
+     * don't start over a scan that already ran to the end (its results stay on the page until the user scans again).
      */
     fun start(t: Target, auto: Boolean = false) {
         if (isScanning(t)) return
+        // A scan that already ran to the end starts again only when the user asks (the radar card).
+        if (auto && t in finished) return
         paused = paused - t
         if (!ScanPermissions.granted(app, surface(t))) {
             if (!(auto && t in blocked)) permissionAsk = t
@@ -189,11 +209,17 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
     /** Stops [t]; [byUser] marks it paused rather than finished. */
     fun stop(t: Target, byUser: Boolean = false) {
         if (byUser && isScanning(t)) paused = paused + t
+        if (isScanning(t)) stopping = stopping + t
         when (t) {
             Target.BLUETOOTH -> ble.stop()
             Target.NETWORK -> lan.stop()
             Target.ACCESS_POINTS -> aps.stop()
         }
+    }
+
+    /** A new session: every scan starts by itself again the first time its page opens. */
+    fun forgetFinished() {
+        finished = emptySet()
     }
 
     /** Tap on the radar card: pause [t] if it is running, otherwise start it. */
@@ -206,13 +232,16 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
         if (granted) start(t) else blocked = blocked + t
     }
 
-    /** The radar card for [t], given how many rows it shows and how many of those are not assets yet. */
-    fun card(t: Target, found: Int, new: Int): Card {
-        val what = when (t) {
-            Target.BLUETOOTH -> "$found found"
-            Target.NETWORK -> listOfNotNull(lanSubnet, "$found devices").joinToString(" · ")
-            Target.ACCESS_POINTS -> "$found access points"
-        }
+    /** The radar card for [t], given how many rows it shows and how many of those were added in this scan. */
+    fun card(t: Target, found: Int, added: Int): Card {
+        val what = listOfNotNull(
+            when (t) {
+                Target.BLUETOOTH -> "$found found"
+                Target.NETWORK -> listOfNotNull(lanSubnet, "$found devices").joinToString(" · ")
+                Target.ACCESS_POINTS -> "$found access points"
+            },
+            "$added added".takeIf { added > 0 },
+        ).joinToString(" · ")
         val issue = issues[t]
         return when {
             isScanning(t) -> Card(
@@ -221,12 +250,12 @@ class ScanService(private val app: Application, private val scope: CoroutineScop
                     Target.NETWORK -> "Scanning Wi-Fi network…"
                     Target.ACCESS_POINTS -> "Looking for access points…"
                 },
-                "$what · $new new · tap to stop",
+                "$what · tap to stop",
                 progress = progress[t] ?: 0f,
             )
             issue != null -> Card("Can't scan", "$issue · tap to try again")
             t in paused -> Card("Scan stopped", "Tap to scan again")
-            found > 0 -> Card("Scan complete", "$what · $new new · tap to scan again")
+            found > 0 -> Card("Scan complete", "$what · tap to scan again")
             else -> Card("Scan stopped", "Tap to scan again")
         }
     }

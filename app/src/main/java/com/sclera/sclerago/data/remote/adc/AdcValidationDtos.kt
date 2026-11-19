@@ -85,6 +85,8 @@ data class ResultDto(
     val decision: String? = null,
     val decisionNote: String? = null,
     val checkedAt: String? = null,
+    /** The asset's status now (drafted, submitted, exception, saved); null when it was deleted. */
+    val assetStatus: String? = null,
 )
 
 @Serializable
@@ -132,7 +134,11 @@ data class InsightsDto(
 data class BulkResultDto(val accepted: Int = 0, val dismissed: Int = 0, val skipped: Int = 0)
 
 @Serializable
-data class DecisionResultDto(val updated: Int = 0)
+data class DecisionResultDto(
+    val updated: Int = 0,
+    /** Left as they were: marking as validated needs a submitted asset. */
+    val notSubmitted: List<String> = emptyList(),
+)
 
 @Serializable
 data class FieldDto(val id: String, val name: String = "", val isActive: Boolean = true)

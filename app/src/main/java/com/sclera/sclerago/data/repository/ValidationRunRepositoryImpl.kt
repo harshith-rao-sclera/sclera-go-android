@@ -17,6 +17,7 @@ import com.sclera.sclerago.domain.repository.ValidationCatalogRepository
 import com.sclera.sclerago.domain.repository.ValidationRunRepository
 import com.sclera.sclerago.domain.validation.BulkFixResult
 import com.sclera.sclerago.domain.validation.Decision
+import com.sclera.sclerago.domain.validation.DecisionOutcome
 import com.sclera.sclerago.domain.validation.FieldChoice
 import com.sclera.sclerago.domain.validation.IssueStatus
 import com.sclera.sclerago.domain.validation.IssueValue
@@ -148,8 +149,8 @@ class ValidationRunRepositoryImpl @Inject constructor(
     override suspend fun acceptAll(propertyId: String, issueIds: List<String>, minConfidence: Double): BulkFixResult =
         api.bulk(propertyId, bulkAcceptBody(issueIds, minConfidence)).let { BulkFixResult(it.accepted, it.dismissed, it.skipped) }
 
-    override suspend fun decide(propertyId: String, jobId: String, assetIds: List<String>, decision: Decision, note: String?): Int =
-        api.decide(propertyId, jobId, decisionBody(assetIds, decision, note)).updated
+    override suspend fun decide(propertyId: String, jobId: String, assetIds: List<String>, decision: Decision, note: String?): DecisionOutcome =
+        api.decide(propertyId, jobId, decisionBody(assetIds, decision, note)).let { DecisionOutcome(it.updated, it.notSubmitted) }
 
     override suspend fun mergeAsset(propertyId: String, assetId: String): MergeAsset = api.asset(propertyId, assetId).toDomain()
 

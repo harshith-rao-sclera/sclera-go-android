@@ -93,7 +93,13 @@ object Icons {
         s(rect(3f, 14f, 18f, 6f, 2f)), s("M7 17h.01M11 17h.01"),
         s("M8.5 10.5a5 5 0 0 1 7 0M5.5 7.5a9.5 9.5 0 0 1 13 0"),
     )
-    val Box = Ico(s("M21 8L12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"))
+    // The generic asset: the server's "generic" icon (Lucide's package), so it looks the same before the icons download.
+    val Box = Ico(
+        s("M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"),
+        s("M12 22V12"),
+        s("m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"),
+        s("m7.5 4.27 9 5.15"),
+    )
     val Camera = Ico(
         s("M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"),
         s(circle(12f, 13.5f, 3.5f)),
@@ -126,6 +132,10 @@ object Icons {
     val Send = Ico(s("M21 3L3 10.5l7 2.5 2.5 7z"), s("M21 3L10 13"))
     val Pencil = Ico(s("M4 20h4L19 9l-4-4L4 16z"), s("M13.5 6.5l4 4"))
     val Alert = Ico(s(circle(12f, 12f, 9f)), s("M12 7v6M12 16.5v.5"))
+    /** Validation failed: a stop sign with "!". */
+    val AlertOctagon = Ico(s("M7.9 2.5h8.2l5.4 5.4v8.2l-5.4 5.4H7.9l-5.4-5.4V7.9z"), s("M12 7.5v5.5M12 16.5v.5"))
+    /** Validation needs a look: a magnifier with "!". */
+    val SearchAlert = Ico(s(circle(11f, 11f, 7f)), s("M20 20l-3.5-3.5"), s("M11 7.5v4M11 14.2v.4"))
     val OctagonX = Ico(s("M8.2 3h7.6L21 8.2v7.6L15.8 21H8.2L3 15.8V8.2z"), s("M9 9l6 6M15 9l-6 6"))
     /** AI: three solid four-point sparkles (large, medium, small). */
     val Sparkles = Ico(

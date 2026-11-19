@@ -1,8 +1,6 @@
 package com.sclera.sclerago.data
 
 import com.sclera.sclerago.data.mapper.hoursMinutes
-import com.sclera.sclerago.data.mapper.prettyPropertyType
-import com.sclera.sclerago.data.mapper.removeAccessBody
 import com.sclera.sclerago.data.mapper.settingsBody
 import com.sclera.sclerago.data.mapper.toBody
 import com.sclera.sclerago.data.mapper.toCreateBody
@@ -135,13 +133,10 @@ class PropertyMapperTest {
         val update = p.copy(allProperties = false).toUpdateBody()
         assertEquals(JsonArray(listOf(JsonPrimitive("p1"))), update.getValue("propertyIds"))
         assertFalse("email" in update)
-        assertEquals(JsonNull, removeAccessBody().getValue("groupId"))
     }
 
     @Test
     fun helpers() {
-        assertEquals("Data center", prettyPropertyType("data_center"))
-        assertEquals("Commercial office", prettyPropertyType("Commercial office"))
         assertEquals("00:45", hoursMinutes("00:45:00"))
         assertEquals("08:00", hoursMinutes("08:00"))
     }

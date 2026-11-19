@@ -33,8 +33,11 @@ internal val CLONE_TYPE_KEYS = listOf("sys", "typ", "sub")
 /** The System details choices: the type fields, then the JACS code. */
 private val CLONE_SYSTEM_KEYS = CLONE_TYPE_KEYS + "jacs"
 
-/** Never copied: the name (each copy is unnamed, as on the web) and the System details (offered on their own). */
-private val NOT_IN_FIELD_GROUPS = CLONE_SYSTEM_KEYS.toSet() + "name"
+/**
+ * Not among the field groups: the System details (offered on their own). The name is a field like the others (a
+ * mandatory one), ticked to start with, as the web's Clone copies it with the field values it ticks.
+ */
+private val NOT_IN_FIELD_GROUPS = CLONE_SYSTEM_KEYS.toSet()
 
 /** Test tags of the Clone sheet. */
 object CloneTags {
@@ -70,7 +73,10 @@ internal fun CloneSheet(
 
     var copies by rememberSaveable(asset.id) { mutableStateOf("1") }
     var place by rememberSaveable(asset.id) { mutableStateOf(levels.lastOrNull() ?: ClonePlace.NONE) }
-    var keys by remember(asset.id) { mutableStateOf((system + fields.map { it.key }).toSet()) }
+    val allKeys = (system + fields.map { it.key }).toSet()
+    var keys by remember(asset.id) { mutableStateOf(allKeys) }
+    // Anything changed from how the sheet opened: closing asks before discarding it.
+    val dirty = copies != "1" || place != (levels.lastOrNull() ?: ClonePlace.NONE) || keys != allKeys
     val count = copies.trim().toIntOrNull()
     val valid = count != null && count in 1..MAX_CLONE_COPIES
 
@@ -83,6 +89,7 @@ internal fun CloneSheet(
         onClose = onClose,
         onPrimary = { if (count != null && valid && !state.cloning) onClone(count, place, keys) },
         leadingIcon = Icons.Clone,
+        dirty = dirty,
     ) {
         // How many
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -131,8 +138,8 @@ internal fun CloneSheet(
 /** A titled group of choices. */
 @Composable
 private fun CloneGroup(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Txt(title, 13, 700, C.Soft)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Txt(title, 12, 600, C.Soft)
         content()
     }
 }

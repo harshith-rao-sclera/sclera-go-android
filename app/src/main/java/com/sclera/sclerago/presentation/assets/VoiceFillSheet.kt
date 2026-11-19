@@ -23,6 +23,7 @@ import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.VOICE_SURE_ENOUGH
 import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
@@ -56,68 +57,72 @@ object VoiceTags {
 fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFillActions) {
     val spec = FieldSpec(state.fields)
     val differs = v.picks.count { (key, pick) -> state.value(key).let { it.isNotEmpty() && it != pick.value } }
-    BottomSheet(onDismiss = actions.onClose) {
-        Column(Modifier.weight(1f, fill = false).testTag(VoiceTags.SHEET)) {
-            // Nothing found: the AI found no field for it; the phone's own reading (offline) needs the field names said.
-            val summary = if (v.picks.isEmpty()) stringResource(if (v.byAi) R.string.voice_nothing_matched else R.string.voice_none)
-            else pluralStringResource(R.plurals.voice_filled, v.picks.size, v.picks.size) +
-                if (differs > 0) " " + pluralStringResource(R.plurals.voice_differs, differs, differs) else ""
-            SheetTitleRow(stringResource(R.string.voice_title), summary, actions.onClose)
-            Column(
-                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt(stringResource(R.string.voice_you_said), 11, 500, C.Soft)
-                    Txt("“${v.said}”", 14, 700, maxLines = 6)
-                }
-                if (v.picks.isNotEmpty()) {
-                    Column(Modifier.fillMaxWidth().clip(r(12)).border(1.dp, C.Border, r(12))) {
-                        v.picks.entries.forEachIndexed { n, (key, pick) ->
-                            val kind = spec.cfg(key)?.kind
-                            val now = state.value(key)
-                            Row(
-                                Modifier.fillMaxWidth().testTag(VoiceTags.row(key)).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
-                                    .padding(10.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                TickBox(pick.on) { actions.onToggle(key) }
-                                Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Txt(spec.label(key).removeSuffix(" *"), 12, 600, C.Soft, maxLines = 2)
-                                    Txt(shown(kind, pick.value), 14, 800, maxLines = 6)
-                                    if (now.isNotEmpty() && now != pick.value) {
-                                        Txt(stringResource(R.string.voice_now, shown(kind, now)), 12, 600, C.Orange, maxLines = 4)
-                                    }
-                                    v.sure[key]?.let { sure ->
-                                        Txt(stringResource(R.string.ai_sure, (sure * 100).roundToInt()), 11, 700, if (sure < VOICE_SURE_ENOUGH) C.Orange else C.Green)
+    // A tick changed from how the results came: closing asks before discarding it.
+    val changed = v.picks.any { (key, pick) -> pick.on != ((v.sure[key] ?: 1.0) >= VOICE_SURE_ENOUGH) }
+    GuardedClose(changed, actions.onClose) { close ->
+        BottomSheet(onDismiss = close) {
+            Column(Modifier.weight(1f, fill = false).testTag(VoiceTags.SHEET)) {
+                // Nothing found: the AI found no field for it; the phone's own reading (offline) needs the field names said.
+                val summary = if (v.picks.isEmpty()) stringResource(if (v.byAi) R.string.voice_nothing_matched else R.string.voice_none)
+                else pluralStringResource(R.plurals.voice_filled, v.picks.size, v.picks.size) +
+                    if (differs > 0) " " + pluralStringResource(R.plurals.voice_differs, differs, differs) else ""
+                SheetTitleRow(stringResource(R.string.voice_title), summary, close)
+                Column(
+                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Txt(stringResource(R.string.voice_you_said), 11, 500, C.Soft)
+                        Txt("“${v.said}”", 14, 700, maxLines = 6)
+                    }
+                    if (v.picks.isNotEmpty()) {
+                        Column(Modifier.fillMaxWidth().clip(r(12)).border(1.dp, C.Border, r(12))) {
+                            v.picks.entries.forEachIndexed { n, (key, pick) ->
+                                val kind = spec.cfg(key)?.kind
+                                val now = state.value(key)
+                                Row(
+                                    Modifier.fillMaxWidth().testTag(VoiceTags.row(key)).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    TickBox(pick.on) { actions.onToggle(key) }
+                                    Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Txt(spec.label(key).removeSuffix(" *"), 12, 600, C.Soft, maxLines = 2)
+                                        Txt(shown(kind, pick.value), 14, 800, maxLines = 6)
+                                        if (now.isNotEmpty() && now != pick.value) {
+                                            Txt(stringResource(R.string.voice_now, shown(kind, now)), 12, 600, C.Orange, maxLines = 4)
+                                        }
+                                        v.sure[key]?.let { sure ->
+                                            Txt(stringResource(R.string.ai_sure, (sure * 100).roundToInt()), 11, 700, if (sure < VOICE_SURE_ENOUGH) C.Orange else C.Green)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                // What was said that no field took (shown, never saved), as the server lists it.
-                if (v.unmatched.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(R.string.voice_not_used), 11, 500, C.Soft)
-                        v.unmatched.forEach { u ->
-                            Txt("“${u.text}”", 12, 500, C.Muted, maxLines = 3)
-                            u.reason?.let { Txt(it, 11, 400, C.Soft, Modifier.padding(start = 8.dp), maxLines = 3) }
+                    // What was said that no field took (shown, never saved), as the server lists it.
+                    if (v.unmatched.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Txt(stringResource(R.string.voice_not_used), 11, 500, C.Soft)
+                            v.unmatched.forEach { u ->
+                                Txt("“${u.text}”", 12, 500, C.Muted, maxLines = 3)
+                                u.reason?.let { Txt(it, 11, 400, C.Soft, Modifier.padding(start = 8.dp), maxLines = 3) }
+                            }
                         }
                     }
                 }
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 14.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                val n = v.picks.count { it.value.on }
-                Pill(stringResource(R.string.voice_speak_again), actions.onSpeakAgain, Modifier.weight(1f), height = 46.dp, size = 13, weight = 700)
-                Pill(
-                    stringResource(R.string.voice_apply), { if (n > 0) actions.onApply() },
-                    Modifier.weight(1f).testTag(VoiceTags.APPLY).alpha(if (n > 0) 1f else 0.45f),
-                    bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 13, weight = 700,
-                )
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val n = v.picks.count { it.value.on }
+                    Pill(stringResource(R.string.voice_speak_again), actions.onSpeakAgain, Modifier.weight(1f), height = 46.dp, size = 13, weight = 700)
+                    Pill(
+                        stringResource(R.string.voice_apply), { if (n > 0) actions.onApply() },
+                        Modifier.weight(1f).testTag(VoiceTags.APPLY).alpha(if (n > 0) 1f else 0.45f),
+                        bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 13, weight = 700,
+                    )
+                }
             }
         }
     }

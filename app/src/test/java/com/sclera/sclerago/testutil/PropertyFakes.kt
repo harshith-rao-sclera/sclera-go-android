@@ -35,6 +35,19 @@ class FakePropertyRepository(initial: List<Property> = emptyList()) : PropertyRe
         flow.value = (flow.value + saved).sortedBy { it.name.lowercase() }
         return saved
     }
+
+    override suspend fun get(id: String): Property = flow.value.first { it.id == id }
+
+    override suspend fun update(property: Property): Property {
+        failure?.let { throw it }
+        flow.value = flow.value.map { if (it.id == property.id) property else it }
+        return property
+    }
+
+    override suspend fun delete(id: String) {
+        failure?.let { throw it }
+        flow.value = flow.value.filterNot { it.id == id }
+    }
 }
 
 /** The properties the screen tests were written against (ids p1 to p7; "p1" has the sample assets). */

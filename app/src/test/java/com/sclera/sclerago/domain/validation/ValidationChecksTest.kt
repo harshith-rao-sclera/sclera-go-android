@@ -52,19 +52,12 @@ class ValidationChecksTest {
 
     @Test
     fun formats_acceptsGoodValuesAndRejectsBadOnes() {
-        assertEquals(CheckState.PASSED, run(1, input(good + mapOf("label" to "SCL-123456", "ble" to "SCL-1234", "ip" to "10.0.0.1", "serial" to "AB-12"))).state)
-        val bad = run(1, input(good + mapOf("label" to "X", "ble" to "Y", "ip" to "300.1.1.1", "serial" to "a b")))
+        assertEquals(CheckState.PASSED, run(1, input(good + mapOf("label" to "SCL-123456", "serial" to "AB-12"))).state)
+        val bad = run(1, input(good + mapOf("label" to "X", "serial" to "a b")))
         assertEquals(CheckState.FAILED, bad.state)
-        assertEquals(4, bad.messages.size)
+        assertEquals(2, bad.messages.size)
         assertEquals(FixTarget.TAGS, bad.fix)
         assertEquals("Edit Label / QR", bad.fixLabel)
-    }
-
-    @Test
-    fun formats_rejectsMalformedIpv4() {
-        listOf("1.2.3", "a.b.c.d", "1.2.3.4.5", "1..2.3", "1.2.3.1234").forEach {
-            assertEquals(it, CheckState.FAILED, run(1, input(good + ("ip" to it))).state)
-        }
     }
 
     @Test

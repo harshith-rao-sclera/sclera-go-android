@@ -1,6 +1,6 @@
 package com.sclera.sclerago.data.online
 
-import com.sclera.sclerago.data.local.PropertyTable
+import com.sclera.sclerago.data.local.PropertyListCache
 import com.sclera.sclerago.data.mapper.PropertyRecord
 import com.sclera.sclerago.data.mapper.channelsOff
 import com.sclera.sclerago.data.mapper.settingsBody
@@ -36,14 +36,14 @@ import javax.inject.Singleton
 /**
  * The user's properties and their settings. They come from the offline database when it has a `properties`
  * table, otherwise from the API ([AdcApi]); the API's list is kept in `global_config.db`'s `properties` table
- * ([PropertyTable]: synced rows, access codes and contacts encrypted) and read from there, so it shows offline.
+ * ([PropertyListCache], global_config.db's properties table: synced rows, access codes and contacts encrypted) and read from there, so it shows offline.
  * Writes are online only. Loaded when someone signs in; forgotten on sign-out (the table's rows are deleted).
  */
 @Singleton
 class PropertyStore @Inject constructor(
     private val api: AdcApi,
     private val session: OnlineSession,
-    private val table: PropertyTable,
+    private val table: PropertyListCache,
     private val downloads: PropertyDownloadRepository,
     private val offline: PropertyOfflineSource,
     private val db: AdcDatabase,

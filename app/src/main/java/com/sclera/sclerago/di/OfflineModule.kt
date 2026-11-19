@@ -1,52 +1,56 @@
 package com.sclera.sclerago.di
 
 import com.sclera.sclerago.data.local.LocalAssetFileStore
+import com.sclera.sclerago.data.local.PropertyListCache
+import com.sclera.sclerago.data.local.PropertyTable
 import com.sclera.sclerago.data.local.TypeFieldsStore
 import com.sclera.sclerago.data.offline.AssetFileStore
-import com.sclera.sclerago.data.offline.MediaBlobs
 import com.sclera.sclerago.data.offline.AssetsOfflineSource
 import com.sclera.sclerago.data.offline.AssetsWriter
-import com.sclera.sclerago.data.offline.FieldsOfflineSource
 import com.sclera.sclerago.data.offline.DocumentsOfflineSource
+import com.sclera.sclerago.data.offline.FieldsOfflineSource
 import com.sclera.sclerago.data.offline.MasterFormatsOfflineSource
+import com.sclera.sclerago.data.offline.MediaBlobs
 import com.sclera.sclerago.data.offline.PlacesOfflineSource
 import com.sclera.sclerago.data.offline.PropertyOfflineSource
 import com.sclera.sclerago.data.offline.TypeFieldsLookup
 import com.sclera.sclerago.data.offline.ValidationOfflineSource
 import com.sclera.sclerago.data.offline.ValidationRunsOfflineSource
-import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetActivityRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetDocumentsRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetFormRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetOwnFieldsRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetIconRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetValidationRepositoryImpl
 import com.sclera.sclerago.data.repository.ClassificationRepositoryImpl
 import com.sclera.sclerago.data.repository.JacsRepositoryImpl
-import com.sclera.sclerago.data.repository.AssetIconRepositoryImpl
+import com.sclera.sclerago.data.repository.LocationRepositoryImpl
 import com.sclera.sclerago.data.repository.PhotoRulesRepositoryImpl
 import com.sclera.sclerago.data.repository.SpecLookupRepositoryImpl
 import com.sclera.sclerago.data.repository.VoiceFillRepositoryImpl
-import com.sclera.sclerago.data.repository.AssetDocumentsRepositoryImpl
-import com.sclera.sclerago.data.repository.AssetRepositoryImpl
-import com.sclera.sclerago.data.repository.LocationRepositoryImpl
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
+import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
+import com.sclera.sclerago.domain.repository.AssetConfigRepository
+import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
+import com.sclera.sclerago.domain.repository.AssetOwnFieldsRepository
+import com.sclera.sclerago.domain.repository.AssetIconRepository
+import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.AssetValidationRepository
+import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.ClassificationRepository
 import com.sclera.sclerago.domain.repository.JacsRepository
-import com.sclera.sclerago.domain.repository.AssetIconRepository
-import com.sclera.sclerago.domain.repository.PhotoRulesRepository
-import com.sclera.sclerago.domain.repository.SpecLookupRepository
-import com.sclera.sclerago.domain.repository.VoiceFillRepository
-import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
-import com.sclera.sclerago.domain.repository.AssetConfigRepository
-import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.LocationRepository
+import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
-import com.sclera.sclerago.domain.repository.AccessRepository
-import com.sclera.sclerago.domain.repository.AuthRepository
-import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.repository.SpecLookupRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
+import com.sclera.sclerago.domain.repository.VoiceFillRepository
 import com.sclera.sclerago.domain.system.IdGenerator
 import com.sclera.sclerago.domain.system.TimeProvider
 import dagger.Binds
@@ -55,9 +59,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
-import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Provider
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
 
 /** The sources and writers over the offline database. */
 @Module
@@ -132,6 +136,7 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun assets(impl: AssetRepositoryImpl): AssetRepository
     @Binds abstract fun assetActivity(impl: AssetActivityRepositoryImpl): AssetActivityRepository
     @Binds abstract fun assetForm(impl: AssetFormRepositoryImpl): AssetFormRepository
+    @Binds abstract fun assetOwnFields(impl: AssetOwnFieldsRepositoryImpl): AssetOwnFieldsRepository
     @Binds abstract fun assetValidation(impl: AssetValidationRepositoryImpl): AssetValidationRepository
     @Binds abstract fun photoRules(impl: PhotoRulesRepositoryImpl): PhotoRulesRepository
     @Binds abstract fun specLookups(impl: SpecLookupRepositoryImpl): SpecLookupRepository
@@ -143,6 +148,7 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun locations(impl: LocationRepositoryImpl): LocationRepository
     @Binds abstract fun assetConfig(impl: AssetConfigRepositoryImpl): AssetConfigRepository
     @Binds abstract fun assetFiles(impl: LocalAssetFileStore): AssetFileStore
+    @Binds abstract fun propertyList(impl: PropertyTable): PropertyListCache
 
     @Binds @IntoSet abstract fun clearAssetFiles(impl: LocalAssetFileStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearTypeFields(impl: TypeFieldsStore): UserDataCleaner

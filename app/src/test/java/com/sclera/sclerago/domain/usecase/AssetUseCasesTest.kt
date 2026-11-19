@@ -21,14 +21,15 @@ import com.sclera.sclerago.domain.usecase.asset.BuildCheckInputUseCase
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.domain.usecase.asset.DeleteAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.GetAssetDetailsUseCase
-import com.sclera.sclerago.domain.usecase.asset.MatchDevicesUseCase
 import com.sclera.sclerago.domain.usecase.asset.ObserveAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SaveAssetDetailsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
+import com.sclera.sclerago.domain.usecase.media.SortPhotosUseCase
 import com.sclera.sclerago.testutil.FakePhotoRulesRepository
 import com.sclera.sclerago.testutil.InMemoryAssetConfig
 import com.sclera.sclerago.testutil.InMemoryAssetRepository
 import com.sclera.sclerago.testutil.SequentialIdGenerator
+import com.sclera.sclerago.testutil.UnreadablePhotos
 import com.sclera.sclerago.testutil.allowAllGuard
 import com.sclera.sclerago.testutil.asset
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,7 +83,7 @@ class AssetUseCasesTest {
     @Test
     fun statusLocationAndDelete_editTheCatalog() = runTest {
         val id = repo.catalog.value.assets.first().id
-        SetAssetStatusUseCase(repo, guard)(listOf(id), Status.SUBMITTED)
+        SetAssetStatusUseCase(repo, guard, FakePhotoRulesRepository())(listOf(id), Status.SUBMITTED)
         assertEquals(Status.SUBMITTED, assetNow(id).st)
         AssignLocationUseCase(repo, guard)(listOf(id), LocValue("lx", "lx · floor 2", "l-9"))
         assertEquals("lx", assetNow(id).loc)
@@ -95,9 +96,9 @@ class AssetUseCasesTest {
     fun signingOff_needsValidate_whileOtherChangesNeedCollect() = runTest {
         val collector = guardFor(Permission.COLLECT)
         val id = repo.catalog.value.assets.first().id
-        SetAssetStatusUseCase(repo, collector)(listOf(id), Status.SUBMITTED)
-        assertForbidden { SetAssetStatusUseCase(repo, collector)(listOf(id), Status.VALIDATED) }
-        assertForbidden { SaveAssetDetailsUseCase(repo, collector)(id, mapOf("name" to "X"), Status.VALIDATED) }
+        SetAssetStatusUseCase(repo, collector, FakePhotoRulesRepository())(listOf(id), Status.SUBMITTED)
+        assertForbidden { SetAssetStatusUseCase(repo, collector, FakePhotoRulesRepository())(listOf(id), Status.VALIDATED) }
+        assertForbidden { SaveAssetDetailsUseCase(repo, collector, FakePhotoRulesRepository())(id, mapOf("name" to "X"), Status.VALIDATED) }
         assertEquals(Status.SUBMITTED, assetNow(id).st)
         val viewer = guardFor()
         assertForbidden { DeleteAssetsUseCase(repo, viewer)(listOf(id)) }
@@ -108,7 +109,7 @@ class AssetUseCasesTest {
     @Test
     fun saveDetails_keepsValuesAndOptionallyMovesStatus() = runTest {
         val id = repo.catalog.value.assets.first().id
-        val save = SaveAssetDetailsUseCase(repo, guard)
+        val save = SaveAssetDetailsUseCase(repo, guard, FakePhotoRulesRepository())
         save(id, mapOf("name" to "Renamed", "make" to "Acme"))
         assertEquals("Renamed", assetNow(id).name)
         assertEquals("Acme", repo.details[id]?.fields?.get("make"))
@@ -118,7 +119,7 @@ class AssetUseCasesTest {
 
     @Test
     fun attachMedia_ignoresEmptyOrInvalidRequests() = runTest {
-        val attach = AttachMediaUseCase(repo, guard)
+        val attach = AttachMediaUseCase(repo, guard, FakePhotoRulesRepository())
         val before = assetNow("a1").media.size
         assertFalse(attach("a1", emptyList()))
         assertFalse(attach("", listOf(photo)))
@@ -137,7 +138,7 @@ class AssetUseCasesTest {
 
     @Test
     fun create_manual() = runTest {
-        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard)
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard, FakePhotoRulesRepository(), SortPhotosUseCase(UnreadablePhotos()))
         val r = create("Pump A", "", emptyList(), mapOf("make" to "Acme"), submit = true, place, emptyList(), null, Source.MANUAL)
         assertEquals(CreateAssetUseCase.Via.MANUAL, r.via)
         val a = assetNow(r.id)
@@ -151,7 +152,7 @@ class AssetUseCasesTest {
 
     @Test
     fun create_fromCameraShots() = runTest {
-        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard)
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard, FakePhotoRulesRepository(), SortPhotosUseCase(UnreadablePhotos()))
         val video = photo.copy(video = true, durationMs = 65_000)
         val r = create("", "Added manually", listOf(photo), emptyMap(), false, place, listOf(video), null, Source.MANUAL)
         assertEquals(CreateAssetUseCase.Via.CAMERA, r.via)
@@ -164,8 +165,8 @@ class AssetUseCasesTest {
     }
 
     @Test
-    fun create_fromAScannedDevice_linksIt() = runTest {
-        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard)
+    fun create_fromAScannedDevice_takesItsNameAndLine() = runTest {
+        val create = CreateAssetUseCase(repo, SequentialIdGenerator(), guard, FakePhotoRulesRepository(), SortPhotosUseCase(UnreadablePhotos()))
         val device = Device("net:1", "Printer", "10.0.0.5 · HP", 3, false, AssetType.COMPUTER)
         val r = create("", "", emptyList(), emptyMap(), false, place, emptyList(), device, Source.WIFI)
         assertEquals(CreateAssetUseCase.Via.SCAN, r.via)
@@ -173,33 +174,13 @@ class AssetUseCasesTest {
         assertEquals("Printer", a.name)
         assertEquals("10.0.0.5 · HP", a.detail)
         assertEquals(AssetType.COMPUTER, a.type)
-        assertEquals(r.id, repo.catalog.value.deviceAsset["net:1"])
         val named = create("Main pump", "", listOf(photo), emptyMap(), false, place, emptyList(), device, Source.WIFI)
         assertEquals(AssetType.PUMP, assetNow(named.id).type)
     }
 
     @Test
     fun create_withoutCollect_isRefused() = runTest {
-        assertForbidden { CreateAssetUseCase(repo, SequentialIdGenerator(), guardFor())("A", "", emptyList(), emptyMap(), false, place, emptyList(), null, Source.MANUAL) }
-    }
-
-    @Test
-    fun matchDevices_findsAssetsThatMentionTheDevice_orWereMadeFromIt() = runTest {
-        val made = asset(id = 500, name = "Router 1", src = Source.WIFI).copy(detail = "10.0.0.5 · edge")
-        repo.add(listOf(com.sclera.sclerago.domain.model.NewAsset(made)))
-        val devices = listOf(
-            Device("net:a", "R", "10.0.0.5 · HP", 2, false),
-            Device("net:b", "R", "10.0.0.55 · HP", 2, false),
-            Device("net:c", "R", "10.9.9.9", 2, false),
-        )
-        val all = repo.catalog.value.assets
-        val matched = MatchDevicesUseCase(repo)(devices, Source.WIFI, all)
-        assertEquals(made.id, matched["net:a"])
-        assertNull(matched["net:b"]) // 10.0.0.55 is not 10.0.0.5
-        assertNull(matched["net:c"])
-        // An asset made from the device is matched even though its text doesn't mention it.
-        repo.catalog.value = repo.catalog.value.copy(deviceAsset = mapOf("net:c" to "a1"))
-        assertEquals("a1", MatchDevicesUseCase(repo)(devices, Source.WIFI, all)["net:c"])
+        assertForbidden { CreateAssetUseCase(repo, SequentialIdGenerator(), guardFor(), FakePhotoRulesRepository(), SortPhotosUseCase(UnreadablePhotos()))("A", "", emptyList(), emptyMap(), false, place, emptyList(), null, Source.MANUAL) }
     }
 
     @Test

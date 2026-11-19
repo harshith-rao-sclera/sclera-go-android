@@ -29,16 +29,14 @@ import javax.inject.Singleton
 class PropertyTable @Inject constructor(
     @ApplicationContext private val context: Context,
     private val cipher: SecretCipher,
-) {
+) : PropertyListCache {
     private val db: SQLiteDatabase get() = GlobalConfigDatabaseHelper.initializeInstance(context).globalDB
 
-    /** The properties kept, in the server's order. */
-    fun read(): List<PropertyDto> = db.rawQuery("SELECT * FROM $TABLE_NAME_PROPERTIES ORDER BY rowid", null).use { c ->
+    override fun read(): List<PropertyDto> = db.rawQuery("SELECT * FROM $TABLE_NAME_PROPERTIES ORDER BY rowid", null).use { c ->
         buildList { while (c.moveToNext()) add(c.toDto()) }
     }
 
-    /** Replaces the properties kept with [list], for [organisationId]; those in [synced] (downloaded here) are marked synced. */
-    fun replace(list: List<PropertyDto>, organisationId: String?, synced: Set<String>) {
+    override fun replace(list: List<PropertyDto>, organisationId: String?, synced: Set<String>) {
         val db = db
         db.beginTransaction()
         try {
@@ -52,8 +50,7 @@ class PropertyTable @Inject constructor(
         }
     }
 
-    /** Marks the properties in [synced] as synced (downloaded to this device) and every other one as not. */
-    fun markSynced(synced: Set<String>) {
+    override fun markSynced(synced: Set<String>) {
         val db = db
         db.beginTransaction()
         try {
@@ -67,8 +64,7 @@ class PropertyTable @Inject constructor(
         }
     }
 
-    /** Forgets every property (sign-out). */
-    fun clear() {
+    override fun clear() {
         db.delete(TABLE_NAME_PROPERTIES, null, null)
     }
 

@@ -31,12 +31,20 @@ fun statusToDb(status: Status): DbStatus = when (status) {
 }
 
 /**
+ * An asset made from an access point scan. Android's own word: the API and web know only manual, document, bluetooth
+ * and wifi so far, so they don't count these as onboarded over Wi-Fi until the backend adds it.
+ */
+const val ACCESS_POINT_SOURCE = "access_point"
+
+/**
  * The app's [Source] for a stored `source` text, as the synced databases hold it: "camera" (made from the Camera tab),
- * "document" (a file import), "bluetooth", "wifi"; anything else is [Source.MANUAL].
+ * "document" (a file import), "bluetooth", "wifi", "access_point" (an access point scan); anything else is
+ * [Source.MANUAL].
  */
 fun sourceFromDb(source: String?): Source = when (source) {
     "bluetooth" -> Source.BT
     "wifi" -> Source.WIFI
+    ACCESS_POINT_SOURCE -> Source.AP
     "camera" -> Source.CAMERA
     "document" -> Source.FILE
     else -> Source.MANUAL
@@ -44,12 +52,13 @@ fun sourceFromDb(source: String?): Source = when (source) {
 
 /**
  * The `source` text to store, the same words [sourceFromDb] reads, so an asset keeps its source when it is written
- * again (an edit doesn't turn a camera asset or a file import into "manual"). Access points have no word of their own.
+ * again (an edit doesn't turn a camera asset or a file import into "manual").
  */
 fun sourceToDb(source: Source): String = when (source) {
     Source.BT -> "bluetooth"
     Source.WIFI -> "wifi"
     Source.CAMERA -> "camera"
     Source.FILE -> "document"
-    Source.AP, Source.MANUAL -> "manual"
+    Source.AP -> ACCESS_POINT_SOURCE
+    Source.MANUAL -> "manual"
 }

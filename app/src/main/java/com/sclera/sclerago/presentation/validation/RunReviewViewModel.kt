@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.validation.GetValidationFieldsUseCase
 import com.sclera.sclerago.domain.usecase.validation.MergeDuplicatesUseCase
 import com.sclera.sclerago.domain.usecase.validation.RunReviewUseCases
@@ -55,8 +56,14 @@ data class MergeState(
     val choice: Map<String, String> = emptyMap(),
     val loading: Boolean = true,
     val saving: Boolean = false,
+    /** What was picked when it loaded (the first asset and its defaults), so closing after a change asks first. */
+    val startKeepId: String? = null,
+    val startChoice: Map<String, String> = emptyMap(),
 ) {
     val keep: MergeAsset? get() = assets.firstOrNull { it.id == keepId }
+
+    /** Another asset to keep or another value picked: closing asks before discarding it. */
+    val changed: Boolean get() = !loading && (keepId != startKeepId || choice != startChoice)
     val differing: List<String> get() = MergeDuplicatesUseCase.differingFields(assets)
 
     /** Field id → the value it gets: from the asset chosen for it. */
@@ -324,15 +331,25 @@ class RunReviewViewModel @Inject constructor(
         set { copy(busy = true, recollectFor = null, recollectNote = "") }
         viewModelScope.launch {
             try {
-                val n = useCases.decide(p, j, ids, decision, note)
+                val outcome = useCases.decide(p, j, ids, decision, note)
+                // Drafts and exceptions aren't signed off: the server leaves them as they are and names them.
+                val skipped = outcome.notSubmitted.toSet()
+                val applied = ids.filter { it !in skipped }
+                // The asset's status follows a sign-off or a send-back (undoing one is read back from the server).
+                val status = when (decision) {
+                    Decision.VALIDATED -> Status.VALIDATED
+                    Decision.RECOLLECT -> Status.DRAFT
+                    else -> null
+                }
                 set {
                     copy(
                         results = results.map { r ->
-                            if (r.assetId !in ids) r
+                            if (r.assetId !in applied) r
                             else r.copy(
                                 decision = if (decision == Decision.CLEAR) null else decision,
                                 decisionNote = if (decision == Decision.RECOLLECT) note?.trim()?.takeIf { it.isNotEmpty() } else null,
                                 openCount = if (decision == Decision.EXCLUDED) 0 else r.openCount,
+                                assetStatus = status ?: r.assetStatus,
                             )
                         },
                         selected = emptySet(),
@@ -344,7 +361,11 @@ class RunReviewViewModel @Inject constructor(
                     Decision.EXCLUDED -> R.plurals.rev_decided_excluded
                     Decision.CLEAR -> R.plurals.rev_decided_cleared
                 }
-                flash(UiText.Plural(msg, n))
+                // One message at a time: what wasn't signed off matters more than the count that was.
+                flash(
+                    if (skipped.isNotEmpty()) UiText.Plural(R.plurals.sign_off_not_submitted, skipped.size)
+                    else UiText.Plural(msg, outcome.updated),
+                )
                 loadRun()
                 loadFinished()
                 state.panel?.let { if (it.assetId in ids) reloadPanel(it.assetId) }
@@ -439,6 +460,7 @@ class RunReviewViewModel @Inject constructor(
                 val assets = useCases.merge.load(p, ids)
                 set { copy(merge = merge?.copy(assets = assets, loading = false)) }
                 assets.firstOrNull()?.let { setMergeKeep(it.id) }
+                set { copy(merge = merge?.let { it.copy(startKeepId = it.keepId, startChoice = it.choice) }) }
             } catch (e: OnlineException) {
                 set { copy(merge = null) }
                 flash(e.error.toUiText())

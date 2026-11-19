@@ -5,12 +5,14 @@ import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetConfig
 import com.sclera.sclerago.domain.model.AssetDetails
+import com.sclera.sclerago.domain.model.DEFAULT_PHOTO_RULES
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
-import com.sclera.sclerago.domain.model.DEFAULT_PHOTO_RULES
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.photos.PhotoReader
+import com.sclera.sclerago.domain.photos.PhotoReading
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
@@ -28,17 +30,22 @@ import com.sclera.sclerago.domain.usecase.asset.AutofillAssetUseCase
 import com.sclera.sclerago.domain.usecase.asset.BuildAssetListUseCase
 import com.sclera.sclerago.domain.usecase.asset.BuildCheckInputUseCase
 import com.sclera.sclerago.domain.usecase.asset.BuildFormValuesUseCase
+import com.sclera.sclerago.domain.usecase.asset.CanWorkOnAssetUseCase
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.domain.usecase.asset.DeleteAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.EvaluateAssetChecksUseCase
 import com.sclera.sclerago.domain.usecase.asset.GetAssetDetailsUseCase
-import com.sclera.sclerago.domain.usecase.asset.MatchDevicesUseCase
 import com.sclera.sclerago.domain.usecase.asset.ObserveAssetActivityUseCase
 import com.sclera.sclerago.domain.usecase.asset.ObserveAssetsUseCase
+import com.sclera.sclerago.domain.usecase.asset.RemoveCommentUseCase
+import com.sclera.sclerago.domain.usecase.asset.RemoveMediaUseCase
 import com.sclera.sclerago.domain.usecase.asset.SaveAssetDetailsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SelectAllUseCase
 import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
 import com.sclera.sclerago.domain.usecase.asset.ToggleSelectionUseCase
+import com.sclera.sclerago.domain.usecase.asset.UpdateCommentUseCase
+import com.sclera.sclerago.domain.usecase.media.DownloadMediaUseCase
+import com.sclera.sclerago.domain.usecase.media.SortPhotosUseCase
 import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import kotlinx.coroutines.flow.Flow
@@ -66,7 +73,6 @@ class InMemoryAssetRepository(
         change { assets.map { it.asset } + it }
         assets.forEach { n ->
             if (n.values.isNotEmpty()) details[n.asset.id] = AssetDetails(n.asset.id, n.values)
-            n.deviceId?.let { catalog.value = catalog.value.copy(deviceAsset = catalog.value.deviceAsset + (it to n.asset.id)) }
         }
     }
 
@@ -75,7 +81,7 @@ class InMemoryAssetRepository(
         return com.sclera.sclerago.domain.model.SubmitOutcome()
     }
 
-    override suspend fun saveDetails(id: String, values: Map<String, String>) {
+    override suspend fun saveDetails(id: String, values: Map<String, String>, sources: Map<String, String>, place: LocValue?) {
         val before = details[id]
         details[id] = before?.copy(fields = before.fields + values) ?: AssetDetails(id, values)
         values["name"]?.let { name -> listOf(id).update { it.copy(name = name) } }
@@ -87,6 +93,9 @@ class InMemoryAssetRepository(
         ids.update { it.copy(loc = location.loc, where = location.where, locationId = location.placeId) }
 
     override suspend fun attachMedia(id: String, media: List<Media>) = listOf(id).update { it.copy(media = it.media + media) }
+
+    override suspend fun removeMedia(assetId: String, mediaId: String) =
+        listOf(assetId).update { a -> a.copy(media = a.media.filterNot { it.id == mediaId }) }
 
     override suspend fun details(id: String): AssetDetails? = details[id]
 
@@ -112,6 +121,12 @@ class InMemoryActivityRepository(initial: Map<String, List<AssetActivity>> = emp
     override suspend fun addComment(assetId: String, text: String) {
         comments += assetId to text
     }
+
+    override suspend fun updateComment(assetId: String, commentId: String, text: String) {
+        comments += assetId to text
+    }
+
+    override suspend fun removeComment(assetId: String, commentId: String) = Unit
 }
 
 /** The asset fields every asset has, in memory (the app reads them from the offline database). */
@@ -125,6 +140,11 @@ class FakePhotoRulesRepository(rules: List<PhotoRule> = DEFAULT_PHOTO_RULES) : P
     override fun rules(): Flow<List<PhotoRule>> = flow
 }
 
+/** A [PhotoReader] that can't read any photo, so nothing is sorted by what it shows. */
+class UnreadablePhotos : PhotoReader {
+    override suspend fun read(uri: String): PhotoReading? = null
+}
+
 /** The asset use cases over the given repositories, wired as Hilt does ([guard] lets everything through by default). */
 fun assetUseCases(
     repo: AssetRepository = InMemoryAssetRepository(),
@@ -135,11 +155,16 @@ fun assetUseCases(
     time: TimeProvider = FakeTimeProvider(),
     ids: IdGenerator = SequentialIdGenerator(),
     guard: PermissionGuard = allowAllGuard(),
-) = AssetUseCases(
-    ObserveAssetsUseCase(repo), GetAssetDetailsUseCase(repo), SetAssetStatusUseCase(repo, guard), SaveAssetDetailsUseCase(repo, guard),
-    DeleteAssetsUseCase(repo, guard), AssignLocationUseCase(repo, guard), AttachMediaUseCase(repo, guard), AddAssetsUseCase(repo, ids, guard),
-    CreateAssetUseCase(repo, ids, guard), MatchDevicesUseCase(repo), BuildCheckInputUseCase(repo, config, photoRules),
-    BuildAssetListUseCase(), ToggleSelectionUseCase(), SelectAllUseCase(), EvaluateAssetChecksUseCase(),
-    AutofillAssetUseCase(autofill, guard), BuildFormValuesUseCase(time),
-    ObserveAssetActivityUseCase(activity), AddCommentUseCase(activity, guard),
-)
+): AssetUseCases {
+    val sort = SortPhotosUseCase(UnreadablePhotos())
+    return AssetUseCases(
+        ObserveAssetsUseCase(repo), GetAssetDetailsUseCase(repo), SetAssetStatusUseCase(repo, guard, photoRules),
+        SaveAssetDetailsUseCase(repo, guard, photoRules), DeleteAssetsUseCase(repo, guard), AssignLocationUseCase(repo, guard),
+        AttachMediaUseCase(repo, guard, photoRules), RemoveMediaUseCase(repo, guard), DownloadMediaUseCase(FakeFileRepository()), sort,
+        AddAssetsUseCase(repo, ids, guard), CreateAssetUseCase(repo, ids, guard, photoRules, sort),
+        BuildCheckInputUseCase(repo, config, photoRules), BuildAssetListUseCase(), ToggleSelectionUseCase(), SelectAllUseCase(),
+        CanWorkOnAssetUseCase(repo, guard), EvaluateAssetChecksUseCase(), AutofillAssetUseCase(autofill, guard), BuildFormValuesUseCase(time),
+        ObserveAssetActivityUseCase(activity, InMemoryAccessRepository(), FakeAuthRepository(), guard), AddCommentUseCase(activity, guard),
+        UpdateCommentUseCase(activity), RemoveCommentUseCase(activity),
+    )
+}

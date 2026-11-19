@@ -525,73 +525,75 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
         RunMode.CHOSEN -> sh.chosen.size
         RunMode.CHANGED -> -1
     }
-    BottomSheet(vm::closeRunSheet) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Txt("Run validation", 16, 700, modifier = Modifier.weight(1f))
-            CloseButton(vm::closeRunSheet, size = 36.dp, iconSize = 15.dp)
-        }
-        Txt(stringResource(R.string.val_run_sub), 12, 400, C.Muted, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp), maxLines = 3)
-        Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Txt("What to check", 12, 600, C.Soft, Modifier.padding(start = 2.dp, bottom = 2.dp))
-            options.forEach { o ->
-                val on = sh.source == o.source
-                Column(
-                    Modifier.fillMaxWidth().clip(r(12)).background(if (on) C.YTintBg else C.Surface)
-                        .border(if (on) 1.5.dp else 1.dp, if (on) C.Yellow else C.Border, r(12))
-                        .clickable { vm.setRunSource(o.source) }.padding(10.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(Modifier.size(30.dp).clip(r(8)).background(C.Raised), contentAlignment = Alignment.Center) {
-                            LineIcon(templateIcon(o.icon), 16.dp, C.Yellow, 2.2f)
-                        }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Txt(o.name, 13, 700, modifier = Modifier.weight(1f, fill = false))
-                                if (o.ai) AiBadge()
-                                if (o.saved) Txt("saved", 10, 600, C.Muted)
-                            }
-                            Txt("${o.tagline} · ${plural(o.steps.size, "step", "steps")}", 11, 400, C.Muted)
-                        }
-                        RadioDot(on)
-                    }
-                    // The chosen one shows what it checks.
-                    if (on && o.steps.isNotEmpty()) FlowRow(
-                        Modifier.padding(start = 40.dp, top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        verticalArrangement = Arrangement.spacedBy(5.dp),
+    GuardedClose(sh.changed, vm::closeRunSheet) { close ->
+        BottomSheet(close) {
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Txt("Run validation", 16, 700, modifier = Modifier.weight(1f))
+                CloseButton(close, size = 36.dp, iconSize = 15.dp)
+            }
+            Txt(stringResource(R.string.val_run_sub), 12, 400, C.Muted, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp), maxLines = 3)
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Txt("What to check", 12, 600, C.Soft, Modifier.padding(start = 2.dp, bottom = 2.dp))
+                options.forEach { o ->
+                    val on = sh.source == o.source
+                    Column(
+                        Modifier.fillMaxWidth().clip(r(12)).background(if (on) C.YTintBg else C.Surface)
+                            .border(if (on) 1.5.dp else 1.dp, if (on) C.Yellow else C.Border, r(12))
+                            .clickable { vm.setRunSource(o.source) }.padding(10.dp),
                     ) {
-                        o.steps.forEach { RuleChip(stepName(steps, it), steps[it]?.usesAi == true) }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(Modifier.size(30.dp).clip(r(8)).background(C.Raised), contentAlignment = Alignment.Center) {
+                                LineIcon(templateIcon(o.icon), 16.dp, C.Yellow, 2.2f)
+                            }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Txt(o.name, 13, 700, modifier = Modifier.weight(1f, fill = false))
+                                    if (o.ai) AiBadge()
+                                    if (o.saved) Txt("saved", 10, 600, C.Muted)
+                                }
+                                Txt("${o.tagline} · ${plural(o.steps.size, "step", "steps")}", 11, 400, C.Muted)
+                            }
+                            RadioDot(on)
+                        }
+                        // The chosen one shows what it checks.
+                        if (on && o.steps.isNotEmpty()) FlowRow(
+                            Modifier.padding(start = 40.dp, top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            o.steps.forEach { RuleChip(stepName(steps, it), steps[it]?.usesAi == true) }
+                        }
                     }
                 }
-            }
 
-            Txt("Which assets", 12, 600, C.Soft, Modifier.padding(start = 2.dp, top = 10.dp, bottom = 2.dp))
-            val modes = listOf(RunMode.ALL, RunMode.CHOSEN, RunMode.CHANGED)
-            ScopeTabs(
-                listOf("All · ${assets.count { isServerId(it.id) }}", "Choose", "New or changed"), modes.indexOf(sh.mode),
-            ) { i ->
-                val m = modes[i]
-                if (m == RunMode.CHOSEN) vm.openPicker() else vm.setRunMode(m)
+                Txt("Which assets", 12, 600, C.Soft, Modifier.padding(start = 2.dp, top = 10.dp, bottom = 2.dp))
+                val modes = listOf(RunMode.ALL, RunMode.CHOSEN, RunMode.CHANGED)
+                ScopeTabs(
+                    listOf("All · ${assets.count { isServerId(it.id) }}", "Choose", "New or changed"), modes.indexOf(sh.mode),
+                ) { i ->
+                    val m = modes[i]
+                    if (m == RunMode.CHOSEN) vm.openPicker() else vm.setRunMode(m)
+                }
+                when (sh.mode) {
+                    RunMode.CHOSEN -> "${plural(sh.chosen.size, "asset", "assets")} ticked · tap Choose to change"
+                    RunMode.CHANGED -> "Only what was added or changed since this last ran"
+                    RunMode.ALL -> null
+                }?.let { Txt(it, 11, 400, C.Muted, Modifier.padding(start = 2.dp)) }
+                Spacer(Modifier.height(4.dp))
             }
-            when (sh.mode) {
-                RunMode.CHOSEN -> "${plural(sh.chosen.size, "asset", "assets")} ticked · tap Choose to change"
-                RunMode.CHANGED -> "Only what was added or changed since this last ran"
-                RunMode.ALL -> null
-            }?.let { Txt(it, 11, 400, C.Muted, Modifier.padding(start = 2.dp)) }
-            Spacer(Modifier.height(4.dp))
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val ok = chosen != null && count != 0 && !sh.busy
-            val label = when {
-                count == 0 -> if (sh.mode == RunMode.CHOSEN) "Tick some assets first" else "No assets to check"
-                count < 0 -> "Run ${chosen?.name ?: "validation"} on new or changed assets"
-                else -> "Run ${chosen?.name ?: "validation"} on ${plural(count, "asset", "assets")}"
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val ok = chosen != null && count != 0 && !sh.busy
+                val label = when {
+                    count == 0 -> if (sh.mode == RunMode.CHOSEN) "Tick some assets first" else "No assets to check"
+                    count < 0 -> "Run ${chosen?.name ?: "validation"} on new or changed assets"
+                    else -> "Run ${chosen?.name ?: "validation"} on ${plural(count, "asset", "assets")}"
+                }
+                Pill("Save as ready", { if (ok) vm.submitRunSheet(now = false) }, Modifier.alpha(if (ok) 1f else 0.5f), height = 44.dp, hPad = 14.dp, size = 13)
+                YellowButton(label, { vm.submitRunSheet(now = true) }, Modifier.weight(1f), enabled = ok, height = 44)
             }
-            Pill("Save as ready", { if (ok) vm.submitRunSheet(now = false) }, Modifier.alpha(if (ok) 1f else 0.5f), height = 44.dp, hPad = 14.dp, size = 13)
-            YellowButton(label, { vm.submitRunSheet(now = true) }, Modifier.weight(1f), enabled = ok, height = 44)
         }
     }
 }
@@ -724,26 +726,28 @@ private fun stepKind(g: StepGroup) = when (g) {
 /** The order templates and custom runs check steps in (the user's own), with the step list's look. */
 @Composable
 private fun OrderSheet(vm: ValidationViewModel, s: ValidationUiState, o: OrderSheetState) {
-    BottomSheet(vm::closeOrder) {
-        SheetHeader("Default order", stringResource(R.string.val_order_sub), vm::closeOrder)
-        Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (o.loading) Txt("Loading…", 11, 400, C.Muted)
-            ReorderableSteps(o.steps, { id, by -> vm.moveOrderStep(o.steps.indexOf(id), by) }) { i, key, modifier, handle ->
-                StepRow(
-                    i, stepName(s.stepsByKey, key), groupText(s.stepsByKey[key]?.group), first = i == 0, last = i == o.steps.size - 1,
-                    onMove = { vm.moveOrderStep(i, it) }, onInfo = null, onRemove = null, modifier = modifier, handle = handle,
+    GuardedClose(o.changed, vm::closeOrder) { close ->
+        BottomSheet(close) {
+            SheetHeader("Default order", stringResource(R.string.val_order_sub), close)
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (o.loading) Txt("Loading…", 11, 400, C.Muted)
+                ReorderableSteps(o.steps, { id, by -> vm.moveOrderStep(o.steps.indexOf(id), by) }) { i, key, modifier, handle ->
+                    StepRow(
+                        i, stepName(s.stepsByKey, key), groupText(s.stepsByKey[key]?.group), first = i == 0, last = i == o.steps.size - 1,
+                        onMove = { vm.moveOrderStep(i, it) }, onInfo = null, onRemove = null, modifier = modifier, handle = handle,
+                    )
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (o.custom) Pill("Reset to default", { if (!o.saving) vm.resetOrder() }, height = 44.dp, hPad = 14.dp, size = 13)
+                Pill(
+                    "Save order", { if (!o.loading && !o.saving) vm.saveOrder() }, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow,
+                    height = 44.dp, size = 13, weight = 700,
                 )
             }
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (o.custom) Pill("Reset to default", { if (!o.saving) vm.resetOrder() }, height = 44.dp, hPad = 14.dp, size = 13)
-            Pill(
-                "Save order", { if (!o.loading && !o.saving) vm.saveOrder() }, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow,
-                height = 44.dp, size = 13, weight = 700,
-            )
         }
     }
 }

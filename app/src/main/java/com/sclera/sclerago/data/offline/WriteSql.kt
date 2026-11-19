@@ -12,10 +12,10 @@ internal const val ASSET_STATE = """SELECT status, validated, ai_suggestion, nam
     master_format_id, jacs_code_id, classification_source, building_id, floor_id, location_id
     FROM assets WHERE id = ? AND %LIVE%"""
 
-internal const val ASSET_INSERT = """INSERT INTO assets (id, name, building_id, floor_id, location_id, status, source, source_ref, created_by,
+internal const val ASSET_INSERT = """INSERT INTO assets (id, name, building_id, floor_id, location_id, status, source, created_by,
     version, created_at, updated_at, manufacturer, model, serial_number, needs_review, values_changed_at, classification_source,
     values_revision, master_format_id, jacs_code_id, validated, ai_suggestion, assigned_to)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 0, ?, ?, 1, ?, ?, ?, ?, ?)"""
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 0, ?, ?, 1, ?, ?, ?, ?, ?)"""
 
 /** Whether AI suggestions could fill an empty field, worked out again after the answers or fields change (the server's refresh_ai_suggestion). */
 internal const val ASSET_SET_AI_SUGGESTION = "UPDATE assets SET ai_suggestion = ? WHERE id = ?"

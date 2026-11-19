@@ -1,9 +1,5 @@
 package com.sclera.sclerago.presentation.assets
 
-import com.sclera.sclerago.domain.model.ClonePlace
-import com.sclera.sclerago.domain.model.AssetDocument
-import com.sclera.sclerago.domain.model.AssetLock
-import com.sclera.sclerago.domain.model.Status
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,39 +18,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.ANSWER_NO
+import com.sclera.sclerago.domain.model.ANSWER_YES
+import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.AssetLock
+import com.sclera.sclerago.domain.model.CHECKED
+import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FormEntry
-import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.PhotoKind
-import com.sclera.sclerago.domain.model.ANSWER_NO
-import com.sclera.sclerago.domain.model.ANSWER_YES
-import com.sclera.sclerago.domain.model.CHECKED
-import com.sclera.sclerago.domain.validation.isServerId
-import com.sclera.sclerago.domain.usecase.asset.AssetPerson
-import com.sclera.sclerago.presentation.model.OnlineOnly
-import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
-import androidx.compose.ui.platform.LocalConfiguration
+import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.assetTypes
 import com.sclera.sclerago.domain.model.subtypes
 import com.sclera.sclerago.domain.model.systemTypes
+import com.sclera.sclerago.domain.usecase.asset.AssetPerson
+import com.sclera.sclerago.domain.usecase.asset.ChangeAction
+import com.sclera.sclerago.domain.validation.isServerId
+import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
 import com.sclera.sclerago.presentation.components.ActionCard
+import com.sclera.sclerago.presentation.components.DockItem
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.icons.Icons
+import com.sclera.sclerago.presentation.main.changeActionLabel
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.model.labelRes
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
 /** Which confirmation the details screen is asking. */
-enum class DetailModal { NONE, DELETE, DISCARD, SUBMIT, SUBMIT_EXCEPTION, SAVE_MISSING }
+enum class DetailModal { NONE, DELETE, DISCARD, SUBMIT, SUBMIT_EXCEPTION, SAVE_MISSING, MARK_VALIDATED, APPROVE_REQUEST, MOVE_TO_DRAFT }
 
 /** What the form's buttons do. */
 class AssetDetailActions(
@@ -67,6 +71,12 @@ class AssetDetailActions(
     val onSave: () -> Unit = {},
     /** Submit an existing asset (after the confirmation). */
     val onSubmit: () -> Unit = {},
+    /** Move the asset back to draft (after the confirmation). */
+    val onMoveToDraft: () -> Unit = {},
+    /** An admin marks the submitted asset as validated without a validation run (after the confirmation). */
+    val onMarkValidated: () -> Unit = {},
+    /** Move the validated asset to Managed assets; null when it isn't offered (not validated, or not a reviewer). */
+    val onMove: (() -> Unit)? = null,
     /** Create the new asset, as a draft or (true) submitted. */
     val onCreate: (submit: Boolean) -> Unit = {},
     val onValidate: () -> Unit = {},
@@ -118,6 +128,8 @@ class AssetDetailActions(
     val onOpenClone: () -> Unit = {},
     val onClone: (copies: Int, place: ClonePlace, keys: Set<String>) -> Unit = { _, _, _ -> },
     val onCloseClone: () -> Unit = {},
+    /** Add field (the end of the Info tab's fields): a field for this asset only. */
+    val addField: AddFieldActions = AddFieldActions(),
 )
 
 /** Opening the JACS code picker, and what it does. */
@@ -153,7 +165,7 @@ private val SYSTEM_KEYS = listOf("sys", "typ", "sub", "jacs")
 private val NOT_IN_FIELDS = SYSTEM_KEYS.toSet() + "name"
 
 /** Fields whose values are codes and addresses, shown in a fixed-width font. */
-private val CODE_KEYS = setOf("label", "ble", "ip", "mac", "serial")
+private val CODE_KEYS = setOf("label", "serial")
 
 /**
  * The Info tab, laid out as the web's asset panel: Location details (the asset's building, floor and location), System
@@ -167,6 +179,8 @@ fun AssetInfoTab(
     actions: AssetDetailActions,
     ui: FormUi,
     onModal: (DetailModal) -> Unit,
+    /** The remove button of one of the asset's own fields was tapped (the screen asks first). */
+    onRemoveField: (FieldCfg) -> Unit = {},
 ) {
     val asset = state.asset ?: return
     val spec = FieldSpec(state.fields)
@@ -201,16 +215,11 @@ fun AssetInfoTab(
         modifier = Modifier.bringIntoViewRequester(ui.requester(InfoSections.LOCATION)),
         summary = Summary(place.location ?: place.floor ?: place.building ?: notSet, warn = place.building == null),
     ) {
-        ValueRow(stringResource(R.string.detail_building), place.building)
-        ValueRow(stringResource(R.string.detail_floor), place.floor)
-        ValueRow(stringResource(R.string.detail_location), place.location)
-        if (!locked) {
-            Pill(
-                stringResource(R.string.detail_set_location), actions.onChangeLoc,
-                Modifier.padding(horizontal = 12.dp).padding(top = 8.dp).fillMaxWidth().testTag(DetailTags.LOCATION),
-                height = 44.dp, size = 13, weight = 600,
-            )
-        }
+        // Most specific first; tapping any of them opens the location picker (unless the asset is locked).
+        val pickPlace = actions.onChangeLoc.takeIf { !locked }
+        ValueRow(stringResource(R.string.detail_location), place.location, Modifier.testTag(DetailTags.LOCATION), pickPlace)
+        ValueRow(stringResource(R.string.detail_floor), place.floor, onClick = pickPlace)
+        ValueRow(stringResource(R.string.detail_building), place.building, onClick = pickPlace)
     }
 
     // System details: the type comes from the property's catalogue, the JACS code is written as it is (no list exists).
@@ -276,8 +285,14 @@ fun AssetInfoTab(
     ) {
         state.fieldRows.forEach { row ->
             when (row) {
-                is FormEntry.Input -> spec.cfg(row.key)?.takeIf { it.key !in NOT_IN_FIELDS }
-                    ?.let { f -> AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) } }
+                is FormEntry.Input -> spec.cfg(row.key)?.takeIf { it.key !in NOT_IN_FIELDS }?.let { f ->
+                    // A field of this asset alone can be removed (by whoever may add one), as the server allows.
+                    if (f.ownField && state.canAddField && state.canEdit) {
+                        OwnFieldRow(f.label, onRemove = { onRemoveField(f) }) { AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) } }
+                    } else {
+                        AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) }
+                    }
+                }
                 is FormEntry.MediaField -> {
                     val files = state.media.count { it.fieldId == row.id }
                     ValueRow(
@@ -287,35 +302,23 @@ fun AssetInfoTab(
                 }
             }
         }
+        // As the web's: a field for this asset alone, added after its other fields (a saved asset the user can edit).
+        if (state.canAddField && state.canEdit) AddFieldRow(actions.addField.onOpen)
     }
 
     if (!isNew) {
         StatusLine(asset, Modifier.padding(horizontal = 12.dp).padding(top = 2.dp))
+        // As the server: an asset with an empty mandatory field or too few photos is submitted as an exception, so ask about that first.
+        val submitModal = if (state.complete) DetailModal.SUBMIT else DetailModal.SUBMIT_EXCEPTION
+        // Submitting is for drafts that can be changed here (a submitted or exception asset already was).
+        val canSubmit = !locked && (asset.st == Status.DRAFT || asset.st == Status.INPUT || asset.st == Status.AI)
         if (locked && state.lock == AssetLock.NOT_ASSIGNED) {
             // Someone else's: read-only until an admin assigns it to this user (the web's lock note).
-            NotAssignedCard(
-                modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
-                onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
-            )
+            NotAssignedCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp))
         } else if (locked) {
-            // Submitted: read-only. Someone who needs to change it asks an admin to reopen it (a change request).
-            SubmittedCard(
-                modifier = Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
-                onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
-                request = asset.changeRequest, mine = state.changeRequestMine, requester = state.changeRequester,
-                onRequestChange = actions.changeRequest.onOpen, onWithdraw = actions.changeRequest.onClose,
-            )
+            // Submitted: read-only. Request change (or Update / Withdraw) is in the asset bar; a request shows in the banner.
+            SubmittedCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp))
         } else {
-            // An admin can change a submitted asset; a change request on it is theirs to decline, or reopen it for.
-            val request = asset.changeRequest
-            if (request != null && (asset.st == Status.SUBMITTED || asset.st == Status.VALIDATED)) {
-                AdminChangeRequestCard(
-                    request, state.changeRequestMine, state.changeRequester, actions.changeRequest.onClose, actions.changeRequest.onReopen,
-                    Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
-                )
-            }
-            // As the server: an asset with an empty mandatory field or too few photos is submitted as an exception, so ask about that first.
-            val submitModal = if (state.complete) DetailModal.SUBMIT else DetailModal.SUBMIT_EXCEPTION
             // Save (makes it drafted with the AI flag on; asks first while a mandatory field is empty, as the web) and Submit,
             // with the other actions under it.
             val dirty = state.dirtyCount
@@ -338,22 +341,20 @@ fun AssetInfoTab(
                     Modifier.testTag(DetailTags.SAVE).alpha(if (dirty > 0) 1f else 0.45f),
                     height = 48.dp, hPad = 18.dp, size = 14, weight = 700,
                 )
-                Pill(
-                    stringResource(R.string.action_submit), { onModal(submitModal) }, Modifier.testTag(DetailTags.SUBMIT),
-                    bg = C.Yellow, fg = C.OnYellow, height = 48.dp, hPad = 22.dp, size = 14, weight = 700,
-                )
+                if (canSubmit) {
+                    Pill(
+                        stringResource(R.string.action_submit), { onModal(submitModal) }, Modifier.testTag(DetailTags.SUBMIT),
+                        bg = C.Yellow, fg = C.OnYellow, height = 48.dp, hPad = 22.dp, size = 14, weight = 700,
+                    )
+                }
             }
-            ActionCard(
-                // As the web: for anyone who may run checks, once the server has the asset.
-                onValidate = if (state.canCheck && isServerId(asset.id)) actions.onValidate else null,
-                onAssign = actions.onAssign,
-                onSubmit = { onModal(submitModal) },
-                onDelete = { onModal(DetailModal.DELETE) },
-                modifier = Modifier.padding(horizontal = 12.dp),
-                offline = !state.online,
-                onOffline = actions.onOffline,
-            )
         }
+        ActionCard(
+            assetBarItems(state, asset, locked, canSubmit, actions, onModal = { onModal(it) }, submitModal = submitModal),
+            Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
+            offline = !state.online,
+            onOffline = actions.onOffline,
+        )
     } else {
         // New asset: save it as a draft, or submit it (then it can not be edited). As the server, one with an empty mandatory
         // field or too few photos is submitted as an exception, so ask about that first.
@@ -368,6 +369,56 @@ fun AssetInfoTab(
                 bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700,
             )
         }
+    }
+}
+
+/**
+ * The asset bar's actions for this user, as the web's asset bar (AssetsInfoContainer's assetActions), in its order:
+ * - Validate: anyone who may run checks, once the server has the asset.
+ * - Mark as validated: an admin, on a submitted asset (signs it off without a validation run).
+ * - Assign: anyone who may assign, except on a signed-off asset.
+ * - Submit: a draft that can be changed here.
+ * - Move to Managed assets: a reviewer, on a validated asset.
+ * - The change-request actions (ChangeRequestActionsUseCase, as the web's changeRequestActions): an admin moves a
+ *   submitted asset back to draft when nobody asked; anyone else requests a change (or updates their request); an
+ *   exception can be moved back to draft by whoever works on it. Approving, declining or withdrawing a request is in
+ *   the change request banner, not here.
+ * - Delete: an asset that can be changed here and isn't signed off.
+ */
+@Composable
+private fun assetBarItems(
+    state: AssetDetailState,
+    asset: com.sclera.sclerago.domain.model.Asset,
+    locked: Boolean,
+    canSubmit: Boolean,
+    actions: AssetDetailActions,
+    onModal: (DetailModal) -> Unit,
+    submitModal: DetailModal,
+): List<DockItem> {
+    val signedOff = asset.st == Status.VALIDATED
+    val change = state.changeActions
+    return buildList {
+        if (state.canCheck && isServerId(asset.id)) {
+            add(DockItem(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, actions.onValidate, OnlineOnly.VALIDATE))
+        }
+        if (ChangeAction.MARK_VALIDATED in change) {
+            add(DockItem(stringResource(R.string.sign_off_action), Icons.CheckCircle, C.Green, { onModal(DetailModal.MARK_VALIDATED) }, tag = DetailTags.MARK_VALIDATED))
+        }
+        if (!signedOff) actions.onAssign?.let { add(DockItem(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it, OnlineOnly.ASSIGN)) }
+        if (canSubmit) add(DockItem(stringResource(R.string.action_submit), Icons.Upload, C.Blue, { onModal(submitModal) }))
+        actions.onMove?.let { add(DockItem(stringResource(R.string.mv_action), Icons.Send, C.Green, it, OnlineOnly.MOVE_TO_MANAGED)) }
+        change.filter { it != ChangeAction.MARK_VALIDATED }.forEach { a ->
+            val label = changeActionLabel(a, 1)
+            when (a) {
+                ChangeAction.MOVE_TO_DRAFT -> add(DockItem(label, Icons.Refresh, C.Orange, { onModal(DetailModal.MOVE_TO_DRAFT) }, tag = DetailTags.MOVE_TO_DRAFT))
+                // Approving (moving it back to draft for whoever asked), declining and withdrawing a request are the change
+                // request banner's, with the request they answer, not the bar's.
+                ChangeAction.APPROVE, ChangeAction.DECLINE, ChangeAction.WITHDRAW -> Unit
+                ChangeAction.REQUEST, ChangeAction.UPDATE_REQUEST -> add(DockItem(label, Icons.Pencil, C.Orange, actions.changeRequest.onOpen, tag = ChangeRequestTags.ASK))
+                ChangeAction.MARK_VALIDATED -> Unit
+            }
+        }
+        if (!locked && !signedOff) add(DockItem(stringResource(R.string.action_delete), Icons.Trash, C.Red, { onModal(DetailModal.DELETE) }))
     }
 }
 

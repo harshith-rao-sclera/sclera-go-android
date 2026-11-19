@@ -5,9 +5,10 @@ import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
 import com.sclera.sclerago.domain.model.EmptyReason
 import com.sclera.sclerago.domain.model.LocationFilter
-import com.sclera.sclerago.domain.model.ToggleChip
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
+import com.sclera.sclerago.domain.model.ToggleChip
+import com.sclera.sclerago.domain.model.ValidationMark
 import com.sclera.sclerago.domain.model.isIn
 import javax.inject.Inject
 
@@ -16,7 +17,8 @@ import javax.inject.Inject
  * chip. The chip counts (status, Recollect and Change requests) follow the chosen location (all of the property,
  * one location or the unmapped assets) but not the search text. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
  * so it can overlap the other chips. The Change requests chip shows for admins ([AssetListQuery.showChangeRequests]),
- * who act on the requests, and for anyone else only while there are some (as on the web).
+ * who act on the requests, and for anyone else only while there are some (as on the web). The Failed validation and
+ * Needs a look chips show while some assets have that mark.
  */
 class BuildAssetListUseCase @Inject constructor() {
     operator fun invoke(assets: List<Asset>, query: AssetListQuery): AssetListData {
@@ -27,20 +29,24 @@ class BuildAssetListUseCase @Inject constructor() {
         val changesOn = query.changeRequests
         val chosen = query.status.takeUnless { changesOn }
         val recollectOn = query.recollect && chosen == null && !changesOn
-        val chips = listOf(StatusCount(null, tab.size, chosen == null && !recollectOn && !changesOn)) +
+        val markOn = query.validation?.takeIf { chosen == null && !changesOn && !recollectOn }
+        val chips = listOf(StatusCount(null, tab.size, chosen == null && !recollectOn && !changesOn && markOn == null)) +
             Status.entries.filter { it != Status.INPUT }.map { st -> StatusCount(st, tab.count { it.isIn(st) }, chosen == st) }
         val reason = when {
             text.isNotEmpty() -> EmptyReason.SEARCH
-            chosen != null || recollectOn || changesOn -> EmptyReason.STATUS
+            chosen != null || recollectOn || changesOn || markOn != null -> EmptyReason.STATUS
             query.sources == null -> EmptyReason.ASSETS_TAB
             else -> EmptyReason.SOURCE_TAB
         }
         val items = shown.filter {
-            (chosen == null || it.isIn(chosen)) && (!recollectOn || it.recollect) && (!changesOn || it.changeRequest != null)
+            (chosen == null || it.isIn(chosen)) && (!recollectOn || it.recollect) && (!changesOn || it.changeRequest != null) &&
+                (markOn == null || it.validationMark == markOn)
         }
         val changeCount = tab.count { it.changeRequest != null }
         val changeChip = ToggleChip(changeCount, changesOn).takeIf { query.showChangeRequests || changeCount > 0 || changesOn }
-        return AssetListData(items, chips, reason, ToggleChip(tab.count { it.recollect }, recollectOn), changeChip)
+        val markChips = ValidationMark.entries.associateWith { m -> ToggleChip(tab.count { it.validationMark == m }, markOn == m) }
+            .filterValues { it.count > 0 || it.selected }
+        return AssetListData(items, chips, reason, ToggleChip(tab.count { it.recollect }, recollectOn), changeChip, markChips)
     }
 
     private fun inLocation(a: Asset, filter: LocationFilter) = when (filter) {

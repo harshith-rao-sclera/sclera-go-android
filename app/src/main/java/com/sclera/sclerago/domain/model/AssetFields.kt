@@ -140,6 +140,8 @@ data class FieldCfg(
     val wholeNumber: Boolean = false,
     /** The field's id at the server (Configuration reads and writes fields there); blank for a field not made yet. */
     val id: String = "",
+    /** The field belongs to one asset alone (added to it, or brought by its type), not to every asset. */
+    val ownField: Boolean = false,
 ) {
     /** What validation looks for in this field. */
     val checks: FieldChecks get() = FieldChecks(flagEmpty, rule, pattern, min, max, wholeNumber)

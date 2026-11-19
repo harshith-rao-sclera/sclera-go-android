@@ -14,13 +14,13 @@ import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.VdmsLinkRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * The assets of the downloaded property, read from the offline database and written back to it (the sync pushes the
@@ -35,9 +35,7 @@ class AssetRepositoryImpl @Inject constructor(
     @ApplicationScope scope: CoroutineScope,
 ) : AssetRepository {
     override val catalog: StateFlow<AssetCatalog> =
-        combine(source.listReadFlow(), source.deviceLinksFlow(), source.scanTextFlow()) { read, devices, scanText ->
-            AssetCatalog(read.assets, devices, scanText, loaded = read.open)
-        }.stateIn(scope, SharingStarted.Eagerly, AssetCatalog(loaded = false))
+        source.listReadFlow().map { read -> AssetCatalog(read.assets, loaded = read.open) }.stateIn(scope, SharingStarted.Eagerly, AssetCatalog(loaded = false))
 
     override suspend fun add(assets: List<NewAsset>) = writer.add(assets)
 

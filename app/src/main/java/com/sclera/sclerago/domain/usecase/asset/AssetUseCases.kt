@@ -3,10 +3,11 @@ package com.sclera.sclerago.domain.usecase.asset
 import com.sclera.sclerago.domain.model.ActivityKind
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetActivity
-import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetDetails
+import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.AssetType
+import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.DataError
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.Device
@@ -15,38 +16,35 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.PhotoKind
-import com.sclera.sclerago.domain.model.fitPhotoRules
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
-import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.assetLock
-import com.sclera.sclerago.domain.model.mentions
-import com.sclera.sclerago.domain.model.scanKey
+import com.sclera.sclerago.domain.model.fitPhotoRules
 import com.sclera.sclerago.domain.model.timeLabel
 import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
-import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
+import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.LocalDataReloader
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.system.IdGenerator
-import com.sclera.sclerago.domain.usecase.media.DownloadMediaUseCase
-import com.sclera.sclerago.domain.usecase.media.SortPhotosUseCase
 import com.sclera.sclerago.domain.system.next
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import com.sclera.sclerago.domain.usecase.media.DownloadMediaUseCase
+import com.sclera.sclerago.domain.usecase.media.SortPhotosUseCase
 import com.sclera.sclerago.domain.validation.CheckInput
 import com.sclera.sclerago.domain.validation.CommentProblem
 import com.sclera.sclerago.domain.validation.checkComment
 import com.sclera.sclerago.domain.validation.commentText
+import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import javax.inject.Inject
 
 class ObserveAssetsUseCase @Inject constructor(private val repo: AssetRepository) {
     operator fun invoke(): StateFlow<AssetCatalog> = repo.catalog
@@ -360,29 +358,10 @@ class CreateAssetUseCase @Inject constructor(
         // Its photos of each kind stay within the property's photo rules, as each upload to the server is checked.
         checkPhotoRoom(photoRules.rules().first(), emptyList(), asset.media)
         // Its AI flag is worked out from its empty fields once it is written, as the server's POST /assets.
-        repo.add(listOf(NewAsset(asset, values, device?.id)))
+        repo.add(listOf(NewAsset(asset, values)))
         // With a mandatory field empty or too few photos it goes in as an exception (the screen asks about that first).
         if (submit) repo.setStatus(listOf(id), Status.SUBMITTED, photoRules.forMove(Status.SUBMITTED))
         return Created(id, via, source)
-    }
-}
-
-/**
- * Which asset each scanned device already belongs to: one made from it here, or one of [src]'s
- * assets whose subtitle, BLE tag, IP address, label or notes mention it.
- */
-class MatchDevicesUseCase @Inject constructor(private val repo: AssetRepository) {
-    /** Device id → the id of its asset among [assets], or null. */
-    operator fun invoke(devices: List<Device>, src: Source, assets: List<Asset>): Map<String, String?> {
-        val catalog = repo.catalog.value
-        val texts = assets.filter { it.src == src }.map { it.id to (listOf(it.detail) + catalog.scanText[it.id].orEmpty()).joinToString("\n") }
-        return devices.associate { d -> d.id to match(d, assets, texts, catalog) }
-    }
-
-    private fun match(d: Device, assets: List<Asset>, texts: List<Pair<String, String>>, catalog: AssetCatalog): String? {
-        catalog.deviceAsset[d.id]?.takeIf { id -> assets.any { it.id == id } }?.let { return it }
-        val key = scanKey(d)
-        return texts.firstOrNull { (_, text) -> mentions(text, key) }?.first
     }
 }
 
@@ -422,7 +401,6 @@ class AssetUseCases @Inject constructor(
     val sortPhotos: SortPhotosUseCase,
     val add: AddAssetsUseCase,
     val create: CreateAssetUseCase,
-    val matchDevices: MatchDevicesUseCase,
     val checkInput: BuildCheckInputUseCase,
     val buildList: BuildAssetListUseCase,
     val toggleSelection: ToggleSelectionUseCase,

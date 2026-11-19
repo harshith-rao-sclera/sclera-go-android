@@ -149,8 +149,8 @@ internal fun FieldLabel(text: String, optional: Boolean = false) {
 }
 
 /**
- * Text input of the sheets: 48 high, dark, rounded 12. With [multiLine], long text wraps and the box grows from 48
- * instead of scrolling sideways on one line (so all of it shows and the cursor can be placed anywhere in it).
+ * Text input of the sheets: small and minimal (40 high, dark, rounded 8). With [multiLine], long text wraps and the box
+ * grows from 40 instead of scrolling sideways on one line (so all of it shows and the cursor can be placed anywhere in it).
  */
 @Composable
 internal fun SheetInput(
@@ -161,38 +161,30 @@ internal fun SheetInput(
     keyboard: KeyboardType = KeyboardType.Text,
     multiLine: Boolean = false,
 ) {
-    val box = Modifier.fillMaxWidth().then(if (multiLine) Modifier.heightIn(min = 48.dp) else Modifier.height(48.dp))
-        .alpha(if (enabled) 1f else 0.55f).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12))
+    val box = Modifier.fillMaxWidth().then(if (multiLine) Modifier.heightIn(min = 40.dp) else Modifier.height(40.dp))
+        .alpha(if (enabled) 1f else 0.55f).clip(r(8)).background(C.Bg).border(1.dp, C.Border, r(8))
     PlainField(
         value, onChange, placeholder,
-        if (multiLine) box.padding(horizontal = 14.dp, vertical = 13.dp)
-        else box.padding(horizontal = 14.dp).wrapContentHeight(Alignment.CenterVertically),
-        size = 15, readOnly = !enabled, keyboard = keyboard, singleLine = !multiLine,
+        if (multiLine) box.padding(horizontal = 12.dp, vertical = 10.dp)
+        else box.padding(horizontal = 12.dp).wrapContentHeight(Alignment.CenterVertically),
+        size = 14, readOnly = !enabled, keyboard = keyboard, singleLine = !multiLine,
     )
 }
 
-/** A field that opens a picker. */
+/** A field that opens a picker: small and minimal, as [SheetInput]. */
 @Composable
 internal fun SheetSelect(value: String, active: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().height(48.dp).clip(r(12)).background(C.Bg)
-            .border(1.dp, if (active) C.YTintBd else C.Border, r(12)).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        Modifier.fillMaxWidth().height(40.dp).clip(r(8)).background(C.Bg)
+            .border(1.dp, if (active) C.YTintBd else C.Border, r(8)).clickable(onClick = onClick).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Txt(value, 15, 400, modifier = Modifier.weight(1f))
-        LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
+        Txt(value, 14, 400, modifier = Modifier.weight(1f))
+        LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 2.6f)
     }
 }
 
-/** Ring with a yellow dot when [on] (the design's radio). */
-@Composable
-internal fun RadioRing(on: Boolean, size: Dp = 22.dp) {
-    Box(Modifier.size(size).border(2.dp, if (on) C.Yellow else C.RadioOff, CircleShape), contentAlignment = Alignment.Center) {
-        if (on) Box(Modifier.size(size * 0.45f).background(C.Yellow, CircleShape))
-    }
-}
-
-/** Bottom sheet listing [options] (name to description); the [selected] one is marked. */
+/** Bottom sheet listing [options] (name to description) in a small, minimal [ChoiceList]; the [selected] one is marked. */
 @Composable
 internal fun ChoiceSheet(
     title: String,
@@ -206,29 +198,17 @@ internal fun ChoiceSheet(
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(C.Overlay).noRippleClick(onClose)) {
         Column(
-            sheetFrame(C.SheetBg, radius = 28.dp, heightFraction = 0.85f)
-                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            Modifier.swipeDownToClose(onClose).then(sheetFrame(C.SheetBg, radius = 28.dp, heightFraction = 0.85f))
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (!isTablet()) Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 5.dp).clip(r(3)).background(C.SheetHandle))
             Txt(title, 16, 700)
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                options.forEach { (name, sub) ->
-                    val on = name == selected
-                    Row(
-                        Modifier.fillMaxWidth().heightIn(min = 64.dp).alpha(if (name in disabled) DimmedAlpha else 1f).clip(r(14)).background(if (on) C.YTintBg else C.FieldRowWash)
-                            .border(1.dp, if (on) C.YTintBd else C.Border, r(14)).clickable(enabled = name !in disabled) { onPick(name) }
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Txt(name, 14, 600)
-                            sub?.let { Txt(it, 12, 400, C.Muted, maxLines = 2) }
-                        }
-                        RadioRing(on)
-                    }
-                }
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                ChoiceList(
+                    options, { it.first }, { it.first == selected }, { onPick(it.first) },
+                    enabled = { it.first !in disabled }, subtitle = { it.second },
+                )
             }
         }
     }
@@ -289,7 +269,7 @@ private fun FormSheetBody(
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(C.Overlay).noRippleClick(onClose)) {
         Column(
-            (if (isTablet()) sheetFrame(C.SheetBg, radius = 28.dp, heightFraction = 0.9f, fill = true)
+            Modifier.swipeDownToClose(onClose).then(if (isTablet()) sheetFrame(C.SheetBg, radius = 28.dp, heightFraction = 0.9f, fill = true)
             else Modifier.fillMaxSize().statusBarsPadding().padding(top = 56.dp).clip(SheetShape).background(C.SheetBg)
                 .noRippleClick { }.navigationBarsPadding()).imePadding(),
         ) {

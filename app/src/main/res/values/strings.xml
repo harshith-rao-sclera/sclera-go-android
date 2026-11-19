@@ -489,7 +489,6 @@
     <string name="detail_sec_fields">Asset fields</string>
     <string name="detail_building">Building</string>
     <string name="detail_floor">Floor</string>
-    <string name="detail_set_location">Set location</string>
     <string name="detail_system_type">System type</string>
     <string name="detail_asset_type">Asset type</string>
     <string name="detail_sub_type">Sub type</string>

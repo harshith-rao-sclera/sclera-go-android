@@ -2,6 +2,7 @@ package com.sclera.sclerago.domain.repository
 
 import com.sclera.sclerago.domain.validation.BulkFixResult
 import com.sclera.sclerago.domain.validation.Decision
+import com.sclera.sclerago.domain.validation.DecisionOutcome
 import com.sclera.sclerago.domain.validation.FieldChoice
 import com.sclera.sclerago.domain.validation.IssueStatus
 import com.sclera.sclerago.domain.validation.IssueValue
@@ -96,8 +97,10 @@ interface ValidationRunRepository {
     /** Applies the best suggestion of each issue that is at least [minConfidence] sure. */
     suspend fun acceptAll(propertyId: String, issueIds: List<String>, minConfidence: Double): BulkFixResult
 
-    /** Returns how many assets changed. */
-    suspend fun decide(propertyId: String, jobId: String, assetIds: List<String>, decision: Decision, note: String?): Int
+    /**
+     * Returns how many assets changed, and (marking as validated) those left as they were because they aren't submitted.
+     */
+    suspend fun decide(propertyId: String, jobId: String, assetIds: List<String>, decision: Decision, note: String?): DecisionOutcome
 
     /** An asset as the server has it, for merging duplicates. */
     suspend fun mergeAsset(propertyId: String, assetId: String): MergeAsset

@@ -6,6 +6,12 @@ package com.sclera.sclerago.domain.model
  */
 data class SubmitOutcome(val submitted: Int = 0, val exceptions: Int = 0, val unchanged: Int = 0)
 
+/**
+ * What an admin's sign-off did (the server's `AssetBulkValidateResult`): how many it marked as validated, the ones left
+ * as they were because they aren't submitted, and how many were validated already.
+ */
+data class SignOffOutcome(val validated: Int = 0, val notSubmitted: List<String> = emptyList(), val unchanged: Int = 0)
+
 /** The statuses the server locks: only an admin may change a submitted or validated (saved) asset. */
 private val LOCKED_STATUSES = setOf(Status.SUBMITTED, Status.VALIDATED)
 

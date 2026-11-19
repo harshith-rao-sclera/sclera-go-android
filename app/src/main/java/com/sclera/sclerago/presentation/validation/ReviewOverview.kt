@@ -35,6 +35,7 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.validation.RunAssetResult
 import com.sclera.sclerago.domain.validation.RunInsights
+import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.validation.RunStatus
 import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.StepState
@@ -44,6 +45,7 @@ import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Icons
+import com.sclera.sclerago.presentation.icons.genericAssetIco
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.icons.assetIco
 import com.sclera.sclerago.presentation.theme.C
@@ -334,13 +336,17 @@ internal fun ReviewAssetCard(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(40.dp).clip(r(10)).background(if (selected) C.Yellow else C.Raised), contentAlignment = Alignment.Center) {
                 if (selected) LineIcon(Icons.Check, 20.dp, C.OnYellow, 3f)
-                else LineIcon(local?.let { assetIco(it) } ?: Icons.Box, 19.dp, C.Yellow, 1.9f)
+                else LineIcon(local?.let { assetIco(it) } ?: genericAssetIco(), 19.dp, C.Yellow, 1.9f)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Txt(res.assetName.ifBlank { stringResource(R.string.val_unnamed) }, 14, 700, maxLines = 1)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (res.outcome != StepOutcome.SKIPPED) SmallChip(outcomeLabel(res.outcome), c, c.copy(alpha = 0.16f))
                     res.decision?.let { SmallChip(decisionLabel(it), decisionColor(it), decisionColor(it).copy(alpha = 0.16f)) }
+                        ?: res.assetStatus?.takeIf { res.checkOnly }?.let { st ->
+                            val label = stringResource(if (st == Status.EXCEPTION) R.string.rev_check_only_exception else R.string.rev_check_only_draft)
+                            SmallChip(label, C.Muted, C.Raised)
+                        }
                 }
             }
             val sc = scoreColor(res.score.toDouble())

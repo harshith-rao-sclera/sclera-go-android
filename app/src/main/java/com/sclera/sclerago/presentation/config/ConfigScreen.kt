@@ -1,14 +1,5 @@
 package com.sclera.sclerago.presentation.config
 
-import com.sclera.sclerago.presentation.model.OnlineOnly
-import com.sclera.sclerago.presentation.components.OfflineBanner
-import com.sclera.sclerago.presentation.common.ConnectivityViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sclera.sclerago.presentation.common.asString
-import com.sclera.sclerago.presentation.components.IconMenu
-import com.sclera.sclerago.presentation.components.MenuAct
-import com.sclera.sclerago.presentation.components.SecureWindow
-import com.sclera.sclerago.presentation.components.pageGutter
 import android.annotation.SuppressLint
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -49,78 +40,86 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.sclera.sclerago.presentation.components.SearchField
-import com.sclera.sclerago.presentation.components.DiscardChangesDialog
-import kotlinx.serialization.json.JsonPrimitive
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.sclera.sclerago.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.ANSWER_YES
 import com.sclera.sclerago.domain.model.BUILDING_TYPES
 import com.sclera.sclerago.domain.model.BuildingInfo
+import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.model.COUNTRIES
+import com.sclera.sclerago.domain.model.DEFAULT_DATE_PICKER
+import com.sclera.sclerago.domain.model.DEFAULT_NOW
+import com.sclera.sclerago.domain.model.DEFAULT_OPTION_COLOR
+import com.sclera.sclerago.domain.model.DEFAULT_TIME_PICKER
+import com.sclera.sclerago.domain.model.DEFAULT_TODAY
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldChecks
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.domain.model.LocNode
-import com.sclera.sclerago.domain.model.NewLocation
-import com.sclera.sclerago.domain.model.OPTION_KINDS
-import com.sclera.sclerago.domain.model.OPTION_COLORS
-import com.sclera.sclerago.domain.model.DEFAULT_OPTION_COLOR
-import com.sclera.sclerago.domain.model.ANSWER_YES
-import com.sclera.sclerago.domain.model.CHECKED
-import com.sclera.sclerago.domain.model.DEFAULT_DATE_PICKER
-import com.sclera.sclerago.domain.model.DEFAULT_NOW
-import com.sclera.sclerago.domain.model.DEFAULT_TIME_PICKER
-import com.sclera.sclerago.domain.model.DEFAULT_TODAY
-import com.sclera.sclerago.domain.model.FieldChecks
+import com.sclera.sclerago.domain.model.MAX_PATTERN_LENGTH
+import com.sclera.sclerago.domain.model.MAX_PHOTOS_PER_ASSET
 import com.sclera.sclerago.domain.model.MAX_PLACE_CODE
 import com.sclera.sclerago.domain.model.MAX_PLACE_NAME
 import com.sclera.sclerago.domain.model.MAX_PLACE_TYPE
-import com.sclera.sclerago.domain.model.MAX_PATTERN_LENGTH
-import com.sclera.sclerago.domain.model.MAX_PHOTOS_PER_ASSET
 import com.sclera.sclerago.domain.model.MAX_TOOLTIP_LENGTH
+import com.sclera.sclerago.domain.model.NewLocation
+import com.sclera.sclerago.domain.model.OPTION_COLORS
+import com.sclera.sclerago.domain.model.OPTION_KINDS
 import com.sclera.sclerago.domain.model.OptionProblem
 import com.sclera.sclerago.domain.model.PhotoKind
+import com.sclera.sclerago.domain.model.REGIONS
 import com.sclera.sclerago.domain.model.TEXT_KINDS
 import com.sclera.sclerago.domain.model.UNCHECKED
+import com.sclera.sclerago.domain.model.ValueRule
+import com.sclera.sclerago.domain.model.findNode
 import com.sclera.sclerago.domain.model.optionProblem
 import com.sclera.sclerago.domain.usecase.config.ChecksProblem
 import com.sclera.sclerago.domain.usecase.config.PhotoBound
 import com.sclera.sclerago.domain.usecase.config.checksProblem
 import com.sclera.sclerago.domain.usecase.config.nameTaken
-import com.sclera.sclerago.domain.model.REGIONS
-import com.sclera.sclerago.domain.model.ValueRule
-import com.sclera.sclerago.domain.model.findNode
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.BottomTabBar
+import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CfgCard
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.GuardedClose
+import com.sclera.sclerago.presentation.components.IconMenu
 import com.sclera.sclerago.presentation.components.LabeledInput
+import com.sclera.sclerago.presentation.components.MenuAct
 import com.sclera.sclerago.presentation.components.NavItem
-import com.sclera.sclerago.presentation.components.SubPageBar
+import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
+import com.sclera.sclerago.presentation.components.ReportUnsaved
 import com.sclera.sclerago.presentation.components.RoundButton
+import com.sclera.sclerago.presentation.components.SearchField
+import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.Segmented
 import com.sclera.sclerago.presentation.components.SheetHeader
+import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.Toast
-import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.blockSwipe
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.noRippleClick
+import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Ico
@@ -128,9 +127,11 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.main.CfgPage
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import java.util.Locale
+import kotlinx.serialization.json.JsonPrimitive
 
 private class CfgTabSpec(val page: CfgPage, val label: String, val icon: Ico)
 
@@ -192,6 +193,8 @@ fun ConfigScreen(
         if (cfg.geoUnsaved) askLeave = true else vm.closeConfig()
     }
     BackHandler(onBack = close)
+    // Fences not saved count as unsaved changes: a side-menu page asks before leaving them.
+    ReportUnsaved(cfg.geoUnsaved)
     SecureWindow() // building access codes and contacts are shown here
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
@@ -917,7 +920,13 @@ private fun LocationSheet(l: LocNode, onClose: () -> Unit, onSave: (String, Stri
     var name by remember(l.id) { mutableStateOf(l.name) }
     var type by remember(l.id) { mutableStateOf(l.type) }
     var code by remember(l.id) { mutableStateOf(l.code) }
-    GuardedClose(editing && (name != l.name || type != l.type || code != l.code), onClose) { onClose ->
+    val changed = editing && (name != l.name || type != l.type || code != l.code)
+    // The edit's own Cancel asks too when something was changed.
+    var askCancel by remember(l.id) { mutableStateOf(false) }
+    fun stopEditing() {
+        editing = false; name = l.name; type = l.type; code = l.code
+    }
+    GuardedClose(changed, onClose) { onClose ->
     BottomSheet(onClose, maxHeightFraction = 0.8f) {
         Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Txt(l.name, 14, 700, modifier = Modifier.weight(1f))
@@ -945,7 +954,7 @@ private fun LocationSheet(l: LocNode, onClose: () -> Unit, onSave: (String, Stri
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (editing) {
-                Pill("Cancel", { editing = false; name = l.name; type = l.type; code = l.code }, height = 40.dp, hPad = 16.dp)
+                Pill("Cancel", { if (changed) askCancel = true else stopEditing() }, height = 40.dp, hPad = 16.dp)
                 Pill(
                     "Save", { if (name.isNotBlank()) { onSave(name, type, code); editing = false } },
                     Modifier.weight(1f).alpha(if (name.isNotBlank()) 1f else 0.4f),
@@ -957,6 +966,9 @@ private fun LocationSheet(l: LocNode, onClose: () -> Unit, onSave: (String, Stri
                 Pill("Done", onClose, height = 40.dp, hPad = 20.dp)
             }
         }
+    }
+    if (askCancel) {
+        DiscardChangesDialog(onKeep = { askCancel = false }, onDiscard = { askCancel = false; stopEditing() })
     }
     }
 }

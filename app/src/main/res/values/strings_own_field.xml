@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Add field: a field for one asset only (worded as the web's "Add field" on the asset panel). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="own_field_add">Add field</string>
+    <string name="own_field_hint">For this asset only</string>
+    <string name="own_field_title">Add field</string>
+    <string name="own_field_sub">For this asset only. It shows at the end of its fields, ready to fill in.</string>
+    <string name="own_field_name">Field name</string>
+    <string name="own_field_name_hint">Field name</string>
+    <string name="own_field_type">Type</string>
+    <string name="own_field_type_text">Text</string>
+    <string name="own_field_type_number">Number</string>
+    <string name="own_field_type_date">Date</string>
+    <string name="own_field_type_yesno">Yes / No</string>
+    <string name="own_field_type_link">Link</string>
+    <string name="own_field_go">Add</string>
+    <string name="own_field_adding">Adding…</string>
+    <string name="own_field_added">“%1$s” added to this asset</string>
+    <string name="own_field_name_taken">This asset already has a field called “%1$s”.</string>
+    <string name="own_field_name_needed">Enter a name for the field.</string>
+    <string name="own_field_remove_label">Remove field %1$s</string>
+    <string name="own_field_remove_title">Remove “%1$s”?</string>
+    <string name="own_field_remove_body">The field and its value are removed from this asset only.</string>
+    <string name="own_field_removed">“%1$s” removed from this asset</string>
+    <string name="own_field_remove_failed">This field couldn\'t be removed. Try again.</string>
+</resources>

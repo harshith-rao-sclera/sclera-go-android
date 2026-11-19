@@ -338,7 +338,6 @@
     <string name="detail_sec_fields">資產欄位</string>
     <string name="detail_building">建築物</string>
     <string name="detail_floor">樓層</string>
-    <string name="detail_set_location">設定位置</string>
     <string name="detail_system_type">系統類型</string>
     <string name="detail_asset_type">資產類型</string>
     <string name="detail_sub_type">子類型</string>

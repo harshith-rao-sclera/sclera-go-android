@@ -24,6 +24,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.presentation.common.UiText
@@ -54,16 +55,20 @@ fun AssetDetailRoute(
     onPlaceTaken: () -> Unit = {},
     /** Assign the asset to a person (the web's Assign asset). */
     onAssign: (() -> Unit)? = null,
+    /** Move the validated asset to Managed assets; null when it isn't offered. */
+    onMove: (() -> Unit)? = null,
     /** Validate: run checks on this asset (the web's asset bar opens Run validation on it). */
     onValidate: () -> Unit = {},
     /** "Open in Validation": the Validation page on the run [jobId] the asset is in. */
     onOpenRun: (jobId: String) -> Unit = {},
-    /** What a new asset's form starts with (a scanned device's note, BLE tag / IP). */
+    /** What a new asset's form starts with (a scanned device's make, model, note, BLE tag / IP). */
     prefill: Map<String, String> = emptyMap(),
+    /** What the scan found out about the device a new asset is made from: the AI is asked about it once it opens. */
+    scan: ScanFacts? = null,
     vm: AssetDetailViewModel = hiltViewModel(),
 ) {
     // A new asset's place is the top bar's location, so it is passed again when another location tab is chosen.
-    LaunchedEffect(asset.id, isNew, if (isNew) asset.locationId else null) { vm.open(asset, isNew, prefill) }
+    LaunchedEffect(asset.id, isNew, if (isNew) asset.locationId else null) { vm.open(asset, isNew, prefill, scan) }
     DisposableEffect(vm) { onDispose { vm.close() } }
     LaunchedEffect(vm) { vm.notices.collect(onNotice) }
     LaunchedEffect(pickedPlace) {
@@ -117,6 +122,9 @@ fun AssetDetailRoute(
         onDiscardEdits = vm::discardEdits,
         onSave = vm::save,
         onSubmit = vm::submit,
+        onMoveToDraft = vm::moveToDraft,
+        onMarkValidated = vm::markValidated,
+        onMove = onMove,
         onCreate = { submit ->
             val serial = state.value("serial")
             onCreate(
@@ -165,6 +173,7 @@ fun AssetDetailRoute(
         onOpenClone = vm::openClone,
         onClone = vm::clone,
         onCloseClone = vm::closeClone,
+        addField = AddFieldActions(onOpen = vm::openAddField, onAdd = vm::addOwnField, onNameChange = vm::clearAddFieldError, onClose = vm::closeAddField, onRemove = vm::removeOwnField),
         jacs = JacsActions(
             onOpen = vm::openJacs,
             picker = JacsPickerActions(onQuery = vm::searchJacs, onMore = vm::moreJacs, onPick = vm::pickJacs, onClose = vm::closeJacs),
@@ -217,6 +226,7 @@ fun AssetDetailRoute(
                     }
                 },
                 onClose = { camOpen = false },
+                galleryLimit = vm.galleryLimit(),
                 onDone = {
                     attach(camCaps.filter { it.id in camSel })
                     camCaps = camCaps.filter { it.id !in camSel }

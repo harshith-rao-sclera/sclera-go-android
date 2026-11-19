@@ -1,5 +1,7 @@
 package com.sclera.sclerago.domain.validation
 
+import com.sclera.sclerago.domain.model.Status
+
 /*
  * The Validation page, as the server runs it (`/v1/properties/{p}/validation…`): the catalogue of steps and templates,
  * the user's saved validations, the runs (jobs) with their per-asset results and the issues they found.
@@ -189,9 +191,23 @@ data class RunAssetResult(
     val decision: Decision?,
     val decisionNote: String?,
     val checkedAt: Long?,
+    /** The asset's status now (the server's `assetStatus`); null when unknown or the asset was deleted. */
+    val assetStatus: Status? = null,
 ) {
     fun outcomeOf(step: String): StepOutcome = checks[step] ?: StepOutcome.SKIPPED
+
+    /**
+     * The run is only a check for this asset: it is a draft or an exception, so it can't be marked as validated (submit
+     * it first), as the server's decide refuses and the web's "check only".
+     */
+    val checkOnly: Boolean get() = assetStatus != null && assetStatus !in SIGNABLE_STATUSES
 }
+
+/** Only submitted assets (or ones already validated) can be marked as validated in a run. */
+private val SIGNABLE_STATUSES = setOf(Status.SUBMITTED, Status.VALIDATED)
+
+/** What a run's decision did: how many assets it changed, and those left as they were because they aren't submitted. */
+data class DecisionOutcome(val updated: Int, val notSubmitted: List<String> = emptyList())
 
 /** Which results to list: an outcome, the assets that didn't pass a step, a name search. */
 data class ResultFilter(val outcome: StepOutcome? = null, val step: String? = null, val query: String = "")

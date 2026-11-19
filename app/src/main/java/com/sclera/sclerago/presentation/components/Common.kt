@@ -10,11 +10,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -32,21 +38,21 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
-import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
@@ -145,10 +151,10 @@ fun RadioDot(on: Boolean) {
 }
 
 @Composable
-fun CheckBox(on: Boolean, shape: Shape = r(7), offColor: Color = C.RadioOff, checkSize: Dp = 14.dp) {
+fun CheckBox(on: Boolean, shape: Shape = r(7), offColor: Color = C.RadioOff, checkSize: Dp = 14.dp, size: Dp = 24.dp, stroke: Dp = 2.dp) {
     Box(
-        Modifier.size(24.dp).clip(shape).background(if (on) C.Yellow else Color.Transparent)
-            .border(2.dp, if (on) C.Yellow else offColor, shape),
+        Modifier.size(size).clip(shape).background(if (on) C.Yellow else Color.Transparent)
+            .border(stroke, if (on) C.Yellow else offColor, shape),
         contentAlignment = Alignment.Center,
     ) { if (on) LineIcon(Icons.Check, checkSize, C.OnYellow, 3.4f) }
 }
@@ -238,53 +244,69 @@ fun PlainField(
     /** When set, the keyboard shows a search key that calls it (e.g. the geofence address search). */
     onSubmit: (() -> Unit)? = null,
 ) {
+    // The state-based text field: a one-line value scrolls as the cursor or its handle is dragged towards a hidden end,
+    // so the cursor can be put anywhere in a long value (the value-based field didn't scroll while the handle moved).
     // Not being edited, a field shows its text from the start (a long one-line value isn't scrolled to its end);
     // being edited, a value that comes in from outside puts the cursor at its end, ready to type on.
+    val state = rememberTextFieldState(value, TextRange.Zero)
     var focused by remember { mutableStateOf(false) }
-    var field by remember { mutableStateOf(TextFieldValue(value, TextRange.Zero)) }
     // What was typed and sent to [onChange] but hasn't come back as [value] yet, oldest first.
     val typed = remember { ArrayDeque<String>() }
-    if (value == field.text) {
-        typed.clear()
-    } else {
+    // A value put in from outside, so it isn't sent back as typed.
+    var applied by remember { mutableStateOf<String?>(null) }
+    val send by rememberUpdatedState(onChange)
+    val current by rememberUpdatedState(value)
+    LaunchedEffect(value) {
+        val now = state.text.toString()
+        if (value == now) {
+            typed.clear()
+            return@LaunchedEffect
+        }
         val echo = typed.indexOf(value)
         if (echo >= 0) {
             repeat(echo + 1) { typed.removeFirst() }
-        } else {
-            typed.clear()
-            field = TextFieldValue(value, if (focused) TextRange(value.length) else TextRange.Zero)
+            return@LaunchedEffect
+        }
+        typed.clear()
+        applied = value
+        state.edit {
+            replace(0, length, value)
+            selection = if (focused) TextRange(value.length) else TextRange.Zero
+        }
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.text.toString() }.collect { text ->
+            when {
+                text == applied -> applied = null
+                text == current && typed.isEmpty() -> Unit
+                else -> {
+                    typed.addLast(text)
+                    send(text)
+                }
+            }
         }
     }
     BasicTextField(
-        value = field,
-        onValueChange = { next ->
-            val changed = next.text != field.text
-            field = next
-            if (changed) {
-                typed.addLast(next.text)
-                onChange(next.text)
-            }
-        },
+        state = state,
         modifier = modifier.onFocusChanged { f ->
-            if (focused && !f.isFocused) field = field.copy(selection = TextRange.Zero)
+            if (focused && !f.isFocused) state.edit { selection = TextRange.Zero }
             focused = f.isFocused
         },
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
             keyboardType = keyboard,
             imeAction = if (onSubmit != null) androidx.compose.ui.text.input.ImeAction.Search else androidx.compose.ui.text.input.ImeAction.Default,
         ),
-        keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSubmit?.invoke() }),
+        onKeyboardAction = onSubmit?.let { submit -> KeyboardActionHandler { submit() } },
         readOnly = readOnly || LocalReadOnly.current,
-        singleLine = singleLine,
-        minLines = minLines,
+        lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(minHeightInLines = minLines),
         cursorBrush = SolidColor(C.Yellow),
         textStyle = TextStyle(
             color = C.Text, fontSize = size.sp, fontWeight = FontWeight(weight),
             fontFamily = if (mono) androidx.compose.ui.text.font.FontFamily.Monospace else ScleraFonts.Inter,
         ),
-        decorationBox = { inner ->
+        decorator = { inner ->
             Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) {
-                if (field.text.isEmpty()) Txt(placeholder, size, 400, C.Muted, maxLines = minLines)
+                if (state.text.isEmpty()) Txt(placeholder, size, 400, C.Muted, maxLines = minLines)
                 inner()
             }
         },
@@ -409,49 +431,49 @@ fun ActionDock(
     }
 }
 
+/** One action of the asset bar ([ActionCard]). [online]: it needs the server, so offline it is dimmed with a badge. */
+class DockItem(
+    val label: String,
+    val icon: com.sclera.sclerago.presentation.icons.Ico,
+    val color: Color,
+    val onClick: () -> Unit,
+    val online: OnlineOnly? = null,
+    val tag: String? = null,
+)
+
 /**
- * The same four actions as a rounded card inside a form (asset details): actions spread evenly, no leading area.
- * Pass null for an action to leave it out.
+ * The asset's actions as a rounded card inside a form (asset details), as the web's asset bar: those that apply, in
+ * order, spread evenly (at most five apply to one asset). An action that needs the server is dimmed offline with a
+ * badge, and a tap says why ([onOffline]).
  */
 @Composable
 fun ActionCard(
-    onValidate: (() -> Unit)?,
-    /** Assign; null shows it greyed out (someone who may not assign). */
-    onAssign: (() -> Unit)?,
-    onSubmit: (() -> Unit)?,
-    onDelete: () -> Unit,
+    items: List<DockItem>,
     modifier: Modifier = Modifier,
-    /** Offline: Validate and Assign need the server, so they are dimmed with a badge and a tap says why ([onOffline]). */
     offline: Boolean = false,
     onOffline: (OnlineOnly) -> Unit = {},
 ) {
+    if (items.isEmpty()) return
     val shape = r(14)
     Row(
-        modifier.fillMaxWidth().height(64.dp).clip(shape).background(C.Surface).border(1.dp, C.Border2, shape)
+        modifier.fillMaxWidth().height(68.dp).clip(shape).background(C.Surface).border(1.dp, C.Border2, shape)
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val item = Modifier.weight(1f)
-        // Offline, a gated action shrinks to its icon and label so the badge sits on it; online it fills its cell as before.
+        // Offline, a gated action shrinks to its icon and label so the badge sits on it; online it fills its cell.
         val gated = if (offline) Modifier.widthIn(min = 64.dp) else Modifier.fillMaxWidth()
-        // Validate stays in place but greyed out when the asset is already validated.
-        if (onValidate != null) {
-            OfflineGate(offline, { onOffline(OnlineOnly.VALIDATE) }, item.fillMaxHeight(), badgeOffset = 6.dp) {
-                DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, onValidate, gated)
+        items.forEach { a ->
+            val tagged = a.tag?.let { Modifier.testTag(it) } ?: Modifier
+            val online = a.online
+            if (online != null) {
+                OfflineGate(offline, { onOffline(online) }, item.fillMaxHeight(), badgeOffset = 6.dp) {
+                    DockAction(a.label, a.icon, a.color, a.onClick, gated.then(tagged), lines = 2)
+                }
+            } else {
+                DockAction(a.label, a.icon, a.color, a.onClick, item.then(tagged), lines = 2)
             }
-        } else {
-            DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, {}, item.alpha(0.35f), enabled = false)
         }
-        // Assign, likewise, stays in place greyed out for someone who may not assign.
-        if (onAssign != null) {
-            OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item.fillMaxHeight(), badgeOffset = 6.dp) {
-                DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, onAssign, gated)
-            }
-        } else {
-            DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, {}, item.alpha(0.35f), enabled = false)
-        }
-        onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item) }
-        DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, onDelete, item)
     }
 }
 
@@ -462,14 +484,15 @@ private fun DockAction(
     color: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier.width(56.dp),
-    enabled: Boolean = true,
+    /** Lines the label may take (a long one, "Move to Managed assets", wraps in the asset bar). */
+    lines: Int = 1,
 ) {
     Column(
-        modifier.fillMaxHeight().padding(vertical = 4.dp).clip(r(10)).clickable(enabled = enabled, onClick = onClick),
+        modifier.fillMaxHeight().padding(vertical = 4.dp).clip(r(10)).clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
     ) {
         LineIcon(icon, 21.dp, color, 2.1f)
-        Txt(label, 10, 700, color)
+        Txt(label, 10, 700, color, maxLines = lines, align = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }

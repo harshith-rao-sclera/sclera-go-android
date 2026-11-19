@@ -5,19 +5,29 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetIcons
+import com.sclera.sclerago.domain.model.GENERIC_ICON
 
 /** The asset icons kept on the device, for the screens below [com.sclera.sclerago.presentation.main.AssetIconsHost]. */
 val LocalAssetIcons = compositionLocalOf { AssetIcons() }
 
 /**
- * The icon of [asset]'s type, as the server gives it: the type's icon (or the generic box) drawn from its SVG. Until
- * the icons have been downloaded once, the generic asset icon (the cube) shows.
+ * The icon of [asset]'s type, as the server gives it and global_config.db keeps it: the type's icon (or the generic
+ * one) drawn from its SVG. Only until the icons have been downloaded once does the app's own copy of the generic icon
+ * ([Icons.Box]) show.
  */
 @Composable
-fun assetIco(asset: Asset): Ico {
-    val icons = LocalAssetIcons.current
-    val name = icons.nameFor(asset.masterFormatId)
-    val svg = icons.svgOf(name) ?: return Icons.Box
+fun assetIco(asset: Asset): Ico = storedIco(LocalAssetIcons.current.nameFor(asset.masterFormatId))
+
+/**
+ * The generic asset icon as global_config.db keeps it (the server's "generic"), for something that has no type yet: a
+ * scanned device, or an asset that isn't on this phone. The app's own copy shows until the icons have downloaded.
+ */
+@Composable
+fun genericAssetIco(): Ico = storedIco(GENERIC_ICON)
+
+@Composable
+private fun storedIco(name: String): Ico {
+    val svg = LocalAssetIcons.current.svgOf(name) ?: return Icons.Box
     return remember(name, svg) { SvgIco.of(svg) }
 }
 

@@ -23,6 +23,15 @@ fun formatDayAndTime(at: Long, locale: Locale, zone: ZoneId = ZoneId.systemDefau
     return DateTimeFormatter.ofPattern(pattern, locale).format(Instant.ofEpochMilli(at).atZone(zone))
 }
 
+/**
+ * [at] (epoch millis) as a day with its year and the time, in [locale]'s order and wording, as the web's change request
+ * line: e.g. "18 Nov 2026, 18:29" or "Nov 18, 2026, 6:29 PM".
+ */
+fun formatDateAndTime(at: Long, locale: Locale, zone: ZoneId = ZoneId.systemDefault()): String {
+    val pattern = DateFormat.getBestDateTimePattern(locale, "dMMMyjm")
+    return DateTimeFormatter.ofPattern(pattern, locale).format(Instant.ofEpochMilli(at).atZone(zone))
+}
+
 /** [at] (epoch millis) as a day in [locale]'s order and wording, e.g. "17 Nov 2026" or "Nov 17, 2026". */
 fun formatDate(at: Long, locale: Locale, zone: ZoneId = ZoneId.systemDefault()): String {
     val pattern = DateFormat.getBestDateTimePattern(locale, "dMMMy")

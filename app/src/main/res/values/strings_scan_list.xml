@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Scan list (Bluetooth / Network): above the devices, beside Select all. -->
+    <string name="scan_devices_selected">%1$d of %2$d selected</string>
+    <plurals name="scan_devices_to_add">
+        <item quantity="one">%1$d device not added yet</item>
+        <item quantity="other">%1$d devices not added yet</item>
+    </plurals>
+</resources>

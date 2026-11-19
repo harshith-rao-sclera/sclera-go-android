@@ -191,17 +191,15 @@ class PropertyListScreenTest {
         compose.setContent {
             ScleraTheme {
                 AddPropertySheet(
-                    existing = emptyList(), onClose = {},
+                    onClose = {},
                     onAdd = { saved.value = it.name; null },
                 )
             }
         }
         compose.onNodeWithText(str(R.string.property_add_title)).assertIsDisplayed()
         compose.onNodeWithText(str(R.string.property_group_details)).assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.property_required_count, 2)).assertIsDisplayed()
         // Property details and Notes fold like the other groups: a chevron is drawn and tapping the title hides the fields.
         compose.onNodeWithTag(AddPropertyTags.NAME).assertIsDisplayed().performTextInput("Depot")
-        compose.onNodeWithText(str(R.string.property_required_count, 1)).assertIsDisplayed()
         compose.onNodeWithText(str(R.string.property_group_details)).performClick()
         compose.onNodeWithTag(AddPropertyTags.NAME).assertDoesNotExist()
         compose.onNodeWithText(str(R.string.property_group_details)).performClick()

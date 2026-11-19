@@ -11,24 +11,43 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.Person
+import com.sclera.sclerago.domain.model.PlaceName
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.PropertyDownloads
+import com.sclera.sclerago.domain.model.SignOffOutcome
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.Town
 import com.sclera.sclerago.domain.repository.AccessRepository
+import com.sclera.sclerago.domain.repository.AddressLookupRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
+import com.sclera.sclerago.domain.repository.AssetSignOffRepository
 import com.sclera.sclerago.domain.repository.AuthRepository
+import com.sclera.sclerago.domain.repository.ChangeRequestRepository
 import com.sclera.sclerago.domain.repository.CurrentAccessRepository
 import com.sclera.sclerago.domain.repository.FileRepository
+import com.sclera.sclerago.domain.repository.LocalDataReloader
 import com.sclera.sclerago.domain.repository.NetworkMonitor
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import com.sclera.sclerago.domain.usecase.asset.ApplyChangeActionUseCase
+import com.sclera.sclerago.domain.usecase.asset.ChangeRequestActionsUseCase
+import com.sclera.sclerago.domain.usecase.asset.ChangeRequestUseCases
+import com.sclera.sclerago.domain.usecase.asset.CloseChangeRequestUseCase
+import com.sclera.sclerago.domain.usecase.asset.MarkAssetsValidatedUseCase
+import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
+import com.sclera.sclerago.domain.usecase.asset.RequestChangeUseCase
+import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
+import com.sclera.sclerago.domain.usecase.asset.SignOffActionUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
-import com.sclera.sclerago.domain.usecase.media.WritePropertyTemplateUseCase
 import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
+import com.sclera.sclerago.domain.usecase.property.AddressUseCases
+import com.sclera.sclerago.domain.usecase.property.DeletePropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.FilterPropertySummariesUseCase
+import com.sclera.sclerago.domain.usecase.property.GetPropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.IsDeviceOnlineUseCase
+import com.sclera.sclerago.domain.usecase.property.ObserveCanManagePropertiesUseCase
 import com.sclera.sclerago.domain.usecase.property.ObserveOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertiesUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertyDownloadsUseCase
@@ -40,7 +59,10 @@ import com.sclera.sclerago.domain.usecase.property.RefreshPropertiesUseCase
 import com.sclera.sclerago.domain.usecase.property.ResumePropertyDownloadUseCase
 import com.sclera.sclerago.domain.usecase.property.SetOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.StartPropertyDownloadUseCase
-import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
+import com.sclera.sclerago.domain.usecase.property.SuggestCitiesUseCase
+import com.sclera.sclerago.domain.usecase.property.SuggestCountriesUseCase
+import com.sclera.sclerago.domain.usecase.property.SuggestStatesUseCase
+import com.sclera.sclerago.domain.usecase.property.UpdatePropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.ValidatePropertyUseCase
 import com.sclera.sclerago.presentation.access.AccessViewModel
 import com.sclera.sclerago.presentation.main.AssetListViewModel
@@ -48,7 +70,6 @@ import com.sclera.sclerago.presentation.property.PropertyViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.io.OutputStream
 
 // Fakes for the list-loading tests, written against the current repository interfaces. A "gated" repository's
 // refresh() waits until the test finishes or fails it, so the state while the server read runs can be checked.
@@ -82,6 +103,9 @@ class GatedPropertyRepository(initial: List<Property> = emptyList()) : PropertyR
     fun fail(error: Throwable) = gate.complete(Release(null, error))
 
     override suspend fun add(property: Property): Property = property.also { flow.value = flow.value + it }
+    override suspend fun get(id: String): Property = flow.value.first { it.id == id }
+    override suspend fun update(property: Property): Property = property
+    override suspend fun delete(id: String) = Unit
 }
 
 /** Groups and people whose refresh waits for [finish] or [fail], like [GatedPropertyRepository]. */
@@ -107,7 +131,6 @@ class GatedAccessRepository(groups: List<Group> = emptyList(), people: List<Pers
     override suspend fun saveGroup(group: Group): Group = group
     override suspend fun deleteGroup(id: String) = Unit
     override suspend fun savePerson(person: Person): Person = person
-    override suspend fun removePerson(id: String) = Unit
 }
 
 /** The asset catalog as the test sets it ([AssetCatalog.loaded] false while the property's data is being opened). */
@@ -115,10 +138,11 @@ class FakeCatalogRepository(initial: AssetCatalog = AssetCatalog()) : AssetRepos
     override val catalog = MutableStateFlow(initial)
     override suspend fun add(assets: List<NewAsset>) = Unit
     override suspend fun setStatus(ids: Collection<String>, status: Status, photoRules: List<com.sclera.sclerago.domain.model.PhotoRule>): com.sclera.sclerago.domain.model.SubmitOutcome = com.sclera.sclerago.domain.model.SubmitOutcome()
-    override suspend fun saveDetails(id: String, values: Map<String, String>) = Unit
+    override suspend fun saveDetails(id: String, values: Map<String, String>, sources: Map<String, String>, place: LocValue?) = Unit
     override suspend fun delete(ids: Collection<String>) = Unit
     override suspend fun assignLocation(ids: Collection<String>, location: LocValue) = Unit
     override suspend fun attachMedia(id: String, media: List<Media>) = Unit
+    override suspend fun removeMedia(assetId: String, mediaId: String) = Unit
     override suspend fun details(id: String): AssetDetails? = null
     override suspend fun detailsFor(ids: Collection<String>): Map<String, AssetDetails> = emptyMap()
 }
@@ -133,7 +157,8 @@ class NoFiles : FileRepository {
     override suspend fun describeFiles(uris: List<String>): List<ImportedFile> = emptyList()
     override fun deleteOwned(media: List<Media>) = Unit
     override suspend fun readSheet(uri: String): List<List<String>>? = null
-    override fun writePropertyImportTemplate(out: OutputStream) = Unit
+    override suspend fun writeFile(uri: String, bytes: ByteArray) = false
+    override suspend fun copyFile(from: String, to: String) = false
 }
 
 class IdleDownloads : PropertyDownloadRepository {
@@ -141,6 +166,47 @@ class IdleDownloads : PropertyDownloadRepository {
     override fun start(propertyId: String) = Unit
     override fun open(propertyId: String) = Unit
     override fun resume() = Unit
+}
+
+/** No address suggestions (the property form's country, state and city lists stay empty). */
+class NoAddresses : AddressLookupRepository {
+    override suspend fun countries(): List<PlaceName> = emptyList()
+    override suspend fun states(country: String): List<PlaceName> = emptyList()
+    override suspend fun cities(country: String, state: String?, query: String, limit: Int): List<Town> = emptyList()
+}
+
+/** Reloading the asset list from the database does nothing here (the catalog is the test's). */
+class NoReload : LocalDataReloader {
+    override fun reload() = Unit
+}
+
+/** Change requests that are only recorded, never sent. */
+class RecordingChangeRequests : ChangeRequestRepository {
+    val calls = mutableListOf<String>()
+    override suspend fun request(assetId: String, note: String?) {
+        calls += "request $assetId"
+    }
+    override suspend fun close(assetId: String, declined: Boolean) {
+        calls += "close $assetId"
+    }
+}
+
+/** An admin's sign-off that marks nothing (the catalog is the test's). */
+class NoSignOff : AssetSignOffRepository {
+    override suspend fun markValidated(ids: Collection<String>) = SignOffOutcome()
+}
+
+/** The change-request use cases over [assets], wired as Hilt does ([guard] lets everything through by default). */
+fun changeRequestUseCases(assets: AssetRepository, guard: PermissionGuard = allowAllGuard()): ChangeRequestUseCases {
+    val requests = RecordingChangeRequests()
+    val request = RequestChangeUseCase(requests, assets, guard)
+    val close = CloseChangeRequestUseCase(requests, guard)
+    val markValidated = MarkAssetsValidatedUseCase(NoSignOff(), guard)
+    return ChangeRequestUseCases(
+        request, close, ChangeRequestActionsUseCase(guard), SignOffActionUseCase(guard), markValidated,
+        ApplyChangeActionUseCase(request, close, SetAssetStatusUseCase(assets, guard, FakePhotoRulesRepository()), markValidated),
+        guard, InMemoryAccessRepository(),
+    )
 }
 
 object AlwaysOnline : NetworkMonitor {
@@ -160,17 +226,19 @@ fun propertyListViewModel(properties: PropertyRepository, assets: AssetRepositor
     val guard = allowAllGuard()
     val onboarding = NoOnboarding()
     val downloads = IdleDownloads()
+    val addresses = NoAddresses()
     return PropertyViewModel(
         PropertyUseCases(
-            ObservePropertiesUseCase(properties), AddPropertyUseCase(properties, guard), ValidatePropertyUseCase(properties),
+            ObservePropertiesUseCase(properties), AddPropertyUseCase(properties, guard), ValidatePropertyUseCase(),
             RefreshPropertiesUseCase(properties), ObserveOnboardingUseCase(onboarding), SetOnboardingUseCase(onboarding, guard),
-            ObservePropertySummariesUseCase(properties, assets), FilterPropertySummariesUseCase(), ValidateImportFileUseCase(),
+            ObservePropertySummariesUseCase(properties, assets), FilterPropertySummariesUseCase(), ObserveCanManagePropertiesUseCase(guard),
+            GetPropertyUseCase(properties), UpdatePropertyUseCase(properties), DeletePropertyUseCase(properties),
         ),
-        WritePropertyTemplateUseCase(NoFiles()),
         PropertyDownloadUseCases(
             ObservePropertyDownloadsUseCase(downloads), StartPropertyDownloadUseCase(downloads, AlwaysOnline),
             OpenDownloadedPropertyUseCase(downloads), ResumePropertyDownloadUseCase(downloads), IsDeviceOnlineUseCase(AlwaysOnline),
         ),
+        AddressUseCases(SuggestCountriesUseCase(addresses), SuggestStatesUseCase(addresses), SuggestCitiesUseCase(addresses)),
     )
 }
 
@@ -179,4 +247,5 @@ fun accessViewModel(repo: AccessRepository): AccessViewModel =
     AccessViewModel(accessUseCases(repo), ObserveAuthStateUseCase(SignedOutAuth()), { 0L })
 
 /** The asset lists' view model over [repo] (see [assetUseCases] for the rest of the wiring). */
-fun assetListViewModel(repo: AssetRepository): AssetListViewModel = AssetListViewModel(assetUseCases(repo))
+fun assetListViewModel(repo: AssetRepository): AssetListViewModel =
+    AssetListViewModel(assetUseCases(repo), ReloadAssetsUseCase(NoReload()), changeRequestUseCases(repo))

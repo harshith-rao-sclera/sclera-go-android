@@ -1,6 +1,5 @@
 package com.sclera.sclerago.presentation.scan
 
-import com.sclera.sclerago.domain.model.Device
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -29,7 +28,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.presentation.assets.assetList
 import com.sclera.sclerago.presentation.components.BlockedCard
 import com.sclera.sclerago.presentation.components.Capsule
@@ -43,7 +46,6 @@ import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
-import com.sclera.sclerago.presentation.main.DeviceRow
 import com.sclera.sclerago.presentation.main.NetMode
 import com.sclera.sclerago.presentation.main.Tab
 import com.sclera.sclerago.presentation.main.rememberAssetListBinding
@@ -158,6 +160,8 @@ private fun NetTab(label: String, icon: Ico, on: Boolean, modifier: Modifier, on
 /** Ticking scanned devices to add several at once (see [AppViewModel.addPickedDevices]). */
 private class DevicePicks(
     val picked: Set<String>,
+    /** Devices added as assets in this scan: they show a tick and can't be ticked or added again from the list. */
+    val added: Set<String>,
     val selecting: Boolean,
     val addable: Int,
     val allPicked: Boolean,
@@ -169,6 +173,7 @@ private class DevicePicks(
 
 private fun devicePicks(vm: AppViewModel) = DevicePicks(
     picked = vm.pickedDevices.mapTo(HashSet()) { it.id },
+    added = vm.addedDevices,
     selecting = vm.devSelOn,
     addable = vm.addableCount,
     allPicked = vm.allDevicesPicked,
@@ -184,7 +189,7 @@ private fun LazyListScope.scanSection(
     coreIcon: Ico,
     dots: List<Dot>,
     onToggle: () -> Unit,
-    devices: List<DeviceRow>,
+    devices: List<Device>,
     mono: Boolean,
     onOpen: (Device) -> Unit,
     onAdd: (Device) -> Unit,
@@ -227,7 +232,7 @@ private fun LazyListScope.scanSection(
             }
         }
     }
-    // "N not added yet" and Select all, once there is anything to add.
+    // How many can still be added, and Select all, while any device is left to add.
     if (picks.addable > 0) item(key = "selectall") {
         Row(
             Modifier.readableWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
@@ -235,7 +240,8 @@ private fun LazyListScope.scanSection(
         ) {
             Column(Modifier.weight(1f)) {
                 Txt(
-                    if (picks.selecting) "${picks.picked.size} of ${picks.addable} selected" else "${picks.addable} not added yet",
+                    if (picks.selecting) stringResource(R.string.scan_devices_selected, picks.picked.size, picks.addable)
+                    else pluralStringResource(R.plurals.scan_devices_to_add, picks.addable, picks.addable),
                     12, 600, C.Muted,
                 )
                 if (picks.auto) Txt("New finds are selected too", 11, 500, C.Yellow)
@@ -250,41 +256,41 @@ private fun LazyListScope.scanSection(
             }
         }
     }
-    items(devices, key = { it.device.id }, contentType = { "device" }) { d ->
-        val picked = d.device.id in picks.picked
-        // While ticking, tapping a device that can be added ticks it; long-press starts ticking. Otherwise a tap opens
-        // the device's asset, or for a new device the add-asset form filled in with what the scan found; its + button
-        // adds it straight away as a draft.
+    items(devices, key = { it.id }, contentType = { "device" }) { d ->
+        val picked = d.id in picks.picked
+        val added = d.id in picks.added
+        // While ticking, tapping a device not added yet ticks it; long-press starts ticking. Otherwise a tap opens the
+        // asset it was made into in this scan, or for one not added yet the add-asset form filled in with what the scan
+        // found; its + button adds it straight away as a draft, and a tick replaces the + once it has been added.
         val tap = {
-            if (picks.selecting && d.isNew) picks.toggle(d.device.id) else onOpen(d.device)
+            if (picks.selecting && !added) picks.toggle(d.id) else onOpen(d)
         }
         // The same card spacing as the asset rows (AssetRow): 8dp at the sides, 3dp between cards.
         Row(
-            Modifier.readableWidth().padding(horizontal = 8.dp, vertical = 1.5.dp).heightIn(min = 64.dp).clip(r(12))
+            Modifier.readableWidth().padding(horizontal = 8.dp, vertical = 1.5.dp).heightIn(min = 54.dp).clip(r(12))
                 .background(if (picked) C.PickedRow else C.Surface)
                 .border(1.dp, if (picked) C.YTintBd else C.Border, r(12))
-                .combinedClickable(onClick = tap, onLongClick = { if (d.isNew) picks.toggle(d.device.id) })
-                .padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 10.dp),
+                .combinedClickable(onClick = tap, onLongClick = { if (!added) picks.toggle(d.id) })
+                .padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             DeviceIconTile()
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(d.device.name, 13, 600)
-                Txt(d.device.sub, 11, 400, C.Muted, mono = mono)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Txt(d.name, 12, 600)
+                Txt(d.sub, 11, 400, C.Muted, mono = mono)
             }
-            if (d.isNew && picks.selecting) {
-                Box(Modifier.size(38.dp).clip(r(10)).clickable { picks.toggle(d.device.id) }, contentAlignment = Alignment.Center) {
-                    CheckBox(picked)
-                }
-            } else if (d.isNew) {
-                Box(
+            when {
+                added -> LineIcon(Icons.CheckCircle, 20.dp, C.Green, 2.2f, Modifier.padding(end = 6.dp))
+                picks.selecting -> Box(
+                    Modifier.size(38.dp).clip(r(10)).clickable { picks.toggle(d.id) },
+                    contentAlignment = Alignment.Center,
+                ) { CheckBox(picked) }
+                else -> Box(
                     Modifier.size(38.dp).clip(r(10)).background(C.YTintBg).border(1.dp, C.YTintBd, r(10))
-                        .clickable { onAdd(d.device) },
+                        .clickable { onAdd(d) },
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.PlusSmall, 18.dp, C.Yellow, 2.6f) }
-            } else {
-                LineIcon(Icons.CheckCircle, 20.dp, C.Green, 2.2f, Modifier.padding(end = 6.dp))
             }
         }
     }

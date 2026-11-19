@@ -10,7 +10,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,14 +23,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -40,21 +40,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
-import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.formatDayAndTime
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.OfflineGate
-import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Ico
@@ -83,10 +81,10 @@ fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
 
 /**
  * End of the form of an asset assigned to someone else: read-only for anyone but an admin (the server's check_editable,
- * the web's lock note). [onValidate] (null hides it) runs checks on it, which changes nothing on the asset.
+ * the web's lock note). What can still be done (Validate) is in the asset bar under it.
  */
 @Composable
-fun NotAssignedCard(modifier: Modifier, onValidate: (() -> Unit)? = null) {
+fun NotAssignedCard(modifier: Modifier) {
     Column(
         modifier.fillMaxWidth().clip(r(14)).background(C.WarnRow).border(1.dp, C.Border, r(14)).padding(10.dp)
             .testTag(DetailTags.NOT_ASSIGNED),
@@ -98,26 +96,15 @@ fun NotAssignedCard(modifier: Modifier, onValidate: (() -> Unit)? = null) {
             }
             Txt(stringResource(R.string.asset_lock_not_assigned), 12, 500, C.Orange, maxLines = 3, modifier = Modifier.weight(1f))
         }
-        onValidate?.let { Pill(stringResource(R.string.action_validate), it, Modifier.fillMaxWidth(), height = 48.dp, size = 14, weight = 700) }
     }
 }
 
 /**
- * End of a submitted asset form: it is read-only now; a recollect request would reopen it. [onValidate] (null hides it)
- * runs checks on it, which changes nothing on the asset, so it stays offered as on the web.
+ * End of a submitted asset form: it is read-only now; a change request would reopen it. Validate, Request change and
+ * Withdraw are in the asset bar under it; a request already made shows in the banner under the top bar.
  */
 @Composable
-fun SubmittedCard(
-    modifier: Modifier,
-    onValidate: (() -> Unit)? = null,
-    /** Someone's request to reopen it, shown under the header; with none, Request change asks for one. */
-    request: ChangeRequest? = null,
-    mine: Boolean = false,
-    /** Who made [request] (name, else email), when known on this device. */
-    requester: String? = null,
-    onRequestChange: () -> Unit = {},
-    onWithdraw: () -> Unit = {},
-) {
+fun SubmittedCard(modifier: Modifier) {
     Column(
         modifier.fillMaxWidth().clip(r(14)).background(Status.SUBMITTED.chipBg).border(1.dp, Status.SUBMITTED.chipBd, r(14)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -129,25 +116,6 @@ fun SubmittedCard(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(stringResource(R.string.status_submitted), 14, 700, C.Green)
                 Txt(stringResource(R.string.detail_submitted_body), 11, 400, C.Muted, maxLines = 3)
-            }
-        }
-        request?.let { ChangeRequestLine(it, mine, requester) }
-        // Request change while nobody has asked; Withdraw for one's own request; nothing for someone else's.
-        val ask = request == null
-        if (onValidate != null || ask || mine) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                onValidate?.let { Pill(stringResource(R.string.action_validate), it, Modifier.weight(1f), height = 48.dp, size = 14, weight = 700) }
-                if (ask) {
-                    Pill(
-                        stringResource(R.string.change_request_action), onRequestChange, Modifier.weight(1f).testTag(ChangeRequestTags.ASK),
-                        height = 48.dp, size = 14, weight = 700,
-                    )
-                } else if (mine) {
-                    Pill(
-                        stringResource(R.string.change_request_withdraw), onWithdraw, Modifier.weight(1f).testTag(ChangeRequestTags.CLOSE),
-                        height = 48.dp, size = 14, weight = 700,
-                    )
-                }
             }
         }
     }
@@ -193,7 +161,7 @@ fun DetailTab(
     onClick: () -> Unit,
 ) {
     val fg = if (selected) C.Yellow else C.Muted
-    Box(modifier.fillMaxHeight().selectable(selected, role = Role.Tab, onClick = onClick).padding(horizontal = 2.dp)) {
+    Box(modifier.fillMaxHeight().selectable(selected, role = Role.Tab, onClick = onClick).padding(horizontal = 1.dp)) {
         val content: @Composable () -> Unit = {
             Box {
                 Box(
@@ -212,7 +180,8 @@ fun DetailTab(
                     }
                 }
             }
-            Txt(label, if (compact) 12 else 11, if (selected) 700 else 500, fg, maxLines = 1)
+            // Six tabs share a phone's width, so the labels under the icons stay small enough for "Validation" to fit.
+            Txt(label, if (compact) 12 else 10, if (selected) (if (compact) 700 else 600) else 500, fg, maxLines = 1)
         }
         if (compact) {
             Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) { content() }

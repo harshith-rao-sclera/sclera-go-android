@@ -4,14 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
-import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
+import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
+import com.sclera.sclerago.domain.model.ValidationMark
+import com.sclera.sclerago.domain.model.isLockedFor
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
 import com.sclera.sclerago.domain.usecase.asset.ChangeAction
@@ -22,6 +24,7 @@ import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -32,20 +35,24 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-/** How an asset got onboarded, for each bottom tab's list; the Assets tab shows them all. */
-internal val Tab.sources: Set<Source>?
-    get() = when (this) {
-        Tab.BT -> setOf(Source.BT)
-        Tab.NET -> setOf(Source.WIFI, Source.AP)
-        Tab.CAMERA -> setOf(Source.CAMERA)
-        Tab.FILE -> setOf(Source.FILE)
-        Tab.ASSETS -> null
-    }
+/**
+ * How an asset got onboarded, for each bottom tab's list; the Assets tab shows them all. The Network tab shows the
+ * assets of its current mode only: [network] is "wifi" (Wi-Fi network) or "access_point" (Access points).
+ */
+internal fun Tab.sources(network: Source): Set<Source>? = when (this) {
+    Tab.BT -> setOf(Source.BT)
+    Tab.NET -> setOf(network)
+    Tab.CAMERA -> setOf(Source.CAMERA)
+    Tab.FILE -> setOf(Source.FILE)
+    Tab.ASSETS -> null
+}
 
-/** Which location the lists narrow the downloaded property's assets to. */
-data class AssetListScope(val location: LocationFilter = LocationFilter.All)
+/**
+ * Which location the lists narrow the downloaded property's assets to, and the Network tab's mode as the source its list
+ * shows ([Source.WIFI] or [Source.AP]).
+ */
+data class AssetListScope(val location: LocationFilter = LocationFilter.All, val network: Source = Source.WIFI)
 
 /** What the asset lists show: one list per tab, the selection, the search and the pending bulk delete. */
 data class AssetListState(
@@ -71,6 +78,8 @@ data class AssetListState(
     val changeAction: ChangeAction? = null,
     /** The note for a change request being asked for on the selection. */
     val changeNote: String = "",
+    /** That note differs from what it started as (empty, or the one asset's own request): closing asks first. */
+    val changeNoteChanged: Boolean = false,
 ) {
     val selecting: Boolean get() = picked.isNotEmpty()
 }
@@ -102,10 +111,14 @@ class AssetListViewModel @Inject constructor(
         val recollect: Set<Tab> = emptySet(),
         /** The tabs narrowed to assets someone asked an admin to reopen (the Change requests chip). */
         val changeRequests: Set<Tab> = emptySet(),
+        /** The tabs narrowed to assets whose validation failed or needs a look (those chips). */
+        val validation: Map<Tab, ValidationMark> = emptyMap(),
         val refreshing: Boolean = false,
         val changeMenu: Boolean = false,
         val changeAction: ChangeAction? = null,
         val changeNote: String = "",
+        /** What [changeNote] started as. */
+        val changeNoteStart: String = "",
     )
 
     val state: StateFlow<AssetListState> = combine(useCases.observe(), scope, ui) { catalog, sc, u ->
@@ -114,40 +127,70 @@ class AssetListViewModel @Inject constructor(
         val lists = Tab.entries.associateWith { tab ->
             useCases.buildList(
                 assets,
-                AssetListQuery(tab.sources, sc.location, u.query, u.statusFilter[tab], tab in u.recollect, tab in u.changeRequests, admin),
+                AssetListQuery(
+                    tab.sources(sc.network), sc.location, u.query, u.statusFilter[tab], tab in u.recollect, tab in u.changeRequests, admin,
+                    validation = u.validation[tab],
+                ),
             )
         }
         val pickedAssets = assets.filter { it.id in u.picked }
         AssetListState(
             lists, pickedAssets.mapTo(HashSet()) { it.id }, u.query, u.searchOpen, u.confirmDelete,
             loading = !catalog.loaded, refreshing = u.refreshing, pickedAssets = pickedAssets, statusFilter = u.statusFilter,
-            changeOptions = changeRequests.actions(pickedAssets),
+            // The admin's sign-off comes first, then the change-request actions (the web's selection bar order).
+            changeOptions = changeRequests.signOff(pickedAssets) + changeRequests.actions(pickedAssets),
             changeMenu = u.changeMenu, changeAction = u.changeAction, changeNote = u.changeNote,
+            changeNoteChanged = u.changeNote != u.changeNoteStart,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState(loading = true))
 
-    fun setScope(location: LocationFilter) {
-        scope.value = AssetListScope(location)
-    }
+    fun setScope(location: LocationFilter) = scope.update { it.copy(location = location) }
+
+    /** The Network tab's mode changed: its list shows the assets of that scan ([Source.WIFI] or [Source.AP]). */
+    fun setNetworkSource(source: Source) = scope.update { it.copy(network = source) }
 
     /**
      * A status chip; it turns the Recollect and Change requests chips off (as on the web, Recollect goes with "All" only,
      * and Change requests is a tab of its own).
      */
     fun setStatusFilter(tab: Tab, status: Status?) = ui.update {
-        it.copy(statusFilter = it.statusFilter + (tab to status), recollect = it.recollect - tab, changeRequests = it.changeRequests - tab)
+        it.copy(
+            statusFilter = it.statusFilter + (tab to status), recollect = it.recollect - tab, changeRequests = it.changeRequests - tab,
+            validation = it.validation - tab,
+        )
     }
 
-    /** The Recollect chip: shows only the assets sent back to be collected again (with "All"), or turns that off. */
-    fun toggleRecollect(tab: Tab) = ui.update {
-        if (tab in it.recollect) it.copy(recollect = it.recollect - tab)
-        else it.copy(statusFilter = it.statusFilter + (tab to null), recollect = it.recollect + tab, changeRequests = it.changeRequests - tab)
+    /**
+     * The Recollect chip: shows only the assets sent back to be collected again (with "All"). Like a status chip, tapping
+     * it again keeps it on; another chip turns it off.
+     */
+    fun selectRecollect(tab: Tab) = ui.update {
+        it.copy(
+            statusFilter = it.statusFilter + (tab to null), recollect = it.recollect + tab, changeRequests = it.changeRequests - tab,
+            validation = it.validation - tab,
+        )
     }
 
-    /** The Change requests chip: shows only the assets someone asked an admin to reopen (the web's tab), or turns that off. */
-    fun toggleChangeRequests(tab: Tab) = ui.update {
-        if (tab in it.changeRequests) it.copy(changeRequests = it.changeRequests - tab)
-        else it.copy(statusFilter = it.statusFilter + (tab to null), recollect = it.recollect - tab, changeRequests = it.changeRequests + tab)
+    /**
+     * The Change requests chip: shows only the assets someone asked an admin to reopen (the web's tab). Like a status
+     * chip, tapping it again keeps it on; another chip turns it off.
+     */
+    fun selectChangeRequests(tab: Tab) = ui.update {
+        it.copy(
+            statusFilter = it.statusFilter + (tab to null), recollect = it.recollect - tab, changeRequests = it.changeRequests + tab,
+            validation = it.validation - tab,
+        )
+    }
+
+    /**
+     * The Failed validation / Needs a look chip: shows only the assets with that validation [mark] (with "All"). Like a
+     * status chip, tapping it again keeps it on; another chip turns it off.
+     */
+    fun selectValidation(tab: Tab, mark: ValidationMark) = ui.update {
+        it.copy(
+            statusFilter = it.statusFilter + (tab to null), recollect = it.recollect - tab, changeRequests = it.changeRequests - tab,
+            validation = it.validation + (tab to mark),
+        )
     }
 
     /** Pull to refresh: reads the property's assets on this device again; the background sync keeps them up to date. */
@@ -174,6 +217,16 @@ class AssetListViewModel @Inject constructor(
     }
     /** Whether the selection's Edit, Submit and Delete show: the signed-in user may collect (a viewer may not). */
     fun mayCollect(): Boolean = useCases.canWorkOn.canCollect()
+
+    /** Submit, as the web's selection bar: only while every ticked asset is still a draft (none submitted or an exception). */
+    fun maySubmit(assets: Collection<Asset>): Boolean =
+        mayCollect() && assets.isNotEmpty() && assets.all { it.st == Status.DRAFT || it.st == Status.INPUT || it.st == Status.AI }
+
+    /** Delete, as the web's: none of the ticked assets is submitted or signed off, unless the user is an admin (lockedForMe). */
+    fun mayDelete(assets: Collection<Asset>): Boolean {
+        val admin = useCases.canWorkOn.isAdmin()
+        return mayCollect() && assets.none { isLockedFor(it.st, admin) }
+    }
 
     fun clearSelection() = ui.update { if (it.picked.isEmpty()) it else it.copy(picked = emptySet()) }
 
@@ -222,7 +275,7 @@ class AssetListViewModel @Inject constructor(
 
     fun openChangeMenu() = ui.update { it.copy(changeMenu = true) }
 
-    fun closeChange() = ui.update { it.copy(changeMenu = false, changeAction = null, changeNote = "") }
+    fun closeChange() = ui.update { it.copy(changeMenu = false, changeAction = null, changeNote = "", changeNoteStart = "") }
 
     /** Picks one of the selection's change-request actions: a blocked one says why, any other asks to confirm. */
     fun pickChange(option: ChangeActionOption) {
@@ -235,6 +288,7 @@ class AssetListViewModel @Inject constructor(
                         ChangeActionBlock.NOT_ALL_EXCEPTIONS -> R.string.change_block_not_exceptions
                         ChangeActionBlock.ASSIGNED_ELSEWHERE -> R.string.change_block_assigned_elsewhere
                         ChangeActionBlock.SOME_ARE_DRAFTS -> R.string.change_block_some_drafts
+                        ChangeActionBlock.SIGN_OFF_NOT_SUBMITTED -> R.string.sign_off_block_not_submitted
                     },
                 ),
             )
@@ -243,7 +297,7 @@ class AssetListViewModel @Inject constructor(
         // Updating a single asset's own request starts from what it said (as the web).
         val single = state.value.pickedAssets.singleOrNull()
         val note = if (option.action == ChangeAction.UPDATE_REQUEST) single?.changeRequest?.note.orEmpty() else ""
-        ui.update { it.copy(changeMenu = false, changeAction = option.action, changeNote = note) }
+        ui.update { it.copy(changeMenu = false, changeAction = option.action, changeNote = note, changeNoteStart = note) }
     }
 
     fun setChangeNote(text: String) = ui.update { it.copy(changeNote = text.take(CHANGE_NOTE_MAX)) }
@@ -258,7 +312,11 @@ class AssetListViewModel @Inject constructor(
         write {
             val result = changeRequests.apply(action, assets, note)
             if (result.done > 0) message.emit(UiText.Plural(action.donePlural, result.done))
-            if (result.failed > 0) message.emit(UiText.Plural(R.plurals.change_bulk_failed, result.failed))
+            if (result.failed > 0) {
+                // A sign-off leaves what isn't submitted as it is; say so as the web does.
+                val failed = if (action == ChangeAction.MARK_VALIDATED) R.plurals.sign_off_not_submitted else R.plurals.change_bulk_failed
+                message.emit(UiText.Plural(failed, result.failed))
+            }
         }
     }
 
@@ -270,6 +328,7 @@ class AssetListViewModel @Inject constructor(
 
     private val ChangeAction.donePlural: Int
         get() = when (this) {
+            ChangeAction.MARK_VALIDATED -> R.plurals.sign_off_done
             ChangeAction.REQUEST, ChangeAction.UPDATE_REQUEST -> R.plurals.change_bulk_sent
             ChangeAction.APPROVE -> R.plurals.change_bulk_approved
             ChangeAction.MOVE_TO_DRAFT -> R.plurals.change_bulk_drafted

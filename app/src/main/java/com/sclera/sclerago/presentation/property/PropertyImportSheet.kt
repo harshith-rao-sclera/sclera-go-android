@@ -41,6 +41,7 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.ChoiceSheet
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.TintChip
@@ -86,16 +87,18 @@ internal fun ImportSheet(vm: PropertyImportViewModel, onClose: () -> Unit, onImp
         if (uri != null) vm.saveSample(uri.toString())
     }
     val plan = s.plan
-    if (plan == null) {
-        ImportSheetContent(
-            s.file?.name, s.file?.size ?: -1, s.error, onClose,
-            onChoose = { chooser.launch(arrayOf(XLSX_MIME, "application/octet-stream")) },
-            onSample = { sampleSaver.launch(SAMPLE_NAME) },
-            onProceed = vm::proceed,
-            loading = s.loading,
-        )
-    } else {
-        MappingSheet(plan, s.mapping, s.incomplete, s.loading, onClose, vm::map) { vm.import(onImported) }
+    GuardedClose(s.file != null, onClose) { close ->
+        if (plan == null) {
+            ImportSheetContent(
+                s.file?.name, s.file?.size ?: -1, s.error, close,
+                onChoose = { chooser.launch(arrayOf(XLSX_MIME, "application/octet-stream")) },
+                onSample = { sampleSaver.launch(SAMPLE_NAME) },
+                onProceed = vm::proceed,
+                loading = s.loading,
+            )
+        } else {
+            MappingSheet(plan, s.mapping, s.incomplete, s.loading, close, vm::map) { vm.import(onImported) }
+        }
     }
 }
 

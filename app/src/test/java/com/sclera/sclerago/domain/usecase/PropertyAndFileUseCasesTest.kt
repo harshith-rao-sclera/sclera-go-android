@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase
 
+import com.sclera.sclerago.domain.model.Contact
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.OnboardingChannel
@@ -10,7 +11,6 @@ import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.usecase.media.DeleteOwnedMediaUseCase
 import com.sclera.sclerago.domain.usecase.media.DescribePickedFilesUseCase
 import com.sclera.sclerago.domain.usecase.media.DescribePickedMediaUseCase
-import com.sclera.sclerago.domain.usecase.media.WritePropertyTemplateUseCase
 import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
 import com.sclera.sclerago.domain.usecase.property.ObserveOnboardingUseCase
 import com.sclera.sclerago.domain.usecase.property.ObservePropertiesUseCase
@@ -30,7 +30,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
-import java.io.ByteArrayOutputStream
 
 class PropertyAndFileUseCasesTest {
     private val repo = FakePropertyRepository(listOf(Property("p1", "Tower", false)))
@@ -48,17 +47,16 @@ class PropertyAndFileUseCasesTest {
 
     @Test
     fun propertyProblem_explainsWhatIsWrong() {
-        val existing = listOf(Property("p1", "Tower", false))
-        assertEquals(PropertyProblem.NAME_REQUIRED, propertyProblem(" ", "Office", existing))
-        assertEquals(PropertyProblem.TYPE_REQUIRED, propertyProblem("A", "", existing))
-        assertEquals(PropertyProblem.DUPLICATE, propertyProblem(" tower ", "Office", existing))
-        assertNull(propertyProblem("New", "Office", existing))
+        assertEquals(PropertyProblem.REQUIRED_FIELDS, propertyProblem(Property("", " ", false)))
+        assertEquals(PropertyProblem.REQUIRED_FIELDS, propertyProblem(Property("", "A", false, type = "")))
+        assertEquals(PropertyProblem.EMAIL_INVALID, propertyProblem(Property("", "A", false, contact = Contact(email = "not-an-email"))))
+        assertNull(propertyProblem(Property("", "New", false)))
     }
 
     @Test
-    fun validateProperty_checksAgainstTheCurrentProperties() {
-        val validate = ValidatePropertyUseCase(repo)
-        assertEquals(PropertyProblem.DUPLICATE, validate(Property("", " TOWER ", false)))
+    fun validateProperty_usesTheFormsChecks() {
+        val validate = ValidatePropertyUseCase()
+        assertEquals(PropertyProblem.REQUIRED_FIELDS, validate(Property("", " ", false)))
         assertNull(validate(Property("", "Depot", false)))
     }
 
@@ -72,10 +70,7 @@ class PropertyAndFileUseCasesTest {
     fun addProperty_addsAValidOneAndRejectsAnInvalidOne() = runTest {
         val add = AddPropertyUseCase(repo, guard)
         val bad = add(Property("", " ", true)) as AddPropertyUseCase.Result.Invalid
-        assertEquals(PropertyProblem.NAME_REQUIRED, bad.problem)
-        val dup = add(Property("", " tower ", true)) as AddPropertyUseCase.Result.Invalid
-        assertEquals(PropertyProblem.DUPLICATE, dup.problem)
-        assertEquals("tower", dup.name)
+        assertEquals(PropertyProblem.REQUIRED_FIELDS, bad.problem)
         val ok = add(Property("", " Depot ", true)) as AddPropertyUseCase.Result.Added
         assertEquals("Depot", ok.property.name)
         assertTrue(ok.property.id.isNotEmpty())
@@ -125,8 +120,6 @@ class PropertyAndFileUseCasesTest {
         assertEquals("a.csv", DescribePickedFilesUseCase(files)(listOf("u")).single().name)
         DeleteOwnedMediaUseCase(files)(listOf(m, m.copy(owned = false)))
         assertEquals(listOf(m), files.deleted)
-        WritePropertyTemplateUseCase(files)(ByteArrayOutputStream())
-        assertTrue(files.templateWritten)
     }
 }
 

@@ -350,7 +350,6 @@
     <string name="detail_sec_fields">Поля актива</string>
     <string name="detail_building">Здание</string>
     <string name="detail_floor">Этаж</string>
-    <string name="detail_set_location">Указать расположение</string>
     <string name="detail_system_type">Тип системы</string>
     <string name="detail_asset_type">Тип актива</string>
     <string name="detail_sub_type">Подтип</string>

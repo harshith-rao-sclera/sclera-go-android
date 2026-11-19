@@ -346,7 +346,6 @@
     <string name="detail_sec_fields">Campos del activo</string>
     <string name="detail_building">Edificio</string>
     <string name="detail_floor">Planta</string>
-    <string name="detail_set_location">Establecer ubicación</string>
     <string name="detail_system_type">Tipo de sistema</string>
     <string name="detail_asset_type">Tipo de activo</string>
     <string name="detail_sub_type">Subtipo</string>

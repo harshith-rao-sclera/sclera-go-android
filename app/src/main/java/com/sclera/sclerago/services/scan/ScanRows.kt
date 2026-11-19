@@ -5,6 +5,7 @@ import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.BLE_ID
 import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.domain.model.NET_ID
+import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
 import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.domain.validation.sanitizeScanText
@@ -44,8 +45,36 @@ fun BleDevice.toRow(): Device {
         known = false,
         // A Bluetooth advertisement only says what it is through its name ("TH-22 sensor", "Jabra Speak").
         type = typeOf(sanitizeScanText(name)),
+        facts = ScanFacts(
+            make = text(manufacturerName),
+            kind = if (connectable) "Bluetooth device" else "Bluetooth beacon",
+            services = serviceUuids.mapNotNull(::bleServiceName).distinct(),
+        ),
     )
 }
+
+/** The name of a standard Bluetooth service (its 16-bit UUID), or null for a maker's own one. */
+private fun bleServiceName(uuid: String): String? {
+    val short = uuid.lowercase().takeIf { it.endsWith(BLE_BASE_UUID) }?.substring(4, 8) ?: uuid.lowercase().takeIf { it.length == 4 }
+    return short?.let(BLE_SERVICES::get)
+}
+
+private const val BLE_BASE_UUID = "-0000-1000-8000-00805f9b34fb"
+
+/** Standard Bluetooth services that say what a device is (the Bluetooth SIG's assigned numbers). */
+private val BLE_SERVICES = mapOf(
+    "1800" to "Generic Access", "180a" to "Device Information", "180f" to "Battery", "180d" to "Heart Rate",
+    "1809" to "Health Thermometer", "1810" to "Blood Pressure", "1808" to "Glucose", "1816" to "Cycling Speed and Cadence",
+    "1818" to "Cycling Power", "1814" to "Running Speed and Cadence", "181a" to "Environmental Sensing",
+    "181b" to "Body Composition", "181d" to "Weight Scale", "1812" to "Human Interface Device", "1802" to "Immediate Alert",
+    "1803" to "Link Loss", "1804" to "Tx Power", "1805" to "Current Time", "1819" to "Location and Navigation",
+    "181c" to "User Data", "1826" to "Fitness Machine", "1827" to "Mesh Provisioning", "1828" to "Mesh Proxy",
+    "183b" to "Binary Sensor", "184e" to "Audio Stream Control", "1844" to "Volume Control", "184f" to "Broadcast Audio Scan",
+    "feaa" to "Eddystone beacon", "fd6f" to "Exposure Notification", "fe2c" to "Google Fast Pair",
+)
+
+/** Scan text as a fact, or null when there is none. */
+private fun text(raw: String?): String? = sanitizeScanText(raw).ifEmpty { null }
 
 fun NetworkDevice.toRow(): Device {
     // No radio signal for a host on the LAN; show how quickly it answered instead.
@@ -65,8 +94,20 @@ fun NetworkDevice.toRow(): Device {
         lvl = lvl,
         known = false,
         type = assetType(category).takeIf { it != AssetType.GENERIC } ?: typeOf(listOfNotNull(sanitizeScanText(displayName), sanitizeScanText(modelName)).joinToString(" ")),
+        // What it is, from its vendor, model, kind, OS and what it offers; never its address or host names.
+        facts = ScanFacts(
+            make = text(vendor),
+            model = text(modelName) ?: text(modelIdentifier),
+            kind = category.takeIf { it != DeviceCategory.UNKNOWN }?.label,
+            os = text(operatingSystem),
+            services = (bonjourServices.mapNotNull { serviceName(it.friendlyProtocolName) } + openPorts.mapNotNull { text(it.serviceName) }).distinct(),
+        ),
     )
 }
+
+/** A Bonjour service's name, without the DNS-SD dressing ("_spotify-connect._tcp" → "spotify-connect"). */
+private fun serviceName(raw: String): String? =
+    text(raw.removePrefix("_").substringBefore("._tcp").substringBefore("._udp"))
 
 /** The ScleraGo asset type closest to what the network scan identified a host as. */
 private fun assetType(c: DeviceCategory): AssetType = when (c) {
@@ -88,4 +129,10 @@ fun WifiAccessPoint.toRow(): Device = Device(
     lvl = signalBars.coerceIn(1, 4),
     known = false,
     type = AssetType.AP,
+    // Its maker, band and security; never its BSSID or SSID.
+    facts = ScanFacts(
+        make = text(vendor),
+        kind = "Wi-Fi access point",
+        services = listOfNotNull(text(band), text(securityLabel)),
+    ),
 )

@@ -1,16 +1,14 @@
 package com.sclera.sclerago.presentation.main
 
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
@@ -39,6 +39,7 @@ import com.sclera.sclerago.presentation.assets.SelectRow
 import com.sclera.sclerago.presentation.assets.WhenKind
 import com.sclera.sclerago.presentation.assets.WhenRow
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.topBorder
@@ -54,26 +55,28 @@ import com.sclera.sclerago.presentation.theme.Txt
 @Composable
 fun BulkEditSheet(s: BulkEditState, vm: BulkEditViewModel, onPickPlace: () -> Unit, onUpdated: () -> Unit) {
     val fields by vm.fields.collectAsStateWithLifecycle()
-    BottomSheet(vm::close) {
-        SheetHeader(
-            pluralStringResource(R.plurals.bulk_title, s.ids.size, s.ids.size),
-            stringResource(R.string.bulk_hint),
-            vm::close,
-        )
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
-            PlaceRow(s.placeLabel, onPickPlace, vm::clearPlace)
-            fields.forEach { f -> BulkFieldRow(f, s.values[f.key].orEmpty()) { vm.setValue(f.key, it) } }
-        }
-        Row(
-            Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Pill(stringResource(R.string.bulk_cancel), vm::close, height = 44.dp, hPad = 18.dp)
-            Pill(
-                stringResource(R.string.bulk_update), { vm.update(onUpdated) },
-                Modifier.weight(1f).alpha(if (s.hasChanges && !s.saving) 1f else 0.45f),
-                bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
+    GuardedClose(s.hasChanges, vm::close) { close ->
+        BottomSheet(close) {
+            SheetHeader(
+                pluralStringResource(R.plurals.bulk_title, s.ids.size, s.ids.size),
+                stringResource(R.string.bulk_hint),
+                close,
             )
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
+                PlaceRow(s.placeLabel, onPickPlace, vm::clearPlace)
+                fields.forEach { f -> BulkFieldRow(f, s.values[f.key].orEmpty()) { vm.setValue(f.key, it) } }
+            }
+            Row(
+                Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Pill(stringResource(R.string.bulk_cancel), close, height = 44.dp, hPad = 18.dp)
+                Pill(
+                    stringResource(R.string.bulk_update), { vm.update(onUpdated) },
+                    Modifier.weight(1f).alpha(if (s.hasChanges && !s.saving) 1f else 0.45f),
+                    bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
+                )
+            }
         }
     }
 }

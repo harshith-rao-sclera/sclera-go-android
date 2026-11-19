@@ -342,7 +342,6 @@
     <string name="detail_sec_fields">Assetvelden</string>
     <string name="detail_building">Gebouw</string>
     <string name="detail_floor">Verdieping</string>
-    <string name="detail_set_location">Locatie instellen</string>
     <string name="detail_system_type">Systeemtype</string>
     <string name="detail_asset_type">Assettype</string>
     <string name="detail_sub_type">Subtype</string>

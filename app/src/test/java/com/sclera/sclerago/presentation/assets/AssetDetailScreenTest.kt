@@ -55,7 +55,6 @@ class AssetDetailScreenTest {
         compose.onNodeWithTag(PhotoTags.tile(0)).assertIsDisplayed()
         compose.onNodeWithTag(PhotoTags.tile(1)).assertIsDisplayed()
         compose.onNodeWithTag(PhotoTags.ADD).assertIsDisplayed()
-        compose.onNodeWithTag(PhotoTags.EMPTY).assertDoesNotExist()
         compose.onNodeWithTag(DetailTags.LOCATION).assertIsDisplayed()
         // Fields read from the nameplate carry OCR, the doubtful one CHECK.
         compose.onNodeWithTag(DetailTags.badge("make")).performScrollTo().assertTextContains(str(R.string.detail_badge_ocr))
@@ -92,7 +91,7 @@ class AssetDetailScreenTest {
 
     @Test @Config(qualifiers = PHONE)
     fun editedAndAiFilledFieldsAreMarked() {
-        val state = sampleDetailState(edits = mapOf("make" to "Grundfos", "jacs" to "[JACS code 1]")).copy(aiFilled = setOf("jacs"))
+        val state = sampleDetailState(edits = mapOf("make" to "Grundfos", "jacs" to "[JACS code 1]"))
         compose.setContent { ScleraTheme { AssetDetailScreen(state, AssetDetailActions()) } }
         compose.onNodeWithTag(DetailTags.badge("make")).performScrollTo().assertTextContains(str(R.string.detail_badge_edited))
         compose.onNodeWithText(str(R.string.detail_no_unsaved)).assertDoesNotExist()
@@ -105,7 +104,6 @@ class AssetDetailScreenTest {
         val state = sampleDetailState(isNew = true, media = emptyList())
         compose.setContent { ScleraTheme { AssetDetailScreen(state, AssetDetailActions(onCreate = { created += it })) } }
         compose.onNodeWithTag(DetailTags.TAB_INFO).assertDoesNotExist()
-        compose.onNodeWithTag(PhotoTags.EMPTY).assertIsDisplayed()
         compose.onNodeWithTag(DetailTags.SAVE).performScrollTo().performClick()
         compose.onNodeWithTag(DetailTags.SUBMIT).performScrollTo().performClick()
         compose.onNodeWithText(str(R.string.detail_submit_title)).assertIsDisplayed()
@@ -115,12 +113,9 @@ class AssetDetailScreenTest {
     }
 
     @Test @Config(qualifiers = PHONE)
-    fun submittedAsset_isReadOnly_withARecollectCard() {
+    fun submittedAsset_isReadOnly() {
         val state = sampleDetailState(status = Status.SUBMITTED)
-        var back = 0
-        compose.setContent { ScleraTheme { AssetDetailScreen(state, AssetDetailActions(onBack = { back++ })) } }
-        compose.onNodeWithText(str(R.string.detail_recollect)).performScrollTo().performClick()
-        assertEquals(1, back)
+        compose.setContent { ScleraTheme { AssetDetailScreen(state, AssetDetailActions()) } }
         compose.onNodeWithTag(PhotoTags.ADD).assertDoesNotExist()
         compose.onNodeWithTag(FloatingTags.AI).assertDoesNotExist()
         compose.onNodeWithTag(DetailTags.SAVE).assertDoesNotExist()
@@ -136,100 +131,5 @@ class AssetDetailScreenTest {
         compose.onNodeWithText(str(R.string.detail_photo_of, 2, 2)).assertIsDisplayed()
         compose.onNodeWithContentDescription(str(R.string.action_close)).performClick()
         compose.onNodeWithTag(PhotoTags.VIEWER).assertDoesNotExist()
-    }
-
-    @Test @Config(qualifiers = PHONE)
-    fun addMenuOffersCameraGalleryAndFiles() {
-        val chosen = mutableListOf<String>()
-        val actions = AssetDetailActions(
-            onTakePhoto = { chosen += "camera" }, onPickGallery = { chosen += "gallery" }, onPickFiles = { chosen += "files" },
-        )
-        compose.setContent { ScleraTheme { AssetDetailScreen(sampleDetailState(), actions) } }
-        listOf(R.string.detail_menu_camera to "camera", R.string.detail_menu_gallery to "gallery", R.string.detail_menu_files to "files").forEach { (label, _) ->
-            compose.onNodeWithTag(PhotoTags.ADD).performClick()
-            compose.onNodeWithText(str(label)).performClick()
-        }
-        assertEquals(listOf("camera", "gallery", "files"), chosen)
-    }
-
-    // ---- Validation tab
-
-    private fun openValidationTab(state: AssetDetailState, actions: AssetDetailActions = AssetDetailActions()) {
-        compose.setContent { ScleraTheme { AssetDetailScreen(state, actions) } }
-        compose.onNodeWithTag(DetailTags.TAB_VALIDATION).performClick()
-    }
-
-    private fun checkFailingChecklist() {
-        openValidationTab(sampleFailingState())
-        // The tab badge and the banner say 1 check failed.
-        compose.onNodeWithTag(DetailTags.TAB_VALIDATION).assertTextContains("1", substring = true)
-        compose.onNodeWithTag(ChecksTags.BANNER).assertIsDisplayed()
-        compose.onNodeWithText(context.resources.getQuantityString(R.plurals.check_banner_failed, 1, 1)).assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.check_banner_failed_sub)).assertIsDisplayed()
-        AssetCheckId.entries.forEach { compose.onNodeWithTag(ChecksTags.row(it)).performScrollTo().assertIsDisplayed() }
-        // Passes show their value; the failing JACS check is REQUIRED with its reason and a Fix button.
-        compose.onNodeWithText("Mechanical · Pump").assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.check_note_required)).assertIsDisplayed()
-        compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.JACS_CODE)).assertIsDisplayed()
-        compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.LOW_CONFIDENCE)).assertIsDisplayed()
-        compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.SERIAL)).assertDoesNotExist()
-        compose.onNodeWithText(str(R.string.check_note_low_confidence, "Speed (RPM)")).assertIsDisplayed()
-        // The footer is a disabled-looking Fix button, not Validate.
-        compose.onNodeWithTag(ChecksTags.FOOTER).performScrollTo()
-        compose.onNode(hasTestTag(ChecksTags.FOOTER) and hasAnyDescendant(hasText(context.resources.getQuantityString(R.plurals.check_fix_footer, 1, 1)))).assertExists()
-        compose.onNodeWithText(str(R.string.action_validate)).assertDoesNotExist()
-    }
-
-    @Test @Config(qualifiers = PHONE)
-    fun phone_failingChecklist() = checkFailingChecklist()
-
-    @Test @Config(qualifiers = TABLET_PORTRAIT)
-    fun tabletPortrait_failingChecklist() = checkFailingChecklist()
-
-    @Test @Config(qualifiers = TABLET_LANDSCAPE)
-    fun tabletLandscape_failingChecklist() = checkFailingChecklist()
-
-    private fun checkPassingChecklist() {
-        var validated = 0
-        openValidationTab(samplePassingState(), AssetDetailActions(onValidate = { validated++ }))
-        compose.onNodeWithText(str(R.string.check_banner_passed)).assertIsDisplayed()
-        compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.JACS_CODE)).assertDoesNotExist()
-        compose.onNodeWithTag(ChecksTags.FOOTER).performScrollTo().assertTextContains(str(R.string.action_validate)).assertIsEnabled().performClick()
-        assertEquals(1, validated)
-    }
-
-    @Test @Config(qualifiers = PHONE)
-    fun phone_passingChecklist() = checkPassingChecklist()
-
-    @Test @Config(qualifiers = TABLET_PORTRAIT)
-    fun tabletPortrait_passingChecklist() = checkPassingChecklist()
-
-    @Test @Config(qualifiers = TABLET_LANDSCAPE)
-    fun tabletLandscape_passingChecklist() = checkPassingChecklist()
-
-    @Test @Config(qualifiers = PHONE)
-    fun fixOnJacs_returnsToTheInfoTab_andOpensTheClassificationSection() {
-        openValidationTab(sampleFailingState())
-        compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.JACS_CODE)).performScrollTo().performClick()
-        compose.waitForIdle()
-        compose.onNodeWithTag(DetailTags.field("jacs")).assertIsDisplayed()
-    }
-
-    @Test @Config(qualifiers = PHONE)
-    fun fixOnLocationAndPhotos_openThePickerAndTheCamera() {
-        val calls = mutableListOf<String>()
-        val base = sampleDetailState(media = emptyList())
-        val noLocation = base.copy(asset = base.asset!!.copy(loc = null, where = ""))
-        val state = noLocation.copy(checks = EvaluateAssetChecksUseCase()(AssetCheckInput(noLocation.values, false, "", 0, true, 1, setOf("jacs"))))
-        openValidationTab(state, AssetDetailActions(onChangeLoc = { calls += "location" }, onTakePhoto = { calls += "photo" }))
-        compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.LOCATION)).performScrollTo().performClick()
-        compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.PHOTO)).performScrollTo().performClick()
-        assertEquals(listOf("location", "photo"), calls)
-    }
-
-    @Test @Config(qualifiers = PHONE)
-    fun submittedAsset_hasNoFixButtons() {
-        openValidationTab(sampleDetailState(status = Status.SUBMITTED))
-        compose.onNodeWithTag(ChecksTags.fix(AssetCheckId.JACS_CODE)).assertDoesNotExist()
     }
 }

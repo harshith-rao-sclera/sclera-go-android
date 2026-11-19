@@ -350,7 +350,6 @@
     <string name="detail_sec_fields">Pola zasobu</string>
     <string name="detail_building">Budynek</string>
     <string name="detail_floor">Piętro</string>
-    <string name="detail_set_location">Ustaw lokalizację</string>
     <string name="detail_system_type">Typ systemu</string>
     <string name="detail_asset_type">Typ zasobu</string>
     <string name="detail_sub_type">Podtyp</string>

@@ -78,7 +78,17 @@ data class Asset(
     val assignedTo: String? = null,
     /** Its manufacturer and model ("Daikin · VRV IV"); empty when neither is filled in. [detail] adds its specs to these. */
     val makeModel: String = "",
+    /**
+     * How its validation stands, all its runs together as the server combines them: a step failed, or one needs a
+     * look (the web card's validation icon). Null when every step passed or it was never validated.
+     */
+    val validationMark: ValidationMark? = null,
+    /** How many of its steps failed or need a look. */
+    val validationProblems: Int = 0,
 )
+
+/** A validation result worth showing on an asset's row: the web's "Failed validation" and "Needs a look". */
+enum class ValidationMark { FAILED, NEEDS_LOOK }
 
 /** A request to reopen a submitted asset: who asked ([requestedBy], a user id), when, and what needs changing. */
 data class ChangeRequest(val requestedBy: String?, val requestedAt: Long?, val note: String?)
@@ -92,16 +102,16 @@ fun Asset.isIn(status: Status): Boolean = if (status == Status.AI) aiSuggestion 
 
 /**
  * An asset to add. [asset] carries its media and, in [Asset.locationId], the id of the place it goes (a building,
- * floor or location); [values] are the details form answers to keep with it; [deviceId] is the scanned device it was
- * made from, if any. [copyOf]: it is a copy of that asset (Clone), so it takes the original's own fields by name.
+ * floor or location); [values] are the details form answers to keep with it. [copyOf]: it is a copy of that asset (Clone), so it takes the original's own fields by name.
  */
-data class NewAsset(val asset: Asset, val values: Map<String, String> = emptyMap(), val deviceId: String? = null, val copyOf: String? = null)
+data class NewAsset(val asset: Asset, val values: Map<String, String> = emptyMap(), val copyOf: String? = null)
 
 /**
  * One device found by a Bluetooth, Wi-Fi network or access point scan, as a scan page row.
  * Built from the real scan results in scan/ScanRows.kt; [lvl] is 1–4 signal bars.
  * [type] is the asset type the device would become (from what the scan identified); it picks the
- * row's icon, the same icon the Assets list shows for that type.
+ * row's icon, the same icon the Assets list shows for that type. [facts] is what the scan found out about what it
+ * is (no identifiers): an asset made from it starts with them, and the AI is asked about them.
  */
 data class Device(
     val id: String,
@@ -110,6 +120,7 @@ data class Device(
     val lvl: Int,
     val known: Boolean,
     val type: AssetType = AssetType.GENERIC,
+    val facts: ScanFacts? = null,
 )
 
 /** Extra fields shown on the asset detail screen, keyed by asset id. */

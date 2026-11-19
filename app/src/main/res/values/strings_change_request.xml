@@ -7,9 +7,11 @@
     <string name="change_request_note_label">What needs changing</string>
     <string name="change_request_note_hint">Optional note for the admin</string>
     <string name="change_request_send">Send request</string>
-    <string name="change_request_mine">You asked for a change · %1$s</string>
-    <string name="change_request_other">Change requested · %1$s</string>
-    <string name="change_request_by">%1$s asked for a change · %2$s</string>
+    <!-- The web's request line: "Requested by <name> on <date and time>". -->
+    <string name="change_request_by_on">Requested by %1$s on %2$s</string>
+    <string name="change_request_by">Requested by %1$s</string>
+    <string name="change_request_you">you</string>
+    <string name="change_request_someone">someone</string>
     <string name="change_request_withdraw">Withdraw request</string>
     <string name="change_request_decline">Decline</string>
     <string name="change_request_reopen">Approve</string>
@@ -85,5 +87,22 @@
     <plurals name="change_bulk_failed">
         <item quantity="one">%1$d couldn\'t be changed</item>
         <item quantity="other">%1$d couldn\'t be changed</item>
+    </plurals>
+    <!-- Move to draft from the open asset (the web's asset bar). -->
+    <string name="move_draft_body">The asset goes back to Draft so it can be edited again, then submitted.</string>
+    <!-- An admin signs submitted assets off without a validation run (the web's signOffActions). -->
+    <string name="sign_off_action">Mark as validated</string>
+    <string name="sign_off_block_not_submitted">Only submitted assets can be marked as validated</string>
+    <plurals name="sign_off_body">
+        <item quantity="one">The asset moves to Validated without a validation run. It can then be moved to Managed assets.</item>
+        <item quantity="other">The assets move to Validated without a validation run. They can then be moved to Managed assets.</item>
+    </plurals>
+    <plurals name="sign_off_done">
+        <item quantity="one">%1$d asset marked as validated</item>
+        <item quantity="other">%1$d assets marked as validated</item>
+    </plurals>
+    <plurals name="sign_off_not_submitted">
+        <item quantity="one">%1$d asset not marked as validated: not submitted yet. Submit it first.</item>
+        <item quantity="other">%1$d assets not marked as validated: not submitted yet. Submit them first.</item>
     </plurals>
 </resources>

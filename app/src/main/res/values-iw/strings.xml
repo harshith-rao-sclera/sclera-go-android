@@ -350,7 +350,6 @@
     <string name="detail_sec_fields">שדות הנכס</string>
     <string name="detail_building">בניין</string>
     <string name="detail_floor">קומה</string>
-    <string name="detail_set_location">הגדרת מיקום</string>
     <string name="detail_system_type">סוג מערכת</string>
     <string name="detail_asset_type">סוג נכס</string>
     <string name="detail_sub_type">תת-סוג</string>

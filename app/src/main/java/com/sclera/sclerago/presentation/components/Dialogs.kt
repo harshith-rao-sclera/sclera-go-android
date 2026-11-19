@@ -26,11 +26,12 @@ fun DiscardChangesDialog(
     onDiscard: () -> Unit,
     title: String = "Discard your changes?",
     body: String = "You’ve changed something that isn’t saved yet. If you leave now, those changes are lost.",
+    keep: String = "Keep editing",
 ) {
     BackHandler(onBack = onKeep)
     ConfirmDialog(
         icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange, title = title, body = body,
-        no = "Keep editing", yes = "Discard", onNo = onKeep, onYes = onDiscard,
+        no = keep, yes = "Discard", onNo = onKeep, onYes = onDiscard,
     )
 }
 
@@ -45,6 +46,8 @@ fun GuardedClose(dirty: Boolean, onClose: () -> Unit, content: @Composable (clos
     val isDirty by rememberUpdatedState(dirty)
     val leave by rememberUpdatedState(onClose)
     val close = remember { { if (isDirty) asking = true else leave() } }
+    // Counted while dirty, so a bottom tab or a side-menu page asks too before leaving it.
+    ReportUnsaved(dirty)
     content(close)
     if (asking) DiscardChangesDialog(onKeep = { asking = false }, onDiscard = { asking = false; leave() })
 }

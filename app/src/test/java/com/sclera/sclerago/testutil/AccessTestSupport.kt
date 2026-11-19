@@ -4,18 +4,15 @@ import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.usecase.access.AccessUseCases
-import com.sclera.sclerago.domain.usecase.access.CanDeleteGroupUseCase
-import com.sclera.sclerago.domain.usecase.access.CountPeopleGivenAllPropertiesUseCase
+import com.sclera.sclerago.domain.usecase.access.BrowseDirectoryUseCase
 import com.sclera.sclerago.domain.usecase.access.DeleteGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.ObserveGroupsUseCase
 import com.sclera.sclerago.domain.usecase.access.ObservePeopleUseCase
 import com.sclera.sclerago.domain.usecase.access.ObservePermissionsUseCase
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.usecase.access.RefreshAccessUseCase
-import com.sclera.sclerago.domain.usecase.access.RemovePersonUseCase
 import com.sclera.sclerago.domain.usecase.access.SaveGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.SavePersonUseCase
-import com.sclera.sclerago.domain.usecase.access.SearchDirectoryUseCase
 import com.sclera.sclerago.domain.usecase.access.ValidateGroupUseCase
 import com.sclera.sclerago.domain.usecase.access.ValidatePersonUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,7 +60,7 @@ class InMemoryAccessRepository(groups: List<Group> = emptyList(), people: List<P
         return saved
     }
 
-    override suspend fun removePerson(id: String) {
+    suspend fun removePerson(id: String) {
         peopleFlow.value = peopleFlow.value.filterNot { it.id == id }
     }
 
@@ -72,12 +69,8 @@ class InMemoryAccessRepository(groups: List<Group> = emptyList(), people: List<P
 }
 
 /** The people-and-access use cases over [repo], wired as Hilt does ([guard] lets everything through by default). */
-fun accessUseCases(repo: AccessRepository, guard: PermissionGuard = allowAllGuard()): AccessUseCases {
-    val canDelete = CanDeleteGroupUseCase(repo)
-    return AccessUseCases(
-        ObserveGroupsUseCase(repo), ObservePeopleUseCase(repo), RefreshAccessUseCase(repo),
-        ValidatePersonUseCase(repo), ValidateGroupUseCase(repo), SavePersonUseCase(repo, guard), RemovePersonUseCase(repo, guard),
-        CountPeopleGivenAllPropertiesUseCase(repo), SaveGroupUseCase(repo, guard), canDelete, DeleteGroupUseCase(repo, canDelete, guard),
-        ObservePermissionsUseCase(repo), SearchDirectoryUseCase(repo),
-    )
-}
+fun accessUseCases(repo: AccessRepository, guard: PermissionGuard = allowAllGuard()): AccessUseCases = AccessUseCases(
+    ObserveGroupsUseCase(repo), ObservePeopleUseCase(repo), ObservePermissionsUseCase(repo), BrowseDirectoryUseCase(repo),
+    RefreshAccessUseCase(repo), ValidatePersonUseCase(), ValidateGroupUseCase(), SavePersonUseCase(repo, guard),
+    SaveGroupUseCase(repo, guard), DeleteGroupUseCase(repo, guard),
+)

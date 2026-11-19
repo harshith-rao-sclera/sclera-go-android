@@ -19,7 +19,8 @@ data class StatusCount(val status: Status?, val count: Int, val selected: Boolea
 /**
  * [recollect]: the Recollect chip (how many were sent back, and whether the list is narrowed to them).
  * [changeRequests]: the Change requests chip; null hides it (as on the web: shown to admins, and to anyone else only
- * while there are some).
+ * while there are some). [validation]: the Failed validation and Needs a look chips, each only while some assets have
+ * that mark (or it is chosen).
  */
 data class AssetListData(
     val items: List<Asset>,
@@ -27,6 +28,7 @@ data class AssetListData(
     val empty: EmptyReason,
     val recollect: ToggleChip = ToggleChip(0, false),
     val changeRequests: ToggleChip? = null,
+    val validation: Map<ValidationMark, ToggleChip> = emptyMap(),
 )
 
 /** A chip that narrows the list to some assets: [count] of them; [selected] when the list shows only them. */
@@ -37,6 +39,7 @@ data class ToggleChip(val count: Int, val selected: Boolean)
  * assets sent back to be collected again; as on the web it goes with "All" only, so a [status] turns it off.
  * [changeRequests] narrows it to assets someone asked an admin to reopen (the web's Change requests tab, which is one
  * of its tabs, so it turns the status and Recollect off). [showChangeRequests]: that chip shows even with none (admins).
+ * [validation] narrows it to the assets whose validation has that mark; like Recollect it goes with "All" only.
  */
 data class AssetListQuery(
     val sources: Set<Source>?,
@@ -46,4 +49,5 @@ data class AssetListQuery(
     val recollect: Boolean = false,
     val changeRequests: Boolean = false,
     val showChangeRequests: Boolean = false,
+    val validation: ValidationMark? = null,
 )

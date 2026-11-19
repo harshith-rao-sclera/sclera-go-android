@@ -4,6 +4,7 @@ import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.answersJson
 import com.sclera.sclerago.data.mapper.formatDbTime
+import com.sclera.sclerago.data.mapper.DESCRIPTION_COLUMN
 import com.sclera.sclerago.data.mapper.splitAssetValues
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
@@ -17,6 +18,7 @@ import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.PhotoRule
+import com.sclera.sclerago.domain.model.SignOffOutcome
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.model.photosShort
@@ -103,13 +105,19 @@ class AssetsWriter(
         val historyFields = query(HISTORY_FIELDS.live("asset_fields"), listOf(id))
         val typed = typeAnswers(values)
         val plain = values.filterKeys { typeFieldName(it) == null }
-        val split = splitAssetValues(plain)
+        val more = moreColumns()
+        val columnKeys = COLUMN_KEYS + more
+        val split = splitAssetValues(plain, more)
         val now = now()
 
-        val oldColumns = COLUMN_KEYS.associateWith { row.string(it).orEmpty() }
+        val oldColumns = columnKeys.associateWith { row.string(it).orEmpty() }
         val newColumns = oldColumns + split.columns.mapValues { it.value.trim() }
         val oldExtra = DbJson.stringMap(valuesRow?.answersJson())
-        val newExtra = oldExtra.toMutableMap().also { map -> split.extra.forEach { (k, v) -> if (v.isBlank()) map.remove(k) else map[k] = v } }
+        val newExtra = oldExtra.toMutableMap().also { map ->
+            split.extra.forEach { (k, v) -> if (v.isBlank()) map.remove(k) else map[k] = v }
+            // A field that is now a column (Description) leaves asset_values once it is saved to its column.
+            more.forEach { if (it in split.columns) map.remove(it) }
+        }
         val classification = classify(plain, row.string("master_format_id"), row.string("jacs_code_id"), row.string("classification_source"))
         val oldFormat = row.id("master_format_id")
         val typeChange = if (classification.formatId != oldFormat || typed.values.any { it.isNotBlank() }) {
@@ -117,7 +125,7 @@ class AssetsWriter(
         } else null
         typeChange?.let { putTypeAnswers(newExtra, typed, it) }
 
-        val changedKeys = (COLUMN_KEYS.filter { oldColumns.getValue(it) != newColumns.getValue(it) } +
+        val changedKeys = (columnKeys.filter { oldColumns.getValue(it) != newColumns.getValue(it) } +
             (oldExtra.keys + newExtra.keys).filter { oldExtra[it].orEmpty() != newExtra[it].orEmpty() }).toSet()
         val retyped = classification.formatId != oldFormat
         val oldJacs = row.id("jacs_code_id")
@@ -137,6 +145,9 @@ class AssetsWriter(
             ),
             setOf("assets"),
         )
+        more.filter { it in split.columns }.forEach { column ->
+            execute("UPDATE assets SET $column = ? WHERE id = ?", listOf(keep(row, column, newColumns.getValue(column)), id), setOf("assets"))
+        }
         // The place goes in with the rest of the edit, as the web sends it in the same PATCH.
         if (moved) {
             execute(
@@ -147,14 +158,14 @@ class AssetsWriter(
         }
         // Where applied AI suggestions came from (database key -> page), for values set here and real web pages only.
         val pages = splitAssetValues(sources).let { it.columns + it.extra }
-            .filter { (key, _) -> key in changedKeys && !(if (key in COLUMN_KEYS) newColumns[key] else newExtra[key]).isNullOrBlank() }
+            .filter { (key, _) -> key in changedKeys && !(if (key in columnKeys) newColumns[key] else newExtra[key]).isNullOrBlank() }
             .mapNotNull { (key, url) -> webLink(url)?.let { key to it } }.toMap()
         val merged = mergeAnswers(valuesRow, oldExtra, newExtra)
         if (newExtra != oldExtra || pages.isNotEmpty()) writeValues(id, valuesRow, merged, changedKeys = changedKeys.toList(), pages = pages)
         keepSources(id, pages, newColumns["manufacturer"], newColumns["model"], user.userId(), ids::next, now)
         // One line for everything the edit changed, as the server's record_edit: answers in form order with their stored
         // values, then the place, the master format and the JACS code. Nothing when only unlisted answers changed.
-        val lines = answerChanges(historyFields, row, newColumns, DbJson.obj(valuesRow?.answersJson()), merged) +
+        val lines = answerChanges(historyFields, row, columnKeys, newColumns, DbJson.obj(valuesRow?.answersJson()), merged) +
             placeChanges(oldPlace, newPlace) +
             listOfNotNull(
                 Change("Master format", null, text(formatLabel(oldFormat)), text(formatLabel(classification.formatId))).takeIf { retyped },
@@ -225,6 +236,32 @@ class AssetsWriter(
             assignTo(id, requester, now)
         }
         execute(ASSET_CLOSE_CHANGE_REQUEST, listOf(id), setOf("assets"))
+    }
+
+    /**
+     * An admin signs [assetIds] off without a validation run, as the server's `POST /assets/bulk/validate`: submitted
+     * ones become validated (status saved) with a history line; drafts and exceptions are left as they are and named in
+     * the answer; assets already validated are left alone.
+     */
+    suspend fun markValidated(assetIds: Collection<String>): SignOffOutcome = db.write(io) {
+        val now = now()
+        val target = statusToDb(Status.VALIDATED)
+        var validated = 0
+        var unchanged = 0
+        val notSubmitted = mutableListOf<String>()
+        assetIds.distinct().forEach { id ->
+            val row = assetState(id) ?: return@forEach
+            when {
+                row.string("status") == "saved" || row.bool("validated") -> unchanged++
+                row.string("status") != "submitted" -> notSubmitted += id
+                else -> {
+                    execute(ASSET_UPDATE_STATUS, listOf(target.status, target.validated.bit(), null, now, id), setOf("assets"))
+                    history(id, "validated", "Asset marked as validated by an admin", null, now)
+                    validated++
+                }
+            }
+        }
+        SignOffOutcome(validated, notSubmitted, unchanged)
     }
 
     /** What submitting asset [id] makes of it (submitted when complete, an exception otherwise), or null to leave it alone. */
@@ -336,6 +373,24 @@ class AssetsWriter(
         files.forget(listOf(mediaId))
     }
 
+    /** Adds a field named [name] of type [type] to asset [assetId] alone; its key, or null when the name is taken. */
+    suspend fun addOwnField(assetId: String, name: String, type: String): String? = db.write(io) {
+        with(typeFields) { addOwnField(assetId, name, type, now()) }
+    }
+
+    /**
+     * Removes asset [assetId]'s own field [key] with its answer, as the server's `DELETE /assets/{id}/fields/{id}`: the
+     * field row is marked removed (never deleted here) and its answer, confidence and source leave the asset's values.
+     * False when [key] isn't one of the asset's own fields.
+     */
+    suspend fun removeOwnField(assetId: String, key: String): Boolean = db.write(io) {
+        val field = query(OWN_FIELDS.live("asset_fields"), listOf(assetId)).firstOrNull { it.string("key") == key } ?: return@write false
+        val now = now()
+        removeRows("asset_fields", "id = ?", listOf(field.string("id").orEmpty()), now)
+        dropAnswer(assetId, key, now)
+        true
+    }
+
     /** Adds the comment [text] (already checked) to asset [assetId], written by the signed-in user; the sync pushes it. */
     suspend fun addComment(assetId: String, text: String) = db.write(io) {
         if (!exists(ASSET_STATE.live("assets"), listOf(assetId))) throw DataException(DataError.FAILED)
@@ -397,7 +452,8 @@ class AssetsWriter(
         val asset = item.asset
         val typed = typeAnswers(item.values)
         val plain = item.values.filterKeys { typeFieldName(it) == null }
-        val split = splitAssetValues(plain)
+        val more = moreColumns()
+        val split = splitAssetValues(plain, more)
         val place = placeColumns(asset.locationId ?: asset.floorId ?: asset.buildingId)
         val classification = classify(plain, asset.masterFormatId, null, null)
         val status = statusToDb(asset.st)
@@ -406,7 +462,7 @@ class AssetsWriter(
             ASSET_INSERT,
             listOf(
                 asset.id, (split.columns["name"]?.trim()?.takeIf { it.isNotEmpty() } ?: asset.name).ifBlank { null },
-                place.building, place.floor, place.location, status.status, sourceToDb(asset.src), item.deviceId, user.userId(),
+                place.building, place.floor, place.location, status.status, sourceToDb(asset.src), user.userId(),
                 now, now, split.columns["manufacturer"].orNull(), split.columns["model"].orNull(), split.columns["serial_number"].orNull(),
                 // As the server's POST /assets: an asset created with a type was classified by hand.
                 now, classification.formatId?.let { "manual" }, classification.formatId, classification.jacs,
@@ -417,6 +473,11 @@ class AssetsWriter(
             ),
             setOf("assets"),
         )
+        more.forEach { column ->
+            split.columns[column]?.trim()?.takeIf { it.isNotEmpty() }?.let {
+                execute("UPDATE assets SET $column = ? WHERE id = ?", listOf(it, asset.id), setOf("assets"))
+            }
+        }
         // A new asset of a type gets the type's fields, as the server's POST /assets does.
         val typeChange = classification.formatId?.let { with(typeFields) { applyType(asset.id, it, extra, now) } }
         typeChange?.let { putTypeAnswers(extra, typed, it) }
@@ -566,6 +627,17 @@ class AssetsWriter(
         execute(ASSET_TOUCH_VALUES, listOf(now, now, assetId), setOf("assets"))
     }
 
+    /** Takes the answer to field [key] out of asset [assetId]'s values, with its confidence and source. */
+    private fun AdcDatabase.dropAnswer(assetId: String, key: String, now: String) {
+        val valuesRow = queryOne(ASSET_VALUES_ROW, listOf(assetId)) ?: return
+        val answers = DbJson.obj(valuesRow.answersJson())
+        if (key !in answers) return
+        val confidence = DbJson.doubleMap(valuesRow.string("confidence")) - key
+        val sources = DbJson.stringMap(valuesRow.string("sources")) - key
+        execute(withAnswers(ASSET_VALUES_UPDATE), listOf(JsonObject(answers - key).toString(), DbJson.writeDoubles(confidence), DbJson.write(sources), assetId), setOf("asset_values"))
+        execute(ASSET_TOUCH_VALUES, listOf(now, now, assetId), setOf("assets"))
+    }
+
     /** The server's history line for type fields added or removed (`type_fields`). */
     private fun AdcDatabase.typeHistory(assetId: String, formatId: String?, change: TypeChange, now: String) {
         val parts = buildList {
@@ -630,11 +702,19 @@ class AssetsWriter(
      * core columns as text, the rest as their JSON. Photo, video and voice memo fields are left out (their answer is a
      * list of media ids), as the server's changes_since.
      */
-    private fun answerChanges(fields: List<DbRow>, row: DbRow, newColumns: Map<String, String>, before: JsonObject, after: JsonObject): List<Change> =
+    private fun answerChanges(
+        fields: List<DbRow>,
+        row: DbRow,
+        columnKeys: List<String>,
+        newColumns: Map<String, String>,
+        before: JsonObject,
+        after: JsonObject,
+    ): List<Change> =
         fields.filter { it.string("type") !in MEDIA_FIELD_TYPES }.mapNotNull { f ->
             val key = f.string("key") ?: return@mapNotNull null
-            val old = if (key in COLUMN_KEYS) text(row.string(key)) else before[key].orNull()
-            val new = if (key in COLUMN_KEYS) text(newColumns[key]) else after[key].orNull()
+            // A column's answer was in asset_values before the column came (Description): that is its old value then.
+            val old = if (key in columnKeys) text(row.string(key)) ?: before[key].orNull() else before[key].orNull()
+            val new = if (key in columnKeys) text(newColumns[key]) else after[key].orNull()
             if (old == new) null else Change(f.string("name") ?: key, f.string("id"), old, new)
         }
 
@@ -707,4 +787,7 @@ class AssetsWriter(
         /** The standard answers kept in columns of `assets`. */
         val COLUMN_KEYS = listOf("name", "manufacturer", "model", "serial_number")
     }
+
+    /** Built-in fields this database keeps as `assets` columns beyond [COLUMN_KEYS]: Description once the server adds it. */
+    private fun AdcDatabase.moreColumns(): Set<String> = setOf(DESCRIPTION_COLUMN).filterTo(mutableSetOf()) { hasColumn("assets", it) }
 }

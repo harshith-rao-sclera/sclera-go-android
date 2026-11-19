@@ -2,7 +2,6 @@ package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
-import com.sclera.sclerago.data.mapper.FieldKeys
 import com.sclera.sclerago.data.mapper.toAsset
 import com.sclera.sclerago.data.mapper.toAssetActivity
 import com.sclera.sclerago.data.mapper.toAssetDetails
@@ -16,6 +15,7 @@ import com.sclera.sclerago.domain.model.AssetFull
 import com.sclera.sclerago.domain.model.AssetSummary
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.validation.mark
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -27,13 +27,13 @@ data class AssetsRead(val open: Boolean, val assets: List<Asset>)
 private val SPEC_UNITS = listOf("rated_power_kw" to "kW", "voltage" to "V", "speed" to "RPM")
 
 /** The app's field keys a scanned device is looked up in. */
-private val SCAN_KEYS = listOf("ble", "ip", "label", "note")
 
 /** The server's VdmsState RETURNING (3) and RETURNED (4): Managed Assets sent the asset back to be collected again. */
 private val VDMS_SENT_BACK = setOf(3, 4)
 
 private val ASSET_TABLES = arrayOf(
     "assets", "asset_values", "asset_media", "buildings", "floors", "locations", "master_formats", "asset_fields", "validation_results",
+    "validation_jobs",
 )
 
 /**
@@ -92,12 +92,6 @@ class AssetsOfflineSource(
 
     /** The details of each of [assetIds], by asset id. */
     suspend fun detailsFor(assetIds: Collection<String>): Map<String, AssetDetails> = withContext(io) { loadDetails(assetIds) }
-
-    /** Scanned device id → the asset made from it. */
-    fun deviceLinksFlow(): Flow<Map<String, String>> = db.watch(io, "assets") { loadDeviceLinks() }
-
-    /** Asset id → its BLE tag, IP address, label and notes, one per line, for matching scan results. */
-    fun scanTextFlow(): Flow<Map<String, String>> = db.watch(io, "assets", "asset_values") { loadScanText() }
 
     /** An asset's photos, videos and documents in order. [Media.uri] is the stored object path (`local://` or `s3://`). */
     suspend fun media(assetId: String): List<Media> = withContext(io) { mediaFor(listOf(assetId))[assetId].orEmpty() }
@@ -158,6 +152,7 @@ class AssetsOfflineSource(
         val media = mediaFor(ids)
         val values = valuesFor(ids)
         val sentBack = sentBack(ids)
+        val checked = validation.validationsFor(ids)
         val formatById = formats.byId()
         val index = places.index()
         return rows.map { row ->
@@ -170,6 +165,8 @@ class AssetsOfflineSource(
                 // As the server's recollect_condition: still drafted, and either a reviewer's latest decision sent it back
                 // or Managed Assets (VDMS) returned it.
                 recollect = row.string("status") == "drafted" && (id in sentBack || row.int("vdms_state") in VDMS_SENT_BACK),
+                validationMark = checked[id]?.mark(),
+                validationProblems = checked[id]?.problems?.size ?: 0,
             )
         }
     }
@@ -183,19 +180,6 @@ class AssetsOfflineSource(
             val id = row.string("id").orEmpty()
             id to row.toAssetDetails(values[id], formatById[row.string("master_format_id")])
         }
-    }
-
-    private fun loadDeviceLinks(): Map<String, String> = db.whenTable("assets", emptyMap()) {
-        db.query(DEVICE_LINKS.replace("%LIVE%", db.notRemoved("assets", "a"))).associate { it.string("source_ref").orEmpty() to it.string("id").orEmpty() }
-    }
-
-    private fun loadScanText(): Map<String, String> = db.whenTable("asset_values", emptyMap()) {
-        if (!db.hasTable("assets")) return@whenTable emptyMap()
-        db.query(db.withAnswers(ALL_ASSET_VALUES).replace("%LIVE%", db.notRemoved("assets", "a"))).mapNotNull { row ->
-            val values = DbJson.stringMap(row.string("answers"))
-            val text = SCAN_KEYS.mapNotNull { values[FieldKeys.toDb(it)] }.filter { it.isNotBlank() }.joinToString("\n")
-            text.takeIf { it.isNotEmpty() }?.let { row.string("asset_id").orEmpty() to it }
-        }.toMap()
     }
 
     private fun detailLine(makeModel: String, values: Map<String, String>): String =

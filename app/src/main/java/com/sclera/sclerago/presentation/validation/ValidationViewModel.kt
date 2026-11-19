@@ -40,10 +40,27 @@ data class RunSheetState(
     val busy: Boolean = false,
     /** Opened from Data Collection ([QuickValidate]) rather than the Validation page. */
     val quick: Boolean = false,
-)
+    /** What it opened with, so closing after a change asks first ([changed]). */
+    val startSource: RunSource? = source,
+    val startMode: RunMode = mode,
+    val startChosen: Set<String> = chosen,
+) {
+    /** What to check, which assets or the assets ticked differ from how it opened: closing asks first. */
+    val changed: Boolean get() = source != startSource || mode != startMode || chosen != startChosen
+}
 
 /** The Default order sheet. */
-data class OrderSheetState(val steps: List<String> = emptyList(), val custom: Boolean = false, val loading: Boolean = true, val saving: Boolean = false)
+data class OrderSheetState(
+    val steps: List<String> = emptyList(),
+    val custom: Boolean = false,
+    val loading: Boolean = true,
+    val saving: Boolean = false,
+    /** The order as it was loaded. */
+    val startSteps: List<String> = steps,
+) {
+    /** The order was changed and not saved: closing asks first. */
+    val changed: Boolean get() = !loading && steps != startSteps
+}
 
 /** The new / edit validation page. */
 data class EditorState(
@@ -338,7 +355,7 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
         viewModelScope.launch {
             try {
                 val o = useCases.order(state.propertyId)
-                set { copy(orderSheet = orderSheet?.copy(steps = o.steps, custom = o.custom, loading = false)) }
+                set { copy(orderSheet = orderSheet?.copy(steps = o.steps, custom = o.custom, loading = false, startSteps = o.steps)) }
             } catch (e: OnlineException) {
                 set { copy(orderSheet = null) }
                 fail(e)

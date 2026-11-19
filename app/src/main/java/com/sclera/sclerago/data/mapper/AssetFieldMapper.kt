@@ -20,7 +20,7 @@ internal val SECTION_BY_KEY = mapOf(
     "serial" to FieldSection.IDENT, "power" to FieldSection.IDENT, "voltage" to FieldSection.IDENT,
     "speed" to FieldSection.IDENT,
     "sys" to FieldSection.CLASS, "typ" to FieldSection.CLASS, "sub" to FieldSection.CLASS, "jacs" to FieldSection.CLASS,
-    "label" to FieldSection.TAGS, "ble" to FieldSection.TAGS, "ip" to FieldSection.TAGS,
+    "label" to FieldSection.TAGS,
     "note" to FieldSection.NOTES,
 )
 
@@ -40,6 +40,7 @@ fun DbRow.toFieldCfg(): FieldCfg? {
         required = bool("is_required"),
         locked = key == "name",
         custom = !bool("is_builtin"),
+        ownField = !string("asset_id").isNullOrBlank(),
         options = DbJson.stringList(string("options")),
         defaultValue = string("default_value").orEmpty(),
         tooltip = string("help_text").orEmpty(),

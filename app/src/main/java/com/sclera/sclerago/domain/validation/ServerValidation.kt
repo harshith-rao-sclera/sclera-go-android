@@ -1,5 +1,7 @@
 package com.sclera.sclerago.domain.validation
 
+import com.sclera.sclerago.domain.model.ValidationMark
+
 /**
  * An asset's validation as the server works it out (its `combined_checks` and `latest_validations`) from the
  * validation runs synced to the phone: every step any run checked, each with its latest outcome.
@@ -134,6 +136,13 @@ data class AssetValidation(
     /** The problems found for [step] in the run that gave it its outcome, the most serious first. */
     fun issuesFor(step: StepResult): List<StepIssue> =
         issues.filter { it.step == step.rule && it.jobId == step.jobId }.sortedWith(compareBy({ it.severity.ordinal }, { it.id }))
+}
+
+/** The mark its row shows: failed when a step failed, needs a look when one only warned; null when nothing needs attention. */
+fun AssetValidation.mark(): ValidationMark? = when {
+    problems.isEmpty() -> null
+    outcome == StepOutcome.FAILED -> ValidationMark.FAILED
+    else -> ValidationMark.NEEDS_LOOK
 }
 
 /** How far back the server looks per asset for steps later runs didn't repeat (its `RECENT_RESULTS`). */

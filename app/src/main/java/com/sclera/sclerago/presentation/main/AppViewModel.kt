@@ -3,60 +3,60 @@ package com.sclera.sclerago.presentation.main
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.sclera.sclerago.domain.model.MAX_PHOTOS_PER_ASSET
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
-import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.AssetType
+import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.domain.model.LocNode
-import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.LocPick
 import com.sclera.sclerago.domain.model.LocValue
+import com.sclera.sclerago.domain.model.LocationFilter
+import com.sclera.sclerago.domain.model.MAX_PHOTOS_PER_ASSET
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.domain.model.OnboardingChannel
-import com.sclera.sclerago.domain.model.PlaceScope
-import com.sclera.sclerago.domain.model.findNode
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.PlaceScope
 import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
-import com.sclera.sclerago.domain.model.scanKey
+import com.sclera.sclerago.domain.model.findNode
 import com.sclera.sclerago.domain.usecase.asset.AssetPlace
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
-import com.sclera.sclerago.domain.usecase.validation.ValidationAccessUseCase
 import com.sclera.sclerago.domain.usecase.integration.IntegrationAccessUseCase
 import com.sclera.sclerago.domain.usecase.location.LocationUseCases
 import com.sclera.sclerago.domain.usecase.media.FileUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
+import com.sclera.sclerago.domain.usecase.validation.ValidationAccessUseCase
 import com.sclera.sclerago.presentation.common.UiText
-import com.sclera.sclerago.presentation.common.toUiText
 import com.sclera.sclerago.presentation.common.observedIn
-import com.sclera.sclerago.presentation.model.viaRes
 import com.sclera.sclerago.presentation.common.plural
+import com.sclera.sclerago.presentation.common.toUiText
+import com.sclera.sclerago.presentation.components.UnsavedForms
+import com.sclera.sclerago.presentation.model.viaRes
 import com.sclera.sclerago.services.scan.ScanService
 import com.sclera.sclerago.services.scan.ScanServiceFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 enum class Tab { BT, NET, ASSETS, CAMERA, FILE }
 enum class LocFilter { ALL, SPEC, NONE }
@@ -100,11 +100,18 @@ data class UiState(
     /** Scanned devices ticked on the Bluetooth / Network scan list, to add as assets together. */
     val devPick: Set<String> = emptySet(),
     /**
-     * Select all is on: every device that isn't an asset yet is ticked, including ones the scan finds
+     * Select all is on: every device not added yet in this scan is ticked, including ones the scan finds
      * later, except those in [devSkip] (unticked by hand).
      */
     val devAll: Boolean = false,
     val devSkip: Set<String> = emptySet(),
+    /**
+     * Scanned devices added as assets in the current scan of each list (Bluetooth, network devices, access points):
+     * device id → the id of the asset made from it. Kept in memory only, never written anywhere: forgotten when the
+     * user starts a new scan, the property changes, they sign out or the app closes. A scan paused for an asset's
+     * form and resumed keeps it.
+     */
+    val devAdded: Map<Source, Map<String, String>> = emptyMap(),
     val pv: Preview? = null,
     val assetId: String? = null,
     val newAsset: Boolean = false,
@@ -116,6 +123,8 @@ data class UiState(
     /** Photos/videos taken (or picked) in the Camera tab, newest first. */
     val captures: List<Media> = emptyList(),
     val camSel: Set<String> = emptySet(),
+    /** Leaving would throw something away: what the question is about ([AppViewModel.discardAndLeave]). */
+    val leaveAsk: LeaveAsk? = null,
     val videoMode: Boolean = false,
     /** Set when the File tab should launch the system file manager; the UI clears it. */
     val pendingFilePicker: Boolean = false,
@@ -152,7 +161,8 @@ data class ReviewItem(
     val noteColor: Color = Color.Unspecified,
 )
 
-data class DeviceRow(val device: Device, val isNew: Boolean)
+/** What leaving asks about: photos or videos just taken, or a form's unsaved changes. */
+enum class LeaveAsk { PHOTOS, CHANGES }
 
 /** The Bluetooth / Network tab a Property Settings switch controls. */
 private val OnboardingChannel.tab: Tab
@@ -280,16 +290,25 @@ class AppViewModel @Inject constructor(
 
     /** What the new-asset form starts with: for a scanned device, what the scan found (a note, its BLE tag / IP). */
     val newPrefill: Map<String, String>
-        get() = state.newDevice?.takeIf { state.newAsset }?.let { prefillFor(it, state.newSrc) }.orEmpty()
+        get() = state.newDevice?.takeIf { state.newAsset }?.let { prefillFor(it) }.orEmpty()
 
-    /** What an asset made from scanned device [d] starts with: a note saying where it came from, and its BLE tag / IP. */
-    private fun prefillFor(d: Device, src: Source): Map<String, String> {
-        val m = mutableMapOf("note" to "${src.label}: ${d.name} · ${d.sub}")
-        when (src) {
-            Source.BT -> m["ble"] = scanKey(d)
-            Source.WIFI -> m["ip"] = scanKey(d)
-            else -> {}
-        }
+    /** What the scan found out about the device the new-asset form was opened for; the form asks the AI about it. */
+    val newScanFacts: ScanFacts?
+        get() = state.newDevice?.takeIf { state.newAsset }?.facts
+
+    /**
+     * What an asset made from scanned device [d] starts with: its make and model as the scan found them, and a
+     * Description of what it is (kind, OS, services…), from which the AI fills the rest. Only standard fields: the
+     * property's other fields have keys of their own, so nothing is guessed into them. The description carries no
+     * identifiers (no IP or MAC address, BLE address, BSSID or SSID), as the AI reads it.
+     */
+    private fun prefillFor(d: Device): Map<String, String> {
+        val facts = d.facts
+        val about = facts?.summary().orEmpty().ifBlank { deviceName(d) }
+        val m = mutableMapOf<String, String>()
+        if (about.isNotBlank()) m["description"] = about
+        facts?.make?.let { m["make"] = it }
+        facts?.model?.let { m["model"] = it }
         return m
     }
 
@@ -341,45 +360,61 @@ class AppViewModel @Inject constructor(
     fun retryScan(t: ScanService.Target) = scans.start(t)
 
     val btCard: ScanService.Card
-        get() = scans.card(ScanService.Target.BLUETOOTH, btDevices.size, btNew)
+        get() = btDevices.let { rows -> scans.card(ScanService.Target.BLUETOOTH, rows.size, rows.count { it.id in addedIn(Source.BT) }) }
 
     val netCard: ScanService.Card
-        get() = scans.card(netTarget, netDevices.size, netNew)
+        get() = netDevices.let { rows -> scans.card(netTarget, rows.size, rows.count { it.id in addedIn(netSource) }) }
 
     private fun deviceName(d: Device) = if (d.name in setOf(UNKNOWN_DEVICE, "Hidden network")) "" else d.name
 
+    /** The source of the Network tab's current mode: access points, or Wi-Fi network devices (its scan and its asset list). */
+    val netSource: Source get() = if (state.netMode == NetMode.AP) Source.AP else Source.WIFI
+
     private val scanSource: Source
-        get() = when {
-            state.tab == Tab.BT -> Source.BT
-            state.netMode == NetMode.AP -> Source.AP
-            else -> Source.WIFI
-        }
+        get() = if (state.tab == Tab.BT) Source.BT else netSource
 
-    /** Scan rows, built once per refresh: a network sweep can return hundreds of hosts. */
-    private fun rows(devices: List<Device>, src: Source): List<DeviceRow> {
-        val matches = assetUseCases.matchDevices(devices, src, assets)
-        val added = catalog.value.addedDevices
-        return devices.map { DeviceRow(it, it.id !in added && matches[it.id] == null) }
+    /**
+     * What the scans found. A device is never matched to an asset in the database; only those added during the
+     * current scan are marked ([addedDevices]), and tapping one opens the asset made from it.
+     */
+    val btDevices: List<Device> get() = namedAsAdded(scans.rows(ScanService.Target.BLUETOOTH), Source.BT)
+    val netDevices: List<Device> get() = namedAsAdded(scans.rows(netTarget), netSource)
+
+    /**
+     * A device added as an asset shows that asset's name: the scan's own name for it changes as it learns more (a
+     * hostname such as "MAC-BAF86B" first, a Bonjour name later), and starts over when the scan restarts, while the
+     * asset keeps the name it was saved with (or renamed to).
+     */
+    private fun namedAsAdded(rows: List<Device>, src: Source): List<Device> {
+        val made = state.devAdded[src].orEmpty()
+        if (made.isEmpty()) return rows
+        val names = assets.filter { it.id in made.values }.associate { it.id to it.name }
+        return rows.map { d -> made[d.id]?.let(names::get)?.takeIf { it.isNotBlank() }?.let { d.copy(name = it) } ?: d }
     }
 
-    // Cached: rebuilt only when the scan's rows, the assets or the Network mode change, not on every
-    // read (the scan card and the list both read them, and the card's progress ticks several times a second).
-    private val btRowsState = derivedStateOf { rows(scans.rows(ScanService.Target.BLUETOOTH), Source.BT) }
-    private val netRowsState = derivedStateOf {
-        rows(scans.rows(netTarget), if (state.netMode == NetMode.AP) Source.AP else Source.WIFI)
-    }
-    private val btNewState = derivedStateOf { btRowsState.value.count { it.isNew } }
-    private val netNewState = derivedStateOf { netRowsState.value.count { it.isNew } }
+    private fun addedIn(src: Source): Set<String> = state.devAdded[src].orEmpty().keys
 
-    val btDevices: List<DeviceRow> get() = btRowsState.value
-    val netDevices: List<DeviceRow> get() = netRowsState.value
-    private val btNew: Int get() = btNewState.value
-    private val netNew: Int get() = netNewState.value
+    /** Devices on the scan list on screen that were added as assets in this scan. */
+    val addedDevices: Set<String> get() = addedIn(scanSource)
+
+    /** Marks device [deviceId] as made into asset [assetId] in the current scan of [src]'s list. */
+    private fun markAdded(src: Source, deviceId: String, assetId: String) =
+        set { copy(devAdded = devAdded + (src to (devAdded[src].orEmpty() + (deviceId to assetId)))) }
+
+    /** Device [deviceId]'s asset is gone (deleted): it is no longer marked as added. */
+    private fun unmarkAdded(src: Source, deviceId: String) =
+        set { copy(devAdded = devAdded + (src to (devAdded[src].orEmpty() - deviceId))) }
+
+    /** The user starts a new scan of [src]'s list: what was added in the last one is forgotten. */
+    private fun forgetAdded(src: Source) = set { copy(devAdded = devAdded - src) }
 
     // Camera: every selected capture becomes its own draft asset.
     // ---------- Actions ----------
 
-    fun goTab(t: Tab) {
+    /** A bottom tab (or a finished swipe): asks first when leaving would throw away photos just taken or unsaved changes ([leaving]). */
+    fun goTab(t: Tab) = leaving(t) { switchTab(t) }
+
+    private fun switchTab(t: Tab) {
         set {
             var o = copy(tab = t, assetId = null, newAsset = false, newMedia = emptyList(), newDevice = null, devPick = emptySet(), devAll = false, devSkip = emptySet())
             if (t == Tab.CAMERA) o = o.copy(camOpen = true)
@@ -452,28 +487,36 @@ class AppViewModel @Inject constructor(
     fun pickMenu(item: MenuItem) {
         closeMenu()
         when (item) {
-            MenuItem.PROPERTY -> openAdmin(AdminPage.PROPERTIES)
-            MenuItem.USERS -> openAdmin(AdminPage.PEOPLE)
-            // Validation, Configuration and Integration sit on top of the tabs, so they close too.
-            MenuItem.ASSETS -> {
-                closeAdmin()
-                set { copy(valOpen = false, cfgOpen = false, cfgPage = CfgPage.FIELDS, intOpen = false) }
-                goTab(Tab.ASSETS)
+            MenuItem.AUDIT -> return comingSoon(R.string.menu_audit)
+            MenuItem.SURVEY -> return comingSoon(R.string.menu_survey)
+            MenuItem.CONFIGURATION -> if (!canConfigure) return
+            else -> Unit
+        }
+        // The page on screen goes: asked once, here, before anything closes (photos just taken, unsaved changes).
+        leaving {
+            when (item) {
+                MenuItem.PROPERTY -> showAdmin(AdminPage.PROPERTIES)
+                MenuItem.USERS -> showAdmin(AdminPage.PEOPLE)
+                // Validation, Configuration and Integration sit on top of the tabs, so they close too.
+                MenuItem.ASSETS -> {
+                    closeAdmin()
+                    set { copy(valOpen = false, cfgOpen = false, cfgPage = CfgPage.FIELDS, intOpen = false) }
+                    switchTab(Tab.ASSETS)
+                }
+                MenuItem.VALIDATION -> { closeAdmin(); showValidation() }
+                MenuItem.CONFIGURATION -> { closeAdmin(); showConfig() }
+                MenuItem.INTEGRATION -> { closeAdmin(); showIntegration() }
+                MenuItem.AUDIT, MenuItem.SURVEY -> Unit
             }
-            MenuItem.VALIDATION -> { closeAdmin(); openValidation() }
-            MenuItem.CONFIGURATION -> { closeAdmin(); openConfig() }
-            MenuItem.AUDIT -> comingSoon(R.string.menu_audit)
-            MenuItem.SURVEY -> comingSoon(R.string.menu_survey)
-            MenuItem.INTEGRATION -> { closeAdmin(); openIntegration() }
         }
     }
 
     private fun comingSoon(@StringRes label: Int) = flash(UiText.Res(R.string.menu_coming_soon, listOf(UiText.Res(label))))
 
     // Property list / People and access
-    fun openAdmin(page: AdminPage) = set {
-        copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, intOpen = false, assetId = null, newAsset = false)
-    }
+    fun openAdmin(page: AdminPage) = leaving { showAdmin(page) }
+    private fun showAdmin(page: AdminPage) =
+        set { copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, intOpen = false, assetId = null, newAsset = false) }
     /** Back to the assets; without a downloaded property there are none, so the Property list stays. */
     fun closeAdmin() = set { copy(adminPage = if (hasProperty) null else AdminPage.PROPERTIES) }
 
@@ -529,22 +572,28 @@ class AppViewModel @Inject constructor(
         if (state.netScan) scans.start(netTarget, auto = true)
     }
     /** Tap on the radar card: pause a running scan, or start a new one. */
-    fun toggleBt() = scans.toggle(ScanService.Target.BLUETOOTH)
-    fun toggleNet() = scans.toggle(netTarget)
+    fun toggleBt() {
+        if (!btOn) forgetAdded(Source.BT)
+        scans.toggle(ScanService.Target.BLUETOOTH)
+    }
+    fun toggleNet() {
+        if (!netOn) forgetAdded(netSource)
+        scans.toggle(netTarget)
+    }
     // ---------- Adding several scanned devices at once ----------
 
     /** The scan list on screen (Bluetooth, or the Network tab's current mode), or empty off the scan pages. */
-    private val shownDevices: List<DeviceRow>
+    private val shownDevices: List<Device>
         get() = when {
             state.tab == Tab.BT && state.btScan -> btDevices
             state.tab == Tab.NET && state.netScan -> netDevices
             else -> emptyList()
         }
 
-    /** Devices on the list that aren't assets yet: the ones that can be ticked. */
-    private val addableDevices: List<Device> get() = shownDevices.filter { it.isNew }.map { it.device }
+    /** Devices on the list not added yet in this scan: the ones that can be ticked. */
+    private val addableDevices: List<Device> get() = addedDevices.let { added -> shownDevices.filter { it.id !in added } }
 
-    /** Ticked devices that are still on the list and still not assets (with Select all on, new finds are ticked too). */
+    /** Ticked devices that are still on the list and not added yet (with Select all on, new finds are ticked too). */
     val pickedDevices: List<Device>
         get() = state.let { s ->
             if (s.devAll) addableDevices.filter { it.id !in s.devSkip } else addableDevices.filter { it.id in s.devPick }
@@ -565,7 +614,7 @@ class AppViewModel @Inject constructor(
     }
 
     /**
-     * Select all on the scan list: ticks every device that isn't an asset yet and keeps ticking new
+     * Select all on the scan list: ticks every device not added yet and keeps ticking new
      * ones as the scan finds them; if everything is already ticked, clears instead.
      */
     fun selectAllDevices() {
@@ -586,14 +635,19 @@ class AppViewModel @Inject constructor(
     }
 
     /**
-     * A scanned device: open its asset if it already has one (a tap on the row), otherwise add it straight away as a
-     * draft (its + button), as Add does for ticked devices (no form to fill in first; tap it then to open the new asset).
+     * Opens a scanned device: the asset made from it in this scan when there is one, otherwise the new-asset form
+     * filled in with what the scan found (also when that asset has since been deleted, which drops its tick).
      */
-    /** Opens a scanned device: its asset when it has one, else the new-asset form filled in with what the scan found. */
     fun openDevice(d: Device) {
-        val existing = assetUseCases.matchDevices(listOf(d), scanSource, assets)[d.id]
-        if (existing != null) set { copy(assetId = existing, newAsset = false) }
-        else set { copy(newAsset = true, newSrc = scanSource, newMedia = emptyList(), newDevice = d, assetId = null) }
+        val src = scanSource
+        val made = state.devAdded[src]?.get(d.id)
+        when {
+            made != null && assets.any { it.id == made } -> openAsset(made)
+            else -> {
+                if (made != null) unmarkAdded(src, d.id)
+                set { copy(newAsset = true, newSrc = src, newMedia = emptyList(), newDevice = d, assetId = null) }
+            }
+        }
     }
 
     /** Adds a scanned device straight away as a draft asset (its + button), filled in from what the scan found. */
@@ -605,10 +659,11 @@ class AppViewModel @Inject constructor(
         val place = AssetPlace(currentProp, tgtLoc, tgtWhere, tgtPlace)
         write {
             devices.forEach { d ->
-                assetUseCases.create(
-                    deviceName(d), "", emptyList(), prefillFor(d, src), false,
+                val created = assetUseCases.create(
+                    deviceName(d), "", emptyList(), prefillFor(d), false,
                     place = place, captures = emptyList(), device = d, deviceSource = src,
                 )
+                markAdded(src, d.id, created.id)
             }
             val added = plural(devices.size, "asset", "assets") + if (devices.size == 1) " added as a draft" else " added as drafts"
             flash(UiText.Res(R.string.notice_with_source, listOf(UiText.Raw(added), UiText.Res(src.viaRes))))
@@ -667,6 +722,7 @@ class AppViewModel @Inject constructor(
                 name, detail, media, values, submit, place,
                 captures = s.newMedia, device = s.newDevice, deviceSource = s.newSrc,
             )
+            if (created.via == CreateAssetUseCase.Via.SCAN) s.newDevice?.let { markAdded(s.newSrc, it.id, created.id) }
             when (created.via) {
                 CreateAssetUseCase.Via.CAMERA -> flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(Source.CAMERA.viaRes))))
                 CreateAssetUseCase.Via.SCAN -> flash(UiText.Res(R.string.notice_with_source, listOf(savedAs, UiText.Res(created.source.viaRes))))
@@ -689,8 +745,68 @@ class AppViewModel @Inject constructor(
 
     // ---------- Camera ----------
 
-    fun cancelCam() = set { copy(camOpen = false) }
+    fun cancelCam() = leaving { set { copy(camOpen = false) } }
     fun openCam() = set { copy(camOpen = true) }
+
+    /** The camera is on screen with shots in its strip that aren't an asset yet (swiping away is off meanwhile). */
+    val cameraHasShots: Boolean
+        get() = state.tab == Tab.CAMERA && state.camOpen && state.captures.isNotEmpty() && !showDetail
+
+    /** The forms on screen with unsaved changes (they report themselves; see [UnsavedForms]). */
+    val unsavedForms = UnsavedForms()
+
+    /** Where the user was going when the question opened; it goes on if they discard. */
+    private var afterDiscard: (() -> Unit)? = null
+
+    /** The photos and videos discarding throws away, and whether they are the camera strip's. */
+    private var discardMedia: List<Media> = emptyList()
+    private var discardStrip = false
+
+    /**
+     * Runs [go], unless it would throw something away. Photos or videos just taken (shots still in the camera's strip
+     * when it leaves the camera, [toTab] being the tab it goes to and null for anything else; or those a new asset's
+     * form opened with): "Discard your photos?" asks first. A form with unsaved changes (asset details, a sheet,
+     * Geofencing): "Discard your changes?" asks first. [go] runs only if the user discards.
+     */
+    private fun leaving(toTab: Tab? = null, go: () -> Unit) {
+        val s = state
+        val strip = cameraHasShots && toTab != Tab.CAMERA
+        val formShots = if (s.newAsset) s.newMedia else emptyList()
+        val ask = when {
+            strip || formShots.isNotEmpty() -> LeaveAsk.PHOTOS
+            unsavedForms.any -> LeaveAsk.CHANGES
+            else -> return go()
+        }
+        afterDiscard = go
+        discardMedia = (if (strip) s.captures else emptyList()) + formShots
+        discardStrip = strip
+        set { copy(leaveAsk = ask) }
+    }
+
+    /** "Keep" on the question: stay where they are. */
+    fun keepEditing() {
+        afterDiscard = null
+        discardMedia = emptyList()
+        discardStrip = false
+        set { copy(leaveAsk = null) }
+    }
+
+    /** "Discard" on the question: the shots (if any) are deleted, then the user goes where they were going. */
+    fun discardAndLeave() {
+        val go = afterDiscard
+        val strip = discardStrip
+        fileUseCases.deleteOwned(discardMedia)
+        afterDiscard = null
+        discardMedia = emptyList()
+        discardStrip = false
+        set {
+            copy(
+                captures = if (strip) emptyList() else captures, camSel = if (strip) emptySet() else camSel,
+                newMedia = if (newAsset) emptyList() else newMedia, leaveAsk = null,
+            )
+        }
+        go?.invoke()
+    }
     /** Ticks or unticks a shot in the strip; past the photos one asset may have, it says so instead. */
     fun toggleStrip(id: String) {
         val s = state
@@ -755,14 +871,14 @@ class AppViewModel @Inject constructor(
 
     // Side-menu pages always return to the Assets tab. It is also selected on open, so the
     // pager slides there hidden behind the page rather than visibly on close.
-    fun openValidation() = set {
-        copy(valOpen = true, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
-    }
+    fun openValidation() = leaving { showValidation() }
+    private fun showValidation() =
+        set { copy(valOpen = true, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     fun closeValidation() = set { copy(valOpen = false, valJobId = null, tab = Tab.ASSETS, assetId = null, newAsset = false) }
 
     /** "Open in Validation" from an asset: the Validation page, on the run [jobId] (the asset closes). */
-    fun openValidationRun(jobId: String) = set {
-        copy(valOpen = true, valJobId = jobId, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
+    fun openValidationRun(jobId: String) = leaving {
+        set { copy(valOpen = true, valJobId = jobId, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     }
 
     /** The Validation page opened the run asked for. */
@@ -773,9 +889,9 @@ class AppViewModel @Inject constructor(
     /** The signed-in user may configure the property (the server's configure permission): the Integration page shows only then. */
     val canConfigure: Boolean get() = integrationAccess()
 
-    fun openIntegration() = set {
-        copy(intOpen = true, valOpen = false, cfgOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
-    }
+    fun openIntegration() = leaving { showIntegration() }
+    private fun showIntegration() =
+        set { copy(intOpen = true, valOpen = false, cfgOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     fun closeIntegration() = set { copy(intOpen = false, tab = Tab.ASSETS) }
 
     init {
@@ -788,7 +904,8 @@ class AppViewModel @Inject constructor(
         // A location belongs to its property: when the property changes, the one chosen is forgotten.
         viewModelScope.launch {
             downloads.observe().map { it.currentId }.distinctUntilChanged().collect {
-                set { copy(loc = LocFilter.ALL, specLocs = emptyList(), specPath = emptyList(), specWhere = "", specSel = "", assetId = null) }
+                // Devices added in a scan were added to the property left behind.
+                set { copy(loc = LocFilter.ALL, specLocs = emptyList(), specPath = emptyList(), specWhere = "", specSel = "", assetId = null, devAdded = emptyMap()) }
                 if (state.tab !in navTabs) goTab(Tab.ASSETS)
             }
         }
@@ -828,6 +945,7 @@ class AppViewModel @Inject constructor(
     private fun resetForNewSession() {
         toastJob?.cancel()
         ScanService.Target.entries.forEach { scans.stop(it) }
+        scans.forgetFinished()
         interrupted = emptySet()
         state = UiState()
     }
@@ -835,9 +953,9 @@ class AppViewModel @Inject constructor(
     // ---------- Configuration ----------
 
     /** Opens Configuration, only for someone who may configure the property (the web hides it otherwise). */
-    fun openConfig() = if (!canConfigure) Unit else set {
-        copy(cfgOpen = true, valOpen = false, intOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false)
-    }
+    fun openConfig() = if (!canConfigure) Unit else leaving { showConfig() }
+    private fun showConfig() =
+        set { copy(cfgOpen = true, valOpen = false, intOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     fun closeConfig() = set { copy(cfgOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
 
     /** Switches the Configuration tab (Building info / Asset fields / Geofencing / Property Settings). */

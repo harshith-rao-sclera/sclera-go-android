@@ -9,6 +9,7 @@ import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.validation.BulkFixResult
 import com.sclera.sclerago.domain.validation.CONFIDENT
 import com.sclera.sclerago.domain.validation.Decision
+import com.sclera.sclerago.domain.validation.DecisionOutcome
 import com.sclera.sclerago.domain.validation.IssueStatus
 import com.sclera.sclerago.domain.validation.IssueValue
 import com.sclera.sclerago.domain.validation.MergeAsset
@@ -89,11 +90,14 @@ class ApplyConfidentFixesUseCase @Inject constructor(private val repo: Validatio
     }
 }
 
-/** Marks assets as validated, sends them back for recollection, excludes them, or undoes the decision. Reviewers only. */
+/**
+ * Marks assets as validated, sends them back for recollection, excludes them, or undoes the decision. Reviewers only.
+ * Only submitted assets are marked as validated: the server leaves drafts and exceptions as they are and names them.
+ */
 class DecideAssetsUseCase @Inject constructor(private val repo: ValidationRunRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(propertyId: String, jobId: String, assetIds: List<String>, decision: Decision, note: String?): Int {
+    suspend operator fun invoke(propertyId: String, jobId: String, assetIds: List<String>, decision: Decision, note: String?): DecisionOutcome {
         guard.requireOnline(Permission.VALIDATE)
-        if (assetIds.isEmpty()) return 0
+        if (assetIds.isEmpty()) return DecisionOutcome(0)
         return repo.decide(propertyId, jobId, assetIds, decision, note?.takeIf { decision == Decision.RECOLLECT })
     }
 }

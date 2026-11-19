@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The change request banner under the asset's top bar. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="change_banner_expand">Show the change request</string>
+    <string name="change_banner_collapse">Hide the change request</string>
+</resources>

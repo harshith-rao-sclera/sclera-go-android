@@ -8,9 +8,11 @@ import com.sclera.sclerago.data.mapper.toRunIssue
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.validation.AssetResult
 import com.sclera.sclerago.domain.validation.AssetRunRecord
+import com.sclera.sclerago.domain.validation.AssetValidation
 import com.sclera.sclerago.domain.validation.RECENT_RESULTS
 import com.sclera.sclerago.domain.validation.StepIssue
 import com.sclera.sclerago.domain.validation.StepOutcome
+import com.sclera.sclerago.domain.validation.combineValidation
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 
@@ -24,6 +26,12 @@ private const val ASSET_RUNS = """
     SELECT r.id AS result_id, r.job_id, r.checks, r.outcome, r.created_at, j.name AS job_name, j.rules AS job_rules
     FROM validation_results r JOIN validation_jobs j ON j.id = r.job_id
     WHERE r.asset_id = ? AND %LIVE_R% AND %LIVE_J% ORDER BY r.id DESC LIMIT $RECENT_RESULTS"""
+
+/** The same, for many assets at once: grouped by asset, each one's newest first (see [ValidationOfflineSource.validationsFor]). */
+private const val RUNS_OF_ASSETS = """
+    SELECT r.asset_id, r.id AS result_id, r.job_id, r.checks, r.outcome, r.created_at, j.name AS job_name, j.rules AS job_rules
+    FROM validation_results r JOIN validation_jobs j ON j.id = r.job_id
+    WHERE r.asset_id IN (%IN%) AND %LIVE_R% AND %LIVE_J% ORDER BY r.asset_id, r.id DESC"""
 
 private const val ASSET_ISSUES = "SELECT * FROM validation_issues WHERE asset_id = ? AND %LIVE% ORDER BY id"
 
@@ -42,18 +50,30 @@ class ValidationOfflineSource(private val db: AdcDatabase, private val io: Corou
     private fun loadAssetRuns(assetId: String): List<AssetRunRecord> = db.whenTable("validation_results", emptyList()) {
         if (!db.hasTable("validation_jobs")) return@whenTable emptyList()
         val sql = ASSET_RUNS.replace("%LIVE_R%", db.notRemoved("validation_results", "r")).replace("%LIVE_J%", db.notRemoved("validation_jobs", "j"))
-        db.query(sql, listOf(assetId)).map { r ->
-            AssetRunRecord(
-                resultId = r.string("result_id").orEmpty(),
-                jobId = r.string("job_id").orEmpty(),
-                jobName = r.string("job_name").orEmpty(),
-                rules = DbJson.stringList(r.string("job_rules")),
-                checks = DbJson.stringMap(r.string("checks")).mapValues { (_, v) -> StepOutcome.of(v) },
-                outcome = StepOutcome.of(r.string("outcome")),
-                checkedAt = parseDbTime(r.string("created_at")),
-            )
-        }
+        db.query(sql, listOf(assetId)).map { it.toRunRecord() }
     }
+
+    /**
+     * The validation of each of [assetIds] across its runs, as its Validation tab combines it but without the issues:
+     * what the asset list's marks and chips go by. Assets never validated are left out.
+     */
+    internal fun validationsFor(assetIds: Collection<String>): Map<String, AssetValidation> = db.whenTable("validation_results", emptyMap()) {
+        if (assetIds.isEmpty() || !db.hasTable("validation_jobs")) return@whenTable emptyMap()
+        val sql = RUNS_OF_ASSETS.replace("%LIVE_R%", db.notRemoved("validation_results", "r")).replace("%LIVE_J%", db.notRemoved("validation_jobs", "j"))
+        db.queryIn(sql, assetIds).groupBy { it.string("asset_id").orEmpty() }.mapNotNull { (id, rows) ->
+            combineValidation(rows.take(RECENT_RESULTS).map { it.toRunRecord() }, emptyList())?.let { id to it }
+        }.toMap()
+    }
+
+    private fun DbRow.toRunRecord() = AssetRunRecord(
+        resultId = string("result_id").orEmpty(),
+        jobId = string("job_id").orEmpty(),
+        jobName = string("job_name").orEmpty(),
+        rules = DbJson.stringList(string("job_rules")),
+        checks = DbJson.stringMap(string("checks")).mapValues { (_, v) -> StepOutcome.of(v) },
+        outcome = StepOutcome.of(string("outcome")),
+        checkedAt = parseDbTime(string("created_at")),
+    )
 
     private fun loadAssetIssues(assetId: String): List<StepIssue> = db.whenTable("validation_issues", emptyList()) {
         val names = fieldNamesTypes()

@@ -1,13 +1,5 @@
 package com.sclera.sclerago.presentation.assets
 
-import com.sclera.sclerago.domain.model.Media
-import com.sclera.sclerago.domain.model.formatDuration
-import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
-import com.sclera.sclerago.presentation.fileimport.FileImportReview
-import com.sclera.sclerago.presentation.fileimport.FileImportViewModel
-import com.sclera.sclerago.R
-import androidx.compose.ui.res.stringResource
-import com.sclera.sclerago.presentation.main.rememberAssetListBinding
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -15,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -23,7 +16,6 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.video.FileOutputOptions
-import com.sclera.sclerago.domain.limits.MAX_CLIP_MS
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.CameraController
@@ -49,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -57,6 +50,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.limits.MAX_CLIP_MS
+import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
+import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.formatDuration
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.MediaImage
 import com.sclera.sclerago.presentation.components.Pill
@@ -65,12 +63,15 @@ import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.SegHeader
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.fileimport.FileImportReview
+import com.sclera.sclerago.presentation.fileimport.FileImportViewModel
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.main.Sheet
 import com.sclera.sclerago.presentation.main.Tab
+import com.sclera.sclerago.presentation.main.rememberAssetListBinding
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.services.media.captureDir
@@ -97,6 +98,7 @@ private fun hasCameraPermission(context: Context) =
 @Composable
 private fun CameraView(vm: AppViewModel) {
     val s = vm.state
+    BackHandler(enabled = vm.cameraHasShots) { vm.cancelCam() }
     CameraCapture(
         // Only run the camera while this tab is actually on screen (the pager also composes neighbours).
         active = s.tab == Tab.CAMERA && s.pv == null && s.sheet == Sheet.NONE && !vm.showDetail,
@@ -106,6 +108,9 @@ private fun CameraView(vm: AppViewModel) {
         onClose = vm::cancelCam, onDone = vm::doneCapturing,
     )
 }
+
+/** The most the camera's gallery lets be picked at once. */
+private const val GALLERY_MAX = 20
 
 /**
  * The live camera screen: preview, photo/video capture, flash, lens switch, gallery import and the
@@ -123,6 +128,11 @@ fun CameraCapture(
     onGalleryPicked: (List<Uri>) -> Unit,
     onClose: () -> Unit,
     onDone: () -> Unit,
+    /**
+     * Opened for one kind of photo (a Media tab's Nameplate, Asset or Label ID): how many more photos that kind takes.
+     * The gallery then shows photos only and lets that many be picked. Null: photos and videos, up to [GALLERY_MAX].
+     */
+    galleryLimit: Int? = null,
 ) {
     val context = LocalContext.current
     val activity = LocalActivity.current
@@ -228,7 +238,11 @@ fun CameraCapture(
         }
     }
 
-    val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(20)) { onGalleryPicked(it) }
+    // The system picker takes at least 2 when several may be picked, so a kind with room for one picks a single photo.
+    val gallery = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia((galleryLimit ?: GALLERY_MAX).coerceIn(2, GALLERY_MAX)),
+    ) { onGalleryPicked(it) }
+    val galleryOne = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> onGalleryPicked(listOfNotNull(uri)) }
 
     val chosen = captures.count { it.id in selected }
     val isRecording = recording != null
@@ -340,9 +354,20 @@ fun CameraCapture(
         ) {
             val side = Color(0xE63C3F45)
             RoundButton(52.dp, side, {
-                // In Video mode the gallery shows only videos (they are easy to miss among the photos otherwise).
-                val only = if (videoMode) ActivityResultContracts.PickVisualMedia.VideoOnly else ActivityResultContracts.PickVisualMedia.ImageAndVideo
-                if (!isRecording) gallery.launch(PickVisualMediaRequest(only))
+                // In Video mode the gallery shows only videos (they are easy to miss among the photos otherwise); for one
+                // kind of photo it shows photos only, as many as that kind still takes.
+                val only = when {
+                    galleryLimit != null -> ActivityResultContracts.PickVisualMedia.ImageOnly
+                    videoMode -> ActivityResultContracts.PickVisualMedia.VideoOnly
+                    else -> ActivityResultContracts.PickVisualMedia.ImageAndVideo
+                }
+                when {
+                    isRecording -> Unit
+                    galleryLimit != null && galleryLimit <= 0 ->
+                        Toast.makeText(context, context.getString(R.string.camera_room_full, 0), Toast.LENGTH_SHORT).show()
+                    galleryLimit == 1 -> galleryOne.launch(PickVisualMediaRequest(only))
+                    else -> gallery.launch(PickVisualMediaRequest(only))
+                }
             }) { LineIcon(Icons.Gallery, 22.dp, C.Text) }
             Box(
                 Modifier.size(76.dp).alpha(if (granted) 1f else 0.4f).clip(CircleShape).border(4.dp, C.Text, CircleShape)

@@ -1,11 +1,5 @@
 package com.sclera.sclerago.presentation.integration
 
-import com.sclera.sclerago.presentation.model.OnlineOnly
-import com.sclera.sclerago.presentation.components.OfflineGate
-import com.sclera.sclerago.presentation.components.OfflineBanner
-import com.sclera.sclerago.presentation.common.ConnectivityViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -32,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -42,25 +37,31 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.VdmsChoice
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.EmptyNote
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.ListLoader
-import com.sclera.sclerago.presentation.components.SubPageBar
+import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
+import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.pageGutter
-import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
@@ -146,42 +147,44 @@ private fun ReadOnly(label: String, value: String) {
 /** Add Integration, as the web's: the organisation (fixed), a VDMS picked from the ones not linked yet, then Done → confirm → Link. */
 @Composable
 private fun AddSheet(a: AddLinkState, organisation: String, vm: IntegrationViewModel) {
-    BottomSheet(vm::closeAdding) {
-        SheetHeader(stringResource(R.string.int_add_title), null, vm::closeAdding)
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            ReadOnly(stringResource(R.string.int_field_integration), organisation)
-            Txt(stringResource(R.string.int_field_vdms), 12, 600, C.Muted)
-            SearchField(a.query, vm::setQuery, stringResource(R.string.int_select))
-            when {
-                a.searching -> Txt(stringResource(R.string.int_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
-                a.choices.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
+    GuardedClose(a.picked != null, vm::closeAdding) { close ->
+        BottomSheet(close) {
+            SheetHeader(stringResource(R.string.int_add_title), null, close)
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ReadOnly(stringResource(R.string.int_field_integration), organisation)
+                Txt(stringResource(R.string.int_field_vdms), 12, 600, C.Muted)
+                SearchField(a.query, vm::setQuery, stringResource(R.string.int_select))
+                when {
+                    a.searching -> Txt(stringResource(R.string.int_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
+                    a.choices.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
+                }
+                ChoiceList(a.choices, { it.label() }, { it.vdmsId == a.picked?.vdmsId }, vm::pick)
             }
-            ChoiceList(a.choices, { it.label() }, { it.vdmsId == a.picked?.vdmsId }, vm::pick)
+            Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().clip(r(10)).background(C.WarnRow).padding(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LineIcon(Icons.Alert, 15.dp, C.Orange, 2.2f)
+                    Txt(stringResource(R.string.int_once_note), 12, 500, C.Soft, Modifier.weight(1f), maxLines = 3)
+                }
+                val ok = a.picked != null
+                Pill(
+                    stringResource(R.string.int_done), { if (ok) vm.askConfirm() },
+                    Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
+                )
+            }
         }
-        Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-                Modifier.fillMaxWidth().clip(r(10)).background(C.WarnRow).padding(10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LineIcon(Icons.Alert, 15.dp, C.Orange, 2.2f)
-                Txt(stringResource(R.string.int_once_note), 12, 500, C.Soft, Modifier.weight(1f), maxLines = 3)
-            }
-            val ok = a.picked != null
-            Pill(
-                stringResource(R.string.int_done), { if (ok) vm.askConfirm() },
-                Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
+        if (a.confirm) a.picked?.let { p ->
+            ConfirmDialog(
+                icon = Icons.Link, iconBg = C.YTintBg, iconFg = C.Yellow,
+                title = stringResource(R.string.int_confirm_title, p.vdmsId),
+                body = stringResource(R.string.int_confirm_body),
+                no = stringResource(R.string.int_cancel), yes = stringResource(R.string.int_link),
+                onNo = vm::cancelConfirm, onYes = vm::link, yesBg = C.Yellow,
             )
         }
-    }
-    if (a.confirm) a.picked?.let { p ->
-        ConfirmDialog(
-            icon = Icons.Link, iconBg = C.YTintBg, iconFg = C.Yellow,
-            title = stringResource(R.string.int_confirm_title, p.vdmsId),
-            body = stringResource(R.string.int_confirm_body),
-            no = stringResource(R.string.int_cancel), yes = stringResource(R.string.int_link),
-            onNo = vm::cancelConfirm, onYes = vm::link, yesBg = C.Yellow,
-        )
     }
 }
 

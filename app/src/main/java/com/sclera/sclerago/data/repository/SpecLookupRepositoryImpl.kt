@@ -22,6 +22,7 @@ import com.sclera.sclerago.domain.model.SpecLookup
 import com.sclera.sclerago.domain.model.typeFieldKey
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
@@ -30,7 +31,6 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import javax.inject.Inject
 
 /**
  * The server's spec look-ups for the current property: the background jobs of an asset it has (`/assets/{id}/lookup-jobs`,
@@ -75,7 +75,9 @@ class SpecLookupRepositoryImpl @Inject constructor(
         // (the asset's own fields, which it may not have yet) is refused (422).
         val standard = fields.standard().filter { it.visible }.mapNotNull { f -> keys.idByKey[f.key]?.let { id -> id to f.key } }
         val ofType = keys.typeNames.map { (id, name) -> id to (keys.keyByName[name.lowercase()] ?: typeFieldKey(name)) }
-        val values = JsonObject((standard + ofType).mapNotNull { (id, key) -> typed[key]?.takeIf { it.isNotBlank() }?.let { id to JsonPrimitive(it) } }.toMap())
+        val values = JsonObject(
+            (standard + ofType).mapNotNull { (id, key) -> typed[key]?.takeIf { it.isNotBlank() }?.let { id to JsonPrimitive(it) } }.toMap(),
+        )
         return api.lookUpOnPhone(property, sent, values, masterFormatId).toLookup(keys)
     }
 

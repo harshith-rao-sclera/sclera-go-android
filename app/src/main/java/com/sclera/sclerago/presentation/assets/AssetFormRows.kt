@@ -60,6 +60,8 @@ object DetailTags {
     const val TAB_VALIDATION = "detail-tab-validation"
     const val TAB_EMPTY = "detail-tab-empty"
     const val NOT_ASSIGNED = "detail-not-assigned"
+    const val MOVE_TO_DRAFT = "detail-move-to-draft"
+    const val MARK_VALIDATED = "detail-mark-validated"
     const val COMMENT_FIELD = "detail-comment-field"
     const val COMMENT_POST = "detail-comment-post"
     const val SAVE = "detail-save"
@@ -193,16 +195,22 @@ fun FieldLabel(label: String, modifier: Modifier = Modifier, color: Color = C.Mu
 /** What [FieldSpec.label] puts after a mandatory field's name. */
 private const val REQUIRED_MARK = " *"
 
-/** A row that only shows a value (Location details): label and value, or "-" when there is none (as the web). */
+/**
+ * A row that shows a value (Location details): label and value, or "-" when there is none (as the web). With [onClick]
+ * it is tappable, with a chevron like the other picker rows (the Location details rows open the location picker).
+ */
 @Composable
-fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier) {
+fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     Row(
-        modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).padding(horizontal = 12.dp),
+        modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
         Txt(value ?: stringResource(R.string.detail_value_none), 14, 600, if (value != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = 2)
+        if (onClick != null) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
     }
 }
 

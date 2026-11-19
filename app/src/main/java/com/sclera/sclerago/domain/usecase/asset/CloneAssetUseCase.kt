@@ -8,7 +8,6 @@ import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.MAX_CLONE_COPIES
 import com.sclera.sclerago.domain.model.NewAsset
 import com.sclera.sclerago.domain.model.Permission
-import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.system.IdGenerator
@@ -19,8 +18,10 @@ import javax.inject.Inject
 /**
  * Clone, as the web's: makes [CloneRequest.copies] new draft assets from [source], each taking only what was picked (its
  * place down to the level chosen, the form values, its type) and the original's own fields by name. Photos are never
- * copied (as the web's clone): each copy starts without any. Each copy gets no name of its own, as on the web. They are
- * written to the offline database and synced as new assets. The server keeps no "cloned" mark, so the copies are
+ * copied (as the web's clone): each copy starts without any. A copy takes the name when it is among the values picked
+ * (as the web's, which copies it with the field values), and has none otherwise. A copy keeps the original's source
+ * (bluetooth, wifi, camera…) but not its link to the scanned device. They are written to the offline
+ * database and synced as new assets. The server keeps no "cloned" mark, so the copies are
  * ordinary drafts.
  */
 class CloneAssetUseCase @Inject constructor(
@@ -38,7 +39,7 @@ class CloneAssetUseCase @Inject constructor(
             val asset = Asset(
                 id = ids.next(), name = "", detail = source.detail,
                 loc = source.loc.takeIf { keepsPlace }, where = if (keepsPlace) source.where else "",
-                src = Source.MANUAL, st = Status.DRAFT, type = source.type, propertyId = source.propertyId, media = emptyList(),
+                src = source.src, st = Status.DRAFT, type = source.type, propertyId = source.propertyId, media = emptyList(),
                 buildingId = source.buildingId.takeIf { keepsPlace },
                 floorId = source.floorId.takeIf { place == ClonePlace.FLOOR || place == ClonePlace.LOCATION },
                 locationId = source.locationId.takeIf { place == ClonePlace.LOCATION },

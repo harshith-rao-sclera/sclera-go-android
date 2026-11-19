@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Asset list: the chips that narrow it to assets whose validation failed or needs a look (the web's wording). -->
+    <string name="dash_chip_validation_failed">Failed validation</string>
+    <string name="dash_chip_validation_look">Needs a look</string>
+    <!-- Asset row: what a screen reader says for its validation mark. -->
+    <plurals name="asset_validation_failed">
+        <item quantity="one">Failed validation: %1$d step needs attention</item>
+        <item quantity="other">Failed validation: %1$d steps need attention</item>
+    </plurals>
+    <plurals name="asset_validation_look">
+        <item quantity="one">Needs a look: %1$d step to check</item>
+        <item quantity="other">Needs a look: %1$d steps to check</item>
+    </plurals>
+</resources>

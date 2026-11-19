@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Leaving photos or videos just taken that aren't an asset yet. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="camera_discard_title">Discard your photos?</string>
+    <string name="camera_discard_body">The photos and videos you took aren’t saved as an asset yet. If you leave now, they’re deleted.</string>
+    <string name="camera_discard_keep">Keep photos</string>
+    <string name="detail_discard_photos_body">What you’ve entered won’t be saved, and the photos and videos you took for it are deleted.</string>
+</resources>

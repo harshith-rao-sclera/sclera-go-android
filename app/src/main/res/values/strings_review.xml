@@ -62,6 +62,11 @@
     <!-- Asset sheet -->
     <string name="rev_mark_validated">Mark as validated</string>
     <string name="rev_exclude">Exclude</string>
+    <!-- A run on drafts and exceptions is a check: only submitted assets can be marked as validated (the web's "check only"). -->
+    <string name="rev_submit_first">Submit first: only submitted assets can be marked as validated</string>
+    <string name="rev_check_only_draft">Draft · check only</string>
+    <string name="rev_check_only_exception">Exception · check only</string>
+    <string name="rev_check_only_hint">This run is a check. Fix what it found, submit the asset, then mark it as validated.</string>
     <plurals name="rev_fix_to_validate">
         <item quantity="one">Fix or dismiss the open issue to mark it as validated.</item>
         <item quantity="other">Fix or dismiss the %1$d open issues to mark it as validated.</item>

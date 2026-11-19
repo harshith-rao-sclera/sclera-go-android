@@ -1,9 +1,14 @@
 package com.sclera.sclerago.presentation.assets
 
 import com.sclera.sclerago.domain.usecase.asset.CloneAssetUseCase
+import com.sclera.sclerago.domain.usecase.asset.AddAssetFieldUseCase
+import com.sclera.sclerago.domain.usecase.asset.RemoveAssetFieldUseCase
+import com.sclera.sclerago.domain.model.AddFieldOutcome
+import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.CloneRequest
 import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
+import com.sclera.sclerago.domain.usecase.asset.ChangeAction
 import com.sclera.sclerago.domain.usecase.asset.ChangeRequestUseCases
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,6 +37,7 @@ import com.sclera.sclerago.domain.model.SURE_ENOUGH
 import com.sclera.sclerago.domain.model.VOICE_SURE_ENOUGH
 import com.sclera.sclerago.domain.model.LookupStatus
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.fitPhotoRules
 import com.sclera.sclerago.domain.model.photoRoom
 import com.sclera.sclerago.domain.model.PhotoKind
@@ -115,6 +121,12 @@ data class AssetDetailState(
     /** The Clone sheet is open / its copies are being made. */
     val cloneOpen: Boolean = false,
     val cloning: Boolean = false,
+    /** The user may add fields to this (saved) asset alone, as the web's "Add field" (when they can also edit it). */
+    val canAddField: Boolean = false,
+    /** The Add field sheet is open / the field is being added / why it wasn't (e.g. the name is taken). */
+    val addFieldOpen: Boolean = false,
+    val addingField: Boolean = false,
+    val addFieldError: UiText? = null,
     /** The signed-in user made the asset's change request. */
     val changeRequestMine: Boolean = false,
     /** Who made the asset's change request (name, else email); null when they aren't known on this device. */
@@ -147,6 +159,12 @@ data class AssetDetailState(
     val lock: AssetLock? = null,
     /** The signed-in user may validate the asset (the server's check permission; validate includes it). */
     val canCheck: Boolean = true,
+    /**
+     * The open asset can go back to draft from here (the web's asset bar Move to draft): an exception for whoever may work
+     * on it, or a submitted / validated asset for an admin while nobody has asked for a change (then it's Approve).
+     */
+    /** The change-request actions (and the admin's sign-off) that apply to this asset, in order. */
+    val changeActions: List<ChangeAction> = emptyList(),
     /** The JACS code picker while it is open (null: closed). */
     val jacs: JacsPickerState? = null,
     /** The "Suggest type" sheet while it is open (null: closed). */
@@ -243,6 +261,8 @@ class AssetDetailViewModel @Inject constructor(
     private val planPhotoFill: PlanPhotoFillUseCase,
     observeOnline: ObserveOnlineUseCase,
     private val cloneAsset: CloneAssetUseCase,
+    private val addField: AddAssetFieldUseCase,
+    private val removeField: RemoveAssetFieldUseCase,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
 
@@ -284,6 +304,9 @@ class AssetDetailViewModel @Inject constructor(
         val changeNote: String? = null,
         val cloneOpen: Boolean = false,
         val cloning: Boolean = false,
+        val addFieldOpen: Boolean = false,
+        val addingField: Boolean = false,
+        val addFieldError: UiText? = null,
     )
 
     private val target = MutableStateFlow<Target?>(null)
@@ -363,9 +386,14 @@ class AssetDetailViewModel @Inject constructor(
                 validation = if (t.isNew) null else db.validation, validating = f.validating,
                 changeNote = f.changeNote, changeRequestMine = changeRequests.isMine(asset.changeRequest), admin = changeRequests.isAdmin(),
                 cloneOpen = f.cloneOpen && !t.isNew, cloning = f.cloning,
+                canAddField = !t.isNew && addField.allowed(),
+                addFieldOpen = f.addFieldOpen && !t.isNew, addingField = f.addingField, addFieldError = f.addFieldError,
                 changeRequester = changeRequests.requesterName(asset.changeRequest),
                 lock = if (t.isNew) null else canEditAsset.lock(asset),
                 canCheck = formData.revalidate.allowed(),
+                // The change-request actions (and the admin's sign-off) this asset offers, as the web's asset bar.
+                changeActions = if (t.isNew) emptyList() else
+                    (changeRequests.signOff(listOf(asset)) + changeRequests.actions(listOf(asset))).filter { it.blocked == null }.map { it.action },
                 classify = classified.sheet,
                 jacs = jacs,
                 online = online,
@@ -377,7 +405,7 @@ class AssetDetailViewModel @Inject constructor(
      * already open only takes [asset]'s place: the top bar's location, which changes when another location tab is chosen
      * (a place picked in the form itself still comes first).
      */
-    fun open(asset: Asset, isNew: Boolean, prefill: Map<String, String> = emptyMap()) {
+    fun open(asset: Asset, isNew: Boolean, prefill: Map<String, String> = emptyMap(), scan: ScanFacts? = null) {
         val current = target.value
         if (current != null && current.asset.id == asset.id && current.isNew == isNew) {
             if (isNew) {
@@ -391,6 +419,7 @@ class AssetDetailViewModel @Inject constructor(
             return
         }
         aiJob?.cancel()
+        scanFill?.cancel()
         classifier.reset()
         jacsPicker.close()
         photoFill.cancel()
@@ -398,6 +427,29 @@ class AssetDetailViewModel @Inject constructor(
         target.value = Target(asset, isNew, prefill)
         classifier.refreshOnce()
         if (isNew) startWithCaptures(asset)
+        if (isNew && scan != null) startScanFill(asset.id)
+    }
+
+    private var scanFill: Job? = null
+
+    /**
+     * A new asset opened from a scanned device (Bluetooth, network or access point): once its form is ready (with the
+     * scan's make, model and Description in it), the AI is asked about what the scan found. With a model, the product is
+     * looked up and the form filled as photos fill it (the AI button blinks meanwhile; only empty fields, as unsaved
+     * edits); the server looks a product up by its model, so without one Suggest type runs on its name, make and
+     * Description instead. The scan's identifiers are never on the form, so none is sent.
+     */
+    private fun startScanFill(assetId: String) {
+        scanFill = viewModelScope.launch {
+            val ready = withTimeoutOrNull(FORM_WAIT_MS) {
+                state.first { it.asset?.id == assetId && it.isNew && it.fields.isNotEmpty() }
+            } ?: return@launch
+            when {
+                ready.locked -> Unit
+                ready.value("model").isNotBlank() -> autoFill(emptyList(), fromScan = true)
+                else -> openClassify()
+            }
+        }
     }
 
     /**
@@ -430,6 +482,7 @@ class AssetDetailViewModel @Inject constructor(
 
     fun close() {
         aiJob?.cancel()
+        scanFill?.cancel()
         classifier.reset()
         photoFill.cancel()
         target.value = null
@@ -521,6 +574,9 @@ class AssetDetailViewModel @Inject constructor(
     /** How many more photos the camera may add now: room in the kind of the card it was opened from, else in the asset. */
     fun cameraRoom(): Int = photoRoom(state.value.photoRules, state.value.media, photoKind)
 
+    /** Opened for one kind of photo: how many more it takes (the camera's gallery picks up to that); null otherwise. */
+    fun galleryLimit(): Int? = photoKind?.let { cameraRoom() }
+
     fun choosePhotoKind(kind: PhotoKind?) {
         photoKind = kind
     }
@@ -586,12 +642,22 @@ class AssetDetailViewModel @Inject constructor(
      */
     private suspend fun fillFromPhotos() {
         val s = state.value
-        val asset = s.asset ?: return
-        if (s.locked) return
+        if (s.asset == null || s.locked) return
         val photos = formData.lookups.photosToRead(s.media)
         if (photos.isEmpty()) return
+        autoFill(photos, fromScan = false)
+    }
+
+    /**
+     * The phone's look-up of [photos] and what is typed (`POST /lookup`), put into the form by [PlanPhotoFillUseCase]'s
+     * rules while the AI button blinks. [fromScan]: there are no photos, only what a scan found (its make and model).
+     */
+    private suspend fun autoFill(photos: List<Media>, fromScan: Boolean) {
+        val s = state.value
+        val asset = s.asset ?: return
+        if (s.locked) return
         form.update { it.copy(photoFilling = true) }
-        message.emit(UiText.Res(R.string.ai_auto_reading))
+        message.emit(UiText.Res(if (fromScan) R.string.ai_scan_reading else R.string.ai_auto_reading))
         val lookup = try {
             // No type is sent: the answer then names the type with its JACS code, and fills the fields of the type it
             // names (which is the asset's own type when it already has the right one).
@@ -599,18 +665,18 @@ class AssetDetailViewModel @Inject constructor(
         } catch (e: OnlineException) {
             message.emit(
                 if (e.error == OnlineError.Offline) UiText.Res(R.string.ai_auto_offline)
-                else UiText.Res(R.string.ai_auto_failed, listOf(e.error.aiText())),
+                else UiText.Res(if (fromScan) R.string.ai_scan_failed else R.string.ai_auto_failed, listOf(e.error.aiText())),
             )
             return
         } finally {
             form.update { it.copy(photoFilling = false) }
         }
-        // What is in the form now decides (it may have changed while the photos were read).
+        // What is in the form now decides (it may have changed while the look-up ran).
         val now = state.value
         if (now.locked || now.asset?.id != asset.id) return
         val fill = planPhotoFill(lookup, now::value, now.formats.formatFor(now.values)?.id)
         if (fill.values.isEmpty()) {
-            message.emit(UiText.Res(R.string.ai_auto_nothing))
+            message.emit(UiText.Res(if (fromScan) R.string.ai_scan_nothing else R.string.ai_auto_nothing))
             return
         }
         // Each looked-up field's page goes with it, kept on Save while the value stays as suggested.
@@ -854,7 +920,7 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         val source = s.asset ?: return
         if (s.isNew || form.value.cloning) return
-        val values = s.saved.filterKeys { it in keys && it != "name" }.filterValues { it.isNotBlank() }
+        val values = s.saved.filterKeys { it in keys }.filterValues { it.isNotBlank() }
         val request = CloneRequest(copies = copies, place = place, values = values, keepType = CLONE_TYPE_KEYS.all { it in keys })
         form.update { it.copy(cloning = true) }
         viewModelScope.launch {
@@ -866,6 +932,70 @@ class AssetDetailViewModel @Inject constructor(
                 message.emit(if (e.error == DataError.FAILED) UiText.Res(R.string.clone_failed) else e.error.toUiText())
             } finally {
                 form.update { it.copy(cloning = false) }
+            }
+        }
+    }
+
+    // ---- Add field (the web's "+ Add field", for this asset only)
+
+    fun openAddField() {
+        val s = state.value
+        if (s.isNew || !s.canAddField || !s.canEdit) return
+        form.update { it.copy(addFieldOpen = true, addFieldError = null) }
+    }
+
+    fun closeAddField() = form.update { if (it.addingField) it else it.copy(addFieldOpen = false, addFieldError = null) }
+
+    /** The name was changed: a "name taken" message no longer applies. */
+    fun clearAddFieldError() = form.update { if (it.addFieldError == null) it else it.copy(addFieldError = null) }
+
+    /**
+     * Adds a field named [name] of [kind] to the open asset alone. It shows at the end of the asset's fields, empty, to
+     * fill in like the rest; what is already typed in the form stays (as the web's).
+     */
+    fun addOwnField(name: String, kind: FieldKind) {
+        val s = state.value
+        val asset = s.asset ?: return
+        if (s.isNew || form.value.addingField) return
+        form.update { it.copy(addingField = true, addFieldError = null) }
+        viewModelScope.launch {
+            try {
+                when (addField(asset.id, name, kind)) {
+                    is AddFieldOutcome.Added -> {
+                        form.update { it.copy(addFieldOpen = false) }
+                        message.emit(UiText.Res(R.string.own_field_added, listOf(UiText.Raw(name.trim()))))
+                    }
+                    AddFieldOutcome.NameTaken ->
+                        form.update { it.copy(addFieldError = UiText.Res(R.string.own_field_name_taken, listOf(UiText.Raw(name.trim())))) }
+                    AddFieldOutcome.NoName -> form.update { it.copy(addFieldError = UiText.Res(R.string.own_field_name_needed)) }
+                }
+            } catch (e: DataException) {
+                form.update { it.copy(addFieldError = e.error.toUiText()) }
+            } finally {
+                form.update { it.copy(addingField = false) }
+            }
+        }
+    }
+
+    /**
+     * Removes the open asset's own field [key] with its answer (the server's DELETE of an asset's field); an unsaved
+     * value typed into it goes too. Fields every asset has can't be removed.
+     */
+    fun removeOwnField(key: String) {
+        val s = state.value
+        val asset = s.asset ?: return
+        val field = s.fields.firstOrNull { it.key == key }?.takeIf { it.ownField } ?: return
+        if (s.isNew || !s.canAddField || !s.canEdit) return
+        viewModelScope.launch {
+            try {
+                if (removeField(asset.id, key)) {
+                    form.update { it.copy(edits = it.edits - key, aiSources = it.aiSources - key) }
+                    message.emit(UiText.Res(R.string.own_field_removed, listOf(UiText.Raw(field.label))))
+                } else {
+                    message.emit(UiText.Res(R.string.own_field_remove_failed))
+                }
+            } catch (e: DataException) {
+                message.emit(e.error.toUiText())
             }
         }
     }
@@ -904,6 +1034,27 @@ class AssetDetailViewModel @Inject constructor(
         write {
             useCases.setStatus(listOf(id), Status.DRAFT)
             message.emit(UiText.Res(R.string.change_request_reopened))
+        }
+    }
+
+    /** Back to draft (the web's Move to draft): an exception to be collected again, or an admin reopening a submitted asset. */
+    fun moveToDraft() {
+        val id = state.value.asset?.id ?: return
+        write {
+            useCases.setStatus(listOf(id), Status.DRAFT)
+            message.emit(UiText.Plural(R.plurals.change_bulk_drafted, 1))
+        }
+    }
+
+    /** An admin signs the submitted asset off without a validation run (the server's bulk validate). */
+    fun markValidated() {
+        val id = state.value.asset?.id ?: return
+        write {
+            val outcome = changeRequests.markValidated(listOf(id))
+            message.emit(
+                if (outcome.validated > 0) UiText.Plural(R.plurals.sign_off_done, outcome.validated)
+                else UiText.Plural(R.plurals.sign_off_not_submitted, 1),
+            )
         }
     }
 
@@ -1192,6 +1343,9 @@ class AssetDetailViewModel @Inject constructor(
 
     private companion object {
         const val REFRESH_MS = 1000L
+
+        /** How long a new asset opened from a scan waits for its form before the AI is asked (it takes a moment to load). */
+        const val FORM_WAIT_MS = 5_000L
         val CLASS_KEYS = setOf("sys", "typ", "sub")
 
         /** How many [REFRESH_MS] to wait for a new validation to sync before saying it will show later. */

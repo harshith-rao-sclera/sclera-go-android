@@ -358,7 +358,6 @@
     <string name="detail_sec_fields">حقول الأصل</string>
     <string name="detail_building">المبنى</string>
     <string name="detail_floor">الطابق</string>
-    <string name="detail_set_location">تعيين الموقع</string>
     <string name="detail_system_type">نوع النظام</string>
     <string name="detail_asset_type">نوع الأصل</string>
     <string name="detail_sub_type">النوع الفرعي</string>

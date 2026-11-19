@@ -26,13 +26,6 @@ internal const val ASSETS_BY_IDS = "SELECT a.* FROM assets a WHERE a.id IN (%IN%
 
 internal const val ASSET_VALUES_ROWS = "SELECT * FROM asset_values WHERE asset_id IN (%IN%)"
 
-/** Scanned devices made into assets: the device id is kept in `source_ref` of Bluetooth and Wi-Fi assets. */
-internal const val DEVICE_LINKS =
-    "SELECT a.id, a.source_ref FROM assets a WHERE a.source IN ('bluetooth', 'wifi') AND a.source_ref IS NOT NULL AND a.source_ref <> '' AND %LIVE%"
-
-internal const val ALL_ASSET_VALUES =
-    "SELECT v.asset_id, v.%ANSWERS% AS answers FROM asset_values v JOIN assets a ON a.id = v.asset_id WHERE %LIVE%"
-
 internal const val ASSET_VALUES_ONE = "SELECT * FROM asset_values WHERE asset_id = ?"
 
 /**

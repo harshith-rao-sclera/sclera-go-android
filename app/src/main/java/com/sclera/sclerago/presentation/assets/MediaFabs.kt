@@ -25,7 +25,7 @@ import com.sclera.sclerago.presentation.theme.C
 
 /**
  * The Media tab's floating buttons: a yellow + that opens into Nameplate, Asset, Label ID (each only while the
- * property's photo rules allow more), then Camera and File; under the + a mic that records a voice memo. The photo kinds
+ * property's photo rules allow more; its camera and gallery take no more than that), then Camera and File; under the + a mic that records a voice memo. The photo kinds
  * and Camera open the app's camera straight away (photo, video and the gallery are there); a photo taken for a kind goes
  * into its card, one taken with Camera into Other photos.
  */

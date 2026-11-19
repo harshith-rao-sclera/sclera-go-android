@@ -32,7 +32,7 @@ internal val SAMPLE_ASSETS = listOf(
 /** The details of the sample assets a2 and a4 (the Pump and the AHU). */
 internal val SAMPLE_DETAILS = mapOf(
     "a2" to AssetDetails("SCL-000421", mapOf("make" to "KSB", "model" to "Etanorm 065-040-160", "serial" to "9971843210-0003", "power" to "7.5 kW", "voltage" to "415 V", "speed" to "2900 RPM", "sys" to "Mechanical", "typ" to "Pump", "sub" to "Centrifugal", "label" to "SCL-000421", "note" to "End-suction · 50 m³/h at 32 m head · cast iron casing · mechanical seal"), lowConfidence = "speed"),
-    "a4" to AssetDetails("SCL-000422", mapOf("make" to "Daikin", "model" to "D-AHU Professional 080", "serial" to "DAHU-23-04417", "power" to "7.5 kW", "voltage" to "415 V", "speed" to "1450 RPM", "sys" to "HVAC", "typ" to "Fan / AHU", "sub" to "Plug fan", "jacs" to "[JACS code 1]", "label" to "SCL-000422", "ble" to "SCL-0422", "note" to "Supply 12,000 m³/h at 450 Pa · EC plug fan · G4 + F7 filters · plate heat recovery")),
+    "a4" to AssetDetails("SCL-000422", mapOf("make" to "Daikin", "model" to "D-AHU Professional 080", "serial" to "DAHU-23-04417", "power" to "7.5 kW", "voltage" to "415 V", "speed" to "1450 RPM", "sys" to "HVAC", "typ" to "Fan / AHU", "sub" to "Plug fan", "jacs" to "[JACS code 1]", "label" to "SCL-000422", "note" to "Supply 12,000 m³/h at 450 Pa · EC plug fan · G4 + F7 filters · plate heat recovery")),
 )
 
 /** The sample asset fields. */
@@ -49,8 +49,6 @@ internal val SAMPLE_FIELDS = listOf(
     FieldCfg("sub", "Sub type", FieldKind.DROPDOWN, FieldSection.CLASS),
     FieldCfg("jacs", "JACS code", FieldKind.DROPDOWN, FieldSection.CLASS, required = true),
     FieldCfg("label", "Asset tag / QR", FieldKind.TEXT, FieldSection.TAGS, rule = ValueRule.UPPERCASE),
-    FieldCfg("ble", "BLE tag", FieldKind.TEXT, FieldSection.TAGS),
-    FieldCfg("ip", "IP address", FieldKind.TEXT, FieldSection.TAGS),
     FieldCfg("condition", "Condition", FieldKind.DROPDOWN, FieldSection.MORE, visible = false, options = listOf("Very good", "Good", "Fair", "Poor", "Very poor")),
     FieldCfg("criticality", "Criticality", FieldKind.DROPDOWN, FieldSection.MORE, visible = false, options = listOf("Low", "Medium", "High", "Critical")),
     FieldCfg("install", "Install date", FieldKind.DATE, FieldSection.MORE, visible = false, rule = ValueRule.PAST),

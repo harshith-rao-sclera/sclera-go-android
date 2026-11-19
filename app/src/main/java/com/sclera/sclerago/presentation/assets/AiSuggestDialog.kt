@@ -45,6 +45,7 @@ import com.sclera.sclerago.domain.model.SURE_ENOUGH
 import com.sclera.sclerago.domain.model.typeFieldName
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.Pill
@@ -99,25 +100,29 @@ private val PHOTO_STEP_AT = listOf(0, 6, 12, 20, 30)
  */
 @Composable
 fun AiSuggestDialog(d: AiDialogState, state: AssetDetailState, actions: AiDialogActions) {
-    BottomSheet(onDismiss = actions.onClose) {
-        Column(Modifier.weight(1f, fill = false).testTag(AiTags.DIALOG)) {
-            Header(state.value("name").ifBlank { state.asset?.name.orEmpty() }, actions.onClose)
-            // The manufacturer and model typed go into the form with the suggestions, so they count towards Apply.
-            val typedCount = listOf("make" to d.make, "model" to d.model).count { (k, v) -> v.trim().isNotEmpty() && v.trim() != state.value(k) }
-            val nothing = d.nothingToApply(typedCount)
-            Column(
-                Modifier.weight(1f, fill = d.phase == AiPhase.SEARCHING).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                when (d.phase) {
-                    AiPhase.LOADING -> repeat(3) { Box(Modifier.fillMaxWidth().height(36.dp).background(C.Raised, r(8))) }
-                    AiPhase.IDENTIFY -> Identify(d, state, actions)
-                    AiPhase.SEARCHING -> Searching(d)
-                    AiPhase.ERROR -> Txt(d.error?.asString() ?: stringResource(R.string.ai_failed), 13, 500, maxLines = 6)
-                    AiPhase.RESULTS -> if (nothing) NothingFound(d) else Results(d, state, actions)
+    // The manufacturer and model typed go into the form with the suggestions, so they count towards Apply.
+    val typedCount = listOf("make" to d.make, "model" to d.model).count { (k, v) -> v.trim().isNotEmpty() && v.trim() != state.value(k) }
+    // A manufacturer or model typed but not looked up yet would be lost: closing asks first. (Results are kept when it
+    // closes, for when it opens again.)
+    GuardedClose(d.phase == AiPhase.IDENTIFY && typedCount > 0, actions.onClose) { close ->
+        BottomSheet(onDismiss = close) {
+            Column(Modifier.weight(1f, fill = false).testTag(AiTags.DIALOG)) {
+                Header(state.value("name").ifBlank { state.asset?.name.orEmpty() }, close)
+                val nothing = d.nothingToApply(typedCount)
+                Column(
+                    Modifier.weight(1f, fill = d.phase == AiPhase.SEARCHING).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    when (d.phase) {
+                        AiPhase.LOADING -> repeat(3) { Box(Modifier.fillMaxWidth().height(36.dp).background(C.Raised, r(8))) }
+                        AiPhase.IDENTIFY -> Identify(d, state, actions)
+                        AiPhase.SEARCHING -> Searching(d)
+                        AiPhase.ERROR -> Txt(d.error?.asString() ?: stringResource(R.string.ai_failed), 13, 500, maxLines = 6)
+                        AiPhase.RESULTS -> if (nothing) NothingFound(d) else Results(d, state, actions)
+                    }
                 }
+                Footer(d, typedCount, nothing, actions)
             }
-            Footer(d, typedCount, nothing, actions)
         }
     }
 }

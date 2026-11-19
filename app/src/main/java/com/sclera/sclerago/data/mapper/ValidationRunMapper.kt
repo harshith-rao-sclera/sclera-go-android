@@ -11,6 +11,7 @@ import com.sclera.sclerago.data.remote.adc.SavedValidationDto
 import com.sclera.sclerago.data.remote.adc.StepStatsDto
 import com.sclera.sclerago.data.remote.adc.SuggestionDto
 import com.sclera.sclerago.data.remote.adc.TemplateDto
+import com.sclera.sclerago.domain.model.statusFromDb
 import com.sclera.sclerago.domain.validation.DECISION_NOTE_MAX
 import com.sclera.sclerago.domain.validation.Decision
 import com.sclera.sclerago.domain.validation.FieldInsight
@@ -121,6 +122,7 @@ fun ResultDto.toDomain() = RunAssetResult(
     decision = Decision.of(decision),
     decisionNote = decisionNote?.clip(),
     checkedAt = parseDbTime(checkedAt),
+    assetStatus = assetStatus?.takeIf { it.isNotBlank() }?.let { statusFromDb(it, validated = false) },
 )
 
 private fun SuggestionDto.toDomain() = IssueSuggestion(

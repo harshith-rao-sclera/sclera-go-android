@@ -44,7 +44,7 @@ val CHECK_NAMES = listOf("Mandatory", "Formats", "Placeholders", "Dates", "Range
 private val FIELD_LABELS = mapOf(
     "name" to "Name", "make" to "Make", "model" to "Model", "serial" to "Serial no.", "power" to "Power",
     "voltage" to "Voltage", "speed" to "Speed", "sys" to "System type", "typ" to "Asset type", "sub" to "Sub type",
-    "jacs" to "JACS code", "label" to "Label / QR", "ble" to "BLE tag", "ip" to "IP address", "note" to "Notes",
+    "jacs" to "JACS code", "label" to "Label / QR", "note" to "Notes",
 )
 
 private val PLACEHOLDERS = setOf("tbd", "tba", "n/a", "na", "xxx", "xx", "-", "--", "?", "unknown", "test", "todo")
@@ -74,12 +74,6 @@ fun runCheck(index: Int, input: CheckInput): CheckResult {
             val problems = mutableListOf<Pair<String, FixTarget>>()
             value("label").takeIf { it.isNotEmpty() && !Regex("^SCL-\\d{6}$").matches(it) }?.let {
                 problems += "Label / QR (“$it”) doesn’t match the format SCL-000000." to FixTarget.TAGS
-            }
-            value("ble").takeIf { it.isNotEmpty() && !Regex("^SCL-\\d{4}$").matches(it) }?.let {
-                problems += "BLE tag (“$it”) doesn’t match the format SCL-0000." to FixTarget.TAGS
-            }
-            value("ip").takeIf { it.isNotEmpty() && !isIpv4(it) }?.let {
-                problems += "IP address (“$it”) isn’t a valid IPv4 address." to FixTarget.TAGS
             }
             value("serial").takeIf { it.isNotEmpty() && !Regex("^[A-Za-z0-9][A-Za-z0-9-]*$").matches(it) }?.let {
                 problems += "Serial no. (“$it”) should only use letters, digits and dashes." to FixTarget.IDENT
@@ -251,11 +245,6 @@ private fun parseDate(s: String): java.time.LocalDate? {
 
 private fun sectionOf(key: String): FixTarget = when (key) {
     "sys", "typ", "sub", "jacs" -> FixTarget.CLASS
-    "label", "ble", "ip" -> FixTarget.TAGS
+    "label" -> FixTarget.TAGS
     else -> FixTarget.IDENT
-}
-
-private fun isIpv4(s: String): Boolean {
-    val parts = s.split(".")
-    return parts.size == 4 && parts.all { p -> p.isNotEmpty() && p.length <= 3 && p.all(Char::isDigit) && p.toInt() in 0..255 }
 }

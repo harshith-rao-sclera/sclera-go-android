@@ -256,6 +256,9 @@ Still open:
   are shown in plain form; they must be encrypted when they are persisted or come from the API.
 - Release logs: confirm `Log.d/i/w` are stripped or free of identifiers (R8 keep rules).
 - `./gradlew dependencyCheckAnalyze` is configured but needs an `NVD_API_KEY`; run it and record the result.
+- An asset made from a scan is named after the scanned device (an access point's SSID, a Bluetooth device's own name,
+  which can be a person's), and that name is sent to the AI with the other fields. Kept by product decision; the
+  scan's addresses (IP, MAC, BLE address, BSSID) are not stored on the asset or sent.
 - The synced offline SQLite databases (one per property, `ASSET_DATA_COLLECTION_<propertyId>.db`, app-private `databases/`) are unencrypted at rest, and the Java sync engine also keeps the access token and session id in plain text in `global_config.db`; both need an encrypted SQLite engine (e.g. SQLCipher). They are excluded from backups and wiped on sign-out.
 
 ## 9. Working agreements
