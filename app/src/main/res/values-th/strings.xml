@@ -245,7 +245,6 @@
     <string name="doc_remove_cd">นำ %1$s ออก</string>
     <string name="action_ok">ตกลง</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">คุณ</string>
     <string name="detail_change_empty">ว่าง</string>
     <string name="detail_media_field_none">ยังไม่มี · เพิ่มหรือดูในแท็บสื่อ</string>
     <string name="val_validate">ตรวจสอบ</string>

@@ -199,7 +199,7 @@ fun AssetInfoTab(
     state.handling?.let { h ->
         val locale = LocalConfiguration.current.locales[0]
         // Assigned to shows the person's email (their name, or "You", only when their email isn't on this device).
-        val assignee = h.assignedTo?.let { it.email ?: personText(it) }
+        val assignee = h.assignedTo?.let { personText(it) }
         FormSection(
             key = InfoSections.ASSIGNMENT, title = stringResource(R.string.detail_sec_assignment), note = null,
             open = open(InfoSections.ASSIGNMENT), onToggle = { ui.toggle(InfoSections.ASSIGNMENT) },
@@ -427,10 +427,9 @@ private fun assetBarItems(
     }
 }
 
-/** A user the asset names: their name; "You" for the signed-in user when their name isn't on this device, else "Unknown user". */
+/** A user the asset names: their email (the signed-in user's too), else their name, else "Unknown user". */
 @Composable
-private fun personText(p: AssetPerson): String =
-    p.name ?: stringResource(if (p.me) R.string.detail_person_you else R.string.detail_person_unknown)
+private fun personText(p: AssetPerson): String = p.email ?: p.name ?: stringResource(R.string.detail_person_unknown)
 
 /**
  * One of the asset's fields, by its kind: a dropdown for the choice kinds (their choices are the field's own, from the

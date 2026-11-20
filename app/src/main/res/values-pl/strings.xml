@@ -257,7 +257,6 @@
     <string name="doc_remove_cd">Usuń %1$s</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Ty</string>
     <string name="detail_change_empty">puste</string>
     <string name="detail_media_field_none">Jeszcze brak · dodaj lub zobacz na karcie Multimedia</string>
     <string name="val_validate">Zweryfikuj</string>

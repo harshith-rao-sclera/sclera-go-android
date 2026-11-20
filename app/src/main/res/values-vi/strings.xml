@@ -245,7 +245,6 @@
     <string name="doc_remove_cd">Xóa %1$s</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Bạn</string>
     <string name="detail_change_empty">trống</string>
     <string name="detail_media_field_none">Chưa có · thêm hoặc xem trong thẻ Phương tiện</string>
     <string name="val_validate">Xác thực</string>

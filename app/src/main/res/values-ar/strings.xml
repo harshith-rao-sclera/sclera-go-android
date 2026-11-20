@@ -265,7 +265,6 @@
     <string name="doc_remove_cd">إزالة %1$s</string>
     <string name="action_ok">حسنًا</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">أنت</string>
     <string name="detail_change_empty">فارغ</string>
     <string name="detail_media_field_none">لا يوجد شيء بعد · أضف أو اعرض في علامة تبويب الوسائط</string>
     <string name="val_validate">تحقق</string>

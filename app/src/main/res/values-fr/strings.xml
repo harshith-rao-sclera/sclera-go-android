@@ -253,7 +253,6 @@
     <string name="doc_remove_cd">Retirer %1$s</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Vous</string>
     <string name="detail_change_empty">vide</string>
     <string name="detail_media_field_none">Aucun pour le moment · ajoutez-en ou consultez-les dans l’onglet Médias</string>
     <string name="val_validate">Valider</string>

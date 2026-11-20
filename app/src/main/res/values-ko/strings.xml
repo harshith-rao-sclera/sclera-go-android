@@ -245,7 +245,6 @@
     <string name="doc_remove_cd">%1$s 삭제</string>
     <string name="action_ok">확인</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">나</string>
     <string name="detail_change_empty">비어 있음</string>
     <string name="detail_media_field_none">아직 없음 · 미디어 탭에서 추가하거나 보기</string>
     <string name="val_validate">검증</string>

@@ -249,7 +249,6 @@
     <string name="doc_remove_cd">%1$s हटाएँ</string>
     <string name="action_ok">ठीक है</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">आप</string>
     <string name="detail_change_empty">खाली</string>
     <string name="detail_media_field_none">अभी कोई नहीं · मीडिया टैब में जोड़ें या देखें</string>
     <string name="val_validate">सत्यापित करें</string>

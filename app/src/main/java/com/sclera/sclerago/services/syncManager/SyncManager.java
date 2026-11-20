@@ -352,7 +352,7 @@ public class SyncManager {
     @JsonCreator
     public SyncManager(String user, String url, String token, String sessionId, String sessionUrl, String orgId, Context appContext, String propertyId) {
         SyncManager.user = user;
-        this.syncURL = url + "/adc-offline-sync";
+        this.syncURL = url + "/sync";
         SyncManager.token = token;
         SyncManager.sessionId = sessionId;
         SyncManager.sessionUrl = sessionUrl;

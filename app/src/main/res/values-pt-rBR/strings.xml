@@ -253,7 +253,6 @@
     <string name="doc_remove_cd">Remover %1$s</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Você</string>
     <string name="detail_change_empty">vazio</string>
     <string name="detail_media_field_none">Nada ainda · adicione ou veja na guia Mídia</string>
     <string name="val_validate">Validar</string>

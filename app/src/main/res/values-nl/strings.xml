@@ -249,7 +249,6 @@
     <string name="doc_remove_cd">%1$s verwijderen</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Jij</string>
     <string name="detail_change_empty">leeg</string>
     <string name="detail_media_field_none">Nog geen · toevoegen of bekijken op het tabblad Media</string>
     <string name="val_validate">Valideren</string>

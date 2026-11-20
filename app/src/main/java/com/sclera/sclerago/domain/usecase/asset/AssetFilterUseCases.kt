@@ -8,6 +8,7 @@ import com.sclera.sclerago.domain.model.FilterChoice
 import com.sclera.sclerago.domain.model.FilterPerson
 import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.PropertyAssignee
 import com.sclera.sclerago.domain.model.typeKey
 import com.sclera.sclerago.domain.model.typeKeyParts
 import com.sclera.sclerago.domain.repository.AccessRepository
@@ -15,8 +16,8 @@ import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
-import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 
 /** Shown between a sub type's system type and asset type ("HVAC › Pumps"), as the web writes a type. */
 private const val TYPE_PATH = " › "
@@ -121,22 +122,25 @@ class LoadAssigneeNamesUseCase @Inject constructor(
 ) {
     /**
      * The people [propertyId]'s assets are assigned to, as kept on the device for every user (`property_assignees`), by
-     * user id to name, else email: the filter lists each of them, admins and everyone else alike.
+     * user id to their email (their name only when there's no email): the filter lists each of them, admins and
+     * everyone else alike, the signed-in user included, by email.
      */
     fun storedFor(propertyId: String?): Map<String, String> =
-        propertyId?.takeIf { it.isNotBlank() }?.let { assignment.keptAssigneesOf(it).mapValues { (_, a) -> a.label } }.orEmpty()
+        propertyId?.takeIf { it.isNotBlank() }?.let { assignment.keptAssigneesOf(it).mapValues { (_, a) -> a.shown } }.orEmpty()
 
     /** Reads [propertyId]'s kept assignees and, online, fetches them again (when the property is opened). */
     suspend fun open(propertyId: String) = assignment.openAssignees(propertyId)
 
     suspend operator fun invoke(propertyId: String?): Map<String, String> {
-        val known = access.people.value.associate { it.id to it.name }.toMutableMap()
-        assignment.keptAssignees().forEach { (id, a) -> known.putIfAbsent(id, a.label) }
-        val myName = (auth.state.value as? AuthState.SignedIn)?.session?.displayName
-        guard.userId()?.let { id -> myName?.takeIf { it.isNotBlank() }?.let { known.putIfAbsent(id, it) } }
+        val known = access.people.value.associate { it.id to it.email.ifBlank { it.name } }.toMutableMap()
+        assignment.keptAssignees().forEach { (id, a) -> known.putIfAbsent(id, a.shown) }
+        val myEmail = (auth.state.value as? AuthState.SignedIn)?.session?.email
+        guard.userId()?.let { id -> myEmail?.takeIf { it.isNotBlank() }?.let { known.putIfAbsent(id, it) } }
         if (propertyId.isNullOrBlank()) return known
         return try {
-            known + assignment.assigneeNames(propertyId)
+            // Fetched again (online), which also refreshes the kept assignees with their emails.
+            assignment.assigneeNames(propertyId)
+            known + assignment.keptAssigneesOf(propertyId).mapValues { (_, a) -> a.shown }
         } catch (_: OnlineException) {
             known
         }
@@ -157,3 +161,6 @@ class AssetFilterUseCases @Inject constructor(
 ) {
     fun me(): String? = guard.userId()
 }
+
+/** How the filter shows an assignee: their email, or their name when there is no email. */
+private val PropertyAssignee.shown: String get() = email.ifBlank { label }

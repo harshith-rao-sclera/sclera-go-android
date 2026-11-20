@@ -245,7 +245,6 @@
     <string name="doc_remove_cd">移除 %1$s</string>
     <string name="action_ok">確定</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">您</string>
     <string name="detail_change_empty">空白</string>
     <string name="detail_media_field_none">尚無 · 可在「媒體」分頁中新增或查看</string>
     <string name="val_validate">驗證</string>

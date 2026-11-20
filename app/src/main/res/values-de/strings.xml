@@ -249,7 +249,6 @@
     <string name="doc_remove_cd">%1$s entfernen</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Sie</string>
     <string name="detail_change_empty">leer</string>
     <string name="detail_media_field_none">Noch keine · im Tab „Medien“ hinzufügen oder ansehen</string>
     <string name="val_validate">Validieren</string>

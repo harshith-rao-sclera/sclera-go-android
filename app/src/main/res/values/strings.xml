@@ -354,7 +354,6 @@
     <string name="doc_remove_cd">Remove %1$s</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">You</string>
     <string name="detail_change_empty">empty</string>
     <string name="detail_media_field_none">None yet · add or view in the Media tab</string>
     <string name="val_validate">Validate</string>

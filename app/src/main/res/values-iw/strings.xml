@@ -257,7 +257,6 @@
     <string name="doc_remove_cd">הסרת %1$s</string>
     <string name="action_ok">אישור</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">אתם</string>
     <string name="detail_change_empty">ריק</string>
     <string name="detail_media_field_none">עדיין אין · אפשר להוסיף או לצפות בכרטיסייה מדיה</string>
     <string name="val_validate">אימות</string>

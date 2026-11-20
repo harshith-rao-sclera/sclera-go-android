@@ -135,11 +135,9 @@ private fun PeopleRow(people: List<FilterPerson>, onPerson: (String) -> Unit) {
 
 @Composable
 private fun PersonChoice(p: FilterPerson, onClick: () -> Unit) {
-    val name = when {
-        p.me -> stringResource(R.string.filter_you)
-        else -> p.name ?: stringResource(R.string.filter_someone)
-    }
-    val initials = if (p.me) stringResource(R.string.filter_me_initials) else p.name?.let(::initialsOf) ?: "?"
+    // Everyone by their email, the signed-in user too (no "You").
+    val name = p.name ?: stringResource(R.string.filter_someone)
+    val initials = p.name?.substringBefore('@')?.let(::initialsOf) ?: "?"
     val tint = if (p.me) C.Yellow else personTint(p.userId)
     Column(
         Modifier.width(60.dp).clip(r(10)).testTag(FilterTags.person(p.userId))
@@ -148,7 +146,7 @@ private fun PersonChoice(p: FilterPerson, onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         PersonAvatar(initials, tint, size = 40.dp, textSize = 13, ring = if (p.selected) C.Yellow else null)
-        Txt(name, 11, if (p.selected) 700 else 500, if (p.selected) C.Text else C.Soft, maxLines = 1, align = TextAlign.Center)
+        Txt(name, 10, if (p.selected) 700 else 500, if (p.selected) C.Text else C.Soft, maxLines = 2, align = TextAlign.Center)
         Txt(p.count.toString(), 10, 500, C.Muted)
     }
 }

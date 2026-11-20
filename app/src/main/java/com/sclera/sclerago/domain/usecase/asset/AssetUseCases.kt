@@ -66,13 +66,14 @@ class ObserveAssetActivityUseCase @Inject constructor(
     operator fun invoke(assetId: String): Flow<List<AssetActivity>> {
         val rights = combine(guard.observe(Permission.COLLECT), guard.observe(Permission.VALIDATE)) { collect, validate -> collect to validate }
         return combine(repo.observe(assetId), access.people, auth.state, rights) { entries, people, session, (collect, validate) ->
-            val names = people.associate { it.id to it.name }
-            val myName = (session as? AuthState.SignedIn)?.session?.displayName?.takeIf { it.isNotBlank() }
+            // Who wrote each entry, by email (the signed-in user's too), else name.
+            val names = people.associate { it.id to it.email.ifBlank { it.name } }
+            val myEmail = (session as? AuthState.SignedIn)?.session?.email?.takeIf { it.isNotBlank() }
             val mayComment = collect || validate
             entries.map { e ->
                 val comment = e.kind == ActivityKind.COMMENT
                 e.copy(
-                    authorName = (if (e.byMe) myName else null) ?: e.createdBy?.let(names::get),
+                    authorName = (if (e.byMe) myEmail else null) ?: e.createdBy?.let(names::get),
                     canEdit = comment && mayComment && e.byMe,
                     canDelete = comment && ((mayComment && e.byMe) || validate),
                 )

@@ -245,7 +245,6 @@
     <string name="doc_remove_cd">%1$s を削除</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">あなた</string>
     <string name="detail_change_empty">空</string>
     <string name="detail_media_field_none">まだありません · メディアタブで追加・表示できます</string>
     <string name="val_validate">検証</string>

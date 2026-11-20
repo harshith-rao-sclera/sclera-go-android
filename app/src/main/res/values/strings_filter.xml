@@ -8,9 +8,6 @@
         <item quantity="other">Filter assets, %1$d filters on</item>
     </plurals>
     <string name="filter_assigned_to">Assigned to</string>
-    <string name="filter_you">You</string>
-    <!-- Initials in the signed-in user's own avatar. -->
-    <string name="filter_me_initials">Me</string>
     <string name="filter_someone">Someone</string>
     <string name="filter_system_type">System type</string>
     <string name="filter_asset_type">Asset type</string>

@@ -610,7 +610,8 @@ fun HistoryList(activity: List<AssetActivity>) {
                         )
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Txt(if (e.byMe) stringResource(R.string.detail_by_you) else "", 11, 500, C.Muted, Modifier.weight(1f))
+                        // Who made the change, by email.
+                        Txt(e.authorName.orEmpty(), 11, 500, C.Muted, Modifier.weight(1f), maxLines = 1)
                         e.createdAt?.let { Txt(formatDateTimeSeconds(it, locale), 11, 400, C.Muted) }
                     }
                 }

@@ -257,7 +257,6 @@
     <string name="doc_remove_cd">Удалить %1$s</string>
     <string name="action_ok">ОК</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Вы</string>
     <string name="detail_change_empty">пусто</string>
     <string name="detail_media_field_none">Пока нет · добавьте или просмотрите на вкладке «Медиа»</string>
     <string name="val_validate">Проверить</string>

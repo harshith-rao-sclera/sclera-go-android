@@ -6,6 +6,5 @@
     <string name="detail_submitted_by">Submitted by</string>
     <string name="detail_submitted_on">Submitted on</string>
     <string name="detail_unassigned">Not assigned</string>
-    <string name="detail_person_you">You</string>
     <string name="detail_person_unknown">Unknown user</string>
 </resources>

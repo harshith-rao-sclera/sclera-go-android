@@ -106,7 +106,6 @@ public class SyncManagerService {
                     SyncManager finalCurrentInstance = currentInstance;
                     executorService.execute(() -> {
                         finalCurrentInstance.startConnection();
-//                        finalCurrentInstance.startWebSocketClientService();
 
                         if (finalCurrentInstance.isSynced == 2) {
                             finalCurrentInstance.setCurrentDataSyncMode(SyncMode.POLLING);

@@ -249,7 +249,6 @@
     <string name="doc_remove_cd">%1$s öğesini kaldır</string>
     <string name="action_ok">Tamam</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Siz</string>
     <string name="detail_change_empty">boş</string>
     <string name="detail_media_field_none">Henüz yok · Medya sekmesinde ekleyin veya görüntüleyin</string>
     <string name="val_validate">Doğrula</string>

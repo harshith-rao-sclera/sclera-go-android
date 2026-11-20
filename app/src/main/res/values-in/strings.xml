@@ -245,7 +245,6 @@
     <string name="doc_remove_cd">Hapus %1$s</string>
     <string name="action_ok">OK</string>
     <string name="detail_value_none">-</string>
-    <string name="detail_by_you">Anda</string>
     <string name="detail_change_empty">kosong</string>
     <string name="detail_media_field_none">Belum ada · tambahkan atau lihat di tab Media</string>
     <string name="val_validate">Validasi</string>
