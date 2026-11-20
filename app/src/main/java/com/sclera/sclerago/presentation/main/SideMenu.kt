@@ -115,6 +115,7 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
         showValidation = vm.canCheck,
         showConfiguration = vm.canConfigure,
         showIntegration = vm.canConfigure,
+        showUsers = vm.canManageAccess,
         active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen, s.intOpen),
         onClose = vm::closeMenu,
         onPick = vm::pickMenu,
@@ -138,6 +139,8 @@ internal fun SideMenuPanel(
     showConfiguration: Boolean = true,
     /** The Integration section shows only to someone who may configure the property (the server's configure permission). */
     showIntegration: Boolean = true,
+    /** Users shows only to someone who may manage people and access (the server lists users only to them). */
+    showUsers: Boolean = true,
     onPick: (MenuItem) -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -215,7 +218,7 @@ internal fun SideMenuPanel(
 
                 // Top-level destinations
                 TopRow(MenuItem.PROPERTY, stringResource(R.string.property_list_title), Icons.Buildings, active, onPick)
-                TopRow(MenuItem.USERS, stringResource(R.string.menu_users), Icons.Users, active, onPick)
+                if (showUsers) TopRow(MenuItem.USERS, stringResource(R.string.menu_users), Icons.Users, active, onPick)
 
                 // Current property and its sections (none until a property is downloaded)
                 if (propertyName != null) Column(Modifier.fillMaxWidth().clip(r(14)).background(C.CardWash).border(1.dp, C.Border, r(14))) {

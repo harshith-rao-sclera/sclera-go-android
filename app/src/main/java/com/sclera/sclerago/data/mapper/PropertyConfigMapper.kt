@@ -10,6 +10,8 @@ import com.sclera.sclerago.data.remote.adc.GeofenceDto
 import com.sclera.sclerago.data.remote.adc.PhotoRuleDto
 import com.sclera.sclerago.data.remote.adc.PhotoRulesDto
 import com.sclera.sclerago.data.remote.adc.SettingsDto
+import com.sclera.sclerago.data.remote.adc.UNITS_METRIC
+import com.sclera.sclerago.data.remote.adc.UNITS_US
 import com.sclera.sclerago.domain.model.Fence
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldSection
@@ -53,6 +55,7 @@ fun SettingsDto.toSettings() = PropertySettings(
     wifiOnboarding = wifiOnboarding,
     aiValidation = aiValidation,
     photoRules = photoRules.toPhotoRules(),
+    metricUnits = unitSystem == UNITS_METRIC,
 )
 
 /** `PATCH /settings` body that sets every kind's photo rule: `{photoRules: {nameplate, asset, labelId: {min, max}}}`. */
@@ -70,6 +73,9 @@ fun photoRulesBody(rules: List<PhotoRule>): JsonObject {
 
 /** `PATCH /settings` body for AI in validation. */
 fun aiValidationBody(on: Boolean): JsonObject = buildJsonObject { put("aiValidation", on) }
+
+/** `PATCH /settings` body for the property's units (the web's Units switch). */
+fun unitSystemBody(metric: Boolean): JsonObject = buildJsonObject { put("unitSystem", if (metric) UNITS_METRIC else UNITS_US) }
 
 // ---- Geofence (GeoJSON positions are [longitude, latitude])
 
@@ -175,12 +181,16 @@ fun placesTree(buildings: List<BuildingDto>, floors: List<FloorDto>, locations: 
     val floorsByBuilding = floors.sortedBy { it.position }.groupBy { it.buildingId }
     return buildings.sortedBy { it.position }.map { b ->
         LocNode(
-            id = b.id, name = b.name, kind = NodeKind.BUILDING, code = b.code.orEmpty(), active = b.isActive,
+            id = b.id, name = b.name, kind = NodeKind.BUILDING, code = b.code.orEmpty(), active = b.isActive, linkedToVdms = b.linkedToVdms,
             kids = floorsByBuilding[b.id].orEmpty().map { f ->
                 LocNode(
                     id = f.id, name = f.name, kind = NodeKind.FLOOR, type = f.type.orEmpty(), code = f.code.orEmpty(), active = f.isActive,
+                    linkedToVdms = f.linkedToVdms,
                     kids = locsByFloor[f.id].orEmpty().map { l ->
-                        LocNode(id = l.id, name = l.name, kind = NodeKind.LOCATION, type = l.type.orEmpty(), code = l.code.orEmpty(), active = l.isActive)
+                        LocNode(
+                            id = l.id, name = l.name, kind = NodeKind.LOCATION, type = l.type.orEmpty(), code = l.code.orEmpty(),
+                            active = l.isActive, linkedToVdms = l.linkedToVdms,
+                        )
                     },
                 )
             },

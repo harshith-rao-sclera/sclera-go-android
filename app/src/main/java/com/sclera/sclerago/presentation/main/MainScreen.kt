@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.main
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.WindowInsets
 import com.sclera.sclerago.presentation.components.ToastEffect
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -144,6 +147,8 @@ fun ScleraApp(
 
         // The lists show the current property, narrowed by the location tab; a selection belongs to the page it was made on.
         LaunchedEffect(vm.locationFilter) { list.setScope(vm.locationFilter) }
+        // A filter chosen on one property doesn't carry over to the next.
+        LaunchedEffect(vm.currentProp) { list.bindProperty(vm.currentProp) }
         // The Network tab's list follows its mode: Wi-Fi network shows "wifi" assets, Access points "access_point" ones.
         LaunchedEffect(vm.netSource) { list.setNetworkSource(vm.netSource) }
         LaunchedEffect(s.tab, vm.currentProp, vm.showDetail, s.adminPage, s.valOpen, s.cfgOpen, s.intOpen) { list.clearSelection() }
@@ -205,6 +210,7 @@ fun ScleraApp(
                 onOpenRun = vm::openValidationRun,
                 prefill = vm.newPrefill,
                 scan = vm.newScanFacts,
+                onDropCapture = vm::dropNewMedia,
             )
         }
 
@@ -218,6 +224,7 @@ fun ScleraApp(
         BackHandler(enabled = selecting) { list.clearSelection() }
         BackHandler(enabled = vm.devSelOn) { vm.clearDevicePick() }
 
+        val keyboardUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         Box(Modifier.fillMaxSize().background(C.Bg)) {
             Column(Modifier.fillMaxSize().imePadding()) {
                 DashboardHeader(
@@ -250,7 +257,8 @@ fun ScleraApp(
                     if (detail != null && !s.valOpen) detailView(detail)
 
                     // The + and search buttons and the selection docks never show together: selecting hides the buttons.
-                    if (vm.listInteractive && !selecting && !vm.devSelOn) {
+                    // They belong to the asset lists: a scan list (Bluetooth, Wi-Fi, access points) doesn't show them.
+                    if (vm.listInteractive && !vm.scanListShown && !selecting && !vm.devSelOn) {
                         Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
                             DashboardFabs(
                                 searchOpen = lists.searchOpen,
@@ -259,6 +267,8 @@ fun ScleraApp(
                                 onQueryChange = list::setQuery,
                                 onAdd = vm::openNew,
                                 modifier = Modifier.align(Alignment.BottomEnd),
+                                onFilter = { list.openFilter(s.tab) },
+                                filterCount = lists.filter.count,
                             )
                         }
                     }
@@ -297,8 +307,9 @@ fun ScleraApp(
                         exit = slideOutVertically { it } + fadeOut(),
                     ) { DeviceAddDock(vm) }
                 }
-                // The tabs stay visible everywhere, asset details included.
-                DashboardNav(tabs, pager.currentPage + pager.currentPageOffsetFraction, vm::goTab, Modifier.launchEntrance(Entrance.DashNav))
+                // The tabs stay visible everywhere, asset details included; while the keyboard is up (search, a form) they
+                // stay behind it rather than riding up on top of it.
+                if (!keyboardUp) DashboardNav(tabs, pager.currentPage + pager.currentPageOffsetFraction, vm::goTab, Modifier.launchEntrance(Entrance.DashNav))
             }
 
             // Validation page (side menu) covers the whole app; an asset opened from its results sits on top.
@@ -321,8 +332,18 @@ fun ScleraApp(
             // Property list / People and access (side menu).
             when (s.adminPage) {
                 AdminPage.PROPERTIES -> PropertyListScreen(vm)
-                AdminPage.PEOPLE -> PeopleScreen(vm)
+                // Only for someone who may manage people and access.
+                AdminPage.PEOPLE -> if (vm.canManageAccess) PeopleScreen(vm)
                 null -> {}
+            }
+
+            // The asset list's filter (people and types), opened from the filter button.
+            lists.filterSheet?.let {
+                AssetFilterSheet(
+                    it, list::closeFilter, list::toggleFilterPerson, list::toggleFilter,
+                    onReset = list::resetFilter,
+                    onShow = { list.applyFilter(); list.clearSelection() },
+                )
             }
 
             // Bulk Edit sits under the location sheet it opens.

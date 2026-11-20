@@ -27,6 +27,10 @@ class AdcJobsApi @Inject constructor(private val service: AdcJobsService, privat
     suspend fun lookup(property: String, job: String): LookupJobDto =
         call.json({ service.lookup(property, job) }) { lookupOf(it) }
 
+    /** The manuals of [asset]'s model, and the latest search for them. */
+    suspend fun assetManuals(property: String, asset: String): AssetManualsDto =
+        call.json({ service.assetManuals(property, asset) }) { AdcJson.decodeFromString(AssetManualsDto.serializer(), it) }
+
     /** Tells the server the suggestions were shown, so the asset stops showing "ready". */
     suspend fun lookupSeen(property: String, job: String) {
         call.json({ service.lookupSeen(property, job) }) { }

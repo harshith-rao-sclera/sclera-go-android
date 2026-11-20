@@ -150,13 +150,25 @@ fun RadioDot(on: Boolean) {
     ) { if (on) Box(Modifier.size(10.dp).background(C.Yellow, CircleShape)) }
 }
 
+/** A tick box; [partly] (when not [on]) shows a dash, for a parent some of whose children are ticked. */
 @Composable
-fun CheckBox(on: Boolean, shape: Shape = r(7), offColor: Color = C.RadioOff, checkSize: Dp = 14.dp, size: Dp = 24.dp, stroke: Dp = 2.dp) {
+fun CheckBox(
+    on: Boolean,
+    shape: Shape = r(7),
+    offColor: Color = C.RadioOff,
+    checkSize: Dp = 14.dp,
+    size: Dp = 24.dp,
+    stroke: Dp = 2.dp,
+    partly: Boolean = false,
+) {
     Box(
         Modifier.size(size).clip(shape).background(if (on) C.Yellow else Color.Transparent)
-            .border(stroke, if (on) C.Yellow else offColor, shape),
+            .border(stroke, if (on || partly) C.Yellow else offColor, shape),
         contentAlignment = Alignment.Center,
-    ) { if (on) LineIcon(Icons.Check, checkSize, C.OnYellow, 3.4f) }
+    ) {
+        if (on) LineIcon(Icons.Check, checkSize, C.OnYellow, 3.4f)
+        else if (partly) LineIcon(Icons.Minus, checkSize, C.Yellow, 3.4f)
+    }
 }
 
 @Composable
@@ -313,15 +325,16 @@ fun PlainField(
     )
 }
 
+/** A signal strength as four small bars, [lvl] of them lit (0–4), to sit beside a name. */
 @Composable
-fun SignalBars(lvl: Int) {
+fun SignalBars(lvl: Int, modifier: Modifier = Modifier) {
     Row(
-        Modifier.size(40.dp).clip(r(10)).background(C.Raised).padding(bottom = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally),
+        modifier.height(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(1.5.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
         for (i in 1..4) {
-            Box(Modifier.width(4.dp).height((4 + i * 4).dp).clip(r(1)).background(if (i <= lvl) C.Yellow else C.Border2))
+            Box(Modifier.width(2.5.dp).height((3 * i).dp).clip(r(1)).background(if (i <= lvl) C.Yellow else C.Border2))
         }
     }
 }
@@ -397,20 +410,20 @@ fun ActionDock(
         val narrow = actions >= 5
         val item = Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
         onValidate?.let {
-            OfflineGate(offline, { onOffline(OnlineOnly.VALIDATE) }, item, badgeOffset = 4.dp) {
+            OfflineGate(offline, { onOffline(OnlineOnly.VALIDATE) }, item) {
                 DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it, Modifier.fillMaxWidth())
             }
         }
         onEdit?.let { DockAction(stringResource(R.string.action_edit), Icons.Pencil, C.Orange, it, item) }
         onAssign?.let {
-            OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item, badgeOffset = 4.dp) {
+            OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item) {
                 DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth())
             }
         }
         onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item) }
         onChange?.let { DockAction(stringResource(R.string.action_change), Icons.Alert, C.Orange, it, item) }
         onMove?.let {
-            OfflineGate(offline, { onOffline(OnlineOnly.MOVE_TO_MANAGED) }, item, badgeOffset = 4.dp) {
+            OfflineGate(offline, { onOffline(OnlineOnly.MOVE_TO_MANAGED) }, item) {
                 DockAction(stringResource(R.string.mv_action), Icons.Send, C.Green, it, Modifier.fillMaxWidth().alpha(if (moveDimmed && !offline) 0.35f else 1f))
             }
         }
@@ -454,7 +467,7 @@ fun ActionCard(
             val tagged = a.tag?.let { Modifier.testTag(it) } ?: Modifier
             val online = a.online
             if (online != null) {
-                OfflineGate(offline, { onOffline(online) }, item.fillMaxHeight(), badgeOffset = 6.dp) {
+                OfflineGate(offline, { onOffline(online) }, item.fillMaxHeight()) {
                     DockAction(a.label, a.icon, a.color, a.onClick, gated.then(tagged), lines = 2)
                 }
             } else {

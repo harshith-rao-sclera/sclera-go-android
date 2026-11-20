@@ -7,12 +7,13 @@ import com.sclera.sclerago.data.remote.adc.pollUntil
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.withoutScanIdentifiers
 import com.sclera.sclerago.domain.repository.AutofillRepository
+import javax.inject.Inject
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import javax.inject.Inject
 
 /**
  * Suggestions from the server's spec look-up: it searches the web for the asset's make and model, in the
@@ -30,7 +31,8 @@ class OnlineAutofillRepository @Inject constructor(
         val typed = JsonObject(
             SENT_KEYS.mapNotNull { key ->
                 val id = idByKey[key] ?: return@mapNotNull null
-                values[key]?.trim()?.takeIf { it.isNotEmpty() }?.take(MAX_VALUE)?.let { id to JsonPrimitive(it) }
+                // A scan's identifying lines (IP, MAC, BSSID, names) never go to the AI.
+                values[key]?.let(::withoutScanIdentifiers)?.trim()?.takeIf { it.isNotEmpty() }?.take(MAX_VALUE)?.let { id to JsonPrimitive(it) }
             }.toMap(),
         )
         val started = api.startLookup(asset.propertyId, asset.id, typed)

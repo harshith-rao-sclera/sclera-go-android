@@ -135,6 +135,8 @@ class FabAction(
     val onClick: () -> Unit,
     /** Non-null while the action needs the server and the device is offline: dimmed with a badge, a tap calls this (to say why). */
     val onBlocked: (() -> Unit)?,
+    /** A short note after the label, in small grey text (e.g. "0 of 5 added"). */
+    val note: String? = null,
 ) {
     /** An action that works offline; [onClick] last, so it can be passed as a trailing lambda. */
     constructor(label: String, icon: Ico, tag: String, onClick: () -> Unit) : this(label, icon, tag, onClick, null)
@@ -160,7 +162,7 @@ fun FabMenu(
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 actions.forEach { a ->
                     // Offline, an online-only action stays in the menu (and the menu open) and a tap says why.
-                    OfflineGate(a.onBlocked != null, { a.onBlocked?.invoke() }, badgeOffset = 2.dp) {
+                    OfflineGate(a.onBlocked != null, { a.onBlocked?.invoke() }) {
                         Row(
                             Modifier.height(48.dp).testTag(a.tag).fabShadow(Capsule).clip(Capsule).background(C.Btn).border(1.dp, C.Border2, Capsule)
                                 .clickable {
@@ -172,6 +174,7 @@ fun FabMenu(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Txt(a.label, 14, 700)
+                            a.note?.let { Txt(it, 11, 600, C.Muted) }
                             LineIcon(a.icon, 17.dp, C.Yellow, 2.2f)
                         }
                     }

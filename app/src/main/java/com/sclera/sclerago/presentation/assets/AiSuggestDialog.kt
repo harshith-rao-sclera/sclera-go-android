@@ -1,5 +1,10 @@
 package com.sclera.sclerago.presentation.assets
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.DocumentSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -81,9 +86,9 @@ object AiTags {
     const val DIALOG = "ai-dialog"
     const val APPLY = "ai-apply"
     const val TYPE = "ai-type"
-    const val CANCEL = "ai-cancel"
     const val NOTHING = "ai-nothing"
     fun row(key: String) = "ai-row-$key"
+    fun manual(id: String) = "ai-manual-$id"
 }
 
 /** The search's steps, as the iOS app lists them, and when each shows as reached (seconds); the first only with photos. */
@@ -95,7 +100,7 @@ private val PHOTO_STEP_AT = listOf(0, 6, 12, 20, 30)
 /**
  * The AI suggestions sheet, as the iOS app's: the asset's type and field values from its photos and its model's
  * published specifications, and the user chooses what to keep. It asks for the model when it has none, shows the
- * search's steps (closing or Cancel stops it), then the type, each field (editable) with how sure it is and where it
+ * search's steps (it keeps going when the sheet is closed), then the type, each field (editable) with how sure it is and where it
  * came from, and what else the photos showed; Apply puts the ticked ones into the form to save.
  */
 @Composable
@@ -265,7 +270,43 @@ private fun Results(d: AiDialogState, state: AssetDetailState, actions: AiDialog
     if (type != null) TypeCard(type, d.typeOn == true, actions.onToggleType)
     if (rows.isNotEmpty()) FieldsCard(d, rows, state, actions)
     lookup?.extra?.takeIf { it.isNotEmpty() }?.let { AlsoOnPhotos(it) }
-    if (lookup?.manualsSearch == true) Txt(stringResource(R.string.ai_manuals_search), 12, 400, C.Soft, maxLines = 3)
+    // The manuals the look-up pulled (the server's list for the model, else those synced here); while the server still
+    // looks for them, it says so.
+    val manuals = state.aiManuals.ifEmpty { state.documents.filter { it.source == DocumentSource.MANUAL } }
+    if (manuals.isNotEmpty()) ManualsCard(manuals)
+    if (state.manualsSearching || (manuals.isEmpty() && lookup?.manualsSearch == true)) {
+        Txt(stringResource(R.string.ai_manuals_search), 12, 400, C.Soft, maxLines = 3)
+    }
+}
+
+/** The asset model's manuals (manual, installation guide, datasheet, parts list), each opening its PDF or page. */
+@Composable
+private fun ManualsCard(manuals: List<AssetDocument>) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Txt(stringResource(R.string.ai_manuals_title), 13, 700)
+        Column(Modifier.fillMaxWidth().clip(r(8)).background(C.Bg).border(1.dp, C.Border, r(8))) {
+            manuals.forEachIndexed { i, m ->
+                val open = documentOpener(m)
+                val label = stringResource(R.string.doc_open_cd, m.title)
+                val kind = stringResource(R.string.doc_manufacturer_kind, stringResource(m.manualKind.labelRes()))
+                Row(
+                    Modifier.fillMaxWidth().then(if (i > 0) Modifier.topBorder(C.Border) else Modifier)
+                        .then(if (open != null) Modifier.clickable(role = Role.Button, onClick = open) else Modifier)
+                        .semantics { contentDescription = label }.testTag(AiTags.manual(m.id))
+                        .heightIn(min = 48.dp).padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    LineIcon(Icons.FileDoc, 16.dp, C.Yellow, 2f)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Txt(m.title, 13, 600, maxLines = 2)
+                        Txt(listOfNotNull(kind, m.publisher).joinToString(" · "), 11, 500, C.Muted, maxLines = 1)
+                    }
+                    if (open != null) LineIcon(Icons.Eye, 15.dp, C.Muted, 2.2f)
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -447,14 +488,8 @@ private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions:
                     bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700,
                 )
             }
-            // As the iOS app: the search runs while the sheet is open; Cancel (or closing) stops it.
-            AiPhase.SEARCHING -> {
-                Txt(stringResource(R.string.ai_keep_open), 11, 400, C.Muted, Modifier.fillMaxWidth(), align = TextAlign.Center)
-                Pill(
-                    stringResource(R.string.action_cancel), actions.onClose, Modifier.fillMaxWidth().testTag(AiTags.CANCEL),
-                    height = 46.dp, size = 14, weight = 700,
-                )
-            }
+            // The search keeps going when the sheet is closed (the AI button blinks): no buttons while it runs.
+            AiPhase.SEARCHING -> {}
             AiPhase.ERROR -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill(stringResource(R.string.action_close), actions.onClose, Modifier.weight(1f), height = 46.dp, size = 13, weight = 700)
                 if (d.model.isNotBlank()) {
@@ -472,16 +507,11 @@ private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions:
             } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val dropped = if (d.typeOn == false) d.lookup?.suggestedType?.values?.keys.orEmpty() else emptySet()
                 val n = d.picks.count { (k, p) -> p.on && p.value.isNotBlank() && k !in dropped } + typedCount
-                val withType = d.typeOn == true
-                val ready = withType || n > 0
+                val ready = d.typeOn == true || n > 0
                 Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
                 Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
                 Pill(
-                    when {
-                        withType && n > 0 -> stringResource(R.string.ai_apply_type_plus, n)
-                        withType -> stringResource(R.string.ai_apply_type)
-                        else -> stringResource(R.string.ai_apply_count, n)
-                    },
+                    stringResource(R.string.ai_apply),
                     { if (ready) actions.onApply() },
                     Modifier.weight(1f).testTag(AiTags.APPLY).alpha(if (ready) 1f else 0.45f),
                     bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 12.dp, size = 13, weight = 700,

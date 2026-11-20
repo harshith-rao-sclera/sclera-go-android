@@ -25,7 +25,17 @@ data class SettingsDto(
     val photoRules: PhotoRulesDto = PhotoRulesDto(),
     /** AI in validation; on unless the property turned it off. */
     val aiValidation: Boolean = true,
+    /** The units the property's type fields are in: [UNITS_US] (ft, psi, °F) or [UNITS_METRIC] (m, kPa, °C). */
+    val unitSystem: String = UNITS_US,
 )
+
+/** [SettingsDto.unitSystem]'s two values. */
+const val UNITS_US = "us"
+const val UNITS_METRIC = "metric"
+
+/** Someone the property's assets are assigned to (`GET /assets/assignees`), with how many they have. */
+@Serializable
+data class AssigneeDto(val userId: String, val name: String? = null, val email: String = "", val assets: Int = 0)
 
 @Serializable
 data class PropertyDto(

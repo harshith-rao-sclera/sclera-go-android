@@ -16,6 +16,11 @@ data class LocNode(
     val info: BuildingInfo? = null,
     /** False when the place is hidden (`is_active` off): field workers can't pick it. */
     val active: Boolean = true,
+    /**
+     * The property's linked VDMS has (or had) this place too: it was sent there or imported from there. Places don't sync,
+     * so deleting it here leaves VDMS's copy (the delete confirm says so).
+     */
+    val linkedToVdms: Boolean = false,
 )
 
 /** What the location picker hands back on Confirm. */

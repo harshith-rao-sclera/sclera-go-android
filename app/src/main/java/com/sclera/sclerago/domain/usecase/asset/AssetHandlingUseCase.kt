@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase.asset
 
+import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
 import com.sclera.sclerago.domain.model.ActivityKind
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetActivity
@@ -33,6 +34,7 @@ class AssetHandlingUseCase @Inject constructor(
     private val access: AccessRepository,
     private val guard: PermissionGuard,
     private val auth: AuthRepository,
+    private val assignees: AssetAssignmentRepository,
 ) {
     operator fun invoke(asset: Asset, activity: List<AssetActivity>): AssetHandling {
         val submit = if (asset.st in SUBMITTED) {
@@ -42,13 +44,15 @@ class AssetHandlingUseCase @Inject constructor(
     }
 
     /**
-     * Only what is on this device, so it shows offline too: the people list (kept encrypted; the server sends it to
-     * admins only) and, for the signed-in user, their own sign-in email.
+     * Found by the asset's user id: the organisation's users (an admin's, held in memory while the app runs), else the
+     * assignees kept on the device for every user (`property_assignees`, as the web names them, so this shows offline
+     * too), and, for the signed-in user, their own sign-in email.
      */
     private fun person(userId: String?): AssetPerson? = userId?.takeIf { it.isNotBlank() }?.let { id ->
         val known = access.people.value.firstOrNull { it.id == id }
+        val assignee = if (known == null) assignees.keptAssignees()[id] else null
         val me = id == guard.userId()
         val myEmail = if (me) (auth.state.value as? AuthState.SignedIn)?.session?.email else null
-        AssetPerson(known?.name, me, (known?.email ?: myEmail)?.takeIf { it.isNotBlank() })
+        AssetPerson(known?.name ?: assignee?.name, me, (known?.email ?: assignee?.email ?: myEmail)?.takeIf { it.isNotBlank() })
     }
 }

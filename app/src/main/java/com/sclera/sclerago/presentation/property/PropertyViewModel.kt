@@ -101,7 +101,8 @@ class PropertyViewModel @Inject constructor(
         combine(useCases.summaries(), query, flags, downloads.observe(), online) { all, q, f, d, on ->
             PropertyListState(
                 query = q,
-                rows = useCases.filter(all, q),
+                // Downloaded properties first; each group A to Z.
+                rows = useCases.filter(all, q, d.downloadedIds),
                 properties = all.map { it.property },
                 propertyTotal = all.size,
                 syncedTotal = all.count { it.property.id in d.downloadedIds },

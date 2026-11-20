@@ -62,6 +62,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 /**
  * The Integration page (side menu → Integration), the same as the web's: a floating + to add an integration (only while
  * the property has no link), and the link's card (logo, organisation name, info → View Integration). A link can't be changed here.
+ * Once linked, the Buildings, floors & locations card sends places to VDMS or imports them from it ([PlacesCard]).
  */
 @Composable
 fun IntegrationScreen(
@@ -71,10 +72,15 @@ fun IntegrationScreen(
     /** The header's menu button: opens the side menu. */
     onMenu: () -> Unit = {},
     vm: IntegrationViewModel = hiltViewModel(),
+    places: PlacesImportViewModel = hiltViewModel(),
     connectivity: ConnectivityViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(propertyId) { vm.bind(propertyId) }
     val s = vm.state
+    // Buildings, floors and locations are read once the property is known to be linked.
+    val linkId = s.link?.id
+    LaunchedEffect(propertyId, linkId) { if (linkId != null) places.bind(propertyId) }
+    val p = places.state
     val online by connectivity.online.collectAsStateWithLifecycle()
     BackHandler(onBack = onClose)
     Box(Modifier.fillMaxSize().background(C.Bg).testTag("integration_page")) {
@@ -90,7 +96,10 @@ fun IntegrationScreen(
                 when {
                     s.loading -> ListLoader(stringResource(R.string.int_loading))
                     s.link == null -> EmptyNote(stringResource(R.string.int_none))
-                    else -> LinkCard(vm.nameOf(s.link), s.link.vdmsId)
+                    else -> {
+                        LinkCard(vm.nameOf(s.link), s.link.vdmsId)
+                        PlacesCard(p, online, places)
+                    }
                 }
             }
         }
@@ -99,7 +108,7 @@ fun IntegrationScreen(
         val canAdd = s.link == null && !s.loading && s.canAdd
         OfflineGate(
             !online && canAdd, { vm.explainOffline(OnlineOnly.INTEGRATION) },
-            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp), badgeOffset = 2.dp,
+            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp),
         ) {
             CircleFab(
                 Icons.Plus, stringResource(R.string.int_add_title), { if (canAdd) vm.startAdding() },
@@ -107,7 +116,9 @@ fun IntegrationScreen(
             )
         }
         s.adding?.let { a -> AddSheet(a, vm.nameOf(null), vm) }
+        p.sheet?.let { sh -> PlacesImportSheet(sh, p, places) }
         ToastEffect(s.message)
+        ToastEffect(p.message)
     }
 }
 

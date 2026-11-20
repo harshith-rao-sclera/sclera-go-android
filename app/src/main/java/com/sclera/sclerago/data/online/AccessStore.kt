@@ -32,7 +32,10 @@ import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** What is kept encrypted for offline use: the groups, the people (names, emails and who can open which property) and the permissions. */
+/**
+ * What is kept encrypted for offline use: the groups and the permissions. [users] is only read, to forget a copy an earlier
+ * build kept here: the users are held in memory only now, never on the device.
+ */
 @Serializable
 private data class AccessCache(
     val groups: List<GroupDto> = emptyList(),
@@ -41,8 +44,10 @@ private data class AccessCache(
 )
 
 /**
- * The organisation's groups, people and permissions, from the API (as the web reads them); the last copy is kept encrypted ([EncryptedCache]) so it
- * shows offline. Writes are online only. Loaded when someone signs in; forgotten on sign-out.
+ * The organisation's groups, people and permissions, from the API (as the web reads them; the server lists people to admins
+ * only). The users are held in memory only, read again whenever the app starts or someone signs in, so no one's name or
+ * email is kept on the device for them; the groups and permissions are kept encrypted ([EncryptedCache]) so they show
+ * offline. Writes are online only. Forgotten on sign-out.
  */
 @Singleton
 class AccessStore @Inject constructor(
@@ -134,20 +139,24 @@ class AccessStore @Inject constructor(
     }
 
     private suspend fun readCache() {
-        val text = withContext(io) { cache.read(CACHE) } ?: return
-        runCatching { AdcJson.decodeFromString(AccessCache.serializer(), text) }.getOrNull()?.let {
-            groupDtos = it.groups
-            userDtos = it.users
-            permissionDtos = it.permissions
-            publish()
-        }
+        val kept = withContext(io) { cache.read(CACHE) }?.let { text -> runCatching { AdcJson.decodeFromString(AccessCache.serializer(), text) }.getOrNull() }
+        groupDtos = kept?.groups.orEmpty()
+        permissionDtos = kept?.permissions.orEmpty()
+        publish()
+        // Users an earlier build kept in the encrypted copy are forgotten (they are held in memory only now).
+        if (kept?.users?.isNotEmpty() == true) writeCache()
     }
 
     private suspend fun keep(groups: List<GroupDto>, users: List<UserDto>) {
         groupDtos = groups
         userDtos = users
         publish()
-        withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(AccessCache.serializer(), AccessCache(groups, users, permissionDtos))) } }
+        writeCache()
+    }
+
+    /** Keeps the groups and permissions encrypted; never the users. */
+    private suspend fun writeCache() {
+        withContext(io) { runCatching { cache.write(CACHE, AdcJson.encodeToString(AccessCache.serializer(), AccessCache(groupDtos, emptyList(), permissionDtos))) } }
     }
 
     /** Everyone the server lists, those with no group too (they show as having no access, as on the web). */

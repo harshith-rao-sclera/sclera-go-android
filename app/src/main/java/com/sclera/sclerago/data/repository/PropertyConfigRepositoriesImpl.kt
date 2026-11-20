@@ -1,6 +1,7 @@
 package com.sclera.sclerago.data.repository
 
 import com.sclera.sclerago.data.mapper.aiValidationBody
+import com.sclera.sclerago.data.mapper.unitSystemBody
 import com.sclera.sclerago.data.mapper.fieldPatchJson
 import com.sclera.sclerago.data.mapper.fieldsBulkJson
 import com.sclera.sclerago.data.mapper.placeCreateJson
@@ -50,6 +51,9 @@ class PropertySettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setAiValidation(propertyId: String, on: Boolean): PropertySettings =
         kept(propertyId, api.updateSettings(propertyId, aiValidationBody(on)))
+
+    override suspend fun setMetricUnits(propertyId: String, metric: Boolean): PropertySettings =
+        kept(propertyId, api.updateSettings(propertyId, unitSystemBody(metric)))
 
     private suspend fun kept(propertyId: String, dto: SettingsDto): PropertySettings {
         store.applySettings(propertyId, dto)

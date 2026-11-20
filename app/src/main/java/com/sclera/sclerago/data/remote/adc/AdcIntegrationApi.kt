@@ -21,11 +21,12 @@ data class IntegrationDto(
 @Serializable
 data class VdmsChoiceDto(val vdmsId: String = "", val propertyName: String? = null)
 
+/** Someone a VDMS can assign the moved assets to (`GET …/integration/assignees`). */
 @Serializable
-data class AssigneeDto(val email: String = "", val name: String? = null)
+data class VdmsAssigneeDto(val email: String = "", val name: String? = null)
 
 @Serializable
-data class MoveResultDto(val moved: Int? = null)
+data class MoveResultDto(val moved: Int? = null, val placesSent: PlaceCountsDto? = null)
 
 @Serializable
 data class ManagedCountsDto(val moved: Int = 0, val returned: Int = 0)
@@ -45,8 +46,8 @@ class AdcIntegrationApi @Inject constructor(private val service: AdcIntegrationS
     suspend fun networks(p: String): List<String> =
         call.json({ service.networks(p) }) { AdcJson.decodeFromString(ListSerializer(String.serializer()), it) }
 
-    suspend fun assignees(p: String, key: String?): List<AssigneeDto> =
-        call.json({ service.assignees(p, key) }) { AdcJson.decodeFromString(ListSerializer(AssigneeDto.serializer()), it) }
+    suspend fun assignees(p: String, key: String?): List<VdmsAssigneeDto> =
+        call.json({ service.assignees(p, key) }) { AdcJson.decodeFromString(ListSerializer(VdmsAssigneeDto.serializer()), it) }
 
     suspend fun counts(p: String, buildingIds: String?, floorIds: String?, locationIds: String?): ManagedCountsDto =
         call.json({ service.counts(p, buildingIds, floorIds, locationIds) }) { AdcJson.decodeFromString(ManagedCountsDto.serializer(), it) }
@@ -54,6 +55,24 @@ class AdcIntegrationApi @Inject constructor(private val service: AdcIntegrationS
     /** [body] is built by `moveBody` (`data/mapper/IntegrationMapper.kt`). */
     suspend fun move(p: String, body: JsonObject): MoveResultDto =
         call.json({ service.move(p, body.toString().toRequestBody(JSON)) }) { AdcJson.decodeFromString(MoveResultDto.serializer(), it) }
+
+    /** [body] is built by `movePreviewBody` (`data/mapper/IntegrationMapper.kt`). */
+    suspend fun movePreview(p: String, body: JsonObject): MovePreviewDto =
+        call.json({ service.movePreview(p, body.toString().toRequestBody(JSON)) }) { AdcJson.decodeFromString(MovePreviewDto.serializer(), it) }
+
+    suspend fun places(p: String): PlacesDto =
+        call.json({ service.places(p) }) { AdcJson.decodeFromString(PlacesDto.serializer(), it) }
+
+    suspend fun refreshPlaces(p: String): PlacesRefreshDto =
+        call.json({ service.refreshPlaces(p) }) { AdcJson.decodeFromString(PlacesRefreshDto.serializer(), it) }
+
+    /** [body] is built by `placesSelectionBody` (`data/mapper/IntegrationMapper.kt`). */
+    suspend fun pushPlaces(p: String, body: JsonObject): PlacesPushDto =
+        call.json({ service.pushPlaces(p, body.toString().toRequestBody(JSON)) }) { AdcJson.decodeFromString(PlacesPushDto.serializer(), it) }
+
+    /** [body] is built by `placesSelectionBody` (`data/mapper/IntegrationMapper.kt`). */
+    suspend fun importPlaces(p: String, body: JsonObject): PlacesImportDto =
+        call.json({ service.importPlaces(p, body.toString().toRequestBody(JSON)) }) { AdcJson.decodeFromString(PlacesImportDto.serializer(), it) }
 
     private companion object {
         val JSON = "application/json".toMediaType()

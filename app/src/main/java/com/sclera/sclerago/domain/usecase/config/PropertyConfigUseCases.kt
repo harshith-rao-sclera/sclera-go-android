@@ -97,6 +97,17 @@ class SetAiValidationUseCase @Inject constructor(private val repo: PropertySetti
     }
 }
 
+/**
+ * Puts the property's type fields in metric or US units (the web's Units setting); returns the settings the server kept.
+ * Only assets classified from then on get the renamed fields; no answer is converted.
+ */
+class SetMetricUnitsUseCase @Inject constructor(private val repo: PropertySettingsRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(propertyId: String, metric: Boolean): PropertySettings {
+        guard.requireOnline(Permission.CONFIGURE)
+        return repo.setMetricUnits(propertyId, metric)
+    }
+}
+
 // ---- Geofence
 
 class LoadGeofenceUseCase @Inject constructor(private val repo: GeofenceRepository) {
@@ -153,6 +164,7 @@ class PropertyConfigUseCases @Inject constructor(
     val loadSettings: LoadPropertySettingsUseCase,
     val savePhotoRules: SavePhotoRulesUseCase,
     val setAiValidation: SetAiValidationUseCase,
+    val setMetricUnits: SetMetricUnitsUseCase,
     val loadGeofence: LoadGeofenceUseCase,
     val saveGeofence: SaveGeofenceUseCase,
     val setGeofenceEnforced: SetGeofenceEnforcedUseCase,

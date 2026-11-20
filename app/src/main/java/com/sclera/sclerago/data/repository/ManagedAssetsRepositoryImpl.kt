@@ -1,8 +1,13 @@
 package com.sclera.sclerago.data.repository
 
 import com.sclera.sclerago.data.mapper.moveBody
+import com.sclera.sclerago.data.mapper.movePreviewBody
+import com.sclera.sclerago.data.mapper.toDomain
 import com.sclera.sclerago.data.remote.adc.AdcIntegrationApi
 import com.sclera.sclerago.domain.model.ManagedCounts
+import com.sclera.sclerago.domain.model.MoveOutcome
+import com.sclera.sclerago.domain.model.MovePreview
+import com.sclera.sclerago.domain.model.PlaceCounts
 import com.sclera.sclerago.domain.model.PlaceScope
 import com.sclera.sclerago.domain.model.VdmsAssignee
 import com.sclera.sclerago.domain.repository.ManagedAssetsRepository
@@ -25,8 +30,13 @@ class ManagedAssetsRepositoryImpl @Inject constructor(private val api: AdcIntegr
         return ManagedCounts(dto.moved.coerceAtLeast(0), dto.returned.coerceAtLeast(0))
     }
 
-    override suspend fun move(propertyId: String, assetIds: Collection<String>, networkName: String, assignee: String?): Int? =
-        api.move(propertyId, moveBody(assetIds, networkName, assignee)).moved
+    override suspend fun move(propertyId: String, assetIds: Collection<String>, networkName: String, assignee: String?): MoveOutcome {
+        val dto = api.move(propertyId, moveBody(assetIds, networkName, assignee))
+        return MoveOutcome(dto.moved, dto.placesSent?.toDomain() ?: PlaceCounts())
+    }
+
+    override suspend fun preview(propertyId: String, assetIds: Collection<String>): MovePreview =
+        api.movePreview(propertyId, movePreviewBody(assetIds)).toDomain()
 
     private companion object {
         const val MAX_KEY = 200

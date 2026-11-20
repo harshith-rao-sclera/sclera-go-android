@@ -19,4 +19,6 @@ class AssetFormRepositoryImpl @Inject constructor(
     override fun entries(assetId: String): Flow<List<FormEntry>> = fields.entriesFlow(assetId)
 
     override fun formats(): Flow<List<MasterFormat>> = formats.activeFlow()
+
+    override fun formatsById(): Flow<Map<String, MasterFormat>> = formats.byIdFlow()
 }

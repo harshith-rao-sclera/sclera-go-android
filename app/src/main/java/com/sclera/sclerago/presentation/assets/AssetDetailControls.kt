@@ -259,7 +259,7 @@ private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit, of
         // Working (a look-up, or filling the form from new photos): the sparkle blinks inside a cyan ring.
         val blink by inf.animateFloat(1f, 0.25f, infiniteRepeatable(tween(550), RepeatMode.Reverse), label = "blink")
         val description = stringResource(R.string.detail_ai_fill)
-        OfflineGate(offline, onBlocked, badgeOffset = 2.dp) {
+        OfflineGate(offline, onBlocked) {
             Box(
                 Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().clip(CircleShape).background(C.Surface)
                     .border(if (busy) 2.dp else 1.dp, if (busy) C.Cyan.copy(alpha = 0.4f + 0.6f * blink) else C.Border2, CircleShape)
@@ -291,7 +291,7 @@ private fun MicButton(
             listening -> Bubble(heard.ifBlank { stringResource(R.string.voice_listening) }, 3)
         }
         val description = stringResource(if (listening) R.string.voice_stop else R.string.detail_voice_fill)
-        OfflineGate(offline, onBlocked, badgeOffset = 2.dp) {
+        OfflineGate(offline, onBlocked) {
             Box(contentAlignment = Alignment.Center) {
                 if (listening) {
                     val inf = rememberInfiniteTransition(label = "mic")

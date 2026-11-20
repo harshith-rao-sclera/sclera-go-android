@@ -6,7 +6,7 @@ import com.sclera.sclerago.domain.validation.AssetResult
  * What an asset query keeps. [placeIds] are building, floor or location ids (an asset matches when it is in
  * any of them); [unmappedOnly] keeps assets with no location; [sources] null = every way of onboarding.
  */
-data class AssetFilter(
+data class AssetQueryFilter(
     val status: Status? = null,
     val sources: Set<Source>? = null,
     val placeIds: List<String> = emptyList(),

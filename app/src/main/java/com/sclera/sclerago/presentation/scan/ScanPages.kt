@@ -39,6 +39,7 @@ import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SegHeader
+import com.sclera.sclerago.presentation.components.SignalBars
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.readableWidth
@@ -277,7 +278,11 @@ private fun LazyListScope.scanSection(
         ) {
             DeviceIconTile()
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Txt(d.name, 12, 600)
+                // The name, then how strong its signal is (how quickly it answered, on the network).
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Txt(d.name, 12, 600, C.Text, Modifier.weight(1f, fill = false), maxLines = 1)
+                    SignalBars(d.lvl)
+                }
                 Txt(d.sub, 11, 400, C.Muted, mono = mono)
             }
             when {

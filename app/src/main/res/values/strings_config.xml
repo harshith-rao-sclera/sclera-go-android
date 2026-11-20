@@ -86,6 +86,8 @@
     <string name="cfg_delete_building_body">%1$s, its floors and their locations will be deleted. Assets there are kept, without a building, floor or location.</string>
     <string name="cfg_floors_removed_note">%1$s and their locations will be deleted when you save. Assets there are kept, without a floor or location.</string>
     <string name="cfg_delete_location_body">%1$s will be deleted. Assets there are kept, without a location.</string>
+    <!-- A delete confirm (%1$s) when a place being deleted is also in the linked VDMS: places don't sync, so VDMS keeps its copy. -->
+    <string name="cfg_delete_vdms_note">%1$s This stays in VDMS. Delete it there too if it\'s no longer needed.</string>
     <plurals name="cfg_delete_locations_title">
         <item quantity="one">Delete %1$d location?</item>
         <item quantity="other">Delete %1$d locations?</item>
@@ -139,6 +141,12 @@
     <!-- Small additions to the existing screens -->
     <string name="cfg_validation_title">Validation</string>
     <string name="cfg_ai_validation_row">AI checks (specs, JACS ranking, AI review, photos, spelling) run when validating assets.</string>
+    <string name="cfg_units_title">Units</string>
+    <string name="cfg_units_hint">The fields an asset type brings are in US units (ft, psi, °F) or metric (m, kPa, °C). Fields already on an asset keep their unit, and no answer is converted.</string>
+    <string name="cfg_units_metric">Metric units</string>
+    <string name="cfg_units_metric_row">m, kPa, °C. Applies to assets classified from now on.</string>
+    <string name="cfg_units_metric_saved">Metric units</string>
+    <string name="cfg_units_us_saved">US units</string>
     <string name="cfg_checks_whole_hint">Values with decimals are flagged.</string>
     <string name="cfg_place_visibility">Visibility</string>
     <string name="cfg_floor_visible_hint">Field workers can pick this floor</string>

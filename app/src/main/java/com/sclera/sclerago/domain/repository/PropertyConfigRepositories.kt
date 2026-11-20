@@ -22,6 +22,9 @@ interface PropertySettingsRepository {
 
     /** Turns AI in validation on or off; returns the settings the server kept. */
     suspend fun setAiValidation(propertyId: String, on: Boolean): PropertySettings
+
+    /** Puts the property's type fields in metric ([metric]) or US units; returns the settings the server kept. */
+    suspend fun setMetricUnits(propertyId: String, metric: Boolean): PropertySettings
 }
 
 /**

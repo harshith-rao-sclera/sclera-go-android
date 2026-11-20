@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The asset list's filter sheet and its floating button. -->
+<resources>
+    <string name="filter_title">Filter</string>
+    <string name="filter_open">Filter assets</string>
+    <plurals name="filter_open_active">
+        <item quantity="one">Filter assets, %1$d filter on</item>
+        <item quantity="other">Filter assets, %1$d filters on</item>
+    </plurals>
+    <string name="filter_assigned_to">Assigned to</string>
+    <string name="filter_you">You</string>
+    <!-- Initials in the signed-in user's own avatar. -->
+    <string name="filter_me_initials">Me</string>
+    <string name="filter_someone">Someone</string>
+    <string name="filter_system_type">System type</string>
+    <string name="filter_asset_type">Asset type</string>
+    <string name="filter_sub_type">Sub type</string>
+    <string name="filter_other">Other</string>
+    <string name="filter_no_type">No type yet</string>
+    <string name="filter_nothing">Nothing to choose here for these assets.</string>
+    <string name="filter_reset">Reset</string>
+    <plurals name="filter_show">
+        <item quantity="one">Show %1$d asset</item>
+        <item quantity="other">Show %1$d assets</item>
+    </plurals>
+    <string name="dash_empty_filter">No assets match the filter here.</string>
+</resources>

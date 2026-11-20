@@ -32,6 +32,7 @@ import com.sclera.sclerago.data.repository.ValidationRunRepositoryImpl
 import com.sclera.sclerago.data.repository.IntegrationRepositoryImpl
 import com.sclera.sclerago.data.repository.VdmsLinkRepositoryImpl
 import com.sclera.sclerago.data.repository.ManagedAssetsRepositoryImpl
+import com.sclera.sclerago.data.repository.VdmsPlacesRepositoryImpl
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AddressLookupRepository
 import com.sclera.sclerago.domain.repository.PropertyImportRepository
@@ -51,6 +52,7 @@ import com.sclera.sclerago.domain.repository.ValidationRunRepository
 import com.sclera.sclerago.domain.repository.IntegrationRepository
 import com.sclera.sclerago.domain.repository.VdmsLinkRepository
 import com.sclera.sclerago.domain.repository.ManagedAssetsRepository
+import com.sclera.sclerago.domain.repository.VdmsPlacesRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -85,6 +87,7 @@ abstract class OnlineModule {
     @Binds abstract fun integration(impl: IntegrationRepositoryImpl): IntegrationRepository
     @Binds abstract fun vdmsLink(impl: VdmsLinkRepositoryImpl): VdmsLinkRepository
     @Binds abstract fun managedAssets(impl: ManagedAssetsRepositoryImpl): ManagedAssetsRepository
+    @Binds abstract fun vdmsPlaces(impl: VdmsPlacesRepositoryImpl): VdmsPlacesRepository
     @Binds abstract fun propertySettings(impl: PropertySettingsRepositoryImpl): PropertySettingsRepository
     @Binds abstract fun geofence(impl: GeofenceRepositoryImpl): GeofenceRepository
     @Binds abstract fun configFields(impl: ConfigFieldsRepositoryImpl): ConfigFieldsRepository
@@ -94,6 +97,7 @@ abstract class OnlineModule {
     @Binds @IntoSet abstract fun clearCache(impl: EncryptedFileCache): UserDataCleaner
     @Binds @IntoSet abstract fun clearProperties(impl: PropertyStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearAccess(impl: AccessStore): UserDataCleaner
+    @Binds @IntoSet abstract fun clearAssignees(impl: AssetAssignmentRepositoryImpl): UserDataCleaner
     @Binds @IntoSet abstract fun clearCurrentAccess(impl: CurrentAccessRepositoryImpl): UserDataCleaner
     @Binds @IntoSet abstract fun clearIdentity(impl: OnlineIdentity): UserDataCleaner
     @Binds @IntoSet abstract fun clearConfigPlaces(impl: ConfigPlacesRepositoryImpl): UserDataCleaner

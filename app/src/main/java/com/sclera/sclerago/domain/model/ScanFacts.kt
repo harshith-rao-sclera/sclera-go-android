@@ -1,28 +1,33 @@
 package com.sclera.sclerago.domain.model
 
 /**
- * What a Bluetooth, network or access point scan found out about a device that says what it is: its maker and model,
- * what kind of device it is, its operating system and the services it offers. An asset made from the device starts
- * with these (Manufacturer, Model and its Description), and the AI fills its other fields from them.
+ * What a Bluetooth, network or access point scan found out about a device. [make] and [model] go into the asset's
+ * Manufacturer and Model; [details] are every fact the scan has, one per line, and become its Description, from which
+ * the AI fills its other fields.
  *
- * Nothing here identifies the device or a person: no IP or MAC address, BLE address, BSSID, SSID or host name. Those
- * are shown on the scan list only, never stored on the asset or sent to the AI (MASVS-PRIVACY).
+ * Some lines identify the device or its owner (its IP or MAC address, Bluetooth address, BSSID, network or host name):
+ * they are kept on the asset, but [withoutScanIdentifiers] takes them out of anything sent to the AI (MASVS-PRIVACY).
  */
 data class ScanFacts(
     val make: String? = null,
     val model: String? = null,
-    /** What kind of device: "TV / Streaming", "Printer", "Bluetooth beacon", "Wi-Fi access point". */
-    val kind: String? = null,
-    val os: String? = null,
-    /** What it offers: "AirPlay", "Printer (IPP)", "Heart Rate", "WPA2"… */
-    val services: List<String> = emptyList(),
+    val details: List<ScanDetail> = emptyList(),
 ) {
-    /** One line of the facts: "Samsung · UCU8000 · TV / Streaming · Tizen · AirPlay, Chromecast". */
-    fun summary(): String = (
-        listOf(make, model, kind, os) + services.take(MAX_SERVICES).joinToString(", ")
-        ).mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }.distinct().joinToString(" · ")
+    /** The Description: "Found by: Wi-Fi network scan", "Kind: Printer", "IP address: 10.2.30.28"… one per line. */
+    fun description(): String = details.joinToString("\n") { "${it.label}: ${it.value}" }
+}
 
-    private companion object {
-        const val MAX_SERVICES = 6
-    }
+/** One fact of a scan: its label and value ("Signal" → "-78 dBm (best -62 dBm)"). */
+data class ScanDetail(val label: String, val value: String)
+
+/** The labels of the Description lines that identify a device or its owner: never sent to the AI. */
+val SCAN_IDENTIFYING_LABELS = setOf(
+    "Device name", "IP address", "MAC address", "Host name", "Windows name", "Workgroup", "UPnP name",
+    "Bluetooth address", "Network name", "BSSID",
+)
+
+/** [text] without its scan lines that identify the device ([SCAN_IDENTIFYING_LABELS]): what an AI request may carry. */
+fun withoutScanIdentifiers(text: String): String {
+    if (SCAN_IDENTIFYING_LABELS.none { text.contains("$it:") }) return text
+    return text.lines().filterNot { line -> SCAN_IDENTIFYING_LABELS.any { line.trimStart().startsWith("$it:") } }.joinToString("\n")
 }

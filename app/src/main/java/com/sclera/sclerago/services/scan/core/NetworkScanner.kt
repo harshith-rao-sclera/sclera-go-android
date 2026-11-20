@@ -502,6 +502,21 @@ class NetworkScanner(
         }
         _progress.value = 0.4f
 
+        // ---- Stage 3, continued: UPnP (SSDP) ---------------------------------
+        // Routers, TVs, cameras, NAS boxes, smart plugs and many printers say who they are over UPnP rather than
+        // Bonjour or NetBIOS. Like mDNS it only hears our own link, so it is skipped while the sweep aims elsewhere.
+        val upnpDescriptions = if (customSubnet == null) {
+            _statusDetail.value = "Asking UPnP devices to describe themselves…"
+            SsdpDiscovery.search().filterKeys { it in subnet }
+        } else {
+            emptyMap()
+        }
+        for (address in upnpDescriptions.keys) {
+            alive += address
+            store(NetworkDevice(ip = address, discoveryMethods = setOf(DiscoveryMethod.UPNP)))
+        }
+        if (!currentCoroutineContext().isActive) return finish()
+
         // ---- Stage 3a: ARP cache (emulators and older Android only) --------
         val arpEntries = ArpTable.current()
         _arpAvailable.value = arpEntries.isNotEmpty()
@@ -565,6 +580,7 @@ class NetworkScanner(
 
         for (host in hosts) {
             jobs += { NameResolution.reverseLookup(host)?.let { Enrichment.Hostname(host, it) } }
+            upnpDescriptions[host]?.let { url -> jobs += { SsdpDiscovery.describe(url)?.let { Enrichment.Upnp(host, it) } } }
             // The name sweep already covered every address; only retry hosts it
             // did not answer for, in case the first datagram was simply lost.
             if (host !in alreadyNamed) {
@@ -648,6 +664,7 @@ class NetworkScanner(
         data class Hostname(val host: IPv4, val name: String) : Enrichment
         data class NetBios(val host: IPv4, val info: NetBiosInfo) : Enrichment
         data class Port(val host: IPv4, val observation: PortObservation) : Enrichment
+        data class Upnp(val host: IPv4, val info: UpnpInfo) : Enrichment
     }
 
     private suspend fun apply(enrichment: Enrichment) {
@@ -681,6 +698,17 @@ class NetworkScanner(
                     ip = enrichment.host,
                     openPorts = listOf(enrichment.observation),
                     discoveryMethods = setOf(DiscoveryMethod.TCP),
+                ),
+            )
+
+            // The maker and model it reports; a MAC-based vendor or a Bonjour model already known wins (merge keeps the first).
+            is Enrichment.Upnp -> store(
+                NetworkDevice(
+                    ip = enrichment.host,
+                    upnp = enrichment.info,
+                    vendor = enrichment.info.manufacturer,
+                    modelName = enrichment.info.modelName ?: enrichment.info.modelNumber,
+                    discoveryMethods = setOf(DiscoveryMethod.UPNP),
                 ),
             )
         }

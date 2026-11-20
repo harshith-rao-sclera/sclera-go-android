@@ -13,6 +13,7 @@ import com.sclera.sclerago.domain.model.TypeSuggestion
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.formatFor
 import com.sclera.sclerago.domain.model.typeFieldName
+import com.sclera.sclerago.domain.model.withoutScanIdentifiers
 import com.sclera.sclerago.domain.usecase.asset.ClassifyAssetUseCases
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
@@ -108,7 +109,8 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
         this.assetId = assetId
         val other = fields
             .filter { it.key !in NOT_OTHER && typeFieldName(it.key) == null }
-            .mapNotNull { f -> value(f.key).trim().takeIf { it.isNotEmpty() }?.let { f.label to it } }
+            // A scan's identifying lines (IP, MAC, BSSID, names) never go to the AI.
+            .mapNotNull { f -> withoutScanIdentifiers(value(f.key)).trim().takeIf { it.isNotEmpty() }?.let { f.label to it } }
             .take(MAX_OTHER_DETAILS).toMap()
         details = ClassifyDetails(value("name"), value("make"), value("model"), value("serial"), other)
         sheetJob?.cancel()

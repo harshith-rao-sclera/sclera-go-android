@@ -61,6 +61,7 @@ object DashTags {
     fun location(filter: LocFilter) = "dash-loc-${filter.name}"
     fun chevron(filter: LocFilter) = "dash-loc-chevron-${filter.name}"
     const val ADD = "dash-add"
+    const val FILTER = "dash-filter"
     const val DOCK = "dash-dock"
     const val SELECT_ALL = "dash-select-all"
     fun nav(tab: Tab) = "dash-nav-${tab.name}"

@@ -128,3 +128,11 @@ class AccessUseCases @Inject constructor(
     val saveGroup: SaveGroupUseCase,
     val deleteGroup: DeleteGroupUseCase,
 )
+
+/**
+ * Whether the user may see and manage people and access (the server's manage-access permission): only they get the Users
+ * page, as the server lists the organisation's users to them alone.
+ */
+class CanManageAccessUseCase @Inject constructor(private val guard: PermissionGuard) {
+    operator fun invoke(): Boolean = guard.allows(Permission.MANAGE_ACCESS)
+}

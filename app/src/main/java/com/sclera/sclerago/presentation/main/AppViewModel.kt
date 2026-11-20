@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.domain.usecase.access.CanManageAccessUseCase
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -188,6 +189,7 @@ class AppViewModel @Inject constructor(
     private val integrationAccess: IntegrationAccessUseCase,
     private val fileUseCases: FileUseCases,
     private val downloads: PropertyDownloadUseCases,
+    private val manageAccess: CanManageAccessUseCase,
 ) : ViewModel() {
     var state by mutableStateOf(UiState())
         private set
@@ -297,13 +299,13 @@ class AppViewModel @Inject constructor(
 
     /**
      * What an asset made from scanned device [d] starts with: its make and model as the scan found them, and a
-     * Description of what it is (kind, OS, services…), from which the AI fills the rest. Only standard fields: the
-     * property's other fields have keys of their own, so nothing is guessed into them. The description carries no
-     * identifiers (no IP or MAC address, BLE address, BSSID or SSID), as the AI reads it.
+     * Description with everything the scan found, one fact per line, from which the AI fills the rest. Only standard
+     * fields: the property's other fields have keys of their own, so nothing is guessed into them. The lines that
+     * identify the device (IP, MAC, Bluetooth address, BSSID, names) stay on the asset but never go to the AI.
      */
     private fun prefillFor(d: Device): Map<String, String> {
         val facts = d.facts
-        val about = facts?.summary().orEmpty().ifBlank { deviceName(d) }
+        val about = facts?.description().orEmpty().ifBlank { deviceName(d) }
         val m = mutableMapOf<String, String>()
         if (about.isNotBlank()) m["description"] = about
         facts?.make?.let { m["make"] = it }
@@ -321,6 +323,10 @@ class AppViewModel @Inject constructor(
             Tab.FILE -> fileSub
         }
     private val sheetOpen get() = state.sheet != Sheet.NONE
+
+    /** A scan list is on screen (the Bluetooth or Network tab on its Scan side), not an asset list. */
+    val scanListShown: Boolean
+        get() = (state.tab == Tab.BT && state.btScan) || (state.tab == Tab.NET && state.netScan)
 
     /** The asset lists are on screen and nothing covers them (so selecting and searching make sense). */
     val listInteractive: Boolean get() = listy && !showDetail && !sheetOpen
@@ -486,6 +492,7 @@ class AppViewModel @Inject constructor(
     fun pickMenu(item: MenuItem) {
         closeMenu()
         if (item == MenuItem.CONFIGURATION && !canConfigure) return
+        if (item == MenuItem.USERS && !canManageAccess) return
         // The page on screen goes: asked once, here, before anything closes (photos just taken, unsaved changes).
         leaving {
             when (item) {
@@ -669,6 +676,13 @@ class AppViewModel @Inject constructor(
         // A camera shot that never became an asset is thrown away with the form.
         if (state.newAsset) fileUseCases.deleteOwned(state.newMedia)
         set { copy(assetId = null, newAsset = false, newMedia = emptyList(), newDevice = null) }
+    }
+
+    /** A shot the new asset's form opened with was removed there: it isn't made into the asset, and its file goes. */
+    fun dropNewMedia(m: Media) {
+        if (!state.newAsset) return
+        fileUseCases.deleteOwned(state.newMedia.filter { it.id == m.id })
+        set { copy(newMedia = newMedia.filterNot { it.id == m.id }) }
     }
 
     /** Camera tab: open the new-asset details with these photos/videos already attached. */
@@ -880,6 +894,9 @@ class AppViewModel @Inject constructor(
 
     /** The signed-in user may configure the property (the server's configure permission): the Integration page shows only then. */
     val canConfigure: Boolean get() = integrationAccess()
+
+    /** The Users page is only for someone who may manage people and access (as the server's user list). */
+    val canManageAccess: Boolean get() = manageAccess()
 
     fun openIntegration() = leaving { showIntegration() }
     private fun showIntegration() =

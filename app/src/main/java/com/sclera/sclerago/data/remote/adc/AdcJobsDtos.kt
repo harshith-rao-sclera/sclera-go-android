@@ -73,3 +73,25 @@ data class VoiceFillDto(
 /** Something said that no field took, and why. */
 @Serializable
 data class VoiceUnmatchedDto(val text: String = "", val reason: String = "")
+
+/** One manual of a model, from the manufacturer's own site (`GET /assets/{id}/manuals`). */
+@Serializable
+data class ManualDto(
+    val id: String,
+    val manufacturer: String = "",
+    val model: String = "",
+    val title: String = "",
+    /** manual, installation, datasheet, parts or other. */
+    val kind: String? = null,
+    val url: String? = null,
+    val publisher: String? = null,
+    val hasFile: Boolean = false,
+)
+
+/** The latest search for a model's manuals: queued, running, completed or failed. */
+@Serializable
+data class ManualJobDto(val id: String, val status: String = "")
+
+/** An asset's model's manuals, and the latest search for them. */
+@Serializable
+data class AssetManualsDto(val manuals: List<ManualDto> = emptyList(), val job: ManualJobDto? = null)

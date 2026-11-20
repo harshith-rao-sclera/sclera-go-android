@@ -72,6 +72,8 @@ fun AssetDetailRoute(
     prefill: Map<String, String> = emptyMap(),
     /** What the scan found out about the device a new asset is made from: the AI is asked about it once it opens. */
     scan: ScanFacts? = null,
+    /** A photo a new asset was opened with (the Camera tab's shots) was removed on its page. */
+    onDropCapture: (Media) -> Unit = {},
     vm: AssetDetailViewModel = hiltViewModel(),
     tagVm: TagViewModel = hiltViewModel(),
 ) {
@@ -113,7 +115,7 @@ fun AssetDetailRoute(
     val filePick = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) scope.launch { attach(describeAttachments(context, uris)) }
     }
-    // The Documents tab takes one file: an asset has one source document.
+    // The Documents tab's Add: one file, added to the asset's documents.
     val documentPick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
             val doc = describeDocument(context, uri)
@@ -181,7 +183,7 @@ fun AssetDetailRoute(
             downloading = m
             mediaSave.launch(m)
         },
-        onRemoveMedia = vm::removeMedia,
+        onRemoveMedia = { vm.removeMedia(it, onDropCapture) },
         onSuggestType = vm::openClassify,
         onOffline = { onNotice(UiText.Res(it.message)) },
         onOpenClone = vm::openClone,

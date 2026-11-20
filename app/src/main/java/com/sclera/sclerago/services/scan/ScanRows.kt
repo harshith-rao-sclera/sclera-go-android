@@ -5,6 +5,7 @@ import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.BLE_ID
 import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.domain.model.NET_ID
+import com.sclera.sclerago.domain.model.ScanDetail
 import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
 import com.sclera.sclerago.domain.model.typeOf
@@ -36,7 +37,9 @@ fun BleDevice.toRow(): Device {
         metres < 30 -> "~${metres.roundToInt()} m"
         else -> "30 m+"
     }
-    val kind = sanitizeScanText(manufacturerName).ifEmpty { null } ?: if (connectable) "BLE device" else "BLE beacon"
+    // "Microsoft · −67 dBm · ~3 m", or how it advertises when it names no maker.
+    val kind = sanitizeScanText(manufacturerName).ifEmpty { null } ?: if (connectable) "Connectable" else "Broadcast only"
+    val services = serviceUuids.mapNotNull(::bleServiceName).distinct()
     return Device(
         id = BLE_ID + address,
         name = if (isUnnamed) UNKNOWN_DEVICE else sanitizeScanText(displayName).ifEmpty { UNKNOWN_DEVICE },
@@ -47,8 +50,18 @@ fun BleDevice.toRow(): Device {
         type = typeOf(sanitizeScanText(name)),
         facts = ScanFacts(
             make = text(manufacturerName),
-            kind = if (connectable) "Bluetooth device" else "Bluetooth beacon",
-            services = serviceUuids.mapNotNull(::bleServiceName).distinct(),
+            details = details {
+                add("Found by", "Bluetooth LE scan")
+                add("Kind", if (connectable) "Bluetooth device" else "Bluetooth beacon")
+                add("Device name", name)
+                add("Manufacturer", manufacturerName)
+                add("Bluetooth address", address + if (addressIsRandom) " (random)" else "")
+                add("Signal", "$rssiDbm dBm" + if (bestRssiDbm != rssiDbm) " (best $bestRssiDbm dBm)" else "")
+                add("Transmit power", txPowerDbm?.let { "$it dBm" })
+                add("Distance", dist)
+                add("Connectable", if (connectable) "Yes" else "No")
+                add("Services", services.joinToString(", "))
+            },
         ),
     )
 }
@@ -86,21 +99,43 @@ fun NetworkDevice.toRow(): Device {
         rttMs < 200 -> 2
         else -> 1
     }
+    // Nothing identifies it: the line says "Unidentified" rather than how it answered.
+    val identified = modelName != null || vendor != null || operatingSystem != null || category != DeviceCategory.UNKNOWN
+    val services = (bonjourServices.mapNotNull { serviceName(it.friendlyProtocolName) } + openPorts.mapNotNull { text(it.serviceName) }).distinct()
     return Device(
         id = NET_ID + ip,
-        name = if (isUnnamed) UNKNOWN_DEVICE else sanitizeScanText(displayName).ifEmpty { UNKNOWN_DEVICE },
-        // The IP leads the line: it is what an asset's "IP address" field is matched on.
-        sub = "${ip} · ${sanitizeScanText(subtitle)}",
+        // A host that gives no name is listed by its IP address.
+        name = if (isUnnamed) ip.toString() else sanitizeScanText(displayName).ifEmpty { ip.toString() },
+        sub = "$ip · ${sanitizeScanText(if (identified) subtitle else category.label)}",
         lvl = lvl,
         known = false,
         type = assetType(category).takeIf { it != AssetType.GENERIC } ?: typeOf(listOfNotNull(sanitizeScanText(displayName), sanitizeScanText(modelName)).joinToString(" ")),
-        // What it is, from its vendor, model, kind, OS and what it offers; never its address or host names.
         facts = ScanFacts(
             make = text(vendor),
             model = text(modelName) ?: text(modelIdentifier),
-            kind = category.takeIf { it != DeviceCategory.UNKNOWN }?.label,
-            os = text(operatingSystem),
-            services = (bonjourServices.mapNotNull { serviceName(it.friendlyProtocolName) } + openPorts.mapNotNull { text(it.serviceName) }).distinct(),
+            details = details {
+                add("Found by", "Wi-Fi network scan")
+                add("Kind", category.label)
+                add("Manufacturer", vendor)
+                add("Model", modelName)
+                add("Model identifier", modelIdentifier?.takeIf { it != modelName })
+                add("UPnP name", upnp?.friendlyName)
+                add("UPnP type", upnp?.deviceType)
+                add("IP address", ip.toString())
+                add("MAC address", macAddress?.toString())
+                add("Host name", hostnames.joinToString(", "))
+                add("Windows name", netbios?.computerName)
+                add("Workgroup", netbios?.workgroup)
+                add("Role", if (isGateway) "Router / gateway" else null)
+                add("Operating system", operatingSystem)
+                add("Services", services.joinToString(", "))
+                add("Open ports", openPorts.joinToString(", ") { it.port.toString() })
+                add("Web page", openPorts.firstNotNullOfOrNull { it.httpTitle })
+                add("Web server", openPorts.firstNotNullOfOrNull { it.httpServer })
+                add("Found with", discoveryMethods.sortedBy { it.ordinal }.joinToString(", ") { it.label })
+                add("Response time", rttMs?.let { "${it.roundToInt()} ms" })
+                add("TTL", ttl?.toString())
+            },
         ),
     )
 }
@@ -129,10 +164,30 @@ fun WifiAccessPoint.toRow(): Device = Device(
     lvl = signalBars.coerceIn(1, 4),
     known = false,
     type = AssetType.AP,
-    // Its maker, band and security; never its BSSID or SSID.
     facts = ScanFacts(
         make = text(vendor),
-        kind = "Wi-Fi access point",
-        services = listOfNotNull(text(band), text(securityLabel)),
+        details = details {
+            add("Found by", "Wi-Fi access point scan")
+            add("Kind", "Wi-Fi access point")
+            add("Network name", displayName)
+            add("BSSID", bssid)
+            add("Manufacturer", vendor)
+            add("Band", band.takeIf { it != "—" })
+            add("Channel", channel?.toString())
+            add("Frequency", "$frequencyMHz MHz")
+            add("Security", securityLabel)
+            add("Signal", "$rssiDbm dBm")
+            add("Connected", if (isCurrentNetwork) "Yes" else null)
+        },
     ),
 )
+
+/** Builds a device's Description lines; a blank or missing value is left out, and every value is cleaned. */
+private fun details(build: DetailsBuilder.() -> Unit): List<ScanDetail> = DetailsBuilder().apply(build).lines
+
+private class DetailsBuilder {
+    val lines = mutableListOf<ScanDetail>()
+    fun add(label: String, value: String?) {
+        text(value)?.let { lines += ScanDetail(label, it) }
+    }
+}

@@ -15,12 +15,12 @@ private class StatusLook(val color: Color, val icon: Ico, val chipBg: Color, val
 
 private val Status.look: StatusLook
     get() = when (this) {
-        Status.AI -> StatusLook(C.Cyan, Icons.Sparkles, Color(0xFF132629), Color(0xFF1F4247))
-        Status.VALIDATED -> StatusLook(C.Purple, Icons.ShieldCheck, Color(0xFF211E2E), Color(0xFF383150))
-        Status.SUBMITTED -> StatusLook(C.Green, Icons.CheckCircle, Color(0xFF17241D), Color(0xFF27402F))
-        Status.DRAFT -> StatusLook(C.Muted, Icons.Pencil, C.Raised, C.Border2, C.Soft)
+        Status.AI -> StatusLook(C.Cyan, Icons.StatusAi, Color(0xFF132629), Color(0xFF1F4247))
+        Status.VALIDATED -> StatusLook(C.Purple, Icons.StatusValidated, Color(0xFF211E2E), Color(0xFF383150))
+        Status.SUBMITTED -> StatusLook(C.Green, Icons.StatusSubmitted, Color(0xFF17241D), Color(0xFF27402F))
+        Status.DRAFT -> StatusLook(C.Muted, Icons.StatusDraft, C.Raised, C.Border2, C.Soft)
         Status.INPUT -> StatusLook(C.Orange, Icons.Alert, C.WarnRow, Color(0xFF4A3420))
-        Status.EXCEPTION -> StatusLook(C.Red, Icons.OctagonX, Color(0xFF2A1919), Color(0xFF4A2827))
+        Status.EXCEPTION -> StatusLook(C.Red, Icons.StatusException, Color(0xFF2A1919), Color(0xFF4A2827))
     }
 
 val Status.color: Color get() = look.color

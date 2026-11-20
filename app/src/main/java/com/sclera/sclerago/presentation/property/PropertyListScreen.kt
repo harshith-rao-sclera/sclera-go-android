@@ -357,7 +357,7 @@ private fun PropertyCard(
                     else -> {
                         // Offline the download button stays, with the offline badge (the card is faded already).
                         val label = stringResource(R.string.property_download, name)
-                        OfflineGate(faint, onOffline, badgeOffset = 8.dp) {
+                        OfflineGate(faint, onOffline) {
                             Box(
                                 Modifier.size(48.dp).clip(CircleShape).semantics { contentDescription = label }
                                     .testTag(PropertyTags.download(id)).clickable(role = Role.Button, onClick = onDownload),

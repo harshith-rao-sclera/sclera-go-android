@@ -68,6 +68,10 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
     var aiValidation by mutableStateOf<Boolean?>(null)
         private set
 
+    /** The property's type fields are in metric units; null until the settings are loaded (or when they could not be). */
+    var metricUnits by mutableStateOf<Boolean?>(null)
+        private set
+
     var geofence by mutableStateOf(GeofenceUi())
         private set
 
@@ -96,6 +100,7 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
         latestPhotoSave++
         photos = PhotoRulesUi()
         aiValidation = null
+        metricUnits = null
         geofence = GeofenceUi(revision = geofence.revision + 1)
         if (property.isEmpty()) {
             photos = PhotoRulesUi(LoadState.FAILED)
@@ -109,6 +114,7 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
                     savedRules = s.photoRules
                     photos = PhotoRulesUi(LoadState.READY, s.photoRules)
                     aiValidation = s.aiValidation
+                    metricUnits = s.metricUnits
                 } catch (_: OnlineException) {
                     photos = PhotoRulesUi(LoadState.FAILED)
                 }
@@ -179,6 +185,32 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
                 say(e.error.toUiText())
             } finally {
                 aiSaving = false
+            }
+        }
+    }
+
+    // ---------- Units
+
+    /** The Metric units switch is being saved: another tap waits for the server's answer. */
+    var unitsSaving by mutableStateOf(false)
+        private set
+
+    /** The web's Units switch: on puts the property's type fields in metric units, off in US units. */
+    fun setMetricUnits(metric: Boolean) {
+        val before = metricUnits ?: return
+        if (unitsSaving) return
+        unitsSaving = true
+        metricUnits = metric
+        val property = propertyId
+        viewModelScope.launch {
+            try {
+                metricUnits = useCases.setMetricUnits(property, metric).metricUnits
+                say(UiText.Res(if (metric) R.string.cfg_units_metric_saved else R.string.cfg_units_us_saved))
+            } catch (e: OnlineException) {
+                metricUnits = before
+                say(e.error.toUiText())
+            } finally {
+                unitsSaving = false
             }
         }
     }

@@ -36,6 +36,9 @@ class MasterFormatsOfflineSource(private val db: AdcDatabase, private val io: Co
 
     fun classificationFlow(): Flow<List<ClassCount>> = db.watch(io, TABLE, "assets") { loadClassification() }
 
+    /** [byId], again whenever the catalogue changes. */
+    fun byIdFlow(): Flow<Map<String, MasterFormat>> = db.watch(io, TABLE) { byId() }
+
     /** Every format, active or not, by id: assets keep pointing at a format that was switched off. Blocking. */
     internal fun byId(): Map<String, MasterFormat> = db.whenTable(TABLE, emptyMap()) {
         db.query(ALL_FORMATS.replace("%LIVE%", db.notRemoved(TABLE))).map { it.toMasterFormat() }.associateBy { it.id }

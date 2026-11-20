@@ -4,6 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.AssetFilter
+import com.sclera.sclerago.domain.model.AssetFilterOptions
+import com.sclera.sclerago.domain.model.FilterCategory
+import com.sclera.sclerago.domain.model.toggle
+import com.sclera.sclerago.domain.model.togglePerson
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
 import com.sclera.sclerago.domain.model.ChangeRequest
@@ -14,6 +19,7 @@ import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.model.ValidationMark
 import com.sclera.sclerago.domain.model.isLockedFor
+import com.sclera.sclerago.domain.usecase.asset.AssetFilterUseCases
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
 import com.sclera.sclerago.domain.usecase.asset.ChangeAction
@@ -80,9 +86,16 @@ data class AssetListState(
     val changeNote: String = "",
     /** That note differs from what it started as (empty, or the one asset's own request): closing asks first. */
     val changeNoteChanged: Boolean = false,
+    /** The filter sheet's choices in force (people and types), on every tab. */
+    val filter: AssetFilter = AssetFilter(),
+    /** The filter sheet, while it is open (null: closed). */
+    val filterSheet: FilterSheetState? = null,
 ) {
     val selecting: Boolean get() = picked.isNotEmpty()
 }
+
+/** The open filter sheet: the choices being made ([draft]), what it offers, and how many assets they would show. */
+data class FilterSheetState(val draft: AssetFilter, val options: AssetFilterOptions, val matching: Int)
 
 /**
  * The Assets lists (all tabs): search, status filter, multi-select and the bulk actions on the selection
@@ -93,6 +106,7 @@ class AssetListViewModel @Inject constructor(
     private val useCases: AssetUseCases,
     private val reloadAssets: ReloadAssetsUseCase,
     private val changeRequests: ChangeRequestUseCases,
+    private val filters: AssetFilterUseCases,
 ) : ViewModel() {
     private val scope = MutableStateFlow(AssetListScope())
     private val ui = MutableStateFlow(Ui())
@@ -107,8 +121,6 @@ class AssetListViewModel @Inject constructor(
         val searchOpen: Boolean = false,
         val confirmDelete: Boolean = false,
         val statusFilter: Map<Tab, Status?> = emptyMap(),
-        /** The tabs narrowed to assets sent back to be collected again (the Recollect chip). */
-        val recollect: Set<Tab> = emptySet(),
         /** The tabs narrowed to assets someone asked an admin to reopen (the Change requests chip). */
         val changeRequests: Set<Tab> = emptySet(),
         /** The tabs narrowed to assets whose validation failed or needs a look (those chips). */
@@ -119,18 +131,36 @@ class AssetListViewModel @Inject constructor(
         val changeNote: String = "",
         /** What [changeNote] started as. */
         val changeNoteStart: String = "",
+        /** The property the lists show (the filter starts empty on each one). */
+        val propertyId: String? = null,
+        val filter: AssetFilter = AssetFilter(),
+        /** The choices being made in the open filter sheet; null while it is closed. */
+        val draft: AssetFilter? = null,
+        /** The tab the filter sheet was opened on: its "Show N assets" counts that tab's list. */
+        val filterTab: Tab = Tab.ASSETS,
+        /** People's names by user id, for the filter sheet. */
+        val names: Map<String, String> = emptyMap(),
+        /** The property's assignees as kept on the device: the filter sheet lists them all, with or without assets in the tab. */
+        val everyone: Set<String> = emptySet(),
     )
 
-    val state: StateFlow<AssetListState> = combine(useCases.observe(), scope, ui) { catalog, sc, u ->
+    /** The type catalogue by id, for the filter (kept for [toggleFilter], which drops choices under one taken off). */
+    private val formats = filters.formats().stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    val state: StateFlow<AssetListState> = combine(useCases.observe(), formats, scope, ui) { catalog, types, sc, u ->
         val assets = catalog.assets
         val admin = useCases.canWorkOn.isAdmin()
-        val lists = Tab.entries.associateWith { tab ->
-            useCases.buildList(
-                assets,
-                AssetListQuery(
-                    tab.sources(sc.network), sc.location, u.query, u.statusFilter[tab], tab in u.recollect, tab in u.changeRequests, admin,
-                    validation = u.validation[tab],
-                ),
+        fun query(tab: Tab, filter: AssetFilter) = AssetListQuery(
+            tab.sources(sc.network), sc.location, u.query, u.statusFilter[tab], changeRequests = tab in u.changeRequests, showChangeRequests = admin,
+            validation = u.validation[tab], filter = filter,
+        )
+        val lists = Tab.entries.associateWith { tab -> useCases.buildList(assets, query(tab, u.filter), types) }
+        val sheet = u.draft?.let { draft ->
+            val q = query(u.filterTab, draft)
+            FilterSheetState(
+                draft,
+                filters.options(useCases.buildList.scope(assets, q), types, draft, filters.me(), u.names, u.everyone),
+                useCases.buildList(assets, q, types).items.size,
             )
         }
         val pickedAssets = assets.filter { it.id in u.picked }
@@ -141,35 +171,64 @@ class AssetListViewModel @Inject constructor(
             changeOptions = changeRequests.signOff(pickedAssets) + changeRequests.actions(pickedAssets),
             changeMenu = u.changeMenu, changeAction = u.changeAction, changeNote = u.changeNote,
             changeNoteChanged = u.changeNote != u.changeNoteStart,
+            filter = u.filter, filterSheet = sheet,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState(loading = true))
 
     fun setScope(location: LocationFilter) = scope.update { it.copy(location = location) }
 
+    /** The lists now show [propertyId]: a filter chosen on another property doesn't carry over. */
+    fun bindProperty(propertyId: String?) {
+        if (ui.value.propertyId == propertyId) return
+        ui.update { it.copy(propertyId = propertyId, filter = AssetFilter(), draft = null, names = emptyMap(), everyone = emptySet()) }
+        // Its assignees (names and emails for "Assigned to"), read from the device and, online, from the server.
+        propertyId?.takeIf { it.isNotBlank() }?.let { p -> viewModelScope.launch { filters.names.open(p) } }
+    }
+
+    // ---- Filter sheet
+
+    /**
+     * Opens the filter sheet on [tab] with the choices in force. The people are the property's assignees as kept on the
+     * device (their names at once) and those with assets here; online, the assignees are fetched again.
+     */
+    fun openFilter(tab: Tab) {
+        val property = ui.value.propertyId
+        val stored = filters.names.storedFor(property)
+        ui.update { it.copy(draft = it.filter, filterTab = tab, names = it.names + stored, everyone = stored.keys) }
+        viewModelScope.launch {
+            val names = filters.names(property)
+            val fresh = filters.names.storedFor(property)
+            ui.update { if (it.propertyId == property) it.copy(names = names + fresh, everyone = fresh.keys) else it }
+        }
+    }
+
+    /** Closes the sheet; the choices made in it are dropped. */
+    fun closeFilter() = ui.update { it.copy(draft = null) }
+
+    fun toggleFilterPerson(userId: String) = ui.update { u -> u.copy(draft = u.draft?.togglePerson(userId)) }
+
+    fun toggleFilter(category: FilterCategory, key: String) = ui.update { u -> u.copy(draft = u.draft?.toggle(category, key, formats.value)) }
+
+    /** Reset: nothing chosen in the sheet (it takes effect with Show). */
+    fun resetFilter() = ui.update { u -> u.copy(draft = u.draft?.let { AssetFilter() }) }
+
+    /** Show N assets: the sheet's choices are put in force and it closes. */
+    fun applyFilter() = ui.update { u -> u.draft?.let { u.copy(filter = it, draft = null) } ?: u }
+
     /** The Network tab's mode changed: its list shows the assets of that scan ([Source.WIFI] or [Source.AP]). */
     fun setNetworkSource(source: Source) = scope.update { it.copy(network = source) }
 
     /**
-     * A status chip; it turns the Recollect and Change requests chips off (as on the web, Recollect goes with "All" only,
-     * and Change requests is a tab of its own).
+     * A status chip; it turns the Change requests and validation chips off (as on the web, Change requests is a tab of
+     * its own).
      */
     fun setStatusFilter(tab: Tab, status: Status?) = ui.update {
         it.copy(
-            statusFilter = it.statusFilter + (tab to status), recollect = it.recollect - tab, changeRequests = it.changeRequests - tab,
+            statusFilter = it.statusFilter + (tab to status), changeRequests = it.changeRequests - tab,
             validation = it.validation - tab,
         )
     }
 
-    /**
-     * The Recollect chip: shows only the assets sent back to be collected again (with "All"). Like a status chip, tapping
-     * it again keeps it on; another chip turns it off.
-     */
-    fun selectRecollect(tab: Tab) = ui.update {
-        it.copy(
-            statusFilter = it.statusFilter + (tab to null), recollect = it.recollect + tab, changeRequests = it.changeRequests - tab,
-            validation = it.validation - tab,
-        )
-    }
 
     /**
      * The Change requests chip: shows only the assets someone asked an admin to reopen (the web's tab). Like a status
@@ -177,7 +236,7 @@ class AssetListViewModel @Inject constructor(
      */
     fun selectChangeRequests(tab: Tab) = ui.update {
         it.copy(
-            statusFilter = it.statusFilter + (tab to null), recollect = it.recollect - tab, changeRequests = it.changeRequests + tab,
+            statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests + tab,
             validation = it.validation - tab,
         )
     }
@@ -188,7 +247,7 @@ class AssetListViewModel @Inject constructor(
      */
     fun selectValidation(tab: Tab, mark: ValidationMark) = ui.update {
         it.copy(
-            statusFilter = it.statusFilter + (tab to null), recollect = it.recollect - tab, changeRequests = it.changeRequests - tab,
+            statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests - tab,
             validation = it.validation + (tab to mark),
         )
     }

@@ -1,9 +1,14 @@
 package com.sclera.sclerago.presentation.main
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -68,8 +73,9 @@ fun DashboardNav(tabs: List<Tab>, position: Float, onTab: (Tab) -> Unit, modifie
 }
 
 /**
- * The + and search buttons, stacked in the bottom corner; the search button opens into a capsule. They
- * are not shown while assets are being selected (the selection dock takes their place).
+ * The +, filter and search buttons, stacked in the bottom corner; the search button opens into a capsule. The filter
+ * button turns yellow with the number of choices made while a filter is on ([filterCount]); null [onFilter] hides it.
+ * They are not shown while assets are being selected (the selection dock takes their place).
  */
 @Composable
 fun DashboardFabs(
@@ -79,6 +85,8 @@ fun DashboardFabs(
     onQueryChange: (String) -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
+    onFilter: (() -> Unit)? = null,
+    filterCount: Int = 0,
 ) {
     Column(
         modifier.navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
@@ -86,10 +94,29 @@ fun DashboardFabs(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         CircleFab(Icons.Plus, stringResource(R.string.dash_add_asset), onAdd, Modifier.testTag(DashTags.ADD))
+        onFilter?.let { FilterFab(filterCount, it) }
         SearchFab(
             searchOpen, onSearchOpenChange, query, onQueryChange, stringResource(R.string.dash_search_hint),
             stringResource(R.string.action_search), stringResource(R.string.action_close_search),
         )
+    }
+}
+
+/** The filter button: a dark circle with a funnel; while [count] choices are on, the funnel is yellow with a count badge. */
+@Composable
+private fun FilterFab(count: Int, onClick: () -> Unit) {
+    val description = if (count > 0) pluralStringResource(R.plurals.filter_open_active, count, count) else stringResource(R.string.filter_open)
+    Box {
+        CircleFab(
+            Icons.Filter, description, onClick, Modifier.testTag(DashTags.FILTER),
+            bg = if (count > 0) C.YTintBg else C.Btn, fg = if (count > 0) C.Yellow else C.Text, iconSize = 20.dp, stroke = 2.4f,
+        )
+        if (count > 0) {
+            Box(
+                Modifier.align(Alignment.TopEnd).size(20.dp).clip(CircleShape).background(C.Yellow),
+                contentAlignment = Alignment.Center,
+            ) { Txt(count.toString(), 11, 700, C.OnYellow) }
+        }
     }
 }
 

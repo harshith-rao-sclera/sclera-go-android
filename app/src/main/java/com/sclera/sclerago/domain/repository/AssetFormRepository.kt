@@ -15,4 +15,7 @@ interface AssetFormRepository {
 
     /** The active rows of the asset type catalogue (system, asset and sub type), in their order. */
     fun formats(): Flow<List<MasterFormat>>
+
+    /** Every row of the asset type catalogue by id, inactive ones included (assets keep pointing at them). */
+    fun formatsById(): Flow<Map<String, MasterFormat>>
 }

@@ -78,7 +78,6 @@ object AssetListTags {
     const val EMPTY = "asset-list-empty"
     const val LOADING = "asset-list-loading"
     const val INFO = "asset-list-info"
-    const val RECOLLECT = "asset-chip-RECOLLECT"
     const val CHANGE_REQUESTS = "asset-chip-CHANGE_REQUESTS"
     fun row(id: String) = "asset-row-$id"
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
@@ -134,7 +133,6 @@ private fun StatusChips(data: AssetListData, list: AssetListBinding) {
 
 @Composable
 private fun ChipRow(data: AssetListData, list: AssetListBinding) {
-    val recollect = data.recollect
     val state = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val step = with(LocalDensity.current) { 180.dp.toPx() }
@@ -144,20 +142,17 @@ private fun ChipRow(data: AssetListData, list: AssetListBinding) {
             contentPadding = PaddingValues(start = 12.dp, end = 48.dp, bottom = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            items(data.chips, key = { it.status?.name ?: "ALL" }) { c -> Chip(c) { list.onChip(c) } }
-            item(key = "RECOLLECT") {
-                ChipBox(stringResource(R.string.dash_chip_recollect), recollect.count, recollect.selected, AssetListTags.RECOLLECT, list.onRecollect) {
-                    LineIcon(Icons.Refresh, 11.dp, C.Orange, 2.8f)
-                }
-            }
-            // The web's Change requests tab: submitted assets someone asked an admin to reopen.
+            // As the web's status tabs: All, Draft, Submitted, Exception, Validated, Change requests, AI suggestions.
+            items(data.chips.filter { it.status != Status.AI }, key = { it.status?.name ?: "ALL" }) { c -> Chip(c) { list.onChip(c) } }
+            // Submitted assets someone asked an admin to reopen.
             data.changeRequests?.let { cr ->
                 item(key = "CHANGE_REQUESTS") {
                     ChipBox(stringResource(R.string.dash_chip_change_requests), cr.count, cr.selected, AssetListTags.CHANGE_REQUESTS, list.onChangeRequests) {
-                        LineIcon(Icons.Alert, 11.dp, C.Orange, 2.8f)
+                        LineIcon(Icons.ChangeRequest, 11.dp, C.Orange, 2.8f)
                     }
                 }
             }
+            items(data.chips.filter { it.status == Status.AI }, key = { it.status?.name ?: "ALL" }) { c -> Chip(c) { list.onChip(c) } }
             // The web card's validation icon, as filters: a step failed, or one needs a look.
             data.validation.forEach { (mark, chip) ->
                 item(key = "VALIDATION_${mark.name}") {
@@ -198,7 +193,7 @@ private fun EdgeFade(left: Boolean, description: String, modifier: Modifier, onC
 @Composable
 private fun Chip(c: StatusCount, onClick: () -> Unit) {
     ChipBox(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), c.count, c.selected, AssetListTags.chip(c.status), onClick) {
-        c.status?.let { LineIcon(it.icon, 11.dp, it.color, 2.8f) }
+        LineIcon(c.status?.icon ?: Icons.StatusAll, 11.dp, c.status?.color ?: C.Yellow, 2.8f)
     }
 }
 
@@ -276,10 +271,10 @@ fun AssetRow(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 // The web's "Recollect" badge: sent back to be collected again.
-                if (a.recollect) LineIcon(Icons.Refresh, 14.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = recollectLabel })
+                if (a.recollect) LineIcon(Icons.Recollect, 14.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = recollectLabel })
                 // The web card's "Change requested" badge: someone asked an admin to reopen it.
                 if (a.changeRequest != null) {
-                    LineIcon(Icons.Alert, 14.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = changeRequestedLabel })
+                    LineIcon(Icons.ChangeRequest, 14.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = changeRequestedLabel })
                 }
                 // The web card's validation icon, when a step failed or needs a look.
                 a.validationMark?.let { mark ->
@@ -318,6 +313,7 @@ private fun EmptyCard(reason: EmptyReason, query: String, modifier: Modifier = M
         val text = when (reason) {
             EmptyReason.SEARCH -> stringResource(R.string.dash_empty_search, query.trim())
             EmptyReason.STATUS -> stringResource(R.string.dash_empty_status)
+            EmptyReason.FILTER -> stringResource(R.string.dash_empty_filter)
             EmptyReason.ASSETS_TAB -> stringResource(R.string.dash_empty_assets)
             EmptyReason.SOURCE_TAB -> stringResource(R.string.dash_empty_source)
         }
@@ -340,8 +336,6 @@ class AssetListBinding(
     val onRefresh: () -> Unit = {},
     /** Opens the Managed Assets Summary; null hides the info button. */
     val onInfo: (() -> Unit)? = null,
-    /** The Recollect chip: narrows the list to assets sent back to be collected again (like a status chip, it stays on when tapped again). */
-    val onRecollect: () -> Unit = {},
     /** The Change requests chip: narrows the list to assets someone asked an admin to reopen (it stays on when tapped again). */
     val onChangeRequests: () -> Unit = {},
     /** The Failed validation / Needs a look chips: narrow the list to assets with that mark (it stays on when tapped again). */

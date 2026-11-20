@@ -16,8 +16,8 @@
     <string name="int_link">Link</string>
     <string name="int_choose_vdms">Choose a VDMS to link</string>
     <string name="int_confirm_title">Link this property to VDMS %1$s?</string>
-    <string name="int_confirm_body">Once a property is integrated with a VDMS, the integration can\'t be changed again. Assets moved to Managed Assets are managed in VDMS from then on.</string>
-    <string name="int_linked">Linked to VDMS %1$s. Its buildings, floors and locations will appear shortly.</string>
+    <string name="int_confirm_body">Once a property is integrated with a VDMS, the integration can\'t be changed again. Asset fields sync automatically; buildings, floors and locations are imported by hand. Assets moved to Managed Assets are managed in VDMS from then on.</string>
+    <string name="int_linked">Linked to VDMS %1$s. Asset fields sync automatically; import buildings, floors and locations when you need them.</string>
     <string name="int_link_failed">Unable to create VDMS Integration</string>
 
     <!-- Move to managed assets (asset list selection) -->
@@ -39,9 +39,150 @@
         <item quantity="other">%1$d assets will be moved to managed assets in some time</item>
     </plurals>
     <string name="mv_failed">Unable to move to managed assets</string>
+    <!-- The buildings, floors and locations VDMS lacks go there before the assets; %1$s is a list such as "3 locations, 1 floor". -->
+    <string name="mv_places_first">%1$s will be added to VDMS first.</string>
+    <string name="mv_places_busy">VDMS is still adding buildings, floors and locations. Try again in a moment.</string>
+    <string name="mv_collections_moving_places">Collection(s) will be moved to managed assets in some time. %1$s added to VDMS first.</string>
+    <plurals name="mv_assets_moving_places">
+        <item quantity="one">%1$d asset will be moved to managed assets in some time. %2$s added to VDMS first.</item>
+        <item quantity="other">%1$d assets will be moved to managed assets in some time. %2$s added to VDMS first.</item>
+    </plurals>
+
+    <!-- Integration page: buildings, floors and locations, sent to or imported from VDMS by hand (places import) -->
+    <string name="pi_section_title">Buildings, floors &amp; locations</string>
+    <string name="pi_section_intro">These don\'t sync automatically. Import them when you need them; asset fields keep syncing.</string>
+    <string name="pi_send">Send to VDMS</string>
+    <string name="pi_import">Import from VDMS</string>
+    <string name="pi_load_failed">Couldn\'t load buildings, floors and locations.</string>
+    <string name="pi_try_again">Try again</string>
+    <string name="pi_asking">Asking VDMS for its list…</string>
+    <string name="pi_list_updated">VDMS list updated %1$s.</string>
+    <string name="pi_no_list">VDMS hasn\'t sent its list yet.</string>
+    <string name="pi_refresh">Refresh</string>
+    <string name="pi_refreshing">Refreshing…</string>
+    <string name="pi_refresh_late">VDMS hasn\'t answered yet. Its list updates here once it does.</string>
+    <string name="pi_refresh_failed">Couldn\'t ask VDMS for its list</string>
+    <string name="pi_push_running">VDMS is adding the buildings, floors and locations sent %1$s…</string>
+    <string name="pi_last_push">Last sent to VDMS %1$s: %2$d added.</string>
+    <string name="pi_last_push_updated">Last sent to VDMS %1$s: %2$d added, %3$d updated.</string>
+    <string name="pi_last_push_skipped">Last sent to VDMS %1$s: %2$d added, %3$d skipped.</string>
+    <string name="pi_last_push_both">Last sent to VDMS %1$s: %2$d added, %3$d updated, %4$d skipped.</string>
+    <string name="pi_show_skipped">Show what was skipped</string>
+    <string name="pi_hide_skipped">Hide what was skipped</string>
+
+    <string name="pi_to_title">Send buildings, floors &amp; locations to VDMS</string>
+    <string name="pi_to_intro">Choose what to copy from this property to VDMS. Anything VDMS already has is skipped. Tick a changed item to update its name in VDMS.</string>
+    <string name="pi_to_hide">Hide items already in VDMS</string>
+    <string name="pi_to_nothing">VDMS already has every building, floor and location in this property.</string>
+    <string name="pi_to_empty">This property has no buildings yet.</string>
+    <string name="pi_from_title">Import buildings, floors &amp; locations from VDMS</string>
+    <string name="pi_from_intro">Choose what to copy from VDMS into this property. Anything this property already has is skipped. Tick a changed item to update its name here.</string>
+    <string name="pi_from_hide">Hide items already in this property</string>
+    <string name="pi_from_nothing">This property already has every building, floor and location VDMS has.</string>
+    <string name="pi_from_empty">VDMS has no buildings.</string>
+    <string name="pi_list_from">VDMS\'s list is from %1$s.</string>
+    <string name="pi_no_snapshot">VDMS hasn\'t sent its buildings, floors and locations yet.</string>
+    <string name="pi_ask_vdms">Ask VDMS for them</string>
+    <string name="pi_asking_vdms">Asking VDMS…</string>
+    <string name="pi_show_them">Show them</string>
+    <string name="pi_search">Search buildings, floors, locations</string>
+    <string name="pi_selection">%1$d selected · %2$d of %3$d not there yet</string>
+    <string name="pi_selection_changed">%1$d selected · %2$d of %3$d not there yet · %4$d changed</string>
+    <string name="pi_select_all">Select all</string>
+    <string name="pi_select_all_shown">Select all shown</string>
+    <string name="pi_select_changes">Select all changes</string>
+    <string name="pi_clear">Clear</string>
+    <string name="pi_no_match">Nothing matches “%1$s”.</string>
+    <string name="pi_expand">Expand %1$s</string>
+    <string name="pi_collapse">Collapse %1$s</string>
+    <string name="pi_ticked">Ticked</string>
+    <string name="pi_partly_ticked">Partly ticked</string>
+    <string name="pi_not_ticked">Not ticked</string>
+    <string name="pi_update_tip">Update name on the other side</string>
+    <string name="pi_badge_same_vdms">Already in VDMS</string>
+    <string name="pi_badge_same_here">Already here</string>
+    <string name="pi_badge_changed">Changed</string>
+    <string name="pi_detail_vdms">VDMS: %1$s</string>
+    <string name="pi_detail_here">Here: %1$s</string>
+    <string name="pi_detail_moved">Under another parent</string>
+    <string name="pi_badge_gone_vdms">Deleted in VDMS</string>
+    <string name="pi_badge_gone_here">Deleted here</string>
+    <plurals name="pi_count_buildings">
+        <item quantity="one">%1$d building</item>
+        <item quantity="other">%1$d buildings</item>
+    </plurals>
+    <plurals name="pi_count_floors">
+        <item quantity="one">%1$d floor</item>
+        <item quantity="other">%1$d floors</item>
+    </plurals>
+    <plurals name="pi_count_locations">
+        <item quantity="one">%1$d location</item>
+        <item quantity="other">%1$d locations</item>
+    </plurals>
+    <!-- A list of two or three counts, such as "3 locations, 1 floor". -->
+    <string name="pi_join_2">%1$s, %2$s</string>
+    <string name="pi_join_3">%1$s, %2$s, %3$s</string>
+    <string name="pi_working">Working…</string>
+    <plurals name="pi_submit_send">
+        <item quantity="one">Send %1$d to VDMS</item>
+        <item quantity="other">Send %1$d to VDMS</item>
+    </plurals>
+    <plurals name="pi_submit_import">
+        <item quantity="one">Import %1$d</item>
+        <item quantity="other">Import %1$d</item>
+    </plurals>
+    <plurals name="pi_submit_update_vdms">
+        <item quantity="one">Update %1$d in VDMS</item>
+        <item quantity="other">Update %1$d in VDMS</item>
+    </plurals>
+    <plurals name="pi_submit_update_here">
+        <item quantity="one">Update %1$d here</item>
+        <item quantity="other">Update %1$d here</item>
+    </plurals>
+    <string name="pi_submit_send_update">Send %1$d, update %2$d</string>
+    <string name="pi_submit_import_update">Import %1$d, update %2$d</string>
+    <plurals name="pi_result_sent">
+        <item quantity="one">%1$d item sent to VDMS.</item>
+        <item quantity="other">%1$d items sent to VDMS.</item>
+    </plurals>
+    <plurals name="pi_result_imported">
+        <item quantity="one">%1$d item imported.</item>
+        <item quantity="other">%1$d items imported.</item>
+    </plurals>
+    <plurals name="pi_result_updated">
+        <item quantity="one">%1$d updated.</item>
+        <item quantity="other">%1$d updated.</item>
+    </plurals>
+    <string name="pi_result_sent_updated">%1$d sent to VDMS, %2$d updated.</string>
+    <string name="pi_result_imported_updated">%1$d imported, %2$d updated.</string>
+    <string name="pi_result_nothing">Nothing was imported or updated.</string>
+    <plurals name="pi_skipped_sent">
+        <item quantity="one">%1$d skipped. The rest were sent without it.</item>
+        <item quantity="other">%1$d skipped. The rest were sent without them.</item>
+    </plurals>
+    <plurals name="pi_skipped_imported">
+        <item quantity="one">%1$d skipped. The rest were imported without it.</item>
+        <item quantity="other">%1$d skipped. The rest were imported without them.</item>
+    </plurals>
+    <!-- %1$s is the place\'s name, %2$s its kind (building, floor or location). -->
+    <string name="pi_updated_vdms">%1$s (%2$s) updated in VDMS</string>
+    <string name="pi_updated_here">%1$s (%2$s) updated here</string>
+    <string name="pi_skip_exists">%1$s (%2$s) already exists — skipped</string>
+    <string name="pi_skip_parent_vdms">%1$s (%2$s): its parent isn\'t in VDMS — skipped</string>
+    <string name="pi_skip_parent_here">%1$s (%2$s): its parent isn\'t in this property — skipped</string>
+    <string name="pi_skip_not_found">%1$s (%2$s) not found — skipped</string>
+    <string name="pi_skip_error">%1$s (%2$s) couldn\'t be imported</string>
+    <string name="pi_skip_other">%1$s (%2$s) skipped</string>
+    <string name="pi_kind_building">building</string>
+    <string name="pi_kind_floor">floor</string>
+    <string name="pi_kind_location">location</string>
+    <string name="pi_kind_place">place</string>
+    <string name="pi_waiting">VDMS is adding them</string>
+    <string name="pi_timed_out">VDMS hasn\'t finished yet. It will finish this when it\'s connected; the result shows here next time.</string>
+    <string name="pi_send_busy">VDMS is still working on the last send. Try again when it\'s done.</string>
+    <string name="pi_import_failed">Couldn\'t start the import</string>
 
     <!-- Recollect (asset list): assets sent back to be collected again -->
-    <string name="dash_chip_recollect">Recollect</string>
     <string name="dash_recollect_badge">Recollect: sent back to be collected again</string>
 
     <!-- Managed Assets Summary (asset list info button) -->

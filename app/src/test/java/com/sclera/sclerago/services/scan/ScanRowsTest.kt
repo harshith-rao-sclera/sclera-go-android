@@ -16,7 +16,7 @@ class ScanRowsTest {
     @Test fun bleRowShowsKindSignalAndDistance() {
         val row = ble("TH-22 sensor").toRow()
         assertEquals("TH-22 sensor", row.name)
-        assertEquals("BLE device · −52 dBm · ~1 m", row.sub)
+        assertEquals("Connectable · −52 dBm · ~1 m", row.sub)
         assertTrue(row.lvl in 1..4)
     }
 

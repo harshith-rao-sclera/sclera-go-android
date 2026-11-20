@@ -12,3 +12,8 @@ fun moveBody(assetIds: Collection<String>, networkName: String, assignee: String
     put("networkName", networkName)
     assignee?.let { put("assignee", it) }
 }
+
+/** What moving [assetIds] would take, asked before the network is chosen: `{ assetIds }` (the network is optional there). */
+fun movePreviewBody(assetIds: Collection<String>): JsonObject = buildJsonObject {
+    putJsonArray("assetIds") { assetIds.forEach { add(it) } }
+}

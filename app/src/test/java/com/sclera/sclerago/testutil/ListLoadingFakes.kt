@@ -1,6 +1,18 @@
 package com.sclera.sclerago.testutil
 
 import com.sclera.sclerago.domain.model.AccessState
+import com.sclera.sclerago.domain.model.AssignResult
+import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FormEntry
+import com.sclera.sclerago.domain.model.MasterFormat
+import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
+import com.sclera.sclerago.domain.repository.AssetFormRepository
+import com.sclera.sclerago.domain.usecase.asset.AssetFilterUseCases
+import com.sclera.sclerago.domain.usecase.asset.BuildFilterOptionsUseCase
+import com.sclera.sclerago.domain.usecase.asset.LoadAssigneeNamesUseCase
+import com.sclera.sclerago.domain.usecase.asset.ObserveFormatsByIdUseCase
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AuthState
@@ -248,4 +260,26 @@ fun accessViewModel(repo: AccessRepository): AccessViewModel =
 
 /** The asset lists' view model over [repo] (see [assetUseCases] for the rest of the wiring). */
 fun assetListViewModel(repo: AssetRepository): AssetListViewModel =
-    AssetListViewModel(assetUseCases(repo), ReloadAssetsUseCase(NoReload()), changeRequestUseCases(repo))
+    AssetListViewModel(assetUseCases(repo), ReloadAssetsUseCase(NoReload()), changeRequestUseCases(repo), assetFilterUseCases())
+
+/** The list filter's use cases with nobody's names from a server and an empty type catalogue. */
+fun assetFilterUseCases(guard: PermissionGuard = allowAllGuard()): AssetFilterUseCases = AssetFilterUseCases(
+    BuildFilterOptionsUseCase(),
+    LoadAssigneeNamesUseCase(InMemoryAccessRepository(), NoAssignees, SignedOutAuth(), guard),
+    ObserveFormatsByIdUseCase(NoTypeCatalogue),
+    guard,
+)
+
+/** No server: nobody's names are known; assigning isn't used by the lists. */
+private object NoAssignees : AssetAssignmentRepository {
+    override suspend fun assign(propertyId: String, assetIds: Collection<String>, email: String?): AssignResult = error("not used")
+    override suspend fun assigneeNames(propertyId: String): Map<String, String> = emptyMap()
+}
+
+/** An empty asset type catalogue and no fields. */
+private object NoTypeCatalogue : AssetFormRepository {
+    override fun fields(assetId: String): Flow<List<FieldCfg>> = flowOf(emptyList())
+    override fun entries(assetId: String): Flow<List<FormEntry>> = flowOf(emptyList())
+    override fun formats(): Flow<List<MasterFormat>> = flowOf(emptyList())
+    override fun formatsById(): Flow<Map<String, MasterFormat>> = flowOf(emptyMap())
+}

@@ -10,4 +10,6 @@
     <string name="doc_uploader_unknown">Unknown user</string>
     <string name="doc_open_cd">Open %1$s</string>
     <string name="doc_open_with">Open with</string>
+    <string name="doc_attachment">Document</string>
+    <string name="media_source_document">Source document</string>
 </resources>

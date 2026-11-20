@@ -66,6 +66,34 @@ fun LineIcon(icon: Ico, size: Dp, color: Color, stroke: Float = 2f, modifier: Mo
 }
 
 object Icons {
+    // ---- The web's status glyphs (shared/status_icon/StatusIcon.js), used by its status tabs and asset cards.
+    /** All assets: four tiles. */
+    val StatusAll = Ico(s(rect(4f, 4f, 7f, 7f, 1.5f)), s(rect(13f, 4f, 7f, 7f, 1.5f)), s(rect(4f, 13f, 7f, 7f, 1.5f)), s(rect(13f, 13f, 7f, 7f, 1.5f)))
+    /** Draft: a clipboard. */
+    val StatusDraft = Ico(
+        s("M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"),
+        s("M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"),
+    )
+    /** Submitted: a clipboard with a tick. */
+    val StatusSubmitted = Ico(
+        s("M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"),
+        s("M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"),
+        s("m9 14 2 2 4-4"),
+    )
+    /** Exception: a warning triangle. */
+    val StatusException = Ico(s("M12 3.8 2.9 19.5h18.2L12 3.8z"), s("M12 10v4"), s("M12 17h.01"))
+    /** Validated: a shield with a tick. */
+    val StatusValidated = Ico(s("M12 3l7 3v5.5c0 4.2-3 7.6-7 9.5-4-1.9-7-5.3-7-9.5V6l7-3z"), s("m8.8 12 2.2 2.2 4.2-4.4"))
+    /** Recollect: sent back to be collected again. */
+    val Recollect = Ico(s("M4 4v5h5"), s("M5.6 15a7 7 0 1 0 1.6-7.3L4 9"))
+    /** Change requested: a speech bubble with a pencil. */
+    val ChangeRequest = Ico(s("M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"), s("M9 13v-1.6l4.6-4.6 1.6 1.6L10.6 13H9z"))
+    /** AI suggestions: two sparkles. */
+    val StatusAi = Ico(
+        s("M11 3.5l1.7 4.8 4.8 1.7-4.8 1.7L11 16.5l-1.7-4.8L4.5 10l4.8-1.7L11 3.5z"),
+        s("M18.5 14.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2z"),
+    )
+
     val Menu = Ico(s("M4 7h16M4 12h16M4 17h16"))
     /** The property (site): the side menu's two-building icon. A getter, as [Buildings] is declared further down. */
     val Property: Ico get() = Buildings
@@ -215,8 +243,11 @@ object Icons {
         f("M12,7Q12.45,11.55 17,12Q12.45,12.45 12,17Q11.55,12.45 7,12Q11.55,11.55 12,7Z"),
     )
 
+    /** A funnel: the asset list's filter button. */
+    val Filter = Ico(s("M3.5 5h17l-6.5 8v5.5l-4 2V13z"))
+
     // Side menu
-    val Sliders = Ico(s("M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"), s(circle(15f, 6f, 2f)), s(circle(9f, 12f, 2f)), s(circle(17f, 18f, 2f)))
+    val Sliders =Ico(s("M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"), s(circle(15f, 6f, 2f)), s(circle(9f, 12f, 2f)), s(circle(17f, 18f, 2f)))
     val Clipboard = Ico(s(rect(5f, 4f, 14f, 17f, 2f)), s(rect(9f, 2.5f, 6f, 3f, 1f)), s("M9 11h6M9 15h4"))
     val Link = Ico(s("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"), s("M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"))
     /** A tray with an arrow into it: import. */
@@ -249,4 +280,5 @@ object Icons {
     val ChevronCircle = Ico(s(circle(12f, 12f, 9f)), s("M8.5 10.5L12 14l3.5-3.5"))
     val ArrowUp = Ico(s("M12 19V5M6 11l6-6 6 6"))
     val ArrowDown = Ico(s("M12 5v14M6 13l6 6 6-6"))
+    val ArrowUpRight = Ico(s("M7 17L17 7M9 7h8v8"))
 }

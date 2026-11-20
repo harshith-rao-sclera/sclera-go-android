@@ -107,3 +107,9 @@ data class Person(
 
 /** The permission the API calls [key], or null for one this app does not know (those are ignored). */
 fun permissionOf(key: String): Permission? = Permission.entries.firstOrNull { it.key == key }
+
+/** Someone a property's assets are assigned to, as the server names them to anyone who can open it. */
+data class PropertyAssignee(val userId: String, val name: String?, val email: String) {
+    /** Their name, else their email. */
+    val label: String get() = name?.trim()?.takeIf { it.isNotEmpty() } ?: email
+}

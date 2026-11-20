@@ -38,7 +38,15 @@ data class CfgFieldDto(
 // `/properties/{id}/buildings|floors|locations`.
 
 @Serializable
-data class BuildingDto(val id: String, val name: String = "", val code: String? = null, val isActive: Boolean = true, val position: Int = 0)
+data class BuildingDto(
+    val id: String,
+    val name: String = "",
+    val code: String? = null,
+    val isActive: Boolean = true,
+    val position: Int = 0,
+    /** VDMS has (or had) it too; deleting it here leaves VDMS's copy. */
+    val linkedToVdms: Boolean = false,
+)
 
 @Serializable
 data class FloorDto(
@@ -50,6 +58,7 @@ data class FloorDto(
     val level: Int? = null,
     val isActive: Boolean = true,
     val position: Int = 0,
+    val linkedToVdms: Boolean = false,
 )
 
 @Serializable
@@ -61,4 +70,5 @@ data class LocationDto(
     val type: String? = null,
     val isActive: Boolean = true,
     val position: Int = 0,
+    val linkedToVdms: Boolean = false,
 )

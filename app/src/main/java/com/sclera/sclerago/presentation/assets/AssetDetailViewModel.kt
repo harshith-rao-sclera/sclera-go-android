@@ -1,75 +1,77 @@
 package com.sclera.sclerago.presentation.assets
 
-import com.sclera.sclerago.domain.usecase.asset.CloneAssetUseCase
-import com.sclera.sclerago.domain.usecase.asset.AddAssetFieldUseCase
-import com.sclera.sclerago.domain.usecase.asset.RemoveAssetFieldUseCase
-import com.sclera.sclerago.domain.model.AddFieldOutcome
-import com.sclera.sclerago.domain.model.FieldKind
-import com.sclera.sclerago.domain.model.TagKind
-import com.sclera.sclerago.domain.model.taggedByFields
-import com.sclera.sclerago.domain.model.CloneRequest
-import com.sclera.sclerago.domain.model.ClonePlace
-import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
-import com.sclera.sclerago.domain.usecase.asset.ChangeAction
-import com.sclera.sclerago.domain.usecase.asset.ChangeRequestUseCases
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AddFieldOutcome
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AssetLock
-import com.sclera.sclerago.domain.model.AssetDetails
+import com.sclera.sclerago.domain.model.ClonePlace
+import com.sclera.sclerago.domain.model.CloneRequest
 import com.sclera.sclerago.domain.model.DataError
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.DocumentSource
-import com.sclera.sclerago.domain.model.IMAGE_KIND
-import com.sclera.sclerago.domain.model.documentKind
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.LocValue
-import com.sclera.sclerago.domain.model.MasterFormat
-import kotlinx.coroutines.Job
-import com.sclera.sclerago.domain.model.UNCLASSIFIED
-import com.sclera.sclerago.domain.model.Unheard
-import com.sclera.sclerago.domain.model.formatFor
-import com.sclera.sclerago.domain.model.SpecLookup
-import com.sclera.sclerago.domain.model.SURE_ENOUGH
-import com.sclera.sclerago.domain.model.VOICE_SURE_ENOUGH
 import com.sclera.sclerago.domain.model.LookupStatus
+import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.Media
-import com.sclera.sclerago.domain.model.ScanFacts
-import com.sclera.sclerago.domain.model.fitPhotoRules
-import com.sclera.sclerago.domain.model.photoRoom
+import com.sclera.sclerago.domain.model.OnlineError
+import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.PhotoKind
-import com.sclera.sclerago.domain.model.missingRequiredFields
-import com.sclera.sclerago.domain.model.photoCounts
-import com.sclera.sclerago.domain.model.photosShort
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.PlaceNames
-import com.sclera.sclerago.domain.model.OnlineError
-import com.sclera.sclerago.domain.usecase.auth.ObserveOnlineUseCase
-import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.SURE_ENOUGH
+import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.Source
+import com.sclera.sclerago.domain.model.SpecLookup
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.TagKind
+import com.sclera.sclerago.domain.model.UNCLASSIFIED
+import com.sclera.sclerago.domain.model.Unheard
+import com.sclera.sclerago.domain.model.VOICE_SURE_ENOUGH
+import com.sclera.sclerago.domain.model.documentKind
+import com.sclera.sclerago.domain.model.fitPhotoRules
+import com.sclera.sclerago.domain.model.formatFor
+import com.sclera.sclerago.domain.model.missingRequiredFields
+import com.sclera.sclerago.domain.model.photoCounts
+import com.sclera.sclerago.domain.model.photoRoom
+import com.sclera.sclerago.domain.model.photosShort
+import com.sclera.sclerago.domain.model.taggedByFields
+import com.sclera.sclerago.domain.usecase.asset.AddAssetFieldUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetFormUseCases
 import com.sclera.sclerago.domain.usecase.asset.AssetHandling
 import com.sclera.sclerago.domain.usecase.asset.AssetHandlingUseCase
+import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
+import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
+import com.sclera.sclerago.domain.usecase.asset.CanEditAssetUseCase
+import com.sclera.sclerago.domain.usecase.asset.ChangeAction
+import com.sclera.sclerago.domain.usecase.asset.ChangeRequestUseCases
+import com.sclera.sclerago.domain.usecase.asset.ClassifyAssetUseCases
+import com.sclera.sclerago.domain.usecase.asset.CloneAssetUseCase
 import com.sclera.sclerago.domain.usecase.asset.JacsUseCases
 import com.sclera.sclerago.domain.usecase.asset.PhotoFill
 import com.sclera.sclerago.domain.usecase.asset.PlanPhotoFillUseCase
-import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
-import com.sclera.sclerago.domain.usecase.asset.CanEditAssetUseCase
-import com.sclera.sclerago.domain.usecase.asset.ClassifyAssetUseCases
+import com.sclera.sclerago.domain.usecase.asset.RemoveAssetFieldUseCase
+import com.sclera.sclerago.domain.usecase.auth.ObserveOnlineUseCase
 import com.sclera.sclerago.domain.usecase.config.ObserveAssetConfigUseCase
+import com.sclera.sclerago.domain.usecase.media.DeleteOwnedMediaUseCase
 import com.sclera.sclerago.domain.validation.AssetValidation
 import com.sclera.sclerago.domain.validation.COMMENT_MAX_LENGTH
 import com.sclera.sclerago.domain.validation.CommentProblem
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,7 +90,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import javax.inject.Inject
 
 /** Everything the asset details screen shows; [asset] is null while nothing is open (or after it was deleted). */
 data class AssetDetailState(
@@ -120,6 +121,9 @@ data class AssetDetailState(
     val validating: Boolean = false,
     /** The change request note being written (null: its dialog is closed). */
     val changeNote: String? = null,
+    /** The manuals the AI look-up pulled for the asset's model (from the server), and whether it still looks for more. */
+    val aiManuals: List<AssetDocument> = emptyList(),
+    val manualsSearching: Boolean = false,
     /** The Clone sheet is open / its copies are being made. */
     val cloneOpen: Boolean = false,
     val cloning: Boolean = false,
@@ -268,6 +272,7 @@ class AssetDetailViewModel @Inject constructor(
     private val cloneAsset: CloneAssetUseCase,
     private val addField: AddAssetFieldUseCase,
     private val removeField: RemoveAssetFieldUseCase,
+    private val deleteOwned: DeleteOwnedMediaUseCase,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
 
@@ -302,13 +307,14 @@ class AssetDetailViewModel @Inject constructor(
         val commentPosting: Boolean = false,
         val validating: Boolean = false,
         /** The form is being filled from photos just added (the AI button turns). */
-        val photoFilling: Boolean = false,
         /** How many batches of added photos are being sorted on the device. */
         val sorting: Int = 0,
         /** The change request note being written; null while its dialog is closed. */
         val changeNote: String? = null,
         val cloneOpen: Boolean = false,
         val cloning: Boolean = false,
+        val aiManuals: List<AssetDocument> = emptyList(),
+        val manualsSearching: Boolean = false,
         val addFieldOpen: Boolean = false,
         val addingField: Boolean = false,
         val addFieldError: UiText? = null,
@@ -380,17 +386,19 @@ class AssetDetailViewModel @Inject constructor(
                 pendingPlace = f.place,
                 formats = db.formats, photoRules = db.photoRules,
                 fieldRows = (db.rows ?: own.filter { it.visible }.map { FormEntry.Input(it.key) }) + typeExtra.map { FormEntry.Input(it.key) },
-                // A new asset's document is only picked so far: it shows here until the asset is created.
-                documents = if (t.isNew) f.newPicks.filter { it.sourceDocument }.map { it.toPendingDocument() } else db.documents,
+                // The documents added to it (a new asset's only picked so far), then its source file and web documents.
+                documents = (asset.media + f.newPicks).filter { it.isDoc && !it.audio && !it.video && !it.sourceDocument }.map { it.toAttachment() } +
+                    (if (t.isNew) emptyList() else db.documents),
                 saved = saved, edits = f.edits, fields = fields, details = details,
                 media = asset.media + f.newPicks.filterNot { it.sourceDocument }, newPicks = f.newPicks, savedFlash = f.savedFlash,
-                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase == AiPhase.SEARCHING || f.photoFilling, voice = f.voice, voiceReading = f.voiceReading, sortingPhotos = f.sorting > 0,
+                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase.let { it == AiPhase.SEARCHING || it == AiPhase.LOADING }, voice = f.voice, voiceReading = f.voiceReading, sortingPhotos = f.sorting > 0,
                 activity = if (t.isNew) emptyList() else db.activity,
                 handling = if (t.isNew) null else handling(asset, db.activity),
                 commentDraft = f.commentDraft, commentError = f.commentProblem?.problemText(), commentPosting = f.commentPosting,
                 validation = if (t.isNew) null else db.validation, validating = f.validating,
                 changeNote = f.changeNote, changeRequestMine = changeRequests.isMine(asset.changeRequest), admin = changeRequests.isAdmin(),
                 cloneOpen = f.cloneOpen && !t.isNew, cloning = f.cloning,
+                aiManuals = f.aiManuals, manualsSearching = f.manualsSearching,
                 canAddField = !t.isNew && addField.allowed(),
                 addFieldOpen = f.addFieldOpen && !t.isNew, addingField = f.addingField, addFieldError = f.addFieldError,
                 changeRequester = changeRequests.requesterName(asset.changeRequest),
@@ -424,6 +432,7 @@ class AssetDetailViewModel @Inject constructor(
             return
         }
         aiJob?.cancel()
+        manualsJob?.cancel()
         scanFill?.cancel()
         classifier.reset()
         jacsPicker.close()
@@ -487,6 +496,7 @@ class AssetDetailViewModel @Inject constructor(
 
     fun close() {
         aiJob?.cancel()
+        manualsJob?.cancel()
         scanFill?.cancel()
         classifier.reset()
         photoFill.cancel()
@@ -613,13 +623,12 @@ class AssetDetailViewModel @Inject constructor(
     }
 
     /**
-     * The Documents tab's upload: [doc] becomes the asset's source document (kept in the form until a new asset is
-     * created). A file the server doesn't take as a document is added as an attachment instead.
+     * The Documents tab's Add: [doc] is added to the asset as one of its documents (kept in the form until a new asset is
+     * created; the sync sends it). The asset's source document stays as it is.
      */
     fun attachDocument(doc: Media) {
         photoKind = null
-        val isDocument = documentKind(doc.fileName.orEmpty(), null).let { it != null && it != IMAGE_KIND }
-        addPicked(listOf(if (isDocument) doc.copy(sourceDocument = true, category = null) else doc))
+        addPicked(listOf(doc.copy(category = null)))
     }
 
     private fun addPicked(picked: List<Media>) {
@@ -654,41 +663,50 @@ class AssetDetailViewModel @Inject constructor(
     }
 
     /**
-     * The phone's look-up of [photos] and what is typed (`POST /lookup`), put into the form by [PlanPhotoFillUseCase]'s
-     * rules while the AI button blinks. [fromScan]: there are no photos, only what a scan found (its make and model).
+     * The AI's look-up of [photos] (or, from a scan, of what it found) and what is typed (`POST /lookup`): the AI sheet's
+     * own look-up, run as its request, so the AI button blinks until it is done and opening the sheet shows where it got
+     * to, then what it found (kept until the asset is closed). What it finds also goes into the form by
+     * [PlanPhotoFillUseCase]'s rules, never over what is there. A newer look-up replaces one still running.
+     * [fromScan]: there are no photos, only what a scan found (its make and model).
      */
-    private suspend fun autoFill(photos: List<Media>, fromScan: Boolean) {
+    private fun autoFill(photos: List<Media>, fromScan: Boolean) {
         val s = state.value
         val asset = s.asset ?: return
         if (s.locked) return
-        form.update { it.copy(photoFilling = true) }
-        message.emit(UiText.Res(if (fromScan) R.string.ai_scan_reading else R.string.ai_auto_reading))
-        val lookup = try {
-            // No type is sent: the answer then names the type with its JACS code, and fills the fields of the type it
-            // names (which is the asset's own type when it already has the right one).
-            formData.lookups.lookUpOnPhone(asset.id, photos, s.values.filterValues { it.isNotBlank() }, masterFormatId = null)
-        } catch (e: OnlineException) {
-            message.emit(
-                if (e.error == OnlineError.Offline) UiText.Res(R.string.ai_auto_offline)
-                else UiText.Res(if (fromScan) R.string.ai_scan_failed else R.string.ai_auto_failed, listOf(e.error.aiText())),
-            )
-            return
-        } finally {
-            form.update { it.copy(photoFilling = false) }
+        aiJob?.cancel()
+        form.update {
+            it.copy(ai = AiDialogState(AiPhase.SEARCHING, s.value("make"), s.value("model"), startedAt = System.currentTimeMillis(), fromPhoto = photos.isNotEmpty()))
         }
-        // What is in the form now decides (it may have changed while the look-up ran).
-        val now = state.value
-        if (now.locked || now.asset?.id != asset.id) return
-        val fill = planPhotoFill(lookup, now::value, now.formats.formatFor(now.values)?.id)
-        if (fill.values.isEmpty()) {
-            message.emit(UiText.Res(if (fromScan) R.string.ai_scan_nothing else R.string.ai_auto_nothing))
-            return
+        aiJob = viewModelScope.launch {
+            message.emit(UiText.Res(if (fromScan) R.string.ai_scan_reading else R.string.ai_auto_reading))
+            val lookup = try {
+                // No type is sent: the answer then names the type with its JACS code, and fills the fields of the type it
+                // names (which is the asset's own type when it already has the right one).
+                formData.lookups.lookUpOnPhone(asset.id, photos, s.values.filterValues { it.isNotBlank() }, masterFormatId = null)
+            } catch (e: OnlineException) {
+                setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
+                message.emit(
+                    if (e.error == OnlineError.Offline) UiText.Res(R.string.ai_auto_offline)
+                    else UiText.Res(if (fromScan) R.string.ai_scan_failed else R.string.ai_auto_failed, listOf(e.error.aiText())),
+                )
+                return@launch
+            }
+            // What it found, as the sheet shows it (open now, or when the AI button is tapped).
+            show(lookup)
+            // What is in the form now decides (it may have changed while the look-up ran).
+            val now = state.value
+            if (now.locked || now.asset?.id != asset.id) return@launch
+            val fill = planPhotoFill(lookup, now::value, now.formats.formatFor(now.values)?.id)
+            if (fill.values.isEmpty()) {
+                message.emit(UiText.Res(if (fromScan) R.string.ai_scan_nothing else R.string.ai_auto_nothing))
+                return@launch
+            }
+            // Each looked-up field's page goes with it, kept on Save while the value stays as suggested.
+            val pages = fill.sources.mapValues { (key, page) -> AiSource(page, fill.values.getValue(key)) }
+            form.update { it.copy(edits = it.edits + fill.values, aiSources = it.aiSources - fill.values.keys + pages, savedFlash = false) }
+            if (fill.typeSet) classifier.showTypeFields(now.formats, now.fields, now.values + fill.values)
+            message.emit(photoFillText(fill))
         }
-        // Each looked-up field's page goes with it, kept on Save while the value stays as suggested.
-        val pages = fill.sources.mapValues { (key, page) -> AiSource(page, fill.values.getValue(key)) }
-        form.update { it.copy(edits = it.edits + fill.values, aiSources = it.aiSources - fill.values.keys + pages, savedFlash = false) }
-        if (fill.typeSet) classifier.showTypeFields(now.formats, now.fields, now.values + fill.values)
-        message.emit(photoFillText(fill))
     }
 
     /** "AI filled the type, the JACS code and 5 fields. Check the yellow ones, then save." */
@@ -703,11 +721,28 @@ class AssetDetailViewModel @Inject constructor(
         return UiText.Res(R.string.ai_auto_done, listOf(listed))
     }
 
-    /** Removes [m] from the saved asset, as the web's Remove (not on a read-only asset); the sync pushes it. */
-    fun removeMedia(m: Media) {
+    /**
+     * Removes [m]. From a saved asset, as the web's Remove (not on a read-only one); the sync pushes it. From a new asset,
+     * before it is saved: a photo added on the page, or one it was opened with ([onDropCapture] also takes that off the
+     * shots it will be made from). A file the app made for it is deleted.
+     */
+    fun removeMedia(m: Media, onDropCapture: (Media) -> Unit = {}) {
         val s = state.value
         val asset = s.asset ?: return
-        if (s.isNew || s.locked) return
+        if (s.locked) return
+        if (s.isNew) {
+            if (form.value.newPicks.any { it.id == m.id }) {
+                form.update { f -> f.copy(newPicks = f.newPicks.filterNot { it.id == m.id }) }
+                deleteOwned(listOf(m))
+            } else {
+                target.update { t ->
+                    if (t != null && t.isNew && t.asset.id == asset.id) t.copy(asset = t.asset.copy(media = t.asset.media.filterNot { it.id == m.id })) else t
+                }
+                onDropCapture(m)
+            }
+            message.tryEmit(UiText.Res(R.string.media_removed))
+            return
+        }
         write {
             useCases.removeMedia(asset.id, m.id)
             message.emit(UiText.Res(R.string.media_removed))
@@ -809,6 +844,32 @@ class AssetDetailViewModel @Inject constructor(
         }
     }
 
+    /** Fetches (and, while the server still searches, keeps fetching) the manuals of the open asset's model. */
+    private var manualsJob: Job? = null
+
+    /**
+     * The manuals the look-up pulled, as the web's AI sheet shows them: the server's list for the asset's model, asked
+     * again every [MANUALS_POLL_MS] while its search for them runs. Only an asset the server has; offline it says nothing.
+     */
+    private fun followManuals() {
+        val s = state.value
+        val asset = s.asset ?: return
+        if (s.isNew) return
+        manualsJob?.cancel()
+        manualsJob = viewModelScope.launch {
+            while (true) {
+                val found = try {
+                    formData.lookups.manuals(asset.id)
+                } catch (_: OnlineException) {
+                    return@launch
+                }
+                form.update { it.copy(aiManuals = found.manuals, manualsSearching = found.searching) }
+                if (!found.searching) return@launch
+                delay(MANUALS_POLL_MS)
+            }
+        }
+    }
+
     /** The running look-up of the open asset (it keeps going when the dialog is closed). */
     private var aiJob: Job? = null
 
@@ -826,7 +887,23 @@ class AssetDetailViewModel @Inject constructor(
         val asset = s.asset ?: return
         if (s.locked) return
         form.update { it.copy(aiOpen = true) }
-        if (form.value.ai?.phase == AiPhase.SEARCHING || form.value.ai?.phase == AiPhase.RESULTS) return
+        // Picks up where it was left: a look-up still running (the button blinked meanwhile), its results, or the
+        // manufacturer and model being typed.
+        when (form.value.ai?.phase) {
+            AiPhase.LOADING, AiPhase.SEARCHING -> return
+            // It was waiting for the manufacturer and model: what the form has now (typed there meanwhile, saved or
+            // not) goes in, and with a model the look-up goes ahead.
+            AiPhase.IDENTIFY -> {
+                setAi { it.copy(make = s.value("make").ifBlank { it.make }, model = s.value("model").ifBlank { it.model }) }
+                if (form.value.ai?.model?.isNotBlank() == true) lookUp()
+                return
+            }
+            AiPhase.RESULTS -> {
+                markSeen()
+                return
+            }
+            else -> Unit
+        }
         form.update { it.copy(ai = AiDialogState(AiPhase.LOADING, s.value("make"), s.value("model"))) }
         aiJob?.cancel()
         aiJob = viewModelScope.launch {
@@ -883,18 +960,21 @@ class AssetDetailViewModel @Inject constructor(
         if (!form.value.aiOpen) message.emit(doneText(found, state.value.value("name").ifBlank { state.value.asset?.name.orEmpty() }))
     }
 
-    /** Closes the dialog; a look-up still running carries on and says when it is done. */
     /**
-     * Closes the AI suggestions sheet. As the iOS app, a search under way is stopped (the sheet says so); results stay
-     * to come back to.
+     * Closes the AI suggestions sheet. A look-up under way carries on: the AI button blinks meanwhile, a toast says when
+     * it is done, and opening the sheet again shows where it got to (or its results). Results stay to come back to.
      */
-    fun closeAi() {
-        val phase = form.value.ai?.phase
-        if (phase == AiPhase.SEARCHING || phase == AiPhase.LOADING) {
-            aiJob?.cancel()
-            form.update { it.copy(ai = null, aiOpen = false) }
-        } else {
-            form.update { it.copy(aiOpen = false) }
+    fun closeAi() = form.update { it.copy(aiOpen = false) }
+
+    /** The results on show were seen, which tidies the asset's "ready" mark at the server. */
+    private fun markSeen() {
+        val lookup = form.value.ai?.lookup?.takeIf { !it.seen } ?: return
+        viewModelScope.launch {
+            try {
+                formData.lookups.seen(lookup.id)
+            } catch (_: OnlineException) {
+                // Only tidies the mark.
+            }
         }
     }
 
@@ -1111,8 +1191,9 @@ class AssetDetailViewModel @Inject constructor(
         val pages = picked.mapNotNull { (key, value) ->
             d.lookup?.sources?.get(key)?.takeIf { suggested[key]?.trim() == value }?.let { key to AiSource(it, value) }
         }.toMap()
+        // What the AI found stays (the AI button shows it again) until the asset is closed.
         form.update {
-            it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys + pages, savedFlash = false, ai = null, aiOpen = false)
+            it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys + pages, savedFlash = false, aiOpen = false)
         }
         message.tryEmit(UiText.Plural(R.plurals.ai_applied, update.size))
     }
@@ -1164,8 +1245,9 @@ class AssetDetailViewModel @Inject constructor(
     private fun typedIdentity(d: AiDialogState): Map<String, String> {
         val s = state.value
         return buildMap {
-            d.make.trim().takeIf { it.isNotEmpty() && it != s.value("make") }?.let { put("make", it) }
-            d.model.trim().takeIf { it.isNotEmpty() && it != s.value("model") }?.let { put("model", it) }
+            // Against the saved values: one typed in the form but not saved yet is sent too, so the look-up uses it.
+            d.make.trim().takeIf { it.isNotEmpty() && it != s.saved["make"].orEmpty() }?.let { put("make", it) }
+            d.model.trim().takeIf { it.isNotEmpty() && it != s.saved["model"].orEmpty() }?.let { put("model", it) }
         }
     }
 
@@ -1216,6 +1298,7 @@ class AssetDetailViewModel @Inject constructor(
             !offersType(lookup) || (state.value.value("sys").let { it.isBlank() || it == UNCLASSIFIED } && t.confidence >= SURE_ENOUGH)
         }
         setAi { it.copy(phase = AiPhase.RESULTS, lookup = lookup, picks = picks, typeOn = typeOn) }
+        followManuals()
         if (!lookup.seen && form.value.aiOpen) {
             try {
                 formData.lookups.seen(lookup.id)
@@ -1295,10 +1378,17 @@ class AssetDetailViewModel @Inject constructor(
 
     /** Takes a web page off the asset (after the confirmation), as the web's remove on a document does. */
     /** Takes [document] off the asset: a web page it came from, or its uploaded file. */
-    fun removeDocument(document: AssetDocument) = write {
-        val id = state.value.asset?.id ?: return@write
-        if (document.source == DocumentSource.SOURCE_FILE) formData.removeSourceFile(id, document) else formData.removeWebPage(id, document.id)
-        message.emit(UiText.Res(R.string.doc_removed))
+    fun removeDocument(document: AssetDocument) {
+        // A document added to the asset is one of its media: it goes as Media's remove takes it off.
+        if (document.source == DocumentSource.ATTACHMENT) {
+            state.value.media.firstOrNull { it.id == document.id }?.let { removeMedia(it) }
+            return
+        }
+        write {
+            val id = state.value.asset?.id ?: return@write
+            if (document.source == DocumentSource.SOURCE_FILE) formData.removeSourceFile(id, document) else formData.removeWebPage(id, document.id)
+            message.emit(UiText.Res(R.string.doc_removed))
+        }
     }
 
     fun editComment(text: String) = form.update { it.copy(commentDraft = text, commentProblem = null) }
@@ -1349,6 +1439,9 @@ class AssetDetailViewModel @Inject constructor(
     private companion object {
         const val REFRESH_MS = 1000L
 
+        /** How often the manuals are asked for again while the server searches for them (as the web's sheet). */
+        const val MANUALS_POLL_MS = 2_500L
+
         /** How long a new asset opened from a scan waits for its form before the AI is asked (it takes a moment to load). */
         const val FORM_WAIT_MS = 5_000L
         val CLASS_KEYS = setOf("sys", "typ", "sub")
@@ -1358,9 +1451,9 @@ class AssetDetailViewModel @Inject constructor(
     }
 }
 
-/** A document picked for a new asset, as the Documents tab lists the file an asset was read from. */
-private fun Media.toPendingDocument() = AssetDocument(
-    id = id, source = DocumentSource.SOURCE_FILE, title = fileName.orEmpty(), url = null, publisher = null,
+/** A document added to the asset, as the Documents tab lists it (it opens from the phone; Media's remove takes it off). */
+private fun Media.toAttachment() = AssetDocument(
+    id = id, source = DocumentSource.ATTACHMENT, title = fileName.orEmpty(), url = null, publisher = null,
     hasFile = true, fileKind = documentKind(fileName.orEmpty(), null),
-    uploadedAt = createdAt, sizeBytes = sizeBytes, fileUri = uri,
+    uploadedAt = createdAt, sizeBytes = sizeBytes, fileUri = uri, removable = true,
 )

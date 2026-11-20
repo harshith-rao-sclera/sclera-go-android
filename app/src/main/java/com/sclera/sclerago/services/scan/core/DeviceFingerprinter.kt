@@ -47,6 +47,20 @@ object DeviceFingerprinter {
             }
         }
 
+        // 1b. The UPnP device type it reports.
+        when (device.upnp?.deviceType?.lowercase()) {
+            null -> Unit
+            "internetgatewaydevice", "wandevice", "wanconnectiondevice" -> vote(DeviceCategory.ROUTER, 6.0)
+            "wlanaccesspointdevice" -> vote(DeviceCategory.ACCESS_POINT, 6.0)
+            "mediarenderer" -> vote(DeviceCategory.TV, 3.0)
+            "mediaserver" -> vote(DeviceCategory.NAS, 3.0)
+            "printer", "printerenhanced", "printerbasic", "scanner" -> vote(DeviceCategory.PRINTER, 6.0)
+            "digitalsecuritycamera" -> vote(DeviceCategory.CAMERA, 6.0)
+            "zoneplayer" -> vote(DeviceCategory.SPEAKER, 6.0)
+            "binarylight", "dimmablelight", "hvac_system", "solarprotectionblind" -> vote(DeviceCategory.SMART_HOME, 5.0)
+            else -> Unit
+        }
+
         // 2. Advertised services.
         for (type in serviceTypes) {
             when (type) {
@@ -355,6 +369,7 @@ object DeviceFingerprinter {
         device.netbios?.let {
             parts += listOfNotNull(it.computerName, it.workgroup)
         }
+        device.upnp?.let { parts += listOfNotNull(it.friendlyName, it.manufacturer, it.modelName, it.modelNumber) }
         return parts.joinToString(" ")
     }
 

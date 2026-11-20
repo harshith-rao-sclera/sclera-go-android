@@ -1,19 +1,13 @@
 package com.sclera.sclerago.presentation.access
 
-import com.sclera.sclerago.presentation.model.OnlineOnly
-import com.sclera.sclerago.presentation.components.OfflineBanner
-import com.sclera.sclerago.presentation.common.ConnectivityViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -21,45 +15,48 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.foundation.lazy.rememberLazyListState
-import kotlinx.coroutines.flow.first
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.model.Property
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.ListLoader
+import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.SecureWindow
+import com.sclera.sclerago.presentation.components.StatCard
 import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.components.r
-import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
+import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import kotlinx.coroutines.flow.first
 
 /** People and access (side menu → Users), as the web's Users page: people, the group each is in, and what groups can do. */
 @Composable
@@ -90,7 +87,7 @@ fun PeopleScreen(
                 onAdd = { if (s.tab == AccessTab.PEOPLE) access.newPerson() else access.newGroup() },
                 onEditPerson = access::editPerson, onEditGroup = access::editGroup,
                 onRefresh = access::refresh, onInvite = access::newPerson, onMoreOthers = access::moreOthers,
-                offline = !online,
+                offline = !online, propertyName = vm.propName.takeIf { it.isNotBlank() },
             )
             s.personForm?.let { form ->
                 PersonSheet(
@@ -136,6 +133,8 @@ internal fun PeopleContent(
     onMoreOthers: () -> Unit = {},
     /** Offline: people and groups are managed on the server, so a banner at the top says so. */
     offline: Boolean = false,
+    /** The property being worked on, under the title. */
+    propertyName: String? = null,
 ) {
     val gutter = pageGutter()
     val onPeople = list.tab == AccessTab.PEOPLE
@@ -153,7 +152,7 @@ internal fun PeopleContent(
     }
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            SubPageBar(stringResource(R.string.access_title), property = null, onMenu = onBack)
+            SubPageBar(stringResource(R.string.access_title), property = propertyName, onMenu = onBack)
             if (offline) OfflineBanner(OnlineOnly.USERS, Modifier.padding(horizontal = gutter + 10.dp).padding(top = 10.dp))
             // The first read shows its own loader, so a pull waits until it is done.
             PullRefresh(list.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !list.loading) {
@@ -161,7 +160,7 @@ internal fun PeopleContent(
                     Modifier.fillMaxSize().testTag(AccessTags.LIST),
                     state = scroll,
                     contentPadding = PaddingValues(start = gutter + 10.dp, end = gutter + 10.dp, top = 10.dp, bottom = 160.dp),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     item { Header(list, onTab) }
                     val unavailable = list.unavailable
@@ -226,16 +225,18 @@ internal fun PeopleContent(
 @Composable
 private fun Header(list: AccessListState, onTab: (AccessTab) -> Unit) {
     val onPeople = list.tab == AccessTab.PEOPLE
-    Column(Modifier.padding(top = 2.dp, bottom = 7.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.padding(top = 2.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(
-                list.peopleTotal, stringResource(R.string.access_stat_people), Icons.Users, C.Yellow, C.OnYellow,
-                Modifier.weight(1f).testTag(AccessTags.STAT_PEOPLE),
-            ) { onTab(AccessTab.PEOPLE) }
+                Icons.Users, C.Yellow, list.peopleTotal.toString(), stringResource(R.string.access_stat_people),
+                Modifier.weight(1f).clip(r(12)).clickable(role = Role.Button) { onTab(AccessTab.PEOPLE) }.testTag(AccessTags.STAT_PEOPLE),
+                valueSize = 18, labelSize = 12,
+            )
             StatCard(
-                list.groupsTotal, stringResource(R.string.access_stat_groups), Icons.Key, C.Purple, C.OnYellow,
-                Modifier.weight(1f).testTag(AccessTags.STAT_GROUPS),
-            ) { onTab(AccessTab.GROUPS) }
+                Icons.Key, C.Purple, list.groupsTotal.toString(), stringResource(R.string.access_stat_groups),
+                Modifier.weight(1f).clip(r(12)).clickable(role = Role.Button) { onTab(AccessTab.GROUPS) }.testTag(AccessTags.STAT_GROUPS),
+                valueSize = 18, labelSize = 12,
+            )
         }
         TabSwitch(
             listOf(
@@ -247,23 +248,6 @@ private fun Header(list: AccessListState, onTab: (AccessTab) -> Unit) {
     }
 }
 
-
-/** One count card at the top of the page: a coloured icon tile, the number, and what it counts. */
-@Composable
-private fun StatCard(count: Int, label: String, icon: Ico, tile: Color, onTile: Color, modifier: Modifier, onClick: () -> Unit) {
-    Row(
-        modifier.clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).clickable(role = Role.Button, onClick = onClick)
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(Modifier.size(42.dp).clip(r(11)).background(tile), contentAlignment = Alignment.Center) { LineIcon(icon, 22.dp, onTile, 2.2f) }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Txt(count.toString(), 22, 800)
-            Txt(label, 12, 500, C.Muted, maxLines = 1)
-        }
-    }
-}
 
 /** A bold line over a muted one, centred: nobody yet, nobody by that name, or why the page isn't available. */
 @Composable

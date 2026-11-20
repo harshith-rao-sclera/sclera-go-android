@@ -40,9 +40,16 @@ fun MediaFabs(
 ) {
     var open by remember { mutableStateOf(false) }
     val photos = media.filter { !it.video && !it.isDoc && !it.audio }
-    val kinds = rules.filter { r -> r.max > 0 && photos.count { it.category == r.kind } < r.max }.map { it.kind }
-    // The menu lists its actions top to bottom above the +: the photo kinds, then Camera, then File.
-    val actions = kinds.map { k -> FabAction(stringResource(k.nameRes()), Icons.Camera, "media-add-${k.db}") { onAddPhoto(k) } } +
+    val kinds = rules.filter { r -> r.max > 0 && photos.count { it.category == r.kind } < r.max }
+    // The menu lists its actions top to bottom above the +: the photo kinds (each with how many it has of the most
+    // the property allows), then Camera, then File.
+    val actions = kinds.map { r ->
+        val added = photos.count { it.category == r.kind }
+        FabAction(
+            stringResource(r.kind.nameRes()), Icons.Camera, "media-add-${r.kind.db}", { onAddPhoto(r.kind) }, null,
+            note = stringResource(R.string.media_kind_count, added, r.max),
+        )
+    } +
         listOf(
             FabAction(stringResource(R.string.media_add_camera), Icons.Camera, "media-add-camera") { onAddPhoto(null) },
             FabAction(stringResource(R.string.media_add_file_fab), Icons.FileUpload, "media-add-file", onAddFile),

@@ -210,7 +210,7 @@ fun ValidationTab(
  */
 @Composable
 fun ValidateFab(validating: Boolean, offline: Boolean, onValidate: () -> Unit, onOffline: () -> Unit, modifier: Modifier = Modifier) {
-    OfflineGate(offline && !validating, onOffline, modifier.padding(end = 16.dp, bottom = 16.dp), badgeOffset = 2.dp) {
+    OfflineGate(offline && !validating, onOffline, modifier.padding(end = 16.dp, bottom = 16.dp)) {
         CircleFab(
             Icons.Play, stringResource(if (validating) R.string.val_checking else R.string.val_validate), onValidate,
             Modifier.testTag(ValidationTags.FAB), stroke = 2.2f, busy = validating,

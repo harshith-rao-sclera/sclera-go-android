@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.DocumentSource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -196,8 +197,13 @@ fun AssetDetailScreen(
                                 if (!state.online) OfflineBanner(OnlineOnly.REVALIDATE)
                                 ValidationTab(state.validation, onOpenRun = actions.onOpenRun)
                             }
-                            DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents, locked) { removeDoc = it }
-                            DetailTabKind.MEDIA -> MediaTab(state.media, state.photoRules, open, sorting = state.sortingPhotos)
+                            // The documents added to the asset and its web documents; its source file shows in Media, under Videos.
+                            DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents.filter { it.source != DocumentSource.SOURCE_FILE }, locked) { removeDoc = it }
+                            DetailTabKind.MEDIA -> MediaTab(
+                                state.media, state.photoRules, open, sorting = state.sortingPhotos,
+                                sourceFile = state.documents.firstOrNull { it.source == DocumentSource.SOURCE_FILE },
+                                canRemoveSource = !locked, onRemoveSource = { removeDoc = it },
+                            )
                             DetailTabKind.COMMENTS -> {
                                 // The list runs edge to edge; the box keeps the other tabs' margin.
                                 CommentBox(
@@ -284,8 +290,8 @@ fun AssetDetailScreen(
             state.media.getOrNull(i)?.let { m -> PhotoViewer(
                 m, onClose = { preview = null },
                 onDownload = actions.onDownloadMedia,
-                // As the web: a saved asset's media can be removed unless it is read-only.
-                onRemove = if (isNew || locked) null else ({ removeMedia = it }),
+                // As the web: media can be removed unless the asset is read-only (a new asset's too, before it is saved).
+                onRemove = if (locked) null else ({ removeMedia = it }),
             ) }
         }
         removeMedia?.let { m ->

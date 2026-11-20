@@ -1,7 +1,7 @@
 package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.sync.AdcDatabase
-import com.sclera.sclerago.domain.model.AssetFilter
+import com.sclera.sclerago.domain.model.AssetQueryFilter
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.sourceToDb
 
@@ -44,7 +44,7 @@ internal const val ACTIVITY_FOR = "SELECT * FROM asset_activity WHERE asset_id =
 internal class Where(val sql: String, val args: List<String>)
 
 /** `assets` (alias `a`) rows [filter] keeps. [withStatus] false leaves the status out (for the status chips' counts). */
-internal fun AdcDatabase.assetWhere(filter: AssetFilter, withStatus: Boolean = true): Where {
+internal fun AdcDatabase.assetWhere(filter: AssetQueryFilter, withStatus: Boolean = true): Where {
     // In ADC (not removed, not in Managed Assets) and not a file import still waiting for review: what the server lists.
     val parts = mutableListOf(listedAssets("a"))
     val args = mutableListOf<String>()

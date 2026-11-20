@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase.asset
 
+import com.sclera.sclerago.domain.model.ModelManuals
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.DataError
@@ -111,6 +112,9 @@ class SpecLookupUseCase @Inject constructor(private val repo: SpecLookupReposito
     }
 
     suspend fun seen(lookupId: String) = repo.seen(lookupId)
+
+    /** The manuals of the asset's model found so far, and whether the search for them still runs. */
+    suspend fun manuals(assetId: String): ModelManuals = repo.manuals(assetId)
 
     /** The photos the phone's look-up sends, as the server reads them (a few spare in case one can't be read here). */
     fun photosToRead(media: List<Media>): List<Media> = readablePhotos(media, MAX_CLASSIFY_PHOTOS * 2)

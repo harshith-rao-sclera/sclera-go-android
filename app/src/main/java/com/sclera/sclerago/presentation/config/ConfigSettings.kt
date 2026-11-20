@@ -135,6 +135,24 @@ fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
                 if (ai != null) cfg.setAiValidation(it)
             }
         }
+        // Units (the web's Units switch): US or metric for the fields a type brings; unknown until the settings are read.
+        val metric = cfg.metricUnits
+        CfgCard {
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Txt(stringResource(R.string.cfg_units_title), 13, 700)
+                Txt(
+                    when {
+                        metric != null -> stringResource(R.string.cfg_units_hint)
+                        cfg.photos.load == LoadState.LOADING -> stringResource(R.string.cfg_loading)
+                        else -> stringResource(R.string.cfg_settings_load_failed)
+                    },
+                    11, 400, C.Muted, maxLines = 3,
+                )
+            }
+            OnboardRow(Icons.Globe, stringResource(R.string.cfg_units_metric), stringResource(R.string.cfg_units_metric_row), metric == true, cfg.unitsSaving) {
+                if (metric != null) cfg.setMetricUnits(it)
+            }
+        }
         Txt("ON THE PHONE", 10, 700, C.Muted, Modifier.padding(start = 12.dp, top = 6.dp), spacing = 0.6f)
         CfgCard {
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {

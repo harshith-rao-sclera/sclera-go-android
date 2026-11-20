@@ -25,9 +25,11 @@ class ObservePropertySummariesUseCase @Inject constructor(
  * They keep the server's order: downloaded ones aren't moved to the top.
  */
 class FilterPropertySummariesUseCase @Inject constructor() {
-    operator fun invoke(all: List<PropertySummary>, query: String): List<PropertySummary> {
+    /** The properties whose name holds [query]: the downloaded ones ([downloaded]) first, each group A to Z by name. */
+    operator fun invoke(all: List<PropertySummary>, query: String, downloaded: Set<String> = emptySet()): List<PropertySummary> {
         val q = query.trim().lowercase()
         return all.filter { q.isEmpty() || q in it.property.name.lowercase() }
+            .sortedWith(compareBy<PropertySummary> { it.property.id !in downloaded }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.property.name.trim() })
     }
 }
 

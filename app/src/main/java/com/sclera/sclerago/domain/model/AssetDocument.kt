@@ -1,6 +1,6 @@
 package com.sclera.sclerago.domain.model
 
-/** What a document of an asset is (the web's Documents tab shows all three). */
+/** What a document of an asset is: a file added to it, the file it was read from, or a web document. */
 enum class DocumentSource {
     /** The file the asset was read from (an import). */
     SOURCE_FILE,
@@ -10,6 +10,9 @@ enum class DocumentSource {
 
     /** A manual of the asset's model, from the manufacturer's own site. */
     MANUAL,
+
+    /** A document added to the asset (the Documents tab's Add, or a file from Media): one of its media. */
+    ATTACHMENT,
 }
 
 /** Whether the PDF behind a web page or manual is kept, still downloading, or only the link was kept. */
@@ -76,3 +79,6 @@ data class AssetDocument(
 
 /** How the server matches a manufacturer or model to its manuals: lowercase letters and digits only. */
 fun modelKey(text: String?): String = (text ?: "").lowercase().filter { it in 'a'..'z' || it in '0'..'9' }
+
+/** The manuals of an asset's model as the server has them now, and whether a search for more is still running. */
+data class ModelManuals(val manuals: List<AssetDocument>, val searching: Boolean)

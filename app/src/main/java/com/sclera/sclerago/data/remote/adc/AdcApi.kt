@@ -82,6 +82,10 @@ class AdcApi @Inject constructor(private val service: AdcApiService, private val
     suspend fun members(id: String): List<MemberDto> =
         call.json({ service.members(id) }) { AdcJson.decodeFromString(PageDto.serializer(MemberDto.serializer()), it).data }
 
+    /** The people the property's assets are assigned to (the asset list's people filter), by name. */
+    suspend fun assetAssignees(id: String): List<AssigneeDto> =
+        call.json({ service.assetAssignees(id) }) { AdcJson.decodeFromString(PageDto.serializer(AssigneeDto.serializer()), it).data }
+
     suspend fun addMember(id: String, body: JsonObject): MemberDto =
         call.json({ service.addMember(id, body.asBody()) }) { AdcJson.decodeFromString(MemberDto.serializer(), it) }
 

@@ -73,11 +73,14 @@ object DetailTags {
 }
 
 /** What a field value came from, shown at the end of its row. */
-enum class FieldBadge { NONE, EDITED, CHECK, OCR }
+enum class FieldBadge { NONE, CHECK, OCR }
 
-/** The badge of the field [key]: edited, read from the nameplate with doubt (CHECK), or read from it (OCR). */
+/**
+ * The badge of the field [key]: read from the nameplate with doubt (CHECK), or read from it (OCR). A field changed in
+ * the form shows no badge (its yellow underline marks it); its value is the user's now.
+ */
 fun AssetDetailState.badgeFor(key: String): FieldBadge = when {
-    dirty(key) -> FieldBadge.EDITED
+    dirty(key) -> FieldBadge.NONE
     key == lowConfidenceKey -> FieldBadge.CHECK
     fromCamera && value(key).isNotEmpty() -> FieldBadge.OCR
     else -> FieldBadge.NONE
@@ -214,12 +217,11 @@ fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier, onCli
     }
 }
 
-/** The OCR / CHECK / EDITED mark at the end of a row. */
+/** The OCR / CHECK mark at the end of a row. */
 @Composable
 private fun BadgeText(key: String, badge: FieldBadge) {
     val (text, color) = when (badge) {
         FieldBadge.NONE -> return
-        FieldBadge.EDITED -> stringResource(R.string.detail_badge_edited) to C.Yellow
         FieldBadge.CHECK -> stringResource(R.string.detail_badge_check) to C.Orange
         FieldBadge.OCR -> stringResource(R.string.detail_badge_ocr) to C.Purple
     }

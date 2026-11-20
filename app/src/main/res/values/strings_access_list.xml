@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Users and access list. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- On a person's card while they haven't signed in yet. -->
+    <string name="access_invited">Invited</string>
+    <!-- After a group's first permission tags: how many more it has. -->
+    <string name="access_more_tags">+%1$d</string>
+</resources>

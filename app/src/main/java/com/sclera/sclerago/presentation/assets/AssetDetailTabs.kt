@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.Spacer
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -101,14 +103,15 @@ data class DetailTabItem(val kind: DetailTabKind, val fails: Int? = null)
 /**
  * The tabs [state] shows, worked out from the asset as the web's asset panel does: Info, Validation,
  * Documents, Media, Comments and History (the web's tabs). A new asset isn't saved yet, so it has no validation,
- * documents, comments or history: Info and Media (the photos, videos and files picked for it).
+ * comments or history: Info, Documents and Media (the documents, photos, videos and files picked for it).
  */
 fun detailTabs(state: AssetDetailState): List<DetailTabItem> {
     if (state.asset == null) return emptyList()
     return buildList {
         add(DetailTabItem(DetailTabKind.INFO))
         if (!state.isNew) add(DetailTabItem(DetailTabKind.VALIDATION))
-        if (!state.isNew) add(DetailTabItem(DetailTabKind.DOCUMENTS))
+        // A new asset has Documents too: the files picked for it, added with it.
+        add(DetailTabItem(DetailTabKind.DOCUMENTS))
         add(DetailTabItem(DetailTabKind.MEDIA))
         if (!state.isNew) {
             add(DetailTabItem(DetailTabKind.COMMENTS))
@@ -141,7 +144,7 @@ private const val COMPACT_TABS = 3
 
 /** A document's type as the short tag on its card: the file's extension ("XLSX"), else PDF, XLS, DOC or TXT by its kind. */
 private fun AssetDocument.typeTag(): String =
-    title.substringAfterLast('.', "").uppercase().takeIf { source == DocumentSource.SOURCE_FILE && it.length in 2..4 }
+    title.substringAfterLast('.', "").uppercase().takeIf { (source == DocumentSource.SOURCE_FILE || source == DocumentSource.ATTACHMENT) && it.length in 2..4 }
         ?: when (fileKind) {
             "pdf" -> "PDF"
             "spreadsheet" -> "XLS"
@@ -172,74 +175,100 @@ fun DocumentsTab(documents: List<AssetDocument>, locked: Boolean, onRemove: (Ass
         EmptyTab(stringResource(R.string.doc_none))
         return
     }
-    // As the web says it: uploading another file replaces this one.
-    if (!locked && documents.any { it.source == DocumentSource.SOURCE_FILE }) Txt(stringResource(R.string.doc_one_file), 12, 500, C.Muted)
     documents.forEach { d -> DocumentCard(d, canRemove = d.removable && !locked, onRemove = { onRemove(d) }) }
 }
 
-/** One document as a card: its type, name, tag and details, with the eye (open) and the bin (delete) at the end. */
+/** Opens document [d]: its kept file in an app that reads it, else its page in the browser; null when it has neither. */
 @Composable
-private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> Unit) {
+internal fun documentOpener(d: AssetDocument): (() -> Unit)? {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    val locale = LocalConfiguration.current.locales[0]
     val chooser = stringResource(R.string.doc_open_with)
-    val open: (() -> Unit)? = when {
+    return when {
         d.fileUri != null -> ({ openFile(context, d.fileUri, d.contentType, chooser) })
         !d.url.isNullOrBlank() -> ({ runCatching { uriHandler.openUri(d.url) }; Unit })
         else -> null
     }
+}
+
+/**
+ * One document as a card: its icon, its name, a tag (what it is), what it says (the fields a page was used for, a
+ * manual's model, who added a file and when), then where it is from (a web document's site and whether its PDF is kept,
+ * a file's size and type). Open sits at the top end (an arrow for a page only linked, an eye for a kept file), the bin
+ * at the bottom end.
+ */
+@Composable
+private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> Unit) {
+    val locale = LocalConfiguration.current.locales[0]
+    val open = documentOpener(d)
+    val web = d.source == DocumentSource.WEB_PAGE || d.source == DocumentSource.MANUAL
     val tag = when (d.source) {
         DocumentSource.SOURCE_FILE -> stringResource(fileKindRes(d.fileKind))
         DocumentSource.WEB_PAGE -> stringResource(if (d.official) R.string.doc_ai_source_official else R.string.doc_ai_source)
         DocumentSource.MANUAL -> stringResource(R.string.doc_manufacturer_kind, stringResource(d.manualKind.labelRes()))
+        DocumentSource.ATTACHMENT -> stringResource(R.string.doc_attachment)
     }
+    val about: String? = when (d.source) {
+        DocumentSource.WEB_PAGE -> d.usedFor.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.doc_used_for) + " " + it.joinToString(", ") }
+        DocumentSource.MANUAL -> d.model?.let { stringResource(R.string.doc_model) + " " + it }
+        DocumentSource.SOURCE_FILE ->
+            listOfNotNull(d.uploaderName ?: stringResource(R.string.doc_uploader_unknown), d.uploadedAt?.let { formatDate(it, locale) }).joinToString(" · ")
+        DocumentSource.ATTACHMENT -> d.uploadedAt?.let { formatDate(it, locale) }
+    }
+    val type = d.contentType?.substringAfter('/')?.uppercase(locale)
+    val fileLine = listOfNotNull(d.sizeBytes?.let(::sizeText), type).joinToString(" · ").ifEmpty { null }
     Row(
-        Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("doc-${d.id}").clip(r(16)).background(C.Surface)
-            .border(1.dp, C.Border, r(16)).padding(12.dp),
+        Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("doc-${d.id}").clip(r(14)).background(C.Surface)
+            .border(1.dp, C.Border, r(14)).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(
-            Modifier.size(52.dp).background(C.YTintBg, r(12)),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            LineIcon(if (d.fileKind == "spreadsheet") Icons.Table else Icons.FileDoc, 20.dp, C.Yellow, 2f)
-            Txt(d.typeTag(), 9, 800, C.Yellow, spacing = 0.4f)
+        Box(Modifier.size(48.dp).background(C.YTintBg, r(12)), contentAlignment = Alignment.Center) {
+            if (d.source == DocumentSource.WEB_PAGE) {
+                Box(Modifier.size(28.dp).background(C.Yellow, CircleShape), contentAlignment = Alignment.Center) {
+                    LineIcon(Icons.Globe, 16.dp, C.OnYellow, 2f)
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    LineIcon(if (d.fileKind == "spreadsheet") Icons.Table else Icons.FileDoc, 18.dp, C.Yellow, 2f)
+                    Txt(d.typeTag(), 8, 800, C.Yellow, spacing = 0.3f)
+                }
+            }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Txt(d.title, 15, 700, maxLines = 2)
-            Txt(
-                tag, 11, 700, C.Yellow,
-                Modifier.background(C.YTintBg, Capsule).padding(horizontal = 10.dp, vertical = 3.dp), maxLines = 1,
-            )
-            when (d.source) {
-                DocumentSource.SOURCE_FILE -> {
-                    MetaLine(Icons.User, d.uploaderName ?: stringResource(R.string.doc_uploader_unknown))
-                    d.uploadedAt?.let { MetaLine(Icons.Calendar, formatDate(it, locale)) }
-                    val type = d.contentType?.substringAfter('/')?.uppercase(locale)
-                    listOfNotNull(d.sizeBytes?.let(::sizeText), type).takeIf { it.isNotEmpty() }?.let { MetaLine(Icons.FileDoc, it.joinToString(" · ")) }
-                }
-                DocumentSource.WEB_PAGE -> if (d.usedFor.isNotEmpty()) MetaLine(Icons.Sparkles, d.usedFor.joinToString(", "))
-                DocumentSource.MANUAL -> d.model?.let { MetaLine(Icons.Box, it) }
+            Txt(d.title, 14, 700, maxLines = 2)
+            Row(
+                Modifier.background(C.YTintBg, Capsule).padding(horizontal = 10.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                if (d.source == DocumentSource.MANUAL) LineIcon(Icons.FileDoc, 11.dp, C.Yellow, 2.2f)
+                Txt(tag, 11, 700, C.Yellow, maxLines = 1)
             }
-            if (d.source != DocumentSource.SOURCE_FILE) {
-                (d.publisher ?: d.url)?.let { MetaLine(Icons.Globe, it) }
-                MetaLine(Icons.Download, stringResource(d.fileStatus.labelRes()))
+            about?.let { Txt(it, 12, 500, C.Soft, maxLines = 2) }
+            if (web) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    (d.publisher ?: d.url)?.let { Txt(it, 12, 700, C.Yellow, Modifier.weight(1f, fill = false), maxLines = 1) }
+                    Txt(" · " + stringResource(d.fileStatus.labelRes()), 12, 500, C.Muted, maxLines = 1)
+                }
+            } else {
+                fileLine?.let { Txt(it, 12, 500, C.Muted, maxLines = 1) }
             }
         }
-        Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
+        Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween, horizontalAlignment = Alignment.CenterHorizontally) {
             if (open != null) {
                 val label = stringResource(R.string.doc_open_cd, d.title)
-                RoundButton(44.dp, C.YTintBg, open, Modifier.semantics { contentDescription = label }) {
-                    LineIcon(Icons.Eye, 18.dp, C.Yellow, 2.2f)
+                RoundButton(36.dp, C.Raised, open, Modifier.semantics { contentDescription = label }) {
+                    LineIcon(if (d.fileUri != null) Icons.Eye else Icons.ArrowUpRight, 16.dp, C.Yellow, 2.2f)
                 }
+            } else {
+                Spacer(Modifier.size(36.dp))
             }
             if (canRemove) {
                 val label = stringResource(R.string.doc_remove_cd, d.title)
-                RoundButton(44.dp, C.DangerBg, onRemove, Modifier.semantics { contentDescription = label }) {
-                    LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f)
-                }
+                Box(
+                    Modifier.size(40.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onRemove).semantics { contentDescription = label },
+                    contentAlignment = Alignment.Center,
+                ) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
             }
         }
     }
@@ -259,15 +288,6 @@ private fun SortingNote(modifier: Modifier = Modifier) {
     }
 }
 
-/** One detail of a document card: a small icon and its text on one line. */
-@Composable
-private fun MetaLine(icon: Ico, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        LineIcon(icon, 14.dp, C.Muted, 2f)
-        Txt(text, 12, 500, C.Soft, Modifier.weight(1f), maxLines = 1)
-    }
-}
-
 /** Opens the kept file at [uri] in another app the user picks (a PDF or spreadsheet viewer), allowed to read it only. */
 private fun openFile(context: Context, uri: String, type: String?, chooser: String) {
     val view = Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(uri), type ?: context.contentResolver.getType(Uri.parse(uri)))
@@ -275,7 +295,7 @@ private fun openFile(context: Context, uri: String, type: String?, chooser: Stri
     runCatching { context.startActivity(Intent.createChooser(view, chooser)) }
 }
 
-private fun ManualKind?.labelRes() = when (this) {
+internal fun ManualKind?.labelRes() = when (this) {
     ManualKind.MANUAL -> R.string.doc_kind_manual
     ManualKind.INSTALLATION -> R.string.doc_kind_installation
     ManualKind.DATASHEET -> R.string.doc_kind_datasheet
@@ -313,7 +333,16 @@ private fun sizeText(bytes: Long): String =
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MediaTab(media: List<Media>, rules: List<PhotoRule>, onOpen: (Int) -> Unit, sorting: Boolean = false) {
+fun MediaTab(
+    media: List<Media>,
+    rules: List<PhotoRule>,
+    onOpen: (Int) -> Unit,
+    sorting: Boolean = false,
+    /** The file the asset was read from: it shows in a section of its own under Videos. */
+    sourceFile: AssetDocument? = null,
+    canRemoveSource: Boolean = false,
+    onRemoveSource: (AssetDocument) -> Unit = {},
+) {
     // Photos just added are read on the device and sorted into their kinds before they show.
     if (sorting) SortingNote(Modifier.padding(horizontal = 12.dp))
     val indexed = media.withIndex().toList()
@@ -334,6 +363,7 @@ fun MediaTab(media: List<Media>, rules: List<PhotoRule>, onOpen: (Int) -> Unit, 
         onOpen = onOpen, modifier = Modifier.testTag("media-card-other"),
     )
     FileList(stringResource(R.string.media_videos), indexed.filter { (_, m) -> m.video }, onOpen)
+    SourceDocumentSection(sourceFile, canRemove = sourceFile?.removable == true && canRemoveSource, onRemove = onRemoveSource)
     FileList(stringResource(R.string.media_memos_files), indexed.filter { (_, m) -> !m.video && (m.isDoc || m.audio) }, onOpen)
 }
 
@@ -351,6 +381,47 @@ private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (I
         Txt(title, 14, 700, maxLines = 2)
         if (files.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
         else Column(Modifier.fillMaxWidth()) { FileRows(files, onOpen) }
+    }
+}
+
+/**
+ * The file the asset was read from, as a section like Videos and the other files: its type, name, size and when it was
+ * added, opening on a tap; the bin takes it off (where allowed). "None yet." without one.
+ */
+@Composable
+private fun SourceDocumentSection(doc: AssetDocument?, canRemove: Boolean, onRemove: (AssetDocument) -> Unit) {
+    val locale = LocalConfiguration.current.locales[0]
+    Column(
+        Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Txt(stringResource(R.string.media_source_document), 14, 700, maxLines = 2)
+        if (doc == null) {
+            Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
+            return@Column
+        }
+        val open = documentOpener(doc)
+        Row(
+            Modifier.fillMaxWidth().testTag("media-source-${doc.id}").then(if (open != null) Modifier.clickable(onClick = open) else Modifier)
+                .heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Txt(doc.typeTag(), 10, 700, C.Soft, Modifier.background(C.Btn, Capsule).padding(horizontal = 8.dp, vertical = 3.dp))
+            Column(Modifier.weight(1f)) {
+                Txt(doc.title, 13, 700, maxLines = 1)
+                val meta = listOfNotNull(doc.sizeBytes?.let(::sizeText), doc.uploadedAt?.let { formatDate(it, locale) }).joinToString(" · ")
+                if (meta.isNotEmpty()) Txt(meta, 11, 400, C.Muted)
+            }
+            if (open != null) LineIcon(Icons.Eye, 15.dp, C.Yellow, 2.2f)
+            if (canRemove) {
+                val label = stringResource(R.string.doc_remove_cd, doc.title)
+                Box(
+                    Modifier.size(40.dp).clip(CircleShape).clickable(role = Role.Button) { onRemove(doc) }.semantics { contentDescription = label },
+                    contentAlignment = Alignment.Center,
+                ) { LineIcon(Icons.Trash, 16.dp, C.Red, 2.2f) }
+            }
+        }
     }
 }
 

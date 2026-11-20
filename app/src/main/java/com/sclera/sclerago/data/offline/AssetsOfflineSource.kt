@@ -10,7 +10,7 @@ import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDetails
-import com.sclera.sclerago.domain.model.AssetFilter
+import com.sclera.sclerago.domain.model.AssetQueryFilter
 import com.sclera.sclerago.domain.model.AssetFull
 import com.sclera.sclerago.domain.model.AssetSummary
 import com.sclera.sclerago.domain.model.Media
@@ -54,34 +54,34 @@ class AssetsOfflineSource(
     private var legacyChecked = false
 
     /** Every asset [filter] keeps, newest first. */
-    suspend fun list(filter: AssetFilter = AssetFilter(), propertyId: String = ""): List<Asset> =
+    suspend fun list(filter: AssetQueryFilter = AssetQueryFilter(), propertyId: String = ""): List<Asset> =
         withContext(io) { loadPage(filter, null, 0, propertyId) }
 
     /**
      * Every asset [filter] keeps, read again when the asset tables change, with whether the database was open for the
      * read (decided in the same read, so the two always match): not open yet means nothing is known, rather than no assets.
      */
-    fun listReadFlow(filter: AssetFilter = AssetFilter()): Flow<AssetsRead> =
+    fun listReadFlow(filter: AssetQueryFilter = AssetQueryFilter()): Flow<AssetsRead> =
         db.watch(io, *ASSET_TABLES) {
             if (db.isOpen && db.hasTable("assets")) AssetsRead(true, loadPage(filter, null, 0, "")) else AssetsRead(false, emptyList())
         }
 
     /** One page of [list]: [limit] assets from [offset]. */
-    suspend fun page(filter: AssetFilter, limit: Int, offset: Int, propertyId: String = ""): List<Asset> =
+    suspend fun page(filter: AssetQueryFilter, limit: Int, offset: Int, propertyId: String = ""): List<Asset> =
         withContext(io) { loadPage(filter, limit, offset, propertyId) }
 
-    fun pageFlow(filter: AssetFilter, limit: Int, offset: Int, propertyId: String = ""): Flow<List<Asset>> =
+    fun pageFlow(filter: AssetQueryFilter, limit: Int, offset: Int, propertyId: String = ""): Flow<List<Asset>> =
         db.watch(io, *ASSET_TABLES) { loadPage(filter, limit, offset, propertyId) }
 
     /** How many assets [filter] keeps. */
-    suspend fun count(filter: AssetFilter = AssetFilter()): Int = withContext(io) { loadCount(filter) }
+    suspend fun count(filter: AssetQueryFilter = AssetQueryFilter()): Int = withContext(io) { loadCount(filter) }
 
-    fun countFlow(filter: AssetFilter = AssetFilter()): Flow<Int> = db.watch(io, "assets", "asset_values", "asset_fields") { loadCount(filter) }
+    fun countFlow(filter: AssetQueryFilter = AssetQueryFilter()): Flow<Int> = db.watch(io, "assets", "asset_values", "asset_fields") { loadCount(filter) }
 
     /** Counts per status for the status chips: [filter] without its status. */
-    suspend fun summary(filter: AssetFilter = AssetFilter()): AssetSummary = withContext(io) { loadSummary(filter) }
+    suspend fun summary(filter: AssetQueryFilter = AssetQueryFilter()): AssetSummary = withContext(io) { loadSummary(filter) }
 
-    fun summaryFlow(filter: AssetFilter = AssetFilter()): Flow<AssetSummary> =
+    fun summaryFlow(filter: AssetQueryFilter = AssetQueryFilter()): Flow<AssetSummary> =
         db.watch(io, "assets", "asset_values", "asset_fields") { loadSummary(filter) }
 
     /** [assetId] with its field values, activity and latest validation result; null when it is not there. */
@@ -102,7 +102,7 @@ class AssetsOfflineSource(
     fun activityFlow(assetId: String): Flow<List<AssetActivity>> = db.watch(io, "asset_activity") { loadActivity(assetId) }
 
     /** One page of the assets [filter] keeps. */
-    private fun loadPage(filter: AssetFilter, limit: Int?, offset: Int, propertyId: String): List<Asset> =
+    private fun loadPage(filter: AssetQueryFilter, limit: Int?, offset: Int, propertyId: String): List<Asset> =
         db.whenTable("assets", emptyList()) {
             val where = db.assetWhere(filter)
             val paging = if (limit != null) " LIMIT ${limit.coerceAtLeast(0)} OFFSET ${offset.coerceAtLeast(0)}" else ""
@@ -110,12 +110,12 @@ class AssetsOfflineSource(
             toAssets(rows, propertyId)
         }
 
-    private fun loadCount(filter: AssetFilter): Int = db.whenTable("assets", 0) {
+    private fun loadCount(filter: AssetQueryFilter): Int = db.whenTable("assets", 0) {
         val where = db.assetWhere(filter)
         db.queryOne("SELECT COUNT(*) AS n FROM assets a WHERE ${where.sql}", where.args)?.int("n") ?: 0
     }
 
-    private fun loadSummary(filter: AssetFilter): AssetSummary = db.whenTable("assets", AssetSummary(0, emptyMap(), 0, 0)) {
+    private fun loadSummary(filter: AssetQueryFilter): AssetSummary = db.whenTable("assets", AssetSummary(0, emptyMap(), 0, 0)) {
         val where = db.assetWhere(filter, withStatus = false)
         val rows = db.query(ASSET_SUMMARY.replace("%WHERE%", where.sql), where.args)
         val counts = rows.mapNotNull { r -> Status.entries.firstOrNull { it.name == r.string("st") }?.let { it to (r.int("n") ?: 0) } }.toMap()

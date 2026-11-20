@@ -41,4 +41,24 @@ interface AdcIntegrationService {
     /** Moves validated assets to Managed Assets (the VDMS). */
     @POST("properties/{p}/integration/move")
     suspend fun move(@Path("p") property: String, @Body body: RequestBody): Response<ResponseBody>
+
+    /** What that move would take (the same body, network optional): the assets, and the places VDMS lacks. Changes nothing. */
+    @POST("properties/{p}/integration/move/preview")
+    suspend fun movePreview(@Path("p") property: String, @Body body: RequestBody): Response<ResponseBody>
+
+    /** Buildings, floors and locations on both sides (this property's, and VDMS's as it last sent them). */
+    @GET("properties/{p}/integration/places")
+    suspend fun places(@Path("p") property: String): Response<ResponseBody>
+
+    /** Asks VDMS to send its list again; it arrives later (`snapshotAt` changes). */
+    @POST("properties/{p}/integration/places/refresh")
+    suspend fun refreshPlaces(@Path("p") property: String): Response<ResponseBody>
+
+    /** Sends the chosen places of this property to VDMS, which adds them in the background. */
+    @POST("properties/{p}/integration/places/push")
+    suspend fun pushPlaces(@Path("p") property: String, @Body body: RequestBody): Response<ResponseBody>
+
+    /** Imports the chosen VDMS places (VDMS ids) into this property, at once. */
+    @POST("properties/{p}/integration/places/import")
+    suspend fun importPlaces(@Path("p") property: String, @Body body: RequestBody): Response<ResponseBody>
 }

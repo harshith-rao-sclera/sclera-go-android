@@ -17,6 +17,10 @@ import retrofit2.http.Path
  * (AI autofill) and validation runs. Same client and error handling as [AdcApiService].
  */
 interface AdcJobsService {
+    /** The manuals of the asset's model and the latest search for them. */
+    @GET("properties/{property}/assets/{asset}/manuals")
+    suspend fun assetManuals(@Path("property") property: String, @Path("asset") asset: String): Response<ResponseBody>
+
     @POST("properties/{property}/assets/{asset}/lookup-jobs")
     suspend fun startLookup(
         @Path("property") property: String,

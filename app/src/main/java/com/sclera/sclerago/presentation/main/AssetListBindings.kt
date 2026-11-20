@@ -28,7 +28,6 @@ fun rememberAssetListBinding(
         picked = s.picked,
         query = s.query,
         onChip = { list.setStatusFilter(tab, it.status) },
-        onRecollect = { list.selectRecollect(tab) },
         onChangeRequests = { list.selectChangeRequests(tab) },
         onValidation = { list.selectValidation(tab, it) },
         onToggle = list::toggle,

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.repository
 
+import com.sclera.sclerago.domain.model.ModelManuals
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.SpecLookup
 
@@ -19,6 +20,9 @@ interface SpecLookupRepository {
 
     /** Tells the server the suggestions were shown. */
     suspend fun seen(lookupId: String)
+
+    /** The manuals of [assetId]'s model the server has found (a look-up starts the search), and whether it still looks. */
+    suspend fun manuals(assetId: String): ModelManuals
 
     /**
      * The phone's look-up (`POST /properties/{id}/lookup`), for an asset not on the server yet or with no model typed:

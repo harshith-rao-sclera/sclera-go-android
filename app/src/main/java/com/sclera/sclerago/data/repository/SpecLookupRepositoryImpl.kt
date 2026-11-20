@@ -1,5 +1,10 @@
 package com.sclera.sclerago.data.repository
 
+import com.sclera.sclerago.domain.model.ModelManuals
+import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.DocumentSource
+import com.sclera.sclerago.domain.model.ManualKind
+import com.sclera.sclerago.domain.model.DocumentFileStatus
 import com.sclera.sclerago.data.mapper.parseDbTime
 import com.sclera.sclerago.data.offline.AssetFileStore
 import com.sclera.sclerago.data.offline.FieldsOfflineSource
@@ -20,6 +25,7 @@ import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.PhotoNote
 import com.sclera.sclerago.domain.model.SpecLookup
 import com.sclera.sclerago.domain.model.typeFieldKey
+import com.sclera.sclerago.domain.model.withoutScanIdentifiers
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
 import javax.inject.Inject
@@ -51,7 +57,8 @@ class SpecLookupRepositoryImpl @Inject constructor(
 
     override suspend fun start(assetId: String, typed: Map<String, String>): SpecLookup {
         val keys = keys(assetId)
-        val body = JsonObject(typed.mapNotNull { (key, v) -> keys.idByKey[key]?.let { it to JsonPrimitive(v) } }.toMap())
+        // A scan's identifying lines (IP, MAC, BSSID, names) never go to the AI.
+        val body = JsonObject(typed.mapNotNull { (key, v) -> keys.idByKey[key]?.let { it to JsonPrimitive(withoutScanIdentifiers(v)) } }.toMap())
         return api.startLookup(property(), assetId, body).toLookup(keys)
     }
 
@@ -59,6 +66,20 @@ class SpecLookupRepositoryImpl @Inject constructor(
 
     override suspend fun seen(lookupId: String) {
         api.lookupSeen(property(), lookupId)
+    }
+
+    override suspend fun manuals(assetId: String): ModelManuals = api.assetManuals(property(), assetId).let { dto ->
+        ModelManuals(
+            manuals = dto.manuals.map { m ->
+                AssetDocument(
+                    id = m.id, source = DocumentSource.MANUAL, title = m.title, url = m.url, publisher = m.publisher,
+                    official = true, manualKind = ManualKind.of(m.kind),
+                    model = listOf(m.manufacturer, m.model).filter { it.isNotBlank() }.joinToString(" ").ifEmpty { null },
+                    fileStatus = if (m.hasFile) DocumentFileStatus.SAVED else DocumentFileStatus.LINK, hasFile = m.hasFile,
+                )
+            },
+            searching = dto.job?.status in MANUAL_SEARCHING,
+        )
     }
 
     override suspend fun lookUpOnPhone(assetId: String, photos: List<Media>, typed: Map<String, String>, masterFormatId: String?): SpecLookup {
@@ -76,7 +97,9 @@ class SpecLookupRepositoryImpl @Inject constructor(
         val standard = fields.standard().filter { it.visible }.mapNotNull { f -> keys.idByKey[f.key]?.let { id -> id to f.key } }
         val ofType = keys.typeNames.map { (id, name) -> id to (keys.keyByName[name.lowercase()] ?: typeFieldKey(name)) }
         val values = JsonObject(
-            (standard + ofType).mapNotNull { (id, key) -> typed[key]?.takeIf { it.isNotBlank() }?.let { id to JsonPrimitive(it) } }.toMap(),
+            (standard + ofType).mapNotNull { (id, key) ->
+                typed[key]?.let(::withoutScanIdentifiers)?.takeIf { it.isNotBlank() }?.let { id to JsonPrimitive(it) }
+            }.toMap(),
         )
         return api.lookUpOnPhone(property, sent, values, masterFormatId).toLookup(keys)
     }
@@ -180,3 +203,6 @@ class SpecLookupRepositoryImpl @Inject constructor(
         is JsonObject -> null
     }
 }
+
+/** A manual search still under way, as the server names it. */
+private val MANUAL_SEARCHING = setOf("queued", "running")

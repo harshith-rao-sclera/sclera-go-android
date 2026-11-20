@@ -13,6 +13,7 @@ import com.sclera.sclerago.services.scan.core.MACAddress
 import com.sclera.sclerago.services.scan.core.NameResolution
 import com.sclera.sclerago.services.scan.core.NetBiosInfo
 import com.sclera.sclerago.services.scan.core.PortObservation
+import com.sclera.sclerago.services.scan.core.UpnpInfo
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -24,6 +25,7 @@ enum class DiscoveryMethod(val label: String) {
     NETBIOS("NetBIOS"),
     REVERSE_DNS("Reverse DNS"),
     SNMP("Router SNMP"),
+    UPNP("UPnP / SSDP"),
 }
 
 @Serializable
@@ -60,6 +62,8 @@ data class NetworkDevice(
     val hostnames: List<String> = emptyList(),
     val netbios: NetBiosInfo? = null,
     val bonjourServices: List<BonjourService> = emptyList(),
+    /** What the device's UPnP description says about it (its own name, maker, model and type). */
+    val upnp: UpnpInfo? = null,
     val openPorts: List<PortObservation> = emptyList(),
     val roundTripTime: Double? = null,
     val ttl: Int? = null,
@@ -87,11 +91,15 @@ data class NetworkDevice(
             bonjourServices.firstNotNullOfOrNull { it.advertisedFriendlyName }
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { return it }
+            // The name it gives itself over UPnP ("Living Room TV", "Office Printer").
+            upnp?.friendlyName?.let { return it }
             hostnames.firstOrNull()?.let { return NameResolution.shortName(it) }
             netbios?.computerName?.let { return it }
             bonjourServices.firstOrNull()?.instanceName?.takeIf { it.isNotEmpty() }
                 ?.let { return cleanedInstanceName(it) }
             modelName?.let { return it }
+            // Its own web page's title, when that names it ("HP LaserJet M404") rather than the page ("Login").
+            webTitle?.let { return it }
             if (isGateway) return "Router"
             vendor?.let { return "$it device" }
             return ip.toString()
@@ -120,6 +128,10 @@ data class NetworkDevice(
             if (DiscoveryMethod.ICMP in discoveryMethods) return "Responded to ping"
             return "Responded to discovery"
         }
+
+    /** The title of one of its web pages that names the device, if any. */
+    private val webTitle: String?
+        get() = openPorts.firstNotNullOfOrNull { port -> port.httpTitle?.trim()?.takeIf(::isNamingTitle) }
 
     /** True when no naming source produced anything better than the address. */
     val isUnnamed: Boolean get() = displayName == ip.toString()
@@ -162,6 +174,7 @@ data class NetworkDevice(
             macAddress = macAddress ?: other.macAddress,
             vendor = vendor ?: other.vendor,
             netbios = netbios ?: other.netbios,
+            upnp = upnp ?: other.upnp,
             roundTripTime = roundTripTime ?: other.roundTripTime,
             ttl = ttl ?: other.ttl,
             modelIdentifier = modelIdentifier ?: other.modelIdentifier,
@@ -190,7 +203,24 @@ data class NetworkDevice(
         haystack += bonjourServices.map { it.friendlyProtocolName }
         haystack += openPorts.map { "${it.port} ${it.serviceName} ${it.summary}" }
         netbios?.let { haystack += listOfNotNull(it.computerName, it.workgroup) }
+        upnp?.let { haystack += listOfNotNull(it.friendlyName, it.manufacturer, it.modelName, it.modelNumber) }
 
         return haystack.any { it.lowercase().contains(needle) }
     }
+}
+
+/** Page titles that name the page or an error, not the device. */
+private val GENERIC_TITLES = setOf(
+    "login", "log in", "sign in", "signin", "index", "home", "home page", "welcome", "untitled", "document", "loading",
+    "redirect", "redirecting", "error", "it works!", "default page", "web server", "admin", "administration",
+    "management", "web management", "configuration", "web configuration", "status", "setup", "main page", "untitled page",
+)
+private val ERROR_TITLE = Regex("\\b(301|302|400|401|403|404|500|502|503)\\b")
+private val SERVER_PAGES = listOf("index of", "default page", "welcome to nginx", "test page", "iis windows", "it works")
+
+/** A title that could be the device's name: some letters, not too long, and not a generic or error page. */
+private fun isNamingTitle(title: String): Boolean {
+    val lower = title.lowercase()
+    return title.length in 3..60 && title.any(Char::isLetter) && lower !in GENERIC_TITLES &&
+        !ERROR_TITLE.containsMatchIn(lower) && SERVER_PAGES.none { it in lower }
 }

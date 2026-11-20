@@ -16,4 +16,6 @@
     <string name="media_remove_named">Remove %1$s?</string>
     <string name="media_remove_body">The file is deleted from this asset. This can\'t be undone.</string>
     <string name="media_removed">Removed from the asset</string>
+    <!-- After a photo kind in the Media + menu: how many it has of the most the property allows. -->
+    <string name="media_kind_count">%1$d of %2$d added</string>
 </resources>

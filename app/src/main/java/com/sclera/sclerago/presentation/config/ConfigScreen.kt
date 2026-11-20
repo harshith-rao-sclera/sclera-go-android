@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.config
 
 import android.annotation.SuppressLint
+import android.content.res.Resources
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -253,6 +254,13 @@ private fun CfgPage.onlineOnly(): OnlineOnly? = when (this) {
 private class NameAsk(val title: String, val initial: String, val placeholder: String, val onSave: (String) -> Unit)
 private class DeleteAsk(val title: String, val body: String, val onYes: () -> Unit)
 
+/**
+ * [body] with the web's note when one of the places being deleted is also in the linked VDMS: places don't sync, so
+ * VDMS keeps its copy.
+ */
+private fun withVdmsNote(res: Resources, body: String, places: List<LocNode>): String =
+    if (places.any { it.linkedToVdms }) res.getString(R.string.cfg_delete_vdms_note, body) else body
+
 @Composable
 private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
     if (places.load != LoadState.READY) {
@@ -301,7 +309,7 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
         if (building != null) add(MenuAct(Icons.Trash, "Delete ${building.name}", danger = true, divider = true) {
             deleteAsk = DeleteAsk(
                 res.getString(R.string.cfg_delete_place_title, building.name),
-                res.getString(R.string.cfg_delete_building_body, building.name),
+                withVdmsNote(res, res.getString(R.string.cfg_delete_building_body, building.name), listOf(building)),
             ) {
                 places.delete(listOf(building)) { bId = null; fId = null }
             }
@@ -383,7 +391,7 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
                     val ids = sel
                     deleteAsk = DeleteAsk(
                         res.getQuantityString(R.plurals.cfg_delete_locations_title, ids.size, ids.size),
-                        res.getQuantityString(R.plurals.cfg_delete_locations_body, ids.size),
+                        withVdmsNote(res, res.getQuantityString(R.plurals.cfg_delete_locations_body, ids.size), locs.filter { it.id in ids }),
                     ) {
                         places.delete(locs.filter { it.id in ids }) { sel = emptySet() }
                     }
@@ -406,7 +414,7 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
             onDelete = {
                 deleteAsk = DeleteAsk(
                     res.getString(R.string.cfg_delete_place_title, l.name),
-                    res.getString(R.string.cfg_delete_location_body, l.name),
+                    withVdmsNote(res, res.getString(R.string.cfg_delete_location_body, l.name), listOf(l)),
                 ) { places.delete(listOf(l)) { openLoc = null } }
             })
     }
@@ -811,7 +819,11 @@ private fun EditFloorsSheet(b: LocNode, onClose: () -> Unit, onSave: (List<LocNo
             }
             if (removed.isNotEmpty()) {
                 // The server deletes a floor's locations with it; assets there stay, without a floor or location.
-                Txt(stringResource(R.string.cfg_floors_removed_note, removed.joinToString { it.name }), 12, 500, C.Orange, maxLines = 3)
+                val note = stringResource(R.string.cfg_floors_removed_note, removed.joinToString { it.name })
+                Txt(
+                    if (removed.any { it.linkedToVdms }) stringResource(R.string.cfg_delete_vdms_note, note) else note,
+                    12, 500, C.Orange, maxLines = 5,
+                )
             }
         }
         SheetButtons("Save", floors.all { it.name.isNotBlank() }, onClose) { onSave(floors) }

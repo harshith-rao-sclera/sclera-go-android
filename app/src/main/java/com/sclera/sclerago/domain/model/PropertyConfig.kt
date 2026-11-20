@@ -13,6 +13,11 @@ data class PropertySettings(
     /** Off: validation runs skip the AI checks for this property. */
     val aiValidation: Boolean,
     val photoRules: List<PhotoRule>,
+    /**
+     * The fields the property's types bring are in metric units (m, kPa, °C) rather than US ones (ft, psi, °F). Changing
+     * it renames those fields for assets classified from then on; fields already on an asset keep their unit.
+     */
+    val metricUnits: Boolean = false,
 )
 
 /** A point on the map. */

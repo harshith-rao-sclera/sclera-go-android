@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.MovePreview
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.VdmsAssignee
@@ -29,6 +30,8 @@ data class MoveSheetState(
     val assignees: List<VdmsAssignee> = emptyList(),
     val searching: Boolean = true,
     val assignee: String? = null,
+    /** What the move would take (null until known, or when it couldn't be asked): the places VDMS lacks go there first. */
+    val preview: MovePreview? = null,
 )
 
 /** Why "Move to Managed assets" can't be used for the property, as the web says it on the button. */
@@ -56,6 +59,7 @@ class MoveToManagedViewModel @Inject constructor(private val useCases: ManagedAs
 
     private var bindJob: Job? = null
     private var searchJob: Job? = null
+    private var previewJob: Job? = null
 
     private fun set(f: MoveUiState.() -> MoveUiState) {
         state = state.f()
@@ -107,10 +111,25 @@ class MoveToManagedViewModel @Inject constructor(private val useCases: ManagedAs
         if (state.block != null || ids.isEmpty()) return
         set { copy(sheet = MoveSheetState(ids)) }
         search("", debounce = false)
+        preview(ids)
+    }
+
+    /** Asks what the move would take, as the web does when its dialog opens; a preview that fails just leaves the note out. */
+    private fun preview(ids: Set<String>) {
+        previewJob?.cancel()
+        previewJob = viewModelScope.launch {
+            val found = try {
+                useCases.preview(state.propertyId, ids)
+            } catch (_: OnlineException) {
+                return@launch
+            }
+            set { copy(sheet = sheet?.takeIf { it.ids == ids }?.copy(preview = found) ?: sheet) }
+        }
     }
 
     fun close() {
         searchJob?.cancel()
+        previewJob?.cancel()
         set { copy(sheet = null) }
     }
 
@@ -150,14 +169,18 @@ class MoveToManagedViewModel @Inject constructor(private val useCases: ManagedAs
         val propertyId = state.propertyId
         viewModelScope.launch {
             val text = try {
-                when (val moved = useCases.move(propertyId, s.ids, network, s.assignee)) {
+                val outcome = useCases.move(propertyId, s.ids, network, s.assignee)
+                // The buildings, floors and locations VDMS lacked were sent there first, as the web says.
+                val places = placeCountsText(outcome.placesSent)
+                when (val moved = outcome.moved) {
                     0 -> UiText.Res(R.string.mv_nothing_moved)
-                    null -> UiText.Res(R.string.mv_collections_moving)
-                    else -> UiText.Plural(R.plurals.mv_assets_moving, moved)
+                    null -> places?.let { UiText.Res(R.string.mv_collections_moving_places, listOf(it)) } ?: UiText.Res(R.string.mv_collections_moving)
+                    else -> places?.let { UiText.Plural(R.plurals.mv_assets_moving_places, moved, listOf(moved, it)) }
+                        ?: UiText.Plural(R.plurals.mv_assets_moving, moved)
                 }
-            } catch (_: OnlineException) {
+            } catch (e: OnlineException) {
                 // The server's own text can hold internal details, so the app's words are shown instead.
-                UiText.Res(R.string.mv_failed)
+                if (e.error is OnlineError.Conflict) UiText.Res(R.string.mv_places_busy) else UiText.Res(R.string.mv_failed)
             }
             message.emit(text)
         }

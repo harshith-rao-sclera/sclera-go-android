@@ -78,6 +78,10 @@ interface AdcApiService {
     @GET("properties/{id}/members")
     suspend fun members(@Path("id") id: String): Response<ResponseBody>
 
+    /** Who the property's assets are assigned to, with their names (anyone who can open the property may read it). */
+    @GET("properties/{id}/assets/assignees")
+    suspend fun assetAssignees(@Path("id") id: String): Response<ResponseBody>
+
     @POST("properties/{id}/members")
     suspend fun addMember(@Path("id") id: String, @Body body: RequestBody): Response<ResponseBody>
 

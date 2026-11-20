@@ -96,9 +96,3 @@ internal fun PersonProblem.toUiText(): UiText = when (this) {
 internal fun GroupProblem.toUiText(): UiText = when (this) {
     GroupProblem.NAME_REQUIRED -> UiText.Res(R.string.access_problem_group_name)
 }
-
-/** "DA" for dev.admin (first and last part of the name), "?" when there is nothing to show. */
-internal fun initialsOf(name: String): String {
-    val parts = name.split(' ', '.', '_', '-').filter { it.isNotBlank() }
-    return listOfNotNull(parts.firstOrNull(), parts.drop(1).lastOrNull()).joinToString("") { it.first().uppercase() }.ifEmpty { "?" }
-}
