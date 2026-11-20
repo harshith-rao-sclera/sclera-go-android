@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">Введіть код доступу</string>
     <string name="menu_users">Користувачі</string>
     <string name="menu_current_property">Поточний об’єкт</string>
-    <string name="menu_soon">Незабаром</string>
     <string name="menu_validation">Перевірка</string>
     <string name="menu_configuration">Конфігурація</string>
-    <string name="menu_audit">Аудит</string>
-    <string name="menu_survey">Опитування</string>
     <string name="menu_integration">Інтеграція</string>
     <string name="menu_sign_out">Вийти</string>
     <string name="menu_sign_out_title">Вийти?</string>
@@ -223,7 +220,6 @@
     <string name="asset_added_submitted">Актив надіслано</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">Показано: %1$s</string>
-    <string name="menu_coming_soon">%1$s незабаром з’явиться</string>
     <string name="review_title">Перевірка та додавання</string>
     <string name="review_ready">Готовий до додавання</string>
     <string name="review_needs_input">Потрібні будуть дані</string>

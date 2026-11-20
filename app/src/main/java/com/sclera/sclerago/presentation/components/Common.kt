@@ -348,19 +348,6 @@ fun NameplateLarge() {
     }
 }
 
-@Composable
-fun Toast(text: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier.clip(Capsule).background(Color(0xFF17241D)).border(1.dp, Color(0xFF27402F), Capsule)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        LineIcon(Icons.Check, 15.dp, C.Green, 2.8f)
-        Txt(text, 12, 700, C.Green)
-    }
-}
-
 /** Grab handle at the top of bottom sheets. */
 @Composable
 fun SheetHandle(modifier: Modifier = Modifier) {

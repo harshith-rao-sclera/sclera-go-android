@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.presentation.components.ToastEffect
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -52,7 +53,6 @@ import com.sclera.sclerago.presentation.assign.AssignSheet
 import com.sclera.sclerago.presentation.assign.AssignViewModel
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import com.sclera.sclerago.presentation.common.UiText
-import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CapturePreview
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.DiscardChangesDialog
@@ -61,7 +61,6 @@ import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.PermissionSheet
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.ShakeEffect
-import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.readableWidth
 import com.sclera.sclerago.presentation.config.ConfigScreen
 import com.sclera.sclerago.presentation.fileimport.DraftEditSheet
@@ -117,6 +116,8 @@ fun ScleraApp(
     // Every form reports unsaved changes here, so tabs and side-menu pages can ask before dropping them.
     CompositionLocalProvider(LocalUnsavedForms provides vm.unsavedForms) {
         val s = vm.state
+        // The app's messages (every page's, asset details' and the side-menu pages' too) show as the one toast at the top.
+        ToastEffect(s.toast, s.toastOn)
         // Offline, the server-only actions are dimmed with a badge; a tap says why.
         val online by connectivity.online.collectAsStateWithLifecycle()
         val explainOffline = { why: OnlineOnly -> vm.flash(UiText.Res(why.message)) }
@@ -295,13 +296,6 @@ fun ScleraApp(
                         enter = slideInVertically { it } + fadeIn(),
                         exit = slideOutVertically { it } + fadeOut(),
                     ) { DeviceAddDock(vm) }
-                    // Messages sit above everything in the content area, asset details included.
-                    androidx.compose.animation.AnimatedVisibility(
-                        s.toastOn,
-                        Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
-                        enter = fadeIn() + slideInVertically { -it / 2 },
-                        exit = fadeOut(),
-                    ) { Toast(s.toast.asString()) }
                 }
                 // The tabs stay visible everywhere, asset details included.
                 DashboardNav(tabs, pager.currentPage + pager.currentPageOffsetFraction, vm::goTab, Modifier.launchEntrance(Entrance.DashNav))

@@ -1,7 +1,6 @@
 package com.sclera.sclerago.presentation.main
 
 import android.net.Uri
-import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -63,7 +62,7 @@ enum class LocFilter { ALL, SPEC, NONE }
 enum class Sheet { NONE, LOC }
 enum class SheetFor { FILTER, ASSET, BULK }
 enum class NetMode { WIFI, AP }
-enum class MenuItem { PROPERTY, USERS, ASSETS, VALIDATION, CONFIGURATION, AUDIT, SURVEY, INTEGRATION }
+enum class MenuItem { PROPERTY, USERS, ASSETS, VALIDATION, CONFIGURATION, INTEGRATION }
 enum class CfgPage { BUILDING, FIELDS, GEO, SETTINGS }
 enum class AdminPage { PROPERTIES, PEOPLE }
 
@@ -486,12 +485,7 @@ class AppViewModel @Inject constructor(
     fun closeMenu() = set { copy(menuOpen = false) }
     fun pickMenu(item: MenuItem) {
         closeMenu()
-        when (item) {
-            MenuItem.AUDIT -> return comingSoon(R.string.menu_audit)
-            MenuItem.SURVEY -> return comingSoon(R.string.menu_survey)
-            MenuItem.CONFIGURATION -> if (!canConfigure) return
-            else -> Unit
-        }
+        if (item == MenuItem.CONFIGURATION && !canConfigure) return
         // The page on screen goes: asked once, here, before anything closes (photos just taken, unsaved changes).
         leaving {
             when (item) {
@@ -506,12 +500,10 @@ class AppViewModel @Inject constructor(
                 MenuItem.VALIDATION -> { closeAdmin(); showValidation() }
                 MenuItem.CONFIGURATION -> { closeAdmin(); showConfig() }
                 MenuItem.INTEGRATION -> { closeAdmin(); showIntegration() }
-                MenuItem.AUDIT, MenuItem.SURVEY -> Unit
             }
         }
     }
 
-    private fun comingSoon(@StringRes label: Int) = flash(UiText.Res(R.string.menu_coming_soon, listOf(UiText.Res(label))))
 
     // Property list / People and access
     fun openAdmin(page: AdminPage) = leaving { showAdmin(page) }

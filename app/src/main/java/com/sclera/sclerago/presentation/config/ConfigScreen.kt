@@ -115,7 +115,6 @@ import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.Segmented
 import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.SubPageBar
-import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.blockSwipe
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.fabShadow
@@ -226,11 +225,6 @@ fun ConfigScreen(
                 }
             }
         }
-        AnimatedVisibility(
-            s.toastOn,
-            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp),
-            enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut(),
-        ) { Toast(s.toast.asString()) }
         if (askLeave) {
             DiscardChangesDialog(
                 onKeep = { askLeave = false },

@@ -5,6 +5,8 @@ import com.sclera.sclerago.domain.usecase.asset.AddAssetFieldUseCase
 import com.sclera.sclerago.domain.usecase.asset.RemoveAssetFieldUseCase
 import com.sclera.sclerago.domain.model.AddFieldOutcome
 import com.sclera.sclerago.domain.model.FieldKind
+import com.sclera.sclerago.domain.model.TagKind
+import com.sclera.sclerago.domain.model.taggedByFields
 import com.sclera.sclerago.domain.model.CloneRequest
 import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
@@ -186,6 +188,9 @@ data class AssetDetailState(
 
     /** Read-only for anyone but an admin: submitted or validated (until a recollect is requested), or someone else's. */
     val locked: Boolean get() = !isNew && !canEdit
+
+    /** The tags the asset's "QR / Barcode / NFC Tagged" fields say it carries (shown in the Tags bar, not the form). */
+    val fieldTags: Set<TagKind> get() = taggedByFields(fields.associate { it.label to saved[it.key].orEmpty() })
 
     /** The mandatory fields still empty in the form. */
     val missingRequired: List<FieldCfg> get() = missingRequiredFields(fields, values)

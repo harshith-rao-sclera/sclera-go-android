@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">أدخل رمز الدخول</string>
     <string name="menu_users">المستخدمون</string>
     <string name="menu_current_property">العقار الحالي</string>
-    <string name="menu_soon">قريبًا</string>
     <string name="menu_validation">التحقق</string>
     <string name="menu_configuration">الإعدادات</string>
-    <string name="menu_audit">التدقيق</string>
-    <string name="menu_survey">الاستبيان</string>
     <string name="menu_integration">التكامل</string>
     <string name="menu_sign_out">تسجيل الخروج</string>
     <string name="menu_sign_out_title">تسجيل الخروج؟</string>
@@ -231,7 +228,6 @@
     <string name="asset_added_submitted">تم إرسال الأصل</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">عرض %1$s</string>
-    <string name="menu_coming_soon">%1$s قريبًا</string>
     <string name="review_title">مراجعة وإضافة</string>
     <string name="review_ready">جاهز للإضافة</string>
     <string name="review_needs_input">سيحتاج إلى إدخال</string>

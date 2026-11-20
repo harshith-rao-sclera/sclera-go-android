@@ -41,8 +41,8 @@ class UiTextTest {
 
     @Test
     fun anArgumentThatIsItselfText_isResolvedFirst() {
-        show(UiText.Res(R.string.menu_coming_soon, listOf(UiText.Res(R.string.menu_audit))))
-        compose.onNodeWithText("Audit is coming soon").assertExists()
+        show(UiText.Res(R.string.notice_with_source, listOf(UiText.Raw("Saved"), UiText.Res(R.string.menu_validation))))
+        compose.onNodeWithText("Saved · Validation").assertExists()
     }
 
     @Test

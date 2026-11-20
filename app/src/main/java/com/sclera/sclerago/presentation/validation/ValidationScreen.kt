@@ -1,11 +1,11 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.ToastEffect
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.icons.assetIco
 import com.sclera.sclerago.presentation.common.plural
@@ -22,16 +22,12 @@ import com.sclera.sclerago.domain.validation.ValTemplate
 import com.sclera.sclerago.domain.validation.ValidationDef
 import com.sclera.sclerago.domain.validation.isServerId
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -74,7 +70,6 @@ import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RadioDot
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
-import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.blockSwipe
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.noRippleClick
@@ -247,11 +242,7 @@ fun ValidationScreen(
                 no = "Cancel", yes = "Delete", onNo = { vm.askDelete(null) }, onYes = vm::delete,
             )
         }
-        AnimatedVisibility(
-            s.message != null,
-            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp),
-            enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut(),
-        ) { s.message?.let { Toast(it.asString()) } }
+        ToastEffect(s.message)
     }
 }
 

@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">הזן קוד גישה</string>
     <string name="menu_users">משתמשים</string>
     <string name="menu_current_property">הנכס הנוכחי</string>
-    <string name="menu_soon">בקרוב</string>
     <string name="menu_validation">אימות</string>
     <string name="menu_configuration">תצורה</string>
-    <string name="menu_audit">ביקורת</string>
-    <string name="menu_survey">סקר</string>
     <string name="menu_integration">שילוב</string>
     <string name="menu_sign_out">התנתקות</string>
     <string name="menu_sign_out_title">להתנתק?</string>
@@ -223,7 +220,6 @@
     <string name="asset_added_submitted">הנכס נשלח</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">מוצג: %1$s</string>
-    <string name="menu_coming_soon">%1$s יהיה זמין בקרוב</string>
     <string name="review_title">בדיקה והוספה</string>
     <string name="review_ready">מוכן להוספה</string>
     <string name="review_needs_input">יידרש קלט</string>

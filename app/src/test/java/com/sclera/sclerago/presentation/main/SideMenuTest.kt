@@ -85,9 +85,9 @@ class SideMenuTest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun comingSoonSectionsAreListed() {
+    fun sectionsAreListed() {
         show()
-        compose.onNodeWithTag(MenuTags.item(MenuItem.AUDIT)).assertIsDisplayed()
+        compose.onNodeWithTag(MenuTags.item(MenuItem.ASSETS)).assertIsDisplayed()
         compose.onNodeWithTag(MenuTags.item(MenuItem.INTEGRATION)).assertIsDisplayed()
     }
 

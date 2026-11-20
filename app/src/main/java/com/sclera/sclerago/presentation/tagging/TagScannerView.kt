@@ -75,7 +75,8 @@ fun TagScannerView(
             executor.shutdown()
         }
     }
-    LaunchedEffect(torchOn) { controller.enableTorch(torchOn) }
+    // Again whenever the camera is bound anew (another kind of code), so the light stays as the button shows.
+    LaunchedEffect(torchOn, kind) { controller.enableTorch(torchOn) }
 
     AndroidView(
         factory = { ctx ->

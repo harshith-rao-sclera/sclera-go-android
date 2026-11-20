@@ -32,6 +32,7 @@ import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.tagKindOfField
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.Media
@@ -277,7 +278,8 @@ fun AssetInfoTab(
 
     // Asset fields: every other field of this asset in the server's order (the standard ones, then its own), with its
     // photo, video and voice memo fields, as on the web.
-    val others = spec.visibleExcept(NOT_IN_FIELDS)
+    // "QR / Barcode / NFC Tagged" fields show as the Tags bar's icons (green when tagged), not here.
+    val others = spec.visibleExcept(NOT_IN_FIELDS).filter { tagKindOfField(it.label) == null }
     FormSection(
         key = InfoSections.FIELDS, title = stringResource(R.string.detail_sec_fields), note = null,
         open = open(InfoSections.FIELDS), onToggle = { ui.toggle(InfoSections.FIELDS) },
@@ -288,7 +290,7 @@ fun AssetInfoTab(
     ) {
         state.fieldRows.forEach { row ->
             when (row) {
-                is FormEntry.Input -> spec.cfg(row.key)?.takeIf { it.key !in NOT_IN_FIELDS }?.let { f ->
+                is FormEntry.Input -> spec.cfg(row.key)?.takeIf { it.key !in NOT_IN_FIELDS && tagKindOfField(it.label) == null }?.let { f ->
                     // A field of this asset alone can be removed (by whoever may add one), as the server allows.
                     if (f.ownField && state.canAddField && state.canEdit) {
                         OwnFieldRow(f.label, onRemove = { onRemoveField(f) }) { AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) } }

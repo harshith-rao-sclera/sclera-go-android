@@ -1,5 +1,6 @@
 package com.sclera.sclerago
 
+import com.sclera.sclerago.presentation.components.ToastHost
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -44,10 +45,13 @@ class MainActivity : ComponentActivity() {
             ScleraTheme {
                 val playIntro = launch.playIntro.collectAsStateWithLifecycle().value
                 LaunchHost(play = playIntro, onFinished = launch::onIntroFinished) {
-                    // Any session-ending error (expired, blocked, signed in elsewhere) flips this to SignedOut.
-                    when (val auth = session.authState.collectAsStateWithLifecycle().value) {
-                        is AuthState.SignedOut -> LoginScreen(reason = auth.reason)
-                        is AuthState.SignedIn -> AssetIconsHost { ScleraApp() }
+                    // The app's toasts show over everything, at the top of the screen.
+                    ToastHost {
+                        // Any session-ending error (expired, blocked, signed in elsewhere) flips this to SignedOut.
+                        when (val auth = session.authState.collectAsStateWithLifecycle().value) {
+                            is AuthState.SignedOut -> LoginScreen(reason = auth.reason)
+                            is AuthState.SignedIn -> AssetIconsHost { ScleraApp() }
+                        }
                     }
                 }
             }

@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">출입 코드 입력</string>
     <string name="menu_users">사용자</string>
     <string name="menu_current_property">현재 시설</string>
-    <string name="menu_soon">곧 제공</string>
     <string name="menu_validation">검증</string>
     <string name="menu_configuration">구성</string>
-    <string name="menu_audit">감사</string>
-    <string name="menu_survey">설문</string>
     <string name="menu_integration">연동</string>
     <string name="menu_sign_out">로그아웃</string>
     <string name="menu_sign_out_title">로그아웃할까요?</string>
@@ -211,7 +208,6 @@
     <string name="asset_added_submitted">자산이 제출되었습니다</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">%1$s 표시 중</string>
-    <string name="menu_coming_soon">%1$s 기능은 곧 제공됩니다</string>
     <string name="review_title">검토 및 등록</string>
     <string name="review_ready">등록 준비 완료</string>
     <string name="review_needs_input">입력이 필요합니다</string>

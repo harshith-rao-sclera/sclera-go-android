@@ -1,13 +1,9 @@
 package com.sclera.sclerago.presentation.validation
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
+import com.sclera.sclerago.presentation.components.ToastEffect
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,8 +18,6 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.presentation.common.UiText
-import com.sclera.sclerago.presentation.common.asString
-import com.sclera.sclerago.presentation.components.Toast
 
 /**
  * Validate from Data Collection (the web's QuickValidateModal): the Run validation sheet over the list, with
@@ -70,10 +64,6 @@ fun QuickValidate(
         sheet?.let { RunSheetView(vm, s, it, assets) }
         sheet?.takeIf { it.picking }?.let { AssetPicker(vm, it, assets) }
         // The sheet's own messages (a run that couldn't start).
-        AnimatedVisibility(
-            sheet != null && s.message != null,
-            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp),
-            enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut(),
-        ) { s.message?.let { Toast(it.asString()) } }
+        ToastEffect(s.message, visible = sheet != null)
     }
 }

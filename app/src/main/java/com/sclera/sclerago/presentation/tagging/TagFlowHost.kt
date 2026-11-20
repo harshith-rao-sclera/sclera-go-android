@@ -1,5 +1,14 @@
 package com.sclera.sclerago.presentation.tagging
 
+import com.sclera.sclerago.presentation.components.LocalToaster
+import com.sclera.sclerago.presentation.components.ToastAction
+import com.sclera.sclerago.presentation.components.ToastKind
+import com.sclera.sclerago.presentation.common.UiText
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.core.RepeatMode
@@ -72,8 +81,6 @@ class TagFlowActions(
 
 private val NfcCard = Color(0xFF1B1D21)
 private const val NFC_TIMEOUT_MS = 20_000L
-private const val TOAST_MS = 2_500L
-private const val REFUSED_MS = 4_500L
 
 /** Whatever the tagging flow shows over the asset's details: the scanner, the NFC dialog, the confirmations and failures, and the "tagged" toast. */
 @Composable
@@ -106,7 +113,22 @@ fun TagFlowHost(state: TagUiState, actions: TagFlowActions) {
             secondary = stringResource(R.string.tag_cancel), onSecondary = actions.onCancel,
         )
     }
-    state.notice?.let { TagToast(it, actions.onToastShown) }
+    // "QR code tagged", or why the tag was refused, as the app's toast at the top (NFC off: with Open settings).
+    val toaster = LocalToaster.current
+    val context = LocalContext.current
+    val shown by rememberUpdatedState(actions.onToastShown)
+    val notice = state.notice
+    LaunchedEffect(notice) {
+        when (notice) {
+            null -> return@LaunchedEffect
+            is TagNotice.Tagged -> toaster.show(UiText.Res(taggedText(notice.kind)), ToastKind.SUCCESS)
+            is TagNotice.Refused -> toaster.show(
+                notice.message, ToastKind.PROBLEM,
+                if (notice.nfcSettings) ToastAction(UiText.Res(R.string.tag_nfc_open_settings)) { openNfcSettings(context) } else null,
+            )
+        }
+        shown()
+    }
 }
 
 /** A bottom sheet (centred on tablets): a round icon, a title and message, and two buttons. */
@@ -189,33 +211,12 @@ private fun WorkingOverlay() {
     }
 }
 
-/** A short message above the bottom of the screen: "QR code tagged" with a green tick (the design's), or why the tag was refused. */
-@Composable
-private fun TagToast(notice: TagNotice, onShown: () -> Unit) {
-    val done by rememberUpdatedState(onShown)
-    LaunchedEffect(notice) {
-        delay(if (notice is TagNotice.Refused) REFUSED_MS else TOAST_MS)
-        done()
-    }
-    val refused = notice is TagNotice.Refused
-    val tint = if (refused) C.Orange else C.Green
-    val wash = if (refused) Color(0x29EE9A4D) else Color(0x295DBE8C)
-    val line = if (refused) Color(0x80EE9A4D) else Color(0x805DBE8C)
-    val text = when (notice) {
-        is TagNotice.Tagged -> stringResource(taggedText(notice.kind))
-        is TagNotice.Refused -> notice.message.asString()
-    }
-    Box(Modifier.fillMaxSize().padding(horizontal = 16.dp).padding(bottom = 88.dp), contentAlignment = Alignment.BottomCenter) {
-        Row(
-            Modifier.widthIn(max = 480.dp).fillMaxWidth().clip(r(16)).background(Color(0xFF1E2024)).border(1.dp, C.Border2, r(16))
-                .testTag(TagTags.TOAST).padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(Modifier.size(28.dp).clip(CircleShape).background(wash).border(1.dp, line, CircleShape), contentAlignment = Alignment.Center) {
-                if (refused) LineIcon(Icons.Alert, 16.dp, tint, 2.2f) else LineIcon(Icons.Check, 15.dp, tint, 3.2f)
-            }
-            Txt(text, 15, 600, modifier = Modifier.weight(1f), maxLines = 4)
-        }
+/** Opens the phone's NFC settings, or its connection settings on a phone without that page. */
+private fun openNfcSettings(context: Context) {
+    val nfc = Intent(Settings.ACTION_NFC_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        context.startActivity(nfc)
+    } catch (_: ActivityNotFoundException) {
+        runCatching { context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 }

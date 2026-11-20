@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tagging with NFC switched off: the message's button to the phone's NFC settings. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="tag_nfc_open_settings">Open settings</string>
+</resources>

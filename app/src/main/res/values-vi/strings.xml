@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">Nhập mã truy cập</string>
     <string name="menu_users">Người dùng</string>
     <string name="menu_current_property">Cơ sở hiện tại</string>
-    <string name="menu_soon">Sắp có</string>
     <string name="menu_validation">Xác thực</string>
     <string name="menu_configuration">Cấu hình</string>
-    <string name="menu_audit">Kiểm toán</string>
-    <string name="menu_survey">Khảo sát</string>
     <string name="menu_integration">Tích hợp</string>
     <string name="menu_sign_out">Đăng xuất</string>
     <string name="menu_sign_out_title">Đăng xuất?</string>
@@ -211,7 +208,6 @@
     <string name="asset_added_submitted">Đã gửi tài sản</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">Đang hiển thị %1$s</string>
-    <string name="menu_coming_soon">%1$s sắp ra mắt</string>
     <string name="review_title">Xem lại và đưa vào</string>
     <string name="review_ready">Sẵn sàng đưa vào</string>
     <string name="review_needs_input">Cần nhập thêm</string>

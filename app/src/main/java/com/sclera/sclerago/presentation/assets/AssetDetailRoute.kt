@@ -1,6 +1,9 @@
 package com.sclera.sclerago.presentation.assets
 
-import android.widget.Toast
+import com.sclera.sclerago.domain.model.TagKind
+import com.sclera.sclerago.services.tagging.NfcTagReader
+import com.sclera.sclerago.presentation.components.LocalToaster
+import com.sclera.sclerago.presentation.components.ToastKind
 
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -74,7 +77,6 @@ fun AssetDetailRoute(
 ) {
     // A new asset's place is the top bar's location, so it is passed again when another location tab is chosen.
     LaunchedEffect(asset.id, isNew, if (isNew) asset.locationId else null) { vm.open(asset, isNew, prefill, scan) }
-    LaunchedEffect(asset.id, asset.tagged) { tagVm.open(asset.id, asset.propertyId, asset.tagged) }
     DisposableEffect(vm) { onDispose { vm.close() } }
     LaunchedEffect(vm) { vm.notices.collect(onNotice) }
     LaunchedEffect(pickedPlace) {
@@ -85,10 +87,15 @@ fun AssetDetailRoute(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val tagState by tagVm.state.collectAsStateWithLifecycle()
+    // The Tags bar shows what the synced data says the asset carries, and what its "QR / Barcode / NFC Tagged" fields
+    // say (those fields are not shown in the form); the view model may still be on the asset before for a frame.
+    val fieldTags = if (state.asset?.id == asset.id) state.fieldTags else emptySet()
+    LaunchedEffect(asset.id, asset.tagged, fieldTags) { tagVm.open(asset.id, asset.propertyId, asset.tagged + fieldTags) }
     // The view model catches up one frame after the asset changes; until then there is nothing to show.
     if (state.asset?.id != asset.id) return
 
     val context = LocalContext.current
+    val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     fun attach(media: List<Media>) = vm.attach(media)
     val voice = rememberVoiceInput(onHeard = vm::heard, onFailed = onNotice)
@@ -188,7 +195,8 @@ fun AssetDetailRoute(
         classify = ClassifyActions(
             onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,
         ),
-        tags = TagsActions(onStart = tagVm::start),
+        // NFC is checked first: switched off (or missing), the message shows without the NFC dialog flashing up.
+        tags = TagsActions(onStart = { kind -> tagVm.start(kind, if (kind == TagKind.NFC) NfcTagReader.problem(context) else null) }),
         onAddPhoto = { kind ->
             // What the camera takes goes to [kind]'s card (Other photos for none); photo, video and gallery are in the camera.
             vm.choosePhotoKind(kind)
@@ -222,7 +230,7 @@ fun AssetDetailRoute(
                 onCapture = { m ->
                     camCaps = camCaps + m
                     if (m.video || selectedPhotos(camCaps, camSel) < vm.cameraRoom()) camSel = camSel + m.id
-                    else Toast.makeText(context, context.getString(R.string.camera_room_full, vm.cameraRoom()), Toast.LENGTH_SHORT).show()
+                    else toaster.show(UiText.Res(R.string.camera_room_full, listOf(vm.cameraRoom())), ToastKind.PROBLEM)
                 },
                 onToggle = { id ->
                     val m = camCaps.firstOrNull { it.id == id }
@@ -230,7 +238,7 @@ fun AssetDetailRoute(
                         id in camSel -> camSel - id
                         m == null || m.video || selectedPhotos(camCaps, camSel) < vm.cameraRoom() -> camSel + id
                         else -> {
-                            Toast.makeText(context, context.getString(R.string.camera_room_full, vm.cameraRoom()), Toast.LENGTH_SHORT).show()
+                            toaster.show(UiText.Res(R.string.camera_room_full, listOf(vm.cameraRoom())), ToastKind.PROBLEM)
                             camSel
                         }
                     }

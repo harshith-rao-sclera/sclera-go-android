@@ -112,7 +112,8 @@ fun TagScanScreen(
             )
             val torch = stringResource(R.string.tag_torch)
             RoundButton(44.dp, ButtonBg, { torchOn = !torchOn }, Modifier.border(1.dp, C.Border2, CircleShape).semantics { contentDescription = torch }.testTag(TagTags.TORCH)) {
-                LineIcon(Icons.Bolt, 19.dp, if (torchOn) C.Yellow else C.Text, 2.2f)
+                // The camera's flash icons, so it reads as the flash (on: yellow).
+                LineIcon(if (torchOn) Icons.Flash else Icons.FlashOff, 20.dp, if (torchOn) C.Yellow else C.Text)
             }
         }
     }

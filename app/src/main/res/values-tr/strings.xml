@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">Erişim kodunu girin</string>
     <string name="menu_users">Kullanıcılar</string>
     <string name="menu_current_property">Geçerli mülk</string>
-    <string name="menu_soon">Yakında</string>
     <string name="menu_validation">Doğrulama</string>
     <string name="menu_configuration">Yapılandırma</string>
-    <string name="menu_audit">Denetim</string>
-    <string name="menu_survey">Anket</string>
     <string name="menu_integration">Entegrasyon</string>
     <string name="menu_sign_out">Çıkış yap</string>
     <string name="menu_sign_out_title">Çıkış yapılsın mı?</string>
@@ -215,7 +212,6 @@
     <string name="asset_added_submitted">Varlık gönderildi</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">%1$s gösteriliyor</string>
-    <string name="menu_coming_soon">%1$s yakında geliyor</string>
     <string name="review_title">İncele ve ekle</string>
     <string name="review_ready">Eklemeye hazır</string>
     <string name="review_needs_input">Giriş gerekecek</string>

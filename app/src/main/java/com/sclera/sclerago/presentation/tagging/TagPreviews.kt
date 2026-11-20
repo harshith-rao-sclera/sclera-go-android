@@ -36,12 +36,7 @@ private fun Flow(state: TagUiState) = ScleraTheme { Box(Modifier.fillMaxSize().b
 @Preview(name = "NFC - tablet portrait", device = TABLET_PORTRAIT) @Composable private fun NfcTabletPortrait() = Flow(TagUiState(phase = TagPhase.ReadingNfc))
 @Preview(name = "NFC - tablet landscape", device = TABLET_LANDSCAPE) @Composable private fun NfcTabletLandscape() = Flow(TagUiState(phase = TagPhase.ReadingNfc))
 
-@Preview(name = "Tagged toast - phone", device = PHONE) @Composable private fun ToastPhone() = Flow(TagUiState(notice = TagNotice.Tagged(TagKind.QR)))
-@Preview(name = "Tagged toast - tablet portrait", device = TABLET_PORTRAIT) @Composable private fun ToastTabletPortrait() = Flow(TagUiState(notice = TagNotice.Tagged(TagKind.QR)))
-@Preview(name = "Tagged toast - tablet landscape", device = TABLET_LANDSCAPE) @Composable private fun ToastTabletLandscape() = Flow(TagUiState(notice = TagNotice.Tagged(TagKind.QR)))
-
 @Preview(name = "Retag - phone", device = PHONE) @Composable private fun RetagPhone() = Flow(TagUiState(phase = TagPhase.ConfirmingMove("Pump · KSB Etanorm")))
 @Preview(name = "Retag - tablet landscape", device = TABLET_LANDSCAPE) @Composable private fun RetagTabletLandscape() = Flow(TagUiState(phase = TagPhase.ConfirmingMove("Pump · KSB Etanorm")))
-@Preview(name = "Refused toast - phone", device = PHONE) @Composable private fun RefusedPhone() = Flow(TagUiState(notice = TagNotice.Refused(com.sclera.sclerago.presentation.common.UiText.Res(com.sclera.sclerago.R.string.tag_error_other_property))))
 
 // The QR and barcode scanner screens show the live camera, so they have no preview.

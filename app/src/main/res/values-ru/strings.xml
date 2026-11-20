@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">Введите код доступа</string>
     <string name="menu_users">Пользователи</string>
     <string name="menu_current_property">Текущий объект</string>
-    <string name="menu_soon">Скоро</string>
     <string name="menu_validation">Проверка</string>
     <string name="menu_configuration">Конфигурация</string>
-    <string name="menu_audit">Аудит</string>
-    <string name="menu_survey">Опрос</string>
     <string name="menu_integration">Интеграция</string>
     <string name="menu_sign_out">Выйти</string>
     <string name="menu_sign_out_title">Выйти?</string>
@@ -223,7 +220,6 @@
     <string name="asset_added_submitted">Актив отправлен</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">Показано: %1$s</string>
-    <string name="menu_coming_soon">%1$s скоро появится</string>
     <string name="review_title">Проверка и добавление</string>
     <string name="review_ready">Готов к добавлению</string>
     <string name="review_needs_input">Потребуются данные</string>

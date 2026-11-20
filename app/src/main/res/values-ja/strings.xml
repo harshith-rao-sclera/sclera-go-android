@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">アクセスコードを入力</string>
     <string name="menu_users">ユーザー</string>
     <string name="menu_current_property">現在の物件</string>
-    <string name="menu_soon">近日公開</string>
     <string name="menu_validation">検証</string>
     <string name="menu_configuration">設定</string>
-    <string name="menu_audit">監査</string>
-    <string name="menu_survey">調査</string>
     <string name="menu_integration">連携</string>
     <string name="menu_sign_out">サインアウト</string>
     <string name="menu_sign_out_title">サインアウトしますか？</string>
@@ -211,7 +208,6 @@
     <string name="asset_added_submitted">資産を送信しました</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">%1$s を表示中</string>
-    <string name="menu_coming_soon">%1$s は近日公開です</string>
     <string name="review_title">確認して登録</string>
     <string name="review_ready">登録の準備完了</string>
     <string name="review_needs_input">入力が必要です</string>

@@ -1,10 +1,7 @@
 package com.sclera.sclerago.presentation.integration
 
+import com.sclera.sclerago.presentation.components.ToastEffect
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,7 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -41,7 +37,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.VdmsChoice
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
-import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.CircleFab
@@ -55,7 +50,6 @@ import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.SubPageBar
-import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
@@ -113,11 +107,7 @@ fun IntegrationScreen(
             )
         }
         s.adding?.let { a -> AddSheet(a, vm.nameOf(null), vm) }
-        AnimatedVisibility(
-            s.message != null,
-            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp, start = 16.dp, end = 16.dp),
-            enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut(),
-        ) { s.message?.let { Toast(it.asString()) } }
+        ToastEffect(s.message)
     }
 }
 

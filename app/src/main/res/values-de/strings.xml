@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">Zugangscode eingeben</string>
     <string name="menu_users">Benutzer</string>
     <string name="menu_current_property">Aktueller Standort</string>
-    <string name="menu_soon">Bald</string>
     <string name="menu_validation">Validierung</string>
     <string name="menu_configuration">Konfiguration</string>
-    <string name="menu_audit">Audit</string>
-    <string name="menu_survey">Umfrage</string>
     <string name="menu_integration">Integration</string>
     <string name="menu_sign_out">Abmelden</string>
     <string name="menu_sign_out_title">Abmelden?</string>
@@ -215,7 +212,6 @@
     <string name="asset_added_submitted">Asset eingereicht</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">%1$s wird angezeigt</string>
-    <string name="menu_coming_soon">%1$s folgt in Kürze</string>
     <string name="review_title">Prüfen und erfassen</string>
     <string name="review_ready">Bereit zur Erfassung</string>
     <string name="review_needs_input">Angaben erforderlich</string>

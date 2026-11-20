@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">Voer de toegangscode in</string>
     <string name="menu_users">Gebruikers</string>
     <string name="menu_current_property">Huidige locatie</string>
-    <string name="menu_soon">Binnenkort</string>
     <string name="menu_validation">Validatie</string>
     <string name="menu_configuration">Configuratie</string>
-    <string name="menu_audit">Audit</string>
-    <string name="menu_survey">Enquête</string>
     <string name="menu_integration">Integratie</string>
     <string name="menu_sign_out">Uitloggen</string>
     <string name="menu_sign_out_title">Uitloggen?</string>
@@ -215,7 +212,6 @@
     <string name="asset_added_submitted">Asset ingediend</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">%1$s wordt getoond</string>
-    <string name="menu_coming_soon">%1$s komt binnenkort</string>
     <string name="review_title">Controleren en toevoegen</string>
     <string name="review_ready">Klaar om toe te voegen</string>
     <string name="review_needs_input">Heeft invoer nodig</string>

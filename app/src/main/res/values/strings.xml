@@ -133,11 +133,8 @@
     <string name="field_access_code_hint">Enter access code</string>
     <string name="menu_users">Users</string>
     <string name="menu_current_property">Current property</string>
-    <string name="menu_soon">Soon</string>
     <string name="menu_validation">Validation</string>
     <string name="menu_configuration">Configuration</string>
-    <string name="menu_audit">Audit</string>
-    <string name="menu_survey">Survey</string>
     <string name="menu_integration">Integration</string>
     <string name="menu_sign_out">Sign out</string>
     <string name="menu_sign_out_title">Sign out?</string>
@@ -319,7 +316,6 @@
     <string name="asset_added_submitted">Asset submitted</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">Showing %1$s</string>
-    <string name="menu_coming_soon">%1$s is coming soon</string>
     <string name="review_title">Review &amp; onboard</string>
     <string name="review_ready">Ready to onboard</string>
     <string name="review_needs_input">Will need input</string>

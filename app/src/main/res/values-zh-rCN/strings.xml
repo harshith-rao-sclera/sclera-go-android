@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">输入访问码</string>
     <string name="menu_users">用户</string>
     <string name="menu_current_property">当前物业</string>
-    <string name="menu_soon">即将推出</string>
     <string name="menu_validation">验证</string>
     <string name="menu_configuration">配置</string>
-    <string name="menu_audit">审核</string>
-    <string name="menu_survey">调查</string>
     <string name="menu_integration">集成</string>
     <string name="menu_sign_out">退出登录</string>
     <string name="menu_sign_out_title">退出登录？</string>
@@ -211,7 +208,6 @@
     <string name="asset_added_submitted">资产已提交</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">正在显示 %1$s</string>
-    <string name="menu_coming_soon">%1$s 即将推出</string>
     <string name="review_title">审核并登记</string>
     <string name="review_ready">可以登记</string>
     <string name="review_needs_input">需要补充信息</string>

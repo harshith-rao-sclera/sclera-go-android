@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">Informe o código de acesso</string>
     <string name="menu_users">Usuários</string>
     <string name="menu_current_property">Propriedade atual</string>
-    <string name="menu_soon">Em breve</string>
     <string name="menu_validation">Validação</string>
     <string name="menu_configuration">Configuração</string>
-    <string name="menu_audit">Auditoria</string>
-    <string name="menu_survey">Pesquisa</string>
     <string name="menu_integration">Integração</string>
     <string name="menu_sign_out">Sair</string>
     <string name="menu_sign_out_title">Sair?</string>
@@ -219,7 +216,6 @@
     <string name="asset_added_submitted">Ativo enviado</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">Mostrando %1$s</string>
-    <string name="menu_coming_soon">%1$s estará disponível em breve</string>
     <string name="review_title">Revisar e integrar</string>
     <string name="review_ready">Pronto para integrar</string>
     <string name="review_needs_input">Precisará de informações</string>

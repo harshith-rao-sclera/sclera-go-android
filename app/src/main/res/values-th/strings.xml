@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">ป้อนรหัสเข้าถึง</string>
     <string name="menu_users">ผู้ใช้</string>
     <string name="menu_current_property">สถานที่ปัจจุบัน</string>
-    <string name="menu_soon">เร็วๆ นี้</string>
     <string name="menu_validation">การตรวจสอบความถูกต้อง</string>
     <string name="menu_configuration">การกำหนดค่า</string>
-    <string name="menu_audit">การตรวจสอบ</string>
-    <string name="menu_survey">การสำรวจ</string>
     <string name="menu_integration">การเชื่อมต่อ</string>
     <string name="menu_sign_out">ออกจากระบบ</string>
     <string name="menu_sign_out_title">ออกจากระบบหรือไม่</string>
@@ -211,7 +208,6 @@
     <string name="asset_added_submitted">ส่งสินทรัพย์แล้ว</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">กำลังแสดง %1$s</string>
-    <string name="menu_coming_soon">%1$s เร็ว ๆ นี้</string>
     <string name="review_title">ตรวจทานและนำเข้า</string>
     <string name="review_ready">พร้อมนำเข้า</string>
     <string name="review_needs_input">ต้องกรอกข้อมูล</string>

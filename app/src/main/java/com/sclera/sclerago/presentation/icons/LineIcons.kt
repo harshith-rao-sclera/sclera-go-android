@@ -218,7 +218,6 @@ object Icons {
     // Side menu
     val Sliders = Ico(s("M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"), s(circle(15f, 6f, 2f)), s(circle(9f, 12f, 2f)), s(circle(17f, 18f, 2f)))
     val Clipboard = Ico(s(rect(5f, 4f, 14f, 17f, 2f)), s(rect(9f, 2.5f, 6f, 3f, 1f)), s("M9 11h6M9 15h4"))
-    val Survey = Ico(s("M14 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l4 4v4"), s("M8 8h5M8 12h3"), s(circle(15.5f, 16.5f, 2.8f)), s("M17.6 18.6L20 21"))
     val Link = Ico(s("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"), s("M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"))
     /** A tray with an arrow into it: import. */
     val Import = Ico(s("M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"), s("M12 3v12M7.5 10.5L12 15l4.5-4.5"))

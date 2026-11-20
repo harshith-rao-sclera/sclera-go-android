@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">輸入存取碼</string>
     <string name="menu_users">使用者</string>
     <string name="menu_current_property">目前物業</string>
-    <string name="menu_soon">即將推出</string>
     <string name="menu_validation">驗證</string>
     <string name="menu_configuration">設定</string>
-    <string name="menu_audit">稽核</string>
-    <string name="menu_survey">調查</string>
     <string name="menu_integration">整合</string>
     <string name="menu_sign_out">登出</string>
     <string name="menu_sign_out_title">要登出嗎？</string>
@@ -211,7 +208,6 @@
     <string name="asset_added_submitted">資產已提交</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">正在顯示 %1$s</string>
-    <string name="menu_coming_soon">%1$s 即將推出</string>
     <string name="review_title">檢閱並登錄</string>
     <string name="review_ready">可以登錄</string>
     <string name="review_needs_input">需要補充資訊</string>

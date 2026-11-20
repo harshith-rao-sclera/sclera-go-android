@@ -47,7 +47,8 @@ sealed interface TagPhase {
 /** A short message over the details: the tag went on, or why it didn't (the old app's toasts). */
 sealed interface TagNotice {
     data class Tagged(val kind: TagKind) : TagNotice
-    data class Refused(val message: UiText) : TagNotice
+    /** [nfcSettings]: NFC is switched off, so the message offers to open the phone's NFC settings. */
+    data class Refused(val message: UiText, val nfcSettings: Boolean = false) : TagNotice
 }
 
 data class TagUiState(
@@ -96,13 +97,17 @@ class TagViewModel @Inject constructor(
         _state.update { TagUiState(tagged = taggedByAsset[asset].orEmpty()) }
     }
 
-    /** The user picked [kind]. Only a QR code can be tagged offline; the others say so instead. */
-    fun start(kind: TagKind) {
+    /**
+     * The user picked [kind]. Only a QR code can be tagged offline; the others say so instead. [nfcProblem]: why the
+     * phone can't read NFC now (none, or switched off), checked before the NFC dialog opens so it never flashes up.
+     */
+    fun start(kind: TagKind, nfcProblem: NfcFailure? = null) {
         val now = target ?: return
         // A submitted (or signed-off) asset keeps the tags it has, whoever is signed in.
         if (tags.isSubmitted(now.asset)) return
         // A QR code is tagged in the phone's own tables when offline; barcodes and NFC tags are checked on the server.
         if (kind != TagKind.QR && !network.isOnline()) return fail(UiText.Res(R.string.tag_error_offline))
+        if (kind == TagKind.NFC && nfcProblem != null) return nfcFailed(nfcProblem)
         pending = null
         _state.update {
             it.copy(
@@ -164,6 +169,7 @@ class TagViewModel @Inject constructor(
                 NfcFailure.FAILED -> R.string.tag_error_nfc_failed
             },
         ),
+        nfcSettings = failure == NfcFailure.DISABLED,
     )
 
     /** The camera couldn't start. */
@@ -212,9 +218,9 @@ class TagViewModel @Inject constructor(
         _state.update { it.copy(phase = TagPhase.Idle, tagged = kinds, notice = TagNotice.Tagged(kind)) }
     }
 
-    private fun fail(message: UiText) {
+    private fun fail(message: UiText, nfcSettings: Boolean = false) {
         pending = null
-        _state.update { it.copy(phase = TagPhase.Idle, notice = TagNotice.Refused(message)) }
+        _state.update { it.copy(phase = TagPhase.Idle, notice = TagNotice.Refused(message, nfcSettings)) }
     }
 
     override fun onCleared() {

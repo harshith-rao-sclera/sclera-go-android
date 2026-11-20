@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">एक्सेस कोड दर्ज करें</string>
     <string name="menu_users">उपयोगकर्ता</string>
     <string name="menu_current_property">वर्तमान संपत्ति</string>
-    <string name="menu_soon">जल्द आ रहा है</string>
     <string name="menu_validation">सत्यापन</string>
     <string name="menu_configuration">कॉन्फ़िगरेशन</string>
-    <string name="menu_audit">ऑडिट</string>
-    <string name="menu_survey">सर्वेक्षण</string>
     <string name="menu_integration">इंटीग्रेशन</string>
     <string name="menu_sign_out">साइन आउट</string>
     <string name="menu_sign_out_title">साइन आउट करें?</string>
@@ -215,7 +212,6 @@
     <string name="asset_added_submitted">एसेट सबमिट हुआ</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">%1$s दिखाया जा रहा है</string>
-    <string name="menu_coming_soon">%1$s जल्द आ रहा है</string>
     <string name="review_title">समीक्षा करें और जोड़ें</string>
     <string name="review_ready">जोड़ने के लिए तैयार</string>
     <string name="review_needs_input">इनपुट की ज़रूरत होगी</string>

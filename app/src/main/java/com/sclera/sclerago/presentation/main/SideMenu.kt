@@ -78,7 +78,6 @@ import java.util.Locale
 private sealed interface Trailing {
     data class Count(val n: Int) : Trailing
     data object Open : Trailing
-    data object Soon : Trailing
 }
 
 /** Test tags of the side menu. */
@@ -259,8 +258,6 @@ internal fun SideMenuPanel(
                                 Trailing.Open, active, onPick,
                             )
                             if (showConfiguration) SectionRow(MenuItem.CONFIGURATION, stringResource(R.string.menu_configuration), Icons.Sliders, Trailing.Open, active, onPick)
-                            SectionRow(MenuItem.AUDIT, stringResource(R.string.menu_audit), Icons.Clipboard, Trailing.Soon, active, onPick)
-                            SectionRow(MenuItem.SURVEY, stringResource(R.string.menu_survey), Icons.Survey, Trailing.Soon, active, onPick)
                             if (showIntegration) SectionRow(MenuItem.INTEGRATION, stringResource(R.string.menu_integration), Icons.Link, Trailing.Open, active, onPick)
                         }
                     }
@@ -361,9 +358,6 @@ private fun SectionRow(
                     Txt(trailing.n.toString(), 11, 700)
                 }
                 Trailing.Open -> LineIcon(Icons.ChevronRight, 14.dp, C.Dim, 2.6f)
-                Trailing.Soon -> Box(Modifier.clip(CircleShape).background(C.Raised).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                    Txt(stringResource(R.string.menu_soon), 10, 600, C.Muted)
-                }
             }
         }
     }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The camera's problem messages (shown as the app's toast). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="camera_photo_failed">Couldn\'t take the photo. Try again.</string>
+    <string name="camera_video_too_short">Video too short. Hold for a moment longer.</string>
+</resources>

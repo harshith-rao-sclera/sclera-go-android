@@ -1,12 +1,9 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.ToastEffect
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -38,7 +34,6 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.validation.Decision
 import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.domain.validation.ValStep
-import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.EmptyNote
@@ -48,7 +43,6 @@ import com.sclera.sclerago.presentation.components.PageBar
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
-import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.noRippleClick
 import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.components.topBorder
@@ -137,11 +131,7 @@ internal fun JobReview(
         j?.let { run -> s.panel?.let { p -> RunAssetSheet(run, p, steps, assets, propName, s, vm, onOpenAsset) } }
         s.merge?.let { MergeSheet(it, s, vm) }
         s.recollectFor?.let { ids -> RecollectSheet(ids.size, s, vm) }
-        AnimatedVisibility(
-            s.message != null,
-            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 64.dp),
-            enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut(),
-        ) { s.message?.let { Toast(it.asString()) } }
+        ToastEffect(s.message)
     }
 }
 

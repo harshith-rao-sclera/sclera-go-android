@@ -1,5 +1,6 @@
 package com.sclera.sclerago.services.tagging
 
+import android.content.Context
 import android.app.Activity
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
@@ -38,6 +39,12 @@ object NfcTagReader {
             null,
         )
         return true
+    }
+
+    /** Why NFC can't read right now (the phone has none, or it is switched off), or null when it can. */
+    fun problem(context: Context): NfcFailure? {
+        val adapter = NfcAdapter.getDefaultAdapter(context) ?: return NfcFailure.UNAVAILABLE
+        return if (adapter.isEnabled) null else NfcFailure.DISABLED
     }
 
     fun stop(activity: Activity) {

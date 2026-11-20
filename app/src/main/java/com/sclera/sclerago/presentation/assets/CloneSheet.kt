@@ -19,6 +19,7 @@ import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.MAX_CLONE_COPIES
 import com.sclera.sclerago.domain.model.NO_INPUT_KINDS
+import com.sclera.sclerago.domain.model.tagKindOfField
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.FieldLabel
 import com.sclera.sclerago.presentation.components.FormSheet
@@ -64,7 +65,8 @@ internal fun CloneSheet(
     )
     val hasValue = { key: String -> state.saved[key].orEmpty().isNotBlank() }
     val system = CLONE_SYSTEM_KEYS.filter(hasValue)
-    val fields = state.fields.filter { it.key !in NOT_IN_FIELD_GROUPS && it.kind !in NO_INPUT_KINDS && hasValue(it.key) }
+    // A copy isn't tagged: the "QR / Barcode / NFC Tagged" fields (the Tags bar's) aren't offered.
+    val fields = state.fields.filter { it.key !in NOT_IN_FIELD_GROUPS && it.kind !in NO_INPUT_KINDS && hasValue(it.key) && tagKindOfField(it.label) == null }
     val groups = listOf(
         R.string.clone_mandatory to fields.filter { it.required },
         R.string.clone_technician to fields.filter { !it.required && !it.custom },

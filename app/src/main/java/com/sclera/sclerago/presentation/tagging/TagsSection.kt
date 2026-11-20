@@ -43,7 +43,8 @@ object TagTags {
     const val NFC_DIALOG = "tag-nfc-dialog"
     const val NFC_CANCEL = "tag-nfc-cancel"
     const val WORKING = "tag-working"
-    const val TOAST = "tag-toast"
+    /** The tagged / refused message: the app's shared toast. */
+    const val TOAST = com.sclera.sclerago.presentation.components.ToastTags.TOAST
     const val SHEET_PRIMARY = "tag-sheet-primary"
     const val SHEET_SECONDARY = "tag-sheet-secondary"
 }

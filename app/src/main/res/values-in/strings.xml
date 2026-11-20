@@ -86,11 +86,8 @@
     <string name="field_access_code_hint">Masukkan kode akses</string>
     <string name="menu_users">Pengguna</string>
     <string name="menu_current_property">Properti saat ini</string>
-    <string name="menu_soon">Segera</string>
     <string name="menu_validation">Validasi</string>
     <string name="menu_configuration">Konfigurasi</string>
-    <string name="menu_audit">Audit</string>
-    <string name="menu_survey">Survei</string>
     <string name="menu_integration">Integrasi</string>
     <string name="menu_sign_out">Keluar</string>
     <string name="menu_sign_out_title">Keluar?</string>
@@ -211,7 +208,6 @@
     <string name="asset_added_submitted">Aset terkirim</string>
     <string name="notice_with_source">%1$s · %2$s</string>
     <string name="property_showing">Menampilkan %1$s</string>
-    <string name="menu_coming_soon">%1$s segera hadir</string>
     <string name="review_title">Tinjau dan daftarkan</string>
     <string name="review_ready">Siap didaftarkan</string>
     <string name="review_needs_input">Perlu input</string>

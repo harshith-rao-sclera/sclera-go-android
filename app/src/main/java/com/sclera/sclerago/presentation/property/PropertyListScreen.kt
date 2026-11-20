@@ -19,9 +19,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.semantics.stateDescription
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,7 +34,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -73,7 +69,6 @@ import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.StatCard
 import com.sclera.sclerago.presentation.components.StatRow
 import com.sclera.sclerago.presentation.components.SubPageBar
-import com.sclera.sclerago.presentation.components.Toast
 import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Icons
@@ -131,11 +126,6 @@ fun PropertyListScreen(
             onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onRefresh = vm::refresh,
             canManage = canManage, onInfo = vm::openEdit, onOffline = vm::explainOffline,
         )
-        AnimatedVisibility(
-            app.state.toastOn && !state.addOpen && state.editing == null,
-            Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 72.dp),
-            enter = fadeIn(), exit = fadeOut(),
-        ) { Toast(app.state.toast.asString()) }
         if (state.importOpen) ImportSheet(importer, vm::closeImport, onImported = vm::closeImport)
         if (state.addOpen) {
             AddPropertySheet(

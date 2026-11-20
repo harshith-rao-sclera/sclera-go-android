@@ -1,12 +1,14 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.LocalToaster
+import com.sclera.sclerago.presentation.components.ToastKind
+import com.sclera.sclerago.presentation.common.UiText
 import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -135,6 +137,7 @@ fun CameraCapture(
     galleryLimit: Int? = null,
 ) {
     val context = LocalContext.current
+    val toaster = LocalToaster.current
     val activity = LocalActivity.current
     val owner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -175,14 +178,12 @@ fun CameraCapture(
     LaunchedEffect(backLens) {
         controller.cameraSelector = if (backLens) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
     }
-    LaunchedEffect(flashOn, videoMode, active) {
-        if (videoMode) {
-            controller.imageCaptureFlashMode = ImageCapture.FLASH_MODE_OFF
-            controller.enableTorch(flashOn && active)
-        } else {
-            controller.enableTorch(false)
-            controller.imageCaptureFlashMode = if (flashOn) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
-        }
+    // Flash on keeps the light on while aiming, for photos as for video; the photo is taken in that light. Set again when the
+    // camera is rebound (mode, lens, back on screen), once it is ready (the first time it opens it isn't yet).
+    LaunchedEffect(flashOn, videoMode, backLens, active) {
+        controller.imageCaptureFlashMode = ImageCapture.FLASH_MODE_OFF
+        val on = flashOn && active
+        controller.initializationFuture.addListener({ controller.enableTorch(on) }, ContextCompat.getMainExecutor(context))
     }
     DisposableEffect(active, granted, owner) {
         if (active && granted) controller.bindToLifecycle(owner)
@@ -206,7 +207,7 @@ fun CameraCapture(
 
                 override fun onError(e: ImageCaptureException) {
                     f.delete()
-                    Toast.makeText(context, "Couldn't take the photo. Try again.", Toast.LENGTH_SHORT).show()
+                    toaster.show(UiText.Res(R.string.camera_photo_failed), ToastKind.PROBLEM)
                 }
             },
         )
@@ -231,7 +232,7 @@ fun CameraCapture(
                         onCapture(Media("c-${f.name}", Uri.fromFile(f).toString(), video = true, durationMs = ms, owned = true))
                     } else {
                         f.delete()
-                        Toast.makeText(context, "Video too short — hold for a moment longer.", Toast.LENGTH_SHORT).show()
+                        toaster.show(UiText.Res(R.string.camera_video_too_short), ToastKind.PROBLEM)
                     }
                 }
             }
@@ -364,7 +365,7 @@ fun CameraCapture(
                 when {
                     isRecording -> Unit
                     galleryLimit != null && galleryLimit <= 0 ->
-                        Toast.makeText(context, context.getString(R.string.camera_room_full, 0), Toast.LENGTH_SHORT).show()
+                        toaster.show(UiText.Res(R.string.camera_room_full, listOf(0)), ToastKind.PROBLEM)
                     galleryLimit == 1 -> galleryOne.launch(PickVisualMediaRequest(only))
                     else -> gallery.launch(PickVisualMediaRequest(only))
                 }
