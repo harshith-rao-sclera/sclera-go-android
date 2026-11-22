@@ -25,7 +25,7 @@ class OfflineTaggingRepository @Inject constructor(
     override suspend fun check(tag: TagValue, asset: String, property: String): TagCheck {
         if (tag.kind != TagKind.QR) throw TaggingException(TaggingError.NEEDS_CONNECTION)
         // A code the phone has never seen is free: it is added to the tables when it is tagged.
-        val row = tags.row(tag) ?: return TagCheck(TagUse.FREE, isAdc = true, heldBy = null, isOnOtherProperty = false, holderTagCount = 0, confirmsMove = true)
+        val row = tags.row(tag) ?: return TagCheck(TagUse.FREE, isAdc = true, heldBy = null, isOnOtherProperty = false, holderTagCount = 0, confirmsMove = false)
         val holder = row.assetId?.takeIf { it.isNotEmpty() }
         return TagCheck(
             use = if (holder == null && row.isAdc) TagUse.FREE else TagUse.IN_USE,
@@ -33,7 +33,8 @@ class OfflineTaggingRepository @Inject constructor(
             heldBy = holder,
             isOnOtherProperty = !row.propertyId.isNullOrEmpty() && row.propertyId != property,
             holderTagCount = if (holder == null) 0 else 1,
-            confirmsMove = true,
+            // As the old app: offline a code on another unsubmitted asset is moved without asking.
+            confirmsMove = false,
         )
     }
 

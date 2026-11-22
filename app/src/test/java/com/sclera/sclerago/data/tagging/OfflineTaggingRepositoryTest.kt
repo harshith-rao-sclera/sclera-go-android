@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.tagging
 
+import com.sclera.sclerago.testutil.NoTagHistory
 import com.sclera.sclerago.data.offline.QrTagRow
 import com.sclera.sclerago.data.offline.QrTagStore
 import com.sclera.sclerago.data.repository.ConnectionAwareTaggingRepository
@@ -67,7 +68,7 @@ class OfflineTaggingRepositoryTest {
         val check = repo.check(qr, "a1", "p1")
         assertEquals(TagUse.FREE, check.use)
         assertTrue(check.isAdc)
-        assertTrue(check.confirmsMove)
+        assertFalse(check.confirmsMove)
         repo.register(qr, "a1", "p1")
     }
 
@@ -126,11 +127,9 @@ class OfflineTaggingRepositoryTest {
     }
 
     @Test
-    fun `offline attach asks before taking a tag from another draft, then moves it`() = runTest {
+    fun `offline attach moves a tag from another draft without asking, as the old app did`() = runTest {
         tags.rows["own-1"] = QrTagRow("a9", "p1", isAdc = true)
-        assertRefused(TaggingError.NEEDS_MOVE) { AttachTagUseCase(repo)(qr, "a1", "p1", placement, photo) }
-        assertTrue(tags.saved.isEmpty())
-        AttachTagUseCase(repo)(qr, "a1", "p1", placement, photo, isMoveConfirmed = true)
+        AttachTagUseCase(repo, NoTagHistory)(qr, "a1", "p1", placement, photo)
         assertEquals("a9", tags.saved.single().first.previousAsset)
     }
 
@@ -149,7 +148,7 @@ class OfflineTaggingRepositoryTest {
             creds,
         )
         val network = com.sclera.sclerago.testutil.FakeNetworkMonitor(online = false)
-        val routed = ConnectionAwareTaggingRepository(network, online, repo)
+        val routed = ConnectionAwareTaggingRepository(network, online, repo, com.sclera.sclerago.data.offline.AssetTagFlagStore { _, _, _ -> }, NoTagHistory)
         assertEquals(TagUse.FREE, routed.check(qr, "a1", "p1").use)
         routed.write(TagWrite(qr, "a1", "p1", null, placement, photo))
         assertEquals(1, tags.saved.size)

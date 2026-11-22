@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.tagging
 
+import com.sclera.sclerago.testutil.NoTagHistory
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.NfcFailure
 import com.sclera.sclerago.domain.model.OnlineError
@@ -45,7 +46,7 @@ class TagViewModelTest {
     private val assets = InMemoryAssetRepository()
 
     private fun vm() = TagViewModel(
-        TagUseCases(AttachTagUseCase(repo), BuildScannedTagUseCase(FakeDirectionSource(), FakeTagServer()), IsAssetSubmittedUseCase(assets), TagHolderNameUseCase(assets), TagPropertyUseCase(FakePropertyDownloads(PropertyDownloads(currentId = "p1", restored = true)))),
+        TagUseCases(AttachTagUseCase(repo, NoTagHistory), BuildScannedTagUseCase(FakeDirectionSource(), FakeTagServer()), IsAssetSubmittedUseCase(assets), TagHolderNameUseCase(assets), TagPropertyUseCase(FakePropertyDownloads(PropertyDownloads(currentId = "p1", restored = true)))),
         network,
     ).also { it.open("a2", "p1") }
 
@@ -216,7 +217,7 @@ class TagViewModelTest {
     @Test
     fun `nothing happens before an asset is open`() {
         val vm = TagViewModel(
-            TagUseCases(AttachTagUseCase(repo), BuildScannedTagUseCase(FakeDirectionSource(), FakeTagServer()), IsAssetSubmittedUseCase(assets), TagHolderNameUseCase(assets), TagPropertyUseCase(FakePropertyDownloads(PropertyDownloads(currentId = "p1", restored = true)))),
+            TagUseCases(AttachTagUseCase(repo, NoTagHistory), BuildScannedTagUseCase(FakeDirectionSource(), FakeTagServer()), IsAssetSubmittedUseCase(assets), TagHolderNameUseCase(assets), TagPropertyUseCase(FakePropertyDownloads(PropertyDownloads(currentId = "p1", restored = true)))),
             network,
         )
         vm.start(TagKind.QR)

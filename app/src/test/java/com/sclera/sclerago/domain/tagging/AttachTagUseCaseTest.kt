@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.tagging
 
+import com.sclera.sclerago.testutil.NoTagHistory
 import com.sclera.sclerago.domain.model.TagPlacement
 import com.sclera.sclerago.domain.model.TagPhoto
 import com.sclera.sclerago.domain.model.TagUpdate
@@ -26,7 +27,7 @@ import org.junit.Test
 
 class AttachTagUseCaseTest {
     private val repo = FakeTaggingRepository()
-    private val attach = AttachTagUseCase(repo)
+    private val attach = AttachTagUseCase(repo, NoTagHistory)
     private val own = TagValue.qr("own-1")
     private val system = TagValue.qr("https://x/qr?id=sys-1")
 

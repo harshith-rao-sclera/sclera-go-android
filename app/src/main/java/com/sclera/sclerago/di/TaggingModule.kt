@@ -2,11 +2,15 @@ package com.sclera.sclerago.di
 
 import com.sclera.sclerago.data.remote.AuthConfig
 import com.sclera.sclerago.data.remote.tagging.TagService
+import com.sclera.sclerago.data.offline.AssetTagFlagStore
 import com.sclera.sclerago.data.offline.GlobalQrTagStore
+import com.sclera.sclerago.data.offline.AdcAssetTagFlagStore
+import com.sclera.sclerago.data.offline.AdcTagHistory
 import com.sclera.sclerago.data.offline.QrTagStore
 import com.sclera.sclerago.data.repository.ConnectionAwareTaggingRepository
 import com.sclera.sclerago.data.repository.TagServerInfoImpl
 import com.sclera.sclerago.domain.repository.QrDirectionSource
+import com.sclera.sclerago.domain.repository.TagHistory
 import com.sclera.sclerago.domain.repository.TagServerInfo
 import com.sclera.sclerago.domain.repository.TaggingRepository
 import com.sclera.sclerago.services.tagging.PlaceholderQrDirectionSource
@@ -25,6 +29,8 @@ import javax.inject.Singleton
 abstract class TaggingModule {
     @Binds abstract fun tagging(impl: ConnectionAwareTaggingRepository): TaggingRepository
     @Binds abstract fun qrTags(impl: GlobalQrTagStore): QrTagStore
+    @Binds abstract fun tagFlags(impl: AdcAssetTagFlagStore): AssetTagFlagStore
+    @Binds abstract fun tagHistory(impl: AdcTagHistory): TagHistory
 
     @Binds abstract fun server(impl: TagServerInfoImpl): TagServerInfo
 

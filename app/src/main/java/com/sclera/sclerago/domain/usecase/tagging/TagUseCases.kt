@@ -15,6 +15,7 @@ import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.QrDirectionSource
 import com.sclera.sclerago.domain.repository.TagServerInfo
+import com.sclera.sclerago.domain.repository.TagHistory
 import com.sclera.sclerago.domain.repository.TaggingRepository
 import javax.inject.Inject
 
@@ -22,7 +23,7 @@ import javax.inject.Inject
  * The rules for attaching a tag to an asset: ask the server about the tag, accept it, refuse it with a reason, or ask the
  * user to move it from another draft, then write it.
  */
-class AttachTagUseCase @Inject constructor(private val repo: TaggingRepository) {
+class AttachTagUseCase @Inject constructor(private val repo: TaggingRepository, private val history: TagHistory) {
     /**
      * Attaches [tag] to [asset]. With [isMoveConfirmed] a tag held by another draft is taken from it; without, that case throws
      * [TaggingError.NEEDS_MOVE] so the user can be asked first. [isSubmitted] says whether an asset was submitted (an asset the
@@ -73,7 +74,11 @@ class AttachTagUseCase @Inject constructor(private val repo: TaggingRepository) 
             if (isSubmitted(holder)) throw TaggingException(TaggingError.TAKEN_BY_SUBMITTED, holder)
             if (check.isOnOtherProperty) throw TaggingException(TaggingError.TAKEN_BY_OTHER_PROPERTY)
         }
-        if (check.confirmsMove) throw TaggingException(TaggingError.NEEDS_MOVE, holder)
+        if (check.confirmsMove) {
+            // The old app wrote this line when it asked, before the user answered.
+            history.retagRequested(asset, tag.kind)
+            throw TaggingException(TaggingError.NEEDS_MOVE, holder)
+        }
         return holder
     }
 }

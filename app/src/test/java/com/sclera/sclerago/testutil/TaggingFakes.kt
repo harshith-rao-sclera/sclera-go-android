@@ -48,3 +48,9 @@ class FakeDirectionSource(val measurement: QrMeasurement = QrMeasurement(10.0, 2
 }
 
 class FakeTagServer(override val url: String = "https://app.example.com") : TagServerInfo
+
+/** A history that keeps nothing: the tests don't look at the lines tagging writes. */
+object NoTagHistory : com.sclera.sclerago.domain.repository.TagHistory {
+    override fun qrTagged(asset: String) = Unit
+    override fun retagRequested(asset: String, kind: com.sclera.sclerago.domain.model.TagKind) = Unit
+}
