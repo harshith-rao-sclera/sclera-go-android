@@ -85,7 +85,7 @@ data class Asset(
     val validationMark: ValidationMark? = null,
     /** How many of its steps failed or need a look. */
     val validationProblems: Int = 0,
-    /** The kinds of tag the synced data says it carries (the assets table's is_qr_tagged, is_barcode_tagged, is_nfc_tagged). */
+    /** The kinds of tag the synced data says it carries (the assets table's qr_code_tag, barcode_tag, nfc_tag). */
     val tagged: Set<TagKind> = emptySet(),
 )
 

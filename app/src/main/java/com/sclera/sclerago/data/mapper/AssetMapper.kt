@@ -13,6 +13,12 @@ import com.sclera.sclerago.domain.model.statusToDb
 import com.sclera.sclerago.domain.model.AssetType
 import com.sclera.sclerago.domain.model.typeOf
 
+/** A tagged flag column: a number other than 0, or the text 1, true, yes or tagged (any case); anything else, null or missing is untagged. */
+private fun DbRow.isTagFlagSet(column: String): Boolean {
+    int(column)?.let { return it != 0 }
+    return string(column)?.trim()?.lowercase() in setOf("true", "yes", "y", "tagged")
+}
+
 /** Standard fields that are columns of the assets table, as app field key to column. */
 private val ASSET_COLUMNS = mapOf("name" to "name", "make" to "manufacturer", "model" to "model", "serial" to "serial_number")
 
@@ -75,9 +81,9 @@ fun DbRow.toAsset(
         },
         assignedTo = string("assigned_to")?.takeIf { it.isNotBlank() },
         tagged = buildSet {
-            if (bool("is_qr_tagged")) add(TagKind.QR)
-            if (bool("is_barcode_tagged")) add(TagKind.BARCODE)
-            if (bool("is_nfc_tagged")) add(TagKind.NFC)
+            if (isTagFlagSet("qr_code_tag")) add(TagKind.QR)
+            if (isTagFlagSet("barcode_tag")) add(TagKind.BARCODE)
+            if (isTagFlagSet("nfc_tag")) add(TagKind.NFC)
         },
     )
 }
