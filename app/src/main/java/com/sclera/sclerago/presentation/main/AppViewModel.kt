@@ -71,7 +71,7 @@ enum class Sheet { NONE, LOC }
 enum class SheetFor { FILTER, ASSET, BULK }
 enum class NetMode { WIFI, AP }
 enum class MenuItem { PROPERTY, USERS, ASSETS, VALIDATION, CONFIGURATION, INTEGRATION }
-enum class CfgPage { BUILDING, FIELDS, GEO, SETTINGS }
+enum class CfgPage { BUILDING, FIELDS, TYPES, GEO, SETTINGS }
 enum class AdminPage { PROPERTIES, PEOPLE }
 
 

@@ -6,7 +6,6 @@ import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +14,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -28,11 +29,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
@@ -47,6 +50,7 @@ import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.genericAssetIco
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -64,28 +68,22 @@ internal fun ReviewCard(
     title: String? = null,
     sub: String? = null,
     count: Int? = null,
+    gap: Dp = 12.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        Modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth().clip(r(16)).background(C.Surface)
-            .border(1.dp, C.Border, r(16)).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        Modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
+            .border(1.dp, C.Border, r(14)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(gap),
     ) {
         if (title != null) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Txt(title, 15, 700, modifier = Modifier.weight(1f))
-                count?.let { CountBadge(it) }
+                count?.let { CountPill(it) }
             }
-            sub?.let { Txt(it, 11, 400, C.Soft, maxLines = Int.MAX_VALUE) }
+            sub?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
         }
         content()
-    }
-}
-
-@Composable
-private fun CountBadge(n: Int) {
-    Box(Modifier.heightIn(min = 22.dp).widthIn(min = 22.dp).clip(CircleShape).background(C.Raised).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-        Txt(n.toString(), 10, 700, C.Soft)
     }
 }
 
@@ -206,16 +204,17 @@ internal fun ReviewSummary(j: ValRun) {
  * number when it is the one to act on ([mark]).
  */
 @Composable
-private fun RowScope.StatTile(n: Int, label: String, dot: Color? = null, mark: Color? = null, numberColor: Color = C.Text) {
+private fun RowScope.StatTile(n: Int, label: String, dot: Color? = null, mark: Color? = null, labelLines: Int = 1, numberColor: Color = if (n > 0) C.Text else C.Dim) {
+    // [mark] is the tile's top edge: a coloured line across its full width, cut to its rounded corners.
     Column(
-        Modifier.weight(1f).clip(r(12)).background(C.Raised).padding(horizontal = 10.dp, vertical = 9.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        Modifier.weight(1f).fillMaxHeight().clip(r(10)).background(C.Raised.copy(alpha = 0.6f))
+            .then(if (mark != null) Modifier.topBorder(mark, 3.dp) else Modifier).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Box(Modifier.fillMaxWidth(0.6f).height(3.dp).clip(Capsule).background(mark ?: Color.Transparent))
-        Txt(n.toString(), 18, 800, numberColor)
+        Txt(n.toString(), 18, 700, numberColor)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             dot?.let { Dot(it, 7.dp) }
-            Txt(label, 11, 500, C.Soft, maxLines = 1)
+            Txt(label, 11, 500, C.Muted, maxLines = labelLines)
         }
     }
 }
@@ -225,12 +224,15 @@ private fun RowScope.StatTile(n: Int, label: String, dot: Color? = null, mark: C
 internal fun FieldsToFix(ins: RunInsights) {
     ReviewCard(stringResource(R.string.rev_fields_title), stringResource(R.string.rev_fields_sub), count = ins.topFields.size) {
         if (ins.topFields.isEmpty()) Txt(stringResource(R.string.rev_fields_none), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
-        ins.topFields.forEach { f ->
-            Row(Modifier.fillMaxWidth().heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-                Txt(f.fieldName, 13, 600, modifier = Modifier.weight(1f), maxLines = 2)
+        ins.topFields.forEachIndexed { idx, f ->
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 32.dp).then(if (idx > 0) Modifier.topBorder(C.Border) else Modifier).padding(vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Txt(f.fieldName, 13, 500, modifier = Modifier.weight(1f), maxLines = 2)
                 val n = if (f.open > 0) f.open else f.issues
                 val c = if (f.open > 0) C.Orange else C.Muted
-                Box(Modifier.clip(Capsule).background(c.copy(alpha = 0.16f)).padding(horizontal = 9.dp, vertical = 3.dp)) {
+                Box(Modifier.height(24.dp).clip(Capsule).background(c.copy(alpha = 0.15f)).padding(horizontal = 9.dp), contentAlignment = Alignment.Center) {
                     Txt(pluralStringResource(R.plurals.rev_n_issues, n, n), 11, 700, c)
                 }
             }
@@ -241,16 +243,16 @@ internal fun FieldsToFix(ins: RunInsights) {
 /** What has been done about the issues, and decided about the assets. */
 @Composable
 internal fun ReviewProgress(ins: RunInsights) {
-    ReviewCard(stringResource(R.string.rev_progress_title), stringResource(R.string.rev_progress_sub)) {
+    ReviewCard(stringResource(R.string.rev_progress_title), stringResource(R.string.rev_progress_sub), gap = 14.dp) {
         SmallHeading(stringResource(R.string.rev_issues_label))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatTile(ins.open, stringResource(R.string.rev_still_open), mark = C.Orange.takeIf { ins.open > 0 }, numberColor = if (ins.open > 0) C.Orange else C.Text)
             StatTile(ins.applied, stringResource(R.string.rev_fixed))
             StatTile(ins.kept, stringResource(R.string.rev_kept))
         }
         if (ins.aiSuggested > 0) Txt(stringResource(R.string.rev_ai_applied, ins.aiApplied, ins.aiSuggested), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         SmallHeading(stringResource(R.string.rev_assets_label))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatTile(ins.validated, stringResource(R.string.rev_decision_validated))
             StatTile(ins.recollect, stringResource(R.string.rev_sent_back))
             StatTile(ins.pending, stringResource(R.string.rev_to_decide), mark = C.Yellow.takeIf { ins.pending > 0 }, numberColor = if (ins.pending > 0) C.Yellow else C.Text)
@@ -259,7 +261,7 @@ internal fun ReviewProgress(ins: RunInsights) {
 }
 
 @Composable
-private fun SmallHeading(text: String) = Txt(text.uppercase(), 10, 700, C.Soft, spacing = 0.8f)
+private fun SmallHeading(text: String) = Txt(text.uppercase(), 10, 600, C.Muted, spacing = 0.6f)
 
 /**
  * The steps every asset goes through, in order: each with how it went. Selecting one lists the assets that didn't
@@ -270,7 +272,7 @@ internal fun ReviewSteps(j: ValRun, steps: Map<String, ValStep>, selected: Strin
     ReviewCard(stringResource(R.string.rev_steps_title), stringResource(R.string.rev_steps_sub)) {
         Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.Top) {
             j.steps.forEachIndexed { i, key ->
-                if (i > 0) Box(Modifier.padding(top = 18.dp).width(18.dp).height(1.5.dp).background(C.Border2))
+                if (i > 0) Box(Modifier.padding(top = 18.dp).width(16.dp).height(1.5.dp).background(C.Border2))
                 StepNode(i, key, j, steps, on = selected == key) { onSelect(key) }
             }
         }
@@ -309,7 +311,7 @@ private fun StepNode(i: Int, key: String, j: ValRun, steps: Map<String, ValStep>
                 StepState.SKIPPED -> stringResource(R.string.rev_step_na)
                 StepState.PENDING -> stringResource(R.string.rev_step_waiting)
             },
-            10, 500, C.Muted, maxLines = 1, align = TextAlign.Center,
+            10, 400, C.Muted, maxLines = 1, align = TextAlign.Center,
         )
     }
 }
@@ -317,9 +319,9 @@ private fun StepNode(i: Int, key: String, j: ValRun, steps: Map<String, ValStep>
 /** "Assets", what to do with them, and the chips that show all of them or those of one outcome. */
 @Composable
 internal fun ReviewAssetsHead(j: ValRun, outcome: StepOutcome?, onOutcome: (StepOutcome?) -> Unit) {
-    Column(Modifier.padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(Modifier.padding(start = 14.dp, end = 12.dp, top = 14.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Txt(stringResource(R.string.rev_assets_label), 15, 700)
-        Txt(stringResource(R.string.rev_assets_sub), 11, 400, C.Soft, maxLines = Int.MAX_VALUE)
+        Txt(stringResource(R.string.rev_assets_sub), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     }
     Row(
         Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp),
@@ -343,8 +345,8 @@ private fun OutcomeChip(label: String, n: Int, on: Boolean, dot: Color?, onClick
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         dot?.let { Dot(it, 7.dp) }
-        Txt(label, 12, 700, if (on) C.Yellow else C.Text)
-        Txt(n.toString(), 11, 700, if (on) C.Yellow else C.Soft)
+        Txt(label, 12, 600, if (on) C.Yellow else C.Soft)
+        Txt(n.toString(), 11, 700, if (on) C.Yellow else C.Soft, Modifier.alpha(0.8f))
     }
 }
 
@@ -365,18 +367,18 @@ internal fun ReviewAssetCard(
 ) {
     val c = outcomeColor(res.outcome)
     Column(
-        Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(if (fresh) C.YTintBg else C.Surface)
-            .border(if (selected) 1.5.dp else 1.dp, if (selected) C.Yellow else C.Border, r(14))
+        Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(12)).background(if (fresh) C.YTintBg else C.Surface)
+            .border(if (selected) 1.5.dp else 1.dp, if (selected) C.Yellow else C.Border, r(12))
             .combinedClickable(onClick = onOpen, onLongClick = onSelect).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(40.dp).clip(r(10)).background(if (selected) C.Yellow else C.Raised), contentAlignment = Alignment.Center) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.size(36.dp).clip(r(10)).background(if (selected) C.Yellow else C.Raised), contentAlignment = Alignment.Center) {
                 if (selected) LineIcon(Icons.Check, 20.dp, C.OnYellow, 3f)
-                else LineIcon(local?.let { assetIco(it) } ?: genericAssetIco(), 19.dp, C.Yellow, 1.9f)
+                else LineIcon(local?.let { assetIco(it) } ?: genericAssetIco(), 18.dp, C.Yellow, 1.9f)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Txt(res.assetName.ifBlank { stringResource(R.string.val_unnamed) }, 14, 700, maxLines = 1)
+                Txt(res.assetName.ifBlank { stringResource(R.string.val_unnamed) }, 14, 600, maxLines = 1)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (res.outcome != StepOutcome.SKIPPED) SmallChip(outcomeLabel(res.outcome), c, c.copy(alpha = 0.16f))
                     res.decision?.let { SmallChip(decisionLabel(it), decisionColor(it), decisionColor(it).copy(alpha = 0.16f)) }
@@ -387,12 +389,12 @@ internal fun ReviewAssetCard(
                 }
             }
             val sc = scoreColor(res.score.toDouble())
-            Box(Modifier.widthIn(min = 34.dp).clip(r(8)).background(sc.copy(alpha = 0.16f)).padding(horizontal = 7.dp, vertical = 4.dp), contentAlignment = Alignment.Center) {
-                Txt(res.score.toString(), 12, 800, sc)
+            Box(Modifier.height(24.dp).widthIn(min = 34.dp).clip(r(6)).background(sc.copy(alpha = 0.15f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                Txt(res.score.toString(), 12, 700, sc)
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            j.steps.forEach { key -> Box(Modifier.size(10.dp).clip(r(3)).background(outcomeColor(res.outcomeOf(key)))) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            j.steps.forEach { key -> Box(Modifier.size(9.dp).clip(r(2)).background(outcomeColor(res.outcomeOf(key)))) }
             Spacer(Modifier.weight(1f))
             if (res.issueCount > 0) Txt(
                 if (res.openCount == 0) stringResource(R.string.rev_handled_all, res.issueCount)

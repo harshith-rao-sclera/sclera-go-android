@@ -127,7 +127,7 @@ fun LocationPicker(
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Txt(stringResource(R.string.scrt_loc_select_title), 17, 700)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                LineIcon(Icons.Property, 13.dp, C.Muted, 2.2f)
+                                LineIcon(Icons.Property, 11.dp, C.Muted, 2.2f)
                                 Txt(propName, 11, 500, C.Muted)
                             }
                         }
@@ -208,7 +208,7 @@ fun LocationPicker(
                         Txt(
                             if (node == null) stringResource(R.string.scrt_loc_pick_hint)
                             else if (selChain.size > 1) names.dropLast(1).joinToString(" › ") else stringResource(R.string.scrt_loc_whole_building),
-                            11, 400, C.Muted, maxLines = Int.MAX_VALUE,
+                            12, 400, C.Muted, maxLines = Int.MAX_VALUE,
                         )
                     }
                     Pill(
@@ -296,7 +296,7 @@ private fun TreeNodeRow(
         ) {
             KindIcon(n.kind, if (selected || onPath) C.Yellow else C.Muted)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Txt(n.name, 14, if (selected || onPath) 700 else 500, if (selected) C.Yellow else C.Text)
+                Txt(n.name, 15, if (selected || onPath) 700 else 500, if (selected) C.Yellow else C.Text)
                 Txt(sub, 11, 400, C.Muted)
             }
             if (count > 0) {

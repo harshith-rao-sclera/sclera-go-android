@@ -3,7 +3,6 @@ package com.sclera.sclerago.presentation.access
 import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -25,7 +26,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -54,7 +54,6 @@ import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Icons
-import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.theme.C
@@ -155,14 +154,23 @@ internal fun PeopleContent(
 ) {
     val gutter = pageGutter()
     val onPeople = list.tab == AccessTab.PEOPLE
-    val scroll = rememberLazyListState()
+    // Users and Groups are two pages side by side: swipe between them, or tap the switch or a count card.
+    val pager = rememberPagerState(initialPage = list.tab.page) { AccessTab.entries.size }
+    val tab by rememberUpdatedState(list.tab)
+    val pick by rememberUpdatedState(onTab)
+    LaunchedEffect(list.tab) { if (pager.currentPage != list.tab.page) pager.animateScrollToPage(list.tab.page) }
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.settledPage }.collect { page -> AccessTab.entries[page].takeIf { it != tab }?.let(pick) }
+    }
+    val peopleScroll = rememberLazyListState()
+    val groupsScroll = rememberLazyListState()
     // Scrolling near the end of the Users list loads the directory's next page by itself (no "Show more" button).
     // Keyed on the list and its loading, so a page that still leaves the end in view asks for the next one.
     val loadMore by rememberUpdatedState(onMoreOthers)
-    LaunchedEffect(scroll, onPeople, list.others.size, list.othersHasMore, list.othersLoading) {
+    LaunchedEffect(peopleScroll, onPeople, list.others.size, list.othersHasMore, list.othersLoading) {
         if (!onPeople || !list.othersHasMore || list.othersLoading) return@LaunchedEffect
         snapshotFlow {
-            val info = scroll.layoutInfo
+            val info = peopleScroll.layoutInfo
             (info.visibleItemsInfo.lastOrNull()?.index ?: 0) >= info.totalItemsCount - LoadAhead
         }.first { it }
         loadMore()
@@ -171,44 +179,49 @@ internal fun PeopleContent(
         Column(Modifier.fillMaxSize()) {
             SubPageBar(stringResource(R.string.access_title), property = propertyName, onMenu = onBack)
             if (offline) OfflineBanner(OnlineOnly.USERS, Modifier.padding(horizontal = gutter + 10.dp).padding(top = 10.dp))
+            // The counts and the switch stay put; the switch follows a swipe as it goes (to the page it is heading for).
+            val shownPage = if (pager.isScrollInProgress) pager.targetPage else pager.currentPage
+            Header(list, AccessTab.entries[shownPage], onTab, Modifier.padding(start = gutter + 8.dp, end = gutter + 8.dp, top = 10.dp))
             // The first read shows its own loader, so a pull waits until it is done.
             PullRefresh(list.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !list.loading) {
-                LazyColumn(
-                    Modifier.fillMaxSize().testTag(AccessTags.LIST),
-                    state = scroll,
-                    contentPadding = PaddingValues(start = gutter + 10.dp, end = gutter + 10.dp, top = 10.dp, bottom = 160.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    item { Header(list, onTab) }
-                    val unavailable = list.unavailable
-                    when {
-                        // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
-                        list.loading -> item {
-                            SkeletonList(stringResource(R.string.access_loading), Modifier.testTag(AccessTags.LOADING), count = 6, lead = SkeletonLead.CIRCLE)
-                        }
-                        unavailable != null -> item {
-                            Blank(stringResource(R.string.access_unavailable), unavailable.asString(), Modifier.testTag(AccessTags.UNAVAILABLE))
-                        }
-                        onPeople -> {
-                            items(list.people, key = { it.person.id }) { row ->
-                                PersonCard(row, properties, list.nowMillis) { onEditPerson(row.person) }
+                HorizontalPager(pager, Modifier.fillMaxSize(), key = { AccessTab.entries[it].name }) { page ->
+                    val pageOnPeople = AccessTab.entries[page] == AccessTab.PEOPLE
+                    LazyColumn(
+                        Modifier.fillMaxSize().testTag(if (pageOnPeople) AccessTags.LIST else AccessTags.LIST_GROUPS),
+                        state = if (pageOnPeople) peopleScroll else groupsScroll,
+                        contentPadding = PaddingValues(start = gutter + 8.dp, end = gutter + 8.dp, top = 4.dp, bottom = 160.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        val unavailable = list.unavailable
+                        when {
+                            // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
+                            list.loading -> item {
+                                SkeletonList(stringResource(R.string.access_loading), Modifier.testTag(AccessTags.LOADING), count = 6, lead = SkeletonLead.CIRCLE)
                             }
-                            // Everyone else in the organisation, as Sclera lists them: no access here until added.
-                            items(list.others, key = { "directory-${it.email}" }) { person ->
-                                DirectoryCard(person, canAdd = list.canAdd) { onInvite(person) }
+                            unavailable != null -> item {
+                                Blank(stringResource(R.string.access_unavailable), unavailable.asString(), Modifier.testTag(AccessTags.UNAVAILABLE))
                             }
-                            if (list.othersLoading || list.othersReason != null) item { OthersFooter(list) }
-                            if (list.people.isEmpty() && list.others.isEmpty()) item {
-                                val searching = list.query.isNotBlank()
-                                Blank(
-                                    stringResource(if (searching) R.string.access_nobody_by_name else R.string.access_nobody_yet),
-                                    stringResource(if (searching) R.string.access_nobody_by_name_hint else R.string.access_nobody_yet_hint),
-                                    Modifier.testTag(AccessTags.EMPTY),
-                                )
+                            pageOnPeople -> {
+                                items(list.people, key = { it.person.id }) { row ->
+                                    PersonCard(row, properties, list.nowMillis) { onEditPerson(row.person) }
+                                }
+                                // Everyone else in the organisation, as Sclera lists them: no access here until added.
+                                items(list.others, key = { "directory-${it.email}" }) { person ->
+                                    DirectoryCard(person, canAdd = list.canAdd) { onInvite(person) }
+                                }
+                                if (list.othersLoading || list.othersReason != null) item { OthersFooter(list) }
+                                if (list.people.isEmpty() && list.others.isEmpty()) item {
+                                    val searching = list.query.isNotBlank()
+                                    Blank(
+                                        stringResource(if (searching) R.string.access_nobody_by_name else R.string.access_nobody_yet),
+                                        stringResource(if (searching) R.string.access_nobody_by_name_hint else R.string.access_nobody_yet_hint),
+                                        Modifier.testTag(AccessTags.EMPTY),
+                                    )
+                                }
                             }
-                        }
-                        else -> items(list.groups, key = { it.group.id }) { row ->
-                            GroupCard(row) { onEditGroup(row.group) }
+                            else -> items(list.groups, key = { it.group.id }) { row ->
+                                GroupCard(row) { onEditGroup(row.group) }
+                            }
                         }
                     }
                 }
@@ -242,9 +255,9 @@ internal fun PeopleContent(
  * bar names the page). The counts are on the cards, not the tabs.
  */
 @Composable
-private fun Header(list: AccessListState, onTab: (AccessTab) -> Unit) {
-    val onPeople = list.tab == AccessTab.PEOPLE
-    Column(Modifier.padding(top = 2.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun Header(list: AccessListState, shown: AccessTab, onTab: (AccessTab) -> Unit, modifier: Modifier = Modifier) {
+    val onPeople = shown == AccessTab.PEOPLE
+    Column(modifier.padding(bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(
                 Icons.Users, C.Yellow, list.peopleTotal.toString(), stringResource(R.string.access_stat_people),
@@ -295,6 +308,9 @@ private fun OthersFooter(list: AccessListState) {
         list.othersReason?.let { Txt(stringResource(R.string.access_others_unavailable, it.asString()), 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
     }
 }
+
+/** Users is the first page, Groups the second. */
+private val AccessTab.page: Int get() = AccessTab.entries.indexOf(this)
 
 /** How many rows before the end of the Users list the next page of the directory is asked for. */
 private const val LoadAhead = 5

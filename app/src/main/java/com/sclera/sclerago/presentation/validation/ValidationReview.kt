@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.sclera.sclerago.R
@@ -87,7 +88,7 @@ internal fun JobReview(
     val localById = remember(assets) { assets.associateBy { it.id } }
     Box(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }) {
         Column(Modifier.fillMaxSize()) {
-            PageBar(stringResource(R.string.rev_title), null, onBack = onBack)
+            PageBar(stringResource(R.string.rev_title), null, onBack = onBack, backLabel = stringResource(R.string.rev_back))
             if (j == null) {
                 if (s.runFailed) EmptyNote(stringResource(R.string.valt_job_load_failed)) else ReviewSkeleton()
             } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 150.dp)) {
@@ -131,7 +132,8 @@ internal fun JobReview(
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Txt(
                             stringResource(if (s.nextCursor != null) R.string.rev_showing else R.string.rev_showing_all, s.results.size),
-                            11, 400, C.Muted, Modifier.weight(1f),
+                            11, 400, C.Dim, Modifier.weight(1f),
+                            align = if (s.nextCursor == null) TextAlign.Center else null,
                         )
                         if (s.nextCursor != null && !s.loadingMore) Pill(stringResource(R.string.rev_load_more), vm::loadMore, height = 36.dp, hPad = 16.dp, size = 12)
                     }

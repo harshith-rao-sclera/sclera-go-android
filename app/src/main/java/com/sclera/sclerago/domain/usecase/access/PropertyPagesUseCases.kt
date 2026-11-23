@@ -14,11 +14,12 @@ import javax.inject.Inject
  * While the access isn't known yet the assets are offered (to look at only: [PermissionGuard] allows nothing then).
  */
 class SeesAssetsUseCase @Inject constructor(private val guard: PermissionGuard) {
-    operator fun invoke(): Boolean = WORK.any(guard::allows) || !guard.allows(Permission.CONFIGURE)
+    // What the group grants, not what the phone's location allows: a collector held to view only still has the assets.
+    operator fun invoke(): Boolean = WORK.any(guard::holds) || !guard.holds(Permission.CONFIGURE)
 
     /** [invoke], kept up to date as the access is fetched or changes. */
     fun observe(): Flow<Boolean> =
-        combine(WORK.map(guard::observe) + guard.observe(Permission.CONFIGURE)) { allowed ->
+        combine(WORK.map(guard::observeHolds) + guard.observeHolds(Permission.CONFIGURE)) { allowed ->
             allowed.dropLast(1).any { it } || !allowed.last()
         }.distinctUntilChanged()
 

@@ -343,7 +343,7 @@ fun AssetRow(
             contentAlignment = Alignment.CenterEnd,
         ) {
             Box(
-                Modifier.size(34.dp).clip(r(9)).background(icBg).border(1.5.dp, icBd, r(9)),
+                Modifier.size(34.dp).clip(r(11)).background(icBg).border(1.5.dp, icBd, r(11)),
                 contentAlignment = Alignment.Center,
             ) {
                 AnimatedContent(picked, transitionSpec = IconSwap, label = "row-tick") { on ->
@@ -361,8 +361,8 @@ fun AssetRow(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Txt(a.name, 13, 600)
-                // Manufacturer and model, when either is filled in.
-                if (a.makeModel.isNotEmpty()) Txt(a.makeModel, 11, 400, C.Text, maxLines = 1)
+                // Manufacturer, model and its first specs (rated power, voltage, speed), when any is filled in.
+                if (a.detail.isNotEmpty()) Txt(a.detail, 12, 400, C.Muted, maxLines = 1)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 // The web's "Recollect" badge: sent back to be collected again.

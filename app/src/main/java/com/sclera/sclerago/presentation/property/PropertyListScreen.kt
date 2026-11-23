@@ -25,7 +25,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,6 +66,7 @@ import androidx.compose.runtime.setValue
 import com.sclera.sclerago.presentation.components.FabAction
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.FabMenu
+import com.sclera.sclerago.presentation.components.noRippleClick
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.StatCard
@@ -125,6 +125,7 @@ fun PropertyListScreen(
     Box(Modifier.fillMaxSize()) {
         PropertyListContent(
             state, app.currentProp,
+            currentName = app.propName.takeIf { it.isNotBlank() },
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
             onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onRefresh = vm::refresh,
             canManage = canManage, onInfo = vm::openEdit, onOffline = vm::explainOffline,
@@ -171,6 +172,8 @@ internal fun PropertyListContent(
     state: PropertyListState,
     currentId: String,
     onBack: () -> Unit,
+    /** The property being worked on, under the title (none until one has been opened). */
+    currentName: String? = null,
     onQuery: (String) -> Unit,
     onOpen: (String) -> Unit,
     onAdd: () -> Unit,
@@ -191,13 +194,13 @@ internal fun PropertyListContent(
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            SubPageBar(stringResource(R.string.property_list_title), property = null, onMenu = onBack)
+            SubPageBar(stringResource(R.string.property_list_title), property = currentName, onMenu = onBack)
             if (accessFailed) AccessFailedBanner(onRetryAccess, Modifier.padding(horizontal = gutter + 10.dp).padding(top = 10.dp))
             // The first read shows its own loader, so a pull waits until it is done.
             PullRefresh(state.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !state.loading) {
                 LazyColumn(
                     Modifier.fillMaxSize().testTag(PropertyTags.LIST),
-                    contentPadding = PaddingValues(start = gutter + 10.dp, end = gutter + 10.dp, top = 10.dp, bottom = 160.dp),
+                    contentPadding = PaddingValues(start = gutter + 8.dp, end = gutter + 8.dp, top = 10.dp, bottom = 160.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     item { Header(state) }
@@ -238,6 +241,8 @@ internal fun PropertyListContent(
                 }
             }
         }
+        // The page dims behind the open menu; a tap on it closes the menu.
+        if (menuOpen) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)).noRippleClick { menuOpen = false })
         Column(
             Modifier.align(Alignment.BottomEnd).navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
             horizontalAlignment = Alignment.End,
@@ -247,12 +252,14 @@ internal fun PropertyListContent(
                 menuOpen, { menuOpen = it },
                 listOf(
                     FabAction(
-                        stringResource(R.string.property_fab_import), Icons.Table, PropertyTags.IMPORT, onImport,
+                        stringResource(R.string.property_fab_import_title), Icons.Table, PropertyTags.IMPORT, onImport,
                         onBlocked = if (state.online) null else ({ onOffline(OnlineOnly.IMPORT_PROPERTIES) }),
+                        subtitle = stringResource(R.string.property_fab_import_sub), iconColor = C.Green,
                     ),
                     FabAction(
-                        stringResource(R.string.action_add), Icons.Pencil, PropertyTags.ADD, onAdd,
+                        stringResource(R.string.property_fab_new_title), Icons.Building, PropertyTags.ADD, onAdd,
                         onBlocked = if (state.online) null else ({ onOffline(OnlineOnly.NEW_PROPERTY) }),
+                        subtitle = stringResource(R.string.property_fab_new_sub), iconColor = C.Text,
                     ),
                 ),
                 stringResource(R.string.property_add_fab), stringResource(R.string.action_close),
@@ -310,7 +317,7 @@ private fun PropertyCard(
     val faint = !online && !downloaded && !download.inProgress
     val currentLabel = stringResource(R.string.menu_current_property)
     // The yellow wash starts on the icon's side, which is the right in right-to-left languages.
-    val wash = listOf(C.Yellow.copy(alpha = 0.16f), C.Surface)
+    val wash = listOf(C.Yellow.copy(alpha = 0.32f), C.YTintBg)
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val surface = when {
         current -> Modifier.background(Brush.horizontalGradient(if (rtl) wash.reversed() else wash))
@@ -346,25 +353,25 @@ private fun PropertyCard(
                     .testTag(PropertyTags.info(id)),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Info, 18.dp, C.Muted, 2f) }
-            // Every state keeps the 48dp of the download button, so the card doesn't change size as a download runs.
-            Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+            // Every state keeps the height of the icon circle (the design's 64dp row, 48dp wide for the tap), so the card doesn't change size as a download runs.
+            Box(Modifier.heightIn(min = RowControl), contentAlignment = Alignment.Center) {
                 when {
                     running != null -> DownloadProgress(name, running, Modifier.testTag(PropertyTags.progress(id)))
                     unpacking -> {
                         val label = stringResource(R.string.property_unpacking, name)
                         Box(
-                            Modifier.size(48.dp).semantics { contentDescription = label }.testTag(PropertyTags.unpacking(id)),
+                            Modifier.size(48.dp, RowControl).semantics { contentDescription = label }.testTag(PropertyTags.unpacking(id)),
                             contentAlignment = Alignment.Center,
                         ) { CircularProgressIndicator(Modifier.size(22.dp), color = C.Yellow, strokeWidth = 2.5.dp) }
                     }
                     download is PropertyDownload.Finished -> {
                         val done = stringResource(R.string.property_downloaded)
                         Box(
-                            Modifier.size(48.dp).semantics { contentDescription = done }.testTag(PropertyTags.done(id)),
+                            Modifier.size(48.dp, RowControl).semantics { contentDescription = done }.testTag(PropertyTags.done(id)),
                             contentAlignment = Alignment.Center,
                         ) { LineIcon(Icons.Check, 22.dp, C.Green, 2.8f) }
                     }
-                    downloaded -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    downloaded -> Box(Modifier.size(48.dp, RowControl), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
                     }
                     else -> {
@@ -412,3 +419,7 @@ private fun DownloadProgress(name: String, d: PropertyDownload.Running, modifier
 
 /** How faded a property that can't be used offline looks (as in the design). */
 private const val FaintAlpha = 0.26f
+
+/** Height of the download / progress / tick area: the icon circle's, so the row stays the design's 64dp. */
+private val RowControl = 42.dp
+

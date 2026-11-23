@@ -10,7 +10,6 @@ import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,8 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import com.sclera.sclerago.presentation.components.SkeletonBlock
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -81,6 +78,7 @@ import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
 import com.sclera.sclerago.presentation.common.is24Hour
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.IconMenu
+import com.sclera.sclerago.presentation.components.initialsOf
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.MenuAct
 import com.sclera.sclerago.presentation.components.Pill
@@ -118,7 +116,8 @@ fun detailTabs(state: AssetDetailState): List<DetailTabItem> {
     if (state.asset == null) return emptyList()
     return buildList {
         add(DetailTabItem(DetailTabKind.INFO))
-        if (!state.isNew) add(DetailTabItem(DetailTabKind.VALIDATION))
+        // The red count badge is the steps needing attention (the Info banner's "N of M"); none while there are none.
+        if (!state.isNew) add(DetailTabItem(DetailTabKind.VALIDATION, state.validation?.problems?.size?.takeIf { it > 0 }))
         // A new asset has Documents too: the files picked for it, added with it.
         add(DetailTabItem(DetailTabKind.DOCUMENTS))
         add(DetailTabItem(DetailTabKind.MEDIA))
@@ -138,7 +137,7 @@ fun shownTab(tabs: List<DetailTabItem>, chosen: DetailTabKind): DetailTabKind =
 fun DetailTabBar(tabs: List<DetailTabItem>, selected: DetailTabKind, onSelect: (DetailTabKind) -> Unit) {
     // A few tabs (a new asset's Info, Documents and Media) have room for the icon beside the label, in a lower bar.
     val compact = tabs.size <= COMPACT_TABS
-    Row(Modifier.fillMaxWidth().height(if (compact) 44.dp else 60.dp).background(C.Strip).bottomBorder(C.Border)) {
+    Row(Modifier.fillMaxWidth().height(if (compact) 44.dp else 56.dp).background(C.Strip).bottomBorder(C.Border)) {
         tabs.forEach { t ->
             DetailTab(
                 stringResource(t.kind.label), t.kind.icon, t.kind == selected, t.fails,
@@ -229,8 +228,8 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
     val type = d.contentType?.substringAfter('/')?.uppercase(locale)
     val fileLine = listOfNotNull(d.sizeBytes?.let { sizeText(it) }, type).joinToString(" · ").ifEmpty { null }
     Row(
-        Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("doc-${d.id}").clip(r(14)).background(C.Surface)
-            .border(1.dp, C.Border, r(14)).padding(12.dp),
+        Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("doc-${d.id}").clip(r(16)).background(C.Surface)
+            .border(1.dp, C.Border, r(16)).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(Modifier.size(48.dp).background(C.YTintBg, r(12)), contentAlignment = Alignment.Center) {
@@ -246,7 +245,7 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Txt(d.title, 14, 700, maxLines = 2)
+            Txt(d.title, 14, 600, maxLines = 2)
             Row(
                 Modifier.background(C.YTintBg, Capsule).padding(horizontal = 10.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -255,7 +254,7 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
                 if (d.source == DocumentSource.MANUAL) LineIcon(Icons.FileDoc, 11.dp, C.Yellow, 2.2f)
                 Txt(tag, 11, 700, C.Yellow, maxLines = 1)
             }
-            about?.let { Txt(it, 12, 500, C.Soft, maxLines = Int.MAX_VALUE) }
+            about?.let { Txt(it, 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
             if (web) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     (d.publisher ?: d.url)?.let { Txt(it, 12, 700, C.Yellow, Modifier.weight(1f, fill = false), maxLines = 1) }
@@ -431,11 +430,11 @@ fun MediaTab(
 @Composable
 private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
     Column(
-        // Full width, like the Info sections.
-        Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(horizontal = 12.dp, vertical = 8.dp),
+        // A card inset 12dp from the sides.
+        Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Txt(title, 14, 700, maxLines = 2)
+        Txt(title, 14, 600, maxLines = 2)
         if (files.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         else Column(Modifier.fillMaxWidth()) { FileRows(files, onOpen) }
     }
@@ -449,10 +448,10 @@ private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (I
 private fun SourceDocumentSection(doc: AssetDocument?, canRemove: Boolean, onRemove: (AssetDocument) -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     Column(
-        Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Txt(stringResource(R.string.media_source_document), 14, 700, maxLines = 2)
+        Txt(stringResource(R.string.media_source_document), 14, 600, maxLines = 2)
         if (doc == null) {
             Txt(stringResource(R.string.media_none), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
             return@Column
@@ -535,18 +534,18 @@ private fun PhotoCard(
         // Full width, like the Info sections; above the other cards while one of its photos is being dragged.
         modifier.zIndex(if (drag != null && drag.from == key) 1f else 0f)
             .then(if (drag != null) Modifier.photoDropTarget(drag, key) else Modifier)
-            .fillMaxWidth().background(bg.value).topBorder(C.Border).bottomBorder(C.Border).border(2.dp, edge.value)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp).fillMaxWidth().clip(r(14)).background(bg.value).border(1.dp, C.Border, r(14)).border(2.dp, edge.value, r(14))
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Txt(title, 14, 700)
+                    Txt(title, 14, 600)
                     chip?.let {
                         Txt(
-                            it, 10, 700, if (chipWarn) C.Orange else C.Soft,
-                            Modifier.background(if (chipWarn) C.WarnRow else C.Btn, Capsule).padding(horizontal = 8.dp, vertical = 2.dp),
+                            it, 12, 600, if (chipWarn) C.Orange else C.Muted,
+                            Modifier.background(if (chipWarn) C.WarnRow else C.Raised, Capsule).padding(horizontal = 8.dp, vertical = 2.dp),
                         )
                     }
                 }
@@ -561,7 +560,7 @@ private fun PhotoCard(
                         customActions = moveTo.map { (to, name) -> CustomAccessibilityAction(moveLabel.format(name)) { drag.accept(m, to) } }
                     }
                 } else Modifier
-                MediaTile(m, { onOpen(i) }, Modifier.size(96.dp).then(movable).testTag(PhotoTags.tile(i)))
+                MediaTile(m, { onOpen(i) }, Modifier.size(76.dp).then(movable).testTag(PhotoTags.tile(i)))
             }
         }
     }
@@ -609,8 +608,8 @@ fun CommentList(
                 if (!readOnly && e.canDelete) add(MenuAct(Icons.Trash, deleteLabel, danger = true) { onDelete(e) })
             }
             Row(
-                Modifier.fillMaxWidth().testTag("detail-activity-${e.id}").background(C.Surface).bottomBorder(C.Border)
-                    .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+                Modifier.fillMaxWidth().testTag("detail-activity-${e.id}").clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14))
+                    .padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.Top,
             ) {
                 Column(Modifier.weight(1f).padding(top = 4.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -624,12 +623,18 @@ fun CommentList(
                             )
                         }
                     } else {
-                        Txt(e.text, 14, 700, maxLines = Int.MAX_VALUE)
+                        Txt(e.text, 14, 400, maxLines = Int.MAX_VALUE)
                     }
-                    Txt(e.authorName ?: someone, 11, 500, C.Muted, maxLines = 1)
-                    e.createdAt?.let {
-                        val time = formatDateTimeSeconds(it, locale, use24Hour = is24Hour())
-                        Txt(if (e.edited) stringResource(R.string.scrt_comment_time_edited, time) else time, 11, 400, C.Muted)
+                    val author = e.authorName ?: someone
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(Modifier.size(30.dp).background(C.YTintBg, CircleShape), contentAlignment = Alignment.Center) { Txt(initialsOf(author).take(1), 12, 700, C.Yellow) }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Txt(author, 13, 700, maxLines = 1)
+                            e.createdAt?.let {
+                                    val time = formatDateTimeSeconds(it, locale, use24Hour = is24Hour())
+                                    Txt(if (e.edited) stringResource(R.string.scrt_comment_time_edited, time) else time, 11, 400, C.Muted)
+                            }
+                        }
                     }
                 }
                 when {
@@ -682,7 +687,7 @@ fun HistoryList(activity: List<AssetActivity>) {
                 }
                 Column(Modifier.weight(1f).padding(start = 10.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // History lines are written by the server and the app; their sentence is kept as recorded.
-                    Txt(e.text.ifEmpty { e.action.orEmpty() }, 14, 500, maxLines = Int.MAX_VALUE)
+                    Txt(e.text.ifEmpty { e.action.orEmpty() }, 14, 400, maxLines = Int.MAX_VALUE)
                     // As the web: "Building: empty → Harbour Point Tower", the old value struck through.
                     e.fieldChanges.forEach { c ->
                         Text(
@@ -697,7 +702,7 @@ fun HistoryList(activity: List<AssetActivity>) {
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         // Who made the change, by email.
-                        Txt(e.authorName.orEmpty(), 11, 500, C.Muted, Modifier.weight(1f), maxLines = 1)
+                        Txt(e.authorName.orEmpty(), 11, 400, C.Muted, Modifier.weight(1f), maxLines = 1)
                         e.createdAt?.let { Txt(formatDateTimeSeconds(it, locale, use24Hour = is24Hour()), 11, 400, C.Muted) }
                     }
                 }

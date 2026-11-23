@@ -12,7 +12,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -222,16 +221,8 @@ private fun LazyListScope.scanSection(
             }
             // How far the scan has got, with the percentage done beside it.
             if (on && progress != null) {
-                val pct = (progress * 100).toInt()
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Box(Modifier.weight(1f).height(6.dp).clip(Capsule).background(C.Raised)) {
-                        Box(Modifier.fillMaxWidth(progress).fillMaxHeight().clip(Capsule).background(C.Yellow))
-                    }
-                    Txt(stringResource(R.string.scrt_scan_percent_done, pct), 11, 700, C.Yellow)
+                Box(Modifier.fillMaxWidth().padding(horizontal = 2.dp).height(3.dp).clip(Capsule).background(C.Border)) {
+                    Box(Modifier.fillMaxWidth(progress).fillMaxHeight().clip(Capsule).background(C.Yellow))
                 }
             }
         }
@@ -246,14 +237,14 @@ private fun LazyListScope.scanSection(
     // How many can still be added, and Select all, while any device is left to add.
     if (onAdd != null && picks.addable > 0) item(key = "selectall") {
         Row(
-            Modifier.readableWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            Modifier.readableWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
                 Txt(
                     if (picks.selecting) stringResource(R.string.scan_devices_selected, picks.picked.size, picks.addable)
                     else pluralStringResource(R.plurals.scan_devices_to_add, picks.addable, picks.addable),
-                    12, 600, C.Muted,
+                    13, 600, C.Muted,
                 )
                 if (picks.auto) Txt(stringResource(R.string.scrt_scan_new_finds_selected), 11, 500, C.Yellow, maxLines = Int.MAX_VALUE)
             }
@@ -263,7 +254,6 @@ private fun LazyListScope.scanSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Txt(stringResource(if (picks.allPicked) R.string.dash_clear_all else R.string.pi_select_all), 12, 700, C.Yellow)
-                CheckBox(picks.allPicked)
             }
         }
     }
@@ -279,11 +269,11 @@ private fun LazyListScope.scanSection(
         val longPress = { if (!added && onAdd != null) picks.toggle(d.id) }
         // The same card spacing as the asset rows (AssetRow): 8dp at the sides, 3dp between cards.
         Row(
-            Modifier.readableWidth().padding(horizontal = 8.dp, vertical = 1.5.dp).heightIn(min = 54.dp).clip(r(12))
+            Modifier.readableWidth().padding(horizontal = 8.dp, vertical = 1.5.dp).heightIn(min = 54.dp).clip(r(14))
                 .background(if (picked) C.PickedRow else C.Surface)
-                .border(1.dp, if (picked) C.YTintBd else C.Border, r(12))
+                .border(1.dp, if (picked) C.YTintBd else C.Border, r(14))
                 .combinedClickable(onClick = tap, onLongClick = longPress)
-                .padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 10.dp),
+                .padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {

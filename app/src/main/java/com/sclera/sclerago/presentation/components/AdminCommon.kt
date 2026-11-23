@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -38,7 +37,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 // "Sclera VDMS Mobile" design canvas.
 
 /** Opacity of a field that can't be edited right now (the design's locked and waiting fields). */
-private const val DimmedAlpha = 0.55f
+private const val DimmedAlpha = 0.45f
 
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
@@ -90,11 +89,13 @@ internal fun StatCard(
     prominent: Boolean = false,
     /** The number is still being worked out: a shimmering placeholder stands in for [value]. */
     loading: Boolean = false,
+    /** Replaces the plain [icon] inside the tile (e.g. a filled badge); [icon] is then unused. */
+    iconContent: (@Composable () -> Unit)? = null,
 ) {
     val shape = r(if (prominent) 16 else 12)
     val look = if (prominent) {
         // Bigger, on the plain card background (no coloured wash); the colour is on the icon tile only.
-        Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(horizontal = 14.dp, vertical = 14.dp)
+        Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(12.dp)
     } else {
         Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(horizontal = 10.dp, vertical = 6.dp)
     }
@@ -104,10 +105,10 @@ internal fun StatCard(
         horizontalArrangement = Arrangement.spacedBy(if (prominent) 12.dp else 10.dp),
     ) {
         Box(
-            Modifier.size(if (prominent) 46.dp else 36.dp).clip(r(if (prominent) 13 else 10)).background(tint.copy(alpha = if (prominent) 0.2f else 0.16f)),
+            Modifier.size(if (prominent) 40.dp else 36.dp).clip(r(if (prominent) 12 else 10)).background(tint.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
         ) {
-            LineIcon(icon, if (prominent) 21.dp else 16.dp, tint, if (prominent) 2.1f else 1.9f)
+            if (iconContent != null) iconContent() else LineIcon(icon, if (prominent) 21.dp else 16.dp, tint, if (prominent) 2f else 1.9f)
         }
         Column(verticalArrangement = Arrangement.spacedBy(if (prominent) 2.dp else 1.dp)) {
             if (loading) SkeletonBlock(Modifier.padding(vertical = 4.dp).width((valueSize * 1.6f).dp).height((valueSize * 0.8f).dp))
@@ -352,10 +353,10 @@ internal fun FormGroup(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Box(Modifier.size(28.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 15.dp, C.Yellow, 1.9f) }
+            Box(Modifier.size(28.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 13.dp, C.Yellow, 1.9f) }
             Txt(title, 14, 700, modifier = Modifier.weight(1f))
             trailing?.invoke()
-            if (collapsible) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f, Modifier.rotate(chevron))
+            if (collapsible) LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 2.8f, Modifier.rotate(chevron))
         }
         AnimatedVisibility(open) { Column(content = content) }
     }
@@ -395,14 +396,15 @@ internal fun RowScope.InlineSelect(
     placeholder: String,
     enabled: Boolean = true,
     chevron: Boolean = true,
-    upDown: Boolean = false,
+    upDown: Boolean = true,
     onClick: () -> Unit,
 ) {
     Row(
         Modifier.pressClickable(pressed = PRESSED_CARD, enabled = enabled, onClick = onClick).weight(1f).heightIn(min = 44.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Txt(value.ifEmpty { placeholder }, 14, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
+        // The design shows the placeholder in the normal text colour.
+        Txt(value.ifEmpty { placeholder }, 14, 400, C.Text, Modifier.weight(1f))
         if (chevron && upDown) LineIcon(Icons.ChevronUpDown, 12.dp, C.Yellow, 2.4f)
         else if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
     }

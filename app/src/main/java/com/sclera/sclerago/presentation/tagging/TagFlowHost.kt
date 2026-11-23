@@ -3,6 +3,7 @@ package com.sclera.sclerago.presentation.tagging
 import com.sclera.sclerago.presentation.components.LocalToaster
 import com.sclera.sclerago.presentation.components.ToastAction
 import com.sclera.sclerago.presentation.components.ToastKind
+import com.sclera.sclerago.presentation.components.ToastPosition
 import com.sclera.sclerago.presentation.common.UiText
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -79,7 +80,7 @@ class TagFlowActions(
     val onToastShown: () -> Unit,
 )
 
-private val NfcCard = Color(0xFF1B1D21)
+private val NfcCard = Color(0xFF151619)
 private const val NFC_TIMEOUT_MS = 20_000L
 
 /** Whatever the tagging flow shows over the asset's details: the scanner, the NFC dialog, the confirmations and failures, and the "tagged" toast. */
@@ -113,7 +114,7 @@ fun TagFlowHost(state: TagUiState, actions: TagFlowActions) {
             secondary = stringResource(R.string.tag_cancel), onSecondary = actions.onCancel,
         )
     }
-    // "QR code tagged", or why the tag was refused, as the app's toast at the top (NFC off: with Open settings).
+    // "QR code tagged", or why the tag was refused, as the app's toast: "tagged" at the bottom as designed, a refusal at the top (NFC off: with Open settings).
     val toaster = LocalToaster.current
     val context = LocalContext.current
     val shown by rememberUpdatedState(actions.onToastShown)
@@ -121,7 +122,7 @@ fun TagFlowHost(state: TagUiState, actions: TagFlowActions) {
     LaunchedEffect(notice) {
         when (notice) {
             null -> return@LaunchedEffect
-            is TagNotice.Tagged -> toaster.show(UiText.Res(taggedText(notice.kind)), ToastKind.SUCCESS)
+            is TagNotice.Tagged -> toaster.show(UiText.Res(taggedText(notice.kind)), ToastKind.SUCCESS, position = ToastPosition.BOTTOM)
             is TagNotice.Refused -> toaster.show(
                 notice.message, ToastKind.PROBLEM,
                 if (notice.nfcSettings) ToastAction(UiText.Res(R.string.tag_nfc_open_settings)) { openNfcSettings(context) } else null,
@@ -148,8 +149,8 @@ private fun MessageSheet(
             Txt(message, 14, 400, C.Muted, Modifier.padding(top = 10.dp).widthIn(max = 320.dp), align = TextAlign.Center, maxLines = Int.MAX_VALUE)
         }
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Pill(secondary, onSecondary, Modifier.weight(1f).testTag(TagTags.SHEET_SECONDARY), height = 50.dp, size = 15, weight = 700)
-            Pill(primary, onPrimary, Modifier.weight(1f).testTag(TagTags.SHEET_PRIMARY), bg = C.Yellow, fg = C.OnYellow, height = 50.dp, size = 15, weight = 700)
+            Pill(secondary, onSecondary, Modifier.weight(1f).testTag(TagTags.SHEET_SECONDARY), height = 48.dp, hPad = 18.dp, size = 15, weight = 600)
+            Pill(primary, onPrimary, Modifier.weight(1f).testTag(TagTags.SHEET_PRIMARY), bg = C.Yellow, fg = C.OnYellow, height = 48.dp, hPad = 18.dp, size = 15, weight = 700)
         }
     }
 }
@@ -179,7 +180,7 @@ private fun NfcDialog(actions: TagFlowActions) {
             NfcPulse()
             Txt(stringResource(R.string.tag_nfc_ready), 20, 700, align = TextAlign.Center)
             Txt(stringResource(R.string.tag_nfc_hold_message), 14, 400, C.Muted, align = TextAlign.Center, maxLines = Int.MAX_VALUE)
-            Pill(stringResource(R.string.tag_cancel), actions.onCancel, Modifier.padding(top = 8.dp).fillMaxWidth().testTag(TagTags.NFC_CANCEL), height = 50.dp, size = 15, weight = 700)
+            Pill(stringResource(R.string.tag_cancel), actions.onCancel, Modifier.padding(top = 8.dp).fillMaxWidth().testTag(TagTags.NFC_CANCEL), height = 48.dp, hPad = 18.dp, size = 15, weight = 600)
         }
     }
 }

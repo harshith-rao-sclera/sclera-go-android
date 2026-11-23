@@ -66,6 +66,9 @@ import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalUnsavedForms
 import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.PermissionSheet
+import com.sclera.sclerago.presentation.components.PremiseBanner
+import com.sclera.sclerago.presentation.premise.PremisePrompt
+import com.sclera.sclerago.presentation.premise.PremiseViewModel
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.ShakeEffect
 import com.sclera.sclerago.presentation.components.ToastEffect
@@ -83,6 +86,7 @@ import com.sclera.sclerago.presentation.launch.Entrance
 import com.sclera.sclerago.presentation.launch.launchEntrance
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.property.PropertyListScreen
+import com.sclera.sclerago.presentation.property.PropertySheet
 import com.sclera.sclerago.presentation.scan.BluetoothPage
 import com.sclera.sclerago.presentation.scan.NetworkPage
 import com.sclera.sclerago.presentation.theme.C
@@ -120,6 +124,7 @@ fun ScleraApp(
     files: FileImportViewModel = hiltViewModel(),
     bulk: BulkEditViewModel = hiltViewModel(),
     connectivity: ConnectivityViewModel = hiltViewModel(),
+    premise: PremiseViewModel = hiltViewModel(),
 ) {
     // Every form reports unsaved changes here, so tabs and side-menu pages can ask before dropping them.
     CompositionLocalProvider(LocalUnsavedForms provides vm.unsavedForms) {
@@ -141,6 +146,9 @@ fun ScleraApp(
         val explainOffline = { why: OnlineOnly -> vm.flash(UiText.Res(why.message)) }
         // Validate (selection bar or an asset): the assets the Run validation sheet opens on, as the web's QuickValidate.
         var quickIds by rememberSaveable { mutableStateOf<List<String>?>(null) }
+        // Its templates are read as soon as a property is open, so the first tap on Validate opens the sheet at once.
+        val currentProp = vm.currentProp
+        LaunchedEffect(currentProp) { validation.prepare(currentProp) }
         val lists by list.state.collectAsStateWithLifecycle()
         // Bluetooth / Network drop out when the property's onboarding for them is off (Configuration →
         // Property Settings); the pager is rebuilt then, so page numbers always match the visible tabs.
@@ -251,6 +259,7 @@ fun ScleraApp(
         BackHandler(enabled = selecting) { list.clearSelection() }
         BackHandler(enabled = vm.devSelOn) { vm.clearDevicePick() }
 
+        var propertySheet by rememberSaveable { mutableStateOf(false) }
         val keyboardUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         Box(Modifier.fillMaxSize().background(C.Bg)) {
             Column(Modifier.fillMaxSize().imePadding()) {
@@ -260,11 +269,14 @@ fun ScleraApp(
                     selected = s.loc,
                     onMenu = vm::openMenu,
                     onPick = vm::tapLocTab,
-                    onChevron = { if (it == LocFilter.ALL) vm.openProp() else vm.openLocFilter() },
+                    onChevron = { if (it == LocFilter.ALL) propertySheet = true else vm.openLocFilter() },
                     modifier = Modifier.launchEntrance(Entrance.DashHeader),
                 )
                 // The user's access couldn't be loaded: pages and changes that need a permission stay unavailable until it is.
                 if (vm.accessFailed) AccessFailedBanner(vm::retryAccess, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
+                // A collector away from a property with geofencing on looks only: the banner says why.
+                val premiseNotice by premise.notice.collectAsStateWithLifecycle()
+                PremiseBanner(premiseNotice, premise::askAgain, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().launchEntrance(Entrance.DashContent)) {
                     HorizontalPager(
                         state = pager,
@@ -369,6 +381,9 @@ fun ScleraApp(
             // Integration page (side menu): the property's link to a VDMS.
             if (vm.integrationShown) IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration, onMenu = vm::openMenu)
 
+            // The header's property dropdown: pick another property without leaving the dashboard.
+            if (propertySheet) PropertySheet(vm, onClose = { propertySheet = false })
+
             // Property list / People and access (side menu).
             when (s.adminPage) {
                 AdminPage.PROPERTIES -> PropertyListScreen(vm)
@@ -435,6 +450,8 @@ fun ScleraApp(
                     onNotNow = { vm.onScanPermission(false) },
                 )
             }
+            // Why a collector's location is wanted (geofencing), just before Android asks.
+            PremisePrompt(premise)
             if (lists.confirmDelete) {
                 val n = lists.picked.size
                 BackHandler(onBack = list::cancelDelete)

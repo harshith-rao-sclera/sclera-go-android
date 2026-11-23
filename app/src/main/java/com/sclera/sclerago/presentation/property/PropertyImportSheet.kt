@@ -9,12 +9,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,6 +44,7 @@ import com.sclera.sclerago.domain.model.MatchHow
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Pill
@@ -154,7 +155,7 @@ internal fun ImportSheetContent(
                         Txt(
                             if (fileSize >= 0) stringResource(R.string.import_file_size_change, formatSize(fileSize))
                             else stringResource(R.string.import_choose_different),
-                            11, 400, C.Muted, maxLines = Int.MAX_VALUE,
+                            12, 400, C.Muted, maxLines = Int.MAX_VALUE,
                         )
                     }
                 }
@@ -218,10 +219,6 @@ private fun MappingSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             PickerNote(plan, mapping)
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Txt(stringResource(R.string.import_source_fields), 11, 600, C.Muted, Modifier.weight(1f))
-                Txt(stringResource(R.string.import_target_fields), 11, 600, C.Muted, Modifier.weight(1f))
-            }
             plan.targets.forEach { target ->
                 val heading = mapping[target.key]
                 val suggested = plan.suggestion.columns.firstOrNull { it.target == target.key }
@@ -230,6 +227,7 @@ private fun MappingSheet(
                     badge = suggested?.how?.takeIf { suggested.heading == heading },
                 ) { choosingFor = target }
             }
+            NotImportedNote(plan, mapping)
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
             val ready = mapping.isNotEmpty()
@@ -265,42 +263,58 @@ private const val SAMPLES_SHOWN = 3
 private fun PickerNote(plan: ImportPlan, mapping: Map<String, String>) {
     val matched = mapping.values.toSet()
     val total = plan.suggestion.columns.size
-    val leftOut = plan.suggestion.columns.map { it.heading }.filter { it !in matched }
-    Column(
-        Modifier.fillMaxWidth().clip(r(12)).background(C.CardWash).border(1.dp, C.Border, r(12)).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Txt(
             stringResource(if (plan.suggestion.aiUsed) R.string.import_matched_ai else R.string.import_matched, matched.size, total),
-            12, 500, maxLines = Int.MAX_VALUE,
+            12, 400, C.Muted, maxLines = Int.MAX_VALUE,
         )
         plan.suggestion.aiNote?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
-        if (leftOut.isNotEmpty()) Txt(stringResource(R.string.import_not_imported, leftOut.joinToString(", ")), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     }
 }
 
-/** One detail: the column it is read from (tap to change), an arrow, and the detail's name with how it was matched. */
+/** The file's columns that no detail reads from, as the last line of the list. */
+@Composable
+private fun NotImportedNote(plan: ImportPlan, mapping: Map<String, String>) {
+    val matched = mapping.values.toSet()
+    val leftOut = plan.suggestion.columns.map { it.heading }.filter { it !in matched }
+    if (leftOut.isNotEmpty()) {
+        Txt(
+            stringResource(R.string.import_not_imported, leftOut.joinToString(", ")), 12, 400, C.Muted,
+            Modifier.padding(top = 4.dp), maxLines = Int.MAX_VALUE,
+        )
+    }
+}
+
+/** One detail: its name (with how it was matched) and, as a pill, the column it is read from (tap to change). */
 @Composable
 private fun MappingRow(target: ImportTarget, heading: String?, missing: Boolean, badge: MatchHow?, onChoose: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().testTag(ImportTags.target(target.key)),
+        Modifier.fillMaxWidth().testTag(ImportTags.target(target.key)).clip(r(12)).background(C.Surface)
+            .border(1.dp, if (missing) C.Red else C.Border, r(12)).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Txt(if (target.required) target.header + " *" else target.header, 14, 600, maxLines = 2, modifier = Modifier.weight(1f, fill = false))
+                badge?.let { TintChip(stringResource(it.labelRes())) }
+            }
+            if (missing) Txt(stringResource(R.string.import_required_pick_column), 11, 600, C.Red, maxLines = Int.MAX_VALUE)
+        }
         Row(
             Modifier.weight(1f).heightIn(min = 48.dp).pressClickable(shape = r(10), role = Role.Button, onClick = onChoose).background(C.Bg)
                 .border(1.dp, if (missing) C.Red else C.Border, r(10))
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Txt(heading ?: stringResource(R.string.import_select_field), 13, if (heading != null) 600 else 400, if (heading != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = 2)
-            LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 2.4f)
-        }
-        LineIcon(Icons.ChevronRight, 12.dp, C.Dim, 2.4f)
-        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Txt(target.header, 13, 600, if (missing) C.Red else C.Text, maxLines = 2)
-            if (target.required) Txt("*", 13, 600, C.Yellow)
-            badge?.let { TintChip(stringResource(it.labelRes())) }
+            Row(
+                Modifier.height(34.dp).clip(Capsule).background(C.Raised).padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Txt(heading ?: stringResource(R.string.import_not_imported_pill), 13, 600, if (heading != null) C.Yellow else C.Muted)
+                LineIcon(Icons.ChevronUpDown, 10.dp, C.Muted, 2.8f)
+            }
         }
     }
 }

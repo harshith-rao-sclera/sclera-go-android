@@ -14,7 +14,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,7 +58,7 @@ import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
-import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
+
 import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ConfirmDialog
@@ -225,9 +224,9 @@ fun AssetDetailScreen(
                                     // The Tags bar first (a new asset has its id already, so it can be tagged too), then the photos,
                                     // with a + that opens the camera (as the Media tab's Camera, into Other photos).
                                     // Tagging changes the asset (its tag flags), so only for whoever may change it (collect,
-                                    // theirs or nobody's unless an admin, not in Managed Assets), and, as the old app, never
-                                    // a submitted or signed-off asset.
-                                    TagsBar(tags, actions.tags, enabled = state.canEdit && !isSubmittedOrSignedOff(asset.st))
+                                    // theirs or nobody's unless an admin, not in Managed Assets): a submitted or signed-off
+                                    // asset only by an admin.
+                                    TagsBar(tags, actions.tags, enabled = state.canEdit)
                                     InfoPhotoStrip(state.media, onAdd = if (mediaLocked) null else ({ actions.onAddPhoto(null) }), onOpen = open)
                                     // A step that failed or needs a look shows first; tapping it opens the Validation tab. (Not
                                     // for one in Managed Assets: its checks went with the move, and the line at the top says so.)
@@ -550,7 +549,7 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
             size = 17, weight = 700, readOnly = state.locked,
         )
         // Clone (the web's header button): copies of this asset as saved; with unsaved changes it is dimmed and says why.
-        // A yellow outlined pill with its icon and label, as the iOS app's; the tap area is the full 48dp high.
+        // A yellow outlined text pill (the design canvas's); the tap area is the full 48dp high.
         // Also for one in Managed Assets (the copies are new drafts; the original doesn't change), as the web's; not for a
         // group that can't collect (the copies would be refused).
         if (state.canClone) {
@@ -561,10 +560,10 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
-                    Modifier.height(28.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.Yellow.copy(alpha = 0.7f), Capsule)
-                        .padding(horizontal = 9.dp),
+                    Modifier.height(28.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule)
+                        .padding(start = 8.dp, end = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     LineIcon(Icons.Clone, 13.dp, C.Yellow, 2.2f)
                     Txt(stringResource(R.string.clone_action), 12, 700, C.Yellow)

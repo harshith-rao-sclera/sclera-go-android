@@ -190,7 +190,7 @@ private val NOT_IN_FIELDS = SYSTEM_KEYS.toSet() + "name"
 private val CODE_KEYS = setOf("label", "serial")
 
 /**
- * The Info tab, laid out as the web's asset panel: Location details (the asset's building, floor and location), System
+ * The Info tab, laid out as the web's asset panel: the Location row (the asset's building, floor and location), System
  * details (its type from the property's catalogue and its JACS code), then every other field the property's data gives
  * the asset, in their order; then the status and the actions. Nothing here is made up: what the data lacks shows as not set.
  */
@@ -213,6 +213,14 @@ fun AssetInfoTab(
     val notSet = stringResource(R.string.detail_value_none)
     val select = stringResource(R.string.detail_select)
 
+    // Location: the asset's place (building, floor and location) in one row; tapping it opens the location picker (unless the
+    // asset is locked). A Validation Fix button for the place scrolls here.
+    LocationRow(
+        state.place, stringResource(R.string.detail_location),
+        Modifier.testTag(DetailTags.LOCATION).bringIntoViewRequester(ui.requester(InfoSections.LOCATION)),
+        onClick = actions.onChangeLoc.takeIf { !locked },
+    )
+
     // Assignment: who has the asset, and who submitted it and when (as the web's asset card). Not for a new asset.
     state.handling?.let { h ->
         val locale = LocalConfiguration.current.locales[0]
@@ -227,21 +235,6 @@ fun AssetInfoTab(
             ValueRow(stringResource(R.string.detail_submitted_by), h.submittedBy?.let { personText(it) })
             ValueRow(stringResource(R.string.detail_submitted_on), h.submittedAt?.let { formatDateTimeSeconds(it, locale, use24Hour = is24Hour()) })
         }
-    }
-
-    // Location details
-    val place = state.place
-    FormSection(
-        key = InfoSections.LOCATION, title = stringResource(R.string.detail_sec_location), note = null,
-        open = open(InfoSections.LOCATION), onToggle = { ui.toggle(InfoSections.LOCATION) },
-        modifier = Modifier.bringIntoViewRequester(ui.requester(InfoSections.LOCATION)),
-        summary = Summary(place.location ?: place.floor ?: place.building ?: notSet, warn = place.building == null),
-    ) {
-        // Most specific first; tapping any of them opens the location picker (unless the asset is locked).
-        val pickPlace = actions.onChangeLoc.takeIf { !locked }
-        ValueRow(stringResource(R.string.detail_location), place.location, Modifier.testTag(DetailTags.LOCATION), pickPlace)
-        ValueRow(stringResource(R.string.detail_floor), place.floor, onClick = pickPlace)
-        ValueRow(stringResource(R.string.detail_building), place.building, onClick = pickPlace)
     }
 
     // System details: the type comes from the property's catalogue, the JACS code is written as it is (no list exists).
@@ -267,9 +260,14 @@ fun AssetInfoTab(
         systemShown.forEach { k ->
             if (k == "jacs") {
                 // Picked from the JACS catalog (or typed there), which sets the type too.
+                // A mandatory code still missing is highlighted and tagged REQUIRED, as the design canvas.
+                val jacsMissing = missing(k)
                 PickRow(
-                    k, labels.getValue(k), v(k), stringResource(R.string.jacs_none), state.dirty(k), actions.jacs.onOpen,
+                    k, labels.getValue(k), v(k),
+                    stringResource(if (jacsMissing) R.string.detail_select_jacs else R.string.jacs_none), state.dirty(k), actions.jacs.onOpen,
+                    rowBg = if (jacsMissing) C.WarnRow else Color.Transparent,
                     mono = true, badge = state.badgeFor(k), requester = ui.requester(k),
+                    tag = if (jacsMissing) stringResource(R.string.detail_required_tag) else null,
                 )
             } else {
                 val choices = when (k) {

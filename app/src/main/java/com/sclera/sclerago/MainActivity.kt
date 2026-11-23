@@ -20,6 +20,7 @@ import com.sclera.sclerago.presentation.launch.LaunchHost
 import com.sclera.sclerago.presentation.launch.LaunchViewModel
 import com.sclera.sclerago.presentation.login.LoginScreen
 import com.sclera.sclerago.presentation.main.ScleraApp
+import com.sclera.sclerago.presentation.premise.PremiseViewModel
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.ScleraTheme
 import com.sclera.sclerago.utility.Utility
@@ -30,6 +31,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private val session: SessionViewModel by viewModels()
     private val launch: LaunchViewModel by viewModels()
+    private val premise: PremiseViewModel by viewModels()
 
     /** Whether the user was signed in when the auth state last changed (null: not known yet on this screen). */
     private var wasSignedIn: Boolean? = null
@@ -72,6 +74,8 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         session.onForeground()
+        // The geofence is checked again: the phone may have moved on or off the property.
+        premise.onForeground()
     }
 
     /**

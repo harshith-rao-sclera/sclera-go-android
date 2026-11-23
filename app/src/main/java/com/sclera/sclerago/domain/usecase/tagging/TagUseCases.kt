@@ -2,6 +2,7 @@ package com.sclera.sclerago.domain.usecase.tagging
 
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.QrMeasurement
 import com.sclera.sclerago.domain.model.TagCheck
 import com.sclera.sclerago.domain.model.TagPhoto
 import com.sclera.sclerago.domain.model.TagPlacement
@@ -119,14 +120,17 @@ class AttachTagUseCase @Inject constructor(
     }
 }
 
-/** What a scan gives: the text read, and (for a QR code) the photo of it. */
-class TagScan(val text: String, val photo: ByteArray?)
+/** What a scan gives: the text read, and (for a QR code) the photo of it and the direction measured while it was scanned (null when the device cannot measure one). */
+class TagScan(val text: String, val photo: ByteArray?, val direction: QrMeasurement? = null)
 
-/** Turns what the scanner or the NFC reader read into a [TagValue] with its placement: a QR code also gets its direction. */
+/**
+ * Turns what the scanner or the NFC reader read into a [TagValue] with its placement: a QR code also gets its direction, the one the
+ * scanner measured, or [direction]'s for a device that cannot measure.
+ */
 class BuildScannedTagUseCase @Inject constructor(private val direction: QrDirectionSource, private val server: TagServerInfo) {
     /** The tag and its placement for a [kind] scan. Throws [TaggingException] for text that holds nothing. */
     suspend operator fun invoke(kind: TagKind, scan: TagScan, isMovable: Boolean): Pair<TagValue, TagPlacement> = when (kind) {
-        TagKind.QR -> TagValue.qr(scan.text) to TagPlacement(direction.measure(), isMovable)
+        TagKind.QR -> TagValue.qr(scan.text) to TagPlacement(scan.direction ?: direction.measure(), isMovable)
         TagKind.BARCODE -> TagValue.barcode(scan.text) to TagPlacement()
         TagKind.NFC -> throw IllegalArgumentException("NFC tags are built from the chip's content: use nfc()")
     }

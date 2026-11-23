@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -63,11 +64,16 @@ import kotlin.math.roundToInt
 /** What a toast says about what happened: it worked, it didn't, or just a note. */
 enum class ToastKind { SUCCESS, PROBLEM, INFO }
 
+/** Where a toast sits: the top of the screen for most, the bottom for confirmations the design places there. */
+enum class ToastPosition { TOP, BOTTOM }
+
 /** A toast's one button (e.g. "Open settings"); tapping it also closes the toast. */
 class ToastAction(val label: UiText, val onClick: () -> Unit)
 
 /** One toast: its [text], its [kind] (null: worked out from the text, see [toastKindOf]) and an optional [action]. */
-class ToastMessage internal constructor(val id: Long, val text: UiText, val kind: ToastKind?, val action: ToastAction?)
+class ToastMessage internal constructor(
+    val id: Long, val text: UiText, val kind: ToastKind?, val action: ToastAction?, val position: ToastPosition,
+)
 
 /** Test tags of the toast. */
 object ToastTags {
@@ -85,10 +91,10 @@ class Toaster {
         private set
     private var lastId = 0L
 
-    fun show(text: UiText, kind: ToastKind? = null, action: ToastAction? = null) {
+    fun show(text: UiText, kind: ToastKind? = null, action: ToastAction? = null, position: ToastPosition = ToastPosition.TOP) {
         val showing = current
         if (showing != null && action == null && showing.action == null && showing.text == text) return
-        current = ToastMessage(++lastId, text, kind, action)
+        current = ToastMessage(++lastId, text, kind, action, position)
     }
 
     /** Closes toast [id] (swiped away, timed out or its button tapped); a newer toast stays. */
@@ -133,11 +139,14 @@ private fun BoxScope.ToastLayer(toaster: Toaster) {
     // The last toast stays drawn while it slides out.
     var last by remember { mutableStateOf<ToastMessage?>(null) }
     LaunchedEffect(message) { if (message != null) last = message }
+    val bottom = (message ?: last)?.position == ToastPosition.BOTTOM
+    val edge = if (bottom) 1 else -1
     AnimatedVisibility(
         message != null,
-        Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp, start = 12.dp, end = 12.dp),
-        enter = slideInVertically { -it } + fadeIn(),
-        exit = slideOutVertically { -it } + fadeOut(),
+        if (bottom) Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 88.dp, start = 16.dp, end = 16.dp)
+        else Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp, start = 12.dp, end = 12.dp),
+        enter = slideInVertically { edge * it } + fadeIn(),
+        exit = slideOutVertically { edge * it } + fadeOut(),
     ) {
         (message ?: last)?.let { m -> key(m.id) { SwipeableToast(m, toaster) } }
     }
@@ -154,6 +163,7 @@ private fun SwipeableToast(m: ToastMessage, toaster: Toaster) {
     }
     val scope = rememberCoroutineScope()
     val (sideways, upward) = with(LocalDensity.current) { 96.dp.toPx() to 32.dp.toPx() }
+    val atBottom = m.position == ToastPosition.BOTTOM
     var dx by remember { mutableFloatStateOf(0f) }
     var dy by remember { mutableFloatStateOf(0f) }
     Box(
@@ -162,7 +172,7 @@ private fun SwipeableToast(m: ToastMessage, toaster: Toaster) {
             .pointerInput(m.id) {
                 detectDragGestures(
                     onDragEnd = {
-                        if (abs(dx) > sideways || -dy > upward) toaster.dismiss(m.id)
+                        if (abs(dx) > sideways || (if (atBottom) dy else -dy) > upward) toaster.dismiss(m.id)
                         else scope.launch {
                             val fromX = dx
                             val fromY = dy
@@ -173,10 +183,10 @@ private fun SwipeableToast(m: ToastMessage, toaster: Toaster) {
                 ) { change, drag ->
                     change.consume()
                     dx += drag.x
-                    dy = (dy + drag.y).coerceAtMost(0f)
+                    dy = if (atBottom) (dy + drag.y).coerceAtLeast(0f) else (dy + drag.y).coerceAtMost(0f)
                 }
             },
-        contentAlignment = Alignment.TopCenter,
+        contentAlignment = if (atBottom) Alignment.BottomCenter else Alignment.TopCenter,
     ) {
         ToastCard(m, kind) { toaster.dismiss(m.id) }
     }
@@ -190,17 +200,24 @@ private fun ToastCard(m: ToastMessage, kind: ToastKind, close: () -> Unit) {
         ToastKind.PROBLEM -> ToastLook(Icons.Alert, C.Orange, Color(0xFF3A2412), Color(0xFF7A4A22))
         ToastKind.INFO -> ToastLook(Icons.Info, C.Yellow, C.YTintBg, C.YTintBd)
     }
+    // The bottom toast is the larger card of the tagging design: 16dp corners, 28dp icon, 15sp text, raised fill.
+    val large = m.position == ToastPosition.BOTTOM
+    val radius = r(if (large) 16 else 12)
     Row(
-        Modifier.widthIn(max = 480.dp).fillMaxWidth().fabShadow(r(12)).clip(r(12)).background(C.Surface).border(1.dp, C.Border2, r(12))
+        Modifier.widthIn(max = 480.dp).fillMaxWidth().fabShadow(radius).clip(radius).background(if (large) C.Raised else C.Surface)
+            .border(1.dp, C.Border2, radius)
             .semantics { liveRegion = LiveRegionMode.Polite }.testTag(ToastTags.TOAST)
-            .padding(start = 12.dp, end = if (m.action != null) 8.dp else 14.dp, top = 10.dp, bottom = 10.dp),
+            .padding(
+                start = if (large) 16.dp else 12.dp, end = if (m.action != null) 8.dp else if (large) 16.dp else 14.dp,
+                top = if (large) 14.dp else 10.dp, bottom = if (large) 14.dp else 10.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (large) 12.dp else 10.dp),
     ) {
-        Box(Modifier.size(24.dp).clip(CircleShape).background(wash).border(1.dp, ring, CircleShape), contentAlignment = Alignment.Center) {
-            LineIcon(icon, 13.dp, tint, 2.6f)
+        Box(Modifier.size(if (large) 28.dp else 24.dp).clip(CircleShape).background(wash).border(1.dp, ring, CircleShape), contentAlignment = Alignment.Center) {
+            LineIcon(icon, if (large) 15.dp else 13.dp, tint, if (large) 3.2f else 2.6f)
         }
-        Txt(m.text.asString(), 13, 600, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+        Txt(m.text.asString(), if (large) 15 else 13, 600, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE)
         m.action?.let { a ->
             Pill(
                 a.label.asString(), { a.onClick(); close() }, Modifier.testTag(ToastTags.ACTION),

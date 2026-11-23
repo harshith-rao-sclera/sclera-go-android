@@ -20,7 +20,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -107,6 +106,7 @@ internal fun LockBanner(lock: AssetLock, reviewer: Boolean, modifier: Modifier =
     val (short, body) = when (lock) {
         AssetLock.NOT_ASSIGNED -> R.string.lock_banner_not_assigned to R.string.asset_lock_not_assigned
         AssetLock.NO_PERMISSION -> R.string.lock_banner_no_permission to R.string.lock_banner_no_permission_body
+        AssetLock.OFF_PREMISE -> R.string.lock_banner_off_premise to R.string.lock_banner_off_premise_body
         else -> if (reviewer) R.string.lock_banner_submitted_reviewer to R.string.lock_banner_submitted_reviewer_body
         else R.string.lock_banner_submitted to R.string.detail_submitted_body
     }
@@ -232,8 +232,9 @@ fun DetailTab(
                     }
                 }
             }
-            // Six tabs share a phone's width, so the labels under the icons stay small enough for "Validation" to fit.
-            Txt(label, if (compact) 12 else 10, if (selected) (if (compact) 700 else 600) else 500, fg, maxLines = 1)
+            // Six tabs share a phone's width: a long label ("Documents", "Validation") shrinks a little to show in full rather
+            // than being cut off.
+            Txt(label, if (compact) 12 else 11, if (selected) 700 else 500, fg, maxLines = 1, minSize = 8)
         }
         if (compact) {
             Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) { content() }

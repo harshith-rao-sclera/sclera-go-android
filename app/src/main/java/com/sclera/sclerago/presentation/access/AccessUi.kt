@@ -20,6 +20,7 @@ import com.sclera.sclerago.presentation.components.asColor
 /** Test tags of People and access. */
 object AccessTags {
     const val LIST = "access_list"
+    const val LIST_GROUPS = "access_list_groups"
     const val FAB_ADD = "access_add"
     const val EMPTY = "access_empty"
     const val LOADING = "access_loading"

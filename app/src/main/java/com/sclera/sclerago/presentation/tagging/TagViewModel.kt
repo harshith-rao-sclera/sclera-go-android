@@ -104,9 +104,9 @@ class TagViewModel @Inject constructor(
      */
     fun start(kind: TagKind, nfcProblem: NfcFailure? = null) {
         val now = target ?: return
-        // A submitted (or signed-off) asset keeps the tags it has, whoever is signed in; and only someone who may change
-        // the asset tags it (collect, theirs or nobody's unless an admin, not in Managed Assets), as the server's.
-        if (tags.isSubmitted(now.asset) || !tags.canTag(now.asset)) return
+        // Only someone who may change the asset tags or retags it, any kind: an admin any asset, even a submitted or signed-off
+        // one; anyone else one that is theirs or nobody's and not submitted; nobody one in Managed Assets (the server's rule).
+        if (!tags.canTag(now.asset)) return
         // A QR code is tagged in the phone's own tables when offline; barcodes and NFC tags are checked on the server.
         if (kind != TagKind.QR && !network.isOnline()) return fail(UiText.Res(R.string.tag_error_offline))
         if (kind == TagKind.NFC && nfcProblem != null) return nfcFailed(nfcProblem)

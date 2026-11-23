@@ -232,9 +232,10 @@ fun SearchField(
     iconColor: Color = C.Muted,
     /** When set, the keyboard's search key calls it. */
     onSubmit: (() -> Unit)? = null,
+    bg: Color = C.Bg,
 ) {
     Row(
-        modifier.fillMaxWidth().height(height).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12))
+        modifier.fillMaxWidth().height(height).clip(r(12)).background(bg).border(1.dp, C.Border, r(12))
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -410,23 +411,12 @@ fun ActionDock(
     assignDimmed: Boolean = false,
     leading: @Composable RowScope.() -> Unit,
 ) {
-    // Floating: inset from the edges with rounded corners and a shadow; otherwise flush with a top border.
-    val shape = r(14)
-    val frame = if (floating) {
-        Modifier.padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 8.dp).fillMaxWidth().height(60.dp)
-            .fabShadow(shape, 10.dp).clip(shape).background(C.Surface).border(1.dp, C.Border2, shape)
-    } else {
-        Modifier.fillMaxWidth().height(60.dp).background(C.Surface).topBorder(C.Border2)
-    }
-    Row(
-        frame.padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        leading()
+    // Floating: the selection dock, flush with the screen edges: a tinted summary strip over the action row; otherwise one row with a top border.
+    val actionsRow: @Composable RowScope.() -> Unit = {
         // With more actions each one is a little narrower, so the selection summary keeps room on phones.
         val actions = listOfNotNull(onValidate, onEdit, onAssign, onSubmit, onChange, onMove, onDelete).size
         val narrow = actions >= 5
-        val item = Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
+        val item = if (floating) Modifier.weight(1f) else Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
         onValidate?.let {
             OfflineGate(offline, { onOffline(OnlineOnly.VALIDATE) }, item) {
                 DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it, Modifier.fillMaxWidth())
@@ -446,7 +436,25 @@ fun ActionDock(
                 DockAction(stringResource(R.string.mv_action), Icons.Send, C.Green, it, Modifier.fillMaxWidth().alpha(if (moveDimmed && !offline) 0.35f else 1f))
             }
         }
-        onDelete?.let { DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, it, if (narrow) item else deleteModifier) }
+        onDelete?.let { DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, it, if (narrow || floating) item else deleteModifier) }
+    }
+    if (floating) {
+        Column(Modifier.fillMaxWidth().background(C.Surface)) {
+            Row(
+                Modifier.fillMaxWidth().height(32.dp).background(C.YTintBg).topBorder(C.YTintBd).padding(start = 4.dp, end = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                content = { leading() },
+            )
+            Row(Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, content = actionsRow)
+        }
+    } else {
+        Row(
+            Modifier.fillMaxWidth().height(60.dp).background(C.Surface).topBorder(C.Border2).padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            leading()
+            actionsRow()
+        }
     }
 }
 
@@ -475,7 +483,7 @@ fun ActionCard(
     if (items.isEmpty()) return
     val shape = r(14)
     Row(
-        modifier.fillMaxWidth().height(68.dp).clip(shape).background(C.Surface).border(1.dp, C.Border2, shape)
+        modifier.fillMaxWidth().height(64.dp).clip(shape).background(C.Surface).border(1.dp, C.Border2, shape)
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -487,10 +495,10 @@ fun ActionCard(
             val online = a.online
             if (online != null) {
                 OfflineGate(offline, { onOffline(online) }, item.fillMaxHeight()) {
-                    DockAction(a.label, a.icon, a.color, a.onClick, gated.then(tagged), lines = 2)
+                    DockAction(a.label, a.icon, a.color, a.onClick, gated.then(tagged), lines = 2, labelSize = 11, labelWeight = 700)
                 }
             } else {
-                DockAction(a.label, a.icon, a.color, a.onClick, item.then(tagged), lines = 2)
+                DockAction(a.label, a.icon, a.color, a.onClick, item.then(tagged), lines = 2, labelSize = 11, labelWeight = 700)
             }
         }
     }
@@ -505,6 +513,8 @@ private fun DockAction(
     modifier: Modifier = Modifier.width(56.dp),
     /** Lines the label may take (a long one, "Move to Managed assets", wraps in the asset bar). */
     lines: Int = 1,
+    labelSize: Int = 12,
+    labelWeight: Int = 600,
 ) {
     Column(
         modifier.fillMaxHeight().padding(vertical = 4.dp).pressClickable(shape = r(10), onClick = onClick),
@@ -512,6 +522,6 @@ private fun DockAction(
         verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
     ) {
         LineIcon(icon, 21.dp, color, 2.1f)
-        Txt(label, 10, 700, color, maxLines = lines, align = androidx.compose.ui.text.style.TextAlign.Center)
+        Txt(label, labelSize, labelWeight, color, maxLines = lines, align = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }

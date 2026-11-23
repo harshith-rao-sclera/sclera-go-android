@@ -55,7 +55,9 @@ import com.sclera.sclerago.presentation.components.FormSheet
 import com.sclera.sclerago.presentation.components.InlineField
 import com.sclera.sclerago.presentation.components.InlineInput
 import com.sclera.sclerago.presentation.components.InlineSelect
+import com.sclera.sclerago.presentation.components.PillTone
 import com.sclera.sclerago.presentation.components.PlainField
+import com.sclera.sclerago.presentation.components.StatusPill
 import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
@@ -115,6 +117,7 @@ internal fun AddPropertySheet(
     var state by rememberSaveable { mutableStateOf(from.address.state) }
     var country by rememberSaveable { mutableStateOf(from.address.country) }
     var region by rememberSaveable { mutableStateOf(from.address.region) }
+    var postcode by rememberSaveable { mutableStateOf(from.address.postcode) }
     var contactName by rememberSaveable { mutableStateOf(from.contact.name) }
     var contactEmail by rememberSaveable { mutableStateOf(from.contact.email) }
     var contactPhone by rememberSaveable { mutableStateOf(from.contact.phone) }
@@ -173,10 +176,12 @@ internal fun AddPropertySheet(
     }
 
     @Composable
-    fun AddressInput(field: AddressField, label: Int, hint: Int) {
-        InlineField(stringResource(label)) {
+    fun AddressInput(field: AddressField, label: Int, hint: Int, needsCountry: Boolean = false) {
+        // State and City wait for a country, as in the design.
+        val waiting = needsCountry && country.isBlank()
+        InlineField(stringResource(label), dim = waiting) {
             InlineInput(
-                valueOf(field), { typeInto(field, it) }, stringResource(hint), enabled = editable,
+                valueOf(field), { typeInto(field, it) }, stringResource(if (waiting) R.string.property_choose_country_first else hint), enabled = editable && !waiting,
                 modifier = Modifier.onFocusChanged {
                     if (it.isFocused && focused != field) {
                         focused = field
@@ -200,7 +205,7 @@ internal fun AddPropertySheet(
     val regionLabel = if (region.isBlank()) "" else labelOf(region, PROPERTY_REGIONS)
     val draft = from.copy(
         name = name, type = type,
-        address = from.address.copy(line1 = line1.trim(), line2 = line2.trim(), country = country.trim(), state = state.trim(), region = region, city = city.trim()),
+        address = from.address.copy(line1 = line1.trim(), line2 = line2.trim(), country = country.trim(), state = state.trim(), region = region, city = city.trim(), postcode = postcode.trim()),
         contact = Contact(contactName.trim(), contactEmail.trim(), contactPhone.trim()),
         notes = notes.trim(),
         availability = Availability(start, end, accessCode.trim()),
@@ -208,17 +213,21 @@ internal fun AddPropertySheet(
 
     Box(Modifier.fillMaxSize()) {
         FormSheet(
-            stringResource(if (initial != null) R.string.property_info_title else R.string.property_add_title), null,
+            stringResource(if (initial != null) R.string.property_info_title else R.string.property_add_title),
+            if (initial == null) stringResource(R.string.property_add_sub) else null,
             stringResource(if (initial != null) R.string.action_save else R.string.property_add_primary),
-            editable, (error ?: serverError)?.asString(), onClose,
+            // Add stays off until the required fields (name and type) are filled in, as in the design.
+            editable && name.isNotBlank() && type.isNotBlank(), (error ?: serverError)?.asString(), onClose,
             onPrimary = { if (editable) error = onAdd(draft) },
             leadingIcon = Icons.Building,
+            // How many of the two required fields (name, type) are filled in.
+            progress = if (initial == null) ((if (name.isNotBlank()) 1 else 0) + (if (type.isNotBlank()) 1 else 0)) / 2f else null,
             footerLeading = deleteButton,
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
             // Something was typed or changed: closing asks before discarding it.
             dirty = listOf(
                 name to from.name, type to from.type, line1 to from.address.line1, line2 to from.address.line2,
-                city to from.address.city, state to from.address.state, country to from.address.country, region to from.address.region,
+                city to from.address.city, state to from.address.state, country to from.address.country, region to from.address.region, postcode to from.address.postcode,
                 contactName to from.contact.name, contactEmail to from.contact.email, contactPhone to from.contact.phone,
                 notes to from.notes, start to from.availability.start, end to from.availability.end,
                 accessCode to from.availability.accessCode,
@@ -230,26 +239,38 @@ internal fun AddPropertySheet(
                     Modifier.padding(horizontal = 16.dp).testTag(AddPropertyTags.READ_ONLY), maxLines = Int.MAX_VALUE,
                 )
             }
-            FormGroup(stringResource(R.string.property_group_details), Icons.Building) {
-                InlineField(stringResource(R.string.property_field_name), required = true) {
+            FormGroup(
+                stringResource(R.string.property_group_details), Icons.Building, collapsible = true,
+                trailing = {
+                    val missing = (if (name.isBlank()) 1 else 0) + (if (type.isBlank()) 1 else 0)
+                    if (missing == 0) StatusPill(stringResource(R.string.property_pill_ready), PillTone.READY)
+                    else StatusPill(stringResource(R.string.property_pill_required, missing), PillTone.NEEDED)
+                },
+            ) {
+                InlineField(stringResource(R.string.field_name), required = true) {
                     InlineInput(name, { name = it; error = null }, stringResource(R.string.property_name_hint), Modifier.testTag(AddPropertyTags.NAME), enabled = editable)
                 }
-                InlineField(stringResource(R.string.property_field_type), required = true) {
+                InlineField(stringResource(R.string.property_label_type), required = true) {
                     InlineSelect(typeLabel, stringResource(R.string.property_select_type), enabled = editable) { picker = Picker.TYPE }
                 }
+            }
+            FormGroup(stringResource(R.string.property_group_address), Icons.Pin, collapsible = true) {
                 InlineField(stringResource(R.string.field_address_line1)) { InlineInput(line1, { line1 = it }, stringResource(R.string.field_address_line1_hint), enabled = editable) }
                 InlineField(stringResource(R.string.field_address_line2)) { InlineInput(line2, { line2 = it }, stringResource(R.string.field_address_line2_hint), enabled = editable) }
-                AddressInput(AddressField.CITY, R.string.field_city, R.string.property_enter_city)
-                AddressInput(AddressField.STATE, R.string.field_state, R.string.property_enter_state)
-                AddressInput(AddressField.COUNTRY, R.string.field_country, R.string.property_enter_country)
+                AddressInput(AddressField.COUNTRY, R.string.field_country, R.string.property_type_or_select_country)
+                AddressInput(AddressField.STATE, R.string.field_state, R.string.property_type_or_select_state, needsCountry = true)
                 InlineField(stringResource(R.string.field_region)) { InlineSelect(regionLabel, stringResource(R.string.property_select_region), enabled = editable) { picker = Picker.REGION } }
+                AddressInput(AddressField.CITY, R.string.field_city, R.string.property_type_or_select_city, needsCountry = true)
+                InlineField(stringResource(R.string.field_postal_code)) {
+                    InlineInput(postcode, { postcode = it }, stringResource(R.string.field_postal_code_hint), enabled = editable)
+                }
             }
-            FormGroup(stringResource(R.string.property_group_contact), Icons.User) {
-                InlineField(stringResource(R.string.field_name)) { InlineInput(contactName, { contactName = it }, stringResource(R.string.field_contact_name_hint), enabled = editable) }
-                InlineField(stringResource(R.string.field_email)) {
+            FormGroup(stringResource(R.string.property_group_contact), Icons.User, collapsible = true) {
+                InlineField(stringResource(R.string.property_label_contact_name)) { InlineInput(contactName, { contactName = it }, stringResource(R.string.field_contact_name_hint), enabled = editable) }
+                InlineField(stringResource(R.string.property_label_contact_email)) {
                     InlineInput(contactEmail, { contactEmail = it; error = null }, stringResource(R.string.field_email_hint), enabled = editable, keyboard = KeyboardType.Email)
                 }
-                InlineField(stringResource(R.string.property_field_phone)) {
+                InlineField(stringResource(R.string.property_label_contact_phone)) {
                     // Digits only, as the web's field takes them.
                     InlineInput(
                         contactPhone, { contactPhone = it.filter(Char::isDigit); error = null }, stringResource(R.string.field_phone_hint),
@@ -257,7 +278,10 @@ internal fun AddPropertySheet(
                     )
                 }
             }
-            FormGroup(stringResource(R.string.property_group_notes), Icons.FileDoc) {
+            FormGroup(
+                stringResource(R.string.property_group_notes), Icons.FileDoc, collapsible = true,
+                trailing = { if (notes.isBlank()) StatusPill(stringResource(R.string.property_pill_none_yet), PillTone.NEUTRAL) },
+            ) {
                 Box(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp)) {
                     PlainField(
                         notes, { notes = it.take(NotesMax) }, stringResource(R.string.property_notes_hint),
@@ -265,9 +289,9 @@ internal fun AddPropertySheet(
                     )
                 }
             }
-            FormGroup(stringResource(R.string.property_group_availability), Icons.Clock) {
-                InlineField(stringResource(R.string.field_start_time)) { InlineSelect(storedTimeText(start), "", enabled = editable, chevron = false) { pickTime(start) { start = it } } }
-                InlineField(stringResource(R.string.field_end_time)) { InlineSelect(storedTimeText(end), "", enabled = editable, chevron = false) { pickTime(end) { end = it } } }
+            FormGroup(stringResource(R.string.property_group_availability), Icons.Clock, collapsible = true) {
+                InlineField(stringResource(R.string.property_label_available_from)) { InlineSelect(storedTimeText(start), "", enabled = editable, chevron = false) { pickTime(start) { start = it } } }
+                InlineField(stringResource(R.string.property_label_available_until)) { InlineSelect(storedTimeText(end), "", enabled = editable, chevron = false) { pickTime(end) { end = it } } }
                 InlineField(stringResource(R.string.field_access_code)) { InlineInput(accessCode, { accessCode = it }, stringResource(R.string.field_access_code_hint), enabled = editable) }
             }
         }

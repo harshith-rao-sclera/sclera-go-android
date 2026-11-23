@@ -49,7 +49,7 @@ fun MoveToManagedSheet(
 ) {
     GuardedClose(s.network != null || s.assignee != null, vm::close) { close ->
         BottomSheet(close) {
-            SheetHeader(stringResource(R.string.mv_title), null, close)
+            SheetHeader(stringResource(R.string.mv_title), null, close, titleSize = 20)
             Column(
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).testTag("move_sheet"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),

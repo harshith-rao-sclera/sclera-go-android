@@ -2,17 +2,13 @@ package com.sclera.sclerago.presentation.assets
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -25,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -38,26 +33,26 @@ import com.sclera.sclerago.domain.model.formatDuration
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Pill
-import com.sclera.sclerago.presentation.icons.Icons
-import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.services.media.VoiceMemoRecorder
 import kotlinx.coroutines.delay
+import java.io.File
 
 /** Test tags of the voice memo recorder. */
 object MemoTags {
     const val SHEET = "memo-sheet"
     const val TIME = "memo-time"
     const val SAVE = "memo-save"
+    const val STOP = "memo-stop"
 }
 
 private const val TICK_MS = 200L
 
 /**
- * Records a voice memo for the asset: asks for the microphone at the moment of use, then records at once with a running
- * clock. Stop and save hands the memo to [onSaved]; Cancel or closing the sheet drops it. [onFailed] says why nothing
- * was recorded. The sheet closes itself through [onClose] either way.
+ * Records a voice memo for the asset in two steps: asks for the microphone at the moment of use, records at once with a
+ * running clock, Stop ends the recording, then Save memo hands it to [onSaved]. Closing the sheet drops the recording
+ * and its file. [onFailed] says why nothing was recorded. The sheet closes itself through [onClose] either way.
  */
 @Composable
 fun VoiceMemoSheet(onSaved: (Media) -> Unit, onClose: () -> Unit, onFailed: (UiText) -> Unit) {
@@ -68,6 +63,9 @@ fun VoiceMemoSheet(onSaved: (Media) -> Unit, onClose: () -> Unit, onFailed: (UiT
     val close by rememberUpdatedState(onClose)
     var recording by remember { mutableStateOf(false) }
     var elapsed by remember { mutableLongStateOf(0L) }
+    // The finished recording, waiting for Save memo.
+    var memo by remember { mutableStateOf<Media?>(null) }
+    val pending = rememberUpdatedState(memo)
 
     fun begin() {
         if (recorder.start()) recording = true
@@ -93,54 +91,61 @@ fun VoiceMemoSheet(onSaved: (Media) -> Unit, onClose: () -> Unit, onFailed: (UiT
             delay(TICK_MS)
         }
     }
-    // Leaving the screen mid-recording keeps nothing.
-    DisposableEffect(recorder) { onDispose { recorder.cancel() } }
+    // Leaving the screen keeps nothing: a recording in progress stops and an unsaved one loses its file.
+    DisposableEffect(recorder) {
+        onDispose {
+            recorder.cancel()
+            pending.value?.let(::deleteMemoFile)
+        }
+    }
 
-    val cancel = {
-        recorder.cancel()
+    val discard = { close() }
+    val stop = {
         recording = false
-        close()
+        val done = recorder.stop()
+        if (done != null) {
+            memo = done
+            elapsed = done.durationMs
+        } else {
+            failed(UiText.Res(R.string.memo_too_short))
+            close()
+        }
     }
     val save = {
-        val memo = recorder.stop()
-        recording = false
-        if (memo != null) saved(memo) else failed(UiText.Res(R.string.memo_too_short))
+        memo?.let { saved(it) }
+        memo = null
         close()
     }
-    // A memo stops and is kept on its own at the 10-second limit (MAX_CLIP_MS).
+    // A memo stops on its own at the 10-second limit (MAX_CLIP_MS); Save memo then keeps it.
     val atLimit = elapsed >= MAX_CLIP_MS
-    LaunchedEffect(recording, atLimit) { if (recording && atLimit) save() }
+    LaunchedEffect(recording, atLimit) { if (recording && atLimit) stop() }
 
-    BottomSheet(onDismiss = cancel) {
+    BottomSheet(onDismiss = discard) {
         Column(Modifier.testTag(MemoTags.SHEET)) {
-            SheetTitleRow(
-                stringResource(R.string.media_tag_audio),
-                stringResource(if (recording) R.string.memo_recording else R.string.memo_starting),
-                cancel,
-            )
+            SheetTitleRow(stringResource(R.string.media_tag_audio), stringResource(R.string.memo_subtitle), discard)
             Column(
-                Modifier.fillMaxWidth().padding(vertical = 18.dp),
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 26.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(
-                    Modifier.size(76.dp).clip(CircleShape).background(if (recording) C.DangerBg else C.Raised),
-                    contentAlignment = Alignment.Center,
-                ) { LineIcon(Icons.Mic, 32.dp, if (recording) C.Red else C.Muted, 2.2f) }
-                Txt(formatDuration(elapsed), 28, 800, modifier = Modifier.testTag(MemoTags.TIME))
-                Txt(stringResource(R.string.memo_limit), 12, 500, C.Muted, maxLines = Int.MAX_VALUE)
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Pill(stringResource(R.string.action_cancel), cancel, Modifier.weight(1f), height = 48.dp, size = 14, weight = 700)
+                Txt(formatDuration(elapsed), 34, 600, if (recording) C.Red else C.Text, mono = true, modifier = Modifier.testTag(MemoTags.TIME))
+                if (recording) {
+                    Pill(
+                        stringResource(R.string.memo_stop), stop, Modifier.testTag(MemoTags.STOP),
+                        bg = C.Red, fg = C.OnYellow, height = 46.dp, hPad = 20.dp, size = 14, weight = 700,
+                    )
+                }
                 Pill(
-                    stringResource(R.string.memo_stop_save), { if (recording) save() },
-                    Modifier.weight(1f).testTag(MemoTags.SAVE).alpha(if (recording) 1f else 0.45f),
-                    bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700,
+                    stringResource(R.string.memo_save), { if (memo != null) save() },
+                    Modifier.fillMaxWidth().testTag(MemoTags.SAVE).alpha(if (memo != null) 1f else 0.45f),
+                    bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700,
                 )
             }
         }
     }
+}
+
+/** Removes a recording that was never saved to an asset. */
+private fun deleteMemoFile(media: Media) {
+    runCatching { Uri.parse(media.uri).path?.let { File(it).delete() } }
 }

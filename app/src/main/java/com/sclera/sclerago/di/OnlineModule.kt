@@ -25,6 +25,7 @@ import com.sclera.sclerago.data.repository.ConfigFieldsRepositoryImpl
 import com.sclera.sclerago.data.repository.ConfigPlacesRepositoryImpl
 import com.sclera.sclerago.data.repository.FileImportRepositoryImpl
 import com.sclera.sclerago.data.repository.GeofenceRepositoryImpl
+import com.sclera.sclerago.data.repository.PremiseRepositoryImpl
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertySettingsRepositoryImpl
@@ -43,6 +44,7 @@ import com.sclera.sclerago.domain.repository.ConfigPlacesRepository
 import com.sclera.sclerago.domain.repository.CurrentAccessRepository
 import com.sclera.sclerago.domain.repository.FileImportRepository
 import com.sclera.sclerago.domain.repository.GeofenceRepository
+import com.sclera.sclerago.domain.repository.PremiseRepository
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
 import com.sclera.sclerago.domain.repository.PropertySettingsRepository
@@ -93,6 +95,7 @@ abstract class OnlineModule {
     @Binds abstract fun placesHistory(impl: PlacesHistoryRepositoryImpl): PlacesHistoryRepository
     @Binds abstract fun propertySettings(impl: PropertySettingsRepositoryImpl): PropertySettingsRepository
     @Binds abstract fun geofence(impl: GeofenceRepositoryImpl): GeofenceRepository
+    @Binds abstract fun premise(impl: PremiseRepositoryImpl): PremiseRepository
     @Binds abstract fun configFields(impl: ConfigFieldsRepositoryImpl): ConfigFieldsRepository
     @Binds abstract fun configPlaces(impl: ConfigPlacesRepositoryImpl): ConfigPlacesRepository
     @Binds abstract fun fileImport(impl: FileImportRepositoryImpl): FileImportRepository
@@ -105,6 +108,7 @@ abstract class OnlineModule {
     @Binds @IntoSet abstract fun clearIdentity(impl: OnlineIdentity): UserDataCleaner
     @Binds @IntoSet abstract fun clearConfigPlaces(impl: ConfigPlacesRepositoryImpl): UserDataCleaner
     @Binds @IntoSet abstract fun clearConfigFields(impl: ConfigFieldsRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearPremise(impl: PremiseRepositoryImpl): UserDataCleaner
 
     companion object {
         @Provides

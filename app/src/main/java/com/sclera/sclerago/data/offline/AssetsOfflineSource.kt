@@ -30,6 +30,9 @@ data class AssetsRead(val open: Boolean, val assets: List<Asset>, val managed: L
 /** Spec values shown after the make and model in an asset's one-line detail: database key to unit. */
 private val SPEC_UNITS = listOf("rated_power_kw" to "kW", "voltage" to "V", "speed" to "RPM")
 
+/** How many specs follow the make and model on an asset's line. */
+private const val MAX_SPECS = 2
+
 /** The app's field keys a scanned device is looked up in. */
 
 /** The server's VdmsState RETURNING (3) and RETURNED (4): Managed Assets sent the asset back to be collected again. */
@@ -198,7 +201,7 @@ class AssetsOfflineSource(
     }
 
     private fun detailLine(makeModel: String, values: Map<String, String>): String =
-        (listOf(makeModel) + SPEC_UNITS.mapNotNull { (key, unit) -> values[key]?.takeIf { it.isNotBlank() }?.let { spec(it, unit) } })
+        (listOf(makeModel) + SPEC_UNITS.mapNotNull { (key, unit) -> values[key]?.takeIf { it.isNotBlank() }?.let { spec(it, unit) } }.take(MAX_SPECS))
             .filter { it.isNotBlank() }.joinToString(" · ")
 
     private fun spec(value: String, unit: String) = if (value.any(Char::isLetter)) value else "$value $unit"

@@ -8,7 +8,6 @@ import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.DocumentSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -162,8 +161,8 @@ private fun NothingFound(d: AiDialogState) {
 private fun Header(name: String, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f).padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Txt(stringResource(R.string.ai_title), 18, 800)
-            Txt(stringResource(R.string.ai_sheet_subtitle, name), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
+            Txt(stringResource(R.string.ai_title), 18, 700)
+            Txt(stringResource(R.string.ai_sheet_subtitle, name), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         CloseButton(onClose, size = 36.dp, iconSize = 16.dp)
     }
@@ -172,7 +171,7 @@ private fun Header(name: String, onClose: () -> Unit) {
 /** The manufacturer and model to look up, labelled with the property's own field names. */
 @Composable
 private fun Identify(d: AiDialogState, state: AssetDetailState, actions: AiDialogActions) {
-    Txt(d.error?.asString() ?: stringResource(R.string.ai_identify_lead), 13, 500, maxLines = Int.MAX_VALUE)
+    Txt(d.error?.asString() ?: stringResource(R.string.ai_identify_lead), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
     val spec = FieldSpec(state.fields)
     LabeledBox(spec.label("make", stringResource(R.string.ai_make_label)).removeSuffix(" *"), d.make, stringResource(R.string.ai_make_hint)) {
         actions.onIdentity(it, d.model)
@@ -186,10 +185,10 @@ private fun Identify(d: AiDialogState, state: AssetDetailState, actions: AiDialo
 @Composable
 private fun LabeledBox(label: String, value: String, hint: String, onChange: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Txt(label, 13, 700)
+        Txt(label, 13, 600)
         PlainField(
             value, onChange, hint,
-            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(r(10)).background(C.Bg).border(1.dp, C.Border2, r(10)).padding(horizontal = 12.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(horizontal = 12.dp, vertical = 12.dp),
             size = 14,
         )
     }
@@ -381,10 +380,10 @@ private fun FieldsCard(d: AiDialogState, rows: List<Map.Entry<String, AiPick>>, 
                 AiTick(pick.on) { actions.onToggle(key) }
                 Column(Modifier.weight(1f).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     // A field the suggested type brings isn't on the asset yet: it is named by the type.
-                    Txt(typeFieldName(key) ?: spec.label(key).removeSuffix(" *"), 13, 700, maxLines = 2)
+                    Txt(typeFieldName(key) ?: spec.label(key).removeSuffix(" *"), 13, 600, maxLines = 2)
                     PlainField(
                         pick.value, { actions.onEdit(key, it) }, "",
-                        Modifier.fillMaxWidth().heightIn(min = 40.dp).clip(r(8)).background(C.Bg).border(1.dp, C.Border2, r(8))
+                        Modifier.fillMaxWidth().heightIn(min = 40.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12))
                             .padding(horizontal = 10.dp, vertical = 10.dp),
                         size = 14, singleLine = false,
                     )
@@ -453,8 +452,8 @@ private fun AiTick(on: Boolean, onClick: () -> Unit) {
 internal fun SheetTitleRow(title: String, subtitle: String, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Txt(title, 18, 800)
-            Txt(subtitle, 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
+            Txt(title, 18, 700)
+            Txt(subtitle, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         CloseButton(onClose, size = 36.dp, iconSize = 16.dp)
     }
@@ -499,8 +498,8 @@ private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions:
             AiPhase.IDENTIFY -> {
                 val ready = d.model.isNotBlank() && aiOn
                 Pill(
-                    stringResource(R.string.ai_find), { if (ready) actions.onLookUp() }, Modifier.fillMaxWidth().alpha(if (ready) 1f else 0.45f),
-                    bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700,
+                    stringResource(R.string.ai_find), { if (ready) actions.onLookUp() }, Modifier.fillMaxWidth(),
+                    bg = if (ready) C.Yellow else C.Raised, fg = if (ready) C.OnYellow else C.Muted, height = 46.dp, size = 14, weight = 700,
                 )
             }
             // The search keeps going when the sheet is closed (the AI button blinks): no buttons while it runs.

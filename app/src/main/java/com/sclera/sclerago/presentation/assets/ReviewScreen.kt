@@ -114,7 +114,7 @@ fun ReviewScreen(
                         } else {
                             Txt(
                                 stringResource(if (ri.ready) R.string.review_ready else R.string.review_needs_input),
-                                11, 600, if (ri.ready) C.Green else C.Orange,
+                                12, 600, if (ri.ready) C.Green else C.Orange,
                             )
                         }
                     }

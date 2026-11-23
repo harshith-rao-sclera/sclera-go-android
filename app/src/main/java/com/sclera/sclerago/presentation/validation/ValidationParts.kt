@@ -109,7 +109,7 @@ internal fun stepShort(steps: Map<String, ValStep>, key: String): String = steps
 
 @Composable
 internal fun SmallChip(text: String, color: Color = C.Soft, bg: Color = C.Raised) {
-    Box(Modifier.clip(Capsule).background(bg).padding(horizontal = 8.dp, vertical = 3.dp)) { Txt(text, 10, 600, color) }
+    Box(Modifier.height(22.dp).clip(Capsule).background(bg).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Txt(text, 10, 700, color) }
 }
 
 /** A small text button (≥48dp tall to touch). */

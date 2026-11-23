@@ -206,4 +206,7 @@
     <string name="valt_ran_note">Already run, so it can\'t change: its runs keep the steps they ran with. Edit as new makes a copy to change and save.</string>
     <string name="valt_edit_as_new">Edit as new</string>
     <string name="rev_started_by">Started %1$s by %2$s</string>
+    <!-- Run asset sheet: the asset's first step that went wrong, or that it passed every step (%1$d: step number, %2$s: step). -->
+    <string name="rev_first_problem">First problem at step %1$d: %2$s</string>
+    <string name="rev_passed_every">Passed every step</string>
 </resources>

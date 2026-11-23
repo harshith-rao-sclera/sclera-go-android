@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,7 +61,6 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
-import java.util.Locale
 
 /** Test tags of the asset's validation strip and tab. */
 object ValidationTags {
@@ -98,10 +97,13 @@ private fun toneOf(o: StepOutcome?): Color = when (o) {
     else -> C.Muted
 }
 
+/** How wide a step's mark is (its points' dots are centred under it). */
+private val MARK_SIZE = 26.dp
+
 /** A round mark of how validation stands: a tick, a cross, "!" or nothing yet. */
 @Composable
 private fun OutcomeIcon(o: StepOutcome?) {
-    Box(Modifier.size(26.dp).background(toneOf(o).copy(alpha = 0.16f), CircleShape), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(MARK_SIZE).background(toneOf(o).copy(alpha = 0.16f), CircleShape), contentAlignment = Alignment.Center) {
         OutcomeMark(o, 12.dp)
     }
 }
@@ -179,55 +181,59 @@ fun ValidationTab(
         )
         return
     }
-    // Header: how many steps need attention, and the data quality.
+    // Header: how many steps need attention and the data quality; "Open in Validation" is the card's last row.
     val problems = v.problems.size
-    Row(
-        Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            Modifier.size(44.dp).clip(r(10)).background(toneOf(v.outcome).copy(alpha = 0.18f)),
-            contentAlignment = Alignment.Center,
-        ) { OutcomeMark(v.outcome, 18.dp) }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(
-                if (problems > 0) pluralStringResource(R.plurals.val_steps_attention, problems, problems)
-                else stringResource(R.string.val_passed_every_step),
-                16, 800, maxLines = 2,
-            )
-            Txt(stringResource(R.string.val_quality, v.score), 12, 500, C.Muted)
-        }
-    }
     // As the web's jobToOpen: the run where it first went wrong, else its latest.
     val runToOpen = v.problems.firstOrNull()?.value?.jobId?.takeIf { it.isNotBlank() } ?: v.jobId.takeIf { it.isNotBlank() }
-    if (runToOpen != null && onOpenResult != null) {
+    Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))) {
         Row(
-            Modifier.pressClickable(shape = r(8), role = Role.Button) { onOpenResult(runToOpen) }.heightIn(min = 48.dp)
-                .padding(horizontal = 4.dp, vertical = 14.dp).testTag(ValidationTags.OPEN_RESULT),
+            Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Txt(stringResource(R.string.val_open_in_validation), 13, 700, C.Yellow)
-            LineIcon(Icons.Link, 13.dp, C.Yellow, 2.2f)
+            Box(
+                Modifier.size(40.dp).clip(r(10)).background(toneOf(v.outcome).copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) { OutcomeMark(v.outcome, 16.dp) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Txt(
+                    if (problems > 0) pluralStringResource(R.plurals.val_steps_attention, problems, problems)
+                    else stringResource(R.string.val_passed_every_step),
+                    15, 700, maxLines = 2,
+                )
+                Txt(stringResource(R.string.val_quality, v.score), 12, 400, C.Muted)
+            }
+        }
+        if (v.runs.size > 1) {
+            val runs = v.runs.map { stringResource(R.string.scrt_val_run_checked_ago, it.jobName, agoText(it.checkedAt)) }.joinToString(", ")
+            Txt(
+                stringResource(R.string.val_every_step_from, v.runs.size, runs), 11, 400, C.Muted,
+                Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = Int.MAX_VALUE,
+            )
+        }
+        if (runToOpen != null && onOpenResult != null) {
+            Row(
+                Modifier.fillMaxWidth().topBorder(C.Border).pressClickable(role = Role.Button) { onOpenResult(runToOpen) }
+                    .heightIn(min = 44.dp).padding(horizontal = 12.dp).testTag(ValidationTags.OPEN_RESULT),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Txt(stringResource(R.string.val_open_in_validation), 13, 600, C.Yellow, Modifier.weight(1f))
+                LineIcon(Icons.Link, 14.dp, C.Yellow, 2.2f)
+            }
         }
     }
-    if (v.runs.size > 1) {
-        val runs = v.runs.map { stringResource(R.string.scrt_val_run_checked_ago, it.jobName, agoText(it.checkedAt)) }.joinToString(", ")
-        Txt(stringResource(R.string.val_every_step_from, v.runs.size, runs), 11, 400, C.Soft, maxLines = Int.MAX_VALUE)
-    }
-    // Every step in one card.
+    // Every step in one card; as the web, it ends with where Revalidate picks up (Run every step starts again from step 1).
     Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))) {
         v.steps.forEachIndexed { i, step ->
             StepRow(step, v, startsHere = v.firstProblem == i + 1, divider = i > 0)
         }
-    }
-    // As the web: Revalidate picks up where it first went wrong, so say so (Run every step starts again from step 1).
-    v.firstProblem?.takeIf { it > 1 }?.let { first -> v.steps.getOrNull(first - 1) }?.let { step ->
-        Txt(
-            stringResource(R.string.valt_resumes_at, stepNameText(step.rule).asString()), 11, 400, C.Muted,
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp), maxLines = Int.MAX_VALUE,
-        )
+        v.firstProblem?.takeIf { it > 1 }?.let { first -> v.steps.getOrNull(first - 1) }?.let { step ->
+            Txt(
+                stringResource(R.string.valt_resumes_at, stepNameText(step.rule).asString()), 11, 400, C.Muted,
+                Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp), maxLines = Int.MAX_VALUE,
+            )
+        }
     }
 }
 
@@ -294,10 +300,11 @@ fun ValidateFab(
         first != null -> stringResource(R.string.val_revalidate_from, first)
         else -> stringResource(R.string.val_revalidate)
     }
-    Row(
+    // One above the other at the end, so "Revalidate from step 3" and "Run every step" both show in full on a phone.
+    Column(
         modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (first != null && first > 1 && !validating) {
             OfflineGate(offline, onOffline) {
@@ -319,25 +326,38 @@ fun ValidateFab(
  */
 @Composable
 private fun StepRow(step: StepResult, v: AssetValidation, startsHere: Boolean, divider: Boolean) {
-    Row(
+    val tone = if (step.outcome == StepOutcome.SKIPPED) C.Soft else toneOf(step.outcome)
+    Column(
         Modifier.fillMaxWidth().testTag(ValidationTags.step(step.rule)).then(if (divider) Modifier.topBorder(C.Border) else Modifier)
             .alpha(if (step.outcome == StepOutcome.SKIPPED) 0.55f else 1f).padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        OutcomeIcon(step.outcome)
-        Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Txt(stepNameText(step.rule).asString(), 15, 800)
-                Txt(stringResource(outcomeRes(step.outcome)), 11, 700, if (step.outcome == StepOutcome.SKIPPED) C.Soft else toneOf(step.outcome))
-                if (startsHere) Txt(stringResource(R.string.val_starts_here).uppercase(Locale.getDefault()), 10, 800, C.Yellow)
-            }
-            if (v.runs.size > 1) Txt(step.jobName, 10, 500, C.Muted)
-            if (step.outcome.problem) {
-                val issues = v.issuesFor(step)
-                if (issues.isEmpty()) Txt(stringResource(R.string.val_no_issues), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
-                issues.forEach { IssueRow(it) }
+        // The mark and the name, then its outcome and "Starts here" as small pills.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutcomeIcon(step.outcome)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Txt(stepNameText(step.rule).asString(), 14, 600, modifier = Modifier.weight(1f, fill = false))
+                    StepPill(stringResource(outcomeRes(step.outcome)), tone)
+                    if (startsHere) StepPill(stringResource(R.string.val_starts_here), C.Yellow)
+                }
+                if (v.runs.size > 1) Txt(step.jobName, 11, 400, C.Muted)
             }
         }
+        // What it found: each point's dot under the step's mark, its words under the step's name.
+        if (step.outcome.problem) {
+            val issues = v.issuesFor(step)
+            if (issues.isEmpty()) Txt(stringResource(R.string.val_no_issues), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+            issues.forEach { IssueRow(it) }
+        }
+    }
+}
+
+/** A step's outcome or "Starts here": its words in a small pill of its colour. */
+@Composable
+private fun StepPill(text: String, tint: Color) {
+    Box(Modifier.height(20.dp).clip(Capsule).background(tint.copy(alpha = 0.14f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+        Txt(text, 10, 700, tint)
     }
 }
 
@@ -360,20 +380,24 @@ private fun IssueRow(issue: StepIssue) {
     Row(
         Modifier.fillMaxWidth().alpha(if (issue.closed) 0.6f else 1f)
             .then(if (details.isNotEmpty()) Modifier.pressClickable(role = Role.Button) { open = !open } else Modifier),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.padding(top = 5.dp).size(6.dp).background(dot, CircleShape))
+        // The dot under the step's mark (as wide as it), level with the first line.
+        Box(Modifier.width(MARK_SIZE).padding(top = 6.dp), contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.size(6.dp).background(dot, CircleShape))
+        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (label != null) Txt(label, 12, 600, maxLines = 2)
-                if (label != null && next != null) {
-                    if (now != null) Txt(issueNowText(now), 12, 400, if (now is IssueNow.Text) C.Soft else C.Muted, maxLines = Int.MAX_VALUE)
+            if (label != null) Txt(label, 12, 600, maxLines = 2)
+            if (label != null && next != null) {
+                // The fix on its own line: what it is now, an arrow, what it would become.
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+                    if (now != null) Txt(issueNowText(now), 12, 400, C.Muted, maxLines = 2)
                     val changeTo = stringResource(R.string.val_issue_change_to)
                     Txt("→", 12, 400, C.Muted, modifier = Modifier.semantics { contentDescription = changeTo })
-                    Txt(next, 12, 600, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f, fill = false))
-                } else {
-                    Txt(issue.message, 12, 400, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f, fill = false))
+                    Txt(next, 12, 600, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f))
                 }
+            } else {
+                Txt(issue.message, 12, 400, if (label != null) C.Muted else C.Text, maxLines = Int.MAX_VALUE)
             }
             if (open) details.forEach { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
         }

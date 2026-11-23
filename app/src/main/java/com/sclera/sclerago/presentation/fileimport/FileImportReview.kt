@@ -31,7 +31,7 @@ import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.assets.ReviewScreen
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
-import com.sclera.sclerago.presentation.components.CheckBox
+import com.sclera.sclerago.presentation.components.OnOffSwitch
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.main.ReviewItem
 import com.sclera.sclerago.presentation.theme.C
@@ -173,8 +173,8 @@ private fun CreateFieldsToggle(count: Int, on: Boolean, onToggle: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        CheckBox(on)
-        Txt(pluralStringResource(R.plurals.file_import_create_fields, count, count), 12, 500, C.Muted, maxLines = Int.MAX_VALUE)
+        Txt(pluralStringResource(R.plurals.file_import_create_fields, count, count), 12, 400, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+        OnOffSwitch(on, onChange = { onToggle() })
     }
 }
 

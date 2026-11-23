@@ -2,32 +2,21 @@ package com.sclera.sclerago.presentation.main
 
 import com.sclera.sclerago.presentation.components.FilterFab
 import androidx.annotation.StringRes
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.components.ActionDock
@@ -35,13 +24,9 @@ import com.sclera.sclerago.presentation.components.SelectionSummary
 import com.sclera.sclerago.presentation.components.BottomTabBar
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.NavItem
-import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
-import com.sclera.sclerago.presentation.icons.LineIcon
-import com.sclera.sclerago.presentation.theme.C
-import com.sclera.sclerago.presentation.theme.Txt
 import kotlin.math.abs
 
 private data class NavSpec(val tab: Tab, @param:StringRes val label: Int, val icon: Ico, val iconSize: Dp = 21.dp)

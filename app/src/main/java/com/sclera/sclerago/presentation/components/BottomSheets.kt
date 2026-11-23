@@ -42,7 +42,7 @@ import kotlin.math.roundToInt
 internal fun BottomSheet(
     onDismiss: () -> Unit,
     maxHeightFraction: Float = 0.92f,
-    background: Color = C.Surface,
+    background: Color = C.SheetBg,
     fullHeight: Boolean = false,
     closeOnOutside: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
@@ -68,7 +68,7 @@ internal fun BottomSheet(
 }
 
 @Composable
-internal fun SheetHeader(title: String, sub: String?, onClose: () -> Unit) {
+internal fun SheetHeader(title: String, sub: String?, onClose: () -> Unit, titleSize: Int = 16) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 6.dp, bottom = 10.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(title, 16, 700)

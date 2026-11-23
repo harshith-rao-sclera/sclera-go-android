@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.theme
 
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.LocalContentColor
@@ -26,11 +27,11 @@ import com.sclera.sclerago.R
 
 /** Design tokens lifted from the Sclera Go prototype. */
 object C {
-    val Bg = Color(0xFF141518)
-    val Surface = Color(0xFF1E2024)
+    val Bg = Color(0xFF0E0F11)
+    val Surface = Color(0xFF17181B)
     val Border = Color(0xFF2C2F35)
     val Strip = Color(0xFF17181B)
-    val Raised = Color(0xFF272A2F)
+    val Raised = Color(0xFF202226)
     val Text = Color(0xFFF4F4F5)
     val Muted = Color(0xFFA9ACB3)
     val Soft = Color(0xFFD2D4D8)
@@ -54,7 +55,7 @@ object C {
     val Scrim = Color(0xB808090A)
     val White = Color.White
     val IconGrey = Color(0xFF8B8F97)
-    val SheetBg = Color(0xFF1B1D21)
+    val SheetBg = Color(0xFF151619)
     val SheetHandle = Color(0xFF45464C)
     val TintText = Color(0xFFD8CFA8)
     val PrimaryOffBg = Color(0xFF5C4A10)
@@ -108,7 +109,10 @@ fun ScleraTheme(content: @Composable () -> Unit) {
     }
 }
 
-/** Single-line-by-default text with the prototype's px sizes mapped to sp. */
+/**
+ * Single-line-by-default text with the prototype's px sizes mapped to sp. With [minSize] it shrinks (down to that size)
+ * to show in full where it would otherwise be cut off, e.g. a tab's label in a narrow tab.
+ */
 @Composable
 fun Txt(
     text: String,
@@ -122,10 +126,12 @@ fun Txt(
     maxLines: Int = 1,
     align: TextAlign? = null,
     lineHeight: TextUnit = TextUnit.Unspecified,
+    minSize: Number? = null,
 ) {
     Text(
         text = text,
         modifier = modifier,
+        autoSize = minSize?.let { TextAutoSize.StepBased(minFontSize = it.toFloat().sp, maxFontSize = size.toFloat().sp, stepSize = 0.5.sp) },
         color = color,
         fontSize = size.toFloat().sp,
         fontWeight = FontWeight(weight),

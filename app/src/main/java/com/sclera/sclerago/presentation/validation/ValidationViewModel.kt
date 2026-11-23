@@ -191,6 +191,8 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
 
     private var poll: Job? = null
     private var messageJob: Job? = null
+    private var catalogJob: Job? = null
+    private var catalogFor = ""
 
     private fun set(f: ValidationUiState.() -> ValidationUiState) {
         state = state.f()
@@ -217,10 +219,27 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
         viewModelScope.launch { useCases.aiSwitch.observe().collect { on -> set { copy(aiOn = on) } } }
     }
 
+    /**
+     * Reads [propertyId]'s templates ahead of time (once a property is open), so Validate from the asset list or an asset
+     * opens Run validation at the first tap instead of waiting for them. The saved validations and runs are read only
+     * when Validation or the sheet opens ([bind]).
+     */
+    fun prepare(propertyId: String) {
+        if (propertyId.isEmpty() || propertyId == state.propertyId) return
+        poll?.cancel()
+        state = ValidationUiState(
+            propertyId = propertyId, canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate(),
+            myId = useCases.access.userId(), aiOn = state.aiOn,
+        )
+        loadCatalog()
+    }
+
     /** Opens the page for [propertyId] (again when it changed). */
     fun bind(propertyId: String) {
         if (propertyId.isNotEmpty() && propertyId == state.propertyId) {
-            set { copy(canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate()) }
+            // Templates an earlier read couldn't get (offline then) are asked for again now, not reported as unavailable.
+            set { copy(canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate(), catalogFailed = false) }
+            if (!state.catalogLoaded) loadCatalog()
             reload()
             return
         }
@@ -252,13 +271,17 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
 
     private fun loadCatalog() {
         val p = state.propertyId
-        viewModelScope.launch {
+        // One read per property at a time (prepare, bind and reload may each ask for it); another property's read stops.
+        if (catalogJob?.isActive == true && catalogFor == p) return
+        catalogJob?.cancel()
+        catalogFor = p
+        catalogJob = viewModelScope.launch {
             try {
                 val (steps, templates) = useCases.catalog(p)
-                set { copy(steps = steps, templates = templates, catalogLoaded = true, catalogFailed = false) }
+                set { if (propertyId != p) this else copy(steps = steps, templates = templates, catalogLoaded = true, catalogFailed = false) }
             } catch (_: OnlineException) {
                 // Silent, as on the web: the page still shows the lists; templates need a connection.
-                set { copy(catalogFailed = true) }
+                set { if (propertyId != p) this else copy(catalogFailed = true) }
             }
         }
     }

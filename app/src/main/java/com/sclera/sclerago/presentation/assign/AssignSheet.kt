@@ -42,7 +42,7 @@ object AssignTags {
 fun AssignSheet(s: AssignSheetState, vm: AssignViewModel, onSubmitted: () -> Unit) {
     GuardedClose(s.changed, vm::close) { close ->
         BottomSheet(close) {
-            SheetHeader(stringResource(R.string.assign_title), null, close)
+            SheetHeader(stringResource(R.string.assign_title), null, close, titleSize = 20)
             Column(
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).testTag(AssignTags.SHEET),
                 verticalArrangement = Arrangement.spacedBy(10.dp),

@@ -34,6 +34,9 @@ enum class AssetLock {
 
     /** The user can't collect (a viewer): every asset is read-only for them, as the server refuses their changes. */
     NO_PERMISSION,
+
+    /** A collector of a property with geofencing on who is not on premise (or whose location is unknown): view only. */
+    OFF_PREMISE,
 }
 
 /**

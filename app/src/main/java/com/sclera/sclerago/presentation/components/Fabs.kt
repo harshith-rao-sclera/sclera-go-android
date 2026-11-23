@@ -41,6 +41,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.presentation.icons.Ico
@@ -181,6 +182,9 @@ class FabAction(
     val onBlocked: (() -> Unit)?,
     /** A short note after the label, in small grey text (e.g. "0 of 5 added"). */
     val note: String? = null,
+    /** With a subtitle the action is the design's two-line card: right-aligned title and subtitle, then a round [iconColor] icon. */
+    val subtitle: String? = null,
+    val iconColor: Color = C.Yellow,
 ) {
     /** An action that works offline; [onClick] last, so it can be passed as a trailing lambda. */
     constructor(label: String, icon: Ico, tag: String, onClick: () -> Unit) : this(label, icon, tag, onClick, null)
@@ -207,12 +211,13 @@ fun FabMenu(
                 actions.forEach { a ->
                     // Offline, an online-only action stays in the menu (and the menu open) and a tap says why.
                     OfflineGate(a.onBlocked != null, { a.onBlocked?.invoke() }) {
-                        Row(
+                        val click = {
+                            onOpenChange(false)
+                            a.onClick()
+                        }
+                        if (a.subtitle != null) FabCard(a, a.subtitle, click) else Row(
                             Modifier.height(48.dp).testTag(a.tag).fabShadow(Capsule)
-                                .pressClickable(shape = Capsule) {
-                                    onOpenChange(false)
-                                    a.onClick()
-                                }
+                                .pressClickable(shape = Capsule, onClick = click)
                                 .background(C.Btn).border(1.dp, C.Border2, Capsule)
                                 .padding(start = 18.dp, end = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -232,5 +237,24 @@ fun FabMenu(
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) { LineIcon(Icons.Plus, 24.dp, C.OnYellow, 2.8f, Modifier.rotate(turn)) }
+    }
+}
+
+/** A [FabAction] with a subtitle, as the design's menu cards: dark pill, two right-aligned lines, then a 40dp round icon. */
+@Composable
+private fun FabCard(a: FabAction, subtitle: String, onClick: () -> Unit) {
+    Row(
+        Modifier.testTag(a.tag).fabShadow(Capsule, 8.dp).clip(Capsule).background(C.Surface).border(1.dp, C.Border, Capsule)
+            .clickable(onClick = onClick).padding(start = 16.dp, top = 7.dp, end = 7.dp, bottom = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(horizontalAlignment = Alignment.End) {
+            Txt(a.label, 14, 700, align = TextAlign.End)
+            Txt(subtitle, 11, 400, C.Muted, align = TextAlign.End)
+        }
+        Box(Modifier.size(40.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
+            LineIcon(a.icon, 20.dp, a.iconColor, 2f)
+        }
     }
 }
