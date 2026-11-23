@@ -599,4 +599,18 @@
     <string name="valt_count_need_look">göz atılmalı</string>
     <string name="detail_select_jacs">JACS kodunu seçin</string>
     <string name="detail_required_tag">ZORUNLU</string>
+    <string name="property_group_address">Adres</string>
+    <string name="property_pill_ready">Hazır</string>
+    <string name="property_pill_required">%1$d zorunlu</string>
+    <string name="property_pill_none_yet">Henüz yok</string>
+    <string name="property_label_type">Tür</string>
+    <string name="property_label_contact_name">Kişi adı</string>
+    <string name="property_label_contact_email">Kişi e-postası</string>
+    <string name="property_label_contact_phone">Kişi telefonu</string>
+    <string name="property_label_available_from">Başlangıç</string>
+    <string name="property_label_available_until">Bitiş</string>
+    <string name="property_type_or_select_country">Ülke yazın veya seçin</string>
+    <string name="property_type_or_select_state">Eyalet yazın veya seçin</string>
+    <string name="property_type_or_select_city">Şehir yazın veya seçin</string>
+    <string name="property_choose_country_first">Önce bir ülke seçin</string>
 </resources>

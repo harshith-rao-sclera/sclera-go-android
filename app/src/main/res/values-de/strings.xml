@@ -599,4 +599,18 @@
     <string name="valt_count_need_look">zu prüfen</string>
     <string name="detail_select_jacs">JACS-Code auswählen</string>
     <string name="detail_required_tag">ERFORDERLICH</string>
+    <string name="property_group_address">Adresse</string>
+    <string name="property_pill_ready">Bereit</string>
+    <string name="property_pill_required">%1$d erforderlich</string>
+    <string name="property_pill_none_yet">Noch keine</string>
+    <string name="property_label_type">Typ</string>
+    <string name="property_label_contact_name">Kontaktname</string>
+    <string name="property_label_contact_email">Kontakt-E-Mail</string>
+    <string name="property_label_contact_phone">Kontakttelefon</string>
+    <string name="property_label_available_from">Verfügbar ab</string>
+    <string name="property_label_available_until">Verfügbar bis</string>
+    <string name="property_type_or_select_country">Land eingeben oder auswählen</string>
+    <string name="property_type_or_select_state">Bundesland eingeben oder auswählen</string>
+    <string name="property_type_or_select_city">Stadt eingeben oder auswählen</string>
+    <string name="property_choose_country_first">Zuerst ein Land wählen</string>
 </resources>

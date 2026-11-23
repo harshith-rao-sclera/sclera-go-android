@@ -578,4 +578,18 @@
     <string name="valt_count_need_look">perlu dicek</string>
     <string name="detail_select_jacs">Pilih kode JACS</string>
     <string name="detail_required_tag">WAJIB</string>
+    <string name="property_group_address">Alamat</string>
+    <string name="property_pill_ready">Siap</string>
+    <string name="property_pill_required">%1$d wajib</string>
+    <string name="property_pill_none_yet">Belum ada</string>
+    <string name="property_label_type">Jenis</string>
+    <string name="property_label_contact_name">Nama kontak</string>
+    <string name="property_label_contact_email">Email kontak</string>
+    <string name="property_label_contact_phone">Telepon kontak</string>
+    <string name="property_label_available_from">Tersedia dari</string>
+    <string name="property_label_available_until">Tersedia sampai</string>
+    <string name="property_type_or_select_country">Ketik atau pilih negara</string>
+    <string name="property_type_or_select_state">Ketik atau pilih negara bagian</string>
+    <string name="property_type_or_select_city">Ketik atau pilih kota</string>
+    <string name="property_choose_country_first">Pilih negara terlebih dahulu</string>
 </resources>

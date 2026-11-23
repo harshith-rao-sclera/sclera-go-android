@@ -603,4 +603,18 @@
     <string name="valt_count_need_look">da controllare</string>
     <string name="detail_select_jacs">Seleziona codice JACS</string>
     <string name="detail_required_tag">OBBLIGATORIO</string>
+    <string name="property_group_address">Indirizzo</string>
+    <string name="property_pill_ready">Pronto</string>
+    <string name="property_pill_required">%1$d obbligatori</string>
+    <string name="property_pill_none_yet">Nessuna</string>
+    <string name="property_label_type">Tipo</string>
+    <string name="property_label_contact_name">Nome contatto</string>
+    <string name="property_label_contact_email">Email contatto</string>
+    <string name="property_label_contact_phone">Telefono contatto</string>
+    <string name="property_label_available_from">Disponibile dalle</string>
+    <string name="property_label_available_until">Disponibile fino alle</string>
+    <string name="property_type_or_select_country">Digita o seleziona il paese</string>
+    <string name="property_type_or_select_state">Digita o seleziona lo stato</string>
+    <string name="property_type_or_select_city">Digita o seleziona la città</string>
+    <string name="property_choose_country_first">Scegli prima un paese</string>
 </resources>

@@ -578,4 +578,18 @@
     <string name="valt_count_need_look">ต้องตรวจสอบ</string>
     <string name="detail_select_jacs">เลือกรหัส JACS</string>
     <string name="detail_required_tag">จำเป็น</string>
+    <string name="property_group_address">ที่อยู่</string>
+    <string name="property_pill_ready">พร้อม</string>
+    <string name="property_pill_required">ต้องกรอก %1$d</string>
+    <string name="property_pill_none_yet">ยังไม่มี</string>
+    <string name="property_label_type">ประเภท</string>
+    <string name="property_label_contact_name">ชื่อผู้ติดต่อ</string>
+    <string name="property_label_contact_email">อีเมลผู้ติดต่อ</string>
+    <string name="property_label_contact_phone">โทรศัพท์ผู้ติดต่อ</string>
+    <string name="property_label_available_from">พร้อมใช้งานตั้งแต่</string>
+    <string name="property_label_available_until">พร้อมใช้งานถึง</string>
+    <string name="property_type_or_select_country">พิมพ์หรือเลือกประเทศ</string>
+    <string name="property_type_or_select_state">พิมพ์หรือเลือกรัฐ</string>
+    <string name="property_type_or_select_city">พิมพ์หรือเลือกเมือง</string>
+    <string name="property_choose_country_first">เลือกประเทศก่อน</string>
 </resources>

@@ -578,4 +578,18 @@
     <string name="valt_count_need_look">cần xem lại</string>
     <string name="detail_select_jacs">Chọn mã JACS</string>
     <string name="detail_required_tag">BẮT BUỘC</string>
+    <string name="property_group_address">Địa chỉ</string>
+    <string name="property_pill_ready">Sẵn sàng</string>
+    <string name="property_pill_required">Cần %1$d</string>
+    <string name="property_pill_none_yet">Chưa có</string>
+    <string name="property_label_type">Loại</string>
+    <string name="property_label_contact_name">Tên liên hệ</string>
+    <string name="property_label_contact_email">Email liên hệ</string>
+    <string name="property_label_contact_phone">Điện thoại liên hệ</string>
+    <string name="property_label_available_from">Có mặt từ</string>
+    <string name="property_label_available_until">Có mặt đến</string>
+    <string name="property_type_or_select_country">Nhập hoặc chọn quốc gia</string>
+    <string name="property_type_or_select_state">Nhập hoặc chọn tiểu bang</string>
+    <string name="property_type_or_select_city">Nhập hoặc chọn thành phố</string>
+    <string name="property_choose_country_first">Hãy chọn quốc gia trước</string>
 </resources>

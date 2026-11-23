@@ -578,4 +578,18 @@
     <string name="valt_count_need_look">需要查看</string>
     <string name="detail_select_jacs">选择 JACS 代码</string>
     <string name="detail_required_tag">必填</string>
+    <string name="property_group_address">地址</string>
+    <string name="property_pill_ready">就绪</string>
+    <string name="property_pill_required">必填 %1$d 项</string>
+    <string name="property_pill_none_yet">暂无</string>
+    <string name="property_label_type">类型</string>
+    <string name="property_label_contact_name">联系人姓名</string>
+    <string name="property_label_contact_email">联系人邮箱</string>
+    <string name="property_label_contact_phone">联系人电话</string>
+    <string name="property_label_available_from">开放时间自</string>
+    <string name="property_label_available_until">开放时间至</string>
+    <string name="property_type_or_select_country">输入或选择国家</string>
+    <string name="property_type_or_select_state">输入或选择州/省</string>
+    <string name="property_type_or_select_city">输入或选择城市</string>
+    <string name="property_choose_country_first">请先选择国家</string>
 </resources>
