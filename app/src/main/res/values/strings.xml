@@ -794,4 +794,11 @@
     <string name="memo_subtitle">Say what\'s worth knowing about the asset.</string>
     <string name="memo_stop">Stop</string>
     <string name="memo_save">Save memo</string>
+    <string name="premise_banner_off">You are outside this property\'s geofence, so you can view assets but not add or edit them.</string>
+    <string name="premise_banner_location_needed">This property limits collectors to working on site. Allow location access to add or edit assets.</string>
+    <string name="premise_banner_location_unknown">Your location can\'t be found, so you can view assets but not add or edit them.</string>
+    <string name="premise_perm_title">Confirm you are on site</string>
+    <string name="premise_perm_body">This property only lets collectors add and edit assets on site. Sclera Go compares your location with the property boundary on this phone. It is not saved or sent.</string>
+    <string name="lock_banner_off_premise">Outside the property</string>
+    <string name="lock_banner_off_premise_body">This property uses geofencing. Collectors can view this asset but not change it while away from the site or while the phone\'s location is unknown.</string>
 </resources>

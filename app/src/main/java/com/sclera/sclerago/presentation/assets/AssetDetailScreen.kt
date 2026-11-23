@@ -49,7 +49,7 @@ import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
-import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
+
 import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ConfirmDialog
@@ -197,7 +197,7 @@ fun AssetDetailScreen(
                                 // Tagging changes the asset (its tag flags), so only for whoever may change it (collect,
                                 // theirs or nobody's unless an admin, not in Managed Assets), and, as the old app, never
                                 // a submitted or signed-off asset.
-                                TagsBar(tags, actions.tags, enabled = state.canEdit && !isSubmittedOrSignedOff(asset.st))
+                                TagsBar(tags, actions.tags, enabled = state.canEdit)
                                 InfoPhotoStrip(state.media, onAdd = if (mediaLocked) null else ({ actions.onAddPhoto(null) }), onOpen = open)
                                 if (state.managed) {
                                     // In Managed Assets: said once, where its validation would be (its checks went with the move).

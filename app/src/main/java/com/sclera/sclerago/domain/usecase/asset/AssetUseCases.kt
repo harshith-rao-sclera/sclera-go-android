@@ -172,6 +172,8 @@ class SaveAssetDetailsUseCase @Inject constructor(
 class CanEditAssetUseCase @Inject constructor(private val guard: PermissionGuard) {
     fun lock(asset: Asset): AssetLock? = when {
         asset.managed -> AssetLock.MANAGED
+        // A collector away from a property with geofencing on looks only: nothing can be changed until they are on premise.
+        guard.viewOnlyByLocation() -> AssetLock.OFF_PREMISE
         // No Collect permission (a viewer, or a group that only checks): nothing can be changed, whoever they are, as the
         // server refuses it (the web's lockedForMe).
         !guard.allows(Permission.COLLECT) -> AssetLock.NO_PERMISSION
@@ -220,9 +222,10 @@ class CanWorkOnAssetUseCase @Inject constructor(private val repo: AssetRepositor
 
     /**
      * The signed-in user's group can neither collect nor check (Viewers): nothing changes an asset and there are no
-     * validations to run, so there is nothing to select assets for.
+     * validations to run, so there is nothing to select assets for. A collector held to view only by the geofence is
+     * the same: nothing to select.
      */
-    fun viewOnly(): Boolean = !guard.allows(Permission.COLLECT) && !guard.allows(Permission.CHECK)
+    fun viewOnly(): Boolean = guard.viewOnlyByLocation() || (!guard.allows(Permission.COLLECT) && !guard.allows(Permission.CHECK))
 
     /** The same check for many ids (say a select-all), worked out once over the property's assets. */
     fun checker(): (String) -> Boolean {

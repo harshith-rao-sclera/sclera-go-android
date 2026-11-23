@@ -1,7 +1,9 @@
 package com.sclera.sclerago.di
 
 import com.sclera.sclerago.data.local.AndroidClockFormat
+import com.sclera.sclerago.domain.repository.DeviceLocationSource
 import com.sclera.sclerago.domain.system.ClockFormat
+import com.sclera.sclerago.services.location.AndroidDeviceLocationSource
 import com.sclera.sclerago.data.local.SystemTimeProvider
 import com.sclera.sclerago.data.local.UuidIdGenerator
 import com.sclera.sclerago.domain.system.IdGenerator
@@ -18,4 +20,5 @@ abstract class SystemModule {
     @Binds abstract fun ids(impl: UuidIdGenerator): IdGenerator
     @Binds abstract fun time(impl: SystemTimeProvider): TimeProvider
     @Binds abstract fun clockFormat(impl: AndroidClockFormat): ClockFormat
+    @Binds abstract fun deviceLocation(impl: AndroidDeviceLocationSource): DeviceLocationSource
 }
