@@ -571,4 +571,11 @@
     <string name="premise_perm_body">ทรัพย์สินนี้อนุญาตให้ผู้เก็บข้อมูลเพิ่มและแก้ไขสินทรัพย์ในสถานที่เท่านั้น Sclera Go เปรียบเทียบตำแหน่งของคุณกับขอบเขตของทรัพย์สินบนโทรศัพท์เครื่องนี้ โดยไม่บันทึกหรือส่งตำแหน่งออกไป</string>
     <string name="lock_banner_off_premise">อยู่นอกทรัพย์สิน</string>
     <string name="lock_banner_off_premise_body">ทรัพย์สินนี้ใช้จีโอเฟนซิง ผู้เก็บข้อมูลดูสินทรัพย์นี้ได้แต่แก้ไขไม่ได้ขณะอยู่ห่างจากสถานที่หรือเมื่อไม่ทราบตำแหน่งของโทรศัพท์</string>
+    <string name="property_fab_import_title">นำเข้าจากสเปรดชีต</string>
+    <string name="property_fab_import_sub">หลายทรัพย์สินจากไฟล์ .xlsx</string>
+    <string name="property_fab_new_title">ทรัพย์สินใหม่</string>
+    <string name="property_fab_new_sub">กรอกรายละเอียด</string>
+    <string name="valt_count_need_look">ต้องตรวจสอบ</string>
+    <string name="detail_select_jacs">เลือกรหัส JACS</string>
+    <string name="detail_required_tag">จำเป็น</string>
 </resources>

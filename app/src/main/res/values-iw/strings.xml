@@ -603,4 +603,11 @@
     <string name="premise_perm_body">הנכס הזה מאפשר לאוספים להוסיף ולערוך נכסים רק באתר. Sclera Go משווה את המיקום שלכם לגבול הנכס בטלפון הזה. המיקום לא נשמר ולא נשלח.</string>
     <string name="lock_banner_off_premise">מחוץ לנכס</string>
     <string name="lock_banner_off_premise_body">הנכס הזה משתמש בגדר גיאוגרפית. אוספים יכולים לצפות בנכס אך לא לשנות אותו כשהם רחוקים מהאתר או כשמיקום הטלפון אינו ידוע.</string>
+    <string name="property_fab_import_title">ייבוא מגיליון אלקטרוני</string>
+    <string name="property_fab_import_sub">נכסים רבים מקובץ .xlsx</string>
+    <string name="property_fab_new_title">נכס חדש</string>
+    <string name="property_fab_new_sub">מלאו את הפרטים שלו</string>
+    <string name="valt_count_need_look">דורשים בדיקה</string>
+    <string name="detail_select_jacs">בחר קוד JACS</string>
+    <string name="detail_required_tag">שדה חובה</string>
 </resources>

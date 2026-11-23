@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.PlaceNames
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.bottomBorder
@@ -138,7 +139,7 @@ fun FormSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                LineIcon(Icons.ChevronDown, 18.dp, C.Muted, 2.4f, Modifier.rotate(rot))
+                LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 3.2f, Modifier.rotate(rot))
                 Txt(title, 15, 700, modifier = Modifier.weight(1f))
                 if (!open && summary != null) {
                     Txt(summary.text, 11, if (summary.warn) 700 else 500, if (summary.warn) C.Orange else C.Muted, mono = summary.mono)
@@ -214,7 +215,30 @@ fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier, onCli
     ) {
         Txt(label, 13, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
         Txt(value ?: stringResource(R.string.detail_value_none), 15, 600, if (value != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
-        if (onClick != null) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
+        if (onClick != null) LineIcon(Icons.ChevronDown, 13.dp, C.Muted, 3f)
+    }
+}
+
+/**
+ * The Location row above Assignment: its own band, the most specific place name over the rest ("Level 2 · Test 861"), or
+ * "-" when the asset is placed nowhere. With [onClick] it opens the location picker (a chevron shows).
+ */
+@Composable
+fun LocationRow(place: PlaceNames, label: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val names = listOfNotNull(place.location, place.floor, place.building)
+    Row(
+        modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).heightIn(min = 48.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Txt(label, 13, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        Column(Modifier.weight(1f).padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Txt(names.firstOrNull() ?: stringResource(R.string.detail_value_none), 15, 600, if (names.isEmpty()) C.Muted else C.Text, maxLines = Int.MAX_VALUE)
+            if (names.size > 1) Txt(names.drop(1).joinToString(" · "), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        }
+        if (onClick != null) LineIcon(Icons.ChevronRight, 12.dp, C.Dim, 3.2f)
     }
 }
 
@@ -243,6 +267,8 @@ fun PickRow(
     mono: Boolean = false,
     badge: FieldBadge = FieldBadge.NONE,
     requester: BringIntoViewRequester? = null,
+    /** A short orange tag before the chevron (a mandatory value still missing: "REQUIRED"). */
+    tag: String? = null,
 ) {
     val readOnly = LocalReadOnly.current
     Row(
@@ -258,7 +284,8 @@ fun PickRow(
             Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp), maxLines = Int.MAX_VALUE,
         )
         BadgeText(key, badge)
-        if (!readOnly) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
+        tag?.let { Txt(it, 10, 700, C.Orange) }
+        if (!readOnly) LineIcon(Icons.ChevronDown, 13.dp, C.Muted, 3f)
     }
 }
 
@@ -302,6 +329,6 @@ fun SelectRow(
                 }
             }
         }
-        if (!readOnly) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
+        if (!readOnly) LineIcon(Icons.ChevronDown, 13.dp, C.Muted, 3f)
     }
 }

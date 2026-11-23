@@ -203,12 +203,18 @@ fun ValidationScreen(
                 }
                 item(key = "jobs-title") { SectionTitle(stringResource(R.string.valt_recent_jobs), s.runs.size) }
                 if (s.runs.isEmpty()) item(key = "jobs-empty") { EmptyNote(stringResource(if (s.loading) R.string.val_loading else R.string.val_jobs_empty)) }
-                items(s.runs, key = { "job-${it.id}" }) { j ->
-                    JobRow(
-                        j, busy = j.id in s.busyRuns, onReview = { vm.openReview(j.id) },
-                        onStart = if (s.canCheck && !offline) ({ vm.startReady(j) }) else null,
-                        onDiscard = if (s.canValidate && !offline) ({ vm.discard(j) }) else null,
-                    )
+                if (s.runs.isNotEmpty()) item(key = "jobs") {
+                    // One card holding every job, rows split by hairlines, as the design.
+                    Column(Modifier.padding(horizontal = 14.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14))) {
+                        s.runs.forEachIndexed { i, j ->
+                            if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(C.Border))
+                            JobRow(
+                                j, busy = j.id in s.busyRuns, onReview = { vm.openReview(j.id) },
+                                onStart = if (s.canCheck && !offline) ({ vm.startReady(j) }) else null,
+                                onDiscard = if (s.canValidate && !offline) ({ vm.discard(j) }) else null,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -395,10 +401,10 @@ internal fun ResultBar(failed: Int, look: Int, passed: Int, modifier: Modifier =
 
 @Composable
 internal fun Counts(failed: Int, look: Int, passed: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         listOf(
             Triple(failed, stringResource(R.string.valt_count_failed), C.Red),
-            Triple(look, stringResource(R.string.valt_count_look), C.Orange),
+            Triple(look, stringResource(R.string.valt_count_need_look), C.Orange),
             Triple(passed, stringResource(R.string.valt_count_passed), C.Green),
         ).forEach { (n, l, c) ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -467,8 +473,7 @@ internal fun scopeText(j: ValRun): String = ValidationViewModel.scopeText(j).asS
 private fun JobRow(j: ValRun, busy: Boolean, onReview: () -> Unit, onStart: (() -> Unit)?, onDiscard: (() -> Unit)?) {
     val ready = j.status == RunStatus.READY
     Column(
-        Modifier.padding(horizontal = 14.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
-            .border(1.dp, C.Border, r(14)).clickable(enabled = !ready, onClick = onReview).padding(14.dp),
+        Modifier.fillMaxWidth().clickable(enabled = !ready, onClick = onReview).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

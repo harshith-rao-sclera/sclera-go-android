@@ -64,6 +64,7 @@ import com.sclera.sclerago.presentation.components.AccessFailedBanner
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.endBorder
 import com.sclera.sclerago.presentation.components.noRippleClick
+import com.sclera.sclerago.presentation.common.ellipsizeMiddle
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Ico
@@ -217,7 +218,7 @@ internal fun SideMenuPanel(
                         listOfNotNull(session?.role, session?.organisation).joinToString(" · ").takeIf { it.isNotEmpty() }?.let {
                             Txt(it, 12, 600, C.Yellow)
                         }
-                        session?.email?.let { Txt(it, 12, 400, C.Muted) }
+                        session?.email?.let { Txt(it.ellipsizeMiddle(EmailMaxChars), 12, 400, C.Muted) }
                     }
                     val closeLabel = stringResource(R.string.action_close)
                     RoundButton(38.dp, C.Btn, onClose, Modifier.semantics { contentDescription = closeLabel }) {
@@ -268,7 +269,7 @@ internal fun SideMenuPanel(
                         Column(Modifier.topBorder(C.Border).padding(start = 12.dp, end = 8.dp)) {
                             if (showAssets) SectionRow(MenuItem.ASSETS, stringResource(R.string.label_assets), Icons.Box, Trailing.Count(assetCount), active, onPick, first = true)
                             if (showValidation) SectionRow(
-                                MenuItem.VALIDATION, stringResource(R.string.menu_validation), Icons.ShieldCheck,
+                                MenuItem.VALIDATION, stringResource(R.string.menu_validation), Icons.ValidationChecks,
                                 Trailing.Open, active, onPick,
                             )
                             if (showConfiguration) SectionRow(MenuItem.CONFIGURATION, stringResource(R.string.menu_configuration), Icons.Sliders, Trailing.Open, active, onPick)
@@ -297,6 +298,9 @@ internal fun SideMenuPanel(
 }
 
 private const val AVATAR_PX = 138
+
+/** Longest email the menu shows whole; a longer one is cut in the middle (as the design's "masteruser.bri…h@sclera.com"). */
+private const val EmailMaxChars = 27
 
 /** Profile photo, or the user's initials on yellow when there is none (or while it loads). */
 @Composable

@@ -115,7 +115,8 @@ fun detailTabs(state: AssetDetailState): List<DetailTabItem> {
     if (state.asset == null) return emptyList()
     return buildList {
         add(DetailTabItem(DetailTabKind.INFO))
-        if (!state.isNew) add(DetailTabItem(DetailTabKind.VALIDATION))
+        // The red count badge is the steps needing attention (the Info banner's "N of M"); none while there are none.
+        if (!state.isNew) add(DetailTabItem(DetailTabKind.VALIDATION, state.validation?.problems?.size?.takeIf { it > 0 }))
         // A new asset has Documents too: the files picked for it, added with it.
         add(DetailTabItem(DetailTabKind.DOCUMENTS))
         add(DetailTabItem(DetailTabKind.MEDIA))

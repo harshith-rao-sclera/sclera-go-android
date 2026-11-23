@@ -592,4 +592,11 @@
     <string name="premise_perm_body">यह प्रॉपर्टी कलेक्टरों को केवल साइट पर एसेट जोड़ने और संपादित करने देती है। Sclera Go इस फ़ोन पर आपकी लोकेशन की तुलना प्रॉपर्टी की सीमा से करता है। इसे सहेजा या भेजा नहीं जाता।</string>
     <string name="lock_banner_off_premise">प्रॉपर्टी के बाहर</string>
     <string name="lock_banner_off_premise_body">यह प्रॉपर्टी जियोफेंसिंग का उपयोग करती है। कलेक्टर यह एसेट देख सकते हैं, लेकिन साइट से दूर होने या फ़ोन की लोकेशन अज्ञात होने पर इसे बदल नहीं सकते।</string>
+    <string name="property_fab_import_title">स्प्रेडशीट से आयात करें</string>
+    <string name="property_fab_import_sub">एक .xlsx फ़ाइल से कई प्रॉपर्टी</string>
+    <string name="property_fab_new_title">नई प्रॉपर्टी</string>
+    <string name="property_fab_new_sub">इसका विवरण भरें</string>
+    <string name="valt_count_need_look">देखने की जरूरत</string>
+    <string name="detail_select_jacs">JACS कोड चुनें</string>
+    <string name="detail_required_tag">आवश्यक</string>
 </resources>

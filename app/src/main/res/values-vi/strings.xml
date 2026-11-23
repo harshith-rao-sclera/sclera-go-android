@@ -571,4 +571,11 @@
     <string name="premise_perm_body">Bất động sản này chỉ cho phép người thu thập thêm và chỉnh sửa tài sản tại chỗ. Sclera Go so sánh vị trí của bạn với ranh giới bất động sản ngay trên điện thoại này. Vị trí không được lưu hoặc gửi đi.</string>
     <string name="lock_banner_off_premise">Ngoài bất động sản</string>
     <string name="lock_banner_off_premise_body">Bất động sản này dùng hàng rào địa lý. Người thu thập có thể xem tài sản này nhưng không thể thay đổi khi ở xa hiện trường hoặc khi không xác định được vị trí điện thoại.</string>
+    <string name="property_fab_import_title">Nhập từ bảng tính</string>
+    <string name="property_fab_import_sub">Nhiều bất động sản từ tệp .xlsx</string>
+    <string name="property_fab_new_title">Bất động sản mới</string>
+    <string name="property_fab_new_sub">Điền thông tin chi tiết</string>
+    <string name="valt_count_need_look">cần xem lại</string>
+    <string name="detail_select_jacs">Chọn mã JACS</string>
+    <string name="detail_required_tag">BẮT BUỘC</string>
 </resources>

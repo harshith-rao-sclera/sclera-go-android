@@ -606,4 +606,11 @@
     <string name="premise_perm_body">Этот объект позволяет сборщикам добавлять и редактировать активы только на месте. Sclera Go сравнивает ваше местоположение с границей объекта на этом телефоне. Оно не сохраняется и не отправляется.</string>
     <string name="lock_banner_off_premise">За пределами объекта</string>
     <string name="lock_banner_off_premise_body">Этот объект использует геозону. Сборщики могут просматривать этот актив, но не изменять его, пока находятся вдали от объекта или местоположение телефона неизвестно.</string>
+    <string name="property_fab_import_title">Импорт из таблицы</string>
+    <string name="property_fab_import_sub">Много объектов из файла .xlsx</string>
+    <string name="property_fab_new_title">Новый объект</string>
+    <string name="property_fab_new_sub">Заполните сведения</string>
+    <string name="valt_count_need_look">требуют проверки</string>
+    <string name="detail_select_jacs">Выберите код JACS</string>
+    <string name="detail_required_tag">ОБЯЗАТЕЛЬНО</string>
 </resources>

@@ -69,7 +69,7 @@ object DashTags {
 
 /** The top bar height of the design (menu and logo row), and the height of the location tab row under it. */
 private val TopRowHeight = 50.dp
-private val TabRowHeight = 44.dp
+private val TabRowHeight = 49.dp
 
 /**
  * The dashboard header: the menu button and the logo, then the three location tabs (the property,
@@ -117,18 +117,18 @@ private fun LocationTabs(
     Row(Modifier.fillMaxWidth().height(TabRowHeight).topBorder(C.Border).background(C.Strip)) {
         LocCell(
             LocFilter.ALL, selected, LocWeights.ALL, Icons.Property, divider = true, onPick, onChevron,
-        ) { color, weight -> Txt(propertyName, 13, weight, color, maxLines = 1) }
+        ) { color, weight -> Txt(propertyName, 14, weight, color, maxLines = 1) }
         LocCell(
             LocFilter.SPEC, selected, LocWeights.SPEC, Icons.Pin, divider = true, onPick, onChevron,
         ) { color, weight ->
             Column {
-                if (shown.size > 1) Txt(shown.dropLast(1).joinToString(" / "), 10, 500, C.Muted, maxLines = 1)
-                Txt(shown.last(), 13, weight, color, maxLines = 1)
+                if (shown.size > 1) Txt(shown[shown.size - 2], 11, 500, C.Muted, maxLines = 1) // the design: the parent (floor) over the place
+                Txt(shown.last(), 14, weight, color, maxLines = 1)
             }
         }
         LocCell(
             LocFilter.NONE, selected, LocWeights.NONE, Icons.Unmapped, divider = false, onPick, null,
-        ) { color, weight -> Txt(stringResource(R.string.dash_unmapped), 13, weight, color, maxLines = 1) }
+        ) { color, weight -> Txt(stringResource(R.string.dash_unmapped), 14, weight, color, maxLines = 1) }
     }
 }
 
