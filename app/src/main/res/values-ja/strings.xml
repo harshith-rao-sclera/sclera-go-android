@@ -592,4 +592,5 @@
     <string name="property_type_or_select_state">州を入力または選択</string>
     <string name="property_type_or_select_city">市区町村を入力または選択</string>
     <string name="property_choose_country_first">先に国を選択してください</string>
+    <string name="rev_back">戻る</string>
 </resources>

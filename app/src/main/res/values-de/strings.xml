@@ -613,4 +613,5 @@
     <string name="property_type_or_select_state">Bundesland eingeben oder auswählen</string>
     <string name="property_type_or_select_city">Stadt eingeben oder auswählen</string>
     <string name="property_choose_country_first">Zuerst ein Land wählen</string>
+    <string name="rev_back">Zurück</string>
 </resources>

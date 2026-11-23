@@ -1218,7 +1218,7 @@ private fun FieldCfgRow(
         // Name (a lock on built-in fields), and how many options a dropdown has.
         Column(Modifier.weight(1f).padding(start = 0.dp, top = 10.dp, end = 6.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Txt(f.label, 14, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                Txt(f.label, 13, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
                 if (f.key in SYSTEM_FIELDS) LineIcon(Icons.Lock, 9.dp, C.Dim, 2.4f)
             }
             if (f.kind in OPTION_KINDS) Txt(pluralStringResource(R.plurals.cfg_field_options, options, options), 11, 400, C.Muted, maxLines = 1)

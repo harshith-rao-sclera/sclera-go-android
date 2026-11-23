@@ -613,4 +613,5 @@
     <string name="property_type_or_select_state">Eyalet yazın veya seçin</string>
     <string name="property_type_or_select_city">Şehir yazın veya seçin</string>
     <string name="property_choose_country_first">Önce bir ülke seçin</string>
+    <string name="rev_back">Geri</string>
 </resources>

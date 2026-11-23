@@ -78,16 +78,14 @@ internal fun JobReview(
     val localById = remember(assets) { assets.associateBy { it.id } }
     Box(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }) {
         Column(Modifier.fillMaxSize()) {
-            PageBar(stringResource(R.string.rev_title), null, onBack = onBack)
+            PageBar(stringResource(R.string.rev_title), null, onBack = onBack, backLabel = stringResource(R.string.rev_back))
             if (j == null) {
                 EmptyNote(stringResource(if (s.runFailed) R.string.valt_job_load_failed else R.string.val_loading))
             } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 24.dp)) {
                 // Nothing checked yet: just the progress and a note that the run goes on at the server.
                 val starting = j.status.active && j.processed == 0
-                item(key = "head") { ReviewHead(j) }
-                item(key = "summary") {
-                    ReviewSummary(j, s.confidentCount, s.canCheck, s.busy, vm::applyConfident, vm::export) { onRunAgain(j) }
-                }
+                item(key = "head") { ReviewHead(j, s.confidentCount, s.canCheck, s.busy, vm::applyConfident, vm::export) { onRunAgain(j) } }
+                item(key = "summary") { ReviewSummary(j) }
                 if (starting) item(key = "running-note") { RunningNote() }
                 s.insights?.takeIf { j.status.finished }?.let { ins ->
                     if (ins.hasContent) item(key = "fields") { FieldsToFix(ins) }

@@ -617,4 +617,5 @@
     <string name="property_type_or_select_state">Saisir ou choisir l\'état</string>
     <string name="property_type_or_select_city">Saisir ou choisir la ville</string>
     <string name="property_choose_country_first">Choisissez d\'abord un pays</string>
+    <string name="rev_back">Retour</string>
 </resources>

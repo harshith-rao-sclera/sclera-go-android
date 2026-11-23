@@ -627,4 +627,5 @@
     <string name="property_type_or_select_state">Введіть або виберіть штат</string>
     <string name="property_type_or_select_city">Введіть або виберіть місто</string>
     <string name="property_choose_country_first">Спершу виберіть країну</string>
+    <string name="rev_back">Назад</string>
 </resources>
