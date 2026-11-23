@@ -65,10 +65,10 @@ internal fun EmptyNote(text: String) {
 @Composable
 internal fun CheckBox(on: Boolean) {
     Box(
-        Modifier.size(22.dp).clip(r(6)).background(if (on) C.Yellow else Color.Transparent)
-            .border(1.5.dp, if (on) C.Yellow else C.RadioOff, r(6)),
+        Modifier.size(22.dp).clip(r(7)).background(if (on) C.Yellow else Color.Transparent)
+            .border(2.dp, if (on) C.Yellow else C.RadioOff, r(7)),
         contentAlignment = Alignment.Center,
-    ) { if (on) LineIcon(Icons.Check, 14.dp, C.OnYellow, 3f) }
+    ) { if (on) LineIcon(Icons.Check, 12.dp, C.OnYellow, 3.4f) }
 }
 
 /** The yellow floating + (the same as the main screen's add-asset button). */
@@ -91,16 +91,30 @@ internal fun LabeledInput(
     minLines: Int = 1,
     /** Smaller text and padding, for denser pages. */
     compact: Boolean = true,
+    /** The sheets' field of the design: 12 label (a trailing * in red), 44 high box, 15 text. */
+    sheet: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp)) {
-        FieldLabel(label)
+        if (sheet) SheetFieldLabel(label) else FieldLabel(label)
         PlainField(
             value, onChange, placeholder,
-            Modifier.fillMaxWidth().heightIn(min = if (compact) 42.dp else 54.dp).clip(r(if (compact) 10 else 12)).background(C.Bg)
-                .border(1.dp, C.Border2, r(if (compact) 10 else 12))
+            Modifier.fillMaxWidth()
+                .heightIn(min = if (sheet) (if (minLines <= 1) 44.dp else 88.dp) else if (compact) 42.dp else 54.dp)
+                .clip(r(if (compact) 10 else 12)).background(C.Bg)
+                .border(1.dp, if (sheet) C.Border else C.Border2, r(if (compact) 10 else 12))
                 .padding(horizontal = if (compact) 12.dp else 16.dp, vertical = if (compact) 11.dp else 15.dp),
-            size = if (compact) 13 else 15, singleLine = singleLine, minLines = minLines,
+            size = if (compact && !sheet) 13 else 15, singleLine = singleLine, minLines = minLines,
         )
+    }
+}
+
+/** A sheet field's label: small and muted; a trailing * marks it mandatory and is drawn red. */
+@Composable
+internal fun SheetFieldLabel(label: String) {
+    val req = label.endsWith("*")
+    Row {
+        Txt(label.removeSuffix("*").trimEnd(), 12, 600, C.Muted)
+        if (req) Txt("*", 12, 700, C.Red, Modifier.padding(start = 2.dp))
     }
 }
 
@@ -115,7 +129,7 @@ internal fun CfgCard(modifier: Modifier = Modifier, content: @Composable ColumnS
 fun OnOffSwitch(on: Boolean, modifier: Modifier = Modifier, onChange: (Boolean) -> Unit) {
     val track by animateColorAsState(if (on) C.Yellow else C.RadioOff, label = "switch")
     val x by animateDpAsState(if (on) 22.dp else 2.dp, label = "thumb")
-    Box(modifier.size(50.dp, 30.dp).clip(Capsule).background(track).clickable { onChange(!on) }) {
-        Box(Modifier.padding(start = x, top = 3.dp).size(24.dp).clip(CircleShape).background(Color.White))
+    Box(modifier.size(51.dp, 31.dp).clip(Capsule).background(track).clickable { onChange(!on) }) {
+        Box(Modifier.padding(start = x, top = 2.dp).size(27.dp).clip(CircleShape).background(Color.White))
     }
 }

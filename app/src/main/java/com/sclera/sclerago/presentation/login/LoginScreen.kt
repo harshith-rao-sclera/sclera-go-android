@@ -51,6 +51,10 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.shape.CircleShape
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -86,6 +90,8 @@ internal object LoginTags {
     const val ERROR = "login_error"
     const val WEB = "login_web"
     const val TAGLINE = "login_tagline"
+    const val OFFLINE = "login_offline"
+    const val CLEAR = "login_clear"
 }
 
 /**
@@ -95,11 +101,12 @@ internal object LoginTags {
  * [reason] is set when the user was sent here because their session ended (expired, blocked, …).
  */
 @Composable
-fun LoginScreen(reason: AuthError?, vm: LoginViewModel = hiltViewModel()) {
+fun LoginScreen(reason: AuthError?, vm: LoginViewModel = hiltViewModel(), connectivity: ConnectivityViewModel = hiltViewModel()) {
     var email by rememberSaveable { mutableStateOf("") }
     // Same lifetime as the screen's former `remember` state: reset whenever it enters composition.
     remember { vm.start(reason) }
     val ui by vm.state.collectAsStateWithLifecycle()
+    val online by connectivity.online.collectAsStateWithLifecycle()
     val error = ui.error
 
     Box(Modifier.fillMaxSize().background(C.Bg)) {
@@ -109,6 +116,7 @@ fun LoginScreen(reason: AuthError?, vm: LoginViewModel = hiltViewModel()) {
                 error = error,
                 onEmailChange = { email = it; vm.onEmailChanged() },
                 onContinue = { vm.onContinue(email) },
+                online = online,
             )
             LoginStage.Web -> Box(Modifier.systemBarsPadding().imePadding()) {
                 SsoWebStep(
@@ -140,7 +148,36 @@ private fun FieldError(message: String) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         LineIcon(Icons.Alert, 14.dp, C.Red, 2.2f)
-        Txt(message, 12, 500, C.Red, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+        Txt(message, 13, 400, C.Red, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+    }
+}
+
+/** "No internet connection" strip above the sign-in screen (design: "Sign in offline" artboard). */
+@Composable
+private fun OfflineStrip() {
+    Row(
+        Modifier.fillMaxWidth().height(34.dp).background(C.Orange).testTag(LoginTags.OFFLINE),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        LineIcon(Icons.NoWifi, 16.dp, C.OnYellow, 2.4f)
+        Spacer(Modifier.width(8.dp))
+        Txt(stringResource(R.string.login_offline_banner), 13, 700, C.OnYellow)
+    }
+}
+
+/** The round "x" that empties the email field. */
+@Composable
+private fun ClearButton(onClick: () -> Unit) {
+    val label = stringResource(R.string.login_clear_email)
+    Box(
+        Modifier.size(32.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label }.testTag(LoginTags.CLEAR),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.size(18.dp).clip(CircleShape).background(C.Dim), contentAlignment = Alignment.Center) {
+            LineIcon(Icons.Close, 10.dp, C.Surface, 2.6f)
+        }
     }
 }
 
@@ -156,12 +193,17 @@ private fun EmailStep(
     error: UiText?,
     onEmailChange: (String) -> Unit,
     onContinue: () -> Unit,
+    online: Boolean = true,
 ) {
-    Box(Modifier.fillMaxSize().background(C.Bg)) {
-        if (isTablet()) {
-            TabletEmailStep(email, error, onEmailChange, onContinue)
-        } else {
-            PhoneEmailStep(email, error, onEmailChange, onContinue)
+    // Offline: the strip sits under the status bar and the screen below it, as in the artboard.
+    Column(Modifier.fillMaxSize().background(C.Bg).then(if (online) Modifier else Modifier.statusBarsPadding())) {
+        if (!online) OfflineStrip()
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            if (isTablet()) {
+                TabletEmailStep(email, error, onEmailChange, onContinue, online)
+            } else {
+                PhoneEmailStep(email, error, onEmailChange, onContinue, online)
+            }
         }
     }
 }
@@ -172,6 +214,7 @@ private fun PhoneEmailStep(
     error: UiText?,
     onEmailChange: (String) -> Unit,
     onContinue: () -> Unit,
+    online: Boolean,
 ) {
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().fillMaxHeight(567f / 844f).launchEntrance(Entrance.Hero)) {
@@ -196,7 +239,7 @@ private fun PhoneEmailStep(
                 maxLines = 3, lineHeight = 36.sp,
             )
             SignInForm(
-                email, error, onEmailChange, onContinue, PhoneForm,
+                email, error, onEmailChange, onContinue, PhoneForm, online,
                 Modifier.fillMaxWidth().launchEntrance(Entrance.Sheet).clip(SheetShape).background(C.Bg).navigationBarsPadding()
                     .padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 26.dp),
             )
@@ -216,6 +259,7 @@ private fun TabletEmailStep(
     error: UiText?,
     onEmailChange: (String) -> Unit,
     onContinue: () -> Unit,
+    online: Boolean,
 ) {
     Box(Modifier.fillMaxSize()) {
         Image(
@@ -249,7 +293,7 @@ private fun TabletEmailStep(
                 ) {
                     Brand(logoHeight = 40.dp, textSize = 22, gap = 12.dp)
                     Spacer(Modifier.height(44.dp))
-                    SignInForm(email, error, onEmailChange, onContinue, TabletForm)
+                    SignInForm(email, error, onEmailChange, onContinue, TabletForm, online)
                 }
             }
         }
@@ -295,6 +339,7 @@ private fun SignInForm(
     onEmailChange: (String) -> Unit,
     onContinue: () -> Unit,
     size: FormSize,
+    online: Boolean,
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -331,6 +376,7 @@ private fun SignInForm(
                             if (email.isEmpty()) Txt(stringResource(R.string.login_email_hint), size.controlText, 400, C.Dim)
                             inner()
                         }
+                        if (email.isNotEmpty()) ClearButton { onEmailChange("") }
                     }
                 },
             )
@@ -338,8 +384,8 @@ private fun SignInForm(
         }
         Row(
             Modifier.fillMaxWidth().height(size.control).testTag(LoginTags.CONTINUE)
-                .alpha(if (email.isBlank()) 0.55f else 1f)
-                .background(C.Yellow, r(14)).clickable(role = Role.Button, onClick = onContinue),
+                .alpha(if (email.isBlank() || !online) 0.55f else 1f)
+                .background(C.Yellow, r(14)).clickable(enabled = online, role = Role.Button, onClick = onContinue),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {

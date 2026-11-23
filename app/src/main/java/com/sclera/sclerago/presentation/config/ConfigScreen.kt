@@ -95,6 +95,7 @@ import com.sclera.sclerago.presentation.components.BottomTabBar
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CfgCard
 import com.sclera.sclerago.presentation.components.CheckBox
+import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.DiscardChangesDialog
@@ -113,6 +114,7 @@ import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SecureWindow
 import com.sclera.sclerago.presentation.components.Segmented
+import com.sclera.sclerago.presentation.components.SheetFieldLabel
 import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.SubPageBar
 import com.sclera.sclerago.presentation.components.blockSwipe
@@ -136,18 +138,19 @@ import kotlinx.serialization.json.JsonPrimitive
 private class CfgTabSpec(val page: CfgPage, @StringRes val label: Int, val icon: Ico)
 
 private val CFG_TABS = listOf(
-    CfgTabSpec(CfgPage.FIELDS, R.string.cfgt_tab_asset_fields, Icons.Box),
     CfgTabSpec(CfgPage.BUILDING, R.string.cfgt_tab_building_info, Icons.Building),
+    CfgTabSpec(CfgPage.FIELDS, R.string.cfgt_tab_asset_fields, Icons.Box),
+    CfgTabSpec(CfgPage.TYPES, R.string.cfgt_tab_asset_types, Icons.Table),
     CfgTabSpec(CfgPage.GEO, R.string.cfgt_tab_geofencing, Icons.Pin),
-    CfgTabSpec(CfgPage.SETTINGS, R.string.cfgt_tab_settings, Icons.Toggles),
+    CfgTabSpec(CfgPage.SETTINGS, R.string.cfgt_tab_property_settings, Icons.Toggles),
 )
 
 private val PageEasing = CubicBezierEasing(0.22f, 0.8f, 0.24f, 1f)
 
 /**
- * The Configuration page (side menu → Configuration), as four bottom tabs that work like the main
+ * The Configuration page (side menu → Configuration), as five bottom tabs that work like the main
  * screen's (tap one, or swipe the page; the highlight follows your finger): Building info (buildings, floors, locations), Asset fields (which fields show / are
- * required, formats, photo counts), Geofencing (map) and Property Settings (Bluetooth / Wi-Fi
+ * required, formats, photo counts), Asset types (the type library and each type's fields), Geofencing (map) and Property Settings (Bluetooth / Wi-Fi
  * onboarding). System back closes Configuration and returns to the app.
  */
 @Composable
@@ -204,6 +207,7 @@ fun ConfigScreen(
                         when (page) {
                             CfgPage.BUILDING -> BuildingInfo(places, vm.propName)
                             CfgPage.FIELDS -> AssetFields(fields, cfg, vm.propName, addingField) { addingField = it }
+                            CfgPage.TYPES -> AssetTypesTab(vm.propName, fields.fields)
                             CfgPage.GEO -> Geofencing(cfg)
                             CfgPage.SETTINGS -> PropertySettingsPage(vm, cfg)
                         }
@@ -238,6 +242,7 @@ fun ConfigScreen(
 private fun CfgPage.onlineOnly(): OnlineOnly? = when (this) {
     CfgPage.BUILDING -> null
     CfgPage.FIELDS -> OnlineOnly.ASSET_FIELDS
+    CfgPage.TYPES -> null
     CfgPage.GEO -> OnlineOnly.GEOFENCING
     CfgPage.SETTINGS -> OnlineOnly.PROPERTY_SETTINGS
 }
@@ -310,8 +315,8 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter())
-                    .padding(horizontal = 9.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 BuildingCard(building, buildingMenu)
                 val query = q.trim()
@@ -322,21 +327,21 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
                         closeSearch()
                     }
                     building == null -> EmptyNote(stringResource(R.string.cfgt_buildings_empty))
-                    else -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    else -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         FloorRail(floors, floor?.id, onPick = { fId = it }, onAdd = { addFloor(building) })
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (floor == null) {
                                 Txt(stringResource(R.string.cfgt_no_floors), 16, 700)
-                                Txt(stringResource(R.string.cfgt_no_floors_hint), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                                Txt(stringResource(R.string.cfgt_no_floors_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                             } else {
-                                Column {
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                     Txt(floor.name, 16, 700)
-                                    Txt(pluralStringResource(R.plurals.pi_count_locations, locs.size, locs.size), 13, 400, C.Muted)
+                                    Txt(pluralStringResource(R.plurals.pi_count_locations, locs.size, locs.size), 12, 400, C.Muted)
                                 }
                                 if (locs.isEmpty()) {
                                     Txt(stringResource(R.string.cfgt_no_locations), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
                                 } else {
-                                    Column(Modifier.fillMaxWidth().clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16))) {
+                                    Column(Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14))) {
                                         locs.forEachIndexed { i, l ->
                                             LocationRow(l, l.id in sel, first = i == 0,
                                                 onOpen = { openLoc = l.id },
@@ -362,6 +367,10 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
                     onToggleDial = { if (searching) closeSearch(); dial = !dial },
                     onSearch = { dial = false; searching = true },
                     onCloseSearch = ::closeSearch,
+                    editMenu = buildList {
+                        if (building != null) add(MenuAct(Icons.Pencil, stringResource(R.string.access_edit_group, building.name)) { buildingSheet = building.id })
+                        if (floors.isNotEmpty()) add(MenuAct(Icons.Floor, stringResource(R.string.cfgt_edit_floors)) { floorsSheet = true })
+                    },
                     options = buildList {
                         if (floor != null) add(DialAct(stringResource(R.string.pi_kind_location_label), stringResource(R.string.cfgt_on_place, floor.name), Icons.Pin, C.Yellow) { dial = false; adding = true })
                         if (building != null) add(DialAct(stringResource(R.string.pi_kind_floor_label), stringResource(R.string.cfgt_in_place, building.name), Icons.Floor, C.Text) { dial = false; addFloor(building) })
@@ -437,33 +446,33 @@ private fun BuildingCard(building: LocNode?, menu: List<MenuAct>) {
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
-            Modifier.fillMaxWidth().clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16))
-                .clickable { open = true }.padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+            Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14))
+                .clickable { open = true }.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Box(Modifier.size(40.dp).clip(r(11)).background(C.YTintBg), contentAlignment = Alignment.Center) {
-                LineIcon(Icons.Building, 20.dp, C.Yellow, 1.9f)
+            Box(Modifier.size(38.dp).clip(r(10)).background(C.YTintBg), contentAlignment = Alignment.Center) {
+                LineIcon(Icons.Building, 18.dp, C.Yellow, 2f)
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (building == null) {
                     Txt(stringResource(R.string.cfgt_no_buildings), 16, 700)
-                    Txt(stringResource(R.string.cfgt_no_buildings_hint), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                    Txt(stringResource(R.string.cfgt_no_buildings_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 } else {
                     val floors = building.kids.orEmpty()
                     val locations = floors.sumOf { it.kids.orEmpty().size }
-                    Txt(building.name, 16, 700)
+                    Txt(building.name, 15, 700)
                     Txt(
                         stringResource(
                             if (building.active) R.string.cfgt_building_summary else R.string.cfgt_building_summary_hidden,
                             pluralStringResource(R.plurals.pi_count_floors, floors.size, floors.size),
                             pluralStringResource(R.plurals.pi_count_locations, locations, locations),
                         ),
-                        13, 400, C.Muted,
+                        12, 400, C.Muted,
                     )
                 }
             }
-            LineIcon(Icons.ChevronDown, 18.dp, C.Muted, 2.4f)
+            LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.6f)
         }
         IconMenu(open, { open = false }, menu)
     }
@@ -472,25 +481,25 @@ private fun BuildingCard(building: LocNode?, menu: List<MenuAct>) {
 /** The building's floors as tiles down the left; the chosen one is yellow. The dashed tile adds a floor. */
 @Composable
 private fun FloorRail(floors: List<LocNode>, current: String?, onPick: (String) -> Unit, onAdd: () -> Unit) {
-    Column(Modifier.width(56.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.width(54.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         floors.forEachIndexed { i, f ->
             val on = f.id == current
             Column(
-                Modifier.fillMaxWidth().height(54.dp).clip(r(14))
+                Modifier.fillMaxWidth().height(52.dp).clip(r(12))
                     .background(if (on) C.Yellow else C.Surface).alpha(if (f.active) 1f else 0.5f)
-                    .then(if (on) Modifier else Modifier.border(1.dp, C.Border, r(14)))
+                    .then(if (on) Modifier else Modifier.border(1.dp, C.Border, r(12)))
                     .clickable { onPick(f.id) },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Txt(floorTag(f, i), 15, 800, if (on) C.OnYellow else C.Text)
-                Txt(f.kids.orEmpty().size.toString(), 10, 600, if (on) C.OnYellow.copy(alpha = 0.75f) else C.Muted)
+                Txt(floorTag(f, i), 16, 700, if (on) C.OnYellow else C.Text)
+                Txt(f.kids.orEmpty().size.toString(), 10, 600, if (on) C.OnYellow.copy(alpha = 0.7f) else C.Muted)
             }
         }
         Box(
-            Modifier.fillMaxWidth().height(46.dp).clip(r(14)).dashedBorder(C.Border2, 1.dp, 14.dp).clickable(onClick = onAdd),
+            Modifier.fillMaxWidth().height(44.dp).clip(r(12)).dashedBorder(C.Border2, 1.dp, 12.dp).clickable(onClick = onAdd),
             contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Plus, 18.dp, C.Soft, 2.2f) }
+        ) { LineIcon(Icons.Plus, 15.dp, C.Muted, 3f) }
     }
 }
 
@@ -504,18 +513,18 @@ private fun LocationRow(l: LocNode, picked: Boolean, first: Boolean, onOpen: () 
     Row(
         Modifier.fillMaxWidth().background(if (picked) C.PickedRow else Color.Transparent).clickable(onClick = onOpen).padding(start = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(36.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
-            LineIcon(Icons.Pin, 19.dp, C.Yellow, 2f)
+        Box(Modifier.size(34.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
+            LineIcon(Icons.Pin, 15.dp, C.Yellow, 2f)
         }
         Row(
-            Modifier.weight(1f).heightIn(min = 56.dp).then(if (first) Modifier else Modifier.topBorder(C.Border)),
+            Modifier.weight(1f).heightIn(min = 52.dp).then(if (first) Modifier else Modifier.topBorder(C.Border)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Txt(l.name, 14, 600, maxLines = 2)
-                Txt(listOf(l.type, l.code).filter { it.isNotBlank() }.joinToString(" · ").ifEmpty { stringResource(R.string.cfgt_no_type) }, 12, 400, C.Muted)
+                Txt(listOf(l.type, l.code).filter { it.isNotBlank() }.joinToString(" · ").ifEmpty { stringResource(R.string.cfgt_no_type) }, 11, 400, C.Muted)
             }
             Box(Modifier.clip(r(8)).clickable(onClick = onTick).padding(10.dp)) { CheckBox(picked) }
         }
@@ -590,6 +599,7 @@ private fun BuildingFabs(
     onToggleDial: () -> Unit,
     onSearch: () -> Unit,
     onCloseSearch: () -> Unit,
+    editMenu: List<MenuAct>,
     options: List<DialAct>,
 ) {
     // This area ends above the tab bar, so lift the search bar only by the part of the keyboard that covers it.
@@ -598,18 +608,20 @@ private fun BuildingFabs(
     val ime = WindowInsets.ime.getBottom(density)
     val lift = with(density) { (ime - below).coerceAtLeast(0).toDp() }
     val turn by animateFloatAsState(if (dial) 45f else 0f, label = "dial")
-    val fabBottom by animateDpAsState(if (dial) 14.dp else 82.dp, label = "fab")
+    // Resting, the buttons stack Add, Edit, Search (12dp apart); the Edit one only when there is something to edit.
+    val fabBottom by animateDpAsState(if (dial) 14.dp else if (editMenu.isEmpty()) 80.dp else 146.dp, label = "fab")
+    var editOpen by remember { mutableStateOf(false) }
 
     Box(
         Modifier.fillMaxSize().onGloballyPositioned { c ->
             below = (c.findRootCoordinates().size.height - c.boundsInRoot().bottom).toInt().coerceAtLeast(0)
         },
     ) {
-        if (dial) Box(Modifier.fillMaxSize().background(Color(0xA6000000)).noRippleClick(onToggleDial).blockSwipe())
+        if (dial) Box(Modifier.fillMaxSize().background(Color(0x73000000)).noRippleClick(onToggleDial).blockSwipe())
 
         AnimatedVisibility(
             dial,
-            Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 82.dp),
+            Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 80.dp),
             enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut(),
         ) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -621,7 +633,14 @@ private fun BuildingFabs(
             Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = fabBottom + if (searching) lift else 0.dp)
                 .size(54.dp).fabShadow().clip(CircleShape).background(C.Yellow).clickable(onClick = onToggleDial),
             contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Plus, 26.dp, C.OnYellow, 2.6f, Modifier.rotate(turn)) }
+        ) { LineIcon(Icons.Plus, 24.dp, C.OnYellow, 2.8f, Modifier.rotate(turn)) }
+
+        if (!dial && !searching && editMenu.isNotEmpty()) {
+            Box(Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 80.dp)) {
+                CircleFab(Icons.Pencil, stringResource(R.string.cfgt_edit_places_cd), { editOpen = true }, bg = C.Btn, fg = C.Text, iconSize = 20.dp, stroke = 2.6f)
+                IconMenu(editOpen, { editOpen = false }, editMenu)
+            }
+        }
 
         when {
             searching -> {
@@ -639,11 +658,10 @@ private fun BuildingFabs(
                     RoundButton(42.dp, C.Btn, onCloseSearch) { LineIcon(Icons.Close, 16.dp, C.Text, 2.6f) }
                 }
             }
-            !dial -> Box(
-                Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 14.dp).size(54.dp).fabShadow()
-                    .clip(CircleShape).background(C.Btn).clickable(onClick = onSearch),
-                contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Search, 22.dp, C.Text, 2.2f) }
+            !dial -> CircleFab(
+                Icons.Search, stringResource(R.string.cfgt_search_places_cd), onSearch,
+                Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 14.dp), bg = C.Btn, fg = C.Text, iconSize = 20.dp, stroke = 2.4f,
+            )
         }
     }
 }
@@ -652,16 +670,16 @@ private fun BuildingFabs(
 @Composable
 private fun PickField(label: String, value: String, placeholder: String, options: List<String>, modifier: Modifier = Modifier, onPick: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
         FieldLabel(label)
         Box {
             Row(
-                Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12))
-                    .clickable { open = true }.padding(horizontal = 10.dp),
+                Modifier.fillMaxWidth().height(44.dp).clip(r(10)).background(C.Bg).border(1.dp, C.Border, r(10))
+                    .clickable { open = true }.padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Txt(value.ifEmpty { placeholder }, 13, 400, if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f))
-                LineIcon(Icons.ChevronDown, 18.dp, C.Soft, 2.4f)
+                Txt(value.ifEmpty { placeholder }, 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
+                LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
             }
             DropdownMenu(open, { open = false }, Modifier.heightIn(max = 360.dp), containerColor = C.Surface) {
                 options.forEach { o ->
@@ -679,33 +697,27 @@ private fun PickField(label: String, value: String, placeholder: String, options
 @Composable
 private fun TimeField(label: String, value: String, placeholder: String, modifier: Modifier = Modifier, onPick: (String) -> Unit) {
     val context = LocalContext.current
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
         FieldLabel(label)
         Row(
-            Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12))
+            Modifier.fillMaxWidth().height(44.dp).clip(r(10)).background(C.Bg).border(1.dp, C.Border, r(10))
                 .clickable {
                     val (h, m) = value.split(":").mapNotNull { it.toIntOrNull() }.let { (it.getOrNull(0) ?: 9) to (it.getOrNull(1) ?: 0) }
                     android.app.TimePickerDialog(context, { _, hh, mm -> onPick("%02d:%02d".format(hh, mm)) }, h, m, android.text.format.DateFormat.is24HourFormat(context)).show()
                 }
-                .padding(horizontal = 10.dp),
+                .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Shown on the phone's 12/24-hour clock; kept as HH:mm.
-            Txt(if (value.isEmpty()) placeholder else storedTimeText(value), 13, 400, if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f))
-            LineIcon(Icons.Clock, 20.dp, C.Soft, 2f)
+            Txt(if (value.isEmpty()) placeholder else storedTimeText(value), 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
+            LineIcon(Icons.Clock, 18.dp, C.Muted, 2f)
         }
     }
 }
 
 /** A field label; a trailing * is drawn red (mandatory). */
 @Composable
-private fun FieldLabel(label: String) {
-    val req = label.endsWith("*")
-    Row {
-        Txt(label.removeSuffix("*").trimEnd(), 11, 600, C.Soft)
-        if (req) Txt(" *", 11, 700, C.Red)
-    }
-}
+private fun FieldLabel(label: String) = SheetFieldLabel(label)
 
 private val EMAIL_RE = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 private fun phoneOk(p: String) = Regex("^[+0-9 ()-]+$").matches(p) && p.count(Char::isDigit) >= 6
@@ -722,49 +734,42 @@ private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String,
     val ok = name.isNotBlank() && info.type.isNotBlank() && !emailBad && !phoneBad
     GuardedClose(name.trim() != b?.name.orEmpty().trim() || info != i0 || visible != (b?.active ?: true), onClose) { onClose ->
     BottomSheet(onClose) {
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 10.dp, top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Txt(if (b == null) stringResource(R.string.cfgt_add_building) else stringResource(R.string.access_edit_group, b.name), 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
-            CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
-        }
+        SheetHeader(if (b == null) stringResource(R.string.cfgt_add_building) else stringResource(R.string.access_edit_group, b.name), null, onClose, titleSize = 20)
         Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp).padding(bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             SheetSection(stringResource(R.string.cfgt_building_details))
-            LabeledInput(stringResource(R.string.cfgt_building_name), name, { name = it.take(MAX_PLACE_NAME) }, stringResource(R.string.cfgt_building_name_hint))
+            LabeledInput(stringResource(R.string.cfgt_building_name), name, { name = it.take(MAX_PLACE_NAME) }, stringResource(R.string.cfgt_building_name_hint), sheet = true)
             PickField(stringResource(R.string.cfgt_building_type), info.type, stringResource(R.string.property_select_type), BUILDING_TYPES) { info = info.copy(type = it) }
-            LabeledInput(stringResource(R.string.field_address_line1), info.address1, { info = info.copy(address1 = it) }, stringResource(R.string.field_address_line1_hint))
-            LabeledInput(stringResource(R.string.field_address_line2), info.address2, { info = info.copy(address2 = it) }, stringResource(R.string.field_address_line2_hint))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LabeledInput(stringResource(R.string.field_address_line1), info.address1, { info = info.copy(address1 = it) }, stringResource(R.string.field_address_line1_hint), sheet = true)
+            LabeledInput(stringResource(R.string.field_address_line2), info.address2, { info = info.copy(address2 = it) }, stringResource(R.string.field_address_line2_hint), sheet = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PickField(stringResource(R.string.field_country), info.country, stringResource(R.string.cfgt_select_country), COUNTRIES, Modifier.weight(1f)) { info = info.copy(country = it) }
-                Box(Modifier.weight(1f)) { LabeledInput(stringResource(R.string.field_state), info.state, { info = info.copy(state = it) }, stringResource(R.string.property_enter_state)) }
+                Box(Modifier.weight(1f)) { LabeledInput(stringResource(R.string.field_state), info.state, { info = info.copy(state = it) }, stringResource(R.string.property_enter_state), sheet = true) }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PickField(stringResource(R.string.field_region), info.region, stringResource(R.string.property_select_region), REGIONS, Modifier.weight(1f)) { info = info.copy(region = it) }
-                Box(Modifier.weight(1f)) { LabeledInput(stringResource(R.string.field_city), info.city, { info = info.copy(city = it) }, stringResource(R.string.property_enter_city)) }
+                Box(Modifier.weight(1f)) { LabeledInput(stringResource(R.string.field_city), info.city, { info = info.copy(city = it) }, stringResource(R.string.property_enter_city), sheet = true) }
             }
 
-            Spacer(Modifier.height(4.dp))
             SheetSection(stringResource(R.string.property_group_contact))
-            LabeledInput(stringResource(R.string.field_name), info.contactName, { info = info.copy(contactName = it) }, stringResource(R.string.field_contact_name_hint))
-            LabeledInput(stringResource(R.string.field_email), info.email, { info = info.copy(email = it) }, stringResource(R.string.field_email_hint))
+            LabeledInput(stringResource(R.string.field_name), info.contactName, { info = info.copy(contactName = it) }, stringResource(R.string.field_contact_name_hint), sheet = true)
+            LabeledInput(stringResource(R.string.field_email), info.email, { info = info.copy(email = it) }, stringResource(R.string.field_email_hint), sheet = true)
             if (emailBad) Txt(stringResource(R.string.cfgt_email_invalid), 11, 500, C.Red, maxLines = Int.MAX_VALUE)
-            LabeledInput(stringResource(R.string.property_field_phone), info.phone, { info = info.copy(phone = it) }, stringResource(R.string.field_phone_hint))
+            LabeledInput(stringResource(R.string.property_field_phone), info.phone, { info = info.copy(phone = it) }, stringResource(R.string.field_phone_hint), sheet = true)
             if (phoneBad) Txt(stringResource(R.string.cfgt_phone_invalid), 11, 500, C.Red, maxLines = Int.MAX_VALUE)
 
-            Spacer(Modifier.height(4.dp))
             SheetSection(stringResource(R.string.property_group_notes))
-            LabeledInput(stringResource(R.string.property_group_notes), info.notes, { info = info.copy(notes = it) }, stringResource(R.string.property_notes_hint), singleLine = false, minLines = 3)
+            LabeledInput(stringResource(R.string.property_group_notes), info.notes, { info = info.copy(notes = it) }, stringResource(R.string.property_notes_hint), singleLine = false, minLines = 3, sheet = true)
 
-            Spacer(Modifier.height(4.dp))
             SheetSection(stringResource(R.string.property_group_availability))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TimeField(stringResource(R.string.field_start_time), info.startTime, stringResource(R.string.cfgt_select_start_time), Modifier.weight(1f)) { info = info.copy(startTime = it) }
                 TimeField(stringResource(R.string.field_end_time), info.endTime, stringResource(R.string.cfgt_select_end_time), Modifier.weight(1f)) { info = info.copy(endTime = it) }
             }
-            LabeledInput(stringResource(R.string.field_access_code), info.accessCode, { info = info.copy(accessCode = it) }, stringResource(R.string.field_access_code_hint))
+            LabeledInput(stringResource(R.string.field_access_code), info.accessCode, { info = info.copy(accessCode = it) }, stringResource(R.string.field_access_code_hint), sheet = true)
             if (b != null) {
-                Spacer(Modifier.height(4.dp))
                 SheetSection(stringResource(R.string.cfg_place_visibility))
                 CfgCard { ToggleRow(stringResource(R.string.cfgt_visible), stringResource(R.string.cfg_building_visible_hint), visible, enabled = true) { visible = it } }
             }
@@ -1030,11 +1035,11 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
     val ready = fv.load == LoadState.READY
     val photos = cfg.photos
     val photosReady = photos.load == LoadState.READY
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(top = 10.dp)) {
-        Txt(stringResource(R.string.cfg_fields_intro, propName), 12, 400, C.Muted, Modifier.padding(horizontal = 6.dp), maxLines = Int.MAX_VALUE)
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(start = 8.dp, end = 8.dp, top = 12.dp)) {
+        Txt(stringResource(R.string.cfg_fields_intro, propName), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
         if (!ready) OnlineNote(fv.load, fv.failure, fv::retry)
         // The fields as one table, as the web's and the iOS app's: name, type, mandatory and checks.
-        TableCard(Modifier.padding(top = 12.dp)) {
+        TableCard(Modifier.padding(top = 20.dp)) {
             TableHeader {
                 HeaderText(stringResource(R.string.cfg_col_name), Modifier.weight(1f))
                 HeaderText(stringResource(R.string.cfg_col_type), Modifier.width(TYPE_W))
@@ -1047,11 +1052,11 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
         }
 
         // Photos: the property's photo rules at the server (nameplate, asset, label ID), as the web's table.
-        TableCard(Modifier.padding(top = 14.dp)) {
+        TableCard(Modifier.padding(top = 20.dp, bottom = 96.dp)) {
             TableHeader {
                 HeaderText(stringResource(R.string.cfg_col_photos), Modifier.weight(1f))
-                HeaderText(stringResource(R.string.cfg_col_minimum), Modifier.width(STEPPER_W), TextAlign.Center)
-                HeaderText(stringResource(R.string.cfg_col_maximum), Modifier.width(STEPPER_W), TextAlign.Center)
+                HeaderText(stringResource(R.string.cfg_col_min), Modifier.width(STEPPER_W), TextAlign.Center)
+                HeaderText(stringResource(R.string.cfg_col_max), Modifier.width(STEPPER_W), TextAlign.Center)
             }
             photos.rules.forEach { p ->
                 Row(
@@ -1059,11 +1064,11 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Box(Modifier.size(34.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(32.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.Camera, 16.dp, C.Yellow, 2.2f)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(p.kind.nameRes()), 13, 700)
+                        Txt(stringResource(p.kind.nameRes()), 14, 600)
                         Txt(stringResource(p.kind.hintRes()), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     }
                     Stepper(
@@ -1078,29 +1083,19 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
                     ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MAX, up) }
                 }
             }
-            // How many photos all kinds together allow (a bar, as the web's), or why the rules aren't there.
-            Row(
-                Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (photos.load == LoadState.READY) {
-                    val share = (photos.totalMax.toFloat() / MAX_PHOTOS_PER_ASSET).coerceIn(0f, 1f)
-                    Box(Modifier.width(56.dp).height(4.dp).clip(Capsule).background(C.Raised)) {
-                        Box(Modifier.fillMaxWidth(share).fillMaxHeight().clip(Capsule).background(C.Yellow))
-                    }
-                }
-                Txt(
-                    when (photos.load) {
-                        LoadState.LOADING -> stringResource(R.string.cfg_photos_loading)
-                        LoadState.FAILED -> stringResource(R.string.cfg_photos_load_failed)
-                        LoadState.READY -> stringResource(R.string.cfg_photos_usage, photos.totalMax, MAX_PHOTOS_PER_ASSET)
-                    },
-                    11, 400, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE,
-                )
-            }
+            // What the rules add up to (the photos every asset needs), or why the rules aren't there.
+            val minTotal = photos.rules.sumOf { it.min }
+            Txt(
+                when (photos.load) {
+                    LoadState.LOADING -> stringResource(R.string.cfg_photos_loading)
+                    LoadState.FAILED -> stringResource(R.string.cfg_photos_load_failed)
+                    LoadState.READY ->
+                        if (minTotal > 0) stringResource(R.string.cfg_photos_min_total, minTotal)
+                        else stringResource(R.string.cfg_photos_usage, photos.totalMax, MAX_PHOTOS_PER_ASSET)
+                },
+                12, 400, C.Muted, Modifier.fillMaxWidth().topBorder(C.Border).padding(12.dp), maxLines = Int.MAX_VALUE,
+            )
         }
-        Spacer(Modifier.height(160.dp)) // room for the floating +, as on the Assets list
     }
     // The floating + opens two ways to add fields. Drawn under the sheets and hidden while one is open.
     if (ready && !adding && editFor == null && checksFor == null && fv.importing == null) {
@@ -1148,15 +1143,15 @@ private fun PhotoKind.hintRes() = when (this) {
     PhotoKind.LABEL_ID -> R.string.cfg_photo_label_id_hint
 }
 
-private val TYPE_W = 92.dp
-private val MUST_W = 78.dp
-private val CHECKS_W = 66.dp
-private val STEPPER_W = 92.dp
+private val TYPE_W = 84.dp
+private val MUST_W = 66.dp
+private val CHECKS_W = 86.dp
+private val STEPPER_W = 88.dp
 
 /** A bordered table card of the Asset fields tab: a header row, then rows split by lines. */
 @Composable
 private fun TableCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)), content = content)
+    Column(modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)), content = content)
 }
 
 @Composable
@@ -1167,7 +1162,7 @@ private fun TableHeader(content: @Composable RowScope.() -> Unit) {
 /** A column heading: small capitals, muted. */
 @Composable
 private fun HeaderText(text: String, modifier: Modifier, align: TextAlign = TextAlign.Start) =
-    Txt(text.uppercase(Locale.getDefault()), 10, 700, C.Muted, modifier, spacing = 0.8f, align = align)
+    Txt(text.uppercase(Locale.getDefault()), 9.5f, 600, C.Muted, modifier, spacing = 0.4f, align = align)
 
 /** Dropdowns whose choices are fixed lists (classification, JACS), so they have no options to edit. */
 private val FIXED_OPTIONS = setOf("sys", "typ", "sub", "jacs")
@@ -1214,28 +1209,28 @@ private fun FieldCfgRow(
     onChecks: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().topBorder(C.Border).clickable(onClick = onEdit).heightIn(min = 56.dp).padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
+        Modifier.fillMaxWidth().topBorder(C.Border).clickable(onClick = onEdit).heightIn(min = 48.dp).padding(start = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Name (a lock on built-in fields), and how many options a dropdown has.
-        Column(Modifier.weight(1f).padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                Txt(f.label, 13, 700, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+        Column(Modifier.weight(1f).padding(start = 0.dp, top = 10.dp, end = 6.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Txt(f.label, 14, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
                 if (f.locked) LineIcon(Icons.Lock, 12.dp, C.Dim, 2.4f)
             }
             if (f.kind == FieldKind.DROPDOWN) Txt(pluralStringResource(R.plurals.cfg_field_options, options, options), 11, 400, C.Muted, maxLines = 1)
         }
         // Type: its icon in yellow and its name.
-        Row(Modifier.width(TYPE_W), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.width(TYPE_W), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             LineIcon(f.kind.icon(), 13.dp, C.Yellow, 2.4f)
-            Txt(f.kind.shown, 12, 600, C.Soft, maxLines = 1)
+            Txt(f.kind.shown, 11, 600, C.Soft, maxLines = 1)
         }
         // Mandatory: the tick.
         Box(
-            Modifier.size(MUST_W, 44.dp).clip(r(8)).clickable(enabled = !f.locked, onClick = onToggleRequired),
+            Modifier.size(MUST_W, 48.dp).clip(r(8)).clickable(enabled = !f.locked, onClick = onToggleRequired),
             contentAlignment = Alignment.Center,
-        ) { Box(Modifier.alpha(if (f.locked) 0.4f else 1f)) { CheckBox(f.required) } }
-        // Checks: what validation looks for beyond the kind; a yellow pill when set, an outlined Add when not.
+        ) { Box(Modifier.alpha(if (f.locked) 0.5f else 1f)) { CheckBox(f.required) } }
+        // Checks: what validation looks for beyond the kind; a yellow-tinted pill when set, an outlined Add when not.
         Box(Modifier.width(CHECKS_W).heightIn(min = 48.dp).clickable(onClick = onChecks), contentAlignment = Alignment.Center) {
             val tag = when {
                 f.hasFormat -> R.string.cfg_checks_format
@@ -1243,10 +1238,11 @@ private fun FieldCfgRow(
                 else -> null
             }
             Box(
-                Modifier.clip(Capsule)
-                    .then(if (tag != null) Modifier.background(C.Yellow) else Modifier.border(1.dp, C.Border2, Capsule))
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
-            ) { Txt(stringResource(tag ?: R.string.cfg_checks_add), 11, 700, if (tag != null) C.OnYellow else C.Soft, maxLines = 1) }
+                Modifier.height(24.dp).clip(Capsule)
+                    .then(if (tag != null) Modifier.background(C.YTintBg) else Modifier.border(1.dp, C.Border, Capsule))
+                    .padding(horizontal = if (tag != null) 7.dp else 10.dp),
+                contentAlignment = Alignment.Center,
+            ) { Txt(stringResource(tag ?: R.string.cfg_checks_add), if (tag != null) 11 else 12, 600, if (tag != null) C.Yellow else C.Muted, maxLines = 1) }
         }
     }
 }
@@ -1255,39 +1251,39 @@ private fun FieldCfgRow(
 @Composable
 private fun AddDial(open: Boolean, onToggle: () -> Unit, onExcel: () -> Unit, onNew: () -> Unit) {
     val turn by animateFloatAsState(if (open) 45f else 0f, label = "dial")
-    if (open) Box(Modifier.fillMaxSize().background(Color(0xA6000000)).noRippleClick(onToggle).blockSwipe())
+    if (open) Box(Modifier.fillMaxSize().background(Color(0x73000000)).noRippleClick(onToggle).blockSwipe())
     Column(
-        Modifier.fillMaxSize().wrapContentSize(Alignment.BottomEnd).padding(end = 10.dp, bottom = 10.dp),
+        Modifier.fillMaxSize().wrapContentSize(Alignment.BottomEnd).padding(end = 14.dp, bottom = 14.dp),
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         AnimatedVisibility(open, enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut()) {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DialOption(stringResource(R.string.cfgt_import_excel), stringResource(R.string.cfgt_import_excel_hint), Icons.Table, C.Green, onExcel)
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialOption(stringResource(R.string.cfgt_import_excel), stringResource(R.string.cfgt_import_excel_hint_col), Icons.Table, C.Green, onExcel)
                 DialOption(stringResource(R.string.cfgt_new_field), stringResource(R.string.cfgt_new_field_hint), Icons.FileDoc, C.Text, onNew)
             }
         }
         Box(
             Modifier.size(54.dp).fabShadow().clip(CircleShape).background(C.Yellow).clickable(onClick = onToggle),
             contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Plus, 26.dp, C.OnYellow, 2.6f, Modifier.rotate(turn)) }
+        ) { LineIcon(Icons.Plus, 24.dp, C.OnYellow, 2.8f, Modifier.rotate(turn)) }
     }
 }
 
 @Composable
 private fun DialOption(title: String, sub: String, icon: Ico, tint: Color, onClick: () -> Unit) {
     Row(
-        Modifier.clip(r(28)).background(Color(0xFF2A2B30)).border(1.dp, C.Border2, r(28)).clickable(onClick = onClick)
-            .padding(start = 22.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        Modifier.fabShadow(Capsule, 4.dp).clip(Capsule).background(C.Surface).border(1.dp, C.Border, Capsule).clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 7.dp, top = 7.dp, bottom = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(horizontalAlignment = Alignment.End) {
-            Txt(title, 13, 700)
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Txt(title, 14, 700)
             Txt(sub, 11, 400, C.Muted)
         }
         Box(Modifier.size(40.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
-            LineIcon(icon, 19.dp, tint, 2f)
+            LineIcon(icon, 17.dp, tint, 1.9f)
         }
     }
 }
@@ -1439,23 +1435,23 @@ private fun FieldSheet(
     GuardedClose(cur != f || opt.isNotBlank(), onClose) { onClose ->
     BottomSheet(onClose) {
         Row(
-            Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 2.dp, bottom = 8.dp),
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Box(Modifier.size(34.dp).clip(r(10)).background(C.YTintBg), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(36.dp).clip(r(9)).background(C.YTintBg), contentAlignment = Alignment.Center) {
                 LineIcon(f.kind.icon(), 19.dp, C.Yellow, 2.2f)
             }
-            Txt(if (draft) f.kind.shown else stringResource(R.string.access_edit_group, f.label), 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
-            CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
+            Txt(if (draft) f.kind.shown else f.label, 19, 700, modifier = Modifier.weight(1f), maxLines = 2)
+            CloseButton(onClose, size = 36.dp, iconSize = 13.dp)
         }
         Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp).padding(bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            LabeledInput(stringResource(R.string.cfg_add_name), cur.label, { cur = cur.copy(label = it) }, stringResource(R.string.own_field_name_hint))
+            LabeledInput(stringResource(R.string.cfg_add_name_required), cur.label, { cur = cur.copy(label = it) }, stringResource(R.string.own_field_name_hint), sheet = true)
             if (duplicate) Txt(stringResource(R.string.cfg_field_exists), 11, 500, C.Red, maxLines = Int.MAX_VALUE)
-            if (ownOptions) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (ownOptions) Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 FieldLabel(stringResource(R.string.cfgt_options_label))
                 if (cur.options.isNotEmpty()) CfgCard {
                     cur.options.forEachIndexed { i, o ->
@@ -1479,10 +1475,10 @@ private fun FieldSheet(
                     }
                 }
                 Row(
-                    Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12)).padding(start = 10.dp, end = 8.dp),
+                    Modifier.fillMaxWidth().height(44.dp).clip(r(10)).background(C.Bg).border(1.dp, C.Border, r(10)).padding(start = 12.dp, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PlainField(opt, { opt = it; optProblem = null }, stringResource(R.string.cfgt_add_option), Modifier.weight(1f), size = 13)
+                    PlainField(opt, { opt = it; optProblem = null }, stringResource(R.string.cfgt_add_option), Modifier.weight(1f), size = 15)
                     Box(Modifier.size(34.dp).clip(CircleShape).background(C.Yellow).clickable(onClick = ::addOption), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.PlusSmall, 18.dp, C.OnYellow, 2.8f)
                     }
@@ -1492,21 +1488,23 @@ private fun FieldSheet(
                 }
             }
             DefaultValueInput(cur, if (ownOptions) cur.options else f.options) { cur = cur.copy(defaultValue = it) }
-            LabeledInput(stringResource(R.string.cfgt_tooltip), cur.tooltip, { cur = cur.copy(tooltip = it.take(MAX_TOOLTIP_LENGTH)) }, stringResource(R.string.cfgt_tooltip_hint), singleLine = false, minLines = 3)
-            CfgCard {
-                ToggleRow(stringResource(R.string.cfg_col_mandatory), stringResource(R.string.cfgt_mandatory_hint), cur.required, enabled = !f.locked) {
+            LabeledInput(stringResource(R.string.cfgt_tooltip), cur.tooltip, { cur = cur.copy(tooltip = it.take(MAX_TOOLTIP_LENGTH)) }, stringResource(R.string.cfgt_tooltip_hint), singleLine = false, minLines = 1, sheet = true)
+            Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface)) {
+                ToggleRow(stringResource(R.string.cfg_col_mandatory), stringResource(R.string.cfgt_mandatory_validating_hint), cur.required, enabled = !f.locked) {
                     cur = cur.copy(required = it, visible = cur.visible || it)
                 }
             }
-            CfgCard { LinkRow(Icons.ShieldCheck, stringResource(R.string.cfg_col_checks), checksSummary(cur), { checks = true }) }
+            Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface)) {
+                LinkRow(Icons.ShieldCheck, stringResource(R.string.cfg_col_checks), checksSummary(cur), { checks = true })
+            }
             if (onDelete != null) Row(
-                Modifier.fillMaxWidth().height(42.dp).clip(r(14)).border(1.dp, C.Red.copy(alpha = 0.7f), r(14))
+                Modifier.fillMaxWidth().height(44.dp).clip(Capsule).border(1.dp, C.Red.copy(alpha = 0.5f), Capsule)
                     .clickable { confirmDelete = !draft; if (draft) onDelete() },
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
             ) {
-                LineIcon(Icons.Trash, 17.dp, C.Red, 2.2f)
-                Txt(stringResource(R.string.cfgt_delete_field), 12, 700, C.Red)
+                LineIcon(Icons.Trash, 15.dp, C.Red, 2f)
+                Txt(stringResource(R.string.cfgt_delete_field), 14, 600, C.Red)
             }
         }
         SheetButtons(stringResource(if (draft) R.string.action_submit else R.string.cfg_save), ok, onClose) { onSubmit(cur) }
@@ -1600,11 +1598,11 @@ private fun DefaultValueInput(f: FieldCfg, choices: List<String>, onChange: (Str
             ) {
                 onChange(if (it == none) "" else it)
             }
-        FieldKind.NUMBER -> LabeledInput(label, v, { s -> onChange(s.filter { it.isDigit() || it == '.' || it == '-' }) }, stringResource(R.string.cfgt_prefilled_number))
+        FieldKind.NUMBER -> LabeledInput(label, v, { s -> onChange(s.filter { it.isDigit() || it == '.' || it == '-' }) }, stringResource(R.string.cfgt_prefilled_number), sheet = true)
         FieldKind.URL -> Unit // the web keeps no default for links
         // Image, video, voice memo and key value: nothing is typed in, so no default.
         FieldKind.IMAGE, FieldKind.VIDEO, FieldKind.VOICE_MEMO, FieldKind.KEY_VALUE -> Unit
-        else -> LabeledInput(label, v, onChange, stringResource(R.string.cfgt_prefilled_text))
+        else -> LabeledInput(label, v, onChange, stringResource(R.string.cfgt_prefilled_text), sheet = true)
     }
 }
 
@@ -1621,11 +1619,12 @@ private fun DefaultChoice(value: String, choices: List<Pair<String, String>>, on
 private fun ToggleRow(title: String, sub: String, on: Boolean, enabled: Boolean, divider: Boolean = false, onChange: (Boolean) -> Unit) {
     Row(
         Modifier.fillMaxWidth().then(if (divider) Modifier.topBorder(C.Border) else Modifier).alpha(if (enabled) 1f else 0.5f)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .heightIn(min = 54.dp).padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, 13, 700)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Txt(title, 14, 600)
             Txt(sub, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         OnOffSwitch(on) { if (enabled) onChange(it) }
@@ -1641,8 +1640,8 @@ private fun LinkRow(icon: Ico, title: String, sub: String, onClick: () -> Unit, 
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         LineIcon(icon, 19.dp, C.Yellow, 2.1f)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, 13, 700)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Txt(title, 14, 600)
             Txt(sub, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         LineIcon(Icons.ChevronRight, 16.dp, C.Muted, 2.4f)
@@ -1651,11 +1650,11 @@ private fun LinkRow(icon: Ico, title: String, sub: String, onClick: () -> Unit, 
 
 /** Yellow small-caps section title inside a sheet. */
 @Composable
-private fun SheetSection(text: String) = Txt(text.uppercase(), 11, 700, C.Yellow, spacing = 0.6f)
+private fun SheetSection(text: String) = Txt(text.uppercase(), 11, 600, C.Yellow, Modifier.padding(top = 4.dp), spacing = 0.6f)
 
 @Composable
 private fun InfoBox(text: String) {
-    Txt(text, 12, 400, C.Soft, Modifier.fillMaxWidth().clip(r(12)).background(C.Raised).padding(10.dp), maxLines = Int.MAX_VALUE)
+    Txt(text, 13, 400, C.Muted, Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).padding(12.dp), maxLines = Int.MAX_VALUE)
 }
 
 /** The rules a field of [kind] can pick, in the web’s order (text formats, or past / future for dates). */
@@ -1691,16 +1690,18 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
     val digits: (String) -> String = { v -> v.filter(Char::isDigit) }
     GuardedClose(now != f.checks, onClose) { onClose ->
     BottomSheet(onClose) {
-        TightSheetHeader(stringResource(R.string.cfgt_checks_title, f.label), stringResource(R.string.cfgt_checks_sub), onClose)
+        SheetHeader(stringResource(R.string.cfgt_checks_title, f.label), stringResource(R.string.cfgt_checks_sub), onClose, titleSize = 20)
         Column(
-            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             SheetSection(stringResource(R.string.cfgt_when_empty))
             if (f.required) InfoBox(stringResource(R.string.cfgt_checks_mandatory_info))
-            else CfgCard { ToggleRow(stringResource(R.string.cfgt_flag_empty), stringResource(R.string.cfgt_flag_empty_hint), flag, enabled = true) { flag = it } }
+            else Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface)) {
+                ToggleRow(stringResource(R.string.cfgt_flag_empty), stringResource(R.string.cfgt_flag_empty_hint), flag, enabled = true) { flag = it }
+            }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
             SheetSection(stringResource(R.string.cfg_checks_format))
             val fixedNote = when (f.kind) {
                 FieldKind.DROPDOWN, FieldKind.MULTI -> pluralStringResource(R.plurals.cfgt_checks_one_of, options, options)
@@ -1715,18 +1716,15 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
                 InfoBox(fixedNote)
             } else {
                 if (rules.isNotEmpty()) {
-                    Txt(stringResource(R.string.cfgt_values_must_be), 12, 600, C.Soft)
+                    Txt(stringResource(R.string.cfgt_values_must_be), 12, 600, C.Muted)
                     Box {
                         Row(
-                            Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12))
-                                .clickable { ruleOpen = true }.padding(horizontal = 10.dp),
+                            Modifier.fillMaxWidth().height(44.dp).clip(r(10)).background(C.Bg).border(1.dp, C.Border, r(10))
+                                .clickable { ruleOpen = true }.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Txt(stringResource(rule.labelRes(f.kind)), 13, 500, modifier = Modifier.weight(1f))
-                            Column {
-                                LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f, Modifier.rotate(180f))
-                                LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.4f)
-                            }
+                            Txt(stringResource(rule.labelRes(f.kind)), 15, 400, modifier = Modifier.weight(1f))
+                            LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
                         }
                         DropdownMenu(ruleOpen, { ruleOpen = false }, containerColor = C.Surface) {
                             rules.forEach { r ->
@@ -1737,11 +1735,12 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
                             }
                         }
                     }
+                    Txt(stringResource(R.string.cfgt_checks_values_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 }
                 if (f.kind in TEXT_KINDS && rule == ValueRule.PATTERN) {
                     LabeledInput(
                         stringResource(R.string.cfg_checks_pattern_label), pattern, { pattern = it.take(MAX_PATTERN_LENGTH) },
-                        stringResource(R.string.cfg_checks_pattern_placeholder),
+                        stringResource(R.string.cfg_checks_pattern_placeholder), sheet = true,
                     )
                     Txt(stringResource(R.string.cfg_checks_pattern_hint), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 }
@@ -1752,13 +1751,15 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
                         else -> listOf(R.string.cfgt_min_length, R.string.cfgt_max_length, R.string.cfgt_min_length_hint, R.string.cfgt_max_length_hint)
                     }.map { stringResource(it) }
                     val filter = if (f.kind == FieldKind.NUMBER) numeric else digits
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f)) { LabeledInput(loLabel, lo, { lo = filter(it) }, loHint) }
-                        Box(Modifier.weight(1f)) { LabeledInput(hiLabel, hi, { hi = filter(it) }, hiHint) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(Modifier.weight(1f)) { LabeledInput(loLabel, lo, { lo = filter(it) }, loHint, sheet = true) }
+                        Box(Modifier.weight(1f)) { LabeledInput(hiLabel, hi, { hi = filter(it) }, hiHint, sheet = true) }
                     }
                 }
                 if (f.kind == FieldKind.NUMBER) {
-                    CfgCard { ToggleRow(stringResource(R.string.cfg_checks_whole), stringResource(R.string.cfg_checks_whole_hint), whole, enabled = true) { whole = it } }
+                    Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface)) {
+                        ToggleRow(stringResource(R.string.cfg_checks_whole), stringResource(R.string.cfg_checks_whole_hint), whole, enabled = true) { whole = it }
+                    }
                 }
                 shown?.let { Txt(stringResource(it.messageRes()), 11, 500, C.Red, maxLines = Int.MAX_VALUE) }
             }
@@ -1783,15 +1784,15 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
 @Composable
 private fun Stepper(value: Int, modifier: Modifier, enabled: Boolean, downBlocked: Boolean, upBlocked: Boolean, onStep: (up: Boolean) -> Unit) {
     Row(
-        modifier.height(36.dp).clip(r(9)).background(C.Bg).border(1.dp, C.Border2, r(9)),
+        modifier.height(34.dp).clip(r(9)).background(C.Bg).border(1.dp, C.Border, r(9)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled) { onStep(false) }, contentAlignment = Alignment.Center) {
-            LineIcon(Icons.Minus, 14.dp, if (enabled && !downBlocked) C.Yellow else C.Dim, 2.6f)
+            LineIcon(Icons.Minus, 14.dp, if (enabled && !downBlocked) C.Text else C.Dim, 2.6f)
         }
-        Txt(if (enabled) value.toString() else "–", 13, 700, modifier = Modifier.width(26.dp), align = TextAlign.Center)
+        Txt(if (enabled) value.toString() else "–", 14, 700, modifier = Modifier.width(24.dp), align = TextAlign.Center)
         Box(Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled) { onStep(true) }, contentAlignment = Alignment.Center) {
-            LineIcon(Icons.PlusSmall, 14.dp, if (enabled && !upBlocked) C.Yellow else C.Dim, 2.6f)
+            LineIcon(Icons.PlusSmall, 14.dp, if (enabled && !upBlocked) C.Text else C.Dim, 2.6f)
         }
     }
 }
@@ -1845,19 +1846,9 @@ private fun Geofencing(cfg: ConfigViewModel) {
         focus.clearFocus()
         js("adcGoTo(${hit.lat}, ${hit.lon}, ${JsonPrimitive(hit.name)})")
     }
-    Column(Modifier.fillMaxSize()) {
-        SearchField(
-            query, { query = it; picking = true; if (it.trim().length < 2) hits = emptyList() }, stringResource(R.string.cfg_geo_search),
-            Modifier.padding(horizontal = 12.dp).padding(top = 12.dp, bottom = 10.dp).testTag("geo-search"),
-            iconColor = C.Yellow,
-            onSubmit = {
-                picking = false
-                hits = emptyList()
-                focus.clearFocus()
-                if (pageReady && query.isNotBlank()) js("adcSearch(${JsonPrimitive(query.trim())})")
-            },
-        )
-        Box(Modifier.padding(horizontal = 12.dp).fillMaxWidth().weight(1f).clip(r(14)).border(1.dp, C.Border, r(14))) {
+    // The map fills the page under the address bar; the satellite switch and the enforce / fences card float over it.
+    Box(Modifier.fillMaxSize().background(C.Bg)) {
+        Box(Modifier.fillMaxSize().padding(top = 58.dp)) {
             // Serves leaflet.js / .css / images from assets/leaflet/ so no script is fetched from the internet.
             val context = androidx.compose.ui.platform.LocalContext.current
             val assets = remember { androidx.webkit.WebViewAssetLoader.Builder().addPathHandler("/assets/", androidx.webkit.WebViewAssetLoader.AssetsPathHandler(context)).build() }
@@ -1909,35 +1900,53 @@ private fun Geofencing(cfg: ConfigViewModel) {
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-            // Street map or satellite imagery.
-            Row(
-                Modifier.align(Alignment.TopEnd).padding(10.dp).clip(Capsule).background(Color(0xCC1C1D21))
-                    .clickable { satellite = !satellite }.padding(horizontal = 12.dp, vertical = 7.dp).testTag("geo-satellite"),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                LineIcon(Icons.Globe, 14.dp, if (satellite) C.Yellow else C.White, 2.2f)
-                Txt(stringResource(if (satellite) R.string.cfg_geo_map else R.string.cfg_geo_satellite), 12, 700, C.White)
-            }
-            // Address suggestions for what is typed, over the top of the map; tapping one goes there.
-            if (picking && hits.isNotEmpty()) {
-                Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(C.Surface).border(1.dp, C.Border).testTag("geo-suggestions")) {
-                    hits.forEach { h ->
-                        Row(
-                            Modifier.fillMaxWidth().clickable { go(h) }.heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            LineIcon(Icons.Pin, 16.dp, C.Yellow, 2.2f)
-                            Txt(h.name, 12, 500, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE)
-                        }
+        }
+        // The address search, in a band over the top of the map.
+        Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().height(58.dp).background(C.Bg).padding(horizontal = 12.dp, vertical = 8.dp)) {
+            SearchField(
+                query, { query = it; picking = true; if (it.trim().length < 2) hits = emptyList() }, stringResource(R.string.cfg_geo_search),
+                Modifier.testTag("geo-search"),
+                height = 42.dp,
+                iconColor = C.Yellow,
+                onSubmit = {
+                    picking = false
+                    hits = emptyList()
+                    focus.clearFocus()
+                    if (pageReady && query.isNotBlank()) js("adcSearch(${JsonPrimitive(query.trim())})")
+                },
+                bg = C.Surface,
+            )
+        }
+        // Street map or satellite imagery.
+        Row(
+            Modifier.align(Alignment.TopEnd).padding(top = 68.dp, end = 10.dp).height(32.dp).clip(Capsule).background(C.Surface.copy(alpha = 0.92f))
+                .border(1.dp, C.Border, Capsule).clickable { satellite = !satellite }.padding(horizontal = 10.dp).testTag("geo-satellite"),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            LineIcon(Icons.Globe, 13.dp, if (satellite) C.Yellow else C.Text, 2f)
+            Txt(stringResource(if (satellite) R.string.cfg_geo_map else R.string.cfg_geo_satellite), 12, 600, C.Text)
+        }
+        // Address suggestions for what is typed, under the search band; tapping one goes there.
+        if (picking && hits.isNotEmpty()) {
+            Column(Modifier.align(Alignment.TopCenter).padding(top = 58.dp).fillMaxWidth().background(C.Surface).border(1.dp, C.Border).testTag("geo-suggestions")) {
+                hits.forEach { h ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { go(h) }.heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        LineIcon(Icons.Pin, 16.dp, C.Yellow, 2.2f)
+                        Txt(h.name, 12, 500, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                     }
                 }
             }
         }
+        val card = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(10.dp).fabShadow(r(16), 12.dp).clip(r(16)).background(C.Surface)
+            .border(1.dp, C.Border, r(16))
         if (map.drawing) {
             // Drawing: how many corners so far, then Cancel, Undo and Finish (3 corners or more).
-            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(card.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Txt(pluralStringResource(R.plurals.cfg_geo_drawing, map.points, map.points), 13, 500, C.Soft, maxLines = Int.MAX_VALUE)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Pill(stringResource(R.string.cfg_cancel), { js("adcCancelDraw()") }, height = 40.dp, hPad = 16.dp, size = 13)
@@ -1950,10 +1959,7 @@ private fun Geofencing(cfg: ConfigViewModel) {
                 }
             }
         } else {
-            Column(
-                Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState()).padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
+            Column(card.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Enforce location restriction.
                 Row(
                     Modifier.fillMaxWidth().clickable { if (canEnforce) cfg.askEnforce(!enforced) else if (ready) cfg.explainEnforce() },
@@ -1961,7 +1967,7 @@ private fun Geofencing(cfg: ConfigViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(R.string.cfg_geo_enforce_title), 14, 700, maxLines = 2)
+                        Txt(stringResource(R.string.cfg_geo_enforce_title), 14, 600, maxLines = 2)
                         Txt(
                             when (g.load) {
                                 LoadState.LOADING -> stringResource(R.string.cfg_geo_loading)
@@ -1976,28 +1982,30 @@ private fun Geofencing(cfg: ConfigViewModel) {
                     }
                 }
                 // The fences on the map now (saved or not): tap one to move its corners; the bin removes it.
-                map.corners.forEachIndexed { i, n ->
-                    val picked = map.selected == i
-                    Row(
-                        Modifier.fillMaxWidth().clip(r(10)).background(if (picked) C.YTintBg else Color.Transparent)
-                            .clickable { if (on) js("adcSelectFence($i)") }.heightIn(min = 44.dp).padding(start = 4.dp).testTag("geo-fence-$i"),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        LineIcon(Icons.Fence, 20.dp, C.Orange, 2.2f)
-                        Txt(stringResource(R.string.cfg_geo_fence_name, i + 1), 14, 700)
-                        Txt(pluralStringResource(R.plurals.cfg_geo_corners, n, n), 12, 400, C.Muted, Modifier.weight(1f))
-                        val label = stringResource(R.string.cfg_geo_delete_fence_cd, i + 1)
-                        Box(
-                            Modifier.size(44.dp).clip(r(10)).clickable { if (on) js("adcDeleteFence($i)") }.semantics { contentDescription = label },
-                            contentAlignment = Alignment.Center,
-                        ) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
+                Column(Modifier.fillMaxWidth().heightIn(max = 120.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    map.corners.forEachIndexed { i, n ->
+                        val picked = map.selected == i
+                        Row(
+                            Modifier.fillMaxWidth().clip(r(10)).background(if (picked) C.YTintBg else Color.Transparent)
+                                .clickable { if (on) js("adcSelectFence($i)") }.heightIn(min = 40.dp).testTag("geo-fence-$i"),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            LineIcon(Icons.Fence, 17.dp, C.Orange, 1.8f)
+                            Txt(stringResource(R.string.cfg_geo_fence_name, i + 1), 14, 600)
+                            Txt(pluralStringResource(R.plurals.cfg_geo_corners, n, n), 12, 400, C.Muted, Modifier.weight(1f))
+                            val label = stringResource(R.string.cfg_geo_delete_fence_cd, i + 1)
+                            Box(
+                                Modifier.size(40.dp).clip(r(10)).clickable { if (on) js("adcDeleteFence($i)") }.semantics { contentDescription = label },
+                                contentAlignment = Alignment.Center,
+                            ) { LineIcon(Icons.Trash, 16.dp, C.Red, 2f) }
+                        }
                     }
                 }
                 // A picked fence: how to change its corners, and Remove corner for the tapped one (a fence keeps 3).
                 if (map.selected >= 0) Txt(stringResource(R.string.cfg_geo_corner_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Pill(stringResource(R.string.cfg_geo_draw_fence), { if (on) js("adcStartDraw()") }, Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-draw"), height = 40.dp, hPad = 18.dp, size = 13, weight = 700)
+                    Pill(stringResource(R.string.cfg_geo_draw_fence), { if (on) js("adcStartDraw()") }, Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-draw"), height = 42.dp, hPad = 16.dp, size = 13)
                     if (map.corner >= 0) {
                         val canRemove = on && (map.corners.getOrNull(map.selected) ?: 0) > 3
                         Pill(

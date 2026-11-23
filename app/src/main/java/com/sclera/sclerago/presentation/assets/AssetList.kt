@@ -218,14 +218,14 @@ private fun ChipBox(label: String, count: Int, selected: Boolean, tag: String, o
     val bd = if (selected) C.Yellow else C.ChipBd
     val fg = if (selected) C.Yellow else C.Soft
     Row(
-        Modifier.testTag(tag).height(28.dp).clip(Capsule).background(bg).border(1.dp, bd, Capsule)
-            .clickable(onClick = onClick).padding(horizontal = 8.dp),
+        Modifier.testTag(tag).height(32.dp).clip(Capsule).background(bg).border(1.dp, bd, Capsule)
+            .clickable(onClick = onClick).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         icon()
-        Txt(label, 10, 600, fg)
-        Txt(count.toString(), 9, 700, fg.copy(alpha = 0.8f))
+        Txt(label, 12, 600, fg)
+        Txt(count.toString(), 11, 700, fg.copy(alpha = 0.8f))
     }
 }
 
@@ -274,33 +274,33 @@ fun AssetRow(
     // The icon (select) and the rest (open) are pressed apart but show one press shade over the whole card.
     val press = remember { MutableInteractionSource() }
     Row(
-        modifier.padding(horizontal = 8.dp, vertical = 1.5.dp).height(IntrinsicSize.Min)
+        modifier.padding(horizontal = 4.dp, vertical = 1.5.dp).height(IntrinsicSize.Min)
             .clip(r(12)).background(rowBg).border(1.dp, cardBd, r(12)).indication(press, LocalIndication.current),
     ) {
         Box(
-            Modifier.width(48.dp).fillMaxHeight()
+            Modifier.width(56.dp).fillMaxHeight()
                 .combinedClickable(interactionSource = press, indication = null, onClick = if (selectable) onToggle else onOpen, onLongClick = longPress),
             contentAlignment = Alignment.CenterEnd,
         ) {
             Box(
-                Modifier.size(34.dp).clip(r(9)).background(icBg).border(1.5.dp, icBd, r(9)),
+                Modifier.size(42.dp).clip(r(11)).background(icBg).border(2.dp, icBd, r(11)),
                 contentAlignment = Alignment.Center,
             ) {
-                if (picked) LineIcon(Icons.Check, 17.dp, C.OnYellow, 3f)
-                else LineIcon(assetIco(a), 16.dp, C.Yellow, 1.9f)
+                if (picked) LineIcon(Icons.Check, 20.dp, C.OnYellow, 3f)
+                else LineIcon(assetIco(a), 20.dp, C.Yellow, 1.9f)
             }
         }
         Row(
-            Modifier.weight(1f).heightIn(min = 54.dp)
+            Modifier.weight(1f).heightIn(min = 64.dp)
                 .combinedClickable(interactionSource = press, indication = null, onClick = onOpen, onLongClick = longPress)
-                .padding(horizontal = 10.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Txt(a.name, 13, 600)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Txt(a.name, 15, 600)
                 // Manufacturer and model, when either is filled in.
-                if (a.makeModel.isNotEmpty()) Txt(a.makeModel, 11, 400, C.Text, maxLines = 1)
+                if (a.makeModel.isNotEmpty()) Txt(a.makeModel, 12, 400, C.Muted, maxLines = 1)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 // The web's "Recollect" badge: sent back to be collected again.
@@ -314,8 +314,8 @@ fun AssetRow(
                     val described = pluralStringResource(mark.problemsRes, a.validationProblems, a.validationProblems)
                     ValidationMarkIcon(mark, a.validationProblems, Modifier.semantics { contentDescription = described })
                 }
-                LineIcon(a.src.icon, 15.dp, a.src.color, 2f)
-                Box(Modifier.width(17.dp), contentAlignment = Alignment.Center) {
+                LineIcon(a.src.icon, 18.dp, a.src.color, 2f)
+                Box(Modifier.width(20.dp), contentAlignment = Alignment.Center) {
                     // In Managed Assets: that is its status here (the web card's "In Managed Assets").
                     if (a.managed) LineIcon(Icons.Managed, 15.dp, C.Yellow, 2f, Modifier.semantics { contentDescription = managedLabel })
                     else LineIcon(a.st.icon, 14.dp, a.st.color, 2f)

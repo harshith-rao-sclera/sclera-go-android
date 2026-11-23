@@ -86,7 +86,7 @@ fun PeopleScreen(
                 list = access.listState(), properties = properties,
                 onBack = vm::openMenu, onTab = access::setTab, onQuery = access::setQuery,
                 onAdd = { if (s.tab == AccessTab.PEOPLE) access.newPerson() else access.newGroup() },
-                onEditPerson = access::editPerson, onEditGroup = access::editGroup,
+                onEditPerson = access::editPerson, onEditGroup = access::editGroup, onDeleteGroup = access::askDeleteGroup,
                 onRefresh = access::refresh, onInvite = access::newPerson, onMoreOthers = access::moreOthers,
                 offline = !online, propertyName = vm.propName.takeIf { it.isNotBlank() },
             )
@@ -142,6 +142,8 @@ internal fun PeopleContent(
     onAdd: () -> Unit,
     onEditPerson: (Person) -> Unit,
     onEditGroup: (Group) -> Unit,
+    /** The trash button on a group card (asks to confirm). */
+    onDeleteGroup: (Group) -> Unit = {},
     onRefresh: () -> Unit = {},
     onInvite: (DirectoryPerson) -> Unit = {},
     onMoreOthers: () -> Unit = {},
@@ -173,8 +175,8 @@ internal fun PeopleContent(
                 LazyColumn(
                     Modifier.fillMaxSize().testTag(AccessTags.LIST),
                     state = scroll,
-                    contentPadding = PaddingValues(start = gutter + 10.dp, end = gutter + 10.dp, top = 10.dp, bottom = 160.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(start = gutter + 8.dp, end = gutter + 8.dp, top = 10.dp, bottom = 160.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     item { Header(list, onTab) }
                     val unavailable = list.unavailable
@@ -203,7 +205,7 @@ internal fun PeopleContent(
                             }
                         }
                         else -> items(list.groups, key = { it.group.id }) { row ->
-                            GroupCard(row) { onEditGroup(row.group) }
+                            GroupCard(row, onDelete = { onDeleteGroup(row.group) }) { onEditGroup(row.group) }
                         }
                     }
                 }
@@ -239,17 +241,17 @@ internal fun PeopleContent(
 @Composable
 private fun Header(list: AccessListState, onTab: (AccessTab) -> Unit) {
     val onPeople = list.tab == AccessTab.PEOPLE
-    Column(Modifier.padding(top = 2.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.padding(bottom = 7.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatCard(
                 Icons.Users, C.Yellow, list.peopleTotal.toString(), stringResource(R.string.access_stat_people),
-                Modifier.weight(1f).clip(r(12)).clickable(role = Role.Button) { onTab(AccessTab.PEOPLE) }.testTag(AccessTags.STAT_PEOPLE),
-                valueSize = 18, labelSize = 12,
+                Modifier.weight(1f).clip(r(16)).clickable(role = Role.Button) { onTab(AccessTab.PEOPLE) }.testTag(AccessTags.STAT_PEOPLE),
+                valueSize = 20, labelSize = 12, prominent = true,
             )
             StatCard(
                 Icons.Key, C.Purple, list.groupsTotal.toString(), stringResource(R.string.access_stat_groups),
-                Modifier.weight(1f).clip(r(12)).clickable(role = Role.Button) { onTab(AccessTab.GROUPS) }.testTag(AccessTags.STAT_GROUPS),
-                valueSize = 18, labelSize = 12,
+                Modifier.weight(1f).clip(r(16)).clickable(role = Role.Button) { onTab(AccessTab.GROUPS) }.testTag(AccessTags.STAT_GROUPS),
+                valueSize = 20, labelSize = 12, prominent = true,
             )
         }
         TabSwitch(

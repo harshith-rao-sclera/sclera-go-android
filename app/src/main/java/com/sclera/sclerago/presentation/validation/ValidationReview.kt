@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.sclera.sclerago.R
@@ -81,22 +82,25 @@ internal fun JobReview(
             if (j == null) {
                 EmptyNote(stringResource(if (s.runFailed) R.string.valt_job_load_failed else R.string.val_loading))
             } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 24.dp)) {
+                // Nothing checked yet: just the progress and a note that the run goes on at the server.
+                val starting = j.status.active && j.processed == 0
                 item(key = "head") { ReviewHead(j) }
                 item(key = "summary") {
                     ReviewSummary(j, s.confidentCount, s.canCheck, s.busy, vm::applyConfident, vm::export) { onRunAgain(j) }
                 }
+                if (starting) item(key = "running-note") { RunningNote() }
                 s.insights?.takeIf { j.status.finished }?.let { ins ->
                     if (ins.hasContent) item(key = "fields") { FieldsToFix(ins) }
                     item(key = "progress") { ReviewProgress(ins) }
                 }
-                if (j.steps.isNotEmpty()) item(key = "steps") { ReviewSteps(j, steps, s.filter.step, vm::setStep) }
-                item(key = "assets-head") {
+                if (j.steps.isNotEmpty() && !starting) item(key = "steps") { ReviewSteps(j, steps, s.filter.step, vm::setStep) }
+                if (!starting) item(key = "assets-head") {
                     ReviewAssetsHead(j, s.filter.outcome) { o -> if (o == null) s.filter.outcome?.let(vm::setOutcome) else vm.setOutcome(o) }
                     Box(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
                         SearchField(s.filter.query, vm::setQuery, stringResource(R.string.rev_search_assets))
                     }
                 }
-                if (s.results.isEmpty()) item(key = "none") {
+                if (s.results.isEmpty() && !starting) item(key = "none") {
                     EmptyNote(
                         when {
                             s.loadingResults -> stringResource(R.string.val_loading)
@@ -116,7 +120,8 @@ internal fun JobReview(
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Txt(
                             stringResource(if (s.nextCursor != null) R.string.rev_showing else R.string.rev_showing_all, s.results.size),
-                            11, 400, C.Muted, Modifier.weight(1f),
+                            11, 400, C.Dim, Modifier.weight(1f),
+                            align = if (s.nextCursor == null) TextAlign.Center else null,
                         )
                         if (s.nextCursor != null) Pill(
                             if (s.loadingMore) stringResource(R.string.val_loading) else stringResource(R.string.rev_load_more),

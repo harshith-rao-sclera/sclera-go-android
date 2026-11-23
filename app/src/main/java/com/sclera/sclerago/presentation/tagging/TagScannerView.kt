@@ -9,6 +9,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
@@ -24,6 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sclera.sclerago.domain.model.TagScannerFailure
 import com.sclera.sclerago.domain.model.TagKind
@@ -45,6 +51,7 @@ fun TagScannerView(
 ) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
+    val scanner: TagScannerViewModel = hiltViewModel()
     var granted by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
     val currentFailure by rememberUpdatedState(onFailure)
     val currentScan by rememberUpdatedState(onScan)
@@ -59,16 +66,29 @@ fun TagScannerView(
             cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
             imageAnalysisBackpressureStrategy = ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
-            imageAnalysisTargetSize = CameraController.OutputSize(Size(ANALYSIS_WIDTH, ANALYSIS_HEIGHT))
         }
     }
     DisposableEffect(controller, kind) {
         val executor = Executors.newSingleThreadExecutor()
         val main = Handler(Looper.getMainLooper())
-        val analyzer = TagFrameAnalyzer(kind) { scan -> main.post { currentScan(scan) } }
+        // A QR code's direction is measured from the whole sensor view (4:3), which the camera calibration describes; a barcode is read from 16:9.
+        controller.setImageAnalysisResolutionSelector(analysisResolution(isQr = kind == TagKind.QR))
+        // The rotation-vector sensor listens only while the screen is resumed and is released with the camera.
+        val meter = if (kind == TagKind.QR) scanner.newMeter() else null
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> meter?.resume()
+                Lifecycle.Event.ON_PAUSE -> meter?.pause()
+                else -> Unit
+            }
+        }
+        owner.lifecycle.addObserver(lifecycleObserver)
+        val analyzer = TagFrameAnalyzer(kind, meter, { controller.zoomState.value?.zoomRatio ?: 1f }) { scan -> main.post { currentScan(scan) } }
         controller.setImageAnalysisAnalyzer(executor, analyzer)
         controller.bindToLifecycle(owner)
         onDispose {
+            owner.lifecycle.removeObserver(lifecycleObserver)
+            meter?.close()
             controller.clearImageAnalysisAnalyzer()
             controller.unbind()
             executor.execute(analyzer::close)
@@ -89,6 +109,16 @@ fun TagScannerView(
         modifier = modifier,
     )
 }
+
+private fun analysisResolution(isQr: Boolean): ResolutionSelector = ResolutionSelector.Builder()
+    .setAspectRatioStrategy(if (isQr) AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY else AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
+    .setResolutionStrategy(
+        ResolutionStrategy(
+            if (isQr) Size(ANALYSIS_WIDTH, ANALYSIS_WIDTH * 3 / 4) else Size(ANALYSIS_WIDTH, ANALYSIS_HEIGHT),
+            ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+        ),
+    )
+    .build()
 
 private const val ANALYSIS_WIDTH = 1280
 private const val ANALYSIS_HEIGHT = 720

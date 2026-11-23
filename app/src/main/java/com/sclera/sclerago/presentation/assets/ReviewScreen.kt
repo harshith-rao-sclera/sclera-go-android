@@ -86,8 +86,8 @@ fun ReviewScreen(
             item(key = "head") {
                 Row(Modifier.readableWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(R.string.review_title), 16, 700)
-                        Txt(sub, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                        Txt(stringResource(R.string.review_title), 18, 700)
+                        Txt(sub, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     }
                     if (onAdd != null) Pill(addLabel, onAdd, Modifier.testTag(ReviewTags.ADD))
                 }
@@ -106,14 +106,14 @@ fun ReviewScreen(
                         Modifier.weight(1f).then(if (onOpen != null) Modifier.clip(r(8)).clickable { onOpen(ri.id) } else Modifier),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        Txt(ri.name, 14, 600)
-                        Txt(ri.sub.asString(), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                        Txt(ri.name, 15, 600)
+                        Txt(ri.sub.asString(), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                         if (ri.note != null) {
-                            Txt(ri.note.asString(), 11, 600, ri.noteColor.takeOrElse { C.Muted }, maxLines = Int.MAX_VALUE)
+                            Txt(ri.note.asString(), 12, 600, ri.noteColor.takeOrElse { C.Muted }, maxLines = Int.MAX_VALUE)
                         } else {
                             Txt(
                                 stringResource(if (ri.ready) R.string.review_ready else R.string.review_needs_input),
-                                11, 600, if (ri.ready) C.Green else C.Orange,
+                                12, 600, if (ri.ready) C.Green else C.Orange,
                             )
                         }
                     }
@@ -135,7 +135,7 @@ fun ReviewScreen(
                         Pill(
                             goLabel ?: if (on > 0) pluralStringResource(R.plurals.review_onboard, on, on) else stringResource(R.string.review_select_items),
                             { if (!busy) onGo() }, Modifier.fillMaxWidth().testTag(ReviewTags.GO), bg = if (canGo) C.Yellow else C.Raised,
-                            fg = if (canGo) C.OnYellow else C.Muted, height = 48.dp, size = 14, weight = 700,
+                            fg = if (canGo) C.OnYellow else C.Muted, height = 48.dp, size = 15, weight = 700,
                         )
                     }
                 }

@@ -203,15 +203,15 @@ fun DetailTab(
         val content: @Composable () -> Unit = {
             Box {
                 Box(
-                    Modifier.size(26.dp).background(if (selected) C.YTintBg else Color.Transparent, CircleShape),
+                    Modifier.size(26.dp),
                     contentAlignment = Alignment.Center,
-                ) { LineIcon(icon, 16.dp, fg, 2.4f) }
-                val badge = Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-3).dp).heightIn(min = 15.dp).widthIn(min = 15.dp)
+                ) { LineIcon(icon, 17.dp, fg, 2.4f) }
+                val badge = Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-3).dp).heightIn(min = 16.dp).widthIn(min = 16.dp)
                 // Only the Validation tab has a badge: its failed checks, or a tick when all passed.
                 when {
                     fails == null -> Unit
                     fails > 0 -> Box(badge.background(C.Red, Capsule).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
-                        Txt(fails.toString(), 9, 800, C.OnYellow)
+                        Txt(fails.toString(), 10, 800, C.OnYellow)
                     }
                     else -> Box(badge.background(C.Green, CircleShape), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.Check, 9.dp, C.OnYellow, 3.6f)
@@ -219,7 +219,7 @@ fun DetailTab(
                 }
             }
             // Six tabs share a phone's width, so the labels under the icons stay small enough for "Validation" to fit.
-            Txt(label, if (compact) 12 else 10, if (selected) (if (compact) 700 else 600) else 500, fg, maxLines = 1)
+            Txt(label, if (compact) 12 else 11, if (selected) 700 else 500, fg, maxLines = 1)
         }
         if (compact) {
             Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) { content() }

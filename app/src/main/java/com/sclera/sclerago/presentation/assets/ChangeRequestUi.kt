@@ -38,7 +38,9 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.presentation.common.formatDateAndTime
+import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.GuardedClose
+import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.blockSwipe
@@ -177,35 +179,23 @@ internal fun ChangeRequestDialog(
     onSend: () -> Unit,
     onCancel: () -> Unit,
     /** The heading; one asset's by default (the selection's says how many). */
-    title: String = stringResource(R.string.change_request_title),
+    title: String = stringResource(R.string.change_request_sheet_title),
     /** The note differs from what it started as: Back, Cancel or a tap outside asks before discarding it. */
     dirty: Boolean = false,
 ) = GuardedClose(dirty, onCancel) { close ->
-    BackHandler(onBack = close)
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(close).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
-        Column(
-            Modifier.widthIn(max = 360.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
-                .border(1.dp, C.Border2, r(18)).noRippleClick { }.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Box(Modifier.size(44.dp).background(C.WarnRow, CircleShape), contentAlignment = Alignment.Center) {
-                LineIcon(Icons.Pencil, 20.dp, C.Orange, 2.2f)
-            }
-            Txt(title, 16, 700)
-            Txt(stringResource(R.string.change_request_body), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
+    BottomSheet(close) {
+        SheetHeader(title, stringResource(R.string.change_request_sheet_body), close, titleSize = 20)
+        Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 26.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Box(Modifier.testTag(ChangeRequestTags.NOTE)) {
                 LabeledInput(
-                    stringResource(R.string.change_request_note_label), note, onNote, stringResource(R.string.change_request_note_hint),
+                    stringResource(R.string.change_request_sheet_note_label), note, onNote, stringResource(R.string.change_request_sheet_note_hint),
                     singleLine = false, minLines = 3,
                 )
             }
-            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Pill(stringResource(R.string.action_cancel), close, Modifier.weight(1f), height = 46.dp, size = 14)
-                Pill(
-                    stringResource(R.string.change_request_send), onSend, Modifier.weight(1f).testTag(ChangeRequestTags.SEND),
-                    bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700,
-                )
-            }
+            Pill(
+                stringResource(R.string.change_request_send), onSend, Modifier.fillMaxWidth().testTag(ChangeRequestTags.SEND),
+                bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 15, weight = 700,
+            )
         }
     }
 }

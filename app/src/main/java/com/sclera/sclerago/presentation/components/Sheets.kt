@@ -123,10 +123,10 @@ fun LocationPicker(
                     if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Txt(stringResource(R.string.scrt_loc_select_title), 17, 700)
+                            Txt(stringResource(R.string.scrt_loc_select_title), 22, 700)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                LineIcon(Icons.Property, 13.dp, C.Muted, 2.2f)
-                                Txt(propName, 11, 500, C.Muted)
+                                LineIcon(Icons.Property, 11.dp, C.Muted, 2.2f)
+                                Txt(propName, 12, 500, C.Muted)
                             }
                         }
                         CloseButton(close)
@@ -146,7 +146,7 @@ fun LocationPicker(
                                         .border(1.dp, if (last) C.YTintBd else C.ChipBd, Capsule).clickable { pick(n.id) }
                                         .padding(horizontal = 10.dp),
                                     contentAlignment = Alignment.Center,
-                                ) { Txt(n.name, 11, 600, if (last) C.Yellow else C.Text) }
+                                ) { Txt(n.name, 12, 600, if (last) C.Yellow else C.Text) }
                             }
                         }
                     }
@@ -201,12 +201,12 @@ fun LocationPicker(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(R.string.scrt_loc_selected_caps), 10, 500, C.Muted, spacing = 0.6f)
-                        Txt(node?.name ?: stringResource(R.string.scrt_loc_nothing_selected), 15, 700)
+                        Txt(stringResource(R.string.scrt_loc_selected_caps), 11, 500, C.Muted, spacing = 0.6f)
+                        Txt(node?.name ?: stringResource(R.string.scrt_loc_nothing_selected), 16, 700)
                         Txt(
                             if (node == null) stringResource(R.string.scrt_loc_pick_hint)
                             else if (selChain.size > 1) names.dropLast(1).joinToString(" › ") else stringResource(R.string.scrt_loc_whole_building),
-                            11, 400, C.Muted, maxLines = Int.MAX_VALUE,
+                            12, 400, C.Muted, maxLines = Int.MAX_VALUE,
                         )
                     }
                     Pill(
@@ -217,7 +217,7 @@ fun LocationPicker(
                             }
                         },
                         bg = if (node != null) C.Yellow else C.Raised, fg = if (node != null) C.OnYellow else C.Muted,
-                        height = 48.dp, hPad = 22.dp, size = 14, weight = 700,
+                        height = 48.dp, hPad = 22.dp, size = 15, weight = 700,
                     )
                 }
             }
@@ -294,14 +294,14 @@ private fun TreeNodeRow(
         ) {
             KindIcon(n.kind, if (selected || onPath) C.Yellow else C.Muted)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Txt(n.name, 14, if (selected || onPath) 700 else 500, if (selected) C.Yellow else C.Text)
-                Txt(sub, 11, 400, C.Muted)
+                Txt(n.name, 15, if (selected || onPath) 700 else 500, if (selected) C.Yellow else C.Text)
+                Txt(sub, 12, 400, C.Muted)
             }
             if (count > 0) {
                 Box(
                     Modifier.widthIn(min = 24.dp).clip(Capsule).background(C.Raised).padding(horizontal = 7.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center,
-                ) { Txt(count.toString(), 10, 700, C.Muted) }
+                ) { Txt(count.toString(), 11, 700, C.Muted) }
             }
             RadioDot(selected)
         }

@@ -47,12 +47,12 @@ private fun statusText(st: Status): String = stringResource(
 @Composable
 internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, info: ReviewAssetInfo?) {
     Row(
-        Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(12.dp),
+        Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(r(10)).background(C.Raised), contentAlignment = Alignment.Center) {
-            Txt(name.trim().take(1).uppercase().ifEmpty { "?" }, 16, 800)
+        Box(Modifier.size(46.dp).clip(r(10)).background(C.Raised), contentAlignment = Alignment.Center) {
+            Txt(name.trim().take(1).uppercase().ifEmpty { "?" }, 18, 700)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (local == null) {
@@ -60,13 +60,13 @@ internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, inf
                 return@Column
             }
             val where = local.where.ifBlank { stringResource(R.string.rev_no_location) }
-            Txt(if (propName.isBlank()) where else stringResource(R.string.rev_place, propName, where), 13, 700, maxLines = Int.MAX_VALUE)
+            Txt(if (propName.isBlank()) where else stringResource(R.string.rev_place, propName, where), 14, 600, maxLines = Int.MAX_VALUE)
             Txt(
                 info?.let { stringResource(R.string.rev_fields_filled, statusText(local.st), it.filled, it.total) } ?: statusText(local.st),
-                11, 500, C.Muted, maxLines = 2,
+                12, 400, C.Muted, maxLines = 2,
             )
             if (info != null && info.total > 0) {
-                Box(Modifier.fillMaxWidth().height(4.dp).clip(Capsule).background(C.Raised)) {
+                Box(Modifier.fillMaxWidth().height(5.dp).clip(Capsule).background(C.Raised)) {
                     Box(Modifier.fillMaxWidth(info.filled.toFloat() / info.total).fillMaxHeight().clip(Capsule).background(C.Green))
                 }
             }

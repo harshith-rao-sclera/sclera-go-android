@@ -19,7 +19,7 @@ import com.sclera.sclerago.presentation.theme.C
  */
 @Composable
 fun DeviceIconTile() {
-    Box(Modifier.size(34.dp).clip(r(9)).background(C.Raised), contentAlignment = Alignment.Center) {
-        LineIcon(genericAssetIco(), 16.dp, C.Yellow, 1.9f)
+    Box(Modifier.size(40.dp).clip(r(10)).background(C.Raised), contentAlignment = Alignment.Center) {
+        LineIcon(genericAssetIco(), 18.dp, C.Yellow, 1.9f)
     }
 }

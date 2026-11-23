@@ -160,8 +160,8 @@ private fun NothingFound(d: AiDialogState) {
 private fun Header(name: String, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f).padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Txt(stringResource(R.string.ai_title), 18, 800)
-            Txt(stringResource(R.string.ai_sheet_subtitle, name), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
+            Txt(stringResource(R.string.ai_title), 20, 700)
+            Txt(stringResource(R.string.ai_sheet_subtitle, name), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         CloseButton(onClose, size = 36.dp, iconSize = 16.dp)
     }
@@ -170,7 +170,7 @@ private fun Header(name: String, onClose: () -> Unit) {
 /** The manufacturer and model to look up, labelled with the property's own field names. */
 @Composable
 private fun Identify(d: AiDialogState, state: AssetDetailState, actions: AiDialogActions) {
-    Txt(d.error?.asString() ?: stringResource(R.string.ai_identify_lead), 13, 500, maxLines = Int.MAX_VALUE)
+    Txt(d.error?.asString() ?: stringResource(R.string.ai_identify_lead), 14, 400, C.Muted, maxLines = Int.MAX_VALUE)
     val spec = FieldSpec(state.fields)
     LabeledBox(spec.label("make", stringResource(R.string.ai_make_label)).removeSuffix(" *"), d.make, stringResource(R.string.ai_make_hint)) {
         actions.onIdentity(it, d.model)
@@ -178,17 +178,17 @@ private fun Identify(d: AiDialogState, state: AssetDetailState, actions: AiDialo
     LabeledBox(spec.label("model", stringResource(R.string.ai_model_label)).removeSuffix(" *"), d.model, stringResource(R.string.ai_model_hint)) {
         actions.onIdentity(d.make, it)
     }
-    Txt(stringResource(R.string.ai_typed_note), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+    Txt(stringResource(R.string.ai_typed_note), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
 }
 
 @Composable
 private fun LabeledBox(label: String, value: String, hint: String, onChange: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Txt(label, 13, 700)
+        Txt(label, 14, 600)
         PlainField(
             value, onChange, hint,
-            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(r(10)).background(C.Bg).border(1.dp, C.Border2, r(10)).padding(horizontal = 12.dp, vertical = 12.dp),
-            size = 14,
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(horizontal = 14.dp, vertical = 12.dp),
+            size = 15,
         )
     }
 }
@@ -379,12 +379,12 @@ private fun FieldsCard(d: AiDialogState, rows: List<Map.Entry<String, AiPick>>, 
                 AiTick(pick.on) { actions.onToggle(key) }
                 Column(Modifier.weight(1f).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     // A field the suggested type brings isn't on the asset yet: it is named by the type.
-                    Txt(typeFieldName(key) ?: spec.label(key).removeSuffix(" *"), 13, 700, maxLines = 2)
+                    Txt(typeFieldName(key) ?: spec.label(key).removeSuffix(" *"), 13, 600, maxLines = 2)
                     PlainField(
                         pick.value, { actions.onEdit(key, it) }, "",
-                        Modifier.fillMaxWidth().heightIn(min = 40.dp).clip(r(8)).background(C.Bg).border(1.dp, C.Border2, r(8))
-                            .padding(horizontal = 10.dp, vertical = 10.dp),
-                        size = 14, singleLine = false,
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12))
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        size = 15, singleLine = false,
                     )
                     // The photo shows something else than the form has: both are shown, and Apply replaces it when ticked.
                     if (lookup?.differs?.contains(key) == true) {
@@ -451,8 +451,8 @@ private fun AiTick(on: Boolean, onClick: () -> Unit) {
 internal fun SheetTitleRow(title: String, subtitle: String, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Txt(title, 18, 800)
-            Txt(subtitle, 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
+            Txt(title, 20, 700)
+            Txt(subtitle, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         CloseButton(onClose, size = 36.dp, iconSize = 16.dp)
     }
@@ -476,7 +476,7 @@ private const val PRODUCT_MARK = "\u0001"
 @Composable
 private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions: AiDialogActions) {
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp, bottom = 14.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 14.dp, bottom = 26.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         when (d.phase) {
@@ -484,8 +484,8 @@ private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions:
             AiPhase.IDENTIFY -> {
                 val ready = d.model.isNotBlank()
                 Pill(
-                    stringResource(R.string.ai_find), { if (ready) actions.onLookUp() }, Modifier.fillMaxWidth().alpha(if (ready) 1f else 0.45f),
-                    bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700,
+                    stringResource(R.string.ai_find), { if (ready) actions.onLookUp() }, Modifier.fillMaxWidth(),
+                    bg = if (ready) C.Yellow else C.Raised, fg = if (ready) C.OnYellow else C.Muted, height = 48.dp, size = 15, weight = 700,
                 )
             }
             // The search keeps going when the sheet is closed (the AI button blinks): no buttons while it runs.
@@ -498,23 +498,23 @@ private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions:
             }
             // Nothing to apply: no Apply to press, just another model, another look, or Done.
             AiPhase.RESULTS -> if (nothing) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
-                Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
+                Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 44.dp, hPad = 12.dp, size = 13, weight = 600)
+                Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 44.dp, hPad = 12.dp, size = 13, weight = 600)
                 Pill(
                     stringResource(R.string.action_done), actions.onClose, Modifier.weight(1f),
-                    bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 12.dp, size = 13, weight = 700,
+                    bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 12.dp, size = 15, weight = 700,
                 )
             } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val dropped = if (d.typeOn == false) d.lookup?.suggestedType?.values?.keys.orEmpty() else emptySet()
                 val n = d.picks.count { (k, p) -> p.on && p.value.isNotBlank() && k !in dropped } + typedCount
                 val ready = d.typeOn == true || n > 0
-                Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
-                Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
+                Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 44.dp, hPad = 12.dp, size = 13, weight = 600)
+                Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 44.dp, hPad = 12.dp, size = 13, weight = 600)
                 Pill(
                     stringResource(R.string.ai_apply),
                     { if (ready) actions.onApply() },
                     Modifier.weight(1f).testTag(AiTags.APPLY).alpha(if (ready) 1f else 0.45f),
-                    bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 12.dp, size = 13, weight = 700,
+                    bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 12.dp, size = 15, weight = 700,
                 )
             }
         }

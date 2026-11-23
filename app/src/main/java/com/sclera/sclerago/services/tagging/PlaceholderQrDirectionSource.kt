@@ -5,8 +5,8 @@ import com.sclera.sclerago.domain.repository.QrDirectionSource
 import javax.inject.Inject
 
 /**
- * The direction recorded for a scanned QR code until the AR measurement is built for Android: fixed values, so the server
- * still gets a well-formed `direction`. Replace this one binding (see `TaggingModule`) with the AR engine's source.
+ * The direction recorded for a QR code scanned on a device that cannot measure one (it has no rotation-vector sensor): fixed values,
+ * so the server still gets a well-formed `direction`. A device that can measure sends what [QrDirectionMeter] measured instead.
  */
 class PlaceholderQrDirectionSource @Inject constructor() : QrDirectionSource {
     override suspend fun measure() = QrMeasurement(yaw = YAW, pitch = PITCH, roll = ROLL, confidence = CONFIDENCE, method = METHOD)

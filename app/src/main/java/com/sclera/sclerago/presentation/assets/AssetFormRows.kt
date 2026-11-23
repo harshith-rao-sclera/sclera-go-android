@@ -139,7 +139,7 @@ fun FormSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 LineIcon(Icons.ChevronDown, 18.dp, C.Muted, 2.4f, Modifier.rotate(rot))
-                Txt(title, 14, 700, modifier = Modifier.weight(1f))
+                Txt(title, 15, 700, modifier = Modifier.weight(1f))
                 if (!open && summary != null) {
                     Txt(summary.text, 11, if (summary.warn) 700 else 500, if (summary.warn) C.Orange else C.Muted, mono = summary.mono)
                 } else note?.let { Txt(it, if (noteWarn) 11 else 10, if (noteWarn) 700 else 500, if (noteWarn) C.Orange else C.Muted) }
@@ -176,7 +176,7 @@ fun FieldRow(
         PlainField(
             value, onChange, stringResource(R.string.detail_field_hint, label.removeSuffix(" *").lowercase(Locale.getDefault())),
             Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
-            size = if (mono) 13 else 14, weight = 600, mono = mono, singleLine = !multiLine,
+            size = if (mono) 13 else 15, weight = 600, mono = mono, singleLine = !multiLine,
         )
         BadgeText(key, badge)
     }
@@ -191,7 +191,7 @@ fun FieldLabel(label: String, modifier: Modifier = Modifier, color: Color = C.Mu
             append(name)
             if (name != label) withStyle(SpanStyle(color = C.Orange, fontWeight = FontWeight.Bold)) { append(REQUIRED_MARK) }
         },
-        modifier, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium, fontFamily = ScleraFonts.Inter,
+        modifier, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFamily = ScleraFonts.Inter,
         maxLines = 2, overflow = TextOverflow.Ellipsis,
     )
 }
@@ -212,8 +212,8 @@ fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier, onCli
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
-        Txt(value ?: stringResource(R.string.detail_value_none), 14, 600, if (value != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+        Txt(label, 13, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        Txt(value ?: stringResource(R.string.detail_value_none), 15, 600, if (value != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
         if (onClick != null) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
     }
 }
@@ -254,7 +254,7 @@ fun PickRow(
     ) {
         FieldLabel(label, Modifier.width(92.dp))
         Txt(
-            value.ifEmpty { empty }, if (mono) 13 else 14, 600, if (value.isEmpty()) C.Muted else C.Text,
+            value.ifEmpty { empty }, if (mono) 13 else 15, 600, if (value.isEmpty()) C.Muted else C.Text,
             Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp), maxLines = Int.MAX_VALUE,
         )
         BadgeText(key, badge)
@@ -289,7 +289,7 @@ fun SelectRow(
         // The menu hangs from the value, so it opens under it rather than over the label.
         Box(Modifier.weight(1f)) {
             Txt(
-                shown, 14, 600, if (value.isEmpty()) C.Muted else C.Text,
+                shown, 15, 600, if (value.isEmpty()) C.Muted else C.Text,
                 Modifier.fillMaxWidth().bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
                 maxLines = Int.MAX_VALUE,
             )
