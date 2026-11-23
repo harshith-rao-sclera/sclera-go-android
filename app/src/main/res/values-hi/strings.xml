@@ -585,4 +585,11 @@
     <string name="memo_subtitle">एसेट के बारे में जानने लायक बातें बोलें।</string>
     <string name="memo_stop">रोकें</string>
     <string name="memo_save">मेमो सहेजें</string>
+    <string name="premise_banner_off">आप इस प्रॉपर्टी की जियोफेंस से बाहर हैं, इसलिए आप एसेट देख सकते हैं, लेकिन जोड़ या संपादित नहीं कर सकते।</string>
+    <string name="premise_banner_location_needed">यह प्रॉपर्टी कलेक्टरों को केवल साइट पर काम करने देती है। एसेट जोड़ने या संपादित करने के लिए लोकेशन एक्सेस की अनुमति दें।</string>
+    <string name="premise_banner_location_unknown">आपकी लोकेशन नहीं मिल पा रही है, इसलिए आप एसेट देख सकते हैं, लेकिन जोड़ या संपादित नहीं कर सकते।</string>
+    <string name="premise_perm_title">पुष्टि करें कि आप साइट पर हैं</string>
+    <string name="premise_perm_body">यह प्रॉपर्टी कलेक्टरों को केवल साइट पर एसेट जोड़ने और संपादित करने देती है। Sclera Go इस फ़ोन पर आपकी लोकेशन की तुलना प्रॉपर्टी की सीमा से करता है। इसे सहेजा या भेजा नहीं जाता।</string>
+    <string name="lock_banner_off_premise">प्रॉपर्टी के बाहर</string>
+    <string name="lock_banner_off_premise_body">यह प्रॉपर्टी जियोफेंसिंग का उपयोग करती है। कलेक्टर यह एसेट देख सकते हैं, लेकिन साइट से दूर होने या फ़ोन की लोकेशन अज्ञात होने पर इसे बदल नहीं सकते।</string>
 </resources>

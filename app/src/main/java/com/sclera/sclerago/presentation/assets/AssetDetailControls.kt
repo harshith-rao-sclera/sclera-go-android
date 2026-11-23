@@ -101,6 +101,7 @@ internal fun LockBanner(lock: AssetLock, modifier: Modifier = Modifier) {
     val (short, body) = when (lock) {
         AssetLock.NOT_ASSIGNED -> R.string.lock_banner_not_assigned to R.string.asset_lock_not_assigned
         AssetLock.NO_PERMISSION -> R.string.lock_banner_no_permission to R.string.lock_banner_no_permission_body
+        AssetLock.OFF_PREMISE -> R.string.lock_banner_off_premise to R.string.lock_banner_off_premise_body
         else -> R.string.lock_banner_submitted to R.string.detail_submitted_body
     }
     Column(modifier.fillMaxWidth().background(C.WarnRow).bottomBorder(C.Orange.copy(alpha = 0.35f)).testTag(DetailTags.LOCK_BANNER)) {

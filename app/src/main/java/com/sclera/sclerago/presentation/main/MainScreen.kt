@@ -63,6 +63,9 @@ import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalUnsavedForms
 import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.PermissionSheet
+import com.sclera.sclerago.presentation.components.PremiseBanner
+import com.sclera.sclerago.presentation.premise.PremisePrompt
+import com.sclera.sclerago.presentation.premise.PremiseViewModel
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.ShakeEffect
 import com.sclera.sclerago.presentation.components.readableWidth
@@ -117,6 +120,7 @@ fun ScleraApp(
     files: FileImportViewModel = hiltViewModel(),
     bulk: BulkEditViewModel = hiltViewModel(),
     connectivity: ConnectivityViewModel = hiltViewModel(),
+    premise: PremiseViewModel = hiltViewModel(),
 ) {
     // Every form reports unsaved changes here, so tabs and side-menu pages can ask before dropping them.
     CompositionLocalProvider(LocalUnsavedForms provides vm.unsavedForms) {
@@ -247,6 +251,9 @@ fun ScleraApp(
                 )
                 // The user's access couldn't be loaded: pages and changes that need a permission stay unavailable until it is.
                 if (vm.accessFailed) AccessFailedBanner(vm::retryAccess, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
+                // A collector away from a property with geofencing on looks only: the banner says why.
+                val premiseNotice by premise.notice.collectAsStateWithLifecycle()
+                PremiseBanner(premiseNotice, premise::askAgain, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().launchEntrance(Entrance.DashContent)) {
                     HorizontalPager(
                         state = pager,
@@ -401,6 +408,8 @@ fun ScleraApp(
                     onNotNow = { vm.onScanPermission(false) },
                 )
             }
+            // Why a collector's location is wanted (geofencing), just before Android asks.
+            PremisePrompt(premise)
             if (lists.confirmDelete) {
                 val n = lists.picked.size
                 BackHandler(onBack = list::cancelDelete)

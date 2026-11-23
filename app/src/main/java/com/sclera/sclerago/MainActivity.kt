@@ -16,6 +16,7 @@ import com.sclera.sclerago.presentation.launch.LaunchHost
 import com.sclera.sclerago.presentation.launch.LaunchViewModel
 import com.sclera.sclerago.presentation.login.LoginScreen
 import com.sclera.sclerago.presentation.main.ScleraApp
+import com.sclera.sclerago.presentation.premise.PremiseViewModel
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.ScleraTheme
 import com.sclera.sclerago.utility.Utility
@@ -25,6 +26,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val session: SessionViewModel by viewModels()
     private val launch: LaunchViewModel by viewModels()
+    private val premise: PremiseViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The system splash (dark canvas, brand symbol) hands over to the Compose launch animation,
@@ -61,5 +63,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         session.onForeground()
+        // The geofence is checked again: the phone may have moved on or off the property.
+        premise.onForeground()
     }
 }

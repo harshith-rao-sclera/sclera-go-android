@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ZoomState
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
@@ -30,12 +31,14 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.Observer
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sclera.sclerago.domain.model.TagScannerFailure
 import com.sclera.sclerago.domain.model.TagKind
 import com.sclera.sclerago.domain.usecase.tagging.TagScan
 import com.sclera.sclerago.services.tagging.TagFrameAnalyzer
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * The camera preview that reads a QR code or a barcode ([TagFrameAnalyzer]). It asks for the camera at the moment it opens and
@@ -83,11 +86,16 @@ fun TagScannerView(
             }
         }
         owner.lifecycle.addObserver(lifecycleObserver)
-        val analyzer = TagFrameAnalyzer(kind, meter, { controller.zoomState.value?.zoomRatio ?: 1f }) { scan -> main.post { currentScan(scan) } }
+        // CameraX only lets the main thread read the zoom, so the analysis thread reads a copy kept up to date here.
+        val zoom = AtomicReference(1f)
+        val zoomObserver = Observer<ZoomState> { zoom.set(it.zoomRatio) }
+        controller.zoomState.observe(owner, zoomObserver)
+        val analyzer = TagFrameAnalyzer(kind, meter, { zoom.get() }) { scan -> main.post { currentScan(scan) } }
         controller.setImageAnalysisAnalyzer(executor, analyzer)
         controller.bindToLifecycle(owner)
         onDispose {
             owner.lifecycle.removeObserver(lifecycleObserver)
+            controller.zoomState.removeObserver(zoomObserver)
             meter?.close()
             controller.clearImageAnalysisAnalyzer()
             controller.unbind()

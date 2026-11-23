@@ -596,4 +596,11 @@
     <string name="memo_subtitle">אמרו מה כדאי לדעת על הנכס.</string>
     <string name="memo_stop">עצור</string>
     <string name="memo_save">שמור תזכיר</string>
+    <string name="premise_banner_off">אתם מחוץ לגדר הגיאוגרפית של הנכס הזה, ולכן אפשר לצפות בנכסים אך לא להוסיף או לערוך אותם.</string>
+    <string name="premise_banner_location_needed">הנכס הזה מגביל את האוספים לעבודה באתר בלבד. אשרו גישה למיקום כדי להוסיף או לערוך נכסים.</string>
+    <string name="premise_banner_location_unknown">לא ניתן לאתר את המיקום שלכם, ולכן אפשר לצפות בנכסים אך לא להוסיף או לערוך אותם.</string>
+    <string name="premise_perm_title">אשרו שאתם באתר</string>
+    <string name="premise_perm_body">הנכס הזה מאפשר לאוספים להוסיף ולערוך נכסים רק באתר. Sclera Go משווה את המיקום שלכם לגבול הנכס בטלפון הזה. המיקום לא נשמר ולא נשלח.</string>
+    <string name="lock_banner_off_premise">מחוץ לנכס</string>
+    <string name="lock_banner_off_premise_body">הנכס הזה משתמש בגדר גיאוגרפית. אוספים יכולים לצפות בנכס אך לא לשנות אותו כשהם רחוקים מהאתר או כשמיקום הטלפון אינו ידוע.</string>
 </resources>

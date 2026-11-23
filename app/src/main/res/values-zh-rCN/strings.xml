@@ -564,4 +564,11 @@
     <string name="memo_subtitle">说说这项资产值得了解的内容。</string>
     <string name="memo_stop">停止</string>
     <string name="memo_save">保存语音备忘</string>
+    <string name="premise_banner_off">你不在此物业的地理围栏内，因此只能查看资产，无法添加或编辑。</string>
+    <string name="premise_banner_location_needed">此物业仅允许采集人员在现场工作。请允许访问位置信息，以添加或编辑资产。</string>
+    <string name="premise_banner_location_unknown">无法获取你的位置，因此只能查看资产，无法添加或编辑。</string>
+    <string name="premise_perm_title">确认你在现场</string>
+    <string name="premise_perm_body">此物业仅允许采集人员在现场添加和编辑资产。Sclera Go 会在这部手机上将你的位置与物业边界进行比对，不会保存或发送位置信息。</string>
+    <string name="lock_banner_off_premise">不在物业范围内</string>
+    <string name="lock_banner_off_premise_body">此物业使用地理围栏。采集人员远离现场或手机位置未知时，只能查看此资产，无法修改。</string>
 </resources>

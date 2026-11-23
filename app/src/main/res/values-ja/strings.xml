@@ -564,4 +564,11 @@
     <string name="memo_subtitle">アセットについて知っておくべきことを話してください。</string>
     <string name="memo_stop">停止</string>
     <string name="memo_save">メモを保存</string>
+    <string name="premise_banner_off">この物件のジオフェンスの外にいるため、アセットの閲覧のみ可能で、追加や編集はできません。</string>
+    <string name="premise_banner_location_needed">この物件では、コレクターは現地でのみ作業できます。アセットを追加または編集するには、位置情報へのアクセスを許可してください。</string>
+    <string name="premise_banner_location_unknown">現在地を取得できないため、アセットの閲覧のみ可能で、追加や編集はできません。</string>
+    <string name="premise_perm_title">現地にいることを確認</string>
+    <string name="premise_perm_body">この物件では、コレクターは現地でのみアセットを追加・編集できます。Sclera Go はこのスマートフォン上で現在地と物件の境界を照合します。位置情報は保存も送信もされません。</string>
+    <string name="lock_banner_off_premise">物件の外</string>
+    <string name="lock_banner_off_premise_body">この物件ではジオフェンスを使用しています。コレクターは、現地から離れている間や端末の位置情報が不明な間は、このアセットを閲覧のみでき、変更はできません。</string>
 </resources>
