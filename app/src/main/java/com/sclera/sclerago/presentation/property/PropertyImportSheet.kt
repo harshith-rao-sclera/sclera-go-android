@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -137,9 +139,9 @@ internal fun ImportSheetContent(
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Column(
-                    Modifier.fillMaxWidth().heightIn(min = 110.dp).clip(r(16)).background(C.Bg)
+                    Modifier.fillMaxWidth().heightIn(min = 110.dp).pressClickable(shape = r(16), pressed = PRESSED_CARD, role = Role.Button, onClick = onChoose).background(C.Bg)
                         .dashedBorder(if (fileName != null) C.Yellow else C.Border2, 1.5.dp, 16.dp)
-                        .testTag(ImportTags.DROP_ZONE).clickable(role = Role.Button, onClick = onChoose).padding(vertical = 12.dp),
+                        .testTag(ImportTags.DROP_ZONE).padding(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -286,9 +288,9 @@ private fun MappingRow(target: ImportTarget, heading: String?, missing: Boolean,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
-            Modifier.weight(1f).heightIn(min = 48.dp).clip(r(10)).background(C.Bg)
+            Modifier.weight(1f).heightIn(min = 48.dp).pressClickable(shape = r(10), role = Role.Button, onClick = onChoose).background(C.Bg)
                 .border(1.dp, if (missing) C.Red else C.Border, r(10))
-                .clickable(role = Role.Button, onClick = onChoose).padding(horizontal = 10.dp),
+                .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Txt(heading ?: stringResource(R.string.import_select_field), 13, if (heading != null) 600 else 400, if (heading != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = 2)

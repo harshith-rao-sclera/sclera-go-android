@@ -113,9 +113,11 @@ fun LocationPicker(
 
     GuardedClose(sel != startPick, onClose) { close ->
         BackHandler(onBack = close)
-        Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(close).statusBarsPadding()) {
+        val shown = rememberAppear()
+        val tablet = isTablet()
+        Box(Modifier.fillMaxSize().scrim(shown).noRippleClick(close).statusBarsPadding()) {
             Column(
-                Modifier.swipeDownToClose(close).then(if (isTablet()) sheetFrame(C.Surface, heightFraction = 0.9f, fill = true)
+                Modifier.sheetIn(shown, tablet).swipeDownToClose(close).then(if (isTablet()) sheetFrame(C.Surface, heightFraction = 0.9f, fill = true)
                 else Modifier.padding(top = 40.dp).fillMaxSize().clip(SheetShape).background(C.Surface).topBorder(C.Border)
                     .noRippleClick { }.navigationBarsPadding()).imePadding(),
             ) {
@@ -142,8 +144,8 @@ fun LocationPicker(
                                 if (i > 0) LineIcon(Icons.ChevronRight, 12.dp, C.Dim, 2.6f)
                                 val last = i == selChain.size - 1
                                 Box(
-                                    Modifier.heightIn(min = 32.dp).clip(Capsule).background(if (last) C.YTintBg else C.Raised)
-                                        .border(1.dp, if (last) C.YTintBd else C.ChipBd, Capsule).clickable { pick(n.id) }
+                                    Modifier.heightIn(min = 32.dp).pressClickable(shape = Capsule) { pick(n.id) }.background(if (last) C.YTintBg else C.Raised)
+                                        .border(1.dp, if (last) C.YTintBd else C.ChipBd, Capsule)
                                         .padding(horizontal = 10.dp),
                                     contentAlignment = Alignment.Center,
                                 ) { Txt(n.name, 11, 600, if (last) C.Yellow else C.Text) }
@@ -161,7 +163,7 @@ fun LocationPicker(
                         items(results, key = { "r-" + it.id }) { n ->
                             val c = chain(n.id)
                             Row(
-                                Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(r(12)).clickable { pick(n.id) }
+                                Modifier.fillMaxWidth().heightIn(min = 56.dp).pressClickable(shape = r(12), pressed = PRESSED_CARD) { pick(n.id) }
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -283,12 +285,12 @@ private fun TreeNodeRow(
             if (depth > 0) Box(Modifier.padding(end = 1.dp).width(1.dp).fillMaxHeight().background(C.ChipBd))
         }
         if (n.kids != null) {
-            Box(Modifier.size(36.dp, 44.dp).clip(r(8)).clickable(onClick = onToggle), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(36.dp, 44.dp).pressClickable(shape = r(8), onClick = onToggle), contentAlignment = Alignment.Center) {
                 LineIcon(Icons.ChevronRight, 16.dp, C.Muted, 2.6f, Modifier.rotate(rot))
             }
         } else Spacer(Modifier.width(36.dp))
         Row(
-            Modifier.weight(1f).heightIn(min = 54.dp).clickable(onClick = onPick),
+            Modifier.pressClickable(pressed = PRESSED_CARD, onClick = onPick).weight(1f).heightIn(min = 54.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {

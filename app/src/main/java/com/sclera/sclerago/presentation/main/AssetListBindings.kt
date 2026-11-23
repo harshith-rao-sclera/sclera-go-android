@@ -12,7 +12,8 @@ private val NoAssets = AssetListData(emptyList(), emptyList(), EmptyReason.ASSET
 
 /**
  * What the bottom tab [tab] needs to show its asset list: the rows and chips, the selection, and the
- * actions. Tapping a row opens it, or (while assets are selected) picks it.
+ * actions. Tapping a row opens it, or (while assets are selected) picks it; its validation mark opens it on its
+ * Validation tab.
  */
 @Composable
 fun rememberAssetListBinding(
@@ -31,6 +32,8 @@ fun rememberAssetListBinding(
         onManaged = { list.selectManaged(tab) },
         onToggle = list::toggle,
         onOpen = { id -> if (s.selecting) list.toggle(id) else app.openAsset(id) },
+        // A row's validation mark opens the asset on its Validation tab (the web's badge); while selecting it picks, as the row.
+        onOpenValidation = { id -> if (s.selecting) list.toggle(id) else app.openAssetValidation(id) },
         loading = s.loading,
         refreshing = s.refreshing,
         onRefresh = list::refresh,

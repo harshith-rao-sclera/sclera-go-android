@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -134,7 +136,7 @@ fun FormSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
-                Modifier.weight(1f).height(48.dp).clickable(onClick = onToggle),
+                Modifier.pressClickable(pressed = PRESSED_CARD, onClick = onToggle).weight(1f).height(48.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -202,17 +204,18 @@ private const val REQUIRED_MARK = " *"
 /**
  * A row that shows a value (Location details): label and value, or "-" when there is none (as the web). With [onClick]
  * it is tappable, with a chevron like the other picker rows (the Location details rows open the location picker).
+ * [required]: a mandatory field (a photo, video or voice memo field), marked with the orange * as the others are.
  */
 @Composable
-fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, required: Boolean = false) {
     Row(
         modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.pressClickable(onClick = onClick) else Modifier)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
+        FieldLabel(if (required) label + REQUIRED_MARK else label, Modifier.width(92.dp))
         Txt(value ?: stringResource(R.string.detail_value_none), 14, 600, if (value != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
         if (onClick != null) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
     }
@@ -246,8 +249,8 @@ fun PickRow(
 ) {
     val readOnly = LocalReadOnly.current
     Row(
-        Modifier.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
-            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg).clickable(enabled = !readOnly, onClick = onOpen)
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !readOnly, onClick = onOpen).fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
+            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -279,8 +282,8 @@ fun SelectRow(
     val readOnly = LocalReadOnly.current
     val shown = options.firstOrNull { it.first == value }?.second ?: value
     Row(
-        Modifier.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
-            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg).clickable(enabled = !readOnly) { open = true }
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !readOnly) { open = true }.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
+            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),

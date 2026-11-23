@@ -64,7 +64,7 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
     var photos by mutableStateOf(PhotoRulesUi())
         private set
 
-    /** AI in validation; null until the settings are loaded (or when they could not be). */
+    /** The property's AI switch (AI in validation and everything else AI); null until the settings are loaded (or when they could not be). */
     var aiValidation by mutableStateOf<Boolean?>(null)
         private set
 
@@ -129,6 +129,33 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
         }
     }
 
+    /** A pull to refresh is reading the settings again. */
+    var refreshing by mutableStateOf(false)
+        private set
+
+    /**
+     * Pull to refresh on Settings: reads the property's settings again from the server (the geofence and fences being
+     * drawn are left alone). A failure keeps what is shown and is told.
+     */
+    fun refreshSettings() {
+        val property = propertyId
+        if (refreshing || property.isEmpty()) return
+        refreshing = true
+        viewModelScope.launch {
+            try {
+                val s = useCases.loadSettings(property)
+                savedRules = s.photoRules
+                photos = PhotoRulesUi(LoadState.READY, s.photoRules)
+                aiValidation = s.aiValidation
+                metricUnits = s.metricUnits
+            } catch (e: OnlineException) {
+                say(e.error.toUiText())
+            } finally {
+                refreshing = false
+            }
+        }
+    }
+
     // ---------- Photo rules
 
     /** What the server last confirmed, to go back to when a save fails. */
@@ -164,9 +191,12 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
         }
     }
 
-    // ---------- AI in validation
+    // ---------- The AI switch
 
-    /** The AI in validation switch is being saved: another tap waits for the server's answer. */
+    /**
+     * The AI switch is being saved: another tap waits for the server's answer. Once saved, the asset screens' AI buttons
+     * follow at once (the repository keeps the switch they observe).
+     */
     var aiSaving by mutableStateOf(false)
         private set
 

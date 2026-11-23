@@ -24,6 +24,8 @@
     <string name="offline_integration">You’re offline. The VDMS link is read and made on the server. Try again when you’re connected.</string>
     <string name="offline_validation">You’re offline. Validations are run and changed on the server, so this is what was last synced. Try again when you’re connected.</string>
 
+    <string name="offline_sign_out">You’re offline. Signing out ends your session on the server too. Try again when you’re connected.</string>
+    <string name="offline_places">You’re offline. Buildings, floors and locations are added and changed on the server. Try again when you’re connected.</string>
     <string name="offline_asset_fields">You’re offline. Asset fields are read and changed on the server. Try again when you’re connected.</string>
     <string name="offline_geofencing">You’re offline. Geofences are read and saved on the server. Try again when you’re connected.</string>
     <string name="offline_property_settings">You’re offline. Property settings are read and saved on the server. Try again when you’re connected.</string>

@@ -25,4 +25,18 @@
     </plurals>
     <!-- %1$s: what was assigned ("3 assets assigned to Ada"); %2$s: the assets the server doesn't have yet. -->
     <string name="assign_done_and_not_found">%1$s. %2$s</string>
+
+    <!-- "Assign to me": someone who isn't an admin takes assets assigned to nobody, worded as the web's. -->
+    <string name="action_assign_to_me">Assign to me</string>
+    <string name="assign_taking">Assigning…</string>
+    <plurals name="assign_taken">
+        <item quantity="one">%1$d asset assigned to you</item>
+        <item quantity="other">%1$d assets assigned to you</item>
+    </plurals>
+    <string name="assign_take_failed">Couldn’t assign the assets to you.</string>
+    <string name="assign_take_refused">Only an admin can change who an asset is assigned to.</string>
+    <string name="assign_take_assigned">Already assigned. Only an admin can reassign it</string>
+    <string name="assign_take_some_assigned">Some are already assigned. Only an admin can reassign assets</string>
+    <string name="assign_take_submitted">Submitted. Only an admin can assign it</string>
+    <string name="assign_take_some_submitted">Some are submitted. Only an admin can assign them</string>
 </resources>

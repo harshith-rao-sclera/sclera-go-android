@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,7 +73,7 @@ internal fun OwnFieldRow(label: String, onRemove: () -> Unit, row: @Composable (
     Row(Modifier.fillMaxWidth().topBorder(C.Border), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) { row() }
         Box(
-            Modifier.size(48.dp).clickable(role = Role.Button, onClick = onRemove)
+            Modifier.pressClickable(role = Role.Button, onClick = onRemove).size(48.dp)
                 .semantics { contentDescription = description }.testTag(AddFieldTags.remove(label)),
             contentAlignment = Alignment.Center,
         ) {
@@ -91,7 +92,7 @@ internal fun AddFieldRow(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.heightIn(min = 48.dp).clip(Capsule).clickable(role = Role.Button, onClick = onClick).testTag(AddFieldTags.OPEN), contentAlignment = Alignment.Center) {
+        Box(Modifier.heightIn(min = 48.dp).pressClickable(shape = Capsule, role = Role.Button, onClick = onClick).testTag(AddFieldTags.OPEN), contentAlignment = Alignment.Center) {
             Row(
                 Modifier.height(28.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule).padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,

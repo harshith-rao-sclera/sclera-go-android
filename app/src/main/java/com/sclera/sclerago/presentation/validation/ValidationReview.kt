@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.ToastEffect
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -66,9 +67,18 @@ internal fun JobReview(
     onOpenAsset: (String) -> Unit,
     onBack: () -> Unit,
     onRunAgain: (ValRun) -> Unit,
+    /** An asset whose result opens as the run shows ("This asset's result" from an asset); [onAssetOpened] once it has. */
+    openAssetId: String? = null,
+    onAssetOpened: () -> Unit = {},
     vm: RunReviewViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(propertyId, jobId) { vm.bind(propertyId, jobId) }
+    LaunchedEffect(jobId, openAssetId) {
+        openAssetId?.let {
+            vm.openAsset(it)
+            onAssetOpened()
+        }
+    }
     val s = vm.state
     BackHandler(onBack = onBack)
     val saver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri -> vm.saveExport(uri?.toString()) }
@@ -79,12 +89,12 @@ internal fun JobReview(
         Column(Modifier.fillMaxSize()) {
             PageBar(stringResource(R.string.rev_title), null, onBack = onBack)
             if (j == null) {
-                EmptyNote(stringResource(if (s.runFailed) R.string.valt_job_load_failed else R.string.val_loading))
-            } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 24.dp)) {
+                if (s.runFailed) EmptyNote(stringResource(R.string.valt_job_load_failed)) else ReviewSkeleton()
+            } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 150.dp)) {
                 item(key = "head") { ReviewHead(j) }
-                item(key = "summary") {
-                    ReviewSummary(j, s.confidentCount, s.canCheck, s.busy, vm::applyConfident, vm::export) { onRunAgain(j) }
-                }
+                // Apply fixes, above the first card (Export CSV and Run again float in the corner).
+                item(key = "actions") { ReviewActions(j, s.confidentCount, s.canCheck, s.busy, vm::applyConfident) }
+                item(key = "summary") { ReviewSummary(j) }
                 s.insights?.takeIf { j.status.finished }?.let { ins ->
                     if (ins.hasContent) item(key = "fields") { FieldsToFix(ins) }
                     item(key = "progress") { ReviewProgress(ins) }
@@ -96,36 +106,42 @@ internal fun JobReview(
                         SearchField(s.filter.query, vm::setQuery, stringResource(R.string.rev_search_assets))
                     }
                 }
-                if (s.results.isEmpty()) item(key = "none") {
-                    EmptyNote(
-                        when {
-                            s.loadingResults -> stringResource(R.string.val_loading)
-                            j.status.active && j.processed == 0 -> stringResource(R.string.valt_checking_first)
-                            else -> stringResource(R.string.rev_no_assets)
-                        },
-                    )
+                // A new filter or search: placeholders over the old filter's rows until the new ones come.
+                if (s.filtering) item(key = "filtering") {
+                    SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 4, trailing = true)
+                } else if (s.results.isEmpty()) item(key = "none") {
+                    if (s.loadingResults) {
+                        SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 4, trailing = true)
+                    } else {
+                        EmptyNote(stringResource(if (j.status.active && j.processed == 0) R.string.valt_checking_first else R.string.rev_no_assets))
+                    }
                 }
-                items(s.results, key = { it.assetId }) { res ->
+                if (!s.filtering) items(s.results, key = { it.assetId }) { res ->
                     ReviewAssetCard(
                         j, res, localById[res.assetId], selected = res.assetId in s.selected, fresh = res.assetId in s.fresh,
                         onOpen = { if (s.selected.isNotEmpty()) vm.toggleSelected(res.assetId) else vm.openAsset(res.assetId) },
                         onSelect = if (s.canValidate) ({ vm.toggleSelected(res.assetId) }) else null,
                     )
                 }
-                if (s.results.isNotEmpty()) item(key = "more") {
+                // Load more: placeholder rows where the next page will go, under the ones shown.
+                if (s.loadingMore && !s.filtering) item(key = "more-loading") {
+                    SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 2, trailing = true)
+                }
+                if (s.results.isNotEmpty() && !s.filtering) item(key = "more") {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Txt(
                             stringResource(if (s.nextCursor != null) R.string.rev_showing else R.string.rev_showing_all, s.results.size),
                             11, 400, C.Muted, Modifier.weight(1f),
                         )
-                        if (s.nextCursor != null) Pill(
-                            if (s.loadingMore) stringResource(R.string.val_loading) else stringResource(R.string.rev_load_more),
-                            vm::loadMore, height = 36.dp, hPad = 16.dp, size = 12,
-                        )
+                        if (s.nextCursor != null && !s.loadingMore) Pill(stringResource(R.string.rev_load_more), vm::loadMore, height = 36.dp, hPad = 16.dp, size = 12)
                     }
                 }
             }
             if (j != null && s.selected.isNotEmpty() && s.canValidate) SelectionBar(s, vm)
+        }
+        // Export CSV and Run again, floating in the corner (not while assets are ticked: the selection bar is there).
+        if (j != null && s.selected.isEmpty()) {
+            ReviewFabs(j, s.canCheck, s.busy, vm::export, { onRunAgain(j) }, Modifier.align(Alignment.BottomEnd).navigationBarsPadding())
         }
 
         j?.let { run -> s.panel?.let { p -> RunAssetSheet(run, p, steps, assets, propName, s, vm, onOpenAsset) } }

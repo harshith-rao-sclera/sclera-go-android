@@ -7,6 +7,7 @@ import com.sclera.sclerago.di.IoDispatcher
 import com.sclera.sclerago.domain.model.AssetIcons
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.repository.AssetIconRepository
+import com.sclera.sclerago.domain.repository.UserDataCleaner
 import com.sclera.sclerago.domain.system.TimeProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,9 +28,14 @@ class AssetIconRepositoryImpl @Inject constructor(
     private val store: AssetIconStore,
     private val time: TimeProvider,
     @IoDispatcher private val io: CoroutineDispatcher,
-) : AssetIconRepository {
+) : AssetIconRepository, UserDataCleaner {
     private val state = MutableStateFlow(AssetIcons())
     override val icons: StateFlow<AssetIcons> = state.asStateFlow()
+
+    override fun clear() {
+        state.value = AssetIcons()
+        runCatching { store.clear() }
+    }
 
     override suspend fun refreshIcons() {
         state.value = state.value.copy(svg = withContext(io) { store.icons().mapValues { it.value.svg } })

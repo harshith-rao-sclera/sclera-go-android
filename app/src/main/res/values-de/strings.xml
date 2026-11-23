@@ -352,7 +352,6 @@
     <string name="detail_comment_too_long">Ein Kommentar darf höchstens %1$d Zeichen lang sein.</string>
     <string name="detail_back">Zurück zur Liste</string>
     <string name="detail_name_hint">Asset-Name</string>
-    <string name="detail_saved">Gespeichert</string>
     <string name="detail_menu_camera">Foto oder Video aufnehmen</string>
     <string name="detail_menu_files">Aus Dateien hochladen</string>
     <string name="detail_photo">Foto</string>

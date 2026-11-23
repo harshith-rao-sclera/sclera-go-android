@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The asset list's filter sheet and its floating button. -->
+<!-- The asset list's filter sheet and its floating button, and the list rows' Cloned and validation badges. -->
 <resources>
     <string name="filter_title">Filter</string>
     <string name="filter_open">Filter assets</string>
@@ -16,6 +16,12 @@
     <string name="filter_sub_type">Sub type</string>
     <string name="filter_other">Other</string>
     <string name="filter_no_type">No type yet</string>
+    <!-- Under Other: copies made with Clone (the web's filter checkbox). -->
+    <string name="filter_cloned">Cloned</string>
+    <!-- Assets sent back to be collected again (the web's Recollect filter). -->
+    <string name="filter_recollect">Recollect</string>
+    <!-- Under Other: assets with a mandatory field still empty (the web's filter checkbox). -->
+    <string name="filter_required_missing">Mandatory fields missing</string>
     <string name="filter_nothing">Nothing to choose here for these assets.</string>
     <string name="filter_reset">Reset</string>
     <plurals name="filter_show">
@@ -23,4 +29,8 @@
         <item quantity="other">Show %1$d assets</item>
     </plurals>
     <string name="dash_empty_filter">No assets match the filter here.</string>
+    <!-- An asset row's badge for a copy made with Clone (the web card's "Cloned"). -->
+    <string name="asset_cloned_badge">Cloned</string>
+    <!-- An asset row's validation badge, pressed: opens the asset on its Validation tab (the web's "Open validation"). -->
+    <string name="asset_open_validation">Open validation</string>
 </resources>

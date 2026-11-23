@@ -352,7 +352,6 @@
     <string name="detail_comment_too_long">Een opmerking mag maximaal %1$d tekens bevatten.</string>
     <string name="detail_back">Terug naar lijst</string>
     <string name="detail_name_hint">Assetnaam</string>
-    <string name="detail_saved">Opgeslagen</string>
     <string name="detail_menu_camera">Foto of video maken</string>
     <string name="detail_menu_files">Uploaden uit bestanden</string>
     <string name="detail_photo">Foto</string>

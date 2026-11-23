@@ -54,6 +54,11 @@ class PlacesOfflineSource(private val db: AdcDatabase, private val io: Coroutine
         )
     }
 
+    /** Every building, floor and location of the selected property, hidden ones too (Configuration's Building info offline). */
+    suspend fun everyPlace(): List<LocNode> = withContext(io) {
+        db.whenOpen(emptyList()) { buildLocationTree(rows("buildings"), rows("floors"), rows("locations"), counts(), withHidden = true) }
+    }
+
     private fun loadTree(): List<LocNode> = db.whenOpen(emptyList()) {
         buildLocationTree(rows("buildings"), rows("floors"), rows("locations"), counts())
     }

@@ -1,6 +1,11 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +43,8 @@ class VoiceFillActions(
     val onClose: () -> Unit = {},
     /** Close the sheet and listen again. */
     val onSpeakAgain: () -> Unit = {},
+    /** Correct what was heard by typing, then fill again (the describe sheet). */
+    val onEditText: () -> Unit = {},
 )
 
 /** Test tags of the voice fill sheet. */
@@ -76,7 +83,15 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(R.string.voice_you_said), 11, 500, C.Soft)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Txt(stringResource(R.string.voice_you_said), 11, 500, C.Soft, Modifier.weight(1f))
+                            // Heard wrong (or a noisy site): correct it by typing and fill again.
+                            Txt(
+                                stringResource(R.string.voice_edit_text), 12, 700, C.Yellow,
+                                Modifier.heightIn(min = 48.dp).pressClickable(shape = r(8), role = Role.Button, onClick = actions.onEditText)
+                                    .padding(horizontal = 8.dp).wrapContentHeight(),
+                            )
+                        }
                         Txt(stringResource(R.string.scrt_quoted_speech, v.said), 14, 700, maxLines = Int.MAX_VALUE)
                     }
                     if (v.picks.isNotEmpty()) {

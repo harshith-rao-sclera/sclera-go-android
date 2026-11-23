@@ -34,6 +34,31 @@ const val DESCRIPTION_COLUMN = "description"
  */
 const val VDMS_MOVED = 2
 
+/**
+ * The `assets` column naming the asset a copy was made from with Clone (the server's `cloned_from`, t0023). A database
+ * synced before the server had it has no such column: check with hasColumn before writing it.
+ */
+const val CLONED_FROM_COLUMN = "cloned_from"
+
+/**
+ * The `assets` column with the Model (trimmed, lowercase) its AI suggestions last looked up (the server's
+ * `looked_up_model`, t0024); empty if never. Missing in a database synced before the server had it (read as null).
+ */
+const val LOOKED_UP_MODEL_COLUMN = "looked_up_model"
+
+/**
+ * Whether AI suggestions could help this `assets` row, as the server's could_look_up_condition (the property's AI switch
+ * aside, which the list applies): it has a Model, or a photo the AI can read ([media]: a nameplate, label or asset photo
+ * answering no field), to search with; and that Model hasn't been looked up already ([LOOKED_UP_MODEL_COLUMN]; a changed
+ * Model can be).
+ */
+fun DbRow.couldLookUp(media: List<Media>): Boolean {
+    val model = string("model").orEmpty().trim().lowercase()
+    val readablePhoto = media.any { it.fieldId == null && it.category != null && !it.video && !it.audio && !it.isDoc }
+    val lookedUp = string(LOOKED_UP_MODEL_COLUMN)?.let { it == model } == true
+    return (model.isNotEmpty() || readablePhoto) && !lookedUp
+}
+
 /** The `assets` columns a text search looks in: the API's SEARCHED_COLUMNS (services/values.py). */
 private val SEARCHED_COLUMNS = listOf("name", "manufacturer", "model", "serial_number", DESCRIPTION_COLUMN)
 
@@ -59,7 +84,8 @@ data class AssetValueSplit(val columns: Map<String, String>, val extra: Map<Stri
 
 /**
  * An `assets` row as the app's [Asset]. [place] and [format] come from the location and master format
- * lookups, [media] from asset_media; all are optional. [missingRequired]: a mandatory field is still empty (makes a drafted asset "Input needed").
+ * lookups, [media] from asset_media; all are optional. [Asset.requiredMissing] needs the asset's fields and answers: the
+ * offline source fills it in.
  */
 fun DbRow.toAsset(
     propertyId: String,
@@ -69,7 +95,8 @@ fun DbRow.toAsset(
 ): Asset {
     val name = string("name").orEmpty()
     val validated = bool("validated")
-    val aiSuggestion = bool("ai_suggestion")
+    // Offered only when AI suggestions can help (the server's ai_fillable_condition): the stored flag and couldLookUp.
+    val aiSuggestion = bool("ai_suggestion") && couldLookUp(media)
     val locationId = string("location_id")?.takeIf { it.isNotBlank() }
     val makeModel = listOfNotNull(string("manufacturer"), string("model")).map { it.trim() }.filter { it.isNotEmpty() }.joinToString(" · ")
     return Asset(
@@ -100,6 +127,8 @@ fun DbRow.toAsset(
             )
         },
         assignedTo = string("assigned_to")?.takeIf { it.isNotBlank() },
+        // Made with Clone (the server's t0023 column; missing in a database synced before it, read as null).
+        clonedFrom = string(CLONED_FROM_COLUMN)?.takeIf { it.isNotBlank() },
         managed = int("vdms_state") == VDMS_MOVED,
         tagged = buildSet {
             if (isTagFlagSet("qr_code_tag")) add(TagKind.QR)

@@ -11,6 +11,12 @@ interface AssetAssignmentRepository {
      */
     suspend fun assign(propertyId: String, assetIds: Collection<String>, email: String?): AssignResult
 
+    /**
+     * Takes [assetIds] of [propertyId] (each assigned to nobody) for [userId], the signed-in user: one change per asset,
+     * as the web's. The ones taken before a failure stay taken (the phone's copy follows them), then the error is thrown.
+     */
+    suspend fun take(propertyId: String, assetIds: Collection<String>, userId: String)
+
     /** The people [propertyId]'s assets are assigned to: user id → their name, else their email (kept on the device too). */
     suspend fun assigneeNames(propertyId: String): Map<String, String>
 

@@ -68,9 +68,10 @@ fun ConfirmDialog(
     /** Colour of the confirm button (red for destructive actions). */
     yesBg: Color = C.Red,
 ) {
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onNo).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
+    val shown = rememberAppear()
+    Box(Modifier.fillMaxSize().scrim(shown).noRippleClick(onNo).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.widthIn(max = 320.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
+            Modifier.popIn(shown).widthIn(max = 320.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
                 .border(1.dp, C.Border2, r(18)).noRippleClick { }.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

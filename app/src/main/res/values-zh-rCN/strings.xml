@@ -348,7 +348,6 @@
     <string name="detail_comment_too_long">评论最多 %1$d 个字符。</string>
     <string name="detail_back">返回列表</string>
     <string name="detail_name_hint">资产名称</string>
-    <string name="detail_saved">已保存</string>
     <string name="detail_menu_camera">拍摄照片或视频</string>
     <string name="detail_menu_files">从文件上传</string>
     <string name="detail_photo">照片</string>

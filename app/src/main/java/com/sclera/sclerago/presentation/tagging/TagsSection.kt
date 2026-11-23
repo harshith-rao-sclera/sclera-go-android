@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.tagging
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -69,7 +70,7 @@ fun TagsBar(state: TagUiState, actions: TagsActions, modifier: Modifier = Modifi
             val tagged = kind in state.tagged
             val description = stringResource(if (tagged) taggedText(kind) else tagKindName(kind))
             Box(
-                Modifier.size(width = 44.dp, height = 48.dp).alpha(if (enabled) 1f else DISABLED_ALPHA).clickable(enabled = enabled) { actions.onStart(kind) }
+                Modifier.pressClickable(enabled = enabled) { actions.onStart(kind) }.size(width = 44.dp, height = 48.dp).alpha(if (enabled) 1f else DISABLED_ALPHA)
                     .semantics { contentDescription = description }
                     .testTag(TagTags.icon(kind)),
                 contentAlignment = Alignment.Center,

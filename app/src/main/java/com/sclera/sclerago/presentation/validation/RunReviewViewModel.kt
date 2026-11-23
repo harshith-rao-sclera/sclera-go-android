@@ -11,6 +11,7 @@ import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.usecase.validation.GetValidationFieldsUseCase
 import com.sclera.sclerago.domain.usecase.validation.MergeDuplicatesUseCase
+import com.sclera.sclerago.domain.usecase.validation.RecheckOutcome
 import com.sclera.sclerago.domain.usecase.validation.RunReviewUseCases
 import com.sclera.sclerago.domain.usecase.validation.confidentFixes
 import com.sclera.sclerago.domain.validation.DECISION_NOTE_MAX
@@ -80,6 +81,8 @@ data class RunReviewUiState(
     val nextCursor: String? = null,
     val loadingResults: Boolean = true,
     val loadingMore: Boolean = false,
+    /** A new filter, step or search is being read: the rows shown are the old filter's, so placeholders show instead. */
+    val filtering: Boolean = false,
     /** A pull to refresh is reloading the run and its results. */
     val refreshing: Boolean = false,
     val filter: ResultFilter = ResultFilter(),
@@ -99,6 +102,8 @@ data class RunReviewUiState(
     val fields: List<FieldChoice> = emptyList(),
     /** A CSV fetched and waiting for the user to pick where to save it. */
     val export: RunExport? = null,
+    /** The asset being checked again inside the run (Revalidate); one at a time. */
+    val rechecking: String? = null,
     val message: UiText? = null,
 ) {
     val confidentCount: Int get() = openIssues.confidentFixes().size
@@ -116,6 +121,9 @@ class RunReviewViewModel @Inject constructor(
 
     private var poll: Job? = null
     private var resultsJob: Job? = null
+
+    /** Which filter change is the latest: only its end turns [RunReviewUiState.filtering] off. */
+    private var filterRound = 0
     private var searchJob: Job? = null
     private var messageJob: Job? = null
 
@@ -254,11 +262,16 @@ class RunReviewViewModel @Inject constructor(
     }
 
     private fun refilter(f: ResultFilter, debounce: Boolean = false) {
-        set { copy(filter = f, selected = emptySet()) }
+        val round = ++filterRound
+        set { copy(filter = f, selected = emptySet(), filtering = true) }
         resultsJob?.cancel()
         resultsJob = viewModelScope.launch {
-            if (debounce) delay(SEARCH_MS)
-            loadResults(reset = true)
+            try {
+                if (debounce) delay(SEARCH_MS)
+                loadResults(reset = true)
+            } finally {
+                if (round == filterRound) set { copy(filtering = false) }
+            }
         }
     }
 
@@ -441,6 +454,43 @@ class RunReviewViewModel @Inject constructor(
     fun dismiss(issue: RunIssue) = onIssue(issue, R.string.rev_update_failed) { useCases.fix.dismiss(p, issue.id) }
 
     fun revert(issue: RunIssue) = onIssue(issue, R.string.rev_undo_failed) { useCases.revert(p, issue.id) }
+
+    /**
+     * "Revalidate" on the open asset (the web's): checks it again with this run's steps, inside the run (the rest of the
+     * run isn't checked again), then shows its new result here. The sheet may move to another asset meanwhile.
+     */
+    fun recheck() {
+        val assetId = state.panel?.assetId ?: return
+        if (state.rechecking != null) return
+        val property = p
+        val job = j
+        set { copy(rechecking = assetId) }
+        viewModelScope.launch {
+            try {
+                val said = when (val outcome = useCases.recheck(property, job, assetId)) {
+                    RecheckOutcome.Done -> {
+                        if (state.jobId == job) {
+                            refreshAll()
+                            if (state.panel?.assetId == assetId) reloadPanel(assetId)
+                        }
+                        UiText.Res(R.string.rev_rechecked)
+                    }
+                    is RecheckOutcome.Failed -> outcome.detail?.let { UiText.Raw(it) } ?: UiText.Res(R.string.rev_recheck_failed)
+                    RecheckOutcome.StillChecking -> UiText.Res(R.string.rev_recheck_still)
+                }
+                flash(said)
+            } catch (e: OnlineException) {
+                flash(
+                    when (e.error) {
+                        OnlineError.Offline, OnlineError.Forbidden, OnlineError.SessionExpired -> e.error.toUiText()
+                        else -> UiText.Res(R.string.rev_recheck_failed)
+                    },
+                )
+            } finally {
+                set { copy(rechecking = null) }
+            }
+        }
+    }
 
     private fun onIssue(issue: RunIssue, failed: Int, call: suspend () -> RunIssue) {
         val panel = state.panel ?: return

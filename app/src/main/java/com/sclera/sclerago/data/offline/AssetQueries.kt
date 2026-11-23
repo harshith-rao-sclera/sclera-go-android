@@ -16,9 +16,28 @@ internal const val ASSET_ORDER = "ORDER BY a.created_at DESC, a.id DESC"
 
 internal const val ASSET_BY_ID = "SELECT a.* FROM assets a WHERE a.id = ? AND %LIVE%"
 
+/** `%AI%` is [aiHelpsSql]: the assets AI suggestions are offered for. */
 internal const val ASSET_SUMMARY = """
-    SELECT $STATUS_SQL AS st, COUNT(*) AS n, COALESCE(SUM(a.ai_suggestion), 0) AS ai, COALESCE(SUM(a.validated), 0) AS ok
+    SELECT $STATUS_SQL AS st, COUNT(*) AS n, COALESCE(SUM(CASE WHEN %AI% THEN 1 ELSE 0 END), 0) AS ai,
+    COALESCE(SUM(a.validated), 0) AS ok
     FROM assets a WHERE %WHERE% GROUP BY st"""
+
+/**
+ * `assets` (alias `a`) rows AI suggestions are offered for, as the server's ai_fillable_condition (and the mapper's
+ * couldLookUp): the stored flag, a Model or a photo the AI can read (a nameplate, label or asset photo answering no field)
+ * to search with, and that Model not looked up already (once the database has `looked_up_model`). The property's AI switch
+ * is applied where the list is built, not here.
+ */
+internal fun AdcDatabase.aiHelpsSql(): String {
+    val model = "LOWER(TRIM(COALESCE(a.model, '')))"
+    val photo = if (hasTable("asset_media") && hasColumn("asset_media", "category")) {
+        val noField = if (hasColumn("asset_media", "field_id")) " AND (m.field_id IS NULL OR m.field_id = '')" else ""
+        " OR EXISTS (SELECT 1 FROM asset_media m WHERE m.asset_id = a.id AND m.kind = 'image'$noField" +
+            " AND m.category IN ('nameplate', 'label_id', 'asset') AND ${notRemoved("asset_media", "m")})"
+    } else ""
+    val notLookedUp = if (hasColumn("assets", "looked_up_model")) " AND (a.looked_up_model IS NULL OR a.looked_up_model <> $model)" else ""
+    return "(a.ai_suggestion = 1 AND ($model <> ''$photo)$notLookedUp)"
+}
 
 internal const val ASSET_VALUES_FOR = "SELECT asset_id, %ANSWERS% AS answers FROM asset_values WHERE asset_id IN (%IN%)"
 
@@ -51,7 +70,7 @@ internal fun AdcDatabase.assetWhere(filter: AssetQueryFilter, withStatus: Boolea
     filter.status?.takeIf { withStatus }?.let {
         // "AI suggestion" goes by the flag whatever the status, as the server's aiFillable count does (see Asset.isIn).
         if (it == Status.AI) {
-            parts += "a.ai_suggestion = 1"
+            parts += aiHelpsSql()
         } else {
             parts += "($STATUS_SQL) = ?"
             args += (if (it == Status.INPUT) Status.DRAFT else it).name

@@ -72,8 +72,11 @@ data class Group(
  */
 data class PermissionInfo(val key: String, val name: String, val description: String, val needsAllProperties: Boolean)
 
-/** Someone the organisation's directory lists, to pick when adding a person; [userId] is set when they are already here. */
-data class DirectoryPerson(val email: String, val name: String?, val userId: String?)
+/**
+ * Someone the organisation's directory lists, to pick when adding a person; [userId] is set when they are already here.
+ * [imageUrl] is their profile photo's link as Sclera's list has it (see [profilePhoto]).
+ */
+data class DirectoryPerson(val email: String, val name: String?, val userId: String?, val imageUrl: String? = null)
 
 /**
  * A page of the organisation's directory. When it isn't [available] (the server can't ask Sclera), [reason] says why
@@ -97,6 +100,11 @@ data class Person(
     /** The name picked from the organisation directory when inviting; sent with the invitation, not kept. */
     val inviteName: String? = null,
     val fullName: String? = null,
+    /**
+     * Their profile photo's link (see [profilePhoto]): as the server has it, or, for someone being invited, as the
+     * directory gave it (sent with the invitation, as the web does).
+     */
+    val imageUrl: String? = null,
 ) {
     /** Their name, or their email when the server has no name for them (as the web shows it). */
     val name: String get() = fullName?.trim()?.takeIf { it.isNotEmpty() } ?: email
@@ -108,8 +116,8 @@ data class Person(
 /** The permission the API calls [key], or null for one this app does not know (those are ignored). */
 fun permissionOf(key: String): Permission? = Permission.entries.firstOrNull { it.key == key }
 
-/** Someone a property's assets are assigned to, as the server names them to anyone who can open it. */
-data class PropertyAssignee(val userId: String, val name: String?, val email: String) {
+/** Someone a property's assets are assigned to, as the server names them to anyone who can open it, with their profile photo's link. */
+data class PropertyAssignee(val userId: String, val name: String?, val email: String, val imageUrl: String? = null) {
     /** Their name, else their email. */
     val label: String get() = name?.trim()?.takeIf { it.isNotEmpty() } ?: email
 }

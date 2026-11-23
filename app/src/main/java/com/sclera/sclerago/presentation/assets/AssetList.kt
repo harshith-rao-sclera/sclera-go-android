@@ -1,6 +1,25 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressScale
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import com.sclera.sclerago.presentation.components.SkeletonBlock
+import com.sclera.sclerago.presentation.components.SkeletonList
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -30,6 +49,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -45,9 +66,12 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
@@ -57,7 +81,6 @@ import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
 import com.sclera.sclerago.domain.model.ValidationMark
 import com.sclera.sclerago.presentation.components.Capsule
-import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.r
@@ -80,10 +103,12 @@ object AssetListTags {
     const val INFO = "asset-list-info"
     const val CHANGE_REQUESTS = "asset-chip-CHANGE_REQUESTS"
     const val MANAGED = "asset-chip-MANAGED"
-    const val MANAGED_NOTE = "asset-list-managed-note"
     fun row(id: String) = "asset-row-$id"
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
     fun validation(mark: ValidationMark) = "asset-chip-validation-${mark.name}"
+
+    /** A row's validation mark, when it opens the asset's Validation tab. */
+    fun validationMark(id: String) = "asset-row-validation-$id"
 }
 
 /**
@@ -103,22 +128,24 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
             }
         }
     }
-    // On the Managed assets chip: those are read-only here, so nothing on it can be ticked (the web's note).
-    if (data.managed?.selected == true && data.items.isNotEmpty()) {
-        item(key = "managed-note") { ManagedListNote(Modifier.readableWidth()) }
-    }
     items(data.items, key = { it.id }) { a ->
         AssetRow(
             a, a.id in list.picked, list.picked.isNotEmpty(), { list.onToggle(a.id) }, { list.onOpen(a.id) },
-            Modifier.readableWidth().testTag(AssetListTags.row(a.id)),
+            Modifier.animateItem(fadeInSpec = ItemFade, placementSpec = ItemMove, fadeOutSpec = ItemFade).readableWidth().testTag(AssetListTags.row(a.id)),
+            onOpenValidation = list.onOpenValidation?.let { open -> { open(a.id) } },
         )
     }
     when {
         // Just after a property is opened its data is still being opened: a loader, not "no assets" that fills suddenly.
         list.loading -> item(key = "loading") {
-            ListLoader(stringResource(R.string.assets_loading), Modifier.readableWidth().testTag(AssetListTags.LOADING))
+            SkeletonList(
+                stringResource(R.string.assets_loading), Modifier.animateItem(fadeInSpec = ItemFade, placementSpec = null, fadeOutSpec = ItemFade).readableWidth().padding(horizontal = 8.dp).testTag(AssetListTags.LOADING),
+                count = 6, trailing = true, gap = 3.dp,
+            )
         }
-        data.items.isEmpty() -> item(key = "empty") { EmptyCard(data.empty, list.query, Modifier.readableWidth()) }
+        data.items.isEmpty() -> item(key = "empty") {
+            EmptyCard(data.empty, list.query, Modifier.animateItem(fadeInSpec = ItemFade, placementSpec = null, fadeOutSpec = ItemFade).readableWidth())
+        }
     }
     item(key = "pad") { Spacer(Modifier.height(160.dp)) }
 }
@@ -142,27 +169,28 @@ private fun ChipRow(data: AssetListData, list: AssetListBinding) {
     val state = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val step = with(LocalDensity.current) { 180.dp.toPx() }
+    // While the property's assets are being read, every chip's count is a placeholder (not a 0 that jumps).
     Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp)) {
-        LazyRow(
+        CompositionLocalProvider(LocalCountsLoading provides list.loading) { LazyRow(
             state = state,
             contentPadding = PaddingValues(start = 12.dp, end = 48.dp, bottom = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             // As the web's status tabs: All, Draft, Submitted, Exception, Validated, Change requests, AI suggestions.
-            items(data.chips.filter { it.status != Status.AI }, key = { it.status?.name ?: "ALL" }) { c -> Chip(c) { list.onChip(c) } }
+            items(data.chips.filter { it.status != Status.AI }, key = { it.status?.name ?: "ALL" }) { c -> Chip(c, Modifier.animateItem(ItemFade, ItemMove, ItemFade)) { list.onChip(c) } }
             // Submitted assets someone asked an admin to reopen.
             data.changeRequests?.let { cr ->
                 item(key = "CHANGE_REQUESTS") {
-                    ChipBox(stringResource(R.string.dash_chip_change_requests), cr.count, cr.selected, AssetListTags.CHANGE_REQUESTS, list.onChangeRequests) {
+                    CountChip(stringResource(R.string.dash_chip_change_requests), cr.count, cr.selected, AssetListTags.CHANGE_REQUESTS, list.onChangeRequests, Modifier.animateItem(ItemFade, ItemMove, ItemFade)) {
                         LineIcon(Icons.ChangeRequest, 11.dp, C.Orange, 2.8f)
                     }
                 }
             }
-            items(data.chips.filter { it.status == Status.AI }, key = { it.status?.name ?: "ALL" }) { c -> Chip(c) { list.onChip(c) } }
+            items(data.chips.filter { it.status == Status.AI }, key = { it.status?.name ?: "ALL" }) { c -> Chip(c, Modifier.animateItem(ItemFade, ItemMove, ItemFade)) { list.onChip(c) } }
             // The assets moved to Managed Assets (the web's optional Managed assets tab), read-only.
             data.managed?.let { m ->
                 item(key = "MANAGED") {
-                    ChipBox(stringResource(R.string.managed_chip), m.count, m.selected, AssetListTags.MANAGED, list.onManaged) {
+                    CountChip(stringResource(R.string.managed_chip), m.count, m.selected, AssetListTags.MANAGED, list.onManaged, Modifier.animateItem(ItemFade, ItemMove, ItemFade)) {
                         LineIcon(Icons.Managed, 12.dp, C.Yellow, 2.4f)
                     }
                 }
@@ -170,12 +198,12 @@ private fun ChipRow(data: AssetListData, list: AssetListBinding) {
             // The web card's validation icon, as filters: a step failed, or one needs a look.
             data.validation.forEach { (mark, chip) ->
                 item(key = "VALIDATION_${mark.name}") {
-                    ChipBox(stringResource(mark.labelRes), chip.count, chip.selected, AssetListTags.validation(mark), { list.onValidation(mark) }) {
+                    CountChip(stringResource(mark.labelRes), chip.count, chip.selected, AssetListTags.validation(mark), { list.onValidation(mark) }, Modifier.animateItem(ItemFade, ItemMove, ItemFade)) {
                         LineIcon(mark.icon, 12.dp, mark.color, 2.4f)
                     }
                 }
             }
-        }
+        } }
         if (state.canScrollBackward) {
             EdgeFade(left = true, stringResource(R.string.dash_chips_back), Modifier.align(Alignment.TopStart)) {
                 scope.launch { state.animateScrollBy(-step) }
@@ -205,47 +233,77 @@ private fun EdgeFade(left: Boolean, description: String, modifier: Modifier, onC
 }
 
 @Composable
-private fun Chip(c: StatusCount, onClick: () -> Unit) {
-    ChipBox(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), c.count, c.selected, AssetListTags.chip(c.status), onClick) {
+private fun Chip(c: StatusCount, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    CountChip(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), c.count, c.selected, AssetListTags.chip(c.status), onClick, modifier) {
         LineIcon(c.status?.icon ?: Icons.StatusAll, 11.dp, c.status?.color ?: C.Yellow, 2.8f)
     }
 }
 
-/** One filter chip: optional icon, label and count; yellow while [selected]. */
+/**
+ * One filter chip of the asset list (the status, change request, Managed Assets and validation chips): an optional icon,
+ * its label and how many it holds; yellow while [selected].
+ */
 @Composable
-private fun ChipBox(label: String, count: Int, selected: Boolean, tag: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
-    val bg = if (selected) C.YTintBg else C.Surface
-    val bd = if (selected) C.Yellow else C.ChipBd
-    val fg = if (selected) C.Yellow else C.Soft
+private fun CountChip(
+    label: String,
+    count: Int,
+    selected: Boolean,
+    tag: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null,
+) {
+    val bg by animateColorAsState(if (selected) C.YTintBg else C.Surface, label = "chip-bg")
+    val bd by animateColorAsState(if (selected) C.Yellow else C.ChipBd, label = "chip-bd")
+    val fg by animateColorAsState(if (selected) C.Yellow else C.Soft, label = "chip-fg")
+    val press = remember { MutableInteractionSource() }
     Row(
-        Modifier.testTag(tag).height(28.dp).clip(Capsule).background(bg).border(1.dp, bd, Capsule)
-            .clickable(onClick = onClick).padding(horizontal = 8.dp),
+        modifier.testTag(tag).pressScale(press).height(28.dp).clip(Capsule).background(bg).border(1.dp, bd, Capsule)
+            .semantics { this.selected = selected }
+            .clickable(press, LocalIndication.current, role = Role.Tab, onClick = onClick).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        icon()
+        icon?.invoke()
         Txt(label, 10, 600, fg)
-        Txt(count.toString(), 9, 700, fg.copy(alpha = 0.8f))
+        if (LocalCountsLoading.current) SkeletonBlock(Modifier.width(12.dp).height(8.dp), r(3))
+        else RollingCount(count, fg.copy(alpha = 0.8f))
     }
 }
 
-/** Above the rows of the Managed assets chip: they are in Managed Assets, and read-only here. */
+/** A chip's count: a new number rolls in from below when it grows and from above when it shrinks. */
 @Composable
-private fun ManagedListNote(modifier: Modifier = Modifier) {
-    Row(
-        modifier.padding(horizontal = 12.dp).padding(bottom = 6.dp).testTag(AssetListTags.MANAGED_NOTE),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        LineIcon(Icons.Managed, 14.dp, C.Muted, 2f)
-        Txt(stringResource(R.string.managed_list_note), 11, 400, C.Muted, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f))
-    }
+private fun RollingCount(count: Int, color: Color) {
+    AnimatedContent(
+        count,
+        transitionSpec = {
+            val up = targetState > initialState
+            (slideInVertically(tween(220)) { h -> if (up) h else -h } + fadeIn(tween(220)))
+                .togetherWith(slideOutVertically(tween(220)) { h -> if (up) -h else h } + fadeOut(tween(160)))
+                .using(SizeTransform(clip = true))
+        },
+        label = "chip-count",
+    ) { Txt(it.toString(), 9, 700, color) }
 }
+
+/** How rows and chips fade as they come and go, and how they slide to a new place. */
+private val ItemFade = tween<Float>(220)
+private val ItemMove = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow, visibilityThreshold = IntOffset.VisibilityThreshold)
+
+/** A row's icon swapping (ticked or not, a new status): the new one fades in as it grows. */
+private val IconSwap: AnimatedContentTransitionScope<*>.() -> ContentTransform = {
+    (fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.6f)).togetherWith(fadeOut(tween(120)))
+}
+
+/** The chips' counts aren't known yet (the property's assets are still being read). */
+private val LocalCountsLoading = staticCompositionLocalOf { false }
 
 /**
- * One asset: its type icon, name, manufacturer and model, whether its validation failed or needs a look, how it was
- * onboarded, and its status. One in Managed Assets ([Asset.managed]) is read-only: it can't be ticked (its icon and a
- * long press open it, as a tap does), and it shows "In Managed Assets" in place of its status and validation mark.
+ * One asset: its type icon, name, manufacturer and model, whether it is a copy (Cloned) and whether its validation failed
+ * or needs a look, how it was onboarded, and its status. One in Managed Assets ([Asset.managed]) is read-only: it can't be
+ * ticked (its icon and a long press open it, as a tap does), and it shows "In Managed Assets" in place of its status and
+ * validation mark. [onOpenValidation]: pressing the validation mark opens the asset on its Validation tab (the web's
+ * badge); null leaves the mark part of the row.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -256,6 +314,7 @@ fun AssetRow(
     onToggle: () -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenValidation: (() -> Unit)? = null,
 ) {
     // Long press anywhere on the row selects it (and so starts multi-select); one in Managed Assets is never selected.
     val haptics = LocalHapticFeedback.current
@@ -267,6 +326,8 @@ fun AssetRow(
     val managedLabel = stringResource(R.string.managed_status)
     val recollectLabel = stringResource(R.string.dash_recollect_badge)
     val changeRequestedLabel = stringResource(R.string.dash_change_requested_badge)
+    val clonedLabel = stringResource(R.string.asset_cloned_badge)
+    val openValidationLabel = stringResource(R.string.asset_open_validation)
     val rowBg by animateColorAsState(if (picked) C.PickedRow else C.Surface, label = "row")
     val icBg by animateColorAsState(if (picked) C.Yellow else C.Raised, label = "icbg")
     val icBd by animateColorAsState(if (picked) C.Yellow else if (selMode) C.RadioOff else C.Raised, label = "icbd")
@@ -274,7 +335,7 @@ fun AssetRow(
     // The icon (select) and the rest (open) are pressed apart but show one press shade over the whole card.
     val press = remember { MutableInteractionSource() }
     Row(
-        modifier.padding(horizontal = 8.dp, vertical = 1.5.dp).height(IntrinsicSize.Min)
+        modifier.padding(horizontal = 8.dp, vertical = 1.5.dp).pressScale(press, PRESSED_CARD).height(IntrinsicSize.Min)
             .clip(r(12)).background(rowBg).border(1.dp, cardBd, r(12)).indication(press, LocalIndication.current),
     ) {
         Box(
@@ -286,8 +347,10 @@ fun AssetRow(
                 Modifier.size(34.dp).clip(r(9)).background(icBg).border(1.5.dp, icBd, r(9)),
                 contentAlignment = Alignment.Center,
             ) {
-                if (picked) LineIcon(Icons.Check, 17.dp, C.OnYellow, 3f)
-                else LineIcon(assetIco(a), 16.dp, C.Yellow, 1.9f)
+                AnimatedContent(picked, transitionSpec = IconSwap, label = "row-tick") { on ->
+                    if (on) LineIcon(Icons.Check, 17.dp, C.OnYellow, 3f)
+                    else LineIcon(assetIco(a), 16.dp, C.Yellow, 1.9f)
+                }
             }
         }
         Row(
@@ -309,16 +372,30 @@ fun AssetRow(
                 if (a.changeRequest != null) {
                     LineIcon(Icons.ChangeRequest, 14.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = changeRequestedLabel })
                 }
-                // The web card's validation icon, when a step failed or needs a look (not for one in Managed Assets).
+                // The web card's "Cloned" badge: a copy made with Clone.
+                if (a.clonedFrom != null) LineIcon(Icons.Clone, 14.dp, C.Soft, 2.1f, Modifier.semantics { contentDescription = clonedLabel })
+                // The web card's validation icon, when a step failed or needs a look (not for one in Managed Assets). Pressed,
+                // it opens the asset on its Validation tab: 48dp wide, and as tall as the row's content (the row keeps its height).
                 a.validationMark?.takeIf { !a.managed }?.let { mark ->
                     val described = pluralStringResource(mark.problemsRes, a.validationProblems, a.validationProblems)
-                    ValidationMarkIcon(mark, a.validationProblems, Modifier.semantics { contentDescription = described })
+                    if (onOpenValidation == null) {
+                        ValidationMarkIcon(mark, a.validationProblems, Modifier.semantics { contentDescription = described })
+                    } else {
+                        Box(
+                            Modifier.widthIn(min = 48.dp).heightIn(min = 38.dp)
+                                .pressClickable(shape = r(10), onClickLabel = openValidationLabel, role = Role.Button, onClick = onOpenValidation)
+                                .semantics { contentDescription = described }.testTag(AssetListTags.validationMark(a.id)),
+                            contentAlignment = Alignment.Center,
+                        ) { ValidationMarkIcon(mark, a.validationProblems) }
+                    }
                 }
                 LineIcon(a.src.icon, 15.dp, a.src.color, 2f)
                 Box(Modifier.width(17.dp), contentAlignment = Alignment.Center) {
                     // In Managed Assets: that is its status here (the web card's "In Managed Assets").
-                    if (a.managed) LineIcon(Icons.Managed, 15.dp, C.Yellow, 2f, Modifier.semantics { contentDescription = managedLabel })
-                    else LineIcon(a.st.icon, 14.dp, a.st.color, 2f)
+                    AnimatedContent(if (a.managed) null else a.st, transitionSpec = IconSwap, label = "row-status") { st ->
+                        if (st == null) LineIcon(Icons.Managed, 15.dp, C.Yellow, 2f, Modifier.semantics { contentDescription = managedLabel })
+                        else LineIcon(st.icon, 14.dp, st.color, 2f)
+                    }
                 }
             }
         }
@@ -379,4 +456,9 @@ class AssetListBinding(
     val onValidation: (ValidationMark) -> Unit = {},
     /** The Managed assets chip: lists only the assets in Managed Assets, read-only (it stays on when tapped again). */
     val onManaged: () -> Unit = {},
+    /**
+     * A row's validation mark (failed or needs a look), pressed: opens that asset on its Validation tab, as the web's
+     * badge. Null leaves the mark part of the row (a tap opens the asset as usual).
+     */
+    val onOpenValidation: ((String) -> Unit)? = null,
 )

@@ -1,5 +1,9 @@
 package com.sclera.sclerago.presentation.components
 
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -114,8 +118,10 @@ fun Pill(
     size: Int = 13,
     weight: Int = 600,
 ) {
+    val press = remember { MutableInteractionSource() }
     Box(
-        modifier.height(height).clip(Capsule).background(bg).clickable(onClick = onClick).padding(horizontal = hPad),
+        modifier.pressScale(press).height(height).clip(Capsule).background(bg)
+            .clickable(press, LocalIndication.current, onClick = onClick).padding(horizontal = hPad),
         contentAlignment = Alignment.Center,
     ) { Txt(text, size, weight, fg) }
 }
@@ -129,8 +135,9 @@ fun RoundButton(
     shape: Shape = CircleShape,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    val press = remember { MutableInteractionSource() }
     Box(
-        modifier.size(size).clip(shape).background(bg).clickable(onClick = onClick),
+        modifier.pressScale(press).size(size).clip(shape).background(bg).clickable(press, LocalIndication.current, onClick = onClick),
         contentAlignment = Alignment.Center,
         content = content,
     )
@@ -144,10 +151,12 @@ fun CloseButton(onClick: () -> Unit, size: Dp = 48.dp, iconSize: Dp = 18.dp, bg:
 
 @Composable
 fun RadioDot(on: Boolean) {
+    val edge by animateColorAsState(if (on) C.Yellow else C.RadioOff, tween(180), label = "radio-edge")
+    val dot by animateFloatAsState(if (on) 1f else 0f, tween(180), label = "radio-dot")
     Box(
-        Modifier.size(22.dp).border(2.dp, if (on) C.Yellow else C.RadioOff, CircleShape),
+        Modifier.size(22.dp).border(2.dp, edge, CircleShape),
         contentAlignment = Alignment.Center,
-    ) { if (on) Box(Modifier.size(10.dp).background(C.Yellow, CircleShape)) }
+    ) { if (dot > 0f) Box(Modifier.size(10.dp).graphicsLayer { scaleX = dot; scaleY = dot }.background(C.Yellow, CircleShape)) }
 }
 
 /** A tick box; [partly] (when not [on]) shows a dash, for a parent some of whose children are ticked. */
@@ -161,13 +170,16 @@ fun CheckBox(
     stroke: Dp = 2.dp,
     partly: Boolean = false,
 ) {
+    val fill by animateColorAsState(if (on) C.Yellow else Color.Transparent, tween(180), label = "check-fill")
+    val edge by animateColorAsState(if (on || partly) C.Yellow else offColor, tween(180), label = "check-edge")
+    val mark by animateFloatAsState(if (on || partly) 1f else 0f, tween(180), label = "check-mark")
     Box(
-        Modifier.size(size).clip(shape).background(if (on) C.Yellow else Color.Transparent)
-            .border(stroke, if (on || partly) C.Yellow else offColor, shape),
+        Modifier.size(size).clip(shape).background(fill).border(stroke, edge, shape),
         contentAlignment = Alignment.Center,
     ) {
-        if (on) LineIcon(Icons.Check, checkSize, C.OnYellow, 3.4f)
-        else if (partly) LineIcon(Icons.Minus, checkSize, C.Yellow, 3.4f)
+        val grow = Modifier.graphicsLayer { scaleX = 0.5f + 0.5f * mark; scaleY = scaleX; alpha = mark }
+        if (on) LineIcon(Icons.Check, checkSize, C.OnYellow, 3.4f, grow)
+        else if (partly) LineIcon(Icons.Minus, checkSize, C.Yellow, 3.4f, grow)
     }
 }
 
@@ -188,7 +200,7 @@ fun Segmented(
             val on = i == selected
             val bg by animateColorAsState(if (on) C.Yellow else Color.Transparent, label = "seg")
             Box(
-                Modifier.weight(1f).height(30.dp).clip(r(7)).background(bg).clickable { onSelect(i) },
+                Modifier.weight(1f).height(30.dp).pressClickable(shape = r(7)) { onSelect(i) }.background(bg),
                 contentAlignment = Alignment.Center,
             ) {
                 val fg = if (on) C.OnYellow else C.Muted
@@ -392,6 +404,10 @@ fun ActionDock(
     onChange: (() -> Unit)? = null,
     /** Greys Submit out (as the web's "Some are already submitted"); it still answers a tap, to say why. */
     submitDimmed: Boolean = false,
+    /** Assign reads "Assign to me" (someone who isn't an admin takes the assets for themselves). */
+    assignToMe: Boolean = false,
+    /** Greys Assign out ("Assign to me" can't take these); it still answers a tap, to say why. */
+    assignDimmed: Boolean = false,
     leading: @Composable RowScope.() -> Unit,
 ) {
     // Floating: inset from the edges with rounded corners and a shadow; otherwise flush with a top border.
@@ -419,7 +435,8 @@ fun ActionDock(
         onEdit?.let { DockAction(stringResource(R.string.action_edit), Icons.Pencil, C.Orange, it, item) }
         onAssign?.let {
             OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item) {
-                DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth())
+                val label = stringResource(if (assignToMe) R.string.action_assign_to_me else R.string.action_assign)
+                DockAction(label, Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth().alpha(if (assignDimmed && !offline) 0.35f else 1f))
             }
         }
         onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item.alpha(if (submitDimmed) 0.35f else 1f)) }
@@ -490,7 +507,7 @@ private fun DockAction(
     lines: Int = 1,
 ) {
     Column(
-        modifier.fillMaxHeight().padding(vertical = 4.dp).clip(r(10)).clickable(onClick = onClick),
+        modifier.fillMaxHeight().padding(vertical = 4.dp).pressClickable(shape = r(10), onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
     ) {

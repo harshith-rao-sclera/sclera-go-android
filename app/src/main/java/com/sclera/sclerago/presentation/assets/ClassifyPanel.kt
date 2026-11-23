@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +31,8 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.SURE_ENOUGH
 import com.sclera.sclerago.domain.model.SuggestionSource
 import com.sclera.sclerago.domain.model.TypeSuggestion
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.common.asString
@@ -75,8 +79,8 @@ internal fun ClassifyPanel(
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (offline && !loading) OfflineBanner(OnlineOnly.SUGGEST_TYPE)
         else Row(
-            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(Capsule).background(C.Surface).border(1.dp, C.Border2, Capsule)
-                .clickable(enabled = !loading, onClick = onSuggest).testTag(DetailTags.SUGGEST_TYPE)
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).pressClickable(shape = Capsule, pressed = PRESSED_CARD, enabled = !loading, onClick = onSuggest).background(C.Surface).border(1.dp, C.Border2, Capsule)
+                .testTag(DetailTags.SUGGEST_TYPE)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -128,7 +132,7 @@ private fun Results(c: ClassifyState, actions: ClassifyActions) {
     if (c.picked != null) {
         Txt(stringResource(R.string.detail_jacs_code), 12, 700, C.Muted, modifier = Modifier.padding(top = 2.dp))
         when {
-            c.codesLoading -> Txt(stringResource(R.string.classify_jacs_loading), 12, 500, C.Soft, maxLines = Int.MAX_VALUE)
+            c.codesLoading -> SkeletonList(stringResource(R.string.classify_jacs_loading), count = 3, lead = SkeletonLead.NONE, lines = 1, gap = 6.dp)
             c.codes.isEmpty() -> Txt(stringResource(R.string.classify_jacs_none), 12, 500, C.Soft, maxLines = Int.MAX_VALUE)
             else -> Choices(c.codes, { it.code }, { it.code == c.code }, actions.onPickCode, ClassifyTags::code) { j ->
                 Txt(listOfNotNull(j.code, j.title).joinToString(" · "), 13, 700, maxLines = Int.MAX_VALUE)
@@ -153,9 +157,9 @@ private fun <T> Choices(
         items.forEachIndexed { n, item ->
             val on = picked(item)
             Row(
-                Modifier.fillMaxWidth().testTag(tag(id(item))).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
+                Modifier.pressClickable(pressed = PRESSED_CARD) { onPick(id(item)) }.fillMaxWidth().testTag(tag(id(item))).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
                     .background(if (on) C.YTintBg else C.Surface).semantics { selected = on; role = Role.RadioButton }
-                    .clickable { onPick(id(item)) }.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+                    .heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {

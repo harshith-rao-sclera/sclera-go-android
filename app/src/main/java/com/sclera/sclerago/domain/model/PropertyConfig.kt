@@ -6,11 +6,15 @@ package com.sclera.sclerago.domain.model
 /** All kinds of photo together allow at most this many photos per asset (the server's limit). */
 const val MAX_PHOTOS_PER_ASSET = 15
 
-/** A property's settings at the server: the onboarding switches, AI in validation, and the photo rules (one per [PhotoKind]). */
+/** A property's settings at the server: the onboarding switches, the AI switch, and the photo rules (one per [PhotoKind]). */
 data class PropertySettings(
     val bluetoothOnboarding: Boolean,
     val wifiOnboarding: Boolean,
-    /** Off: validation runs skip the AI checks for this property. */
+    /**
+     * The property's AI switch (on unless an admin turned it off). Off, nothing in the property asks the AI: what a person
+     * starts (spec look-ups, manuals, photo reading, voice fill) is refused (403 "AI off. An admin can turn it on."),
+     * validation skips its AI checks, and the apps keep their AI buttons, disabled.
+     */
     val aiValidation: Boolean,
     val photoRules: List<PhotoRule>,
     /**

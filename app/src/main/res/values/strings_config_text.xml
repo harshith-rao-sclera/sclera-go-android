@@ -10,6 +10,17 @@
     <!-- Building info -->
     <string name="cfgt_name_hidden">%1$s · Hidden</string>
     <string name="cfgt_add_building">Add building</string>
+    <string name="cfgt_select_building">Select building</string>
+    <string name="cfgt_search_buildings">Search buildings</string>
+    <string name="cfgt_edit_buildings">Edit buildings</string>
+    <string name="cfgt_edit_locations">Edit locations</string>
+    <string name="cfgt_search_floors">Search floors</string>
+    <string name="cfgt_search_locations">Search locations</string>
+    <string name="cfgt_no_match">Nothing matches your search</string>
+    <string name="cfgt_delete_floor_body">%1$s and its locations will be deleted. Assets there are kept, without a floor or location.</string>
+    <!-- Under a location's name in its sheet: the floor it is on. -->
+    <string name="cfgt_location_on">Location on %1$s</string>
+    <string name="cfgt_delete_location">Delete location</string>
     <string name="cfgt_edit_floors">Edit floors</string>
     <string name="cfgt_import_buildings">Import buildings</string>
     <string name="cfgt_buildings_empty">Add a building, then its floors and locations. Tap + to start.</string>
@@ -42,11 +53,7 @@
     <string name="cfgt_select_start_time">Select start time</string>
     <string name="cfgt_select_end_time">Select end time</string>
     <string name="cfgt_visible">Visible</string>
-    <string name="cfgt_edit_floors_sub">%1$s · top of the list is shown first</string>
-    <string name="cfgt_no_floors_left">No floors left. Save to remove them all, or Cancel to keep them.</string>
     <string name="cfgt_floor_name">Floor name</string>
-    <string name="cfgt_move_up">Move up</string>
-    <string name="cfgt_move_down">Move down</string>
     <string name="cfgt_location_name">Location name</string>
     <string name="cfgt_location_type_hint">e.g. Plant room</string>
 

@@ -15,6 +15,8 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.GuardedClose
@@ -49,7 +51,8 @@ fun AssignSheet(s: AssignSheetState, vm: AssignViewModel, onSubmitted: () -> Uni
                 SearchField(s.query, vm::setQuery, stringResource(R.string.assign_select))
                 val nobody = stringResource(R.string.assign_nobody)
                 val meLabel = s.me?.let { stringResource(R.string.assign_to_me, it) }
-                val listed = s.people.map { it.email }.filter { !it.isSame(s.me) }.distinctBy { it.lowercase() }
+                // While a search runs, the last search's people (which may not match any more) give way to placeholders.
+                val listed = if (s.searching) emptyList() else s.people.map { it.email }.filter { !it.isSame(s.me) }.distinctBy { it.lowercase() }
                 // The one picked stays in view while the search lists others.
                 val pickedEmail = (s.picked as? AssignChoice.Person)?.email
                 val kept = pickedEmail?.takeIf { p -> !p.isSame(s.me) && listed.none { it.isSame(p) } }
@@ -66,7 +69,7 @@ fun AssignSheet(s: AssignSheetState, vm: AssignViewModel, onSubmitted: () -> Uni
                     vm::pick,
                 )
                 when {
-                    s.searching && listed.isEmpty() -> Txt(stringResource(R.string.assign_loading), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
+                    s.searching -> SkeletonList(stringResource(R.string.assign_loading), count = 4, lead = SkeletonLead.NONE, lines = 1, card = false, gap = 2.dp)
                     listed.isEmpty() && s.query.isNotBlank() -> Txt(stringResource(R.string.assign_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
                 }
             }

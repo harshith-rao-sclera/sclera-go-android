@@ -6,4 +6,14 @@
     <string name="voice_reading">Reading what you said…</string>
     <string name="voice_nothing_matched">Couldn\'t match anything you said to a field on this form.</string>
     <string name="voice_not_used">Not used</string>
+    <!-- Correct what was heard by typing (voice fill sheet). -->
+    <string name="voice_edit_text">Edit text</string>
+    <!-- Describe the asset by typing (the web's "Describe the asset"): a long press on the mic. -->
+    <string name="describe_type_instead">Type a description instead</string>
+    <string name="describe_title">Describe the asset</string>
+    <string name="describe_sub">Type it. Mentioned fields are filled.</string>
+    <string name="describe_hint">Carrier chiller, model 30XA, serial 4719F55102, installed March 2019</string>
+    <string name="describe_count">%1$d / %2$d</string>
+    <string name="describe_fill">Fill form</string>
+    <string name="describe_filling">Filling…</string>
 </resources>

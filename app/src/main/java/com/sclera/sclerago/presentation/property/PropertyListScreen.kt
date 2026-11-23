@@ -1,6 +1,9 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.AccessFailedBanner
 import com.sclera.sclerago.presentation.components.OfflineGate
 import java.util.Locale
@@ -64,7 +67,6 @@ import androidx.compose.runtime.setValue
 import com.sclera.sclerago.presentation.components.FabAction
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.FabMenu
-import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.components.StatCard
@@ -137,6 +139,8 @@ fun PropertyListScreen(
         }
         // The info button on a property: its details straight in the edit form, with Delete before Cancel. View only
         // offline, and for a group without Manage properties (the server refuses their changes and deletes).
+        // Its details still being read from the server: the sheet in placeholders, until they come.
+        if (state.editing == null) state.openingEdit?.let { p -> PropertyFormSkeleton(p.name, vm::cancelOpenEdit) }
         state.editing?.let { p ->
             key(p.id) {
                 AddPropertySheet(
@@ -219,7 +223,7 @@ internal fun PropertyListContent(
                     when {
                         // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
                         state.loading -> item {
-                            ListLoader(stringResource(R.string.property_loading), Modifier.testTag(PropertyTags.LOADING))
+                            SkeletonList(stringResource(R.string.property_loading), Modifier.testTag(PropertyTags.LOADING), count = 4, lines = 3)
                         }
                         state.rows.isEmpty() -> item {
                             val text = if (state.query.isBlank()) stringResource(R.string.property_none)
@@ -266,16 +270,16 @@ internal fun PropertyListContent(
 @Composable
 private fun Header(state: PropertyListState) {
     StatRow(Modifier.padding(bottom = 10.dp)) {
-        // No counts until the properties are known, rather than a 0 that jumps.
+        // No counts until the properties are known (placeholders), rather than a 0 that jumps.
         StatCard(
-            Icons.Building, C.Yellow, if (state.loading) "–" else state.propertyTotal.toString(),
+            Icons.Building, C.Yellow, state.propertyTotal.toString(),
             stringResource(R.string.label_properties),
-            Modifier.weight(1f).testTag(PropertyTags.COUNT), valueSize = 24, labelSize = 12, prominent = true,
+            Modifier.weight(1f).testTag(PropertyTags.COUNT), valueSize = 24, labelSize = 12, prominent = true, loading = state.loading,
         )
         StatCard(
-            Icons.Download, C.Green, if (state.loading) "–" else state.syncedTotal.toString(),
+            Icons.Download, C.Green, state.syncedTotal.toString(),
             stringResource(R.string.property_synced),
-            Modifier.weight(1f).testTag(PropertyTags.SYNCED), valueSize = 24, labelSize = 12, prominent = true,
+            Modifier.weight(1f).testTag(PropertyTags.SYNCED), valueSize = 24, labelSize = 12, prominent = true, loading = state.loading,
         )
     }
 }
@@ -316,13 +320,13 @@ private fun PropertyCard(
     }
     val fade = Modifier.alpha(if (faint) FaintAlpha else 1f)
     Box(
-        Modifier.fillMaxWidth().clip(r(12)).then(surface)
+        Modifier.fillMaxWidth().pressClickable(shape = r(12), pressed = PRESSED_CARD, role = Role.Button, onClick = if (faint) onOffline else onClick).then(surface)
             .border(1.dp, if (faint) Color.Transparent else if (current) C.Yellow.copy(alpha = 0.3f) else C.Border, r(12))
             .semantics {
                 selected = current
                 if (current) stateDescription = currentLabel
             }.testTag(PropertyTags.row(id))
-            .clickable(role = Role.Button, onClick = if (faint) onOffline else onClick),
+            ,
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 10.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
@@ -338,8 +342,8 @@ private fun PropertyCard(
             // Property Info (the web's info icon on each property).
             val infoLabel = stringResource(R.string.property_info_open, name)
             Box(
-                fade.size(40.dp).clip(CircleShape).semantics { contentDescription = infoLabel }
-                    .testTag(PropertyTags.info(id)).clickable(role = Role.Button, onClick = onInfo),
+                fade.size(40.dp).pressClickable(shape = CircleShape, role = Role.Button, onClick = onInfo).semantics { contentDescription = infoLabel }
+                    .testTag(PropertyTags.info(id)),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Info, 18.dp, C.Muted, 2f) }
             // Every state keeps the 48dp of the download button, so the card doesn't change size as a download runs.
@@ -368,8 +372,8 @@ private fun PropertyCard(
                         val label = stringResource(R.string.property_download, name)
                         OfflineGate(faint, onOffline) {
                             Box(
-                                Modifier.size(48.dp).clip(CircleShape).semantics { contentDescription = label }
-                                    .testTag(PropertyTags.download(id)).clickable(role = Role.Button, onClick = onDownload),
+                                Modifier.size(48.dp).pressClickable(shape = CircleShape, role = Role.Button, onClick = onDownload).semantics { contentDescription = label }
+                                    .testTag(PropertyTags.download(id)),
                                 contentAlignment = Alignment.Center,
                             ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
                         }

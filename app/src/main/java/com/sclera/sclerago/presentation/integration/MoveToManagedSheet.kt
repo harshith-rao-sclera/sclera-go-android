@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.MovePreview
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.GuardedClose
@@ -37,7 +39,14 @@ import com.sclera.sclerago.presentation.theme.Txt
  * searched by email), then Submit.
  */
 @Composable
-fun MoveToManagedSheet(networks: List<String>, s: MoveSheetState, vm: MoveToManagedViewModel, onSubmitted: () -> Unit) {
+fun MoveToManagedSheet(
+    networks: List<String>,
+    s: MoveSheetState,
+    vm: MoveToManagedViewModel,
+    onSubmitted: () -> Unit,
+    /** The networks are still being fetched: placeholder rows instead of "No options". */
+    networksLoading: Boolean = false,
+) {
     GuardedClose(s.network != null || s.assignee != null, vm::close) { close ->
         BottomSheet(close) {
             SheetHeader(stringResource(R.string.mv_title), null, close)
@@ -46,17 +55,23 @@ fun MoveToManagedSheet(networks: List<String>, s: MoveSheetState, vm: MoveToMana
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Txt(stringResource(R.string.mv_network_label), 12, 600, C.Muted)
-                if (networks.isEmpty()) Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
+                if (networks.isEmpty()) {
+                    if (networksLoading) SkeletonList(stringResource(R.string.int_loading), count = 2, lead = SkeletonLead.NONE, lines = 1, card = false, gap = 2.dp)
+                    else Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
+                }
                 // The web shows each name capitalised and sends it as it is.
                 ChoiceList(networks, { n -> n.replaceFirstChar { it.uppercaseChar() } }, { it == s.network }, vm::pickNetwork)
 
                 Txt(stringResource(R.string.mv_assignee_label), 12, 600, C.Muted, Modifier.padding(top = 6.dp))
                 SearchField(s.query, vm::setQuery, stringResource(R.string.int_select))
+                // While a search runs, the last search's people (which may not match any more) give way to placeholders;
+                // the one picked stays.
+                val shown = if (s.searching) s.assignees.filter { it.email == s.assignee } else s.assignees
+                ChoiceList(shown, { it.email }, { it.email == s.assignee }, onPick = { vm.pickAssignee(it.email) })
                 when {
-                    s.searching -> Txt(stringResource(R.string.int_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
+                    s.searching -> SkeletonList(stringResource(R.string.int_loading), count = 3, lead = SkeletonLead.NONE, lines = 1, card = false, gap = 2.dp)
                     s.assignees.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
                 }
-                ChoiceList(s.assignees, { it.email }, { it.email == s.assignee }, onPick = { vm.pickAssignee(it.email) })
             }
             Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 MovePlacesNote(s.preview)

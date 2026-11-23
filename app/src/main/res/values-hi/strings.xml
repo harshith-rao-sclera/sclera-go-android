@@ -352,7 +352,6 @@
     <string name="detail_comment_too_long">टिप्पणी में अधिकतम %1$d वर्ण हो सकते हैं।</string>
     <string name="detail_back">सूची पर वापस जाएँ</string>
     <string name="detail_name_hint">एसेट का नाम</string>
-    <string name="detail_saved">सहेजा गया</string>
     <string name="detail_menu_camera">फ़ोटो या वीडियो लें</string>
     <string name="detail_menu_files">फ़ाइलों से अपलोड करें</string>
     <string name="detail_photo">फ़ोटो</string>

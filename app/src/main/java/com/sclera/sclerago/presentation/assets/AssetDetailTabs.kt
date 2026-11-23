@@ -1,5 +1,9 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import com.sclera.sclerago.presentation.components.SkeletonLine
+import com.sclera.sclerago.presentation.components.SkeletonList
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -23,7 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
+import com.sclera.sclerago.presentation.components.SkeletonBlock
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
@@ -175,12 +179,14 @@ private fun fileKindRes(kind: String?) = when (kind) {
  * when the user may. Upload document is the floating + ([UploadDocumentFab]).
  */
 @Composable
-fun DocumentsTab(documents: List<AssetDocument>, locked: Boolean, onRemove: (AssetDocument) -> Unit) {
-    if (documents.isEmpty()) {
+fun DocumentsTab(documents: List<AssetDocument>, locked: Boolean, onRemove: (AssetDocument) -> Unit, searching: Boolean = false) {
+    if (documents.isEmpty() && !searching) {
         EmptyTab(stringResource(R.string.doc_none))
         return
     }
     documents.forEach { d -> DocumentCard(d, canRemove = d.removable && !locked, onRemove = { onRemove(d) }) }
+    // The AI lookup or the manual search is still finding pages and manuals: placeholder cards where they will go.
+    if (searching) SkeletonList(stringResource(R.string.doc_searching), count = 2, lines = 3)
 }
 
 /** Opens document [d]: its kept file in an app that reads it, else its page in the browser; null when it has neither. */
@@ -271,7 +277,7 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
             if (canRemove) {
                 val label = stringResource(R.string.doc_remove_cd, d.title)
                 Box(
-                    Modifier.size(40.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onRemove).semantics { contentDescription = label },
+                    Modifier.size(40.dp).pressClickable(shape = CircleShape, role = Role.Button, onClick = onRemove).semantics { contentDescription = label },
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
             }
@@ -279,19 +285,37 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
     }
 }
 
-/** "Sorting photos…" with a small spinner, read out as one line. */
+/** A comment row in placeholders (who, what they wrote, when), read out as "Posting comment…". */
 @Composable
-private fun SortingNote(modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().testTag("media-sorting").background(C.YTintBg, r(12)).padding(horizontal = 12.dp, vertical = 10.dp)
-            .semantics(mergeDescendants = true) {},
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+private fun CommentSkeleton(modifier: Modifier = Modifier) {
+    val label = stringResource(R.string.scrt_comment_posting)
+    Column(
+        modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        CircularProgressIndicator(Modifier.size(16.dp), color = C.Yellow, strokeWidth = 2.dp)
-        Txt(stringResource(R.string.media_sorting), 13, 600, C.Yellow, maxLines = Int.MAX_VALUE)
+        SkeletonLine(0.35f, 10.dp)
+        SkeletonLine(0.85f, 11.dp)
+        SkeletonLine(0.22f, 8.dp)
     }
 }
+
+/** "Sorting photos…" over placeholder tiles where the photos will show, read out as one line. */
+@Composable
+private fun SortingNote(modifier: Modifier = Modifier) {
+    Column(
+        modifier.fillMaxWidth().testTag("media-sorting").semantics(mergeDescendants = true) {},
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Txt(stringResource(R.string.media_sorting), 12, 600, C.Yellow, maxLines = Int.MAX_VALUE)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(SORTING_TILES) { SkeletonBlock(Modifier.size(72.dp), r(10)) }
+        }
+    }
+}
+
+/** How many placeholder tiles show while photos are sorted. */
+private const val SORTING_TILES = 3
 
 /** Opens the kept file at [uri] in another app the user picks (a PDF or spreadsheet viewer), allowed to read it only. */
 private fun openFile(context: Context, uri: String, type: String?, chooser: String) {
@@ -435,7 +459,7 @@ private fun SourceDocumentSection(doc: AssetDocument?, canRemove: Boolean, onRem
         }
         val open = documentOpener(doc)
         Row(
-            Modifier.fillMaxWidth().testTag("media-source-${doc.id}").then(if (open != null) Modifier.clickable(onClick = open) else Modifier)
+            Modifier.fillMaxWidth().testTag("media-source-${doc.id}").then(if (open != null) Modifier.pressClickable(onClick = open) else Modifier)
                 .heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -450,7 +474,7 @@ private fun SourceDocumentSection(doc: AssetDocument?, canRemove: Boolean, onRem
             if (canRemove) {
                 val label = stringResource(R.string.doc_remove_cd, doc.title)
                 Box(
-                    Modifier.size(40.dp).clip(CircleShape).clickable(role = Role.Button) { onRemove(doc) }.semantics { contentDescription = label },
+                    Modifier.size(40.dp).pressClickable(shape = CircleShape, role = Role.Button) { onRemove(doc) }.semantics { contentDescription = label },
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.Trash, 16.dp, C.Red, 2.2f) }
             }
@@ -463,8 +487,8 @@ private fun SourceDocumentSection(doc: AssetDocument?, canRemove: Boolean, onRem
 private fun FileRows(files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
         files.forEachIndexed { n, (i, m) ->
             Row(
-                Modifier.fillMaxWidth().testTag(PhotoTags.tile(i)).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
-                    .clickable { onOpen(i) }.heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 8.dp),
+                Modifier.pressClickable(pressed = PRESSED_CARD) { onOpen(i) }.fillMaxWidth().testTag(PhotoTags.tile(i)).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
+                    .heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -555,13 +579,19 @@ fun CommentList(
     readOnly: Boolean,
     onSave: (comment: AssetActivity, text: String, onSaved: () -> Unit) -> Unit,
     onDelete: (AssetActivity) -> Unit,
+    /** A comment just sent is being kept: a placeholder row shows at the top, where it will appear (newest first). */
+    posting: Boolean = false,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val comments = activity.filter { it.kind == ActivityKind.COMMENT }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     var editText by rememberSaveable { mutableStateOf("") }
     val someone = stringResource(R.string.detail_comment_someone)
-    // None yet: "No comments yet" in the middle of the tab, as the web's.
+    // None yet: "No comments yet" in the middle of the tab, as the web's (or the placeholder of the one being sent).
+    if (comments.isEmpty() && posting) {
+        CommentSkeleton(Modifier.topBorder(C.Border))
+        return
+    }
     if (comments.isEmpty()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 120.dp).testTag(DetailTags.TAB_EMPTY), contentAlignment = Alignment.Center) {
             Txt(stringResource(R.string.detail_no_comments), 13, 700, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
@@ -572,6 +602,7 @@ fun CommentList(
     val deleteLabel = stringResource(R.string.detail_comment_delete)
     // Edge to edge: one row per comment, divided by a line, with no gap or side margin.
     Column(Modifier.fillMaxWidth().topBorder(C.Border)) {
+        if (posting) CommentSkeleton()
         comments.forEach { e ->
             val menu = buildList {
                 if (!readOnly && e.canEdit) add(MenuAct(Icons.Pencil, editLabel) { editText = e.text; editingId = e.id })

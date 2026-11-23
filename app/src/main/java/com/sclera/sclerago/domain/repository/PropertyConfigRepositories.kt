@@ -11,18 +11,28 @@ import com.sclera.sclerago.domain.model.PlaceChange
 import com.sclera.sclerago.domain.model.PlacesImported
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.PropertySettings
+import kotlinx.coroutines.flow.StateFlow
 
 /**
- * A property's settings at the server (Configuration → Asset fields photo rules, Settings → AI in validation).
+ * A property's settings at the server (Configuration → Asset fields photo rules, Settings → the AI switch).
  * Every call needs a connection and throws [com.sclera.sclerago.domain.model.OnlineException].
  */
 interface PropertySettingsRepository {
     suspend fun load(propertyId: String): PropertySettings
 
+    /**
+     * Property id → its AI switch (`aiValidation`) as last read from or saved to the server on this device; a property
+     * not in it isn't known yet. Every [load] and save here updates it.
+     */
+    val aiSwitches: StateFlow<Map<String, Boolean>>
+
+    /** Reads [propertyId]'s settings again unless its AI switch was read less than [maxAgeMs] ago. */
+    suspend fun refreshAiSwitch(propertyId: String, maxAgeMs: Long)
+
     /** Replaces the photo rules (every kind is sent); returns the settings the server kept. */
     suspend fun savePhotoRules(propertyId: String, rules: List<PhotoRule>): PropertySettings
 
-    /** Turns AI in validation on or off; returns the settings the server kept. */
+    /** Turns the property's AI switch on or off (`aiValidation`); returns the settings the server kept. */
     suspend fun setAiValidation(propertyId: String, on: Boolean): PropertySettings
 
     /** Puts the property's type fields in metric ([metric]) or US units; returns the settings the server kept. */

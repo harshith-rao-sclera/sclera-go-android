@@ -1,6 +1,7 @@
 package com.sclera.sclerago
 
 import com.sclera.sclerago.presentation.components.ToastHost
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,7 +10,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.sclera.sclerago.presentation.main.AssetIconsHost
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.presentation.launch.LaunchHost
@@ -20,11 +24,15 @@ import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.ScleraTheme
 import com.sclera.sclerago.utility.Utility
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val session: SessionViewModel by viewModels()
     private val launch: LaunchViewModel by viewModels()
+
+    /** Whether the user was signed in when the auth state last changed (null: not known yet on this screen). */
+    private var wasSignedIn: Boolean? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The system splash (dark canvas, brand symbol) hands over to the Compose launch animation,
@@ -41,6 +49,9 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        // Reopened after a sign-out: straight to the sign-in screen, without the launch animation.
+        if (intent.getBooleanExtra(EXTRA_SIGNED_OUT, false)) launch.onIntroFinished()
+        startFreshOnSignOut()
         setContent {
             ScleraTheme {
                 val playIntro = launch.playIntro.collectAsStateWithLifecycle().value
@@ -61,5 +72,34 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         session.onForeground()
+    }
+
+    /**
+     * When the session ends (sign-out, expiry, blocked account), the app opens again from scratch, like a fresh install:
+     * every screen's state (filters, chosen statuses, search, tabs, open sheets, AI results) goes with the old screen,
+     * while [SessionViewModel] wipes everything stored about the user.
+     */
+    private fun startFreshOnSignOut() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                session.authState.collect { auth ->
+                    val signedIn = auth is AuthState.SignedIn
+                    if (wasSignedIn == true && !signedIn) restartFresh() else wasSignedIn = signedIn
+                }
+            }
+        }
+    }
+
+    private fun restartFresh() {
+        startActivity(
+            Intent(this, MainActivity::class.java)
+                .putExtra(EXTRA_SIGNED_OUT, true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION),
+        )
+        finish()
+    }
+
+    private companion object {
+        const val EXTRA_SIGNED_OUT = "signed_out"
     }
 }

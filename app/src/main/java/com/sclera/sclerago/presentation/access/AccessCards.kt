@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,6 +41,7 @@ import com.sclera.sclerago.presentation.components.PersonAvatar
 import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.asColor
 import com.sclera.sclerago.presentation.components.initialsOf
+import com.sclera.sclerago.presentation.components.personTint
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -58,8 +61,8 @@ internal fun TabSwitch(labels: List<String>, tags: List<String>, selected: Int, 
             val on = i == selected
             val bg by animateColorAsState(if (on) C.Raised else Color.Transparent, label = "tab")
             Box(
-                Modifier.weight(1f).height(32.dp).clip(r(9)).background(bg).testTag(tags[i])
-                    .semantics { this.selected = on }.clickable(role = Role.Tab) { onSelect(i) },
+                Modifier.weight(1f).height(32.dp).pressClickable(shape = r(9), role = Role.Tab) { onSelect(i) }.background(bg).testTag(tags[i])
+                    .semantics { this.selected = on },
                 contentAlignment = Alignment.Center,
             ) { Txt(l, 12, 600, if (on) C.Text else C.Muted) }
         }
@@ -73,7 +76,7 @@ private fun Modifier.cardLook(): Modifier = fillMaxWidth().clip(r(14)).backgroun
 @Composable
 private fun CardRow(modifier: Modifier, onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
     Row(
-        modifier.cardLook().clickable(role = Role.Button, onClick = onClick).padding(start = 12.dp, end = 10.dp, top = 9.dp, bottom = 9.dp),
+        modifier.pressClickable(shape = r(14), pressed = PRESSED_CARD, role = Role.Button, onClick = onClick).cardLook().padding(start = 12.dp, end = 10.dp, top = 9.dp, bottom = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) { content() }
@@ -89,7 +92,10 @@ internal fun PersonCard(row: PersonRow, properties: List<Property>, nowMillis: L
     val p = row.person
     val tint = row.group?.tint() ?: C.Muted
     CardRow(Modifier.testTag(AccessTags.person(p.id)), onEdit) {
-        PersonAvatar(initialsOf(p.fullName?.takeIf { it.isNotBlank() } ?: p.email.substringBefore('@')), tint, size = 36.dp, textSize = 13)
+        PersonAvatar(
+            initialsOf(p.fullName?.takeIf { it.isNotBlank() } ?: p.email.substringBefore('@')), tint, size = 36.dp, textSize = 13,
+            photoUrl = p.imageUrl,
+        )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Txt(p.name, 14, 700, modifier = Modifier.weight(1f), maxLines = 1)
@@ -125,20 +131,24 @@ internal fun PersonCard(row: PersonRow, properties: List<Property>, nowMillis: L
 
 /**
  * Someone else the organisation's directory lists, not added here yet (as the web lists them under the users): their
- * name and email, "Not added", and Add. Tapping the card or Add opens Add user with them filled in; Add only works once
+ * photo (else their initials in their colour), name and email, "Not added", and Add. Tapping the card or Add opens Add user with them filled in; Add only works once
  * there is a group to put them in ([canAdd]).
  */
 @Composable
 internal fun DirectoryCard(person: DirectoryPerson, canAdd: Boolean, onAdd: () -> Unit) {
     val name = person.name?.trim()?.takeIf { it.isNotEmpty() }
     CardRow(Modifier.testTag(AccessTags.directory(person.email)), onAdd) {
+        PersonAvatar(
+            initialsOf(name ?: person.email.substringBefore('@')), personTint(person.userId ?: person.email), size = 36.dp, textSize = 13,
+            photoUrl = person.imageUrl,
+        )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(name ?: person.email, 14, 700, maxLines = 1)
             if (name != null) Txt(person.email, 12, 400, C.Muted, maxLines = 1)
             Txt(stringResource(R.string.access_not_added), 12, 600, C.Orange, Modifier.padding(top = 1.dp))
         }
         Box(
-            Modifier.minimumInteractiveComponentSize().clip(r(8)).clickable(enabled = canAdd, role = Role.Button, onClick = onAdd)
+            Modifier.minimumInteractiveComponentSize().pressClickable(shape = r(8), enabled = canAdd, role = Role.Button, onClick = onAdd)
                 .padding(horizontal = 6.dp),
             contentAlignment = Alignment.Center,
         ) { Txt(stringResource(R.string.access_action_add), 13, 700, if (canAdd) C.Yellow else C.Dim) }

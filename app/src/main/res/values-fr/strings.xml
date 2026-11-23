@@ -356,7 +356,6 @@
     <string name="detail_comment_too_long">Un commentaire peut contenir jusqu’à %1$d caractères.</string>
     <string name="detail_back">Retour à la liste</string>
     <string name="detail_name_hint">Nom de l’actif</string>
-    <string name="detail_saved">Enregistré</string>
     <string name="detail_menu_camera">Prendre une photo ou une vidéo</string>
     <string name="detail_menu_files">Importer depuis les fichiers</string>
     <string name="detail_photo">Photo</string>

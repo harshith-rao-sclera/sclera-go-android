@@ -26,7 +26,8 @@ class SyncDataCleaner @Inject constructor(
     override fun clear() {
         sync.stop()
         scope.launch(io) {
-            if (bridge.hasLocalData()) bridge.wipe()
+            // Always: the engine's credentials and tag rows can outlive the last downloaded property.
+            bridge.wipe()
             invalidations.emitAll()
         }
     }

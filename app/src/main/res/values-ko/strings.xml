@@ -348,7 +348,6 @@
     <string name="detail_comment_too_long">댓글은 최대 %1$d자까지 입력할 수 있습니다.</string>
     <string name="detail_back">목록으로 돌아가기</string>
     <string name="detail_name_hint">자산 이름</string>
-    <string name="detail_saved">저장됨</string>
     <string name="detail_menu_camera">사진 또는 동영상 촬영</string>
     <string name="detail_menu_files">파일에서 업로드</string>
     <string name="detail_photo">사진</string>

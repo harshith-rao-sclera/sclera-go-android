@@ -25,4 +25,7 @@
     <string name="ai_scan_failed">The AI couldn’t look up what the scan found: %1$s</string>
     <string name="ai_scan_nothing">The AI looked up what the scan found but found nothing new to fill.</string>
     <string name="ai_manuals_title">Manuals for this model</string>
+    <!-- The property's AI switch is off (Configuration → Settings → AI): every AI button stays, disabled, with this; the
+         server's refusal of anything AI says the same. -->
+    <string name="ai_off">AI off. An admin can turn it on.</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.sclera.sclerago.domain.usecase.asset
 
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.AssetCatalog
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.AssetListQuery
 import com.sclera.sclerago.domain.model.EmptyReason
@@ -31,8 +32,8 @@ private val CHIP_ORDER = listOf(Status.DRAFT, Status.SUBMITTED, Status.EXCEPTION
  * ([AssetListQuery.managed]), on their own; its count follows the location and the filter, as the other chips. The
  * chip counts (status and Change requests) follow the chosen location (all of the property,
  * one building, floor or location, or the unmapped assets) but not the search text. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
- * so it can overlap the other chips. The Change requests chip shows for admins ([AssetListQuery.showChangeRequests]),
- * who act on the requests, and for anyone else only while there are some (as on the web). The Failed validation and
+ * so it can overlap the other chips. The Change requests chip shows for admins and reviewers
+ * ([AssetListQuery.showChangeRequests]), who act on the requests, and for anyone else only while there are some (as on the web). The Failed validation and
  * Needs a look chips show while some assets have that mark. The filter sheet's choices ([AssetListQuery.filter], read
  * against the type catalogue [formats]) narrow the list and the chip counts alike, as the location does.
  */
@@ -140,6 +141,15 @@ class ObserveSelectionAccessUseCase @Inject constructor(
         userId = guard.userId(),
     )
 }
+
+/**
+ * The catalogue as the lists show it with the property's AI switch [aiOn]: off, no asset is offered AI suggestions (the
+ * server's ai_fillable_condition is false for every asset then), so the AI suggestion chip counts none.
+ */
+fun AssetCatalog.withAiSwitch(aiOn: Boolean): AssetCatalog = if (aiOn) this else copy(
+    assets = assets.map { if (it.aiSuggestion) it.copy(aiSuggestion = false) else it },
+    managed = managed.map { if (it.aiSuggestion) it.copy(aiSuggestion = false) else it },
+)
 
 /**
  * As the web's selection bar, Submit can't be used (it shows greyed out, "Some are already submitted") while any of

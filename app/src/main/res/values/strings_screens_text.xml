@@ -83,4 +83,14 @@
     <string name="scrt_val_run_checked_ago">%1$s %2$s</string>
     <!-- What the user said, in quotes. -->
     <string name="scrt_quoted_speech">“%1$s”</string>
+    <!-- Asset details while the asset is being read (read out over its placeholders). -->
+    <string name="scrt_asset_loading">Loading asset…</string>
+    <!-- Asset details → Comments: read out over the placeholder row of a comment being sent. -->
+    <string name="scrt_comment_posting">Posting comment…</string>
+    <!-- Asset filter sheet: read out over the placeholder people while the assignees are read. -->
+    <string name="filter_people_loading">Loading people…</string>
+    <!-- A property's details sheet while they are read from the server (read out over its placeholders). -->
+    <string name="scrt_property_loading">Loading property…</string>
+    <!-- Read out over the placeholder suggestions under an address field. -->
+    <string name="scrt_suggestions_loading">Loading suggestions…</string>
 </resources>

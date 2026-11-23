@@ -68,18 +68,38 @@ class FieldsConfigViewModel @Inject constructor(
 
     fun retry() = reload()
 
-    private fun reload() {
+    /** A pull to refresh is reading the fields again (the list stays on screen meanwhile). */
+    var refreshing by mutableStateOf(false)
+        private set
+
+    /** Pull to refresh: reads the property's fields again from the server. */
+    fun refresh() {
+        if (refreshing || propertyId.isEmpty()) return
+        refreshing = true
+        reload(showLoading = load != LoadState.READY)
+    }
+
+    /** Reads the fields; with [showLoading] false (a refresh of a list on screen) a failure is only told. */
+    private fun reload(showLoading: Boolean = true) {
         loadJob?.cancel()
-        load = LoadState.LOADING
-        failure = null
+        if (showLoading) {
+            load = LoadState.LOADING
+            failure = null
+        }
         val property = propertyId
         loadJob = viewModelScope.launch {
             try {
                 fields = useCases.load(property)
                 load = LoadState.READY
             } catch (e: OnlineException) {
-                failure = e.error.toUiText()
-                load = LoadState.FAILED
+                if (showLoading || load != LoadState.READY) {
+                    failure = e.error.toUiText()
+                    load = LoadState.FAILED
+                } else {
+                    say(e.error.toUiText())
+                }
+            } finally {
+                refreshing = false
             }
         }
     }

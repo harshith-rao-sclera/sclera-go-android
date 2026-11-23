@@ -101,6 +101,9 @@ class ValidationRunRepositoryImpl @Inject constructor(
 
     override suspend fun discard(propertyId: String, id: String) = api.discard(propertyId, id)
 
+    override suspend fun recheck(propertyId: String, jobId: String, assetId: String): ValRun =
+        api.recheck(propertyId, jobId, assetId).toDomain()
+
     override suspend fun results(propertyId: String, jobId: String, filter: ResultFilter, cursor: String?): ResultPage = orOffline(
         {
             val page = api.results(

@@ -1,5 +1,9 @@
 package com.sclera.sclerago.data.repository
 
+import com.sclera.sclerago.data.offline.PlacesOfflineSource
+import com.sclera.sclerago.data.sync.SyncManagerBridge
+import com.sclera.sclerago.domain.model.OnlineError
+import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.data.SheetUploads
 import com.sclera.sclerago.data.mapper.aiValidationBody
 import com.sclera.sclerago.data.mapper.unitSystemBody
@@ -39,6 +43,14 @@ import com.sclera.sclerago.domain.repository.PropertySettingsRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * A property's settings, read and changed at the server (`/properties/{id}/settings`). What the server returns is also
@@ -49,7 +61,23 @@ class PropertySettingsRepositoryImpl @Inject constructor(
     private val api: AdcApi,
     private val store: PropertyStore,
 ) : PropertySettingsRepository {
+    private val _aiSwitches = MutableStateFlow(emptyMap<String, Boolean>())
+    override val aiSwitches: StateFlow<Map<String, Boolean>> = _aiSwitches
+
+    /** Property id → when its AI switch was last read or saved (monotonic), for [refreshAiSwitch]. */
+    private val readAt = mutableMapOf<String, TimeMark>()
+
+    /** One read at a time, so screens opening together ask the server once. */
+    private val reading = Mutex()
+
     override suspend fun load(propertyId: String): PropertySettings = kept(propertyId, api.settings(propertyId))
+
+    override suspend fun refreshAiSwitch(propertyId: String, maxAgeMs: Long) {
+        reading.withLock {
+            val at = synchronized(readAt) { readAt[propertyId] }
+            if (at == null || propertyId !in _aiSwitches.value || at.elapsedNow() >= maxAgeMs.milliseconds) load(propertyId)
+        }
+    }
 
     override suspend fun savePhotoRules(propertyId: String, rules: List<PhotoRule>): PropertySettings =
         kept(propertyId, api.updateSettings(propertyId, photoRulesBody(rules)))
@@ -62,6 +90,9 @@ class PropertySettingsRepositoryImpl @Inject constructor(
 
     private suspend fun kept(propertyId: String, dto: SettingsDto): PropertySettings {
         store.applySettings(propertyId, dto)
+        // The asset screens' AI buttons follow at once (the web's setAiOn).
+        synchronized(readAt) { readAt[propertyId] = TimeSource.Monotonic.markNow() }
+        _aiSwitches.update { it + (propertyId to dto.aiValidation) }
         return dto.toSettings()
     }
 }
@@ -83,8 +114,10 @@ class GeofenceRepositoryImpl @Inject constructor(private val api: AdcApi) : Geof
 class ConfigFieldsRepositoryImpl @Inject constructor(
     private val api: AdcConfigApi,
     private val sheets: SheetUploads,
-) : ConfigFieldsRepository {
+) : ConfigFieldsRepository, UserDataCleaner {
     private val options = java.util.concurrent.ConcurrentHashMap<String, List<CfgOptionDto>>()
+
+    override fun clear() = options.clear()
 
     private fun keep(dto: CfgFieldDto): CfgFieldDto = dto.also { options[it.id] = it.options.orEmpty() }
 
@@ -114,20 +147,30 @@ class ConfigFieldsRepositoryImpl @Inject constructor(
 }
 
 /**
- * The property's buildings, floors and locations at the server. A building's access code is its code there (as the
- * web saves it); its other details (type, address, contact) have no place there, so they are kept in memory on this
- * phone for the session and wiped on sign-out. Import buildings sends the picked sheet to the server, which reads it.
+ * The property's buildings, floors and locations at the server; offline, the copy downloaded with the property (to look
+ * at: adding and changing places need the server). A building's access code is its code there (as the web saves it);
+ * its other details (type, address, contact) have no place there, so they are kept in memory on this phone for the
+ * session and wiped on sign-out. Import buildings sends the picked sheet to the server, which reads it.
  */
 @Singleton
 class ConfigPlacesRepositoryImpl @Inject constructor(
     private val api: AdcConfigApi,
     private val sheets: SheetUploads,
+    private val offline: PlacesOfflineSource,
+    private val bridge: SyncManagerBridge,
 ) : ConfigPlacesRepository, UserDataCleaner {
     private val infos = java.util.concurrent.ConcurrentHashMap<String, BuildingInfo>()
 
-    override suspend fun load(propertyId: String): List<LocNode> =
-        placesTree(api.buildings(propertyId), api.floors(propertyId), api.locations(propertyId))
-            .map { b -> b.copy(info = (infos[b.id] ?: BuildingInfo()).copy(accessCode = b.code)) }
+    override suspend fun load(propertyId: String): List<LocNode> {
+        val tree = try {
+            placesTree(api.buildings(propertyId), api.floors(propertyId), api.locations(propertyId))
+        } catch (e: OnlineException) {
+            // No connection: the downloaded copy, when this property's is the one open (else the tab says it's offline).
+            if (e.error != OnlineError.Offline || !bridge.isSelected(propertyId)) throw e
+            offline.everyPlace().ifEmpty { throw e }
+        }
+        return tree.map { b -> b.copy(info = (infos[b.id] ?: BuildingInfo()).copy(accessCode = b.code)) }
+    }
 
     override suspend fun addBuilding(propertyId: String, name: String, info: BuildingInfo?): String {
         val id = api.createBuilding(propertyId, placeCreateJson(name, code = info?.accessCode.orEmpty())).id

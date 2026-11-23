@@ -89,7 +89,7 @@ class SavePhotoRulesUseCase @Inject constructor(private val repo: PropertySettin
     }
 }
 
-/** Turns AI in validation on or off for the property; returns the settings the server kept. */
+/** Turns the property's AI switch on or off (everything AI, validation's AI checks too); returns the settings the server kept. */
 class SetAiValidationUseCase @Inject constructor(private val repo: PropertySettingsRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(propertyId: String, on: Boolean): PropertySettings {
         guard.requireOnline(Permission.CONFIGURE)

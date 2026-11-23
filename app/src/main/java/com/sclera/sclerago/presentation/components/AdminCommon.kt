@@ -88,6 +88,8 @@ internal fun StatCard(
     valueSize: Int = 20,
     labelSize: Int = 12,
     prominent: Boolean = false,
+    /** The number is still being worked out: a shimmering placeholder stands in for [value]. */
+    loading: Boolean = false,
 ) {
     val shape = r(if (prominent) 16 else 12)
     val look = if (prominent) {
@@ -108,7 +110,8 @@ internal fun StatCard(
             LineIcon(icon, if (prominent) 21.dp else 16.dp, tint, if (prominent) 2.1f else 1.9f)
         }
         Column(verticalArrangement = Arrangement.spacedBy(if (prominent) 2.dp else 1.dp)) {
-            Txt(value, valueSize, if (prominent) 800 else 700)
+            if (loading) SkeletonBlock(Modifier.padding(vertical = 4.dp).width((valueSize * 1.6f).dp).height((valueSize * 0.8f).dp))
+            else Txt(value, valueSize, if (prominent) 800 else 700)
             Txt(label, labelSize, if (prominent) 500 else 400, C.Muted)
         }
     }
@@ -175,8 +178,8 @@ internal fun SheetInput(
 @Composable
 internal fun SheetSelect(value: String, active: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().height(40.dp).clip(r(8)).background(C.Bg)
-            .border(1.dp, if (active) C.YTintBd else C.Border, r(8)).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        Modifier.fillMaxWidth().height(40.dp).pressClickable(shape = r(8), pressed = PRESSED_CARD, onClick = onClick).background(C.Bg)
+            .border(1.dp, if (active) C.YTintBd else C.Border, r(8)).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Txt(value, 14, 400, modifier = Modifier.weight(1f))
@@ -344,7 +347,7 @@ internal fun FormGroup(
     val chevron by animateFloatAsState(if (open) 0f else -90f, label = "group")
     Column(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(bottom = 6.dp)) {
         Row(
-            Modifier.fillMaxWidth().height(52.dp).then(if (collapsible) Modifier.clickable { open = !open } else Modifier)
+            Modifier.fillMaxWidth().height(52.dp).then(if (collapsible) Modifier.pressClickable { open = !open } else Modifier)
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -396,7 +399,7 @@ internal fun RowScope.InlineSelect(
     onClick: () -> Unit,
 ) {
     Row(
-        Modifier.weight(1f).heightIn(min = 44.dp).clickable(enabled = enabled, onClick = onClick),
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = enabled, onClick = onClick).weight(1f).heightIn(min = 44.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Txt(value.ifEmpty { placeholder }, 14, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))

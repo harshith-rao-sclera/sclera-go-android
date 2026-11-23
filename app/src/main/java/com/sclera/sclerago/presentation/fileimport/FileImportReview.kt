@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.fileimport
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -121,7 +123,7 @@ fun FileImportReview(
 @Composable
 private fun SampleLink(onClick: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(10)).clickable(onClick = onClick).testTag(FileImportTags.SAMPLE),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).pressClickable(shape = r(10), pressed = PRESSED_CARD, onClick = onClick).testTag(FileImportTags.SAMPLE),
         verticalArrangement = Arrangement.Center,
     ) {
         Txt(stringResource(R.string.file_import_sample), 13, 700, C.Yellow)
@@ -167,7 +169,7 @@ private fun FileOutcome.message(): String? = when (this) {
 @Composable
 private fun CreateFieldsToggle(count: Int, on: Boolean, onToggle: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(10)).clickable(onClick = onToggle).testTag(FileImportTags.CREATE_FIELDS),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).pressClickable(shape = r(10), pressed = PRESSED_CARD, onClick = onToggle).testTag(FileImportTags.CREATE_FIELDS),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {

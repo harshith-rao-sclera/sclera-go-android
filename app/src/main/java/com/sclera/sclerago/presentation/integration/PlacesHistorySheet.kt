@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.integration
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.common.formatDateAndTime
 import com.sclera.sclerago.presentation.common.is24Hour
 import androidx.compose.animation.core.animateFloatAsState
@@ -45,8 +47,9 @@ import com.sclera.sclerago.domain.model.PlacesTransfer
 import com.sclera.sclerago.domain.model.PlacesTransferDetail
 import com.sclera.sclerago.domain.model.TransferStatus
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.SkeletonText
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.BottomSheet
-import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PersonAvatar
 import com.sclera.sclerago.presentation.components.Segmented
@@ -81,12 +84,10 @@ internal fun PlacesHistorySheet(propertyId: String, onClose: () -> Unit, vm: Pla
                 listOf(stringResource(R.string.ph_filter_all), stringResource(R.string.ph_filter_sent), stringResource(R.string.ph_filter_imported)),
                 filters.indexOf(s.filter), { vm.setFilter(filters[it]) }, modifier = Modifier.fillMaxWidth(),
             )
-            Txt(
-                if (s.loading) stringResource(R.string.int_loading) else pluralStringResource(R.plurals.ph_total, s.total, s.total),
-                12, 500, C.Muted, Modifier.padding(vertical = 8.dp),
-            )
+            if (s.loading) SkeletonText(stringResource(R.string.int_loading), Modifier.padding(vertical = 10.dp), lines = 1)
+            else Txt(pluralStringResource(R.plurals.ph_total, s.total, s.total), 12, 500, C.Muted, Modifier.padding(vertical = 8.dp))
             when {
-                s.loading && s.items.isEmpty() -> ListLoader(stringResource(R.string.int_loading))
+                s.loading && s.items.isEmpty() -> SkeletonList(stringResource(R.string.int_loading), count = 4)
                 s.failed && s.items.isEmpty() -> Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Txt(stringResource(R.string.ph_load_failed), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     LinkText(stringResource(R.string.pi_try_again), onClick = { vm.load() })
@@ -108,11 +109,10 @@ internal fun PlacesHistorySheet(propertyId: String, onClose: () -> Unit, vm: Pla
                 ) {
                     items(s.items, key = { it.id }) { t -> TransferCard(t, s.open == t.id, s.details[t.id], vm) }
                     val left = s.total - s.items.size
-                    if (left > 0) item {
-                        Pill(
-                            if (s.loadingMore) stringResource(R.string.int_loading) else stringResource(R.string.ph_show_more, left),
-                            vm::loadMore, Modifier.fillMaxWidth().testTag("places_history_more"), height = 48.dp,
-                        )
+                    // Show more: placeholder cards where the next imports will go while they are read.
+                    if (s.loadingMore) item { SkeletonList(stringResource(R.string.int_loading), count = 2) }
+                    else if (left > 0) item {
+                        Pill(stringResource(R.string.ph_show_more, left), vm::loadMore, Modifier.fillMaxWidth().testTag("places_history_more"), height = 48.dp)
                     }
                 }
             }
@@ -132,7 +132,7 @@ private fun TransferCard(t: PlacesTransfer, open: Boolean, detail: TransferDetai
     val openState = stringResource(if (open) R.string.ph_expanded else R.string.ph_collapsed)
     Column(Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).testTag("places_transfer")) {
         Column(
-            Modifier.fillMaxWidth().clickable(role = Role.Button) { vm.toggle(t.id) }.semantics { stateDescription = openState }
+            Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button) { vm.toggle(t.id) }.fillMaxWidth().semantics { stateDescription = openState }
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -161,7 +161,7 @@ private fun TransferCard(t: PlacesTransfer, open: Boolean, detail: TransferDetai
         }
         if (open) Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             when (detail) {
-                null, TransferDetailState.Loading -> Txt(stringResource(R.string.ph_detail_loading), 12, 400, C.Muted)
+                null, TransferDetailState.Loading -> SkeletonText(stringResource(R.string.ph_detail_loading))
                 TransferDetailState.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
                     Txt(stringResource(R.string.ph_detail_failed), 12, 400, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                     LinkText(stringResource(R.string.pi_try_again)) { vm.retryDetail(t.id) }

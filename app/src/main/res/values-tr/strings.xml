@@ -352,7 +352,6 @@
     <string name="detail_comment_too_long">Yorum en fazla %1$d karakter olabilir.</string>
     <string name="detail_back">Listeye dön</string>
     <string name="detail_name_hint">Varlık adı</string>
-    <string name="detail_saved">Kaydedildi</string>
     <string name="detail_menu_camera">Fotoğraf veya video çek</string>
     <string name="detail_menu_files">Dosyalardan yükle</string>
     <string name="detail_photo">Fotoğraf</string>

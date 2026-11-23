@@ -1,5 +1,11 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.common.storedTimeText
 import android.app.TimePickerDialog
 import androidx.compose.foundation.clickable
@@ -18,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +44,10 @@ import com.sclera.sclerago.domain.model.labelOf
 import com.sclera.sclerago.domain.model.regionOfCountry
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.SheetHeader
+import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.SkeletonBlock
+import com.sclera.sclerago.presentation.components.SkeletonLine
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.FooterDeleteButton
 import com.sclera.sclerago.presentation.components.FormGroup
@@ -176,8 +187,9 @@ internal fun AddPropertySheet(
                 },
             )
         }
-        val shown = suggestions?.takeIf { editable && it.field == field && focused == field }?.items.orEmpty()
-        shown.take(SuggestionsShown).forEach { s -> Suggestion(s) { pick(field, s) } }
+        val here = suggestions?.takeIf { editable && it.field == field && focused == field }
+        if (here?.searching == true) SuggestionsSkeleton()
+        else here?.items.orEmpty().take(SuggestionsShown).forEach { s -> Suggestion(s) { pick(field, s) } }
     }
 
     val deleteName = from.name
@@ -274,12 +286,54 @@ internal fun AddPropertySheet(
 }
 
 
+/** Placeholder suggestions under an address field while the server is asked, read out as "Loading suggestions…". */
+@Composable
+private fun SuggestionsSkeleton() {
+    val label = stringResource(R.string.scrt_suggestions_loading)
+    Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = label }) {
+        repeat(SUGGESTION_PLACEHOLDERS) { i ->
+            Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                SkeletonLine(if (i % 2 == 0) 0.45f else 0.3f, 10.dp)
+            }
+        }
+    }
+}
+
+/** How many placeholder suggestions show while the server is asked. */
+private const val SUGGESTION_PLACEHOLDERS = 3
+
+/**
+ * A property's details sheet while they are read from the server: its name in the title and the form's fields in
+ * placeholders (a label over a value), read out as "Loading property…". × closes it (and stops the read).
+ */
+@Composable
+internal fun PropertyFormSkeleton(name: String, onClose: () -> Unit) {
+    val label = stringResource(R.string.scrt_property_loading)
+    BottomSheet(onClose) {
+        SheetHeader(stringResource(R.string.property_info_title), name, onClose)
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp).semantics(mergeDescendants = true) { contentDescription = label },
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            repeat(FORM_PLACEHOLDERS) { i ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SkeletonLine(0.25f, 9.dp)
+                    SkeletonBlock(Modifier.fillMaxWidth(if (i % 3 == 2) 0.5f else 1f).height(44.dp), r(12))
+                }
+            }
+        }
+    }
+}
+
+/** How many placeholder fields the details sheet shows while it reads the property. */
+private const val FORM_PLACEHOLDERS = 6
+
 /** One suggestion under an address field: its name, and its state when that differs from the one chosen. */
 @Composable
 private fun Suggestion(s: AddressSuggestion, onPick: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).testTag(AddPropertyTags.suggestion(s.name))
-            .clickable(role = Role.Button, onClick = onPick).padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button, onClick = onPick).fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).testTag(AddPropertyTags.suggestion(s.name))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Txt(s.name, 13, 600)

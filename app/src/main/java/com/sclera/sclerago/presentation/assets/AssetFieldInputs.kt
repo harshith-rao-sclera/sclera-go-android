@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.common.is24Hour
 import com.sclera.sclerago.presentation.common.timeFormatter
 import androidx.compose.foundation.background
@@ -86,8 +88,8 @@ fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: B
         else -> timeFormatter(locale, clock24).format(instant.atZone(zone))
     }
     Row(
-        Modifier.fillMaxWidth().testTag(DetailTags.field(key)).heightIn(min = 48.dp).topBorder(C.Border).background(rowBg)
-            .clickable(enabled = !readOnly) { open = true }.padding(horizontal = 12.dp),
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !readOnly) { open = true }.fillMaxWidth().testTag(DetailTags.field(key)).heightIn(min = 48.dp).topBorder(C.Border).background(rowBg)
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -155,7 +157,7 @@ fun MultiCheckRow(key: String, label: String, value: String, options: List<Strin
             options.forEach { option ->
                 val on = option in chosen
                 Row(
-                    Modifier.heightIn(min = 40.dp).clip(r(8)).clickable(enabled = !readOnly) {
+                    Modifier.heightIn(min = 40.dp).pressClickable(shape = r(8), enabled = !readOnly) {
                         val next = if (on) chosen - option else chosen + option
                         onChange(options.filter { it in next }.joinToString(","))
                     }.padding(end = 6.dp),

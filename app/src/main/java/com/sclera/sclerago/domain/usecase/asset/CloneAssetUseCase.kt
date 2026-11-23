@@ -21,8 +21,8 @@ import javax.inject.Inject
  * copied (as the web's clone): each copy starts without any. A copy takes the name when it is among the values picked
  * (as the web's, which copies it with the field values), and has none otherwise. A copy keeps the original's source
  * (bluetooth, wifi, camera…) but not its link to the scanned device. They are written to the offline
- * database and synced as new assets. The server keeps no "cloned" mark, so the copies are
- * ordinary drafts.
+ * database and synced as new assets. Each copy records what it was copied from ([NewAsset.copyOf], the server's
+ * `clonedFrom`), as the web's clone does: the list's Cloned badge and filter, and a "Cloned from …" history line.
  */
 class CloneAssetUseCase @Inject constructor(
     private val repo: AssetRepository,

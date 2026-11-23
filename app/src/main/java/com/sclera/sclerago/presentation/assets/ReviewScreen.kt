@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -103,7 +104,7 @@ fun ReviewScreen(
                 ) {
                     thumb(ri)
                     Column(
-                        Modifier.weight(1f).then(if (onOpen != null) Modifier.clip(r(8)).clickable { onOpen(ri.id) } else Modifier),
+                        Modifier.weight(1f).then(if (onOpen != null) Modifier.pressClickable(shape = r(8)) { onOpen(ri.id) } else Modifier),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Txt(ri.name, 14, 600)
@@ -119,8 +120,8 @@ fun ReviewScreen(
                     }
                     val include = stringResource(R.string.review_include)
                     Box(
-                        Modifier.size(48.dp).testTag(ReviewTags.toggle(ri.id)).clip(r(10))
-                            .semantics { contentDescription = include }.clickable { onToggle(ri.id) },
+                        Modifier.size(48.dp).testTag(ReviewTags.toggle(ri.id)).pressClickable(shape = r(10)) { onToggle(ri.id) }
+                            .semantics { contentDescription = include },
                         contentAlignment = Alignment.Center,
                     ) { CheckBox(ri.on) }
                 }

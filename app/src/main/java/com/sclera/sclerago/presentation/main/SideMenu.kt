@@ -1,5 +1,12 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.OfflineGate
+import com.sclera.sclerago.presentation.components.LocalToaster
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -105,8 +112,15 @@ internal fun activeMenuItem(adminPage: AdminPage?, validationOpen: Boolean, conf
  * with the app's sections under it, and Sign out pinned to the bottom.
  */
 @Composable
-fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
+fun SideMenu(
+    vm: AppViewModel,
+    sessionVm: SessionViewModel = hiltViewModel(),
+    connectivity: ConnectivityViewModel = hiltViewModel(),
+) {
     val auth by sessionVm.authState.collectAsStateWithLifecycle()
+    val online by connectivity.online.collectAsStateWithLifecycle()
+    val toaster = LocalToaster.current
+    val offlineNote = { toaster.show(UiText.Res(OnlineOnly.SIGN_OUT.message)) }
     val s = vm.state
     SideMenuPanel(
         open = s.menuOpen,
@@ -123,7 +137,9 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
         active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen, s.intOpen),
         onClose = vm::closeMenu,
         onPick = vm::pickMenu,
-        onSignOut = sessionVm::logout,
+        onSignOut = { if (!sessionVm.logout()) offlineNote() },
+        signOutOffline = !online,
+        onSignOutOffline = offlineNote,
     )
 }
 
@@ -152,6 +168,9 @@ internal fun SideMenuPanel(
     onRetryAccess: () -> Unit = {},
     onPick: (MenuItem) -> Unit,
     onSignOut: () -> Unit,
+    /** Offline: Sign out is greyed out (the server has to end the session); a tap calls [onSignOutOffline] to say why. */
+    signOutOffline: Boolean = false,
+    onSignOutOffline: () -> Unit = {},
 ) {
     BackHandler(enabled = open, onBack = onClose)
     val name = session?.displayName.orEmpty()
@@ -240,7 +259,7 @@ internal fun SideMenuPanel(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(
-                            Modifier.weight(1f).clip(r(10)).clickable { sectionsOpen = !sectionsOpen },
+                            Modifier.weight(1f).pressClickable(shape = r(10)) { sectionsOpen = !sectionsOpen },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
@@ -256,11 +275,11 @@ internal fun SideMenuPanel(
                         // Switch property: opens the property list to pick another one.
                         val switchLabel = stringResource(R.string.menu_switch_property)
                         Box(
-                            Modifier.size(40.dp).clip(r(10)).background(C.Btn).clickable(role = Role.Button) { onPick(MenuItem.PROPERTY) }
+                            Modifier.size(40.dp).pressClickable(shape = r(10), role = Role.Button) { onPick(MenuItem.PROPERTY) }.background(C.Btn)
                                 .semantics { contentDescription = switchLabel }.testTag(MenuTags.SWITCH_PROPERTY),
                             contentAlignment = Alignment.Center,
                         ) { LineIcon(Icons.Switch, 18.dp, C.Yellow, 2.2f) }
-                        Box(Modifier.width(22.dp).clickable { sectionsOpen = !sectionsOpen }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.pressClickable { sectionsOpen = !sectionsOpen }.width(22.dp), contentAlignment = Alignment.Center) {
                             LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 3f, Modifier.rotate(chevron))
                         }
                     }
@@ -280,17 +299,17 @@ internal fun SideMenuPanel(
 
             // Sign out, pinned to the bottom
             Box(Modifier.fillMaxWidth().topBorder(C.Border).navigationBarsPadding().padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 14.dp)) {
-                Row(
-                    Modifier.fillMaxWidth().height(48.dp).clip(r(14)).background(C.Red.copy(alpha = 0.12f))
+                OfflineGate(signOutOffline, onSignOutOffline, Modifier.fillMaxWidth()) { Row(
+                    Modifier.fillMaxWidth().height(48.dp).pressClickable(shape = r(14), pressed = PRESSED_CARD, role = Role.Button) { confirmSignOut = true }.background(C.Red.copy(alpha = 0.12f))
                         .border(1.dp, C.Red.copy(alpha = 0.35f), r(14)).testTag(MenuTags.SIGN_OUT)
-                        .clickable(role = Role.Button) { confirmSignOut = true },
+                        ,
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     LineIcon(Icons.SignOut, 19.dp, C.Red, 2.2f)
                     Spacer(Modifier.width(8.dp))
                     Txt(stringResource(R.string.menu_sign_out), 14, 600, C.Red)
-                }
+                } }
             }
         }
     }
@@ -332,9 +351,9 @@ private fun IconBox(icon: Ico) {
 @Composable
 private fun TopRow(item: MenuItem, label: String, icon: Ico, active: MenuItem, onPick: (MenuItem) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(14)).background(C.CardWash).border(1.dp, C.Border, r(14))
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).pressClickable(shape = r(14), pressed = PRESSED_CARD, role = Role.Button) { onPick(item) }.background(C.CardWash).border(1.dp, C.Border, r(14))
             .semantics { selected = item == active }.testTag(MenuTags.item(item))
-            .clickable(role = Role.Button) { onPick(item) }.padding(horizontal = 12.dp, vertical = 7.dp),
+            .padding(horizontal = 12.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -356,8 +375,8 @@ private fun SectionRow(
     first: Boolean = false,
 ) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { selected = item == active }.testTag(MenuTags.item(item))
-            .clickable(role = Role.Button) { onPick(item) },
+        Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button) { onPick(item) }.fillMaxWidth().heightIn(min = 48.dp).semantics { selected = item == active }.testTag(MenuTags.item(item))
+            ,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

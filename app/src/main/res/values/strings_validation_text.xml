@@ -75,15 +75,6 @@
         <item quantity="other">%1$d assets ticked · tap Choose to change</item>
     </plurals>
     <string name="valt_changed_hint">Only what was added or changed since this last ran</string>
-    <string name="valt_tick_first">Tick some assets first</string>
-    <string name="valt_no_assets_to_check">No assets to check</string>
-    <!-- Stands in for the validation's name when none is chosen: "Run validation on …". -->
-    <string name="valt_run_name_fallback">validation</string>
-    <string name="valt_run_on_changed">Run %1$s on new or changed assets</string>
-    <plurals name="valt_run_on_n">
-        <item quantity="one">Run %2$s on %1$d asset</item>
-        <item quantity="other">Run %2$s on %1$d assets</item>
-    </plurals>
     <string name="valt_save_as_ready">Save as ready</string>
 
     <!-- Choose assets sheet -->
@@ -140,4 +131,19 @@
     <string name="valt_note_optional">Note (optional)</string>
     <string name="valt_recollect_hint">What should the field team collect again?</string>
     <string name="valt_send_recollect">Send for recollection</string>
+    <!-- Asset details → Validation, under the steps when Revalidate resumes past step 1: %1$s is the step it resumes at. -->
+    <string name="valt_resumes_at">Resumes at %1$s; earlier steps keep their pass.</string>
+    <!-- Validation → Recent jobs: the Filter jobs sheet and its floating button. -->
+    <string name="valt_jobs_filter_title">Filter jobs</string>
+    <plurals name="valt_jobs_filter_active">
+        <item quantity="one">Filter jobs, %1$d filter on</item>
+        <item quantity="other">Filter jobs, %1$d filters on</item>
+    </plurals>
+    <string name="valt_jobs_started_by">Started by</string>
+    <!-- The avatar of "Anyone" in Started by. -->
+    <string name="valt_jobs_all">All</string>
+    <plurals name="valt_jobs_show">
+        <item quantity="one">Show %1$d job</item>
+        <item quantity="other">Show %1$d jobs</item>
+    </plurals>
 </resources>

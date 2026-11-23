@@ -6,10 +6,12 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssignResult
 import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.TakeRefusal
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.assign.AssignUseCases
 import com.sclera.sclerago.presentation.common.UiText
@@ -61,6 +63,13 @@ class AssignViewModel @Inject constructor(
     /** The signed-in user may assign (an admin who can collect), kept up to date as the access changes. */
     private var allowed by mutableStateOf(useCases.assign.allowed())
 
+    /** The signed-in user may take unassigned assets for themselves ("Assign to me": collects, not an admin). */
+    private var takeAllowed by mutableStateOf(useCases.take.allowed())
+
+    /** A take is on its way (the web's "Assigning…"): another tap waits for it. */
+    var taking by mutableStateOf(false)
+        private set
+
     private var propertyId = ""
     private var searchJob: Job? = null
     private val message = MutableSharedFlow<UiText>(extraBufferCapacity = 8)
@@ -73,6 +82,7 @@ class AssignViewModel @Inject constructor(
         viewModelScope.launch {
             accessChanges().collect {
                 allowed = useCases.assign.allowed()
+                takeAllowed = useCases.take.allowed()
                 if (!allowed) close()
             }
         }
@@ -87,6 +97,48 @@ class AssignViewModel @Inject constructor(
 
     /** Whether Assign shows: the signed-in user is an admin who can collect, the only ones the server lets assign. */
     fun mayAssign(): Boolean = allowed
+
+    /** Whether "Assign to me" shows in place of Assign: someone who collects but isn't an admin (the web's assignsToAnyone). */
+    fun mayTake(): Boolean = !allowed && takeAllowed
+
+    /** "Assign to me" is greyed out for [assets] (a tap says why): one is already assigned or submitted, or a take is running. */
+    fun takeBlocked(assets: Collection<Asset>): Boolean = taking || useCases.take.refusal(assets) != null
+
+    /**
+     * "Assign to me": takes [assets] for the signed-in user, then says how many, and calls [onDone] (to clear the
+     * selection, as the web). When they can't be taken it says why instead.
+     */
+    fun take(assets: Collection<Asset>, onDone: () -> Unit = {}) {
+        if (!mayTake() || assets.isEmpty() || propertyId.isEmpty()) return
+        if (taking) {
+            message.tryEmit(UiText.Res(R.string.assign_taking))
+            return
+        }
+        useCases.take.refusal(assets)?.let {
+            message.tryEmit(UiText.Res(refusalText(it, assets.size > 1)))
+            return
+        }
+        val property = propertyId
+        taking = true
+        viewModelScope.launch {
+            try {
+                useCases.take(property, assets)
+                message.emit(UiText.Plural(R.plurals.assign_taken, assets.size, listOf(assets.size)))
+            } catch (e: OnlineException) {
+                // The server's own text can hold internal details, so the app's words are shown instead.
+                message.emit(UiText.Res(if (e.error == OnlineError.Forbidden) R.string.assign_take_refused else R.string.assign_take_failed))
+            } finally {
+                // Some may have been taken before one failed: the list shows where each one is now.
+                taking = false
+                onDone()
+            }
+        }
+    }
+
+    private fun refusalText(r: TakeRefusal, many: Boolean): Int = when (r) {
+        TakeRefusal.ALREADY_ASSIGNED -> if (many) R.string.assign_take_some_assigned else R.string.assign_take_assigned
+        TakeRefusal.SUBMITTED -> if (many) R.string.assign_take_some_submitted else R.string.assign_take_submitted
+    }
 
     /**
      * Opens the sheet for [ids]. With one asset, [assignedTo] is its assignee (a user id): the sheet opens on that person

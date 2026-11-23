@@ -12,12 +12,14 @@ import kotlinx.coroutines.launch
 import com.sclera.sclerago.data.local.PropertyAssigneeStore
 import com.sclera.sclerago.data.offline.AssetAssigneeCache
 import com.sclera.sclerago.data.mapper.assignBody
+import com.sclera.sclerago.data.mapper.takeBody
 import com.sclera.sclerago.data.mapper.toAssignResult
 import com.sclera.sclerago.data.remote.adc.AdcApi
 import com.sclera.sclerago.di.IoDispatcher
 import com.sclera.sclerago.domain.model.AssignResult
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.PropertyAssignee
+import com.sclera.sclerago.domain.model.profilePhoto
 import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
 import com.sclera.sclerago.domain.system.TimeProvider
@@ -80,6 +82,25 @@ class AssetAssignmentRepositoryImpl @Inject constructor(
         return result
     }
 
+    override suspend fun take(propertyId: String, assetIds: Collection<String>, userId: String) {
+        val taken = ArrayList<String>()
+        try {
+            for (id in assetIds) {
+                api.updateAsset(propertyId, id, takeBody(userId))
+                taken += id
+            }
+        } finally {
+            // The signed-in user may have assets for the first time: the assignees are fetched again, then the phone's copy
+            // follows the ones the server took.
+            try {
+                if (taken.isNotEmpty()) fetch(propertyId)
+            } catch (_: OnlineException) {
+                // The list catches up at the next refresh.
+            }
+            assigneeCache.mark(propertyId, taken, userId)
+        }
+    }
+
     override suspend fun assigneeNames(propertyId: String): Map<String, String> = fetch(propertyId).mapValues { it.value.label }
 
     override fun keptAssignees(): Map<String, PropertyAssignee> = kept.values.fold(emptyMap()) { all, one -> all + one }
@@ -104,7 +125,9 @@ class AssetAssignmentRepositoryImpl @Inject constructor(
 
     /** Fetches [propertyId]'s assignees and keeps them, in memory and on the device. */
     private suspend fun fetch(propertyId: String): Map<String, PropertyAssignee> {
-        val fresh = api.assetAssignees(propertyId).map { PropertyAssignee(it.userId, it.name?.trim()?.takeIf(String::isNotEmpty), it.email) }
+        val fresh = api.assetAssignees(propertyId).map {
+            PropertyAssignee(it.userId, it.name?.trim()?.takeIf(String::isNotEmpty), it.email, profilePhoto(it.imageUrl))
+        }
         withContext(io) { runCatching { store.replace(propertyId, fresh, time.nowMillis()) } }
         return fresh.associateBy { it.userId }.also { kept[propertyId] = it }
     }

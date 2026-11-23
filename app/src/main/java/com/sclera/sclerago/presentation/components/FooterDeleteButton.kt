@@ -30,8 +30,8 @@ import com.sclera.sclerago.presentation.theme.Txt
 @Composable
 internal fun RowScope.FooterDeleteButton(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Row(
-        Modifier.weight(1f).height(50.dp).clip(Capsule).background(C.DangerBg).border(1.dp, C.Red.copy(alpha = 0.45f), Capsule)
-            .semantics { contentDescription = label }.clickable(role = Role.Button, onClick = onClick).then(modifier),
+        Modifier.weight(1f).height(50.dp).pressClickable(shape = Capsule, role = Role.Button, onClick = onClick).background(C.DangerBg).border(1.dp, C.Red.copy(alpha = 0.45f), Capsule)
+            .semantics { contentDescription = label }.then(modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {

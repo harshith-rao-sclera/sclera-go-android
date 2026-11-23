@@ -45,6 +45,8 @@ data class MoveUiState(
     val block: MoveBlock? = MoveBlock.NOT_LINKED,
     /** The linked VDMS's network names, fetched once it is known to be linked (as the web does). */
     val networks: List<String> = emptyList(),
+    /** The networks are being fetched (the property is linked; its network names aren't in yet). */
+    val networksLoading: Boolean = false,
     val sheet: MoveSheetState? = null,
 )
 
@@ -91,13 +93,15 @@ class MoveToManagedViewModel @Inject constructor(
                 // A 404: this API has no Managed Assets (VDMS) endpoints (an older build).
                 if (e.error == OnlineError.NotFound) MoveBlock.API_MISSING else MoveBlock.CHECK_FAILED
             }
-            set { copy(block = block) }
+            set { copy(block = block, networksLoading = block == null) }
             if (block != null) return@launch
             try {
                 val names = useCases.networks(propertyId)
                 set { copy(networks = names) }
             } catch (_: OnlineException) {
                 message.emit(UiText.Res(R.string.mv_networks_failed))
+            } finally {
+                set { copy(networksLoading = false) }
             }
         }
     }

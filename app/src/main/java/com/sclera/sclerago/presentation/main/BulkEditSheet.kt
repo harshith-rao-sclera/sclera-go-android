@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +40,7 @@ import com.sclera.sclerago.presentation.assets.MultiCheckRow
 import com.sclera.sclerago.presentation.assets.SelectRow
 import com.sclera.sclerago.presentation.assets.WhenKind
 import com.sclera.sclerago.presentation.assets.WhenRow
+import com.sclera.sclerago.presentation.components.SkeletonLine
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Pill
@@ -64,7 +67,8 @@ fun BulkEditSheet(s: BulkEditState, vm: BulkEditViewModel, onPickPlace: () -> Un
             )
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
                 PlaceRow(s.placeLabel, onPickPlace, vm::clearPlace)
-                fields.forEach { f -> BulkFieldRow(f, s.values[f.key].orEmpty()) { vm.setValue(f.key, it) } }
+                // Still being read: placeholder rows where the fields will be.
+                fields?.forEach { f -> BulkFieldRow(f, s.values[f.key].orEmpty()) { vm.setValue(f.key, it) } } ?: FieldRowsSkeleton()
             }
             Row(
                 Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -86,7 +90,7 @@ fun BulkEditSheet(s: BulkEditState, vm: BulkEditViewModel, onPickPlace: () -> Un
 private fun PlaceRow(label: String?, onClick: () -> Unit, onClear: () -> Unit) {
     val name = stringResource(R.string.bulk_location)
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).clickable(role = Role.Button, onClick = onClick)
+        Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button, onClick = onClick).fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border)
             .padding(start = 12.dp, end = if (label != null) 0.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -97,12 +101,33 @@ private fun PlaceRow(label: String?, onClick: () -> Unit, onClear: () -> Unit) {
     }
 }
 
+/** How many placeholder rows show while the fields are read. */
+private const val FIELD_PLACEHOLDERS = 6
+
+/** The field rows in placeholders: a label on the left, its value beside it, read out as "Loading…". */
+@Composable
+private fun FieldRowsSkeleton() {
+    val label = stringResource(R.string.cfg_loading)
+    Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = label }) {
+        repeat(FIELD_PLACEHOLDERS) { i ->
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(Modifier.width(92.dp)) { SkeletonLine(0.75f, 9.dp) }
+                Box(Modifier.weight(1f)) { SkeletonLine(if (i % 2 == 0) 0.5f else 0.35f, 11.dp) }
+            }
+        }
+    }
+}
+
 /** Puts a picked value back to "Leave as is" (48dp to touch, named for screen readers). */
 @Composable
 private fun ClearButton(field: String, onClick: () -> Unit) {
     val label = stringResource(R.string.bulk_clear, field)
     Box(
-        Modifier.size(48.dp).clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = label },
+        Modifier.pressClickable(role = Role.Button, onClick = onClick).size(48.dp).semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) { LineIcon(Icons.Close, 14.dp, C.Muted, 2.6f) }
 }

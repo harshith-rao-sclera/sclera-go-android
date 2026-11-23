@@ -90,12 +90,12 @@
     </plurals>
     <!-- Move to draft from the open asset (the web's asset bar). -->
     <string name="move_draft_body">The asset goes back to Draft so it can be edited again, then submitted.</string>
-    <!-- An admin signs submitted assets off without a validation run (the web's signOffActions). -->
+    <!-- A reviewer or an admin signs submitted assets off without a validation run (the web's signOffActions). -->
     <string name="sign_off_action">Mark as validated</string>
     <string name="sign_off_block_not_submitted">Only submitted assets can be marked as validated</string>
     <plurals name="sign_off_body">
-        <item quantity="one">The asset moves to Validated without a validation run. It can then be moved to Managed assets.</item>
-        <item quantity="other">The assets move to Validated without a validation run. They can then be moved to Managed assets.</item>
+        <item quantity="one">The asset moves to Validated without a validation run. An admin can then move it to Managed assets.</item>
+        <item quantity="other">The assets move to Validated without a validation run. An admin can then move them to Managed assets.</item>
     </plurals>
     <plurals name="sign_off_done">
         <item quantity="one">%1$d asset marked as validated</item>

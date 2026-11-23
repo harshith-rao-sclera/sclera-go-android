@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.integration
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,7 +24,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.PlacesDirection
-import com.sclera.sclerago.presentation.components.ListLoader
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
@@ -59,7 +60,7 @@ internal fun PlacesCard(s: PlacesUiState, online: Boolean, vm: PlacesImportViewM
             ) { vm.open(PlacesDirection.FROM_VDMS) }
         }
         when {
-            s.loading && s.places == null -> ListLoader(stringResource(R.string.int_loading))
+            s.loading && s.places == null -> SkeletonList(stringResource(R.string.int_loading), count = 3, lines = 1, card = false, gap = 2.dp)
             s.failed && s.places == null -> Row(verticalAlignment = Alignment.CenterVertically) {
                 Txt(stringResource(R.string.pi_load_failed), 12, 400, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                 LinkText(stringResource(R.string.pi_try_again), onClick = vm::load)
@@ -73,7 +74,7 @@ internal fun PlacesCard(s: PlacesUiState, online: Boolean, vm: PlacesImportViewM
 private fun HistoryButton(online: Boolean, vm: PlacesImportViewModel) {
     OfflineGate(!online, vm::explainOffline) {
         Row(
-            Modifier.heightIn(min = 48.dp).clip(r(10)).clickable(role = Role.Button, onClick = vm::openHistory)
+            Modifier.heightIn(min = 48.dp).pressClickable(shape = r(10), role = Role.Button, onClick = vm::openHistory)
                 .padding(horizontal = 10.dp).testTag("places_history"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -108,7 +109,7 @@ internal fun SkippedLine(text: String) {
 @Composable
 internal fun LinkText(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
-        modifier.heightIn(min = 48.dp).clip(r(8)).clickable(enabled = enabled, role = Role.Button, onClick = onClick).padding(horizontal = 8.dp),
+        modifier.heightIn(min = 48.dp).pressClickable(shape = r(8), enabled = enabled, role = Role.Button, onClick = onClick).padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center,
     ) { Txt(text, 12, 700, if (enabled) C.Yellow else C.Muted) }
 }

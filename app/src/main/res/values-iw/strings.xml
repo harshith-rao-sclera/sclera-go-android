@@ -360,7 +360,6 @@
     <string name="detail_comment_too_long">תגובה יכולה להכיל עד %1$d תווים.</string>
     <string name="detail_back">חזרה לרשימה</string>
     <string name="detail_name_hint">שם הנכס</string>
-    <string name="detail_saved">נשמר</string>
     <string name="detail_menu_camera">צילום תמונה או וידאו</string>
     <string name="detail_menu_files">העלאה מקבצים</string>
     <string name="detail_photo">תמונה</string>

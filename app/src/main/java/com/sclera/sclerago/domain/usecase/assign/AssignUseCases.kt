@@ -1,11 +1,14 @@
 package com.sclera.sclerago.domain.usecase.assign
 
 import com.sclera.sclerago.domain.model.AccessState
+import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssignResult
 import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.TakeRefusal
+import com.sclera.sclerago.domain.model.isLockedFor
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
 import com.sclera.sclerago.domain.repository.CurrentAccessRepository
@@ -53,6 +56,32 @@ class AssignAssetsUseCase @Inject constructor(private val repo: AssetAssignmentR
     }
 }
 
+/**
+ * "Assign to me", as the web's: someone who collects but isn't an admin takes assets assigned to nobody for themselves,
+ * while they can still change them (the server's rule: anyone may take an unassigned asset; anything else is an admin's).
+ * Throws [OnlineException].
+ */
+class TakeAssetsUseCase @Inject constructor(private val repo: AssetAssignmentRepository, private val guard: PermissionGuard) {
+    /** Whether "Assign to me" shows: the user may collect, isn't an admin (who gets Assign) and is known to the server. */
+    fun allowed(): Boolean = guard.allows(Permission.COLLECT) && !guard.isAdmin() && guard.userId() != null
+
+    /** Why [assets] can't be taken (null when they can): one already has an assignee, or one is submitted or signed off. */
+    fun refusal(assets: Collection<Asset>): TakeRefusal? = when {
+        assets.any { !it.assignedTo.isNullOrBlank() } -> TakeRefusal.ALREADY_ASSIGNED
+        assets.any { isLockedFor(it.st, isAdmin = false) } -> TakeRefusal.SUBMITTED
+        else -> null
+    }
+
+    /** Takes [assets] of [propertyId] for the signed-in user. Throws [OnlineException] Forbidden when the rule refuses it. */
+    suspend operator fun invoke(propertyId: String, assets: Collection<Asset>) {
+        guard.requireOnline(Permission.COLLECT)
+        val me = guard.userId() ?: throw OnlineException(OnlineError.Forbidden)
+        if (refusal(assets) != null) throw OnlineException(OnlineError.Forbidden)
+        val ids = assets.map { it.id }.filter { it.isNotBlank() }.distinct()
+        if (ids.isNotEmpty()) repo.take(propertyId, ids, me)
+    }
+}
+
 /** The signed-in user's email, for "Assign to me" (the web's logged-in user); null until their access is known. */
 class MyEmailUseCase @Inject constructor(private val access: CurrentAccessRepository) {
     operator fun invoke(): String? = (access.state.value as? AccessState.Loaded)?.access?.email?.trim()?.takeIf { it.isNotEmpty() }
@@ -79,6 +108,7 @@ class CurrentAssigneeUseCase @Inject constructor(
 class AssignUseCases @Inject constructor(
     val findAssignees: FindAssigneesUseCase,
     val assign: AssignAssetsUseCase,
+    val take: TakeAssetsUseCase,
     val myEmail: MyEmailUseCase,
     val currentAssignee: CurrentAssigneeUseCase,
 )

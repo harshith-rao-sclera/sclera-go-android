@@ -46,10 +46,13 @@ class BulkEditViewModel @Inject constructor(
     var sheet by mutableStateOf<BulkEditState?>(null)
         private set
 
-    /** The fields the sheet offers: the property's visible fields with an input, but not the type (as the web). */
-    val fields: StateFlow<List<FieldCfg>> = observeConfig()
-        .map { c -> c.fields.filter { it.visible && it.kind !in NO_INPUT_KINDS && it.key !in NOT_BULK } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /**
+     * The fields the sheet offers: the property's visible fields with an input, but not the type (as the web). Null
+     * until the property's fields have been read (the sheet shows placeholder rows meanwhile).
+     */
+    val fields: StateFlow<List<FieldCfg>?> = observeConfig()
+        .map<_, List<FieldCfg>?> { c -> c.fields.filter { it.visible && it.kind !in NO_INPUT_KINDS && it.key !in NOT_BULK } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val message = MutableSharedFlow<UiText>(extraBufferCapacity = 8)
 

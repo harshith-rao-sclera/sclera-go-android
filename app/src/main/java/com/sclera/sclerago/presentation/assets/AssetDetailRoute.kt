@@ -69,18 +69,23 @@ fun AssetDetailRoute(
     onPlaceTaken: () -> Unit = {},
     /** Assign the asset to a person (the web's Assign asset). */
     onAssign: (() -> Unit)? = null,
+    /** [onAssign] is "Assign to me" (the user isn't an admin). */
+    assignToMe: Boolean = false,
     /** Move the validated asset to Managed assets; null when it isn't offered. */
     onMove: (() -> Unit)? = null,
     /** Validate: run checks on this asset (the web's asset bar opens Run validation on it). */
     onValidate: () -> Unit = {},
-    /** "Open in Validation": the Validation page on the run [jobId] the asset is in. */
-    onOpenRun: (jobId: String) -> Unit = {},
+    /** "Open in Validation": the Validation page on the run [jobId] with the asset's result open. */
+    onOpenResult: (jobId: String, assetId: String) -> Unit = { _, _ -> },
     /** What a new asset's form starts with (a scanned device's make, model, note, BLE tag / IP). */
     prefill: Map<String, String> = emptyMap(),
     /** What the scan found out about the device a new asset is made from: the AI is asked about it once it opens. */
     scan: ScanFacts? = null,
     /** A photo a new asset was opened with (the Camera tab's shots) was removed on its page. */
     onDropCapture: (Media) -> Unit = {},
+    /** A tab to open on (the list's validation badge: Validation); [onTabOpened] once the screen has chosen it. */
+    openTab: DetailTabKind? = null,
+    onTabOpened: () -> Unit = {},
     vm: AssetDetailViewModel = hiltViewModel(),
     tagVm: TagViewModel = hiltViewModel(),
 ) {
@@ -88,6 +93,13 @@ fun AssetDetailRoute(
     LaunchedEffect(asset.id, isNew, if (isNew) asset.locationId else null) { vm.open(asset, isNew, prefill, scan) }
     DisposableEffect(vm) { onDispose { vm.close() } }
     LaunchedEffect(vm) { vm.notices.collect(onNotice) }
+    // Saved, or its status changed: back to the list, which shows it where it now belongs.
+    LaunchedEffect(vm) {
+        vm.finished.collect {
+            onNotice(it)
+            onBack()
+        }
+    }
     LaunchedEffect(pickedPlace) {
         pickedPlace?.let {
             vm.choosePlace(it)
@@ -141,8 +153,10 @@ fun AssetDetailRoute(
         onBack = onBack,
         onChangeLoc = onChangeLoc,
         onAssign = onAssign,
+        assignToMe = assignToMe,
         onEdit = vm::edit,
         onDiscardEdits = vm::discardEdits,
+        onRefresh = vm::refresh,
         onSave = vm::save,
         onSubmit = vm::submit,
         onMoveToDraft = vm::moveToDraft,
@@ -157,7 +171,7 @@ fun AssetDetailRoute(
             )
         },
         onValidate = onValidate,
-        onOpenRun = onOpenRun,
+        onOpenResult = { jobId -> onOpenResult(jobId, asset.id) },
         onDelete = { onDelete(asset.id) },
         changeRequest = ChangeRequestActions(
             onOpen = vm::openChangeRequest, onNote = vm::editChangeNote, onSend = vm::sendChangeRequest,
@@ -169,13 +183,16 @@ fun AssetDetailRoute(
             onToggle = vm::toggleAiPick, onToggleType = vm::toggleAiType, onEdit = vm::editAiPick, onApply = vm::applyAi,
         ),
         onMic = voice::toggle,
+        onType = { vm.openTyping() },
         voice = VoiceFillActions(
             onToggle = vm::toggleVoicePick, onApply = vm::applyVoice, onClose = vm::closeVoice,
             onSpeakAgain = {
                 vm.closeVoice()
                 voice.toggle()
             },
+            onEditText = { vm.openTyping(state.voice?.said.orEmpty()) },
         ),
+        typing = DescribeActions(onText = vm::setTyping, onFill = vm::submitTyping, onClose = vm::closeTyping),
         onTakePhoto = { camOpen = true },
         onRecordMemo = { memoOpen = true },
         onPickGallery = { galleryPick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
@@ -215,7 +232,7 @@ fun AssetDetailRoute(
             camOpen = true
         },
     )
-    AssetDetailScreen(state, actions, mic = voice.state, tags = tagState)
+    AssetDetailScreen(state, actions, mic = voice.state, tags = tagState, openTab = openTab, onTabOpened = onTabOpened)
     TagFlowHost(
         tagState,
         TagFlowActions(

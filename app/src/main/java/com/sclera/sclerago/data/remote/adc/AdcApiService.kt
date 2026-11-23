@@ -109,6 +109,10 @@ interface AdcApiService {
     @POST("properties/{p}/assets/bulk/assign")
     suspend fun assignAssets(@Path("p") property: String, @Body body: RequestBody): Response<ResponseBody>
 
+    /** Changes one asset; used to take an asset assigned to nobody for the signed-in user (`{"assignedTo": <me>}`). */
+    @PATCH("properties/{p}/assets/{id}")
+    suspend fun updateAsset(@Path("p") property: String, @Path("id") id: String, @Body body: RequestBody): Response<ResponseBody>
+
     // ---- Access
 
     @GET("organisations/{org}/access/permissions")

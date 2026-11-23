@@ -152,4 +152,5 @@ abstract class OfflineRepositoryModule {
 
     @Binds @IntoSet abstract fun clearAssetFiles(impl: LocalAssetFileStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearTypeFields(impl: TypeFieldsStore): UserDataCleaner
+    @Binds @IntoSet abstract fun clearAssetIcons(impl: AssetIconRepositoryImpl): UserDataCleaner
 }

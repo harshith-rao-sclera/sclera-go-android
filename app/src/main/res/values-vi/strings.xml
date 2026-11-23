@@ -348,7 +348,6 @@
     <string name="detail_comment_too_long">Bình luận tối đa %1$d ký tự.</string>
     <string name="detail_back">Quay lại danh sách</string>
     <string name="detail_name_hint">Tên tài sản</string>
-    <string name="detail_saved">Đã lưu</string>
     <string name="detail_menu_camera">Chụp ảnh hoặc quay video</string>
     <string name="detail_menu_files">Tải lên từ tệp</string>
     <string name="detail_photo">Ảnh</string>

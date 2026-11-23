@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,6 +44,11 @@ import com.sclera.sclerago.domain.model.AssetFilterOptions
 import com.sclera.sclerago.domain.model.FilterCategory
 import com.sclera.sclerago.domain.model.FilterChoice
 import com.sclera.sclerago.domain.model.FilterPerson
+import com.sclera.sclerago.domain.model.OTHER_CLONED
+import com.sclera.sclerago.domain.model.OTHER_RECOLLECT
+import com.sclera.sclerago.domain.model.OTHER_REQUIRED_MISSING
+import com.sclera.sclerago.domain.model.OTHER_UNTYPED
+import com.sclera.sclerago.presentation.components.SkeletonBlock
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.PersonAvatar
@@ -71,12 +77,10 @@ object FilterTags {
     fun choice(key: String) = "filter_choice_$key"
 }
 
-/** The key of the one choice under "Other": assets with no type. */
-private const val UNTYPED_KEY = "untyped"
-
 /**
  * The asset list's filter: who the assets are assigned to (a row of people, the signed-in user first as "You"), then the
- * type levels in a side rail (System type, Asset type, Sub type, Other) with the chosen level's choices beside it. Choices
+ * type levels in a side rail (System type, Asset type, Sub type, Other: no type yet, Cloned and Mandatory fields missing)
+ * with the chosen level's choices beside it. Choices
  * only take effect with "Show N assets"; Reset clears them in the sheet; closing drops them.
  */
 @Composable
@@ -93,6 +97,7 @@ fun AssetFilterSheet(
         Column(Modifier.testTag(FilterTags.SHEET)) {
             FilterHeader(onClose)
             if (s.options.people.isNotEmpty() || s.options.unassigned != null) PeopleRow(s.options.people, s.options.unassigned, onPerson)
+            else if (s.peopleLoading) PeopleSkeleton()
         }
         Row(Modifier.weight(1f, fill = false).fillMaxWidth().topBorder(C.Border)) {
             CategoryRail(category, s.draft, Modifier.width(if (isTablet()) 170.dp else 116.dp)) { category = it }
@@ -140,6 +145,27 @@ private fun PeopleRow(people: List<FilterPerson>, unassigned: FilterPerson?, onP
     }
 }
 
+/** The people row while the property's assignees are read: placeholder avatars with a name under each. */
+@Composable
+private fun PeopleSkeleton() {
+    val label = stringResource(R.string.filter_people_loading)
+    Txt(stringResource(R.string.filter_assigned_to), 12, 600, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 6.dp))
+    Row(
+        Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp).semantics(mergeDescendants = true) { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        repeat(PEOPLE_PLACEHOLDERS) {
+            Column(Modifier.width(60.dp).padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                SkeletonBlock(Modifier.size(40.dp), CircleShape)
+                SkeletonBlock(Modifier.width(40.dp).height(8.dp))
+            }
+        }
+    }
+}
+
+/** How many placeholder people show while the assignees are read. */
+private const val PEOPLE_PLACEHOLDERS = 5
+
 /** "Unassigned": an empty dashed circle with a person's outline where initials would be, as the web's. */
 @Composable
 private fun NobodyChoice(p: FilterPerson, onClick: () -> Unit) {
@@ -171,7 +197,7 @@ private fun PersonChoice(p: FilterPerson, onClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        PersonAvatar(initials, tint, size = 40.dp, textSize = 13, ring = if (p.selected) C.Yellow else null)
+        PersonAvatar(initials, tint, size = 40.dp, textSize = 13, ring = if (p.selected) C.Yellow else null, photoUrl = p.photoUrl)
         Txt(name, 10, if (p.selected) 700 else 500, if (p.selected) C.Text else C.Soft, maxLines = 2, align = TextAlign.Center)
         Txt(p.count.toString(), 10, 500, C.Muted)
     }
@@ -186,7 +212,7 @@ private fun CategoryRail(open: FilterCategory, draft: AssetFilter, modifier: Mod
                 FilterCategory.SYSTEM -> draft.systems.size
                 FilterCategory.TYPE -> draft.types.size
                 FilterCategory.SUBTYPE -> draft.subtypes.size
-                FilterCategory.OTHER -> if (draft.untyped) 1 else 0
+                FilterCategory.OTHER -> listOf(draft.untyped, draft.cloned, draft.requiredMissing, draft.recollect).count { it }
             }
             val on = c == open
             Row(
@@ -220,8 +246,15 @@ private fun ChoiceList(category: FilterCategory, options: AssetFilterOptions, mo
         FilterCategory.SYSTEM -> options.systems
         FilterCategory.TYPE -> options.types
         FilterCategory.SUBTYPE -> options.subtypes
+        // No type yet, then the web's Cloned, Mandatory fields missing and Recollect.
         FilterCategory.OTHER -> listOf(
-            FilterChoice(UNTYPED_KEY, stringResource(R.string.filter_no_type), null, options.untypedCount, options.untypedSelected),
+            FilterChoice(OTHER_UNTYPED, stringResource(R.string.filter_no_type), null, options.untypedCount, options.untypedSelected),
+            FilterChoice(OTHER_CLONED, stringResource(R.string.filter_cloned), null, options.clonedCount, options.clonedSelected),
+            FilterChoice(
+                OTHER_REQUIRED_MISSING, stringResource(R.string.filter_required_missing), null,
+                options.requiredMissingCount, options.requiredMissingSelected,
+            ),
+            FilterChoice(OTHER_RECOLLECT, stringResource(R.string.filter_recollect), null, options.recollectCount, options.recollectSelected),
         ).filter { it.count > 0 || it.selected }
     }
     if (choices.isEmpty()) {

@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.components
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -48,6 +51,46 @@ import com.sclera.sclerago.presentation.theme.C
 /** Floating action buttons of the design's "Floating actions" section (54dp circles, search capsule). */
 val FabSize = 54.dp
 
+/**
+ * The floating run button (validating an asset): a yellow capsule with ▶ and [label]; while [busy] a spinner takes the
+ * ▶'s place and it can't be tapped, nor while not [enabled].
+ */
+@Composable
+fun RunFab(label: String, busy: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    Row(
+        modifier.height(52.dp).fabShadow(Capsule).pressClickable(shape = Capsule, enabled = enabled && !busy, role = Role.Button, onClick = onClick)
+            .background(if (enabled || busy) C.Yellow else C.PrimaryOffBg).padding(start = 16.dp, end = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val fg = if (enabled || busy) C.OnYellow else C.PrimaryOffFg
+        if (busy) CircularProgressIndicator(Modifier.size(18.dp), color = fg, strokeWidth = 2.5.dp)
+        else LineIcon(Icons.Play, 18.dp, fg, 2.4f)
+        Txt(label, 14, 800, fg)
+    }
+}
+
+/**
+ * A filter button: a dark circle with a funnel; while [count] choices are on, the funnel is yellow with a count badge.
+ * [description] says what it filters (and how many choices are on) for screen readers. [modifier] places it (with its
+ * badge); [buttonModifier] goes on the button itself (its test tag).
+ */
+@Composable
+fun FilterFab(count: Int, description: String, onClick: () -> Unit, modifier: Modifier = Modifier, buttonModifier: Modifier = Modifier) {
+    Box(modifier) {
+        CircleFab(
+            Icons.Filter, description, onClick, buttonModifier,
+            bg = if (count > 0) C.YTintBg else C.Btn, fg = if (count > 0) C.Yellow else C.Text, iconSize = 20.dp, stroke = 2.4f,
+        )
+        if (count > 0) {
+            Box(
+                Modifier.align(Alignment.TopEnd).size(20.dp).clip(CircleShape).background(C.Yellow),
+                contentAlignment = Alignment.Center,
+            ) { Txt(count.toString(), 11, 700, C.OnYellow) }
+        }
+    }
+}
+
 /** Widest the expanded search capsule gets. */
 val SearchCapsuleWidth = 330.dp
 
@@ -67,9 +110,10 @@ fun CircleFab(
     stroke: Float = 2.8f,
     busy: Boolean = false,
 ) {
+    val press = remember { MutableInteractionSource() }
     Box(
-        modifier.size(FabSize).fabShadow().clip(CircleShape).background(bg)
-            .semantics { contentDescription = description }.clickable(enabled = !busy, onClick = onClick),
+        modifier.pressScale(press).size(FabSize).fabShadow().clip(CircleShape).background(bg)
+            .semantics { contentDescription = description }.clickable(press, LocalIndication.current, enabled = !busy, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (busy) CircularProgressIndicator(Modifier.size(iconSize), color = fg, strokeWidth = 2.5.dp)
@@ -164,11 +208,12 @@ fun FabMenu(
                     // Offline, an online-only action stays in the menu (and the menu open) and a tap says why.
                     OfflineGate(a.onBlocked != null, { a.onBlocked?.invoke() }) {
                         Row(
-                            Modifier.height(48.dp).testTag(a.tag).fabShadow(Capsule).clip(Capsule).background(C.Btn).border(1.dp, C.Border2, Capsule)
-                                .clickable {
+                            Modifier.height(48.dp).testTag(a.tag).fabShadow(Capsule)
+                                .pressClickable(shape = Capsule) {
                                     onOpenChange(false)
                                     a.onClick()
                                 }
+                                .background(C.Btn).border(1.dp, C.Border2, Capsule)
                                 .padding(start = 18.dp, end = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -183,8 +228,8 @@ fun FabMenu(
         }
         val description = if (open) closeDescription else openDescription
         Box(
-            Modifier.size(FabSize).fabShadow().clip(CircleShape).background(C.Yellow)
-                .semantics { contentDescription = description }.clickable { onOpenChange(!open) },
+            Modifier.size(FabSize).fabShadow().pressClickable(shape = CircleShape) { onOpenChange(!open) }.background(C.Yellow)
+                .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) { LineIcon(Icons.Plus, 24.dp, C.OnYellow, 2.8f, Modifier.rotate(turn)) }
     }

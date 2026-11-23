@@ -1,5 +1,14 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.RunFab
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import com.sclera.sclerago.presentation.components.SkeletonLine
+import com.sclera.sclerago.presentation.components.SkeletonBlock
+import com.sclera.sclerago.presentation.components.fabShadow
+import com.sclera.sclerago.presentation.components.Pill
+import com.sclera.sclerago.presentation.components.Capsule
+import androidx.compose.foundation.layout.height
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,7 +52,6 @@ import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.StepResult
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
-import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.bottomBorder
@@ -60,7 +68,8 @@ object ValidationTags {
     const val NONE = "validation-none"
     const val BANNER = "validation-banner"
     const val FAB = "validation-fab"
-    const val OPEN_RUN = "validation-open-run"
+    const val OPEN_RESULT = "validation-open-result"
+    const val RUN_EVERY = "validation-run-every"
     fun step(rule: String) = "validation-step-$rule"
 }
 
@@ -126,8 +135,8 @@ fun ValidationBanner(validation: AssetValidation?, onOpen: () -> Unit) {
     val v = validation?.takeIf { it.problems.isNotEmpty() } ?: return
     Row(
         // A full-width strip like the Info sections under it.
-        Modifier.fillMaxWidth().testTag(ValidationTags.BANNER).background(C.Surface).topBorder(C.Border).bottomBorder(C.Border)
-            .clickable(role = Role.Button, onClick = onOpen).heightIn(min = 52.dp).padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button, onClick = onOpen).fillMaxWidth().testTag(ValidationTags.BANNER).background(C.Surface).topBorder(C.Border).bottomBorder(C.Border)
+            .heightIn(min = 52.dp).padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -148,10 +157,19 @@ fun ValidationBanner(validation: AssetValidation?, onOpen: () -> Unit) {
 @Composable
 fun ValidationTab(
     validation: AssetValidation?,
-    /** "Open in Validation": the Validation page on the asset's run (its first problem's run, else its latest); null hides it. */
-    onOpenRun: ((jobId: String) -> Unit)? = null,
+    /**
+     * "Open in Validation": the Validation page on the asset's run (its first problem's run, else its latest) with this
+     * asset's result open (its checks, issues and decision); null hides it.
+     */
+    onOpenResult: ((jobId: String) -> Unit)? = null,
+    /** The asset is being validated again at the server: its results are about to change, so placeholders show instead. */
+    validating: Boolean = false,
 ) {
     val v = validation
+    if (validating) {
+        ValidationSkeleton(steps = v?.steps?.size?.takeIf { it > 0 } ?: PLACEHOLDER_STEPS)
+        return
+    }
     if (v == null) {
         // Nothing has been run on it: just say so, as the web does (runs are started from the Validation page).
         Txt(
@@ -183,12 +201,16 @@ fun ValidationTab(
     }
     // As the web's jobToOpen: the run where it first went wrong, else its latest.
     val runToOpen = v.problems.firstOrNull()?.value?.jobId?.takeIf { it.isNotBlank() } ?: v.jobId.takeIf { it.isNotBlank() }
-    if (onOpenRun != null && runToOpen != null) {
-        Txt(
-            stringResource(R.string.val_open_in_validation), 13, 700, C.Yellow,
-            Modifier.clip(r(8)).clickable(role = Role.Button) { onOpenRun(runToOpen) }.heightIn(min = 48.dp)
-                .padding(horizontal = 4.dp, vertical = 14.dp).testTag(ValidationTags.OPEN_RUN),
-        )
+    if (runToOpen != null && onOpenResult != null) {
+        Row(
+            Modifier.pressClickable(shape = r(8), role = Role.Button) { onOpenResult(runToOpen) }.heightIn(min = 48.dp)
+                .padding(horizontal = 4.dp, vertical = 14.dp).testTag(ValidationTags.OPEN_RESULT),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Txt(stringResource(R.string.val_open_in_validation), 13, 700, C.Yellow)
+            LineIcon(Icons.Link, 13.dp, C.Yellow, 2.2f)
+        }
     }
     if (v.runs.size > 1) {
         val runs = v.runs.map { stringResource(R.string.scrt_val_run_checked_ago, it.jobName, agoText(it.checkedAt)) }.joinToString(", ")
@@ -200,21 +222,94 @@ fun ValidationTab(
             StepRow(step, v, startsHere = v.firstProblem == i + 1, divider = i > 0)
         }
     }
+    // As the web: Revalidate picks up where it first went wrong, so say so (Run every step starts again from step 1).
+    v.firstProblem?.takeIf { it > 1 }?.let { first -> v.steps.getOrNull(first - 1) }?.let { step ->
+        Txt(
+            stringResource(R.string.valt_resumes_at, stepNameText(step.rule).asString()), 11, 400, C.Muted,
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp), maxLines = Int.MAX_VALUE,
+        )
+    }
+}
+
+/** How many placeholder steps show while an asset that has no results yet is validated. */
+private const val PLACEHOLDER_STEPS = 4
+
+/**
+ * The Validation tab while the asset is validated again: the header card and the steps card in placeholders ([steps]
+ * rows, each a mark and a name), read out as "Checking".
+ */
+@Composable
+private fun ValidationSkeleton(steps: Int) {
+    val label = stringResource(R.string.val_checking)
+    Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = label }, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SkeletonBlock(Modifier.size(44.dp), r(10))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SkeletonLine(0.6f, 14.dp)
+                SkeletonLine(0.3f, 9.dp)
+            }
+        }
+        Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))) {
+            repeat(steps) { i ->
+                Row(
+                    Modifier.fillMaxWidth().then(if (i > 0) Modifier.topBorder(C.Border) else Modifier).padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    SkeletonBlock(Modifier.size(24.dp), CircleShape)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SkeletonLine(if (i % 2 == 0) 0.5f else 0.4f, 11.dp)
+                        SkeletonLine(0.25f, 8.dp)
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**
- * The Validation tab's floating ▶, like the Info tab's yellow round buttons: validates the asset at the server (from its
- * first step to look at, as Revalidate; an asset never validated gets the server's Quick check). While a run is going it
- * spins and can't be tapped. Validating needs the server: [offline], it is dimmed with the offline badge and a tap calls
- * [onOffline] (to say why).
+ * The Validation tab's floating run button, as the web's: ▶ with what it will do: "Validate" for an asset never
+ * validated (the server's Quick check), "Revalidate from step 3" when a step needs a look (it resumes there; earlier
+ * steps keep their pass), else "Revalidate". Beside it, when that step isn't the first, "Run every step" starts again
+ * from step 1. While a run is going the button spins, says "Checking" and can't be tapped. Validating needs the server:
+ * [offline], both are dimmed with the offline badge and a tap calls [onOffline] (to say why).
  */
 @Composable
-fun ValidateFab(validating: Boolean, offline: Boolean, onValidate: () -> Unit, onOffline: () -> Unit, modifier: Modifier = Modifier) {
-    OfflineGate(offline && !validating, onOffline, modifier.padding(end = 16.dp, bottom = 16.dp)) {
-        CircleFab(
-            Icons.Play, stringResource(if (validating) R.string.val_checking else R.string.val_validate), onValidate,
-            Modifier.testTag(ValidationTags.FAB), stroke = 2.2f, busy = validating,
-        )
+fun ValidateFab(
+    validation: AssetValidation?,
+    validating: Boolean,
+    offline: Boolean,
+    onValidate: (fromStart: Boolean) -> Unit,
+    onOffline: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val first = validation?.firstProblem
+    val label = when {
+        validating -> stringResource(R.string.val_checking)
+        validation == null -> stringResource(R.string.val_validate)
+        first != null -> stringResource(R.string.val_revalidate_from, first)
+        else -> stringResource(R.string.val_revalidate)
+    }
+    Row(
+        modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (first != null && first > 1 && !validating) {
+            OfflineGate(offline, onOffline) {
+                Pill(
+                    stringResource(R.string.val_run_every), { onValidate(true) },
+                    Modifier.fabShadow(Capsule).testTag(ValidationTags.RUN_EVERY), bg = C.Surface, height = 44.dp, hPad = 16.dp, size = 13, weight = 700,
+                )
+            }
+        }
+        OfflineGate(offline && !validating, onOffline) {
+            RunFab(label, validating, { onValidate(false) }, Modifier.testTag(ValidationTags.FAB))
+        }
     }
 }
 
@@ -264,7 +359,7 @@ private fun IssueRow(issue: StepIssue) {
     var open by remember(issue.id) { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().alpha(if (issue.closed) 0.6f else 1f)
-            .then(if (details.isNotEmpty()) Modifier.clickable(role = Role.Button) { open = !open } else Modifier),
+            .then(if (details.isNotEmpty()) Modifier.pressClickable(role = Role.Button) { open = !open } else Modifier),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(Modifier.padding(top = 5.dp).size(6.dp).background(dot, CircleShape))

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -115,7 +116,7 @@ internal fun SmallChip(text: String, color: Color = C.Soft, bg: Color = C.Raised
 @Composable
 internal fun TextAction(text: String, onClick: () -> Unit, color: Color = C.Yellow, enabled: Boolean = true, icon: Ico? = null) {
     Row(
-        Modifier.heightIn(min = 48.dp).clip(r(10)).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+        Modifier.heightIn(min = 48.dp).pressClickable(shape = r(10), enabled = enabled, role = Role.Button, onClick = onClick)
             .alpha(if (enabled) 1f else 0.4f).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),

@@ -45,8 +45,8 @@ internal fun <T> ChoiceList(
             val on = isOn(item)
             val active = enabled(item)
             Row(
-                Modifier.fillMaxWidth().then(if (i > 0) Modifier.topBorder(C.Border) else Modifier)
-                    .clickable(enabled = active, role = if (multi) Role.Checkbox else Role.RadioButton) { onPick(item) }
+                Modifier.pressClickable(pressed = PRESSED_CARD, enabled = active, role = if (multi) Role.Checkbox else Role.RadioButton) { onPick(item) }.fillMaxWidth().then(if (i > 0) Modifier.topBorder(C.Border) else Modifier)
+                    
                     .alpha(if (active) 1f else 0.4f)
                     .heightIn(min = 40.dp).padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,

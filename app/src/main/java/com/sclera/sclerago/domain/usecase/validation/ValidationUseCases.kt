@@ -7,6 +7,7 @@ import com.sclera.sclerago.domain.repository.SavedValidationRepository
 import com.sclera.sclerago.domain.repository.ValidationCatalogRepository
 import com.sclera.sclerago.domain.repository.ValidationRunRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import com.sclera.sclerago.domain.usecase.config.AiSwitchUseCases
 import com.sclera.sclerago.domain.validation.FieldChoice
 import com.sclera.sclerago.domain.validation.RunMode
 import com.sclera.sclerago.domain.validation.RunRequest
@@ -26,8 +27,8 @@ import javax.inject.Inject
 const val VALIDATION_NAME_MAX = 120
 const val VALIDATION_DESCRIPTION_MAX = 500
 
-/** How many recent runs the page lists (as the web). */
-const val RECENT_RUNS = 20
+/** How many recent runs the page lists: the API's most (`limit` 1 to 100), so a property's runs show beyond the default 20. */
+const val RECENT_RUNS = 100
 
 /**
  * Whether the signed-in user may run validations and fix values ([Permission.CHECK]) and sign off, send back, exclude,
@@ -44,6 +45,9 @@ class ValidationAccessUseCase @Inject constructor(private val guard: PermissionG
 
     /** [canValidate], kept up to date. */
     fun observeValidate(): Flow<Boolean> = guard.observe(Permission.VALIDATE)
+
+    /** The signed-in user's id (Recent jobs' "Me"); null until the access has been fetched. */
+    fun userId(): String? = guard.userId()
 }
 
 /** The steps (in the user's order) and the templates. */
@@ -159,4 +163,9 @@ class ValidationUseCases @Inject constructor(
     val startReady: StartReadyRunUseCase,
     val rerun: RerunUseCase,
     val discard: DiscardRunUseCase,
+    /**
+     * The property's AI switch (shared with the asset screens): off, runs skip their AI checks and a template or
+     * validation of nothing but AI checks has nothing to run (the web's).
+     */
+    val aiSwitch: AiSwitchUseCases,
 )

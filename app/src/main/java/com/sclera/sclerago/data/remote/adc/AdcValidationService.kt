@@ -71,6 +71,10 @@ interface AdcValidationService {
     @DELETE("properties/{p}/validation-jobs/{job}")
     suspend fun discard(@Path("p") property: String, @Path("job") job: String): Response<ResponseBody>
 
+    /** One asset of a finished run checked again, inside that run: answers the run doing the check (poll it with [job]). */
+    @POST("properties/{p}/validation-jobs/{job}/assets/{asset}/recheck")
+    suspend fun recheck(@Path("p") property: String, @Path("job") job: String, @Path("asset") asset: String): Response<ResponseBody>
+
     @GET("properties/{p}/validation-jobs/{job}/results")
     suspend fun results(
         @Path("p") property: String,

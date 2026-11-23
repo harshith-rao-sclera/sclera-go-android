@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.scan
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -138,7 +139,7 @@ fun NetworkPage(vm: AppViewModel) {
 private fun NetTab(label: String, icon: Ico, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val fg by animateColorAsState(if (on) C.Yellow else C.Muted, label = "nettab")
     val bar by animateColorAsState(if (on) C.Yellow else Color.Transparent, label = "netbar")
-    Box(modifier.height(44.dp).clickable(onClick = onClick)) {
+    Box(modifier.pressClickable(onClick = onClick).height(44.dp)) {
         Row(
             Modifier.align(Alignment.Center).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -209,8 +210,8 @@ private fun LazyListScope.scanSection(
         val on = on()
         val (title, sub, progress) = card()
         Column(
-            Modifier.readableWidth().padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 6.dp).clip(r(16)).background(C.Surface)
-                .border(1.dp, C.Border, r(16)).clickable(onClick = onToggle).padding(10.dp),
+            Modifier.readableWidth().padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 6.dp).pressClickable(shape = r(16), onClick = onToggle).background(C.Surface)
+                .border(1.dp, C.Border, r(16)).padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -257,7 +258,7 @@ private fun LazyListScope.scanSection(
                 if (picks.auto) Txt(stringResource(R.string.scrt_scan_new_finds_selected), 11, 500, C.Yellow, maxLines = Int.MAX_VALUE)
             }
             Row(
-                Modifier.clip(Capsule).clickable(onClick = picks.selectAll).padding(horizontal = 10.dp, vertical = 6.dp),
+                Modifier.pressClickable(shape = Capsule, onClick = picks.selectAll).padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -298,12 +299,12 @@ private fun LazyListScope.scanSection(
             when {
                 added -> LineIcon(Icons.CheckCircle, 20.dp, C.Green, 2.2f, Modifier.padding(end = 6.dp))
                 picks.selecting -> Box(
-                    Modifier.size(38.dp).clip(r(10)).clickable { picks.toggle(d.id) },
+                    Modifier.size(38.dp).pressClickable(shape = r(10)) { picks.toggle(d.id) },
                     contentAlignment = Alignment.Center,
                 ) { CheckBox(picked) }
                 onAdd != null -> Box(
-                    Modifier.size(38.dp).clip(r(10)).background(C.YTintBg).border(1.dp, C.YTintBd, r(10))
-                        .clickable { onAdd(d) },
+                    Modifier.size(38.dp).pressClickable(shape = r(10)) { onAdd(d) }.background(C.YTintBg).border(1.dp, C.YTintBd, r(10))
+                        ,
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.PlusSmall, 18.dp, C.Yellow, 2.6f) }
             }

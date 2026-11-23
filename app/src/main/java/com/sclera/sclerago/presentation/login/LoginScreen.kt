@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.login
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import android.webkit.WebView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -337,9 +339,9 @@ private fun SignInForm(
             if (error != null) FieldError(error.asString())
         }
         Row(
-            Modifier.fillMaxWidth().height(size.control).testTag(LoginTags.CONTINUE)
+            Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button, onClick = onContinue).fillMaxWidth().height(size.control).testTag(LoginTags.CONTINUE)
                 .alpha(if (email.isBlank()) 0.55f else 1f)
-                .background(C.Yellow, r(14)).clickable(role = Role.Button, onClick = onContinue),
+                .background(C.Yellow, r(14)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {

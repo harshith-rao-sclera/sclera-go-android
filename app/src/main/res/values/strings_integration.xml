@@ -68,7 +68,6 @@
     <string name="pi_list_from">VDMS\'s list is from %1$s. Refresh</string>
     <string name="pi_no_snapshot">VDMS hasn\'t sent its buildings, floors and locations yet.</string>
     <string name="pi_ask_vdms">Ask VDMS for them</string>
-    <string name="pi_asking_vdms">Asking VDMS…</string>
     <string name="pi_show_them">Show them</string>
     <string name="pi_search">Search buildings, floors, locations</string>
     <string name="pi_selection">%1$d selected · %2$d of %3$d not there yet</string>
@@ -191,8 +190,8 @@
 
     <string name="ph_title">Buildings, floors &amp; locations history</string>
     <string name="ph_filter_all">All</string>
-    <string name="ph_filter_sent">Exported to VDMS</string>
-    <string name="ph_filter_imported">Imported from VDMS</string>
+    <string name="ph_filter_sent">Exported</string>
+    <string name="ph_filter_imported">Imported</string>
     <plurals name="ph_total">
         <item quantity="one">%1$d import</item>
         <item quantity="other">%1$d imports</item>
@@ -252,8 +251,8 @@
     <!-- Managed assets (asset list chip and asset details): assets in Managed Assets, read-only here -->
     <string name="managed_chip">Managed assets</string>
     <string name="managed_status">In Managed Assets</string>
-    <string name="managed_list_note">These are in Managed Assets, and read-only here.</string>
-    <string name="managed_note_title">In Managed Assets.</string>
+    <string name="managed_note_title">In Managed Assets</string>
+    <string name="managed_banner_short">Read-only here</string>
     <string name="managed_note_body">It\'s read-only here. If Managed Assets sends it back, it returns as a draft.</string>
     <string name="asset_lock_managed">In Managed Assets. It\'s read-only here.</string>
     <string name="managed_not_selectable">This asset is in Managed Assets, so it can\'t be selected. It\'s read-only here.</string>

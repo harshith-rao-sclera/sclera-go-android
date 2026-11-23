@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.integration
 
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.ToastEffect
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -43,7 +45,6 @@ import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.GuardedClose
-import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
@@ -94,7 +95,7 @@ fun IntegrationScreen(
                 // The link is read and made on the server: offline the page says so (what was last read still shows).
                 if (!online) OfflineBanner(OnlineOnly.INTEGRATION)
                 when {
-                    s.loading -> ListLoader(stringResource(R.string.int_loading))
+                    s.loading -> SkeletonList(stringResource(R.string.int_loading), count = 2, lines = 3)
                     s.link == null -> EmptyNote(stringResource(R.string.int_none))
                     else -> {
                         LinkCard(vm.nameOf(s.link), s.link.vdmsId)
@@ -156,11 +157,14 @@ private fun AddSheet(a: AddLinkState, organisation: String, vm: IntegrationViewM
                 ReadOnly(stringResource(R.string.int_field_integration), organisation)
                 Txt(stringResource(R.string.int_field_vdms), 12, 600, C.Muted)
                 SearchField(a.query, vm::setQuery, stringResource(R.string.int_select))
+                // While a search runs, the last search's VDMS (which may not match any more) give way to placeholders; the
+                // one picked stays.
+                val shown = if (a.searching) a.choices.filter { it.vdmsId == a.picked?.vdmsId } else a.choices
+                ChoiceList(shown, { it.label() }, { it.vdmsId == a.picked?.vdmsId }, vm::pick)
                 when {
-                    a.searching -> Txt(stringResource(R.string.int_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
+                    a.searching -> SkeletonList(stringResource(R.string.int_loading), count = 3, lead = SkeletonLead.NONE, lines = 1, card = false, gap = 2.dp)
                     a.choices.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
                 }
-                ChoiceList(a.choices, { it.label() }, { it.vdmsId == a.picked?.vdmsId }, vm::pick)
             }
             Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(

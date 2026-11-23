@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.LocalToaster
 import com.sclera.sclerago.presentation.components.ToastKind
 import com.sclera.sclerago.presentation.common.UiText
@@ -303,7 +304,7 @@ fun CameraCapture(
         if (chosen > 0 && !isRecording) {
             Box(
                 Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 228.dp).size(60.dp).fabShadow()
-                    .clip(CircleShape).background(C.Yellow).clickable(onClick = onDone),
+                    .pressClickable(shape = CircleShape, onClick = onDone).background(C.Yellow),
                 contentAlignment = Alignment.Center,
             ) {
                 LineIcon(Icons.Check, 26.dp, C.OnYellow, 3f)
@@ -325,7 +326,7 @@ fun CameraCapture(
             ) {
                 items(captures, key = { it.id }) { m ->
                     val on = m.id in selected
-                    Box(Modifier.size(78.dp).clip(r(4)).clickable { onToggle(m.id) }) {
+                    Box(Modifier.size(78.dp).pressClickable(shape = r(4)) { onToggle(m.id) }) {
                         MediaImage(m, Modifier.fillMaxSize(), maxPx = 240)
                         if (m.video) {
                             Row(
@@ -371,8 +372,8 @@ fun CameraCapture(
                 }
             }) { LineIcon(Icons.Gallery, 22.dp, C.Text) }
             Box(
-                Modifier.size(76.dp).alpha(if (granted) 1f else 0.4f).clip(CircleShape).border(4.dp, C.Text, CircleShape)
-                    .clickable(enabled = granted) { if (videoMode) toggleRecording() else takePhoto() }
+                Modifier.size(76.dp).alpha(if (granted) 1f else 0.4f).pressClickable(shape = CircleShape, enabled = granted) { if (videoMode) toggleRecording() else takePhoto() }.border(4.dp, C.Text, CircleShape)
+                    
                     .padding(9.dp),
                 contentAlignment = Alignment.Center,
             ) {

@@ -45,6 +45,8 @@ data class PropertyListState(
     val addError: UiText? = null,
     /** The property being edited (its info button), as the server has it. */
     val editing: Property? = null,
+    /** Its details are being read from the server: the sheet is open with placeholders. */
+    val openingEdit: Property? = null,
     /** Why the edit couldn't be saved, shown in the edit sheet (which stays open). */
     val editError: UiText? = null,
     /** The property waiting for Delete's confirmation. */
@@ -85,6 +87,8 @@ class PropertyViewModel @Inject constructor(
         val addOpen: Boolean = false,
         val addError: UiText? = null,
         val editing: Property? = null,
+        /** The property whose details are being read from the server (its sheet shows placeholders meanwhile). */
+        val openingEdit: Property? = null,
         val editError: UiText? = null,
         val confirmDelete: Property? = null,
         val importOpen: Boolean = false,
@@ -109,6 +113,7 @@ class PropertyViewModel @Inject constructor(
                 addOpen = f.addOpen,
                 addError = f.addError,
                 editing = f.editing,
+                openingEdit = f.openingEdit,
                 editError = f.editError,
                 confirmDelete = f.confirmDelete,
                 importOpen = f.importOpen,
@@ -247,6 +252,8 @@ class PropertyViewModel @Inject constructor(
      */
     fun suggestAddress(field: AddressField, country: String, state: String, text: String) {
         suggestJob?.cancel()
+        // The last suggestions may not match what is typed now: placeholders until the new ones come.
+        _suggestions.value = AddressSuggestions(field, emptyList(), searching = true)
         suggestJob = viewModelScope.launch {
             if (text.isNotBlank()) delay(SUGGEST_DELAY_MS)
             val found = try {
@@ -280,6 +287,15 @@ class PropertyViewModel @Inject constructor(
         return true
     }
 
+    /** The read of a property's details, so closing its sheet meanwhile stops it. */
+    private var openJob: Job? = null
+
+    /** Closes a details sheet still reading the property (its placeholders' ×). */
+    fun cancelOpenEdit() {
+        openJob?.cancel()
+        flags.update { it.copy(openingEdit = null) }
+    }
+
     /**
      * Opens [p] in the form, as the server has it now (the list's copy when it can't be read, as the web). Offline it
      * opens with the copy saved on the device, to look at only: editing and deleting happen on the server.
@@ -290,14 +306,16 @@ class PropertyViewModel @Inject constructor(
             flags.update { it.copy(editing = p, editError = null) }
             return
         }
-        viewModelScope.launch {
+        flags.update { it.copy(openingEdit = p) }
+        openJob?.cancel()
+        openJob = viewModelScope.launch {
             val fresh = try {
                 useCases.get(p.id)
             } catch (_: OnlineException) {
                 flags.update { it.copy(notice = UiText.Res(R.string.property_details_failed)) }
                 p
             }
-            flags.update { it.copy(editing = fresh, editError = null) }
+            flags.update { it.copy(editing = fresh, openingEdit = null, editError = null) }
         }
     }
 
@@ -378,8 +396,8 @@ internal fun PropertyProblem.toUiText(): UiText = when (this) {
 /** The Add form's address fields that offer suggestions. */
 enum class AddressField { CITY, STATE, COUNTRY }
 
-/** The suggestions shown under [field]. */
-data class AddressSuggestions(val field: AddressField, val items: List<AddressSuggestion>)
+/** The suggestions shown under [field]; [searching] while they are being asked for (placeholders show meanwhile). */
+data class AddressSuggestions(val field: AddressField, val items: List<AddressSuggestion>, val searching: Boolean = false)
 
 /** How long typing must pause before suggestions are asked for. */
 private const val SUGGEST_DELAY_MS = 250L

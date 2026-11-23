@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.presentation.components.rememberAppear
+import com.sclera.sclerago.presentation.components.scrim
+import com.sclera.sclerago.presentation.components.popIn
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -128,9 +131,10 @@ private fun ChangeConfirm(
     onNo: () -> Unit,
     onYes: () -> Unit,
 ) {
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onNo).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
+    val shown = rememberAppear()
+    Box(Modifier.fillMaxSize().scrim(shown).noRippleClick(onNo).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.widthIn(max = 400.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
+            Modifier.popIn(shown).widthIn(max = 400.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
                 .border(1.dp, C.Border2, r(18)).noRippleClick { }.padding(20.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -148,9 +152,10 @@ private fun ChangeConfirm(
 /** The actions offered for the selection, one per row; a blocked one is dimmed and says why when tapped. */
 @Composable
 private fun ChangeMenu(options: List<ChangeActionOption>, count: Int, onPick: (ChangeActionOption) -> Unit, onCancel: () -> Unit) {
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onCancel).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
+    val shown = rememberAppear()
+    Box(Modifier.fillMaxSize().scrim(shown).noRippleClick(onCancel).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.widthIn(max = 360.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
+            Modifier.popIn(shown).widthIn(max = 360.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
                 .border(1.dp, C.Border2, r(18)).noRippleClick { }.padding(20.dp).testTag(SelectionChangeTags.MENU),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

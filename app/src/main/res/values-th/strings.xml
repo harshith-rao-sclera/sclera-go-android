@@ -348,7 +348,6 @@
     <string name="detail_comment_too_long">ความคิดเห็นมีได้สูงสุด %1$d ตัวอักษร</string>
     <string name="detail_back">กลับไปที่รายการ</string>
     <string name="detail_name_hint">ชื่อสินทรัพย์</string>
-    <string name="detail_saved">บันทึกแล้ว</string>
     <string name="detail_menu_camera">ถ่ายภาพหรือวิดีโอ</string>
     <string name="detail_menu_files">อัปโหลดจากไฟล์</string>
     <string name="detail_photo">รูปภาพ</string>

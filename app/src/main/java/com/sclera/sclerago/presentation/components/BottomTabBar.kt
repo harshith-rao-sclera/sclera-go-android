@@ -64,8 +64,8 @@ internal fun RowScope.NavItem(
     val labelA = t
     val gap = 3.dp * t
     Box(
-        modifier.weight(w).fillMaxHeight().background(bg).then(if (!last) Modifier.endBorder(C.Border) else Modifier)
-            .semantics { contentDescription = label }.clickable(onClick = onClick),
+        modifier.pressClickable(pressed = PRESSED_CARD, onClick = onClick).weight(w).fillMaxHeight().background(bg).then(if (!last) Modifier.endBorder(C.Border) else Modifier)
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         // Arrows sit beside the icon; the label is centred under the icon only (not under icon + arrows).

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,9 +41,10 @@ import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
-import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SearchFab
@@ -96,6 +98,7 @@ fun PeopleScreen(
                     problem = access::personProblem, onSave = access::savePerson, onClose = access::closePersonForm,
                     suggestions = access.suggestions, suggestionHint = access.suggestionHint,
                     onEmailTyped = access::suggest, onSuggestionPicked = access::clearSuggestions,
+                    suggestionsLoading = access.suggestionsLoading,
                 )
             }
             s.groupForm?.let { form ->
@@ -180,7 +183,9 @@ internal fun PeopleContent(
                     val unavailable = list.unavailable
                     when {
                         // First read from the server with nothing saved yet: a loader, not an empty list that fills suddenly.
-                        list.loading -> item { ListLoader(stringResource(R.string.access_loading), Modifier.testTag(AccessTags.LOADING)) }
+                        list.loading -> item {
+                            SkeletonList(stringResource(R.string.access_loading), Modifier.testTag(AccessTags.LOADING), count = 6, lead = SkeletonLead.CIRCLE)
+                        }
                         unavailable != null -> item {
                             Blank(stringResource(R.string.access_unavailable), unavailable.asString(), Modifier.testTag(AccessTags.UNAVAILABLE))
                         }
@@ -243,12 +248,12 @@ private fun Header(list: AccessListState, onTab: (AccessTab) -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(
                 Icons.Users, C.Yellow, list.peopleTotal.toString(), stringResource(R.string.access_stat_people),
-                Modifier.weight(1f).clip(r(12)).clickable(role = Role.Button) { onTab(AccessTab.PEOPLE) }.testTag(AccessTags.STAT_PEOPLE),
+                Modifier.weight(1f).pressClickable(shape = r(12), role = Role.Button) { onTab(AccessTab.PEOPLE) }.testTag(AccessTags.STAT_PEOPLE),
                 valueSize = 18, labelSize = 12,
             )
             StatCard(
                 Icons.Key, C.Purple, list.groupsTotal.toString(), stringResource(R.string.access_stat_groups),
-                Modifier.weight(1f).clip(r(12)).clickable(role = Role.Button) { onTab(AccessTab.GROUPS) }.testTag(AccessTags.STAT_GROUPS),
+                Modifier.weight(1f).pressClickable(shape = r(12), role = Role.Button) { onTab(AccessTab.GROUPS) }.testTag(AccessTags.STAT_GROUPS),
                 valueSize = 18, labelSize = 12,
             )
         }
@@ -283,7 +288,10 @@ private fun OthersFooter(list: AccessListState) {
         Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (list.othersLoading) Txt(stringResource(R.string.access_loading_users), 12, 400, C.Muted, Modifier.testTag(AccessTags.LOADING_USERS), maxLines = Int.MAX_VALUE)
+        // The next people being read: placeholder rows where they will appear.
+        if (list.othersLoading) {
+            SkeletonList(stringResource(R.string.access_loading_users), Modifier.testTag(AccessTags.LOADING_USERS), count = 3, lead = SkeletonLead.CIRCLE)
+        }
         list.othersReason?.let { Txt(stringResource(R.string.access_others_unavailable, it.asString()), 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
     }
 }

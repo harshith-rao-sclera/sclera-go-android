@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.offline
 
+import com.sclera.sclerago.data.mapper.CLONED_FROM_COLUMN
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.answersJson
@@ -39,6 +40,9 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
+
+/** A copy's source, made with Clone ([CLONED_FROM_COLUMN]). */
+private const val ASSET_SET_CLONED_FROM = "UPDATE assets SET $CLONED_FROM_COLUMN = ? WHERE id = ?"
 
 /** Where an asset's place sits in the tree: the building, floor and location ids (any may be null). */
 private data class PlaceColumns(val building: String?, val floor: String?, val location: String?)
@@ -110,7 +114,10 @@ class AssetsWriter(
         val split = splitAssetValues(plain, more)
         val now = now()
 
-        val oldColumns = columnKeys.associateWith { row.string(it).orEmpty() }
+        // The asset's state row doesn't carry the newer columns (Description): read their saved values, so an unchanged
+        // one isn't taken for a change (an extra write and history line on every save).
+        val moreRow = if (more.isEmpty()) null else queryOne("SELECT ${more.joinToString()} FROM assets WHERE id = ?", listOf(id))
+        val oldColumns = columnKeys.associateWith { (if (it in more) moreRow?.string(it) else row.string(it)).orEmpty() }
         val newColumns = oldColumns + split.columns.mapValues { it.value.trim() }
         val oldExtra = DbJson.stringMap(valuesRow?.answersJson())
         val newExtra = oldExtra.toMutableMap().also { map ->
@@ -239,11 +246,13 @@ class AssetsWriter(
     }
 
     /**
-     * An admin signs [assetIds] off without a validation run, as the server's `POST /assets/bulk/validate`: submitted
-     * ones become validated (status saved) with a history line; drafts and exceptions are left as they are and named in
-     * the answer; assets already validated are left alone.
+     * A reviewer or an admin signs [assetIds] off without a validation run, as the server's `POST /assets/bulk/validate`:
+     * submitted ones become validated (status saved) with a history line naming who did it ([byAdmin]: an admin, else a
+     * reviewer); drafts and exceptions are left as they are and named in the answer; assets already validated are left
+     * alone.
      */
-    suspend fun markValidated(assetIds: Collection<String>): SignOffOutcome = db.write(io) {
+    suspend fun markValidated(assetIds: Collection<String>, byAdmin: Boolean): SignOffOutcome = db.write(io) {
+        val line = if (byAdmin) "Asset marked as validated by an admin" else "Asset marked as validated by a reviewer"
         val now = now()
         val target = statusToDb(Status.VALIDATED)
         var validated = 0
@@ -256,7 +265,7 @@ class AssetsWriter(
                 row.string("status") != "submitted" -> notSubmitted += id
                 else -> {
                     execute(ASSET_UPDATE_STATUS, listOf(target.status, target.validated.bit(), null, now, id), setOf("assets"))
-                    history(id, "validated", "Asset marked as validated by an admin", null, now)
+                    history(id, "validated", line, null, now)
                     validated++
                 }
             }
@@ -268,7 +277,9 @@ class AssetsWriter(
     private fun AdcDatabase.submitTarget(row: DbRow, id: String, required: RequiredKeys, photoRules: List<PhotoRule>): Status? {
         if (row.string("status") != "drafted" && row.string("status") != "exception") return null
         val answers = DbJson.stringMap(queryOne(ASSET_VALUES_ROW, listOf(id))?.answersJson())
-        val complete = required.missingFor(id, row, answers).isEmpty() && photosShort(photoRules, photoCounts(id)).isEmpty()
+        // [row] has the four core columns; Description is read from its own column once the database has it.
+        val columns = requiredColumns(id, required) ?: row
+        val complete = required.missingFor(id, columns, answers).isEmpty() && photosShort(photoRules, photoCounts(id)).isEmpty()
         return if (complete) Status.SUBMITTED else Status.EXCEPTION
     }
 
@@ -489,7 +500,7 @@ class AssetsWriter(
         // A copy (Clone) takes the original's own fields by name, as the web's clone does.
         item.copyOf?.let { source -> with(typeFields) { copyOwnFields(source, asset.id, extra, now) } }
         execute(withAnswers(ASSET_VALUES_INSERT), listOf(asset.id, "{}", "{}", DbJson.write(extra)), setOf("asset_values"))
-        history(asset.id, "created", "Asset created", null, now)
+        history(asset.id, "created", cloneOf(asset.id, item.copyOf)?.let { clonedLine(it) } ?: "Asset created", null, now)
         typeChange?.takeIf { it.changed }?.let { typeHistory(asset.id, classification.formatId, it, now) }
         asset.media.forEach { insertMedia(asset.id, it, now) }
         refreshAiSuggestion(asset.id, status.aiSuggestion ?: asset.aiSuggestion)
@@ -675,6 +686,20 @@ class AssetsWriter(
     }
 
     private fun AdcDatabase.assetState(id: String): DbRow? = queryOne(ASSET_STATE.changeable(), listOf(id))
+
+    /**
+     * A copy made with Clone says what it was copied from, as the server's POST /assets with `clonedFrom`: new asset
+     * [id]'s `cloned_from` is set to [original] (when the database has that column), for the Cloned badge and filter.
+     * Returns the original's row (null when [original] is null or no longer here: then it is an ordinary new asset).
+     */
+    private fun AdcDatabase.cloneOf(id: String, original: String?): DbRow? {
+        val row = original?.let { assetState(it) } ?: return null
+        if (hasColumn("assets", CLONED_FROM_COLUMN)) execute(ASSET_SET_CLONED_FROM, listOf(original, id), setOf("assets"))
+        return row
+    }
+
+    /** The history line of a copy made with Clone from [original], the server's "Cloned from “…”". */
+    private fun clonedLine(original: DbRow): String = "Cloned from “${original.string("name")?.trim()?.takeIf { it.isNotEmpty() } ?: "an unnamed asset"}”"
 
     private fun AdcDatabase.placeColumns(placeId: String?): PlaceColumns {
         val steps = placeId?.let(places::pathNow).orEmpty()

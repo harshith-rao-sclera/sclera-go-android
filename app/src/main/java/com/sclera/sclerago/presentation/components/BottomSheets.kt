@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.components
 
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
@@ -32,20 +33,35 @@ import kotlin.math.roundToInt
 
 // Bottom sheet container and header shared across screens.
 
-/** A bottom sheet over a dimmed backdrop. Back, a tap on the backdrop and a swipe down close it. */
+/**
+ * A bottom sheet over a dimmed backdrop. Back, a tap on the backdrop and a swipe down close it. With [fullHeight] it
+ * takes the whole screen under the status bar; with [closeOnOutside] false only Back and the sheet's own close button
+ * close it (no swipe, no tap on the backdrop, and no handle).
+ */
 @Composable
 internal fun BottomSheet(
     onDismiss: () -> Unit,
     maxHeightFraction: Float = 0.92f,
     background: Color = C.Surface,
+    fullHeight: Boolean = false,
+    closeOnOutside: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onDismiss)
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(onDismiss).blockSwipe().imePadding()) {
+    val shown = rememberAppear()
+    val tablet = isTablet()
+    Box(
+        Modifier.fillMaxSize().scrim(shown).then(if (closeOnOutside) Modifier.noRippleClick(onDismiss) else Modifier.noRippleClick { })
+            .blockSwipe().imePadding().then(if (fullHeight) Modifier.statusBarsPadding().padding(top = 8.dp) else Modifier),
+    ) {
         Column(
-            Modifier.swipeDownToClose(onDismiss).then(sheetFrame(background, heightFraction = maxHeightFraction)),
+            Modifier.sheetIn(shown, tablet).then(if (closeOnOutside) Modifier.swipeDownToClose(onDismiss) else Modifier)
+                .then(sheetFrame(background, heightFraction = if (fullHeight) 1f else maxHeightFraction, fill = fullHeight)),
         ) {
-            if (isTablet()) Spacer(Modifier.height(12.dp)) else SheetHandle(Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp, bottom = 4.dp))
+            when {
+                isTablet() || !closeOnOutside -> Spacer(Modifier.height(12.dp))
+                else -> SheetHandle(Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp, bottom = 4.dp))
+            }
             content()
         }
     }

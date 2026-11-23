@@ -7,6 +7,7 @@ import com.sclera.sclerago.domain.model.DataError
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.isLockedFor
+import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.repository.ChangeRequestRepository
@@ -52,8 +53,30 @@ private fun isMine(guard: PermissionGuard, request: ChangeRequest?): Boolean =
     request?.requestedBy != null && request.requestedBy == guard.userId()
 
 /**
- * A status action on several assets at once (the web's selection bar). APPROVE: the admin's yes to a change request (back
- * to draft, assigned to whoever asked). MARK_VALIDATED: an admin signs submitted assets off without a validation run.
+ * Moves assets back to draft, as the server's PATCH `status: drafted`, which also approves a change request on them (each
+ * goes to whoever asked, and the request closes). Needs Collect. An admin moves any of them. A reviewer (Validate) moves a
+ * submitted or signed-off one whoever it is assigned to (the server's "reopening", as Recollect does in a validation run);
+ * anything else, an exception say, only as anyone may change it: assigned to them or to nobody ([DataException]
+ * NOT_ASSIGNED, FORBIDDEN or MANAGED otherwise; nothing moves).
+ */
+class ReopenAssetsUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(ids: Collection<String>) {
+        guard.requireOffline(Permission.COLLECT)
+        requireNotManaged(repo, ids)
+        val reviewer = guard.allows(Permission.VALIDATE)
+        val wanted = ids.toSet()
+        val reopening: Set<String> = if (!reviewer) emptySet() else {
+            repo.catalog.value.assets.filter { it.id in wanted && isSubmittedOrSignedOff(it.st) }.mapTo(HashSet()) { it.id }
+        }
+        requireUnlocked(repo, guard, wanted - reopening)
+        repo.setStatus(ids, Status.DRAFT)
+    }
+}
+
+/**
+ * A status action on several assets at once (the web's selection bar). APPROVE: an admin's or a reviewer's yes to a change
+ * request (back to draft, assigned to whoever asked). MARK_VALIDATED: a reviewer or an admin signs submitted assets off
+ * without a validation run.
  */
 enum class ChangeAction { MARK_VALIDATED, APPROVE, MOVE_TO_DRAFT, DECLINE, REQUEST, UPDATE_REQUEST, WITHDRAW }
 
@@ -68,8 +91,10 @@ data class ChangeActionOption(val action: ChangeAction, val blocked: ChangeActio
 /**
  * The change-request actions for [assets], as the web's changeRequestActions:
  * - only exceptions (nothing submitted): anyone who may work on them moves them back to draft, no request needed;
- * - an admin, when every one has a request: approve (back to draft, to whoever asked) or decline them; otherwise move
- *   submitted, signed-off and exception assets back to draft, and decline the requests there are;
+ * - an admin or a reviewer (Validate), when every one has a request: approve them (back to draft, to whoever asked); an
+ *   admin may decline them instead, a reviewer may withdraw them when every one is their own. Otherwise they move
+ *   submitted, signed-off and exception assets back to draft (a reviewer only the exceptions assigned to them or to
+ *   nobody), and an admin declines the requests there are;
  * - anyone else: ask for a change (or update their requests), and withdraw when every one is their own request.
  */
 class ChangeRequestActionsUseCase @Inject constructor(private val guard: PermissionGuard) {
@@ -91,21 +116,30 @@ class ChangeRequestActionsUseCase @Inject constructor(private val guard: Permiss
         }
         val notSubmitted = ChangeActionBlock.NOT_ALL_SUBMITTED.takeUnless { assets.all(locked) }
         val asked = assets.filter { it.changeRequest != null }
-        if (guard.isAdmin()) {
-            if (asked.size == assets.size) {
-                return listOf(ChangeActionOption(ChangeAction.APPROVE), ChangeActionOption(ChangeAction.DECLINE))
+        val allAsked = asked.size == assets.size
+        val allMine = allAsked && assets.all { isMine(guard, it.changeRequest) }
+        val withdraw = ChangeActionOption(ChangeAction.WITHDRAW)
+        val admin = guard.isAdmin()
+        // A reviewer (Validate) moves submitted assets back to draft as an admin does (the server's reopening).
+        if (admin || guard.allows(Permission.VALIDATE)) {
+            if (allAsked) {
+                val approve = ChangeActionOption(ChangeAction.APPROVE)
+                // Declining is an admin's; a reviewer who asked themselves can still take the requests back.
+                if (!admin) return if (allMine) listOf(approve, withdraw) else listOf(approve)
+                return listOf(approve, ChangeActionOption(ChangeAction.DECLINE))
             }
-            val draft = ChangeActionOption(
-                ChangeAction.MOVE_TO_DRAFT,
-                ChangeActionBlock.SOME_ARE_DRAFTS.takeUnless { assets.all { locked(it) || exception(it) } },
-            )
-            if (asked.isEmpty()) return listOf(draft)
+            // An exception is still open, so a reviewer moves only the ones assigned to them or to nobody, like anyone else.
+            val blocked = when {
+                !assets.all { locked(it) || exception(it) } -> ChangeActionBlock.SOME_ARE_DRAFTS
+                !admin && assets.any { exception(it) && guard.isAssignedElsewhere(it.assignedTo) } -> ChangeActionBlock.ASSIGNED_ELSEWHERE
+                else -> null
+            }
+            val draft = ChangeActionOption(ChangeAction.MOVE_TO_DRAFT, blocked)
+            if (!admin || asked.isEmpty()) return listOf(draft)
             return listOf(draft, ChangeActionOption(ChangeAction.DECLINE, ChangeActionBlock.NOT_ALL_REQUESTED))
         }
-        val allAsked = asked.size == assets.size
         val request = ChangeActionOption(if (allAsked) ChangeAction.UPDATE_REQUEST else ChangeAction.REQUEST, notSubmitted)
-        val allMine = allAsked && assets.all { isMine(guard, it.changeRequest) }
-        return if (allMine) listOf(request, ChangeActionOption(ChangeAction.WITHDRAW)) else listOf(request)
+        return if (allMine) listOf(request, withdraw) else listOf(request)
     }
 }
 
@@ -116,7 +150,7 @@ class ChangeRequestActionsUseCase @Inject constructor(private val guard: Permiss
 class ApplyChangeActionUseCase @Inject constructor(
     private val request: RequestChangeUseCase,
     private val close: CloseChangeRequestUseCase,
-    private val setStatus: SetAssetStatusUseCase,
+    private val reopen: ReopenAssetsUseCase,
     private val markValidated: MarkAssetsValidatedUseCase,
 ) {
     data class Result(val done: Int, val failed: Int)
@@ -134,7 +168,7 @@ class ApplyChangeActionUseCase @Inject constructor(
                     ChangeAction.REQUEST, ChangeAction.UPDATE_REQUEST -> request(asset.id, note)
                     ChangeAction.DECLINE, ChangeAction.WITHDRAW -> close(asset.id, asset.changeRequest ?: throw DataException(DataError.FAILED))
                     // Back in draft approves an open request: the writer gives the asset to whoever asked.
-                    ChangeAction.APPROVE, ChangeAction.MOVE_TO_DRAFT -> setStatus(listOf(asset.id), Status.DRAFT)
+                    ChangeAction.APPROVE, ChangeAction.MOVE_TO_DRAFT -> reopen(listOf(asset.id))
                     ChangeAction.MARK_VALIDATED -> Unit // signed off above, all at once
                 }
                 done++
@@ -154,6 +188,8 @@ class ChangeRequestUseCases @Inject constructor(
     val signOff: SignOffActionUseCase,
     val markValidated: MarkAssetsValidatedUseCase,
     val apply: ApplyChangeActionUseCase,
+    /** Back to draft (Approve, Move to draft) for one asset's own bar, by the same rules as the selection's. */
+    val reopen: ReopenAssetsUseCase,
     private val guard: PermissionGuard,
     private val access: AccessRepository,
 ) {
@@ -165,4 +201,7 @@ class ChangeRequestUseCases @Inject constructor(
     fun isMine(request: ChangeRequest?): Boolean = isMine(guard, request)
 
     fun isAdmin(): Boolean = guard.isAdmin()
+
+    /** The signed-in user may validate (a reviewer, or an admin): they move a submitted asset back to draft themselves. */
+    fun isReviewer(): Boolean = guard.allows(Permission.VALIDATE)
 }

@@ -1,5 +1,13 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +19,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -67,8 +76,12 @@ class AssetDetailActions(
     val onChangeLoc: () -> Unit = {},
     /** Assign the asset to a person (the web's Assign asset). */
     val onAssign: (() -> Unit)? = null,
+    /** Assign reads "Assign to me": the user isn't an admin and takes the asset for themselves. */
+    val assignToMe: Boolean = false,
     val onEdit: (key: String, value: String) -> Unit = { _, _ -> },
     val onDiscardEdits: () -> Unit = {},
+    /** Pull to refresh: reads the asset and its tabs again. */
+    val onRefresh: () -> Unit = {},
     val onSave: () -> Unit = {},
     /** Submit an existing asset (after the confirmation). */
     val onSubmit: () -> Unit = {},
@@ -76,13 +89,13 @@ class AssetDetailActions(
     val onMoveToDraft: () -> Unit = {},
     /** An admin marks the submitted asset as validated without a validation run (after the confirmation). */
     val onMarkValidated: () -> Unit = {},
-    /** Move the validated asset to Managed assets; null when it isn't offered (not validated, or not a reviewer). */
+    /** Move the validated asset to Managed assets; null when it isn't offered (not validated, or not an admin). */
     val onMove: (() -> Unit)? = null,
     /** Create the new asset, as a draft or (true) submitted. */
     val onCreate: (submit: Boolean) -> Unit = {},
     val onValidate: () -> Unit = {},
-    /** "Open in Validation": the Validation page on the run the asset is in (by its id). */
-    val onOpenRun: (jobId: String) -> Unit = {},
+    /** "Open in Validation": the Validation page on the run [jobId] with this asset's result open. */
+    val onOpenResult: (jobId: String) -> Unit = {},
     val onDelete: () -> Unit = {},
     /** Change requests on a submitted asset: open the dialog, edit its note, send or cancel, withdraw / decline, reopen. */
     val changeRequest: ChangeRequestActions = ChangeRequestActions(),
@@ -92,8 +105,12 @@ class AssetDetailActions(
     val ai: AiDialogActions = AiDialogActions(),
     /** Start or stop listening to fill fields by voice. */
     val onMic: () -> Unit = {},
+    /** Describe the asset by typing instead (a long press on the mic). */
+    val onType: () -> Unit = {},
     /** What the voice fill sheet's buttons do. */
     val voice: VoiceFillActions = VoiceFillActions(),
+    /** What the describe sheet (typing the description) does. */
+    val typing: DescribeActions = DescribeActions(),
     val onTakePhoto: () -> Unit = {},
     val onPickGallery: () -> Unit = {},
     val onPickFiles: () -> Unit = {},
@@ -290,21 +307,27 @@ fun AssetInfoTab(
             ?: Summary(stringResource(R.string.detail_filled_summary, others.count { v(it.key).isNotEmpty() }, others.size)),
     ) {
         state.fieldRows.forEach { row ->
-            when (row) {
-                is FormEntry.Input -> spec.cfg(row.key)?.takeIf { it.key !in NOT_IN_FIELDS && tagKindOfField(it.label) == null }?.let { f ->
-                    // A field of this asset alone can be removed (by whoever may add one), as the server allows.
-                    if (f.ownField && state.canAddField && state.canEdit) {
-                        OwnFieldRow(f.label, onRemove = { onRemoveField(f) }) { AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) } }
-                    } else {
-                        AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) }
+            // Each row is its own for its asset and field, so a text box never carries what it showed for another asset
+            // or field (the web's "empty Description shows the previous asset's text").
+            key(asset.id, row) {
+                when (row) {
+                    is FormEntry.Input -> spec.cfg(row.key)?.takeIf { it.key !in NOT_IN_FIELDS && tagKindOfField(it.label) == null }?.let { f ->
+                        // A field of this asset alone can be removed (by whoever may add one), as the server allows.
+                        if (f.ownField && state.canAddField && state.canEdit) {
+                            OwnFieldRow(f.label, onRemove = { onRemoveField(f) }) { AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) } }
+                        } else {
+                            AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) }
+                        }
                     }
-                }
-                is FormEntry.MediaField -> {
-                    val files = state.media.count { it.fieldId == row.id }
-                    ValueRow(
-                        row.name,
-                        if (files > 0) pluralStringResource(R.plurals.detail_media_field_files, files, files) else stringResource(R.string.detail_media_field_none),
-                    )
+                    is FormEntry.MediaField -> {
+                        val files = state.media.count { it.fieldId == row.id }
+                        // A mandatory one shows its * as the other fields do (the web marks them whether or not it is editing).
+                        ValueRow(
+                            row.name,
+                            if (files > 0) pluralStringResource(R.plurals.detail_media_field_files, files, files) else stringResource(R.string.detail_media_field_none),
+                            required = row.required,
+                        )
+                    }
                 }
             }
         }
@@ -325,23 +348,28 @@ fun AssetInfoTab(
             // Save (makes it drafted with the AI flag on; asks first while a mandatory field is empty, as the web) and Submit,
             // with the other actions under it.
             val dirty = state.dirtyCount
+            val saveAlpha by animateFloatAsState(if (dirty > 0) 1f else 0.45f, tween(120), label = "save")
             SaveCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (dirty > 0) {
+                AnimatedContent(
+                    dirty > 0, Modifier.weight(1f),
+                    transitionSpec = { fadeIn(tween(120)).togetherWith(fadeOut(tween(90))).using(SizeTransform(clip = false)) },
+                    label = "unsaved",
+                ) { unsaved -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (unsaved) {
                         Txt(pluralStringResource(R.plurals.detail_unsaved, dirty, dirty), 14, 700)
                         Txt(
                             stringResource(R.string.action_discard), 12, 700, C.Yellow,
-                            Modifier.heightIn(min = 48.dp).clip(r(6)).clickable(onClick = actions.onDiscardEdits).padding(vertical = 2.dp),
+                            Modifier.heightIn(min = 48.dp).pressClickable(shape = r(6), onClick = actions.onDiscardEdits).padding(vertical = 2.dp),
                         )
                     } else {
                         Txt(stringResource(R.string.detail_no_unsaved), 14, 700)
                         Txt(stringResource(R.string.detail_status, stringResource(asset.st.labelRes)), 12, 400, C.Muted)
                     }
-                }
+                } }
                 Pill(
                     stringResource(R.string.action_save),
                     { if (dirty > 0 && state.missingRequired.isNotEmpty()) onModal(DetailModal.SAVE_MISSING) else actions.onSave() },
-                    Modifier.testTag(DetailTags.SAVE).alpha(if (dirty > 0) 1f else 0.45f),
+                    Modifier.testTag(DetailTags.SAVE).alpha(saveAlpha),
                     height = 48.dp, hPad = 18.dp, size = 14, weight = 700,
                 )
                 if (canSubmit) {
@@ -381,7 +409,7 @@ fun AssetInfoTab(
  * - Mark as validated: an admin, on a submitted asset (signs it off without a validation run).
  * - Assign: anyone who may assign, except on a signed-off asset.
  * - Submit: a draft that can be changed here.
- * - Move to Managed assets: a reviewer, on a validated asset.
+ * - Move to Managed assets: an admin, on a validated asset.
  * - The change-request actions (ChangeRequestActionsUseCase, as the web's changeRequestActions): an admin moves a
  *   submitted asset back to draft when nobody asked; anyone else requests a change (or updates their request); an
  *   exception can be moved back to draft by whoever works on it. Approving, declining or withdrawing a request is in
@@ -407,7 +435,10 @@ private fun assetBarItems(
         if (ChangeAction.MARK_VALIDATED in change) {
             add(DockItem(stringResource(R.string.sign_off_action), Icons.CheckCircle, C.Green, { onModal(DetailModal.MARK_VALIDATED) }, tag = DetailTags.MARK_VALIDATED))
         }
-        if (!signedOff) actions.onAssign?.let { add(DockItem(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it, OnlineOnly.ASSIGN)) }
+        if (!signedOff) actions.onAssign?.let {
+            val label = stringResource(if (actions.assignToMe) R.string.action_assign_to_me else R.string.action_assign)
+            add(DockItem(label, Icons.UserPlus, C.Cyan, it, OnlineOnly.ASSIGN))
+        }
         if (canSubmit) add(DockItem(stringResource(R.string.action_submit), Icons.Upload, C.Blue, { onModal(submitModal) }))
         actions.onMove?.let { add(DockItem(stringResource(R.string.mv_action), Icons.Send, C.Green, it, OnlineOnly.MOVE_TO_MANAGED)) }
         change.filter { it != ChangeAction.MARK_VALIDATED }.forEach { a ->

@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import com.sclera.sclerago.presentation.components.SkeletonText
 import com.sclera.sclerago.presentation.components.pageGutter
 import androidx.compose.ui.res.stringResource
 import com.sclera.sclerago.R
@@ -119,19 +122,20 @@ fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
             OnboardRow(Icons.Bluetooth, stringResource(R.string.cfgt_bt_onboarding), stringResource(R.string.cfgt_bt_onboarding_hint), bt, vm.onboardingSaving(Tab.BT)) { vm.setOnboarding(Tab.BT, it) }
             OnboardRow(Icons.Wifi, stringResource(R.string.cfgt_wifi_onboarding), stringResource(R.string.cfgt_wifi_onboarding_hint), net, vm.onboardingSaving(Tab.NET)) { vm.setOnboarding(Tab.NET, it) }
         }
-        // AI in validation: a property setting at the server; unknown until the settings are read (then it can't be changed).
+        // The property's AI switch (the web's AI group): a setting at the server; unknown until the settings are read (then it
+        // can't be changed). Saved, the asset screens' AI buttons follow at once.
         val ai = cfg.aiValidation
         CfgCard {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(stringResource(R.string.cfg_validation_title), 13, 700)
-                Txt(
-                    when {
-                        ai != null -> stringResource(R.string.cfg_ai_validation_hint)
-                        cfg.photos.load == LoadState.LOADING -> stringResource(R.string.cfg_loading)
-                        else -> stringResource(R.string.cfg_settings_load_failed)
-                    },
-                    11, 400, C.Muted, maxLines = Int.MAX_VALUE,
-                )
+                Txt(stringResource(R.string.cfg_ai_title), 13, 700)
+                if (ai == null && cfg.photos.load == LoadState.LOADING) {
+                    SkeletonText(stringResource(R.string.cfg_loading), Modifier.padding(top = 4.dp), lines = 1)
+                } else {
+                    Txt(
+                        stringResource(if (ai != null) R.string.cfg_ai_validation_hint else R.string.cfg_settings_load_failed),
+                        11, 400, C.Muted, maxLines = Int.MAX_VALUE,
+                    )
+                }
             }
             OnboardRow(Icons.Sparkles, stringResource(R.string.cfg_ai_validation), stringResource(R.string.cfg_ai_validation_row), ai == true, cfg.aiSaving) {
                 if (ai != null) cfg.setAiValidation(it)
@@ -142,14 +146,14 @@ fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
         CfgCard {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(stringResource(R.string.cfg_units_title), 13, 700)
-                Txt(
-                    when {
-                        metric != null -> stringResource(R.string.cfg_units_hint)
-                        cfg.photos.load == LoadState.LOADING -> stringResource(R.string.cfg_loading)
-                        else -> stringResource(R.string.cfg_settings_load_failed)
-                    },
-                    11, 400, C.Muted, maxLines = Int.MAX_VALUE,
-                )
+                if (metric == null && cfg.photos.load == LoadState.LOADING) {
+                    SkeletonText(stringResource(R.string.cfg_loading), Modifier.padding(top = 4.dp), lines = 1)
+                } else {
+                    Txt(
+                        stringResource(if (metric != null) R.string.cfg_units_hint else R.string.cfg_settings_load_failed),
+                        11, 400, C.Muted, maxLines = Int.MAX_VALUE,
+                    )
+                }
             }
             OnboardRow(Icons.Globe, stringResource(R.string.cfg_units_metric), stringResource(R.string.cfg_units_metric_row), metric == true, cfg.unitsSaving) {
                 if (metric != null) cfg.setMetricUnits(it)
@@ -179,7 +183,7 @@ fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
 private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, busy: Boolean = false, onChange: (Boolean) -> Unit) {
     // While its save is on its way the row is dimmed and takes no taps, as the web's switch.
     Row(
-        Modifier.fillMaxWidth().topBorder(C.Border).clickable(enabled = !busy) { onChange(!on) }.alpha(if (busy) 0.6f else 1f)
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !busy) { onChange(!on) }.fillMaxWidth().topBorder(C.Border).alpha(if (busy) 0.6f else 1f)
             .padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),

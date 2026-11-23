@@ -126,7 +126,7 @@ class AssetsOfflineSource(
 
     private fun loadSummary(filter: AssetQueryFilter): AssetSummary = db.whenTable("assets", AssetSummary(0, emptyMap(), 0, 0)) {
         val where = db.assetWhere(filter, withStatus = false)
-        val rows = db.query(ASSET_SUMMARY.replace("%WHERE%", where.sql), where.args)
+        val rows = db.query(ASSET_SUMMARY.replace("%AI%", db.aiHelpsSql()).replace("%WHERE%", where.sql), where.args)
         val counts = rows.mapNotNull { r -> Status.entries.firstOrNull { it.name == r.string("st") }?.let { it to (r.int("n") ?: 0) } }.toMap()
         AssetSummary(
             total = rows.sumOf { it.int("n") ?: 0 },
@@ -165,6 +165,9 @@ class AssetsOfflineSource(
         val checked = validation.validationsFor(ids)
         val formatById = formats.byId()
         val index = places.index()
+        // The mandatory fields, read once for the lot: what Mandatory fields missing goes by (Description from its
+        // `assets` column once the database has it, as the server's core columns; the rows carry every column).
+        val required = db.requiredKeys()
         return rows.map { row ->
             val id = row.string("id").orEmpty()
             val place = index.location(row.string("location_id"))
@@ -178,6 +181,7 @@ class AssetsOfflineSource(
                 recollect = row.string("status") == "drafted" && (id in sentBack || row.int("vdms_state") in VDMS_SENT_BACK),
                 validationMark = checked[id]?.mark(),
                 validationProblems = checked[id]?.problems?.size ?: 0,
+                requiredMissing = required.missingFor(id, row, values[id].orEmpty()).isNotEmpty(),
             )
         }
     }

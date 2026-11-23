@@ -348,7 +348,6 @@
     <string name="detail_comment_too_long">留言最多 %1$d 個字元。</string>
     <string name="detail_back">返回清單</string>
     <string name="detail_name_hint">資產名稱</string>
-    <string name="detail_saved">已儲存</string>
     <string name="detail_menu_camera">拍攝照片或影片</string>
     <string name="detail_menu_files">從檔案上傳</string>
     <string name="detail_photo">照片</string>

@@ -68,6 +68,17 @@ class PlacesConfigViewModel @Inject constructor(
 
     fun retry() = reload(showLoading = true)
 
+    /** A pull to refresh is reading the places again (the tree stays on screen meanwhile). */
+    var refreshing by mutableStateOf(false)
+        private set
+
+    /** Pull to refresh: reads the buildings, floors and locations again from the server. */
+    fun refresh() {
+        if (refreshing || propertyId.isEmpty()) return
+        refreshing = true
+        reload(showLoading = load != LoadState.READY)
+    }
+
     private fun reload(showLoading: Boolean) {
         loadJob?.cancel()
         if (showLoading) {
@@ -86,6 +97,8 @@ class PlacesConfigViewModel @Inject constructor(
                 } else {
                     say(e.error.toUiText())
                 }
+            } finally {
+                refreshing = false
             }
         }
     }

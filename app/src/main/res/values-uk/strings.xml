@@ -360,7 +360,6 @@
     <string name="detail_comment_too_long">Коментар може містити не більше %1$d символів.</string>
     <string name="detail_back">Назад до списку</string>
     <string name="detail_name_hint">Назва активу</string>
-    <string name="detail_saved">Збережено</string>
     <string name="detail_menu_camera">Зробити фото або відео</string>
     <string name="detail_menu_files">Завантажити з файлів</string>
     <string name="detail_photo">Фото</string>

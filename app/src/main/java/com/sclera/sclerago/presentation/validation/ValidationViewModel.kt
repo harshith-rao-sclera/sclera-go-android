@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.domain.validation.copyName
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,6 +11,12 @@ import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.usecase.validation.ValidationUseCases
 import com.sclera.sclerago.domain.validation.FieldChoice
+import com.sclera.sclerago.domain.validation.JOBS_SHOWN
+import com.sclera.sclerago.domain.validation.JobFilters
+import com.sclera.sclerago.domain.validation.filteredBy
+import com.sclera.sclerago.domain.validation.jobFilterOptions
+import com.sclera.sclerago.domain.validation.keptIn
+import com.sclera.sclerago.domain.validation.onlyAiSteps
 import com.sclera.sclerago.domain.validation.RunMode
 import com.sclera.sclerago.domain.validation.RunRequest
 import com.sclera.sclerago.domain.validation.RunScope
@@ -77,11 +84,19 @@ data class EditorState(
     val saving: Boolean = false,
     /** The steps before "Start from" or "Clear all" replaced them, for Undo (as the web's builder). */
     val undo: StepsSnapshot? = null,
+    /** The name of the saved validation this is a copy of (one that has already run: "Edit as new"); null otherwise. */
+    val copyOf: String? = null,
 ) {
     val complete: Boolean get() = name.isNotBlank() && steps.isNotEmpty()
 
     fun draft() = ValidationDraft(name, description, steps, stepFields, stepSeverity, typeScope, templateKey)
 }
+
+/**
+ * A run just started or saved to run later (the web's job banner), said in a toast whose button opens it when [open]:
+ * its review, or (a ready run started from Data Collection, [quick]) the Validation page. [id] tells one from the next.
+ */
+data class JobBanner(val id: Long, val run: ValRun, val ready: Boolean, val open: Boolean, val quick: Boolean = false)
 
 /** An editor's steps and their settings, kept so "Start from" and "Clear all" can be undone. */
 data class StepsSnapshot(
@@ -106,6 +121,16 @@ data class ValidationUiState(
     val catalogFailed: Boolean = false,
     val saved: List<ValidationDef> = emptyList(),
     val runs: List<ValRun> = emptyList(),
+    /** The Recent jobs filters as chosen (who ran it, status, check); [filters] are those still offered. */
+    val jobFilters: JobFilters = JobFilters(),
+    /** The Filter jobs sheet's choices, not in force until Show; null while the sheet is closed. */
+    val jobDraft: JobFilters? = null,
+    /** How many Recent jobs rows show ("Show more" adds [JOBS_SHOWN]). */
+    val jobsShown: Int = JOBS_SHOWN,
+    /** The signed-in user's id (Recent jobs' "Me"); null until the access is known. */
+    val myId: String? = null,
+    /** AI is on in the property: off, AI checks are skipped and only-AI templates and validations can't run. */
+    val aiOn: Boolean = true,
     val canCheck: Boolean = false,
     val canValidate: Boolean = false,
     val runSheet: RunSheetState? = null,
@@ -117,12 +142,41 @@ data class ValidationUiState(
     /** Ready runs being started or discarded. */
     val busyRuns: Set<String> = emptySet(),
     val reviewJobId: String? = null,
+    /** With [reviewJobId]: an asset whose result opens on the run as it shows; null once it has. */
+    val reviewAssetId: String? = null,
     val message: UiText? = null,
     /** A run started from Data Collection: the note for the screen it was started from. */
     val quickStarted: UiText? = null,
+    /** A run just started or saved for later, to say so with a button that opens it. */
+    val banner: JobBanner? = null,
 ) {
     val stepsByKey: Map<String, ValStep> get() = steps.associateBy { it.key }
 
+    /** The choices Recent jobs' filters offer, from the runs listed. */
+    val jobOptions by lazy { jobFilterOptions(runs, myId) }
+
+    /** The filters chosen, without a choice no longer offered. */
+    val filters by lazy { jobFilters.keptIn(jobOptions) }
+
+    /** The recent runs the filters keep. */
+    val matchingRuns by lazy { runs.filteredBy(filters, myId) }
+
+    /** How many of the recent runs [f] keeps (the Filter jobs sheet's counts and its Show button). */
+    fun jobCount(f: JobFilters): Int = runs.filteredBy(f, myId).size
+
+    /** The rows shown: the first [jobsShown] of [matchingRuns]. */
+    val shownRuns: List<ValRun> get() = matchingRuns.take(jobsShown)
+
+    /** The steps [source] runs. */
+    fun stepsOf(source: RunSource?): List<String> = when (source) {
+        is RunSource.Template -> templates.firstOrNull { it.key == source.key }?.steps.orEmpty()
+        is RunSource.Saved -> saved.firstOrNull { it.id == source.id }?.steps.orEmpty()
+        is RunSource.Steps -> source.keys
+        null -> emptyList()
+    }
+
+    /** With AI off, [steps] are all AI checks, so a run of them has nothing to do and can't start (the web's). */
+    fun aiOnly(steps: List<String>): Boolean = !aiOn && onlyAiSteps(steps, stepsByKey)
 }
 
 /**
@@ -150,6 +204,7 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
                     copy(
                         canCheck = check,
                         canValidate = validate,
+                        myId = useCases.access.userId(),
                         // What the user may no longer do closes: running needs Check, keeping saved validations Validate.
                         runSheet = runSheet?.takeIf { check },
                         editor = editor?.takeIf { validate },
@@ -158,6 +213,8 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
                 }
             }
         }
+        // The property's AI switch, as it is read or changed (Configuration → Settings shows at once).
+        viewModelScope.launch { useCases.aiSwitch.observe().collect { on -> set { copy(aiOn = on) } } }
     }
 
     /** Opens the page for [propertyId] (again when it changed). */
@@ -168,7 +225,10 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
             return
         }
         poll?.cancel()
-        state = ValidationUiState(propertyId = propertyId, canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate())
+        state = ValidationUiState(
+            propertyId = propertyId, canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate(),
+            myId = useCases.access.userId(), aiOn = state.aiOn,
+        )
         if (propertyId.isEmpty()) return
         loadCatalog()
         reload()
@@ -203,6 +263,37 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
         }
     }
 
+    /** Opens Filter jobs on the filters in force (those still offered). */
+    fun openJobFilter() = set { copy(jobDraft = filters) }
+
+    /** A choice in Filter jobs (it takes effect with Show). */
+    fun editJobDraft(change: JobFilters.() -> JobFilters) = set { copy(jobDraft = jobDraft?.change()) }
+
+    /** Reset in Filter jobs: nothing chosen (it takes effect with Show). */
+    fun resetJobDraft() = set { copy(jobDraft = jobDraft?.let { JobFilters() }) }
+
+    /** Show N jobs: the sheet's choices are put in force; the list starts again from its first rows. */
+    fun applyJobDraft() = set { jobDraft?.let { copy(jobFilters = it, jobDraft = null, jobsShown = JOBS_SHOWN) } ?: this }
+
+    /** Closes Filter jobs; the choices made in it are dropped. */
+    fun closeJobFilter() = set { copy(jobDraft = null) }
+
+    /** "Show more" under Recent jobs. */
+    fun showMoreJobs() = set { copy(jobsShown = jobsShown + JOBS_SHOWN) }
+
+    /** Reads the property's AI switch again with the lists unless it was read lately (an admin may have switched it). */
+    private fun refreshAiSwitch() {
+        viewModelScope.launch { useCases.aiSwitch.refresh() }
+    }
+
+    /** The job banner has been shown. */
+    fun bannerShown() = set { copy(banner = null) }
+
+    private var bannerIds = 0L
+
+    private fun banner(run: ValRun, ready: Boolean, open: Boolean, quick: Boolean = false) =
+        set { copy(banner = JobBanner(++bannerIds, run, ready, open, quick)) }
+
     /** Pull to refresh: reloads the saved validations and runs. */
     fun refresh() {
         if (state.refreshing || state.propertyId.isEmpty()) return
@@ -214,6 +305,7 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     fun reload() {
         val p = state.propertyId
         if (p.isEmpty()) return
+        refreshAiSwitch()
         viewModelScope.launch {
             try {
                 val saved = useCases.saved(p)
@@ -248,10 +340,14 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
 
     // ---------------------------------------------------------------- Runs
 
-    fun openReview(jobId: String?) {
-        set { copy(reviewJobId = jobId) }
+    /** Opens the run [jobId] (null: back to the list), with [assetId]'s result open on it when given. */
+    fun openReview(jobId: String?, assetId: String? = null) {
+        set { copy(reviewJobId = jobId, reviewAssetId = assetId.takeIf { jobId != null }) }
         if (jobId == null) reload()
     }
+
+    /** The run opened the asset's result asked for. */
+    fun reviewAssetShown() = set { copy(reviewAssetId = null) }
 
     /** "Run on all assets" on a template card: starts at once. */
     fun runOnAll(source: RunSource) = start(RunRequest(source, RunMode.ALL, emptyList(), start = true), closeSheet = false)
@@ -300,6 +396,8 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     }
 
     private fun start(request: RunRequest, closeSheet: Boolean) {
+        // AI off and nothing but AI checks: nothing to run (the buttons are off too).
+        if (state.aiOnly(state.stepsOf(request.source))) return flash(UiText.Res(R.string.ai_off))
         val p = state.propertyId
         set { copy(runSheet = runSheet?.copy(busy = true)) }
         viewModelScope.launch {
@@ -314,7 +412,9 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
                         quickStarted = if (quick) UiText.Res(if (request.start) R.string.val_quick_started else R.string.val_quick_ready, listOf(run.name)) else null,
                     )
                 }
-                if (!quick) flash(startedMessage(run, ready = !request.start))
+                // The web's banner: a run that started opens from it; one saved for later is already in Recent jobs (from
+                // Data Collection, the button opens the Validation page).
+                banner(run, ready = !request.start, open = request.start || quick, quick = quick)
                 reload()
             } catch (e: OnlineException) {
                 set { copy(runSheet = runSheet?.copy(busy = false)) }
@@ -334,14 +434,15 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     fun startReady(run: ValRun) = onReady(run) {
         val started = useCases.startReady(state.propertyId, run.id)
         set { copy(runs = runs.map { if (it.id == run.id) started else it }) }
-        flash(startedMessage(started, ready = false))
+        banner(started, ready = false, open = true)
     }
 
     /** "Run again" on a finished run, as the web: the server starts the same run again, and it opens in its place. */
     fun runAgain(run: ValRun) = onReady(run) {
         val started = useCases.rerun(state.propertyId, run.id)
         set { copy(runs = listOf(started) + runs.filter { it.id != started.id }, reviewJobId = started.id) }
-        flash(startedMessage(started, ready = false))
+        // It opens in its place, so the banner has nothing to open.
+        banner(started, ready = false, open = false)
     }
 
     /** "Discard" on a ready run. */
@@ -364,11 +465,6 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
                 set { copy(busyRuns = busyRuns - run.id) }
             }
         }
-    }
-
-    private fun startedMessage(run: ValRun, ready: Boolean): UiText {
-        val scope = scopeText(run)
-        return UiText.Res(if (ready) R.string.val_run_saved_ready else R.string.val_run_started, listOf(run.name, scope))
     }
 
     // ---------------------------------------------------------------- Templates and order
@@ -453,13 +549,32 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     }
 
     fun editValidation(v: ValidationDef) {
-        // One that has run keeps its steps and settings for its runs: the server refuses the change (409).
-        if (v.locked) return flash(UiText.Res(R.string.valt_locked_note))
+        // One that has run keeps its steps and settings for its runs (the server refuses the change, 409): it opens as a
+        // copy instead, as the web's old Edit links do.
+        if (v.locked) return editAsNew(v)
         set {
             copy(
                 editor = EditorState(
                     id = v.id, name = v.name, description = v.description.orEmpty(), steps = v.steps,
                     stepFields = v.stepFields, stepSeverity = v.stepSeverity, typeScope = v.typeScope, templateKey = v.templateKey,
+                ),
+            )
+        }
+        loadFields()
+    }
+
+    /**
+     * "Edit as new" on a saved validation that has already run (the web's): the builder opens on a copy of it, named
+     * "<name> (copy)" (or "(copy 2)"… when that is taken), with its steps and settings, and saves as a new validation. The
+     * original and its runs stay as they are.
+     */
+    fun editAsNew(v: ValidationDef) {
+        set {
+            copy(
+                editor = EditorState(
+                    id = null, name = copyName(v.name, saved.map { it.name }), description = v.description.orEmpty(), steps = v.steps,
+                    stepFields = v.stepFields, stepSeverity = v.stepSeverity, typeScope = v.typeScope, templateKey = v.templateKey,
+                    copyOf = v.name,
                 ),
             )
         }

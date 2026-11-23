@@ -149,6 +149,8 @@ data class ValRun(
     val finishedAt: Long?,
     /** Who started it (the server's `startedBy`, a name); null when the server doesn't say. */
     val startedBy: String? = null,
+    /** The id of who started it (the server's `createdBy`); null when the app started it or the server doesn't say. */
+    val createdBy: String? = null,
 ) {
     /** The server's step state: nothing seen yet is waiting (or skipped once done); else the worst outcome. */
     fun stateOf(step: String): StepState {
@@ -277,6 +279,11 @@ data class RunIssue(
     val related: List<String>,
     val status: IssueStatus,
     val resolvedValue: IssueValue?,
+    /**
+     * It may be kept as it is (dismissed), as the server's `canDismiss`: not missing data (the Complete step), which is
+     * filled in on the asset instead (keeping it changes nothing; the next run finds it again).
+     */
+    val canDismiss: Boolean = true,
 ) {
     /** A field's value or the JACS code: a value can be applied or typed. */
     val likeField: Boolean get() = fieldId != null || target == IssueTarget.JACS_CODE
@@ -324,3 +331,21 @@ fun isServerId(id: String): Boolean = runCatching { java.util.UUID.fromString(id
 
 /** The most a reviewer's recollection note may hold (the server's limit). */
 const val DECISION_NOTE_MAX = 500
+
+/**
+ * The name of a copy of [name] that none of [taken] has, as the web's copyName: "Pumps (copy)", then "Pumps (copy 2)"…
+ * (compared without case or surrounding spaces). A blank [name] is "Validation".
+ */
+fun copyName(name: String, taken: Collection<String>): String {
+    val used = taken.mapTo(HashSet()) { it.trim().lowercase() }
+    val base = name.trim().ifEmpty { "Validation" }
+    return generateSequence(1) { it + 1 }
+        .map { n -> if (n == 1) "$base (copy)" else "$base (copy $n)" }
+        .first { it.lowercase() !in used }
+}
+
+/**
+ * With AI off for the property, [steps] have nothing to run: every one of them uses AI (the web's "only AI"), so a run
+ * of them can't start. Steps not in [byKey] don't count as AI.
+ */
+fun onlyAiSteps(steps: List<String>, byKey: Map<String, ValStep>): Boolean = steps.isNotEmpty() && steps.all { byKey[it]?.usesAi == true }

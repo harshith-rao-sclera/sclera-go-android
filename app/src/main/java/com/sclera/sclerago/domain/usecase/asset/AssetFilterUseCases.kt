@@ -10,6 +10,7 @@ import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.PropertyAssignee
 import com.sclera.sclerago.domain.model.UNASSIGNED_ID
+import com.sclera.sclerago.domain.model.profilePhoto
 import com.sclera.sclerago.domain.model.typeKey
 import com.sclera.sclerago.domain.model.typeKeyParts
 import com.sclera.sclerago.domain.repository.AccessRepository
@@ -26,11 +27,12 @@ private const val TYPE_PATH = " › "
 /**
  * The filter sheet's choices for [assets] (a tab's assets in the chosen location), with [filter] as chosen so far. Like the
  * web's filters, each part counts what it would show given the other: the people are counted among the assets of the
- * types chosen, and the types among the assets of the people chosen. An asset type lists under the system types chosen
+ * types chosen, and the types among the assets of the people chosen; Cloned and Mandatory fields missing, when chosen,
+ * narrow both, and are each counted among the assets of the people and types chosen. An asset type lists under the system types chosen
  * (all of them when none is), a sub type under the asset types chosen (else the systems chosen). Only choices with assets
  * are listed, plus anything already chosen. The signed-in user ([me]) is always listed, first; [names] are the people's
  * names by user id; [everyone] are more people to list even with no assets in this list (the property's assignees, as
- * kept on the device).
+ * kept on the device); [photos] are their profile photos by user id (initials show for anyone without one).
  */
 class BuildFilterOptionsUseCase @Inject constructor() {
     operator fun invoke(
@@ -40,9 +42,13 @@ class BuildFilterOptionsUseCase @Inject constructor() {
         me: String?,
         names: Map<String, String>,
         everyone: Collection<String> = emptyList(),
+        photos: Map<String, String> = emptyMap(),
     ): AssetFilterOptions {
-        val ofTypes = assets.filter { filter.typeMatches(it.masterFormatId, formats) }
-        val ofPeople = assets.filter(filter::peopleMatch)
+        // Cloned and Mandatory fields missing narrow every count, as they narrow the list.
+        val ofTypes = assets.filter { filter.typeMatches(it.masterFormatId, formats) && filter.flagsMatch(it) }
+        val ofPeople = assets.filter { filter.peopleMatch(it) && filter.flagsMatch(it) }
+        // Each of those two is counted given the people, the types and the other one chosen.
+        val ofBoth = assets.filter { filter.peopleMatch(it) && filter.typeMatches(it.masterFormatId, formats) }
         val typed = ofPeople.mapNotNull { a -> a.masterFormatId?.let(formats::get) }
 
         val systems = choices(
@@ -68,13 +74,20 @@ class BuildFilterOptionsUseCase @Inject constructor() {
             chosenCounts = typed.groupingBy { it.id }.eachCount(),
         )
         return AssetFilterOptions(
-            people = people(ofTypes, filter.assignees - UNASSIGNED_ID, me, names, everyone),
+            people = people(ofTypes, filter.assignees - UNASSIGNED_ID, me, names, everyone, photos),
             unassigned = unassigned(ofTypes, UNASSIGNED_ID in filter.assignees),
             systems = systems,
             types = types,
             subtypes = subtypes,
             untypedCount = ofPeople.count { a -> a.masterFormatId?.let(formats::get) == null },
             untypedSelected = filter.untyped,
+            // Each counted among the assets the other two flags (when chosen) keep.
+            clonedCount = ofBoth.count { it.clonedFrom != null && filter.copy(cloned = false).flagsMatch(it) },
+            clonedSelected = filter.cloned,
+            requiredMissingCount = ofBoth.count { it.requiredMissing && filter.copy(requiredMissing = false).flagsMatch(it) },
+            requiredMissingSelected = filter.requiredMissing,
+            recollectCount = ofBoth.count { it.recollect && filter.copy(recollect = false).flagsMatch(it) },
+            recollectSelected = filter.recollect,
         )
     }
 
@@ -108,10 +121,11 @@ class BuildFilterOptionsUseCase @Inject constructor() {
         me: String?,
         names: Map<String, String>,
         everyone: Collection<String>,
+        photos: Map<String, String>,
     ): List<FilterPerson> {
         val counts = assets.mapNotNull { it.assignedTo }.groupingBy { it }.eachCount()
         val ids = (listOfNotNull(me) + counts.keys + chosen + everyone).distinct()
-        return ids.map { FilterPerson(it, names[it], it == me, counts[it] ?: 0, it in chosen) }
+        return ids.map { FilterPerson(it, names[it], it == me, counts[it] ?: 0, it in chosen, photos[it]) }
             .sortedWith(compareByDescending<FilterPerson> { it.me }.thenBy { (it.name ?: "￿").lowercase() })
     }
 }
@@ -135,6 +149,17 @@ class LoadAssigneeNamesUseCase @Inject constructor(
      */
     fun storedFor(propertyId: String?): Map<String, String> =
         propertyId?.takeIf { it.isNotBlank() }?.let { assignment.keptAssigneesOf(it).mapValues { (_, a) -> a.shown } }.orEmpty()
+
+    /**
+     * The people's profile photos by user id, as the web's filter shows them: the property's assignees (kept on the
+     * device), else the organisation's people (admins have the list). Only https links count ([profilePhoto]).
+     */
+    fun photosFor(propertyId: String?): Map<String, String> {
+        val people = access.people.value.mapNotNull { p -> profilePhoto(p.imageUrl)?.let { p.id to it } }.toMap()
+        val assignees = propertyId?.takeIf { it.isNotBlank() }?.let(assignment::keptAssigneesOf).orEmpty()
+            .mapNotNull { (id, a) -> profilePhoto(a.imageUrl)?.let { id to it } }.toMap()
+        return people + assignees
+    }
 
     /** Reads [propertyId]'s kept assignees and, online, fetches them again (when the property is opened). */
     suspend fun open(propertyId: String) = assignment.openAssignees(propertyId)

@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.integration
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -42,6 +44,7 @@ import com.sclera.sclerago.domain.model.PlaceKind
 import com.sclera.sclerago.domain.model.PlaceStatus
 import com.sclera.sclerago.domain.model.PlacesDirection
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.GuardedClose
@@ -108,7 +111,7 @@ private fun RefreshButton(s: PlacesUiState, vm: PlacesImportViewModel) {
         else -> stringResource(R.string.pi_ask_list)
     }
     Box(
-        Modifier.size(48.dp).clip(r(10)).clickable(enabled = !s.refreshing, role = Role.Button, onClick = vm::refresh)
+        Modifier.size(48.dp).pressClickable(shape = r(10), enabled = !s.refreshing, role = Role.Button, onClick = vm::refresh)
             .semantics { contentDescription = label }.testTag("places_refresh"),
         contentAlignment = Alignment.Center,
     ) { LineIcon(Icons.Refresh, 18.dp, if (s.refreshing) C.Muted else C.Yellow, 2.2f) }
@@ -122,9 +125,13 @@ private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapsho
     val v = sh.view
     LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("places_tree"), contentPadding = PaddingValues(bottom = 8.dp)) {
         when {
+            // VDMS is being asked for its list: the places in placeholders until it comes.
+            noSnapshot && s.refreshing -> item {
+                SkeletonList(stringResource(R.string.pi_getting_list), Modifier.padding(top = 8.dp), count = 6, lines = 1, card = false, gap = 2.dp)
+            }
             noSnapshot -> item {
-                EmptyBlock(stringResource(if (s.refreshing) R.string.pi_getting_list else R.string.pi_no_snapshot)) {
-                    LinkText(stringResource(if (s.refreshing) R.string.pi_asking_vdms else R.string.pi_ask_vdms), enabled = !s.refreshing, onClick = vm::refresh)
+                EmptyBlock(stringResource(R.string.pi_no_snapshot)) {
+                    LinkText(stringResource(R.string.pi_ask_vdms), onClick = vm::refresh)
                 }
             }
             v.tally.total == 0 -> item { EmptyBlock(stringResource(if (toVdms) R.string.pi_to_empty else R.string.pi_from_empty)) }
@@ -142,7 +149,7 @@ private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapsho
                 }
                 item {
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(8)).clickable(role = Role.Checkbox) { vm.setHideExisting(!sh.hideExisting) },
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).pressClickable(shape = r(8), pressed = PRESSED_CARD, role = Role.Checkbox) { vm.setHideExisting(!sh.hideExisting) },
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
@@ -203,7 +210,7 @@ private fun PlaceRowItem(row: PlaceTreeRow, direction: PlacesDirection, vm: Plac
         if (n.children.isNotEmpty()) {
             val toggleLabel = stringResource(if (row.open) R.string.pi_collapse else R.string.pi_expand, n.name)
             Box(
-                Modifier.size(40.dp, 48.dp).clip(r(8)).clickable(role = Role.Button) { vm.toggleOpen(n) }.semantics { contentDescription = toggleLabel },
+                Modifier.size(40.dp, 48.dp).pressClickable(shape = r(8), role = Role.Button) { vm.toggleOpen(n) }.semantics { contentDescription = toggleLabel },
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.ChevronRight, 16.dp, C.Muted, 2.6f, Modifier.rotate(rot)) }
         } else {
@@ -218,8 +225,8 @@ private fun PlaceRowItem(row: PlaceTreeRow, direction: PlacesDirection, vm: Plac
         )
         val tip = if (n.status == PlaceStatus.CHANGED) stringResource(R.string.pi_update_tip) else null
         Row(
-            Modifier.weight(1f).heightIn(min = 48.dp).clip(r(8))
-                .clickable(enabled = row.enabled, role = Role.Checkbox) { vm.toggle(n) }
+            Modifier.weight(1f).heightIn(min = 48.dp).pressClickable(shape = r(8), enabled = row.enabled, role = Role.Checkbox) { vm.toggle(n) }
+                
                 .semantics { stateDescription = listOfNotNull(tickState, tip).joinToString(", ") }
                 .padding(end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,

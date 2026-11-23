@@ -104,6 +104,7 @@ abstract class OnlineModule {
     @Binds @IntoSet abstract fun clearCurrentAccess(impl: CurrentAccessRepositoryImpl): UserDataCleaner
     @Binds @IntoSet abstract fun clearIdentity(impl: OnlineIdentity): UserDataCleaner
     @Binds @IntoSet abstract fun clearConfigPlaces(impl: ConfigPlacesRepositoryImpl): UserDataCleaner
+    @Binds @IntoSet abstract fun clearConfigFields(impl: ConfigFieldsRepositoryImpl): UserDataCleaner
 
     companion object {
         @Provides

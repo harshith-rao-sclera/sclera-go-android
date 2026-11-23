@@ -40,10 +40,13 @@ class FileRepositoryImpl @Inject constructor(
         }
     }
 
-    /** Deletes the user's photos and videos (taken here) and the downloaded reference photos. */
+    /**
+     * Deletes the user's photos and videos (taken here) and everything in the app's cache (downloaded reference photos,
+     * media opened to view, shared and exported files), as on a fresh install.
+     */
     override fun clear() {
         captureDir(context).deleteRecursively()
-        File(context.cacheDir, "web-photos").deleteRecursively()
+        context.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
     }
 
 

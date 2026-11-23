@@ -368,7 +368,6 @@
     <string name="detail_comment_too_long">يمكن أن يصل التعليق إلى %1$d حرف.</string>
     <string name="detail_back">العودة إلى القائمة</string>
     <string name="detail_name_hint">اسم الأصل</string>
-    <string name="detail_saved">تم الحفظ</string>
     <string name="detail_menu_camera">التقاط صورة أو فيديو</string>
     <string name="detail_menu_files">رفع من الملفات</string>
     <string name="detail_photo">صورة</string>

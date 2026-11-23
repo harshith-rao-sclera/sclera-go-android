@@ -44,5 +44,6 @@ class SessionViewModel @Inject constructor(
         refreshAccess()
     }
 
-    fun logout() = logoutUseCase()
+    /** Signs out; false (nothing happens) when offline: signing out needs the server. */
+    fun logout(): Boolean = logoutUseCase()
 }

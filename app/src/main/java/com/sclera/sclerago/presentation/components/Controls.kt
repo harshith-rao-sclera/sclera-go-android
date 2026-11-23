@@ -76,7 +76,7 @@ internal fun CheckBox(on: Boolean) {
 internal fun AddFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier.padding(end = 10.dp, bottom = 10.dp).size(54.dp).fabShadow()
-            .clip(CircleShape).background(C.Yellow).clickable(onClick = onClick),
+            .pressClickable(shape = CircleShape, onClick = onClick).background(C.Yellow),
         contentAlignment = Alignment.Center,
     ) { LineIcon(Icons.Plus, 26.dp, C.OnYellow, 2.6f) }
 }
@@ -115,7 +115,7 @@ internal fun CfgCard(modifier: Modifier = Modifier, content: @Composable ColumnS
 fun OnOffSwitch(on: Boolean, modifier: Modifier = Modifier, onChange: (Boolean) -> Unit) {
     val track by animateColorAsState(if (on) C.Yellow else C.RadioOff, label = "switch")
     val x by animateDpAsState(if (on) 22.dp else 2.dp, label = "thumb")
-    Box(modifier.size(50.dp, 30.dp).clip(Capsule).background(track).clickable { onChange(!on) }) {
+    Box(modifier.size(50.dp, 30.dp).pressClickable(shape = Capsule) { onChange(!on) }.background(track)) {
         Box(Modifier.padding(start = x, top = 3.dp).size(24.dp).clip(CircleShape).background(Color.White))
     }
 }

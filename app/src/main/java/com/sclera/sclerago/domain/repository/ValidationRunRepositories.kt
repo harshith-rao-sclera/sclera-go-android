@@ -74,6 +74,12 @@ interface ValidationRunRepository {
     /** Discards a run that was saved as ready. */
     suspend fun discard(propertyId: String, id: String)
 
+    /**
+     * Checks [assetId] of the finished run [jobId] again, inside that run (the server's recheck): returns the run doing
+     * the check. Once its result is in [jobId] that run is gone ([run] throws NotFound); it is failed if the check failed.
+     */
+    suspend fun recheck(propertyId: String, jobId: String, assetId: String): ValRun
+
     /** One page of [jobId]'s results; offline, all of the phone's copy filtered here. */
     suspend fun results(propertyId: String, jobId: String, filter: ResultFilter, cursor: String?): ResultPage
 

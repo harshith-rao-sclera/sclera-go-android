@@ -1,5 +1,10 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import com.sclera.sclerago.presentation.components.rememberAppear
+import com.sclera.sclerago.presentation.components.scrim
+import com.sclera.sclerago.presentation.components.popIn
 import com.sclera.sclerago.presentation.common.is24Hour
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -130,7 +135,7 @@ internal fun ChangeRequestBanner(
     val toggle = stringResource(if (open) R.string.change_banner_collapse else R.string.change_banner_expand)
     Column(modifier.fillMaxWidth().background(C.WarnRow).bottomBorder(C.Orange.copy(alpha = 0.35f)).testTag(ChangeRequestTags.BANNER)) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(onClickLabel = toggle) { open = !open }.padding(horizontal = 14.dp),
+            Modifier.pressClickable(pressed = PRESSED_CARD, onClickLabel = toggle) { open = !open }.fillMaxWidth().heightIn(min = 44.dp).padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -182,9 +187,10 @@ internal fun ChangeRequestDialog(
     dirty: Boolean = false,
 ) = GuardedClose(dirty, onCancel) { close ->
     BackHandler(onBack = close)
-    Box(Modifier.fillMaxSize().background(C.Scrim).noRippleClick(close).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
+    val shown = rememberAppear()
+    Box(Modifier.fillMaxSize().scrim(shown).noRippleClick(close).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.widthIn(max = 360.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
+            Modifier.popIn(shown).widthIn(max = 360.dp).fillMaxWidth().fabShadow(r(18), 16.dp).clip(r(18)).background(C.Surface)
                 .border(1.dp, C.Border2, r(18)).noRippleClick { }.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

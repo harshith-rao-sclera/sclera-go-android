@@ -163,6 +163,12 @@ private val STEP_OF = mapOf(
 /** The step of the check [rule]; a step key stays itself. */
 fun stepOf(rule: String): String = STEP_OF[rule] ?: rule
 
+/** Steps whose findings are about something missing: they are filled in, never kept as they are (the server's). */
+private val NOT_DISMISSABLE_STEPS = setOf("complete")
+
+/** Whether a finding of the check [rule] may be kept as it is (dismissed), as the server's `can_dismiss`. */
+fun canDismiss(rule: String): Boolean = stepOf(rule) !in NOT_DISMISSABLE_STEPS
+
 /**
  * The asset's validation from its results ([records], newest first, at most [RECENT_RESULTS]) and their problems,
  * as the server builds it: the newest run's steps in its order, then steps only older runs had, each with the outcome

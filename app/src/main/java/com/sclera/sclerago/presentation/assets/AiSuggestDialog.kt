@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -87,6 +88,7 @@ object AiTags {
     const val APPLY = "ai-apply"
     const val TYPE = "ai-type"
     const val NOTHING = "ai-nothing"
+    const val AI_OFF = "ai-off"
     fun row(key: String) = "ai-row-$key"
     fun manual(id: String) = "ai-manual-$id"
 }
@@ -126,7 +128,7 @@ fun AiSuggestDialog(d: AiDialogState, state: AssetDetailState, actions: AiDialog
                         AiPhase.RESULTS -> if (nothing) NothingFound(d) else Results(d, state, actions)
                     }
                 }
-                Footer(d, typedCount, nothing, actions)
+                Footer(d, typedCount, nothing, actions, aiOn = state.aiOn)
             }
         }
     }
@@ -291,7 +293,7 @@ private fun ManualsCard(manuals: List<AssetDocument>) {
                 val kind = stringResource(R.string.doc_manufacturer_kind, stringResource(m.manualKind.labelRes()))
                 Row(
                     Modifier.fillMaxWidth().then(if (i > 0) Modifier.topBorder(C.Border) else Modifier)
-                        .then(if (open != null) Modifier.clickable(role = Role.Button, onClick = open) else Modifier)
+                        .then(if (open != null) Modifier.pressClickable(role = Role.Button, onClick = open) else Modifier)
                         .semantics { contentDescription = label }.testTag(AiTags.manual(m.id))
                         .heightIn(min = 48.dp).padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -401,7 +403,7 @@ private fun FieldsCard(d: AiDialogState, rows: List<Map.Entry<String, AiPick>>, 
                             }
                             host != null -> Txt(
                                 host, 11, 600, C.Cyan,
-                                Modifier.clip(r(6)).clickable { runCatching { uri.openUri(source) } }.heightIn(min = 32.dp).padding(vertical = 8.dp),
+                                Modifier.pressClickable(shape = r(6)) { runCatching { uri.openUri(source) } }.heightIn(min = 32.dp).padding(vertical = 8.dp),
                             )
                         }
                     }
@@ -438,7 +440,7 @@ private fun SureText(confidence: Double) =
 /** The sheet's tick: a yellow rounded square with a check when it goes into the form (a 40dp target). */
 @Composable
 private fun AiTick(on: Boolean, onClick: () -> Unit) {
-    Box(Modifier.size(40.dp).clip(r(8)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(40.dp).pressClickable(shape = r(8), onClick = onClick), contentAlignment = Alignment.Center) {
         Box(
             Modifier.size(22.dp).background(if (on) C.Yellow else C.Bg, r(6)).border(1.5.dp, if (on) C.Yellow else C.Border2, r(6)),
             contentAlignment = Alignment.Center,
@@ -461,7 +463,7 @@ internal fun SheetTitleRow(title: String, subtitle: String, onClose: () -> Unit)
 /** The tick of a suggested value: yellow with a check when it goes into the form (a 36dp target around a 20dp box). */
 @Composable
 internal fun TickBox(on: Boolean, onClick: () -> Unit) {
-    Box(Modifier.size(36.dp).clip(r(8)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(36.dp).pressClickable(shape = r(8), onClick = onClick), contentAlignment = Alignment.Center) {
         Box(
             Modifier.size(20.dp).background(if (on) C.Yellow else C.Bg, r(5)).border(1.5.dp, if (on) C.Yellow else C.Border2, r(5)),
             contentAlignment = Alignment.Center,
@@ -469,20 +471,33 @@ internal fun TickBox(on: Boolean, onClick: () -> Unit) {
     }
 }
 
+/** How a look-up button shows while the property has AI off. */
+private const val AI_OFF_ALPHA = 0.45f
+
 /** Stands in for the product name while the "Found …" sentence is split to set it in bold. */
 private const val PRODUCT_MARK = "\u0001"
 
-/** The sheet's buttons for its phase. */
+/**
+ * The sheet's buttons for its phase. With the property's AI switch off ([aiOn] false) the buttons that start a look-up
+ * stay, dimmed, and the sheet says "AI off. An admin can turn it on." (what was already found can still be applied).
+ */
 @Composable
-private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions: AiDialogActions) {
+private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions: AiDialogActions, aiOn: Boolean) {
+    // A look-up button: dimmed and doing nothing while AI is off.
+    val lookUp = { if (aiOn) actions.onLookUp() }
+    val lookUpAlpha = if (aiOn) 1f else AI_OFF_ALPHA
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // The error itself says so already.
+        if (!aiOn && (d.phase == AiPhase.IDENTIFY || d.phase == AiPhase.RESULTS)) {
+            Txt(stringResource(R.string.ai_off), 12, 500, C.Soft, Modifier.testTag(AiTags.AI_OFF), maxLines = Int.MAX_VALUE)
+        }
         when (d.phase) {
             AiPhase.LOADING -> {}
             AiPhase.IDENTIFY -> {
-                val ready = d.model.isNotBlank()
+                val ready = d.model.isNotBlank() && aiOn
                 Pill(
                     stringResource(R.string.ai_find), { if (ready) actions.onLookUp() }, Modifier.fillMaxWidth().alpha(if (ready) 1f else 0.45f),
                     bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700,
@@ -493,13 +508,16 @@ private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions:
             AiPhase.ERROR -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill(stringResource(R.string.action_close), actions.onClose, Modifier.weight(1f), height = 46.dp, size = 13, weight = 700)
                 if (d.model.isNotBlank()) {
-                    Pill(stringResource(R.string.ai_try_again), actions.onLookUp, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 13, weight = 700)
+                    Pill(
+                        stringResource(R.string.ai_try_again), lookUp, Modifier.weight(1f).alpha(lookUpAlpha),
+                        bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 13, weight = 700,
+                    )
                 }
             }
             // Nothing to apply: no Apply to press, just another model, another look, or Done.
             AiPhase.RESULTS -> if (nothing) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
-                Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
+                Pill(stringResource(R.string.ai_look_again), lookUp, Modifier.alpha(lookUpAlpha), height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
                 Pill(
                     stringResource(R.string.action_done), actions.onClose, Modifier.weight(1f),
                     bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 12.dp, size = 13, weight = 700,
@@ -509,7 +527,7 @@ private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions:
                 val n = d.picks.count { (k, p) -> p.on && p.value.isNotBlank() && k !in dropped } + typedCount
                 val ready = d.typeOn == true || n > 0
                 Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
-                Pill(stringResource(R.string.ai_look_again), actions.onLookUp, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
+                Pill(stringResource(R.string.ai_look_again), lookUp, Modifier.alpha(lookUpAlpha), height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
                 Pill(
                     stringResource(R.string.ai_apply),
                     { if (ready) actions.onApply() },

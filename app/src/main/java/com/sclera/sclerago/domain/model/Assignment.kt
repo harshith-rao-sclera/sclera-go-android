@@ -15,3 +15,12 @@ data class AssignResult(
     val unchanged: Int = 0,
     val notFound: Int = 0,
 )
+
+/** Why "Assign to me" can't take the assets (the web's takeReason): only an admin may take them. */
+enum class TakeRefusal {
+    /** One already has an assignee: only an admin reassigns it. */
+    ALREADY_ASSIGNED,
+
+    /** One is submitted or signed off: only an admin assigns it. */
+    SUBMITTED,
+}

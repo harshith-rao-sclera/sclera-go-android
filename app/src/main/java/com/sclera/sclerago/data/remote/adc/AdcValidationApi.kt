@@ -60,6 +60,9 @@ class AdcValidationApi @Inject constructor(private val service: AdcValidationSer
 
     suspend fun discard(p: String, id: String) = call.unit { service.discard(p, id) }
 
+    suspend fun recheck(p: String, job: String, asset: String): JobDto =
+        call.json({ service.recheck(p, job, asset) }) { one(JobDto.serializer(), it) }
+
     suspend fun results(p: String, job: String, outcome: String?, step: String?, q: String?, cursor: String?): PageDto<ResultDto> =
         call.json({ service.results(p, job, outcome, step, q, RESULTS_PAGE, cursor) }) { page(ResultDto.serializer(), it) }
 

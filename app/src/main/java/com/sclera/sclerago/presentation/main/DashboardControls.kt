@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.presentation.components.FilterFab
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -95,29 +96,15 @@ fun DashboardFabs(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         onAdd?.let { CircleFab(Icons.Plus, stringResource(R.string.dash_add_asset), it, Modifier.testTag(DashTags.ADD)) }
-        onFilter?.let { FilterFab(filterCount, it) }
+        onFilter?.let {
+            val description = if (filterCount > 0) pluralStringResource(R.plurals.filter_open_active, filterCount, filterCount)
+            else stringResource(R.string.filter_open)
+            FilterFab(filterCount, description, it, buttonModifier = Modifier.testTag(DashTags.FILTER))
+        }
         SearchFab(
             searchOpen, onSearchOpenChange, query, onQueryChange, stringResource(R.string.dash_search_hint),
             stringResource(R.string.action_search), stringResource(R.string.action_close_search),
         )
-    }
-}
-
-/** The filter button: a dark circle with a funnel; while [count] choices are on, the funnel is yellow with a count badge. */
-@Composable
-private fun FilterFab(count: Int, onClick: () -> Unit) {
-    val description = if (count > 0) pluralStringResource(R.plurals.filter_open_active, count, count) else stringResource(R.string.filter_open)
-    Box {
-        CircleFab(
-            Icons.Filter, description, onClick, Modifier.testTag(DashTags.FILTER),
-            bg = if (count > 0) C.YTintBg else C.Btn, fg = if (count > 0) C.Yellow else C.Text, iconSize = 20.dp, stroke = 2.4f,
-        )
-        if (count > 0) {
-            Box(
-                Modifier.align(Alignment.TopEnd).size(20.dp).clip(CircleShape).background(C.Yellow),
-                contentAlignment = Alignment.Center,
-            ) { Txt(count.toString(), 11, 700, C.OnYellow) }
-        }
     }
 }
 
@@ -149,12 +136,15 @@ fun SelectionDock(
     onChange: (() -> Unit)? = null,
     /** Greys Submit out (a ticked asset is already submitted, an exception or signed off); a tap then says why. */
     submitDimmed: Boolean = false,
+    /** Assign reads "Assign to me"; [assignDimmed] greys it out (a tap then says why). */
+    assignToMe: Boolean = false,
+    assignDimmed: Boolean = false,
 ) {
     Column(modifier.testTag(DashTags.DOCK)) {
         ActionDock(
             onValidate = onValidate, onAssign = onAssign, onSubmit = onSubmit, onDelete = onDelete, floating = true,
             onMove = onMove, moveDimmed = moveDimmed, onEdit = onEdit, offline = offline, onOffline = onOffline, onChange = onChange,
-            submitDimmed = submitDimmed,
+            submitDimmed = submitDimmed, assignToMe = assignToMe, assignDimmed = assignDimmed,
         ) {
             SelectionSummary(count, visible, allPicked, onClear, onSelectAll, Modifier.testTag(DashTags.SELECT_ALL))
         }

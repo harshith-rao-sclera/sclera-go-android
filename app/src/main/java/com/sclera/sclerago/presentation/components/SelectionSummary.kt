@@ -43,7 +43,7 @@ fun RowScope.SelectionSummary(
         Txt(stringResource(R.string.dash_selected, count), 14, 700)
         Text(
             if (allPicked) stringResource(R.string.dash_clear_all) else stringResource(R.string.dash_select_all, selectable),
-            selectAllModifier.clickable(onClick = onSelectAll),
+            selectAllModifier.pressClickable(onClick = onSelectAll),
             color = C.Soft, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
             textDecoration = TextDecoration.Underline, maxLines = 1,
         )

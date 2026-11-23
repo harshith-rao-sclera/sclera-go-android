@@ -203,11 +203,16 @@ class AccessViewModel @Inject constructor(
     /** Why there are no suggestions, when there are none (so an empty list is never a mystery, as on the web). */
     var suggestionHint by mutableStateOf<UiText?>(null)
         private set
+    /** The directory is being asked (the sheet shows placeholder people meanwhile). */
+    var suggestionsLoading by mutableStateOf(false)
+        private set
+
     private var suggesting: Job? = null
 
     /** Asks the directory for people matching [text] (a moment after typing stops), leaving out those already here. */
     fun suggest(text: String) {
         suggesting?.cancel()
+        suggestionsLoading = true
         suggesting = viewModelScope.launch {
             if (text.isNotBlank()) delay(SUGGEST_DELAY_MS)
             try {
@@ -223,12 +228,15 @@ class AccessViewModel @Inject constructor(
             } catch (e: OnlineException) {
                 suggestions = emptyList()
                 suggestionHint = UiText.Res(R.string.access_suggest_failed, listOf(e.error.toUiText()))
+            } finally {
+                suggestionsLoading = false
             }
         }
     }
 
     fun clearSuggestions() {
         suggesting?.cancel()
+        suggestionsLoading = false
         suggestions = emptyList()
         suggestionHint = null
     }
@@ -296,13 +304,17 @@ class AccessViewModel @Inject constructor(
 
     /**
      * Adding someone starts in the first group that isn't Admins, for selected properties (as the web does); [invite]
-     * is someone picked from the directory, whose email and name are filled in.
+     * is someone picked from the directory, whose email and name are filled in (and whose photo goes with the invitation).
      */
     fun newPerson(invite: DirectoryPerson? = null) {
         val firstGroup = groups.firstOrNull { !it.locked } ?: groups.firstOrNull() ?: return
         clearSuggestions()
         set {
-            copy(personForm = Person("", invite?.email.orEmpty(), firstGroup.id, allProperties = false, inviteName = invite?.name))
+            copy(
+                personForm = Person(
+                    "", invite?.email.orEmpty(), firstGroup.id, allProperties = false, inviteName = invite?.name, imageUrl = invite?.imageUrl,
+                ),
+            )
         }
     }
     fun editPerson(p: Person) = set { copy(personForm = p) }

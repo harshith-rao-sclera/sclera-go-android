@@ -1,5 +1,15 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.FilterFab
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import androidx.compose.runtime.key
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
+import com.sclera.sclerago.presentation.components.SkeletonCards
+import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.ToastEffect
 import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.model.OnlineOnly
@@ -34,7 +44,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -49,6 +58,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -128,6 +140,8 @@ fun ValidationScreen(
     onMenu: () -> Unit = {},
     /** A run to open as the page opens ("Open in Validation" from an asset); [onJobOpened] once it has. */
     openJobId: String? = null,
+    /** With [openJobId]: the asset whose result opens on that run. */
+    openAssetId: String? = null,
     onJobOpened: () -> Unit = {},
     vm: ValidationViewModel = hiltViewModel(),
     connectivity: ConnectivityViewModel = hiltViewModel(),
@@ -135,7 +149,7 @@ fun ValidationScreen(
     LaunchedEffect(propertyId) { vm.bind(propertyId) }
     LaunchedEffect(openJobId) {
         openJobId?.let {
-            vm.openReview(it)
+            vm.openReview(it, openAssetId)
             onJobOpened()
         }
     }
@@ -153,85 +167,130 @@ fun ValidationScreen(
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             SubPageBar(stringResource(R.string.menu_validation), propName, onMenu)
-            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 160.dp)) {
-                item(key = "top") { Spacer(Modifier.height(4.dp)) }
-                if (offline) item(key = "offline") { OfflineBanner(OnlineOnly.VALIDATION, Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
-                item(key = "lead") {
-                    Txt(stringResource(R.string.val_lead), 12, 400, C.Muted, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), maxLines = Int.MAX_VALUE)
-                }
-                item(key = "templates") {
-                    SectionTitle(stringResource(R.string.valt_templates), null) {
-                        if (s.catalogLoaded) Txt(stringResource(R.string.valt_default_order), 11, 600, C.Yellow, Modifier.clip(r(6)).clickable(onClick = vm::openOrder).padding(4.dp))
+            // Pull down to read the saved validations and runs again, as on the other pages (with a connection: also
+            // after a read that found none, to try again).
+            PullRefresh(s.refreshing, vm::refresh, Modifier.weight(1f).fillMaxWidth(), enabled = online) {
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 160.dp)) {
+                    item(key = "top") { Spacer(Modifier.height(4.dp)) }
+                    if (offline) item(key = "offline") { OfflineBanner(OnlineOnly.VALIDATION, Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
+                    item(key = "templates") {
+                        SectionTitle(stringResource(R.string.valt_templates), null) {
+                            if (s.catalogLoaded) Txt(stringResource(R.string.valt_default_order), 11, 600, C.Yellow, Modifier.pressClickable(shape = r(6), onClick = vm::openOrder).padding(4.dp))
+                        }
+                        if (s.templates.isEmpty()) {
+                            if (offline) EmptyNote(stringResource(R.string.valt_templates_offline))
+                            else SkeletonCards(stringResource(R.string.valt_templates_loading), Modifier.padding(horizontal = 12.dp))
+                        } else Row(
+                            // Every card as tall as the tallest (a handful of templates, so not lazy), buttons at the bottom.
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).height(IntrinsicSize.Max)
+                                .padding(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            s.templates.forEach { t ->
+                                key(t.key) {
+                                    TemplateCard(
+                                        t, ai = t.steps.any { s.stepsByKey[it]?.usesAi == true }, canRun = s.canCheck && !offline,
+                                        aiOn = s.aiOn, runs = !s.aiOnly(t.steps),
+                                        onRun = { vm.runOnAll(RunSource.Template(t.key)) },
+                                        onChoose = { vm.openRunSheet(RunSource.Template(t.key), pick = true) },
+                                        onChecks = { vm.showTemplate(t.key) },
+                                        modifier = Modifier.fillMaxHeight(),
+                                    )
+                                }
+                            }
+                        }
                     }
-                    if (s.templates.isEmpty()) {
-                        EmptyNote(stringResource(if (offline) R.string.valt_templates_offline else R.string.valt_templates_loading))
-                    } else LazyRow(
-                        contentPadding = PaddingValues(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        items(s.templates, key = { it.key }) { t ->
-                            TemplateCard(
-                                t, ai = t.steps.any { s.stepsByKey[it]?.usesAi == true }, canRun = s.canCheck && !offline,
-                                onRun = { vm.runOnAll(RunSource.Template(t.key)) },
-                                onChoose = { vm.openRunSheet(RunSource.Template(t.key), pick = true) },
-                                onChecks = { vm.showTemplate(t.key) },
-                            )
+                    item(key = "saved-title") {
+                        SectionTitle(stringResource(R.string.valt_saved_validations), s.saved.size)
+                    }
+                    if (s.saved.isEmpty()) item(key = "saved-empty") {
+                        if (s.loading) SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 2)
+                        else EmptyNote(stringResource(if (s.canValidate) R.string.val_saved_empty_reviewer else R.string.val_saved_empty_checker))
+                    }
+                    items(s.saved, key = { it.id }) { sv ->
+                        val keeps = s.canValidate && !offline
+                        SavedCard(
+                            sv, s.stepsByKey,
+                            onRun = if (s.canCheck && !offline) ({ vm.openRunSheet(RunSource.Saved(sv.id)) }) else null,
+                            // Only reviewers (validate) keep saved validations; anyone with check may run them. One that has
+                            // run can't change any more (the server answers 409): as the web, it offers Edit as new (a copy).
+                            onEdit = if (keeps) ({ if (sv.locked) vm.editAsNew(sv) else vm.editValidation(sv) }) else null,
+                            onDelete = if (keeps) ({ vm.askDelete(sv) }) else null,
+                        )
+                    }
+                    // Recent jobs: the newest 100 runs, narrowed by who ran them, status and check (the web's filters).
+                    item(key = "jobs-title") { SectionTitle(stringResource(R.string.valt_recent_jobs), s.matchingRuns.size) }
+                    if (s.runs.isEmpty()) item(key = "jobs-empty") {
+                        if (s.loading) {
+                            SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 3, lead = SkeletonLead.NONE, lines = 3)
+                        } else EmptyNote(stringResource(R.string.val_jobs_empty))
+                    }
+                    else {
+                        if (s.matchingRuns.isEmpty()) item(key = "jobs-none") {
+                            EmptyNote(stringResource(R.string.valt_dot_pair, stringResource(R.string.valt_jobs_no_match), stringResource(R.string.valt_jobs_no_match_hint)))
+                        }
+                    }
+                    // Every job in one card, one row each with a line between, rather than a card per job.
+                    if (s.shownRuns.isNotEmpty()) item(key = "jobs-list") {
+                        Column(
+                            Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
+                                .border(1.dp, C.Border, r(14)).testTag("val_jobs_list"),
+                        ) {
+                            s.shownRuns.forEachIndexed { i, j ->
+                                key(j.id) {
+                                    JobRow(
+                                        j, busy = j.id in s.busyRuns, onReview = { vm.openReview(j.id) },
+                                        onStart = if (s.canCheck && !offline) ({ vm.startReady(j) }) else null,
+                                        onDiscard = if (s.canValidate && !offline) ({ vm.discard(j) }) else null,
+                                        modifier = if (i > 0) Modifier.topBorder(C.Border) else Modifier,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // 20 rows at first; "Show more" adds as many again.
+                    val left = s.matchingRuns.size - s.shownRuns.size
+                    if (left > 0) item(key = "jobs-more") {
+                        Box(Modifier.fillMaxWidth().padding(top = 6.dp), contentAlignment = Alignment.Center) {
+                            TextAction(stringResource(R.string.valt_jobs_show_more, left), vm::showMoreJobs, color = C.Soft)
                         }
                     }
                 }
-                item(key = "saved-title") {
-                    SectionTitle(stringResource(R.string.valt_saved_validations), s.saved.size)
-                }
-                if (s.saved.isEmpty()) item(key = "saved-empty") {
-                    EmptyNote(
-                        when {
-                            s.loading -> stringResource(R.string.val_loading)
-                            s.canValidate -> stringResource(R.string.val_saved_empty_reviewer)
-                            else -> stringResource(R.string.val_saved_empty_checker)
-                        },
-                    )
-                }
-                items(s.saved, key = { it.id }) { sv ->
-                    val keeps = s.canValidate && !offline
-                    SavedCard(
-                        sv, s.stepsByKey,
-                        onRun = if (s.canCheck && !offline) ({ vm.openRunSheet(RunSource.Saved(sv.id)) }) else null,
-                        // Only reviewers (validate) keep saved validations; anyone with check may run them. One that has
-                        // run can't be edited any more (the server answers 409), so it says why instead.
-                        onEdit = if (keeps && !sv.locked) ({ vm.editValidation(sv) }) else null,
-                        onDelete = if (keeps) ({ vm.askDelete(sv) }) else null,
-                        showLocked = keeps && sv.locked,
-                    )
-                }
-                item(key = "jobs-title") { SectionTitle(stringResource(R.string.valt_recent_jobs), s.runs.size) }
-                if (s.runs.isEmpty()) item(key = "jobs-empty") { EmptyNote(stringResource(if (s.loading) R.string.val_loading else R.string.val_jobs_empty)) }
-                items(s.runs, key = { "job-${it.id}" }) { j ->
-                    JobRow(
-                        j, busy = j.id in s.busyRuns, onReview = { vm.openReview(j.id) },
-                        onStart = if (s.canCheck && !offline) ({ vm.startReady(j) }) else null,
-                        onDiscard = if (s.canValidate && !offline) ({ vm.discard(j) }) else null,
-                    )
-                }
             }
         }
-        // Create a validation (+, above) and run one (below), floating like the main screen's buttons.
+        // Filter jobs, above the others (it narrows the runs already listed, so offline too).
+        if (s.reviewJobId == null && s.runs.isNotEmpty()) {
+            // Above + when it shows, else in the corner.
+            val bottom = when {
+                !offline && s.canValidate -> 78.dp
+                else -> 14.dp
+            }
+            val on = listOf(s.filters.by, s.filters.status, s.filters.check).count { it != null }
+            val description = if (on > 0) pluralStringResource(R.plurals.valt_jobs_filter_active, on, on) else stringResource(R.string.valt_jobs_filter_title)
+            FilterFab(
+                on, description, vm::openJobFilter,
+                modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = bottom),
+                buttonModifier = Modifier.testTag("val_job_filter_fab"),
+            )
+        }
+        // Create a validation (+), in the corner like the main screen's buttons. Runs start from a template or a saved
+        // validation's Run.
         if (s.reviewJobId == null && !offline) {
-            if (s.canValidate) AddFab(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(bottom = 68.dp)) { vm.newValidation() }
-            if (s.canCheck && s.catalogLoaded) Box(
-                Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp).size(54.dp).fabShadow()
-                    .clip(CircleShape).background(C.Btn).clickable { vm.openRunSheet() },
-                contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Play, 20.dp, C.Text, 2.2f) }
+            if (s.canValidate) AddFab(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 4.dp, bottom = 4.dp)) { vm.newValidation() }
         }
 
         // Layers on top of the page.
         s.reviewJobId?.let { id ->
-            JobReview(s.propertyId, id, s.stepsByKey, assets, propName, onOpenAsset, onBack = { vm.openReview(null) }, onRunAgain = vm::runAgain)
+            JobReview(
+                s.propertyId, id, s.stepsByKey, assets, propName, onOpenAsset, onBack = { vm.openReview(null) }, onRunAgain = vm::runAgain,
+                openAssetId = s.reviewAssetId, onAssetOpened = vm::reviewAssetShown,
+            )
         }
         s.templateDetails?.let { key -> s.templates.firstOrNull { it.key == key } }?.let { t ->
             val canRun = s.canCheck && !offline
             ChecksSheet(
                 t.name, t.steps.mapNotNull { s.stepsByKey[it] }, { vm.showTemplate(null) },
+                aiOn = s.aiOn, runs = !s.aiOnly(t.steps),
                 onCustomize = if (s.canValidate) ({ vm.newValidation(t) }) else null,
                 onRun = if (canRun) ({ vm.showTemplate(null); vm.runOnAll(RunSource.Template(t.key)) }) else null,
                 onChoose = if (canRun) ({ vm.showTemplate(null); vm.openRunSheet(RunSource.Template(t.key), pick = true) }) else null,
@@ -239,6 +298,9 @@ fun ValidationScreen(
         }
         // A run sheet opened from Data Collection shows there ([QuickValidate]), not here.
         s.runSheet?.takeIf { !it.quick }?.let { RunSheetView(vm, s, it, assets) }
+        s.jobDraft?.let { draft ->
+            JobFilterSheet(draft, s.jobOptions, s::jobCount, vm::editJobDraft, vm::resetJobDraft, vm::applyJobDraft, vm::closeJobFilter)
+        }
         s.runSheet?.takeIf { it.picking && !it.quick }?.let { AssetPicker(vm, it, assets) }
         s.orderSheet?.let { OrderSheet(vm, s, it) }
         s.editor?.let { EditorPage(vm, s, it) }
@@ -251,6 +313,8 @@ fun ValidationScreen(
             )
         }
         ToastEffect(s.message)
+        // A run started here (or saved for later) is said with a button that opens it; Data Collection's own show there.
+        JobBannerEffect(s.banner?.takeIf { !it.quick }, onOpen = { id -> id?.let(vm::openReview) }, onShown = vm::bannerShown)
     }
 }
 
@@ -265,9 +329,10 @@ internal fun SectionTitle(title: String, count: Int?, trailing: (@Composable () 
     ) {
         Txt(title, 15, 700)
         count?.let {
-            Box(Modifier.size(22.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
-                Txt(it.toString(), 10, 700, C.Soft)
-            }
+            Box(
+                Modifier.height(22.dp).widthIn(min = 22.dp).clip(Capsule).background(C.Raised).padding(horizontal = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) { Txt(it.toString(), 10, 700, C.Soft) }
         }
         Spacer(Modifier.weight(1f))
         trailing?.invoke()
@@ -277,8 +342,8 @@ internal fun SectionTitle(title: String, count: Int?, trailing: (@Composable () 
 @Composable
 internal fun YellowButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, height: Int = 44) {
     Row(
-        modifier.height(height.dp).clip(r(10)).background(if (enabled) C.Yellow else C.Raised)
-            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 16.dp),
+        modifier.height(height.dp).pressClickable(shape = r(10), enabled = enabled, onClick = onClick).background(if (enabled) C.Yellow else C.Raised)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
@@ -288,22 +353,46 @@ internal fun YellowButton(text: String, onClick: () -> Unit, modifier: Modifier 
     }
 }
 
+/** "AI": it uses AI and the web; [off] (AI is off for the property) "AI off", greyed, with why for screen readers. */
 @Composable
-internal fun AiBadge() {
+internal fun AiBadge(off: Boolean = false) {
+    val why = stringResource(R.string.ai_off)
     Row(
-        Modifier.clip(Capsule).background(Color(0xFF26233A)).padding(horizontal = 6.dp, vertical = 2.dp),
+        Modifier.clip(Capsule).background(if (off) C.Raised else Color(0xFF26233A)).padding(horizontal = 6.dp, vertical = 2.dp)
+            .then(if (off) Modifier.semantics { contentDescription = why } else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        LineIcon(Icons.Sparkles, 10.dp, C.Purple)
-        Txt(stringResource(R.string.valt_ai_badge), 10, 700, C.Purple)
+        val fg = if (off) C.Muted else C.Purple
+        LineIcon(Icons.Sparkles, 10.dp, fg)
+        Txt(stringResource(if (off) R.string.valt_ai_off_badge else R.string.valt_ai_badge), 10, 700, fg)
     }
 }
 
+/** Why a run button is off: AI is off for the property and everything it would run is an AI check. */
 @Composable
-private fun TemplateCard(t: ValTemplate, ai: Boolean, canRun: Boolean, onRun: () -> Unit, onChoose: () -> Unit, onChecks: () -> Unit) {
+private fun AiOffNote(modifier: Modifier = Modifier) {
+    Txt(stringResource(R.string.ai_off), 11, 400, C.Muted, modifier, maxLines = Int.MAX_VALUE)
+}
+
+/**
+ * A template: its icon, name and AI badge ("AI off" when [aiOn] is false), its tagline, and Run on all assets / Choose
+ * assets; with AI off a template of nothing but AI checks ([runs] false) can't run, and says why.
+ */
+@Composable
+private fun TemplateCard(
+    t: ValTemplate,
+    ai: Boolean,
+    canRun: Boolean,
+    onRun: () -> Unit,
+    onChoose: () -> Unit,
+    onChecks: () -> Unit,
+    modifier: Modifier = Modifier,
+    aiOn: Boolean = true,
+    runs: Boolean = true,
+) {
     Column(
-        Modifier.width(272.dp).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(10.dp),
+        modifier.width(272.dp).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -311,14 +400,20 @@ private fun TemplateCard(t: ValTemplate, ai: Boolean, canRun: Boolean, onRun: ()
                 LineIcon(templateIcon(t.key), 18.dp, C.Yellow, 2.2f)
             }
             Txt(t.name, 14, 700, modifier = Modifier.weight(1f, fill = false))
-            if (ai) AiBadge()
+            if (ai) AiBadge(off = !aiOn)
         }
         Txt(templateTagline(t), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
-        if (canRun) YellowButton(stringResource(R.string.valt_run_on_all), onRun, Modifier.fillMaxWidth(), height = 40)
+        // Fills the room a taller card's text takes, so every card's buttons line up at the bottom.
+        Spacer(Modifier.weight(1f))
+        if (canRun && !runs) AiOffNote()
+        if (canRun) YellowButton(stringResource(R.string.valt_run_on_all), onRun, Modifier.fillMaxWidth(), enabled = runs, height = 40)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (canRun) Txt(stringResource(R.string.valt_choose_assets), 11, 600, C.Soft, Modifier.clip(r(6)).clickable(onClick = onChoose).padding(vertical = 4.dp))
+            if (canRun) Txt(
+                stringResource(R.string.valt_choose_assets), 11, 600, if (runs) C.Soft else C.Dim,
+                Modifier.pressClickable(shape = r(6), enabled = runs, onClick = onChoose).padding(vertical = 4.dp),
+            )
             Spacer(Modifier.weight(1f))
-            Txt(pluralStringResource(R.plurals.valt_see_steps, t.steps.size, t.steps.size), 11, 600, C.Yellow, Modifier.clip(r(6)).clickable(onClick = onChecks).padding(vertical = 4.dp))
+            Txt(pluralStringResource(R.plurals.valt_see_steps, t.steps.size, t.steps.size), 11, 600, C.Yellow, Modifier.pressClickable(shape = r(6), onClick = onChecks).padding(vertical = 4.dp))
         }
     }
 }
@@ -330,7 +425,6 @@ private fun SavedCard(
     onRun: (() -> Unit)?,
     onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
-    showLocked: Boolean = false,
 ) {
     Column(
         Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
@@ -338,24 +432,50 @@ private fun SavedCard(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         val last = sv.lastRun
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Txt(sv.name, 14, 700, modifier = Modifier.weight(1f))
-            Txt(
-                when {
-                    last == null -> stringResource(R.string.valt_not_run_yet)
-                    last.status.active -> stringResource(R.string.valt_last_run_running, relativeTime(last.createdAt ?: 0L))
-                    else -> stringResource(R.string.valt_last_run_review, relativeTime(last.createdAt ?: 0L), last.openCount)
-                },
-                11, 400, C.Muted,
-            )
+        // The name in full (it wraps), with "Already run" at the end of its line; when it last ran and how many are left
+        // to review sit under it.
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Txt(sv.name, 14, 700, maxLines = Int.MAX_VALUE)
+                Txt(
+                    when {
+                        last == null -> stringResource(R.string.valt_not_run_yet)
+                        last.status.active -> stringResource(R.string.valt_last_run_running, relativeTime(last.createdAt ?: 0L))
+                        else -> stringResource(R.string.valt_last_run_review, relativeTime(last.createdAt ?: 0L), last.openCount)
+                    },
+                    11, 400, C.Muted, maxLines = 2,
+                )
+            }
+            // Already run (the web's chip): its runs keep the steps they ran with, so it can't change.
+            if (sv.locked) {
+                val why = stringResource(R.string.valt_ran_note)
+                Row(
+                    Modifier.clip(CircleShape).background(C.Raised).padding(horizontal = 7.dp, vertical = 3.dp)
+                        .semantics { contentDescription = why },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    LineIcon(Icons.Lock, 11.dp, C.Soft, 2.2f)
+                    Txt(stringResource(R.string.valt_ran_chip), 10, 700, C.Soft)
+                }
+            }
         }
         Txt(sv.steps.joinToString(" · ") { stepName(steps, it) }, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
-        if (showLocked) Txt(stringResource(R.string.valt_locked_note), 11, 400, C.Soft, maxLines = Int.MAX_VALUE)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             onRun?.let { YellowButton(stringResource(R.string.valt_run), it, height = 36) }
             Spacer(Modifier.weight(1f))
-            onEdit?.let { Txt(stringResource(R.string.action_edit), 12, 700, C.Soft, Modifier.clip(r(8)).clickable(onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
-            onDelete?.let { Txt(stringResource(R.string.action_delete), 12, 700, C.Red, Modifier.clip(r(8)).clickable(onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
+            onEdit?.let {
+                // One that has run: Edit as new, with the copy icon (the web's), else Edit.
+                Row(
+                    Modifier.heightIn(min = 48.dp).pressClickable(shape = r(8), onClick = it).padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    if (sv.locked) LineIcon(Icons.Clone, 13.dp, C.Soft, 2.2f)
+                    Txt(stringResource(if (sv.locked) R.string.valt_edit_as_new else R.string.action_edit), 12, 700, C.Soft)
+                }
+            }
+            onDelete?.let { Txt(stringResource(R.string.action_delete), 12, 700, C.Red, Modifier.pressClickable(shape = r(8), onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
         }
     }
 }
@@ -442,24 +562,43 @@ internal fun JobProgress(j: ValRun) {
 internal fun scopeText(j: ValRun): String = ValidationViewModel.scopeText(j).asString()
 
 @Composable
-private fun JobRow(j: ValRun, busy: Boolean, onReview: () -> Unit, onStart: (() -> Unit)?, onDiscard: (() -> Unit)?) {
+private fun JobRow(
+    j: ValRun,
+    busy: Boolean,
+    onReview: () -> Unit,
+    onStart: (() -> Unit)?,
+    onDiscard: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
     val ready = j.status == RunStatus.READY
+    // A row of the Recent jobs card (the card draws the frame; rows after the first draw the line above them).
     Column(
-        Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
-            .border(1.dp, C.Border, r(14)).clickable(enabled = !ready, onClick = onReview).padding(10.dp),
+        modifier.pressClickable(pressed = PRESSED_CARD, enabled = !ready, onClick = onReview).fillMaxWidth().padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatusChip(j.status)
-            Spacer(Modifier.weight(1f))
-            Txt(relativeTime(j.startedAt ?: j.createdAt ?: 0L), 11, 400, C.Muted)
+            // When it was started (or set up), with who started it on the line below, as the web's: both against the end.
+            val ago = relativeTime(j.startedAt ?: j.createdAt ?: 0L)
+            val whenText = if (ready) stringResource(R.string.valt_set_up_ago, ago) else ago
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Txt(whenText, 11, 400, C.Muted, align = TextAlign.End)
+                j.startedBy?.let { Txt(it, 11, 400, C.Muted, align = TextAlign.End) }
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(j.name, 14, 700)
                 Txt(stringResource(R.string.valt_dot_pair, scopeText(j), pluralStringResource(R.plurals.rev_steps, j.steps.size, j.steps.size)), 11, 400, C.Muted)
             }
-            if (!ready) Pill(stringResource(if (j.status.active) R.string.valt_view else R.string.rev_title), onReview, height = 34.dp, hPad = 14.dp, size = 12)
+            // Review (View while it runs): no fill, a white outline with small corners.
+            if (!ready) {
+                Box(
+                    Modifier.height(28.dp).clip(r(6)).border(1.dp, C.Text, r(6)).pressClickable(shape = r(6), role = Role.Button, onClick = onReview)
+                        .padding(horizontal = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Txt(stringResource(if (j.status.active) R.string.valt_view else R.string.rev_title), 11, 600, C.Text) }
+            }
         }
         when {
             ready -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -467,7 +606,7 @@ private fun JobRow(j: ValRun, busy: Boolean, onReview: () -> Unit, onStart: (() 
                     stringResource(if (j.scope == RunScope.CHANGED) R.string.valt_ready_changed else R.string.valt_ready_not_started),
                     11, 400, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE,
                 )
-                onDiscard?.let { Txt(stringResource(R.string.action_discard), 12, 700, C.Red, Modifier.clip(r(8)).clickable(enabled = !busy, onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
+                onDiscard?.let { Txt(stringResource(R.string.action_discard), 12, 700, C.Red, Modifier.pressClickable(shape = r(8), enabled = !busy, onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
                 onStart?.let { YellowButton(stringResource(if (busy) R.string.valt_starting else R.string.valt_run), it, enabled = !busy, height = 36) }
             }
             j.status.active -> JobProgress(j)
@@ -492,9 +631,9 @@ internal fun OptionCard(
     badge: (@Composable () -> Unit)? = null,
 ) {
     Column(
-        modifier.clip(r(12)).background(if (selected) C.YTintBg else C.Bg)
+        modifier.pressClickable(shape = r(12), onClick = onClick).background(if (selected) C.YTintBg else C.Bg)
             .border(if (selected) 1.5.dp else 1.dp, if (selected) C.Yellow else C.Border2, r(12))
-            .clickable(onClick = onClick).padding(10.dp),
+            .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -506,13 +645,15 @@ internal fun OptionCard(
 }
 
 @Composable
-private fun RuleChip(text: String, ai: Boolean) {
+private fun RuleChip(text: String, ai: Boolean, aiOn: Boolean = true) {
+    // An AI check with AI off is skipped: greyed.
+    val skipped = ai && !aiOn
     Row(
-        Modifier.clip(Capsule).background(C.Raised).padding(horizontal = 10.dp, vertical = 5.dp),
+        Modifier.clip(Capsule).background(C.Raised).alpha(if (skipped) 0.5f else 1f).padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        if (ai) LineIcon(Icons.Sparkles, 10.dp, C.Purple)
+        if (ai) LineIcon(Icons.Sparkles, 10.dp, if (skipped) C.Muted else C.Purple)
         Txt(text, 11, 500, C.Soft)
     }
 }
@@ -548,9 +689,9 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
                 options.forEach { o ->
                     val on = sh.source == o.source
                     Column(
-                        Modifier.fillMaxWidth().clip(r(12)).background(if (on) C.YTintBg else C.Surface)
+                        Modifier.fillMaxWidth().pressClickable(shape = r(12), pressed = PRESSED_CARD) { vm.setRunSource(o.source) }.background(if (on) C.YTintBg else C.Surface)
                             .border(if (on) 1.5.dp else 1.dp, if (on) C.Yellow else C.Border, r(12))
-                            .clickable { vm.setRunSource(o.source) }.padding(10.dp),
+                            .padding(10.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Box(Modifier.size(30.dp).clip(r(8)).background(C.Raised), contentAlignment = Alignment.Center) {
@@ -559,7 +700,7 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Txt(o.name, 13, 700, modifier = Modifier.weight(1f, fill = false))
-                                    if (o.ai) AiBadge()
+                                    if (o.ai) AiBadge(off = !s.aiOn)
                                     if (o.saved) Txt(stringResource(R.string.valt_saved_badge), 10, 600, C.Muted)
                                 }
                                 Txt(stringResource(R.string.valt_dot_pair, o.tagline, pluralStringResource(R.plurals.rev_steps, o.steps.size, o.steps.size)), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
@@ -572,9 +713,18 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
                             horizontalArrangement = Arrangement.spacedBy(5.dp),
                             verticalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
-                            o.steps.forEach { RuleChip(stepName(steps, it), steps[it]?.usesAi == true) }
+                            o.steps.forEach { RuleChip(stepName(steps, it), steps[it]?.usesAi == true, s.aiOn) }
                         }
+                        // AI off for the property: its AI checks are skipped (and one of nothing but AI checks can't run).
+                        if (on && o.ai && !s.aiOn) Txt(
+                            stringResource(R.string.valt_ai_off_skipped), 11, 400, C.Muted, Modifier.padding(start = 40.dp, top = 6.dp),
+                            maxLines = Int.MAX_VALUE,
+                        )
                     }
+                }
+                // The templates or the saved validations are still being read: placeholder choices where they will go.
+                if ((!s.catalogLoaded && !s.catalogFailed) || s.loading) {
+                    SkeletonList(stringResource(R.string.val_loading), count = if (options.isEmpty()) 3 else 1, gap = 6.dp)
                 }
 
                 Txt(stringResource(R.string.valt_which_assets), 12, 600, C.Soft, Modifier.padding(start = 2.dp, top = 10.dp, bottom = 2.dp))
@@ -598,15 +748,10 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
                 Spacer(Modifier.height(4.dp))
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val ok = chosen != null && count != 0 && !sh.busy
-                val name = chosen?.name ?: stringResource(R.string.valt_run_name_fallback)
-                val label = when {
-                    count == 0 -> stringResource(if (sh.mode == RunMode.CHOSEN) R.string.valt_tick_first else R.string.valt_no_assets_to_check)
-                    count < 0 -> stringResource(R.string.valt_run_on_changed, name)
-                    else -> pluralStringResource(R.plurals.valt_run_on_n, count, count, name)
-                }
+                // Just the two actions; what will be checked, and on which assets, shows above them.
+                val ok = chosen != null && count != 0 && !sh.busy && !s.aiOnly(chosen.steps)
                 Pill(stringResource(R.string.valt_save_as_ready), { if (ok) vm.submitRunSheet(now = false) }, Modifier.alpha(if (ok) 1f else 0.5f), height = 44.dp, hPad = 14.dp, size = 13)
-                YellowButton(label, { vm.submitRunSheet(now = true) }, Modifier.weight(1f), enabled = ok, height = 44)
+                YellowButton(stringResource(R.string.valt_run_validation), { vm.submitRunSheet(now = true) }, Modifier.weight(1f), enabled = ok, height = 44)
             }
         }
     }
@@ -622,7 +767,7 @@ private fun ScopeTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Un
         labels.forEachIndexed { i, l ->
             val on = i == selected
             Box(
-                Modifier.weight(1f).height(32.dp).clip(r(8)).background(if (on) C.Yellow else Color.Transparent).clickable { onSelect(i) },
+                Modifier.weight(1f).height(32.dp).pressClickable(shape = r(8)) { onSelect(i) }.background(if (on) C.Yellow else Color.Transparent),
                 contentAlignment = Alignment.Center,
             ) { Txt(l, 11, if (on) 700 else 500, if (on) C.OnYellow else C.Muted, maxLines = 1) }
         }
@@ -643,7 +788,7 @@ internal fun AssetPicker(vm: ValidationViewModel, sh: RunSheetState, assets: Lis
         }
         val all = list.isNotEmpty() && list.all { it.id in sh.chosen }
         if (list.isNotEmpty()) Row(
-            Modifier.fillMaxWidth().clickable { vm.setChosen(list.map { it.id }, !all) }.padding(horizontal = 16.dp, vertical = 10.dp),
+            Modifier.pressClickable(pressed = PRESSED_CARD) { vm.setChosen(list.map { it.id }, !all) }.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -654,7 +799,7 @@ internal fun AssetPicker(vm: ValidationViewModel, sh: RunSheetState, assets: Lis
         LazyColumn(Modifier.weight(1f, fill = false)) {
             items(list, key = { it.id }) { a ->
                 Row(
-                    Modifier.fillMaxWidth().topBorder(C.Border).clickable { vm.toggleChosen(a.id) }
+                    Modifier.pressClickable(pressed = PRESSED_CARD) { vm.toggleChosen(a.id) }.fillMaxWidth().topBorder(C.Border)
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -687,13 +832,24 @@ private fun ChecksSheet(
     onCustomize: (() -> Unit)?,
     onRun: (() -> Unit)? = null,
     onChoose: (() -> Unit)? = null,
+    /** AI is on in the property; off, its AI steps are skipped. */
+    aiOn: Boolean = true,
+    /** It has something to run (with AI off, not when every step is an AI one). */
+    runs: Boolean = true,
 ) {
     BottomSheet(onClose) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 14.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(name, 22, 700, maxLines = 2)
                 Txt(
-                    pluralStringResource(if (steps.any { it.usesAi }) R.plurals.valt_steps_some_ai else R.plurals.rev_steps, steps.size, steps.size),
+                    pluralStringResource(
+                        when {
+                            steps.none { it.usesAi } -> R.plurals.rev_steps
+                            aiOn -> R.plurals.valt_steps_some_ai
+                            else -> R.plurals.valt_steps_ai_off
+                        },
+                        steps.size, steps.size,
+                    ),
                     13, 400, C.Muted, maxLines = Int.MAX_VALUE,
                 )
             }
@@ -709,7 +865,7 @@ private fun ChecksSheet(
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Txt(r.name, 15, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
-                            if (r.usesAi) AiBadge()
+                            if (r.usesAi) AiBadge(off = !aiOn)
                         }
                         Txt(r.description, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                         Txt(
@@ -721,9 +877,10 @@ private fun ChecksSheet(
                 }
             }
             Txt(stringResource(R.string.val_steps_in_order), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
-            onRun?.let { YellowButton(stringResource(R.string.valt_run_on_all), it, Modifier.fillMaxWidth(), height = 44) }
+            if (!runs && (onRun != null || onChoose != null)) AiOffNote()
+            onRun?.let { YellowButton(stringResource(R.string.valt_run_on_all), it, Modifier.fillMaxWidth(), enabled = runs, height = 44) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                onChoose?.let { Pill(stringResource(R.string.valt_choose_assets), it, Modifier.weight(1f), height = 40.dp, size = 13) }
+                onChoose?.let { Pill(stringResource(R.string.valt_choose_assets), { if (runs) it() }, Modifier.weight(1f).alpha(if (runs) 1f else 0.4f), height = 40.dp, size = 13) }
                 onCustomize?.let { Pill(stringResource(R.string.valt_customize), it, Modifier.weight(1f), height = 40.dp, size = 13) }
             }
         }
@@ -747,7 +904,7 @@ private fun OrderSheet(vm: ValidationViewModel, s: ValidationUiState, o: OrderSh
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (o.loading) Txt(stringResource(R.string.val_loading), 11, 400, C.Muted)
+                if (o.loading && o.steps.isEmpty()) SkeletonList(stringResource(R.string.val_loading), count = 4, lead = SkeletonLead.NONE, lines = 1)
                 ReorderableSteps(o.steps, { id, by -> vm.moveOrderStep(o.steps.indexOf(id), by) }) { i, key, modifier, handle ->
                     StepRow(
                         i, stepName(s.stepsByKey, key), groupText(s.stepsByKey[key]?.group), first = i == 0, last = i == o.steps.size - 1,
@@ -784,11 +941,22 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
     val ok = e.complete && !e.saving
     val steps = s.stepsByKey
     Column(Modifier.fillMaxSize().background(C.Bg).noRippleClick { }.blockSwipe()) {
-        PageBar(stringResource(if (e.id == null) R.string.val_editor_new else R.string.val_editor_edit), null, close)
+        PageBar(
+            stringResource(
+                when {
+                    e.id != null -> R.string.val_editor_edit
+                    e.copyOf != null -> R.string.val_editor_copy
+                    else -> R.string.val_editor_new
+                },
+            ),
+            null, close,
+        )
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).navigationBarsPadding().imePadding().padding(horizontal = 6.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // A copy of one that has already run: said up front, so nobody edits it expecting the original to change.
+            e.copyOf?.let { CopyNote(it) }
             // Name, description, save
             CfgCard {
                 Column(Modifier.padding(EditorCardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -828,7 +996,7 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
                         if (e.steps.isNotEmpty()) {
                             Txt(
                                 stringResource(R.string.val_editor_clear_all), 11, 600, C.Soft,
-                                Modifier.clip(r(8)).clickable(onClick = vm::clearSteps).padding(4.dp),
+                                Modifier.pressClickable(shape = r(8), onClick = vm::clearSteps).padding(4.dp),
                             )
                         }
                     }
@@ -841,8 +1009,8 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
                                 // The template the steps came from stands out, as on the web.
                                 val on = e.templateKey == t.key
                                 Box(
-                                    Modifier.heightIn(min = 34.dp).clip(Capsule).background(if (on) C.YTintBg else Color.Transparent)
-                                        .border(1.dp, if (on) C.Yellow else C.Border2, Capsule).clickable { vm.startFrom(t) }
+                                    Modifier.heightIn(min = 34.dp).pressClickable(shape = Capsule) { vm.startFrom(t) }.background(if (on) C.YTintBg else Color.Transparent)
+                                        .border(1.dp, if (on) C.Yellow else C.Border2, Capsule)
                                         .padding(horizontal = 12.dp, vertical = 7.dp),
                                     contentAlignment = Alignment.Center,
                                 ) { Txt(t.name, 11, 700, if (on) C.Yellow else C.Text) }
@@ -850,7 +1018,7 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
                             if (e.undo != null) {
                                 Txt(
                                     stringResource(R.string.val_undo), 11, 700, C.Yellow,
-                                    Modifier.clip(r(8)).clickable(onClick = vm::undoSteps).padding(horizontal = 6.dp, vertical = 6.dp),
+                                    Modifier.pressClickable(shape = r(8), onClick = vm::undoSteps).padding(horizontal = 6.dp, vertical = 6.dp),
                                 )
                             }
                         }
@@ -898,6 +1066,19 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
         }
     }
     infoFor?.let { id -> steps[id] }?.let { r -> StepInfoSheet(vm, s, e, r) { infoFor = null } }
+}
+
+/** The editor opened on a copy of [original], a saved validation that has already run (the web's note). */
+@Composable
+private fun CopyNote(original: String) {
+    Row(
+        Modifier.fillMaxWidth().clip(r(12)).background(C.YTintBg).border(1.dp, C.YTintBd, r(12)).padding(12.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        LineIcon(Icons.Lock, 16.dp, C.Yellow, 2.2f, Modifier.padding(top = 1.dp))
+        Txt(stringResource(R.string.val_editor_copy_note, original), 12, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+    }
 }
 
 /** The inside margin of the editor's cards (name, steps, steps library). */
@@ -960,8 +1141,8 @@ private fun StepInfoSheet(vm: ValidationViewModel, s: ValidationUiState, e: Edit
 @Composable
 internal fun SettingChip(text: String, on: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.clip(Capsule).background(if (on) C.YTintBg else Color.Transparent).border(1.dp, if (on) C.Yellow else C.Border2, Capsule)
-            .clickable(onClick = onClick).padding(horizontal = 11.dp, vertical = 6.dp),
+        Modifier.pressClickable(shape = Capsule, onClick = onClick).background(if (on) C.YTintBg else Color.Transparent).border(1.dp, if (on) C.Yellow else C.Border2, Capsule)
+            .padding(horizontal = 11.dp, vertical = 6.dp),
     ) { Txt(text, 11, 600, if (on) C.Yellow else C.Text) }
 }
 
@@ -1001,7 +1182,7 @@ private fun StepRow(
 
 @Composable
 private fun StepIcon(icon: Ico, enabled: Boolean, onClick: () -> Unit, flip: Boolean = false) {
-    Box(Modifier.size(30.dp).clip(CircleShape).clickable(enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(30.dp).pressClickable(shape = CircleShape, enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
         LineIcon(icon, 15.dp, if (enabled) C.Text else C.Raised, 2.2f, if (flip) Modifier.rotate(180f) else Modifier)
     }
 }
@@ -1036,7 +1217,7 @@ private fun CheckRow(rule: ValStep, added: Boolean, onAdd: () -> Unit) {
             }
         } else {
             Row(
-                Modifier.clip(Capsule).border(1.dp, C.Soft.copy(alpha = 0.6f), Capsule).clickable(onClick = onAdd).padding(horizontal = 11.dp, vertical = 5.dp),
+                Modifier.pressClickable(shape = Capsule, onClick = onAdd).border(1.dp, C.Soft.copy(alpha = 0.6f), Capsule).padding(horizontal = 11.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {

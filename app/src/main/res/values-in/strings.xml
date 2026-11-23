@@ -348,7 +348,6 @@
     <string name="detail_comment_too_long">Komentar maksimal %1$d karakter.</string>
     <string name="detail_back">Kembali ke daftar</string>
     <string name="detail_name_hint">Nama aset</string>
-    <string name="detail_saved">Tersimpan</string>
     <string name="detail_menu_camera">Ambil foto atau video</string>
     <string name="detail_menu_files">Unggah dari file</string>
     <string name="detail_photo">Foto</string>

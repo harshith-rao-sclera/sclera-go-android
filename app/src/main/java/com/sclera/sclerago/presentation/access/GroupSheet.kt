@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -116,9 +118,9 @@ internal fun GroupSheet(
 @Composable
 private fun PermissionRow(p: Permission, on: Boolean, locked: Boolean, onToggle: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (locked) LockedRowAlpha else 1f)
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !locked, role = Role.Checkbox, onClick = onToggle).fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).alpha(if (locked) LockedRowAlpha else 1f)
             .testTag(AccessTags.permission(p)).semantics { selected = on }
-            .clickable(enabled = !locked, role = Role.Checkbox, onClick = onToggle)
+            
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

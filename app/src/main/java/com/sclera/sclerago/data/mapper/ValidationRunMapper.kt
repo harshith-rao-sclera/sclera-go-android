@@ -110,6 +110,7 @@ fun JobDto.toDomain() = ValRun(
     startedAt = parseDbTime(startedAt),
     finishedAt = parseDbTime(finishedAt),
     startedBy = startedBy?.takeIf { it.isNotBlank() }?.clip(),
+    createdBy = createdBy?.takeIf { isServerId(it) },
 )
 
 fun ResultDto.toDomain() = RunAssetResult(
@@ -159,6 +160,7 @@ fun IssueDto.toDomain() = RunIssue(
     related = related,
     status = IssueStatus.of(status),
     resolvedValue = resolvedValue.toIssueValue(),
+    canDismiss = canDismiss,
 )
 
 fun InsightsDto.toDomain() = RunInsights(
@@ -311,6 +313,7 @@ fun DbRow.toValRun(): ValRun {
         createdAt = parseDbTime(string("created_at")),
         startedAt = parseDbTime(string("started_at")),
         finishedAt = parseDbTime(string("finished_at")),
+        createdBy = string("created_by")?.takeIf { isServerId(it) },
     )
 }
 
@@ -360,6 +363,7 @@ fun DbRow.toRunIssue(fieldNames: Map<String, Pair<String, String>>): RunIssue {
         related = DbJson.stringList(string("related")),
         status = IssueStatus.of(string("status")),
         resolvedValue = parsed(string("resolved_value")).toIssueValue(),
+        canDismiss = com.sclera.sclerago.domain.validation.canDismiss(rule),
     )
 }
 

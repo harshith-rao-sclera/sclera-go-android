@@ -360,7 +360,6 @@
     <string name="detail_comment_too_long">Komentarz może mieć maksymalnie %1$d znaków.</string>
     <string name="detail_back">Wróć do listy</string>
     <string name="detail_name_hint">Nazwa zasobu</string>
-    <string name="detail_saved">Zapisano</string>
     <string name="detail_menu_camera">Zrób zdjęcie lub nagraj wideo</string>
     <string name="detail_menu_files">Prześlij z plików</string>
     <string name="detail_photo">Zdjęcie</string>

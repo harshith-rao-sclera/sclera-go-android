@@ -356,7 +356,6 @@
     <string name="detail_comment_too_long">Un commento può contenere al massimo %1$d caratteri.</string>
     <string name="detail_back">Torna all’elenco</string>
     <string name="detail_name_hint">Nome dell’asset</string>
-    <string name="detail_saved">Salvato</string>
     <string name="detail_menu_camera">Scatta foto o registra video</string>
     <string name="detail_menu_files">Carica da file</string>
     <string name="detail_photo">Foto</string>

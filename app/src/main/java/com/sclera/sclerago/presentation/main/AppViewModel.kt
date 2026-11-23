@@ -47,6 +47,7 @@ import com.sclera.sclerago.domain.usecase.media.FileUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.validation.ValidationAccessUseCase
+import com.sclera.sclerago.presentation.assets.DetailTabKind
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.observedIn
 import com.sclera.sclerago.presentation.common.toUiText
@@ -122,6 +123,11 @@ data class UiState(
     val devAdded: Map<Source, Map<String, String>> = emptyMap(),
     val pv: Preview? = null,
     val assetId: String? = null,
+    /**
+     * The tab the asset's details open on ([AppViewModel.openAssetValidation]: Validation); null keeps the screen's own
+     * choice. Cleared once the details screen has shown it ([AppViewModel.assetTabOpened]).
+     */
+    val assetTab: DetailTabKind? = null,
     val newAsset: Boolean = false,
     val newSrc: Source = Source.MANUAL,
     /** Photos/videos the new-asset form opens with (Camera tab: the shot just taken). */
@@ -145,11 +151,13 @@ data class UiState(
     val valOpen: Boolean = false,
     /** A run to open on the Validation page as it opens ("Open in Validation" from an asset); null once it has. */
     val valJobId: String? = null,
+    /** With [valJobId]: the asset whose result opens on that run ("This asset's result"); null for the run alone. */
+    val valAssetId: String? = null,
     // ---- Configuration page
     val cfgOpen: Boolean = false,
     // ---- Integration page
     val intOpen: Boolean = false,
-    val cfgPage: CfgPage = CfgPage.FIELDS,
+    val cfgPage: CfgPage = CfgPage.BUILDING,
     // ---- Property list / People and access (side menu)
     val adminPage: AdminPage? = null,
 )
@@ -534,7 +542,7 @@ class AppViewModel @Inject constructor(
                 // Validation, Configuration and Integration sit on top of the tabs, so they close too.
                 MenuItem.ASSETS -> {
                     closeAdmin()
-                    set { copy(valOpen = false, cfgOpen = false, cfgPage = CfgPage.FIELDS, intOpen = false) }
+                    set { copy(valOpen = false, cfgOpen = false, cfgPage = CfgPage.BUILDING, intOpen = false) }
                     switchTab(Tab.ASSETS)
                 }
                 MenuItem.VALIDATION -> { closeAdmin(); showValidation() }
@@ -719,7 +727,13 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun openAsset(id: String) = set { copy(assetId = id, newAsset = false) }
+    fun openAsset(id: String) = set { copy(assetId = id, newAsset = false, assetTab = null) }
+
+    /** Opens asset [id] on its Validation tab: a row's failed or needs-a-look validation mark (the web's badge). */
+    fun openAssetValidation(id: String) = set { copy(assetId = id, newAsset = false, assetTab = DetailTabKind.VALIDATION) }
+
+    /** The details screen has opened on [UiState.assetTab]: later it keeps the tab its user picks. */
+    fun assetTabOpened() = set { if (assetTab == null) this else copy(assetTab = null) }
 
     /** The "+" button: the new-asset form, only for someone who may add assets (Collect); the web hides Add otherwise. */
     fun openNew() {
@@ -729,7 +743,7 @@ class AppViewModel @Inject constructor(
     fun closeDetail() {
         // A camera shot that never became an asset is thrown away with the form.
         if (state.newAsset) fileUseCases.deleteOwned(state.newMedia)
-        set { copy(assetId = null, newAsset = false, newMedia = emptyList(), newDevice = null) }
+        set { copy(assetId = null, assetTab = null, newAsset = false, newMedia = emptyList(), newDevice = null) }
     }
 
     /** A shot the new asset's form opened with was removed there: it isn't made into the asset, and its file goes. */
@@ -946,15 +960,25 @@ class AppViewModel @Inject constructor(
         if (!canCheck) return
         set { copy(valOpen = true, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     }
-    fun closeValidation() = set { copy(valOpen = false, valJobId = null, tab = Tab.ASSETS, assetId = null, newAsset = false) }
+    fun closeValidation() = set { copy(valOpen = false, valJobId = null, valAssetId = null, tab = Tab.ASSETS, assetId = null, newAsset = false) }
 
     /** "Open in Validation" from an asset: the Validation page, on the run [jobId] (the asset closes). */
-    fun openValidationRun(jobId: String) = if (!canCheck) Unit else leaving {
-        set { copy(valOpen = true, valJobId = jobId, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
+    fun openValidationRun(jobId: String) = openValidationAt(jobId, null)
+
+    /** "Open in Validation" from an asset: the Validation page on the run [jobId] with [assetId]'s result open. */
+    fun openValidationResult(jobId: String, assetId: String) = openValidationAt(jobId, assetId)
+
+    private fun openValidationAt(jobId: String, assetId: String?) = if (!canCheck) Unit else leaving {
+        set {
+            copy(
+                valOpen = true, valJobId = jobId, valAssetId = assetId, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false,
+                assetId = null, newAsset = false,
+            )
+        }
     }
 
-    /** The Validation page opened the run asked for. */
-    fun validationRunShown() = set { copy(valJobId = null) }
+    /** The Validation page opened the run (and the asset's result) asked for. */
+    fun validationRunShown() = set { copy(valJobId = null, valAssetId = null) }
 
     // ---------- Integration ----------
 
@@ -1047,10 +1071,10 @@ class AppViewModel @Inject constructor(
     fun openConfig() = if (!canConfigure) Unit else leaving { showConfig() }
     private fun showConfig() {
         if (!canConfigure) return
-        set { copy(cfgOpen = true, valOpen = false, intOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
+        set { copy(cfgOpen = true, valOpen = false, intOpen = false, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     }
     /** Back from Configuration: to the assets, or (Configuration being a configure-only group's first page) the side menu. */
-    fun closeConfig() = if (!seesAssets) openMenu() else set { copy(cfgOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
+    fun closeConfig() = if (!seesAssets) openMenu() else set { copy(cfgOpen = false, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS) }
 
     /** Switches the Configuration tab (Building info / Asset fields / Geofencing / Property Settings). */
     fun cfgGo(page: CfgPage) = set { copy(cfgPage = page) }
@@ -1070,6 +1094,21 @@ class AppViewModel @Inject constructor(
 
     /** A switch is being saved, so it doesn't take another tap until the server answers. */
     fun onboardingSaving(t: Tab): Boolean = t.channel in onboardingPending
+
+    /**
+     * Back in the foreground: the properties are read again, and with them their settings (Bluetooth / Wi-Fi onboarding,
+     * photo rules), so a change made elsewhere (the web, another phone) shows without restarting the app. Offline the
+     * last known settings stay.
+     */
+    fun onForeground() {
+        viewModelScope.launch {
+            try {
+                propertyUseCases.refresh()
+            } catch (_: OnlineException) {
+                // Offline or refused: nothing to say, the settings already shown stay.
+            }
+        }
+    }
 
     fun setOnboarding(t: Tab, on: Boolean) {
         val channel = t.channel ?: return
@@ -1119,8 +1158,8 @@ class AppViewModel @Inject constructor(
      */
     private fun closeWhatIsNotAllowed() {
         val s = state
-        if (s.valOpen && !canCheck) set { copy(valOpen = false, valJobId = null, tab = Tab.ASSETS) }
-        if ((s.cfgOpen || s.intOpen) && !canConfigure) set { copy(cfgOpen = false, intOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
+        if (s.valOpen && !canCheck) set { copy(valOpen = false, valJobId = null, valAssetId = null, tab = Tab.ASSETS) }
+        if ((s.cfgOpen || s.intOpen) && !canConfigure) set { copy(cfgOpen = false, intOpen = false, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS) }
         if (s.adminPage == AdminPage.PEOPLE && !canManageAccess) closeAdmin()
         // A group that only configures has no assets page to fall back on: Configuration is its first page.
         if (hasProperty && !seesAssets && state.adminPage == null && !state.cfgOpen && !state.intOpen) showConfig()

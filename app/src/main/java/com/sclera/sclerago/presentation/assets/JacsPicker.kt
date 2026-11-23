@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +33,8 @@ import com.sclera.sclerago.domain.usecase.asset.JacsUseCases
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.toUiText
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
@@ -166,6 +170,10 @@ fun JacsPickerSheet(s: JacsPickerState, current: String, actions: JacsPickerActi
                 }
                 when {
                     s.error != null -> Txt(s.error.asString(), 12, 500, C.Orange, maxLines = Int.MAX_VALUE)
+                    // The first page: placeholder rows; a further page (More): the small spinner under the list.
+                    s.loading && s.codes.isEmpty() -> SkeletonList(
+                        stringResource(R.string.classify_jacs_loading), count = 5, lead = SkeletonLead.NONE, lines = 2, card = false, gap = 2.dp,
+                    )
                     s.loading -> Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.Center) {
                         CircularProgressIndicator(Modifier.size(20.dp), color = C.Yellow, strokeWidth = 2.dp)
                     }
@@ -184,9 +192,9 @@ fun JacsPickerSheet(s: JacsPickerState, current: String, actions: JacsPickerActi
 @Composable
 private fun CodeRow(code: String, title: String?, on: Boolean, divider: Boolean, tag: String, onClick: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().testTag(tag).then(if (divider) Modifier.topBorder(C.Border) else Modifier)
+        Modifier.pressClickable(pressed = PRESSED_CARD, onClick = onClick).fillMaxWidth().testTag(tag).then(if (divider) Modifier.topBorder(C.Border) else Modifier)
             .background(if (on) C.YTintBg else C.Surface).semantics { selected = on; role = Role.RadioButton }
-            .clickable(onClick = onClick).heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+            .heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (code.isNotEmpty()) Txt(code, 14, 700, if (on) C.Yellow else C.Text, maxLines = 1)

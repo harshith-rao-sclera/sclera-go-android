@@ -67,7 +67,7 @@ data class ToggleChip(val count: Int, val selected: Boolean)
 /**
  * What one list page asks for: [sources] null = every way of onboarding (the Assets tab).
  * [changeRequests] narrows it to assets someone asked an admin to reopen (the web's Change requests tab, which is one
- * of its tabs, so it turns the status off). [showChangeRequests]: that chip shows even with none (admins).
+ * of its tabs, so it turns the status off). [showChangeRequests]: that chip shows even with none (admins and reviewers).
  * [validation] narrows it to the assets whose validation has that mark; it goes with "All" only.
  */
 data class AssetListQuery(

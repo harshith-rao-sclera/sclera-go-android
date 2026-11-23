@@ -21,6 +21,7 @@ import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.permissionOf
+import com.sclera.sclerago.domain.model.profilePhoto
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -117,6 +118,7 @@ fun UserDto.toPerson() = Person(
     lastSeenAt = lastSeenAt?.let { runCatching { OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull() },
     signedIn = signedIn,
     fullName = name,
+    imageUrl = imageUrl,
 )
 
 /** `POST /assets/bulk/assign`: the assets and who gets them (no email takes them off whoever has them), as the web sends it. */
@@ -125,6 +127,9 @@ fun assignBody(assetIds: Collection<String>, email: String?): JsonObject = build
     put("email", email?.trim()?.takeIf { it.isNotEmpty() }?.let(::JsonPrimitive) ?: JsonNull)
 }
 
+/** The body that takes an asset for [userId] (`PATCH /properties/{p}/assets/{id}`), as the web's takeAssets. */
+fun takeBody(userId: String): JsonObject = buildJsonObject { put("assignedTo", JsonPrimitive(userId)) }
+
 fun AssignResultDto.toAssignResult() = AssignResult(
     assigned.coerceAtLeast(0), email?.takeIf { it.isNotBlank() }, name?.takeIf { it.isNotBlank() }, added, givenAccess,
     unchanged = unchanged.coerceAtLeast(0), notFound = notFound.coerceAtLeast(0),
@@ -132,13 +137,15 @@ fun AssignResultDto.toAssignResult() = AssignResult(
 
 fun PermissionDto.toPermissionInfo() = PermissionInfo(key, name, description, needsAllProperties)
 
-fun DirectoryPersonDto.toDirectoryPerson() = DirectoryPerson(email, name, userId)
+fun DirectoryPersonDto.toDirectoryPerson() = DirectoryPerson(email, name, userId, imageUrl)
 
 private fun Person.propertyArray() = JsonArray((if (allProperties) emptySet() else propertyIds).map(::JsonPrimitive))
 
 fun Person.toInviteBody(): JsonObject = buildJsonObject {
     put("email", email.trim())
     inviteName?.trim()?.takeIf { it.isNotEmpty() }?.let { put("name", it) }
+    // Their photo as the directory gave it, when they were picked from it (the server keeps only Sclera's https links).
+    profilePhoto(imageUrl)?.let { put("imageUrl", it) }
     put("groupId", groupId)
     put("allProperties", allProperties)
     put("propertyIds", propertyArray())
@@ -163,4 +170,5 @@ fun MeDto.toCurrentAccess(signedInEmail: String) = CurrentAccess(
     allProperties = allProperties,
     canManageProperties = canManageProperties,
     isAdmin = isAdmin,
+    imageUrl = imageUrl,
 )

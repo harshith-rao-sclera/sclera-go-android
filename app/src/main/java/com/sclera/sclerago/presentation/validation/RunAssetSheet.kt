@@ -1,5 +1,12 @@
 package com.sclera.sclerago.presentation.validation
 
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
+import com.sclera.sclerago.presentation.components.Capsule
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,9 +48,12 @@ import com.sclera.sclerago.domain.validation.IssueStatus
 import com.sclera.sclerago.domain.validation.IssueSuggestion
 import com.sclera.sclerago.domain.validation.IssueTarget
 import com.sclera.sclerago.domain.validation.RunIssue
+import com.sclera.sclerago.domain.validation.RunStatus
 import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.domain.validation.ValStep
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.GuardedClose
@@ -63,7 +73,9 @@ import kotlin.math.roundToInt
 /**
  * One asset of the run, as the iOS app's: its outcome and first problem, the decision (Mark as validated, Recollect,
  * Exclude), where it is and how complete, then two tabs. Checks: each step with the issues found there (apply a
- * suggested or typed value, merge duplicates, or keep it as it is; handled ones can be undone). Asset info: its fields.
+ * suggested or typed value, merge duplicates, or keep it as it is; missing data is filled in on the asset; handled ones
+ * can be undone). Asset info: its fields. As the web's: View asset opens it on top, and Revalidate checks it again inside
+ * the run.
  */
 @Composable
 internal fun RunAssetSheet(
@@ -85,28 +97,23 @@ internal fun RunAssetSheet(
     val locked = status != null && isLockedFor(status, isAdmin = s.canValidate)
     var tab by rememberSaveable(p.assetId) { mutableIntStateOf(0) }
     GuardedClose(p.typed.values.any { it.isNotBlank() }, leave) { close ->
-        BottomSheet(close, maxHeightFraction = 0.95f) {
+        // The whole screen, closed only with × (and Back): a swipe or a tap beside it would lose the place in a long list.
+        BottomSheet(close, fullHeight = true, closeOnOutside = false) {
             val name = res?.assetName?.takeIf { it.isNotBlank() } ?: local?.name ?: stringResource(R.string.val_unnamed)
-            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
-                Txt(name, 18, 800, modifier = Modifier.weight(1f).padding(top = 6.dp), maxLines = 2)
+            Row(
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 2.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Txt(name, 18, 800, modifier = Modifier.weight(1f), maxLines = 2)
+                RevalidateButton(run, p.assetId, s, vm)
                 CloseButton(close, size = 36.dp, iconSize = 16.dp)
             }
             Column(
-                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 16.dp),
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (res != null) {
-                    val first = run.steps.indexOfFirst { res.outcomeOf(it).problem }.takeIf { it >= 0 }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (res.outcome != StepOutcome.SKIPPED) {
-                            SmallChip(outcomeLabel(res.outcome), outcomeColor(res.outcome), outcomeColor(res.outcome).copy(alpha = 0.16f))
-                        }
-                        Txt(
-                            first?.let { stringResource(R.string.rev_first_problem, it + 1, stepShort(steps, run.steps[it])) }
-                                ?: stringResource(R.string.rev_passed_every),
-                            11, 500, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE,
-                        )
-                    }
                     val open = if (p.loading) res.openCount else p.issues.count { it.status == IssueStatus.OPEN }
                     DecisionRow(res.decision, res.decisionNote, open, s, p, vm, checkOnly = res.checkOnly)
                 }
@@ -118,16 +125,42 @@ internal fun RunAssetSheet(
                 if (tab == 1) {
                     ReviewAssetInfoTab(local, p.info, p.infoLoading, onOpenAsset)
                 } else {
-                    if (p.loading) Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
+                    // Missing data is filled in on the asset itself (on this phone), which opens on top of this review.
+                    val fillIn = local?.let { a -> { onOpenAsset(a.id) } }
                     run.steps.forEachIndexed { i, key ->
                         val issues = p.issues.filter { it.step == key }
-                        StepBlock(i, key, steps, res?.outcomeOf(key) ?: StepOutcome.SKIPPED, issues, p, s, vm, locked)
+                        StepBlock(i, key, steps, res?.outcomeOf(key) ?: StepOutcome.SKIPPED, issues, p, s, vm, locked, fillIn, loading = p.loading)
                     }
                     // Issues of a step the run no longer lists (e.g. a renamed check) still show.
-                    p.issues.filter { it.step !in run.steps }.forEach { IssueRow(it, p, s, vm, locked) }
+                    p.issues.filter { it.step !in run.steps }.forEach { IssueRow(it, p, s, vm, locked, fillIn) }
                 }
             }
         }
+    }
+}
+
+/**
+ * Revalidate, beside the sheet's ×: checks the asset again with this run's steps (the rest of the run isn't run), for
+ * whoever may run checks once the run has finished. It spins with "Checking…" while it runs, and waits while another
+ * asset is being checked.
+ */
+@Composable
+private fun RevalidateButton(run: ValRun, assetId: String, s: RunReviewUiState, vm: RunReviewViewModel) {
+    if (!(s.canCheck && run.status == RunStatus.COMPLETED)) return
+    val mine = s.rechecking == assetId
+    val enabled = s.rechecking == null && !s.busy
+    val hint = stringResource(R.string.rev_revalidate_hint)
+    Row(
+        Modifier.height(36.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule)
+            .pressClickable(shape = Capsule, enabled = enabled, role = Role.Button, onClick = vm::recheck)
+            .semantics { stateDescription = hint }.testTag("review_revalidate").padding(horizontal = 12.dp)
+            .alpha(if (enabled || mine) 1f else 0.5f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (mine) CircularProgressIndicator(Modifier.size(14.dp), color = C.Yellow, strokeWidth = 2.dp)
+        else LineIcon(Icons.Refresh, 14.dp, C.Yellow, 2.4f)
+        Txt(stringResource(if (mine) R.string.rev_rechecking else R.string.rev_revalidate), 12, 700, C.Yellow)
     }
 }
 
@@ -179,6 +212,8 @@ private fun StepBlock(
     s: RunReviewUiState,
     vm: RunReviewViewModel,
     locked: Boolean,
+    fillIn: (() -> Unit)?,
+    loading: Boolean = false,
 ) {
     val open = issues.count { it.status == IssueStatus.OPEN }
     val c = outcomeColor(outcome)
@@ -207,14 +242,18 @@ private fun StepBlock(
                 val about = if (outcome == StepOutcome.SKIPPED && issues.isEmpty()) stringResource(R.string.rev_step_not_applicable) else steps[key]?.description
                 about?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
             }
-            issues.forEach { IssueRow(it, p, s, vm, locked) }
+            issues.forEach { IssueRow(it, p, s, vm, locked, fillIn) }
+            // The asset's issues are still being read: a step that failed or needs a look shows a placeholder issue.
+            if (loading && issues.isEmpty() && outcome.problem) {
+                SkeletonList(stringResource(R.string.val_loading), count = 1, lead = SkeletonLead.NONE, lines = 3)
+            }
         }
     }
 }
 
 /** An issue: a bar in its severity's colour, what it is about and what is wrong, then what can be done (or was). */
 @Composable
-private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, vm: RunReviewViewModel, locked: Boolean) {
+private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, vm: RunReviewViewModel, locked: Boolean, fillIn: (() -> Unit)?) {
     val busy = issue.id in p.busy
     val open = issue.status == IssueStatus.OPEN
     val sevColor = when (issue.severity) {
@@ -237,13 +276,22 @@ private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, v
                 }
             }
             Txt(issue.message, 13, 700, C.Text, maxLines = Int.MAX_VALUE)
-            if (open) OpenIssue(issue, p, s, vm, busy, locked) else ClosedIssue(issue, s, vm, busy)
+            if (open) OpenIssue(issue, p, s, vm, busy, locked, fillIn) else ClosedIssue(issue, s, vm, busy)
         }
     }
 }
 
 @Composable
-private fun OpenIssue(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, vm: RunReviewViewModel, busy: Boolean, locked: Boolean) {
+private fun OpenIssue(
+    issue: RunIssue,
+    p: AssetPanelState,
+    s: RunReviewUiState,
+    vm: RunReviewViewModel,
+    busy: Boolean,
+    locked: Boolean,
+    /** Opens the asset to fill in missing data; null when it isn't on this phone. */
+    fillIn: (() -> Unit)?,
+) {
     if (!s.canCheck) return
     if (issue.canApply) {
         // A locked asset still shows what is suggested, without Apply (as the web).
@@ -272,7 +320,10 @@ private fun OpenIssue(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, 
         if (issue.related.isNotEmpty() && s.canValidate) {
             Pill(stringResource(R.string.rev_merge), { if (!busy) vm.openMerge(issue) }, height = 34.dp, hPad = 14.dp, size = 12, weight = 700)
         }
-        Pill(
+        // Missing data (the Complete step) can't be kept as it is: the next check would find it again. It is filled in.
+        if (!issue.canDismiss) {
+            fillIn?.let { Pill(stringResource(R.string.rev_fill_in), it, height = 34.dp, hPad = 14.dp, size = 12, weight = 700) }
+        } else Pill(
             stringResource(
                 when {
                     issue.related.isNotEmpty() -> R.string.rev_not_duplicate
@@ -311,7 +362,7 @@ private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean,
                 val host = runCatching { java.net.URI(url).host }.getOrNull() ?: url
                 Txt(
                     host, 11, 600, C.Blue,
-                    Modifier.clip(r(6)).clickable(role = Role.Button) { runCatching { uri.openUri(url) } }.padding(vertical = 4.dp),
+                    Modifier.pressClickable(shape = r(6), role = Role.Button) { runCatching { uri.openUri(url) } }.padding(vertical = 4.dp),
                 )
             }
         }
@@ -356,7 +407,7 @@ internal fun MergeSheet(m: MergeState, s: RunReviewUiState, vm: RunReviewViewMod
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (m.loading) Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
+                if (m.loading) SkeletonList(stringResource(R.string.val_loading), count = 3, lead = SkeletonLead.NONE)
                 if (m.assets.isNotEmpty()) Txt(stringResource(R.string.rev_merge_keep), 12, 700, C.Yellow)
                 m.assets.forEach { a ->
                     OptionCard(a.name.ifBlank { stringResource(R.string.val_unnamed) }, a.place, m.keepId == a.id, { vm.setMergeKeep(a.id) })
@@ -376,7 +427,7 @@ internal fun MergeSheet(m: MergeState, s: RunReviewUiState, vm: RunReviewViewMod
                             val v = a.values[f]?.text.orEmpty()
                             val on = m.choice[f] == a.id
                             Row(
-                                Modifier.fillMaxWidth().clip(r(8)).clickable(role = Role.RadioButton) { vm.chooseMergeValue(f, a.id) }
+                                Modifier.fillMaxWidth().pressClickable(shape = r(8), pressed = PRESSED_CARD, role = Role.RadioButton) { vm.chooseMergeValue(f, a.id) }
                                     .heightIn(min = 44.dp).padding(horizontal = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),

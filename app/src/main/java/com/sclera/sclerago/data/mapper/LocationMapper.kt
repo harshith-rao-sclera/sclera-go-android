@@ -4,30 +4,30 @@ import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.NodeKind
 
 /**
- * The building → floor → location tree from the three tables' rows. Inactive rows are left out and
- * siblings follow `position`. [counts] is the number of assets per node id; a node without an entry
- * counts the assets of its children.
+ * The building → floor → location tree from the three tables' rows. Inactive (hidden) rows are left out unless
+ * [withHidden] (Configuration lists them, marked hidden), and siblings follow `position`. [counts] is the number of
+ * assets per node id; a node without an entry counts the assets of its children.
  */
 fun buildLocationTree(
     buildings: List<DbRow>,
     floors: List<DbRow>,
     locations: List<DbRow>,
     counts: Map<String, Int> = emptyMap(),
+    withHidden: Boolean = false,
 ): List<LocNode> {
-    val locsByFloor = locations.active().groupBy { it.string("floor_id") }
-    val floorsByBuilding = floors.active().groupBy { it.string("building_id") }
+    fun List<DbRow>.shown() = (if (withHidden) this else filter { it.bool("is_active") }).sortedBy { it.int("position") ?: 0 }
+    val locsByFloor = locations.shown().groupBy { it.string("floor_id") }
+    val floorsByBuilding = floors.shown().groupBy { it.string("building_id") }
     fun locNode(r: DbRow) = r.toNode(NodeKind.LOCATION, null, counts[r.string("id")] ?: 0)
     fun floorNode(r: DbRow): LocNode {
         val kids = locsByFloor[r.string("id")].orEmpty().map(::locNode)
         return r.toNode(NodeKind.FLOOR, kids, counts[r.string("id")] ?: kids.sumOf { it.count })
     }
-    return buildings.active().map { b ->
+    return buildings.shown().map { b ->
         val kids = floorsByBuilding[b.string("id")].orEmpty().map(::floorNode)
         b.toNode(NodeKind.BUILDING, kids, counts[b.string("id")] ?: kids.sumOf { it.count })
     }
 }
-
-private fun List<DbRow>.active() = filter { it.bool("is_active") }.sortedBy { it.int("position") ?: 0 }
 
 private fun DbRow.toNode(kind: NodeKind, kids: List<LocNode>?, count: Int) = LocNode(
     id = string("id").orEmpty(),
@@ -37,6 +37,7 @@ private fun DbRow.toNode(kind: NodeKind, kids: List<LocNode>?, count: Int) = Loc
     count = count,
     type = string("type").orEmpty(),
     code = string("code").orEmpty(),
+    active = bool("is_active"),
 )
 
 /** Where each location is, by location id, for [toAsset][com.sclera.sclerago.data.mapper.toAsset]: its name and "location · floor". */

@@ -25,7 +25,10 @@ private const val VR_LAST_RUNS = """
 private const val VR_RUN_VALIDATIONS = """
     SELECT DISTINCT validation_id FROM validation_jobs WHERE validation_id IS NOT NULL AND validation_id <> '' AND %LIVE%"""
 
-private const val VR_RUNS = "SELECT * FROM validation_jobs WHERE %LIVE% ORDER BY created_at DESC, id DESC LIMIT %LIMIT%"
+/** The newest runs; a run checking one asset of another again (`recheck_of` in its settings) is part of that one, as the server lists them. */
+private const val VR_RUNS = """
+    SELECT * FROM validation_jobs WHERE %LIVE% AND (settings IS NULL OR settings NOT LIKE '%recheck_of%')
+    ORDER BY created_at DESC, id DESC LIMIT %LIMIT%"""
 
 private const val VR_RUN = "SELECT * FROM validation_jobs WHERE id = ? AND %LIVE%"
 

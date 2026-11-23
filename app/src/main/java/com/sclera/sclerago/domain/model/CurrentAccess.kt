@@ -17,6 +17,8 @@ data class CurrentAccess(
     val canManageProperties: Boolean,
     /** In the Admins group: the server lets them change submitted and validated assets (and reassign them). */
     val isAdmin: Boolean = false,
+    /** Their profile photo's link as the server has it (see [profilePhoto]). */
+    val imageUrl: String? = null,
 ) {
     /** A person with no group has no access yet: the server refuses everything for them. */
     val hasGroup: Boolean get() = groupId != null

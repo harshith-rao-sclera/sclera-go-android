@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.CircleFab
+import androidx.compose.ui.platform.testTag
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -110,9 +113,50 @@ internal fun ReviewHead(j: ValRun) {
     }
 }
 
-/** How far the run got, its data quality, and how many assets failed, need a look or passed; then what can be done. */
+/**
+ * Apply the confident fixes, above the run's first card, once it has finished and has some. (Export CSV and Run again
+ * float in the corner: [ReviewFabs].)
+ */
 @Composable
-internal fun ReviewSummary(j: ValRun, confident: Int, canCheck: Boolean, busy: Boolean, onApplyConfident: () -> Unit, onExport: () -> Unit, onRunAgain: () -> Unit) {
+internal fun ReviewActions(j: ValRun, confident: Int, canCheck: Boolean, busy: Boolean, onApplyConfident: () -> Unit) {
+    if (!(j.status.finished && confident > 0 && canCheck)) return
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+        Pill(
+            pluralStringResource(R.plurals.rev_apply_confident, confident, confident), { if (!busy) onApplyConfident() },
+            bg = C.Yellow, fg = C.OnYellow, height = 34.dp, hPad = 14.dp, size = 12, weight = 700,
+        )
+    }
+}
+
+/**
+ * The run's floating buttons, stacked in the corner: Run again (yellow, at the bottom, once it has finished and the user
+ * may run checks) and Export CSV above it (once it has checked something; it spins while [busy]).
+ */
+@Composable
+internal fun ReviewFabs(j: ValRun, canCheck: Boolean, busy: Boolean, onExport: () -> Unit, onRunAgain: () -> Unit, modifier: Modifier = Modifier) {
+    val runAgain = j.status.finished && canCheck
+    val export = j.processed > 0
+    if (!runAgain && !export) return
+    Column(
+        modifier.padding(end = 14.dp, bottom = 14.dp),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (export) {
+            CircleFab(
+                Icons.Download, stringResource(R.string.rev_export_csv), { if (!busy) onExport() }, Modifier.testTag("review_export"),
+                bg = C.Btn, fg = C.Text, iconSize = 20.dp, stroke = 2.4f, busy = busy,
+            )
+        }
+        if (runAgain) {
+            CircleFab(Icons.Refresh, stringResource(R.string.rev_run_again), onRunAgain, Modifier.testTag("review_run_again"), iconSize = 22.dp, stroke = 2.4f)
+        }
+    }
+}
+
+/** How far the run got, its data quality, and how many assets failed, need a look or passed. */
+@Composable
+internal fun ReviewSummary(j: ValRun) {
     ReviewCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             j.score?.let { score ->
@@ -154,16 +198,6 @@ internal fun ReviewSummary(j: ValRun, confident: Int, canCheck: Boolean, busy: B
             StatTile(j.passedCount, stringResource(R.string.rev_stat_passed), dot = C.Green)
         }
         j.statusDetail?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, if (j.status == RunStatus.FAILED) C.Red else C.Muted, maxLines = Int.MAX_VALUE) }
-        if (j.status.finished || j.processed > 0) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (j.status.finished && confident > 0 && canCheck) {
-                Pill(
-                    pluralStringResource(R.plurals.rev_apply_confident, confident, confident), { if (!busy) onApplyConfident() },
-                    bg = C.Yellow, fg = C.OnYellow, height = 34.dp, hPad = 14.dp, size = 12, weight = 700,
-                )
-            }
-            if (j.processed > 0) Pill(stringResource(R.string.rev_export_csv), { if (!busy) onExport() }, height = 34.dp, hPad = 14.dp, size = 12)
-            if (j.status.finished && canCheck) Pill(stringResource(R.string.rev_run_again), onRunAgain, height = 34.dp, hPad = 14.dp, size = 12)
-        }
     }
 }
 
@@ -249,8 +283,8 @@ private fun StepNode(i: Int, key: String, j: ValRun, steps: Map<String, ValStep>
     val c = stepStateColor(state)
     val st = j.stepStats[key]
     Column(
-        Modifier.widthIn(min = 84.dp).clip(r(12)).background(if (on) C.YTintBg else Color.Transparent)
-            .clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 6.dp),
+        Modifier.widthIn(min = 84.dp).pressClickable(shape = r(12), onClick = onClick).background(if (on) C.YTintBg else Color.Transparent)
+            .padding(horizontal = 6.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -303,8 +337,8 @@ internal fun ReviewAssetsHead(j: ValRun, outcome: StepOutcome?, onOutcome: (Step
 @Composable
 private fun OutcomeChip(label: String, n: Int, on: Boolean, dot: Color?, onClick: () -> Unit) {
     Row(
-        Modifier.height(34.dp).clip(Capsule).background(if (on) C.YTintBg else C.Surface)
-            .border(1.dp, if (on) C.Yellow else C.ChipBd, Capsule).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        Modifier.height(34.dp).pressClickable(shape = Capsule, onClick = onClick).background(if (on) C.YTintBg else C.Surface)
+            .border(1.dp, if (on) C.Yellow else C.ChipBd, Capsule).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {

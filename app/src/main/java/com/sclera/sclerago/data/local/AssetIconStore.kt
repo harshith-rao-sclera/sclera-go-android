@@ -80,6 +80,12 @@ class AssetIconStore @Inject constructor(@ApplicationContext private val context
         }
     }
 
+    /** Forgets every icon and type icon kept (sign-out: the next user starts as on a fresh install). */
+    fun clear() {
+        db.delete(ICONS, null, null)
+        db.delete(TYPE_ICONS, null, null)
+    }
+
     private companion object {
         const val ICONS = "asset_icons"
         const val TYPE_ICONS = "asset_type_icons"

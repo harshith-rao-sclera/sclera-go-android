@@ -35,7 +35,7 @@ const val UNITS_METRIC = "metric"
 
 /** Someone the property's assets are assigned to (`GET /assets/assignees`), with how many they have. */
 @Serializable
-data class AssigneeDto(val userId: String, val name: String? = null, val email: String = "", val assets: Int = 0)
+data class AssigneeDto(val userId: String, val name: String? = null, val email: String = "", val assets: Int = 0, val imageUrl: String? = null)
 
 @Serializable
 data class PropertyDto(
@@ -83,6 +83,8 @@ data class UserDto(
     val allProperties: Boolean = false,
     val propertyIds: List<String> = emptyList(),
     val lastSeenAt: String? = null,
+    /** Their profile photo, as Sclera has it (an https link). */
+    val imageUrl: String? = null,
 )
 
 @Serializable
@@ -95,7 +97,13 @@ data class MemberDto(
 )
 
 @Serializable
-data class DirectoryPersonDto(val email: String, val name: String? = null, val userId: String? = null, val groupId: String? = null)
+data class DirectoryPersonDto(
+    val email: String,
+    val name: String? = null,
+    val userId: String? = null,
+    val groupId: String? = null,
+    val imageUrl: String? = null,
+)
 
 @Serializable
 data class DirectoryDto(
@@ -174,4 +182,6 @@ data class MeDto(
     val allProperties: Boolean = false,
     val canManageProperties: Boolean = false,
     val isAdmin: Boolean = false,
+    /** Their profile photo, as Sclera has it (an https link). */
+    val imageUrl: String? = null,
 )

@@ -21,6 +21,10 @@ class ManagedSummaryViewModel @Inject constructor(private val counts: GetManaged
     var shown by mutableStateOf<ManagedCounts?>(null)
         private set
 
+    /** The counts are being read from the server (the sheet shows placeholders for them meanwhile). */
+    var loading by mutableStateOf(false)
+        private set
+
     private var job: Job? = null
 
     /** Opens the summary at 0 and fills it in, as the web does; when it can't be read the counts stay 0. */
@@ -28,12 +32,15 @@ class ManagedSummaryViewModel @Inject constructor(private val counts: GetManaged
         shown = ManagedCounts()
         if (propertyId.isEmpty()) return
         job?.cancel()
+        loading = true
         job = viewModelScope.launch {
             try {
                 val c = counts(propertyId, scope)
                 if (shown != null) shown = c
             } catch (_: OnlineException) {
                 // As on the web: nothing is said, the counts stay 0.
+            } finally {
+                loading = false
             }
         }
     }
@@ -41,5 +48,6 @@ class ManagedSummaryViewModel @Inject constructor(private val counts: GetManaged
     fun close() {
         job?.cancel()
         shown = null
+        loading = false
     }
 }

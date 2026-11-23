@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.components.SkeletonLine
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +78,9 @@ internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, inf
 }
 
 /** Asset info: each field and its value, then where it is and its status; and the way to the asset to fix them. */
+/** How many placeholder rows the Asset info tab shows while the asset's fields are read. */
+private const val INFO_PLACEHOLDER_ROWS = 6
+
 @Composable
 internal fun ReviewAssetInfoTab(local: Asset?, info: ReviewAssetInfo?, loading: Boolean, onOpenAsset: (String) -> Unit) {
     if (local == null) {
@@ -82,7 +88,23 @@ internal fun ReviewAssetInfoTab(local: Asset?, info: ReviewAssetInfo?, loading: 
         return
     }
     if (loading) {
-        Txt(stringResource(R.string.val_loading), 12, 400, C.Muted)
+        // The fields' table in placeholders: a label and a value per row.
+        val label = stringResource(R.string.val_loading)
+        Column(
+            Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(horizontal = 12.dp)
+                .semantics(mergeDescendants = true) { contentDescription = label },
+        ) {
+            repeat(INFO_PLACEHOLDER_ROWS) { i ->
+                Row(
+                    Modifier.fillMaxWidth().then(if (i > 0) Modifier.topBorder(C.Border) else Modifier).padding(vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.weight(0.42f)) { SkeletonLine(0.7f, 9.dp) }
+                    Box(Modifier.weight(0.58f)) { SkeletonLine(if (i % 2 == 0) 0.8f else 0.55f, 11.dp) }
+                }
+            }
+        }
         return
     }
     val rows = info?.rows.orEmpty() + listOf(

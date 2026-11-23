@@ -18,7 +18,9 @@ import com.sclera.sclerago.domain.validation.ResultPage
 import com.sclera.sclerago.domain.validation.RunExport
 import com.sclera.sclerago.domain.validation.RunInsights
 import com.sclera.sclerago.domain.validation.RunIssue
+import com.sclera.sclerago.domain.validation.RunStatus
 import com.sclera.sclerago.domain.validation.ValRun
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 // Reviewing one run: its results and issues, fixing values, deciding on assets, merging duplicates, exporting.
@@ -127,6 +129,49 @@ class MergeDuplicatesUseCase @Inject constructor(private val repo: ValidationRun
     }
 }
 
+/** How checking one asset of a run again ended. */
+sealed interface RecheckOutcome {
+    /** Its new result is in the run. */
+    data object Done : RecheckOutcome
+
+    /** The check failed; [detail] is the server's reason, when it gave one. */
+    data class Failed(val detail: String?) : RecheckOutcome
+
+    /** Still going after [RecheckAssetUseCase.GIVE_UP_MS]: its result comes into the run when it is done. */
+    data object StillChecking : RecheckOutcome
+}
+
+/**
+ * "Revalidate" in a run's review (the web's): checks one asset of the finished run again with the run's steps and
+ * settings, inside that run (the rest of the run isn't checked again), and waits until its new result is in the run:
+ * the server removes the run doing the check once it has folded it in, so asking for it then answers NotFound. Needs
+ * [Permission.CHECK]. Throws [OnlineException] when it can't be started or asked about.
+ */
+class RecheckAssetUseCase @Inject constructor(private val repo: ValidationRunRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(propertyId: String, jobId: String, assetId: String): RecheckOutcome {
+        guard.requireOnline(Permission.CHECK)
+        val check = repo.recheck(propertyId, jobId, assetId)
+        var waited = 0L
+        while (true) {
+            delay(POLL_MS)
+            waited += POLL_MS
+            val state = try {
+                repo.run(propertyId, check.id)
+            } catch (e: OnlineException) {
+                if (e.error == OnlineError.NotFound) return RecheckOutcome.Done
+                throw e
+            }
+            if (state.status == RunStatus.FAILED) return RecheckOutcome.Failed(state.statusDetail?.takeIf { it.isNotBlank() })
+            if (waited > GIVE_UP_MS) return RecheckOutcome.StillChecking
+        }
+    }
+
+    companion object {
+        const val POLL_MS = 1_500L
+        const val GIVE_UP_MS = 3 * 60 * 1_000L
+    }
+}
+
 /** Reviewing a run, for injecting as one. */
 class RunReviewUseCases @Inject constructor(
     val access: ValidationAccessUseCase,
@@ -141,4 +186,5 @@ class RunReviewUseCases @Inject constructor(
     val decide: DecideAssetsUseCase,
     val merge: MergeDuplicatesUseCase,
     val assetInfo: GetReviewAssetInfoUseCase,
+    val recheck: RecheckAssetUseCase,
 )

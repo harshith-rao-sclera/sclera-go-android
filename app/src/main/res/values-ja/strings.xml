@@ -348,7 +348,6 @@
     <string name="detail_comment_too_long">コメントは%1$d文字までです。</string>
     <string name="detail_back">一覧に戻る</string>
     <string name="detail_name_hint">資産名</string>
-    <string name="detail_saved">保存しました</string>
     <string name="detail_menu_camera">写真または動画を撮影</string>
     <string name="detail_menu_files">ファイルからアップロード</string>
     <string name="detail_photo">写真</string>

@@ -7,6 +7,10 @@ import com.sclera.sclerago.domain.model.AssignResult
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.MasterFormat
+import com.sclera.sclerago.domain.model.PhotoRule
+import com.sclera.sclerago.domain.model.PropertySettings
+import com.sclera.sclerago.domain.repository.PropertySettingsRepository
+import com.sclera.sclerago.domain.usecase.config.ObserveAiSwitchUseCase
 import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.usecase.asset.AssetFilterUseCases
@@ -54,7 +58,7 @@ import com.sclera.sclerago.domain.usecase.asset.MarkAssetsValidatedUseCase
 import com.sclera.sclerago.domain.usecase.asset.ObserveSelectionAccessUseCase
 import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.RequestChangeUseCase
-import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
+import com.sclera.sclerago.domain.usecase.asset.ReopenAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SignOffActionUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.domain.usecase.property.AddPropertyUseCase
@@ -218,7 +222,7 @@ class RecordingChangeRequests : ChangeRequestRepository {
 
 /** An admin's sign-off that marks nothing (the catalog is the test's). */
 class NoSignOff : AssetSignOffRepository {
-    override suspend fun markValidated(ids: Collection<String>) = SignOffOutcome()
+    override suspend fun markValidated(ids: Collection<String>, byAdmin: Boolean) = SignOffOutcome()
 }
 
 /** The change-request use cases over [assets], wired as Hilt does ([guard] lets everything through by default). */
@@ -227,10 +231,11 @@ fun changeRequestUseCases(assets: AssetRepository, guard: PermissionGuard = allo
     val request = RequestChangeUseCase(requests, assets, guard)
     val close = CloseChangeRequestUseCase(requests, guard)
     val markValidated = MarkAssetsValidatedUseCase(NoSignOff(), guard)
+    val reopen = ReopenAssetsUseCase(assets, guard)
     return ChangeRequestUseCases(
         request, close, ChangeRequestActionsUseCase(guard), SignOffActionUseCase(guard), markValidated,
-        ApplyChangeActionUseCase(request, close, SetAssetStatusUseCase(assets, guard, FakePhotoRulesRepository()), markValidated),
-        guard, InMemoryAccessRepository(),
+        ApplyChangeActionUseCase(request, close, reopen, markValidated),
+        reopen, guard, InMemoryAccessRepository(),
     )
 }
 
@@ -276,7 +281,19 @@ fun assetListViewModel(repo: AssetRepository): AssetListViewModel =
     AssetListViewModel(
         assetUseCases(repo), ReloadAssetsUseCase(NoReload()), changeRequestUseCases(repo), assetFilterUseCases(),
         allowAllGuard().let { ObserveSelectionAccessUseCase(ObserveAccessChangesUseCase(it), it) },
+        // No property open: AI counts as on, and the settings are never read.
+        ObserveAiSwitchUseCase(NoSettings, IdleDownloads()),
     )
+
+/** Property settings that are never read (no property is open where they are wired). */
+private object NoSettings : PropertySettingsRepository {
+    override val aiSwitches: StateFlow<Map<String, Boolean>> = MutableStateFlow(emptyMap())
+    override suspend fun load(propertyId: String): PropertySettings = error("not used")
+    override suspend fun refreshAiSwitch(propertyId: String, maxAgeMs: Long) = Unit
+    override suspend fun savePhotoRules(propertyId: String, rules: List<PhotoRule>): PropertySettings = error("not used")
+    override suspend fun setAiValidation(propertyId: String, on: Boolean): PropertySettings = error("not used")
+    override suspend fun setMetricUnits(propertyId: String, metric: Boolean): PropertySettings = error("not used")
+}
 
 /** The list filter's use cases with nobody's names from a server and an empty type catalogue. */
 fun assetFilterUseCases(guard: PermissionGuard = allowAllGuard()): AssetFilterUseCases = AssetFilterUseCases(
@@ -289,6 +306,7 @@ fun assetFilterUseCases(guard: PermissionGuard = allowAllGuard()): AssetFilterUs
 /** No server: nobody's names are known; assigning isn't used by the lists. */
 private object NoAssignees : AssetAssignmentRepository {
     override suspend fun assign(propertyId: String, assetIds: Collection<String>, email: String?): AssignResult = error("not used")
+    override suspend fun take(propertyId: String, assetIds: Collection<String>, userId: String) = error("not used")
     override suspend fun assigneeNames(propertyId: String): Map<String, String> = emptyMap()
 }
 

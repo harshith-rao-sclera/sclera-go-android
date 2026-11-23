@@ -107,6 +107,9 @@ class AdcApi @Inject constructor(private val service: AdcApiService, private val
     suspend fun assignAssets(property: String, body: JsonObject): AssignResultDto =
         call.json({ service.assignAssets(property, body.asBody()) }) { AdcJson.decodeFromString(AssignResultDto.serializer(), it) }
 
+    /** `PATCH /properties/{p}/assets/{id}` with [body] (the reply, the changed asset, isn't needed here). */
+    suspend fun updateAsset(property: String, id: String, body: JsonObject) = call.unit { service.updateAsset(property, id, body.asBody()) }
+
     // ---- Access
 
     suspend fun permissions(org: String): List<PermissionDto> =

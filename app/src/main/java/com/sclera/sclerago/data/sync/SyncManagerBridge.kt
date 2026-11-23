@@ -186,10 +186,6 @@ class SyncManagerBridge @Inject constructor(
         }
     }
 
-    /** True when the engine holds or has stored anything for a user. */
-    fun hasLocalData(): Boolean = SyncUtils.dbInstance != null || SyncUtils.adcInstances.isNotEmpty() ||
-        SyncUtils.hasAssetDataCollectionData(context)
-
     /** Stops every engine and removes everything they stored: each property's database, the config rows and the static credentials. */
     fun wipe() = synchronized(lock) {
         selected = null
@@ -198,6 +194,8 @@ class SyncManagerBridge @Inject constructor(
         SyncUtils.adcInstances.clear()
         SyncUtils.dbInstance = null
         SyncUtils.deleteAssetDataCollectionData(context, emptySet())
+        // Every other engine setting too (per-property image and sync switches, counts), as on a fresh install.
+        SyncUtils.getSharedPrefs(context).edit().clear().commit()
         if (context.getDatabasePath(GLOBAL_DB).exists()) {
             runCatching {
                 val helper = GlobalConfigDatabaseHelper.initializeInstance(context)

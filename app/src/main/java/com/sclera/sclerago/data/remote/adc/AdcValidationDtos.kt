@@ -61,6 +61,8 @@ data class JobDto(
     val startedAt: String? = null,
     val finishedAt: String? = null,
     val startedBy: String? = null,
+    /** Who started it (a user id); null when the app did. */
+    val createdBy: String? = null,
 )
 
 @Serializable
@@ -120,6 +122,8 @@ data class IssueDto(
     val related: List<String> = emptyList(),
     val status: String = "open",
     val resolvedValue: JsonElement? = null,
+    /** False for missing data (the Complete step): filled in, never dismissed. */
+    val canDismiss: Boolean = true,
 )
 
 @Serializable

@@ -10,8 +10,11 @@
     <string name="val_saved">Validation saved</string>
     <string name="val_updated">Validation updated</string>
     <string name="val_name_taken">A validation called “%1$s” already exists.</string>
-    <string name="val_run_started">%1$s started on %2$s</string>
-    <string name="val_run_saved_ready">%1$s is ready in Recent jobs, for %2$s</string>
+    <!-- A run was started or saved to run later (the web's job banner), with a button that opens it. -->
+    <string name="val_banner_started">%1$s started · %2$s</string>
+    <string name="val_banner_saved">%1$s saved · Ready to run</string>
+    <string name="val_banner_view_job">View job</string>
+    <string name="val_banner_open_validation">Open Validation</string>
     <string name="val_run_discarded">%1$s discarded</string>
     <string name="val_nothing_changed">Nothing was added or changed since the last run. Run it on all assets instead.</string>
     <string name="val_chosen_gone">None of the chosen assets can be checked. Choose others, or sync first.</string>
@@ -58,8 +61,6 @@
     <string name="rev_undo_failed">Couldn\'t undo that fix.</string>
 
     <!-- One asset of a run -->
-    <string name="rev_first_problem">First problem at step %1$d: %2$s</string>
-    <string name="rev_passed_every">Passed every step</string>
     <string name="rev_open_asset">Open asset</string>
     <string name="rev_asset_not_here">This asset isn\'t on this phone yet; it shows once it has synced.</string>
     <string name="rev_n_open">%1$d open</string>
@@ -132,7 +133,6 @@
         <item quantity="other">Merged %1$d assets into one</item>
     </plurals>
     <!-- Validation page, worded as the web's -->
-    <string name="val_lead">Find and fix gaps and mistakes in your assets.</string>
     <string name="val_saved_empty_reviewer">No saved validations yet. Press + to build one, or customize a template to save it here.</string>
     <string name="val_saved_empty_checker">No saved validations yet. A reviewer can build one. Until then, run a template above.</string>
     <string name="val_jobs_empty">No runs yet. Run a template to see results here.</string>
@@ -167,6 +167,43 @@
     <string name="val_quick_started">%1$s is running. Follow it under Validation → Recent jobs.</string>
     <string name="val_quick_ready">%1$s is ready to run under Validation → Recent jobs.</string>
     <string name="val_quick_unavailable">Couldn\'t load validation.</string>
-    <string name="valt_locked_note">Already run, so it can\'t be edited. Make a new validation to change it.</string>
+    <!-- A saved validation that has already run (the web's chip and its Edit as new button). -->
+    <string name="valt_ran_chip">Already run</string>
+    <!-- The Recent jobs filters (the web's): who ran it, its status and which check. -->
+    <string name="valt_jobs_status">Status</string>
+    <string name="valt_jobs_check">Check</string>
+    <string name="valt_jobs_anyone">Anyone</string>
+    <string name="valt_jobs_me">Me</string>
+    <string name="valt_jobs_someone">Someone</string>
+    <string name="valt_jobs_any_status">Any status</string>
+    <string name="valt_jobs_running">Running</string>
+    <string name="valt_jobs_completed">Completed</string>
+    <string name="valt_jobs_failed">Failed</string>
+    <string name="valt_jobs_ready">Ready to run</string>
+    <string name="valt_jobs_any_check">Any check</string>
+    <string name="valt_jobs_no_match">No matching runs</string>
+    <string name="valt_jobs_no_match_hint">Change or clear the filters.</string>
+    <string name="valt_jobs_show_more">Show more (%1$d left)</string>
+    <string name="valt_set_up_ago">Set up %1$s</string>
+    <!-- The new validation page opened as a copy of one that has already run (the web's "from existing"). -->
+    <string name="val_editor_copy">New validation from a copy</string>
+    <string name="val_editor_copy_note">Saving creates a new validation. “%1$s” stays unchanged.</string>
+    <!-- AI off for the property (the web's AI switch). -->
+    <string name="valt_ai_off_badge">AI off</string>
+    <string name="valt_ai_off_skipped">AI off. An admin can turn it on. AI checks are skipped.</string>
+    <plurals name="valt_steps_ai_off">
+        <item quantity="one">%1$d step · AI off: AI steps skipped</item>
+        <item quantity="other">%1$d steps · AI off: AI steps skipped</item>
+    </plurals>
+    <!-- One asset of a run: check it again inside the run, open it, fill in missing data. -->
+    <string name="rev_revalidate">Revalidate</string>
+    <string name="rev_rechecking">Checking…</string>
+    <string name="rev_revalidate_hint">Check this asset again. The rest of the run isn\'t run.</string>
+    <string name="rev_rechecked">Checked again</string>
+    <string name="rev_recheck_failed">Couldn\'t check it again.</string>
+    <string name="rev_recheck_still">Still checking. Look again shortly.</string>
+    <string name="rev_fill_in">Fill in</string>
+    <string name="valt_ran_note">Already run, so it can\'t change: its runs keep the steps they ran with. Edit as new makes a copy to change and save.</string>
+    <string name="valt_edit_as_new">Edit as new</string>
     <string name="rev_started_by">Started %1$s by %2$s</string>
 </resources>

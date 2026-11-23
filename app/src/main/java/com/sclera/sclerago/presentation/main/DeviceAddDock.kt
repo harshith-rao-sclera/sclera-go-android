@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +49,7 @@ internal fun DeviceAddDock(vm: AppViewModel) {
             Txt(stringResource(R.string.dash_selected, n), 14, 700)
             Text(
                 if (vm.allDevicesPicked) stringResource(R.string.dash_clear_all) else stringResource(R.string.dash_select_all, vm.addableCount),
-                Modifier.clickable(onClick = vm::selectAllDevices),
+                Modifier.pressClickable(onClick = vm::selectAllDevices),
                 color = C.Soft, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                 textDecoration = TextDecoration.Underline, maxLines = 1,
             )

@@ -30,6 +30,8 @@ import com.sclera.sclerago.domain.usecase.asset.ObserveSelectionAccessUseCase
 import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SelectionAccess
 import com.sclera.sclerago.domain.usecase.asset.someAlreadySubmitted
+import com.sclera.sclerago.domain.usecase.asset.withAiSwitch
+import com.sclera.sclerago.domain.usecase.config.ObserveAiSwitchUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -104,8 +106,12 @@ data class AssetListState(
 ) {
     val selecting: Boolean get() = picked.isNotEmpty()
 
-    /** Submit is on the selection bar of [tab]: the user may collect and the tab's chip doesn't leave it out (the web's). */
-    fun submitOffered(tab: Tab): Boolean = access.collect && tab !in noSubmit
+    /**
+     * Submit is on the selection bar of [tab]: the user may collect, the tab's chip doesn't leave it out, and not every
+     * ticked asset is signed off already (the web's).
+     */
+    fun submitOffered(tab: Tab): Boolean =
+        access.collect && tab !in noSubmit && (pickedAssets.isEmpty() || pickedAssets.any { it.st != Status.VALIDATED })
 
     /**
      * Submit shows greyed out (a tap says why, the web's "Some are already submitted"): a ticked asset is submitted, an
@@ -115,7 +121,13 @@ data class AssetListState(
 }
 
 /** The open filter sheet: the choices being made ([draft]), what it offers, and how many assets they would show. */
-data class FilterSheetState(val draft: AssetFilter, val options: AssetFilterOptions, val matching: Int)
+data class FilterSheetState(
+    val draft: AssetFilter,
+    val options: AssetFilterOptions,
+    val matching: Int,
+    /** The property's assignees are still being read (none kept on the phone yet): the people row shows placeholders. */
+    val peopleLoading: Boolean = false,
+)
 
 /**
  * The Assets lists (all tabs): search, status filter, multi-select and the bulk actions on the selection
@@ -128,6 +140,7 @@ class AssetListViewModel @Inject constructor(
     private val changeRequests: ChangeRequestUseCases,
     private val filters: AssetFilterUseCases,
     selectionAccess: ObserveSelectionAccessUseCase,
+    aiSwitch: ObserveAiSwitchUseCase,
 ) : ViewModel() {
     private val scope = MutableStateFlow(AssetListScope())
     private val ui = MutableStateFlow(Ui())
@@ -165,6 +178,10 @@ class AssetListViewModel @Inject constructor(
         val names: Map<String, String> = emptyMap(),
         /** The property's assignees as kept on the device: the filter sheet lists them all, with or without assets in the tab. */
         val everyone: Set<String> = emptySet(),
+        /** People's profile photos by user id, for the filter sheet. */
+        val photos: Map<String, String> = emptyMap(),
+        /** The filter sheet is reading the property's assignees. */
+        val namesLoading: Boolean = false,
     )
 
     /** The type catalogue by id, for the filter (kept for [toggleFilter], which drops choices under one taken off). */
@@ -183,11 +200,19 @@ class AssetListViewModel @Inject constructor(
         }
     }
 
-    val state: StateFlow<AssetListState> = combine(useCases.observe(), formats, scope, ui, access) { catalog, types, sc, u, rights ->
+    /** The property's AI switch: off, no asset is offered AI suggestions (the AI suggestion chip counts none). */
+    private val aiOn = aiSwitch().stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    val state: StateFlow<AssetListState> = combine(
+        useCases.observe(), combine(formats, aiOn) { t, a -> t to a }, scope, ui, access,
+    ) { read, (types, ai), sc, u, rights ->
+        val catalog = read.withAiSwitch(ai)
         val assets = catalog.assets
-        val admin = rights.admin
+        // Admins and reviewers (Validate) act on change requests, so their chip always shows (the web's).
+        val actsOnRequests = rights.admin || rights.validate
         fun query(tab: Tab, filter: AssetFilter) = AssetListQuery(
-            tab.sources(sc.network), sc.location, u.query, u.statusFilter[tab], changeRequests = tab in u.changeRequests, showChangeRequests = admin,
+            tab.sources(sc.network), sc.location, u.query, u.statusFilter[tab], changeRequests = tab in u.changeRequests,
+            showChangeRequests = actsOnRequests,
             validation = u.validation[tab], filter = filter, managed = tab == Tab.ASSETS && tab in u.managed,
         )
         // The assets in Managed Assets have their chip on the Assets tab only; no other list ever shows them.
@@ -197,15 +222,19 @@ class AssetListViewModel @Inject constructor(
             val q = query(u.filterTab, draft)
             FilterSheetState(
                 draft,
-                filters.options(useCases.buildList.scope(if (q.managed) managedFor(u.filterTab) else assets, q), types, draft, filters.me(), u.names, u.everyone),
+                filters.options(
+                    useCases.buildList.scope(if (q.managed) managedFor(u.filterTab) else assets, q), types, draft, filters.me(), u.names, u.everyone,
+                    u.photos,
+                ),
                 useCases.buildList(assets, q, types, managedFor(u.filterTab)).items.size,
+                peopleLoading = u.namesLoading,
             )
         }
         val pickedAssets = assets.filter { it.id in u.picked }
         AssetListState(
             lists, pickedAssets.mapTo(HashSet()) { it.id }, u.query, u.searchOpen, u.confirmDelete,
             loading = !catalog.loaded, refreshing = u.refreshing, pickedAssets = pickedAssets, statusFilter = u.statusFilter,
-            // The admin's sign-off comes first, then the change-request actions (the web's selection bar order).
+            // The sign-off (reviewers and admins) comes first, then the change-request actions (the web's selection bar order).
             changeOptions = changeRequests.signOff(pickedAssets) + changeRequests.actions(pickedAssets),
             changeMenu = u.changeMenu, changeAction = u.changeAction, changeNote = u.changeNote,
             changeNoteChanged = u.changeNote != u.changeNoteStart,
@@ -220,7 +249,7 @@ class AssetListViewModel @Inject constructor(
     /** The lists now show [propertyId]: a filter chosen on another property doesn't carry over. */
     fun bindProperty(propertyId: String?) {
         if (ui.value.propertyId == propertyId) return
-        ui.update { it.copy(propertyId = propertyId, filter = AssetFilter(), draft = null, names = emptyMap(), everyone = emptySet()) }
+        ui.update { it.copy(propertyId = propertyId, filter = AssetFilter(), draft = null, names = emptyMap(), everyone = emptySet(), photos = emptyMap()) }
         // Its assignees (names and emails for "Assigned to"), read from the device and, online, from the server.
         propertyId?.takeIf { it.isNotBlank() }?.let { p -> viewModelScope.launch { filters.names.open(p) } }
     }
@@ -234,11 +263,17 @@ class AssetListViewModel @Inject constructor(
     fun openFilter(tab: Tab) {
         val property = ui.value.propertyId
         val stored = filters.names.storedFor(property)
-        ui.update { it.copy(draft = it.filter, filterTab = tab, names = it.names + stored, everyone = stored.keys) }
+        val photos = filters.names.photosFor(property)
+        ui.update { it.copy(draft = it.filter, filterTab = tab, names = it.names + stored, everyone = stored.keys, photos = photos, namesLoading = true) }
         viewModelScope.launch {
-            val names = filters.names(property)
-            val fresh = filters.names.storedFor(property)
-            ui.update { if (it.propertyId == property) it.copy(names = names + fresh, everyone = fresh.keys) else it }
+            try {
+                val names = filters.names(property)
+                val fresh = filters.names.storedFor(property)
+                val freshPhotos = filters.names.photosFor(property)
+                ui.update { if (it.propertyId == property) it.copy(names = names + fresh, everyone = fresh.keys, photos = freshPhotos) else it }
+            } finally {
+                ui.update { it.copy(namesLoading = false) }
+            }
         }
     }
 

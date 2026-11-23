@@ -98,6 +98,16 @@ data class Asset(
      * and description, and every other field's answer). Empty for an asset not read from the database: then its name.
      */
     val searchText: String = "",
+    /**
+     * Made with Clone: the id of the asset it was copied from (the server's `cloned_from`; that one may have been deleted
+     * since). Null for every other asset, and for copies made before the server kept it. The web's "Cloned" badge and filter.
+     */
+    val clonedFrom: String? = null,
+    /**
+     * A mandatory field (active, standard or its own) still has no answer, as the server's `missingRequired`: the web's
+     * "Mandatory fields missing" filter.
+     */
+    val requiredMissing: Boolean = false,
 )
 
 /** Whether [text] (trimmed, lowercase; empty matches every asset) is in what the search looks in ([Asset.searchText]). */

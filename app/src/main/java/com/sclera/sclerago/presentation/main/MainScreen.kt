@@ -1,8 +1,5 @@
 package com.sclera.sclerago.presentation.main
 
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.foundation.layout.WindowInsets
-import com.sclera.sclerago.presentation.components.ToastEffect
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -16,6 +13,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
@@ -28,6 +26,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -38,10 +37,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
@@ -65,6 +68,7 @@ import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.PermissionSheet
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.ShakeEffect
+import com.sclera.sclerago.presentation.components.ToastEffect
 import com.sclera.sclerago.presentation.components.readableWidth
 import com.sclera.sclerago.presentation.config.ConfigScreen
 import com.sclera.sclerago.presentation.fileimport.DraftEditSheet
@@ -120,6 +124,13 @@ fun ScleraApp(
     // Every form reports unsaved changes here, so tabs and side-menu pages can ask before dropping them.
     CompositionLocalProvider(LocalUnsavedForms provides vm.unsavedForms) {
         val s = vm.state
+        // Each time the app comes back to the foreground, settings changed elsewhere (the web) are read again.
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        DisposableEffect(lifecycle) {
+            val watch = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_START) vm.onForeground() }
+            lifecycle.addObserver(watch)
+            onDispose { lifecycle.removeObserver(watch) }
+        }
         // Read here so everything below (the menu's sections, the + button, an asset's Assign and Move, the selection
         // dock's actions) is drawn again with the new answers whenever the signed-in user's access changes.
         vm.accessStamp
@@ -210,14 +221,23 @@ fun ScleraApp(
                 pickedPlace = s.detailPlace,
                 onPlaceTaken = vm::detailPlaceTaken,
                 // One in Managed Assets is read-only here: it can't be assigned or moved again.
-                onAssign = if (!d.managed && assign.mayAssign()) ({ assign.open(setOf(d.id), d.assignedTo) }) else null,
-                // A validated asset goes to Managed assets from its own bar too (a reviewer, once the property is linked).
+                onAssign = when {
+                    d.managed -> null
+                    assign.mayAssign() -> ({ assign.open(setOf(d.id), d.assignedTo) })
+                    // Someone who isn't an admin takes it for themselves, as the web's "Assign to me".
+                    assign.mayTake() -> ({ assign.take(listOf(d)) })
+                    else -> null
+                },
+                assignToMe = assign.mayTake(),
+                // A validated asset goes to Managed assets from its own bar too (an admin, once the property is linked).
                 onMove = if (!d.managed && move.offered(listOf(d))) ({ move.tap(setOf(d.id), onValidatedFilter = true) }) else null,
                 onValidate = { quickIds = listOf(d.id) },
-                onOpenRun = vm::openValidationRun,
+                onOpenResult = vm::openValidationResult,
                 prefill = vm.newPrefill,
                 scan = vm.newScanFacts,
                 onDropCapture = vm::dropNewMedia,
+                openTab = s.assetTab,
+                onTabOpened = vm::assetTabOpened,
             )
         }
 
@@ -298,7 +318,15 @@ fun ScleraApp(
                             onValidate = if (validation.mayCheck()) ({ quickIds = lists.picked.toList() }) else null,
                             // As the web's selection bar: no Assign, Submit or Delete on the Validated filter; Submit only for
                             // drafts; Delete not for submitted or signed-off assets unless an admin.
-                            onAssign = if (assign.mayAssign() && !onValidatedFilter) ({ assign.open(lists.picked, lists.pickedAssets.singleOrNull()?.assignedTo) }) else null,
+                            onAssign = when {
+                                onValidatedFilter -> null
+                                assign.mayAssign() -> ({ assign.open(lists.picked, lists.pickedAssets.singleOrNull()?.assignedTo) })
+                                // The web's "Assign to me": greyed out (a tap says why) when one is assigned or submitted.
+                                assign.mayTake() -> ({ assign.take(lists.pickedAssets, onDone = list::clearSelection) })
+                                else -> null
+                            },
+                            assignToMe = assign.mayTake(),
+                            assignDimmed = assign.mayTake() && assign.takeBlocked(lists.pickedAssets),
                             onEdit = if (onValidatedFilter || !list.mayCollect()) null else ({ bulk.open(lists.picked) }),
                             // As the web: Submit stays on the bar, greyed out when a ticked asset is already submitted.
                             onSubmit = if (!onValidatedFilter && lists.submitOffered(s.tab)) list::submitSelected else null,
@@ -328,7 +356,7 @@ fun ScleraApp(
             if (validationShown) {
                 ValidationScreen(
                     vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation, onMenu = vm::openMenu,
-                    openJobId = s.valJobId, onJobOpened = vm::validationRunShown,
+                    openJobId = s.valJobId, openAssetId = s.valAssetId, onJobOpened = vm::validationRunShown,
                 )
                 if (detail != null) {
                     Box(Modifier.fillMaxSize().background(C.Bg).statusBarsPadding().navigationBarsPadding()) { detailView(detail) }
@@ -375,11 +403,22 @@ fun ScleraApp(
                 )
                 Sheet.NONE -> {}
             }
-            summary.shown?.let { ManagedSummarySheet(it, summary::close) }
-            move.state.sheet?.let { sheet -> MoveToManagedSheet(move.state.networks, sheet, move, onSubmitted = list::clearSelection) }
+            summary.shown?.let { ManagedSummarySheet(it, summary::close, loading = summary.loading) }
+            move.state.sheet?.let { sheet -> MoveToManagedSheet(move.state.networks, sheet, move, onSubmitted = {
+                list.clearSelection()
+                // Moved from its own page: back to the list.
+                if (detail?.id in sheet.ids) vm.closeDetail()
+            }, networksLoading = move.state.networksLoading) }
             assign.sheet?.let { sheet -> AssignSheet(sheet, assign, onSubmitted = list::clearSelection) }
             if (files.state.edit != null) DraftEditSheet(files)
-            quickIds?.let { ids -> QuickValidate(vm.currentProp, vm.assets, ids, vm::flash, onClose = { quickIds = null }, vm = validation) }
+            quickIds?.let { ids ->
+                QuickValidate(
+                    vm.currentProp, vm.assets, ids, vm::flash, onClose = { quickIds = null },
+                    // A run opens Validation on it; one saved to run later opens the Validation page.
+                    onOpenJob = { jobId -> if (jobId != null) vm.openValidationRun(jobId) else vm.openValidation() },
+                    vm = validation,
+                )
+            }
             s.pv?.let { CapturePreview(it, vm::closePreview) }
             SideMenu(vm)
 

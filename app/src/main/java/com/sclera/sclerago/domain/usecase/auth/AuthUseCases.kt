@@ -23,8 +23,16 @@ class CheckSessionOnForegroundUseCase @Inject constructor(private val repository
     operator fun invoke() = repository.onForeground()
 }
 
-class LogoutUseCase @Inject constructor(private val repository: AuthRepository) {
-    operator fun invoke() = repository.logout()
+/**
+ * Signs the user out: only with a connection, so the accounts server ends the session too (offline it would stay open
+ * there while this phone forgets it). Returns false, doing nothing, when offline.
+ */
+class LogoutUseCase @Inject constructor(private val repository: AuthRepository, private val network: NetworkMonitor) {
+    operator fun invoke(): Boolean {
+        if (!network.isOnline()) return false
+        repository.logout()
+        return true
+    }
 }
 
 class IsOnlineUseCase @Inject constructor(private val monitor: NetworkMonitor) {

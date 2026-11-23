@@ -37,7 +37,10 @@ enum class OnlineOnly(@param:StringRes val message: Int) {
     INTEGRATION(R.string.offline_integration),
     VALIDATION(R.string.offline_validation),
 
-    // Configuration tabs (Building info works offline)
+    SIGN_OUT(R.string.offline_sign_out),
+
+    // Configuration tabs (Building info is read offline from the downloaded copy; adding and changing places is not)
+    PLACES(R.string.offline_places),
     ASSET_FIELDS(R.string.offline_asset_fields),
     GEOFENCING(R.string.offline_geofencing),
     PROPERTY_SETTINGS(R.string.offline_property_settings),

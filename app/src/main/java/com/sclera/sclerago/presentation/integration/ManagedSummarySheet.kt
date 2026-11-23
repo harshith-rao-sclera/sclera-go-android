@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.integration
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.ManagedCounts
+import com.sclera.sclerago.presentation.components.SkeletonBlock
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.r
@@ -24,18 +27,23 @@ import com.sclera.sclerago.presentation.theme.Txt
 
 /** Managed Assets Summary, as the web's info popup: moved to Managed Assets, and returned from it. */
 @Composable
-fun ManagedSummarySheet(counts: ManagedCounts, onClose: () -> Unit) {
+fun ManagedSummarySheet(
+    counts: ManagedCounts,
+    onClose: () -> Unit,
+    /** The counts are still being read: placeholders stand in for them. */
+    loading: Boolean = false,
+) {
     BottomSheet(onClose) {
         SheetHeader(stringResource(R.string.ms_title), null, onClose)
         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 20.dp).testTag("managed_summary"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            CountRow(stringResource(R.string.ms_moved), stringResource(R.string.ms_moved_sub), counts.moved)
-            CountRow(stringResource(R.string.ms_returned), stringResource(R.string.ms_returned_sub), counts.returned)
+            CountRow(stringResource(R.string.ms_moved), stringResource(R.string.ms_moved_sub), counts.moved, loading)
+            CountRow(stringResource(R.string.ms_returned), stringResource(R.string.ms_returned_sub), counts.returned, loading)
         }
     }
 }
 
 @Composable
-private fun CountRow(heading: String, sub: String, count: Int) {
+private fun CountRow(heading: String, sub: String, count: Int, loading: Boolean) {
     Row(
         Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -45,6 +53,6 @@ private fun CountRow(heading: String, sub: String, count: Int) {
             Txt(heading, 14, 700, maxLines = 2)
             Txt(sub, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
-        Txt(count.toString(), 20, 800, C.Yellow)
+        if (loading) SkeletonBlock(Modifier.width(30.dp).height(20.dp)) else Txt(count.toString(), 20, 800, C.Yellow)
     }
 }

@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.access
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -28,11 +31,14 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.Group
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.usecase.access.PersonProblem
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.SkeletonLead
+import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.FormGroup
@@ -57,8 +63,8 @@ private const val PropertySearchFrom = 8
  * organisation's directory and typing narrows it: [onEmailTyped] asks, [suggestions] are who matches and
  * [suggestionHint] says why there are none), the group ("No access" too, for someone already here), then which
  * properties: all of them, or only the ones selected. Someone picked from the directory on the Users list comes
- * in with their email and name filled in ([Person.inviteName]). Stateless towards the app: [problem] says what is
- * still missing, [onSave] returns what stopped the save.
+ * in with their email and name filled in ([Person.inviteName]), and their photo goes with the invitation. Stateless
+ * towards the app: [problem] says what is still missing, [onSave] returns what stopped the save.
  */
 @Composable
 internal fun PersonSheet(
@@ -72,10 +78,16 @@ internal fun PersonSheet(
     suggestionHint: UiText? = null,
     onEmailTyped: (String) -> Unit = {},
     onSuggestionPicked: () -> Unit = {},
+    /** The directory is being asked: placeholder people instead of the last search's. */
+    suggestionsLoading: Boolean = false,
 ) {
     val isNew = initial.id.isEmpty()
     var email by remember { mutableStateOf(initial.email) }
-    var picked by remember { mutableStateOf(initial.inviteName?.let { DirectoryPerson(initial.email, it, null) }) }
+    var picked by remember {
+        mutableStateOf(
+            initial.takeIf { isNew && (it.inviteName != null || it.imageUrl != null) }?.let { DirectoryPerson(it.email, it.inviteName, null, it.imageUrl) },
+        )
+    }
     var emailFocused by remember { mutableStateOf(false) }
     var groupId by remember { mutableStateOf(initial.groupId) }
     var all by remember { mutableStateOf(initial.allProperties) }
@@ -83,9 +95,17 @@ internal fun PersonSheet(
     var choosingGroup by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<UiText?>(null) }
     val group = groups.firstOrNull { it.id == groupId }
-    // The name goes with the invitation only while the email is still the one picked (not retyped).
-    val inviteName = picked?.takeIf { isNew && it.email == email.trim() }?.name?.takeIf { it.isNotBlank() }
-    val draft = initial.copy(email = email, groupId = groupId, allProperties = all, propertyIds = chosen, inviteName = inviteName)
+    // Manage properties and Manage access act on the whole organisation: a group with either has every property, never a
+    // chosen few (the server grants them only to someone with all properties), as the web's.
+    val organisationWide = group?.let { organisationWide(it) }.orEmpty()
+    val everyProperty = all || organisationWide.isNotEmpty()
+    // The name and photo go with the invitation only while the email is still the one picked (not retyped).
+    val pickedNow = picked?.takeIf { isNew && it.email == email.trim() }
+    val inviteName = pickedNow?.name?.takeIf { it.isNotBlank() }
+    val draft = initial.copy(
+        email = email, groupId = groupId, allProperties = everyProperty, propertyIds = if (everyProperty) emptySet() else chosen, inviteName = inviteName,
+        imageUrl = if (isNew) pickedNow?.imageUrl else initial.imageUrl,
+    )
     val noAccess = stringResource(R.string.access_no_access)
 
     Box(Modifier.fillMaxSize().testTag(AccessTags.PERSON_SHEET)) {
@@ -100,7 +120,7 @@ internal fun PersonSheet(
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
             primaryModifier = Modifier.testTag(AccessTags.SHEET_PRIMARY),
             dirty = email.trim() != initial.email.trim() || groupId != initial.groupId ||
-                all != initial.allProperties || chosen != initial.propertyIds,
+                everyProperty != initial.allProperties || (!everyProperty && chosen != initial.propertyIds),
         ) {
             FormGroup(stringResource(R.string.access_section_person), Icons.Users) {
                 if (isNew) {
@@ -115,10 +135,16 @@ internal fun PersonSheet(
                             keyboard = KeyboardType.Email,
                         )
                     }
-                    suggestionHint?.takeIf { emailFocused }?.let {
+                    if (emailFocused && suggestionsLoading && picked?.email != email.trim()) {
+                        SkeletonList(
+                            stringResource(R.string.access_loading_users), Modifier.padding(horizontal = 12.dp), count = 3,
+                            lead = SkeletonLead.CIRCLE, card = false, gap = 2.dp,
+                        )
+                    }
+                    suggestionHint?.takeIf { emailFocused && !suggestionsLoading }?.let {
                         Txt(it.asString(), 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp), maxLines = Int.MAX_VALUE)
                     }
-                    if (emailFocused && picked?.email != email.trim()) {
+                    if (emailFocused && !suggestionsLoading && picked?.email != email.trim()) {
                         suggestions.forEach { person ->
                             Suggestion(person) {
                                 email = person.email
@@ -140,21 +166,22 @@ internal fun PersonSheet(
             }
             if (group != null) {
                 FormGroup(stringResource(R.string.label_properties), Icons.Building) {
-                    ScopeOption(stringResource(R.string.access_all_properties), stringResource(R.string.access_scope_all_desc), all) {
+                    ScopeOption(stringResource(R.string.access_all_properties), stringResource(R.string.access_scope_all_desc), everyProperty) {
                         all = true
                         error = null
                     }
                     ScopeOption(
-                        stringResource(R.string.access_scope_chosen), stringResource(R.string.access_scope_chosen_desc), !all,
-                        tag = if (all) null else stringResource(R.string.access_n_chosen, chosen.size),
+                        stringResource(R.string.access_scope_chosen), stringResource(R.string.access_scope_chosen_desc), !everyProperty,
+                        tag = if (everyProperty) null else stringResource(R.string.access_n_chosen, chosen.size),
+                        enabled = organisationWide.isEmpty(),
                     ) {
                         all = false
                         error = null
                     }
-                    organisationWideHint(group)?.takeIf { !all }?.let {
+                    organisationWideHint(group, organisationWide)?.let {
                         Txt(it, 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = Int.MAX_VALUE)
                     }
-                    if (!all) PropertyPicker(properties, chosen) { id -> chosen = if (id in chosen) chosen - id else chosen + id }
+                    if (!everyProperty) PropertyPicker(properties, chosen) { id -> chosen = if (id in chosen) chosen - id else chosen + id }
                 }
             }
         }
@@ -183,20 +210,25 @@ private fun groupHint(group: Group?, isNew: Boolean): String? = when {
     else -> null
 }
 
-/** "Admins can manage properties and manage access, which only works with all properties." (null when nothing needs it). */
+/** The [group]'s permissions that act on the whole organisation (Manage properties, Manage access), so need all properties. */
 @Composable
-private fun organisationWideHint(group: Group): String? {
-    val names = orderedPermissions().filter { group.can(it) && it.needsAll() }.map { it.title().lowercase() }
+private fun organisationWide(group: Group): List<Permission> = orderedPermissions().filter { group.can(it) && it.needsAll() }
+
+/** "Admins can manage properties and manage access, so they get all properties." (null when nothing needs it). */
+@Composable
+private fun organisationWideHint(group: Group, permissions: List<Permission>): String? {
+    val names = permissions.map { it.title().lowercase() }
     if (names.isEmpty()) return null
     return stringResource(R.string.access_needs_all_hint, group.name, names.joinToString(stringResource(R.string.access_and)))
 }
 
 /** One of the two ways to give properties: a radio, its name (and how many are chosen), and what it means. */
 @Composable
-private fun ScopeOption(title: String, description: String, on: Boolean, tag: String? = null, onPick: () -> Unit) {
+private fun ScopeOption(title: String, description: String, on: Boolean, tag: String? = null, enabled: Boolean = true, onPick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).semantics { selected = on }
-            .clickable(role = Role.RadioButton, onClick = onPick).padding(horizontal = 12.dp, vertical = 10.dp),
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = enabled, role = Role.RadioButton, onClick = onPick).fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).semantics { selected = on }
+            .alpha(if (enabled) 1f else 0.45f)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         RadioDot(on)
@@ -227,8 +259,8 @@ private fun PropertyPicker(properties: List<Property>, chosen: Set<String>, onTo
     }
     listed.forEach { p ->
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).semantics { selected = p.id in chosen }
-                .clickable(role = Role.Checkbox) { onToggle(p.id) }.padding(horizontal = 12.dp),
+            Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Checkbox) { onToggle(p.id) }.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).semantics { selected = p.id in chosen }
+                .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -243,8 +275,8 @@ private fun PropertyPicker(properties: List<Property>, chosen: Set<String>, onTo
 private fun Suggestion(person: DirectoryPerson, onPick: () -> Unit) {
     val name = person.name?.takeIf { it.isNotBlank() }
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).testTag(AccessTags.suggestion(person.email))
-            .clickable(role = Role.Button, onClick = onPick).padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button, onClick = onPick).fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).testTag(AccessTags.suggestion(person.email))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Txt(name ?: person.email, 13, 600)

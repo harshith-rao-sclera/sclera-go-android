@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -82,7 +83,7 @@ internal fun lengthMs(m: Media): Long {
 @Composable
 internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val title = m.title()
-    Box(modifier.clip(r(12)).background(C.Raised).semantics { contentDescription = title }.clickable(onClick = onOpen)) {
+    Box(modifier.pressClickable(shape = r(12), onClick = onOpen).background(C.Raised).semantics { contentDescription = title }) {
         if (m.isDoc) Txt(m.ext, 11, 800, C.Yellow, Modifier.align(Alignment.Center))
         else MediaImage(m, Modifier.fillMaxSize(), maxPx = 240)
         if (m.video) Txt(
@@ -119,8 +120,8 @@ internal fun InfoPhotoStrip(media: List<Media>, onAdd: (() -> Unit)?, onOpen: (I
     ) {
         onAdd?.let { add ->
             Box(
-                Modifier.size(StripTile).testTag(PhotoTags.ADD).clip(r(12)).dashedBorder(C.Border2, 1.dp, 12.dp)
-                    .semantics { contentDescription = addLabel }.clickable(onClick = add),
+                Modifier.size(StripTile).testTag(PhotoTags.ADD).pressClickable(shape = r(12), onClick = add).dashedBorder(C.Border2, 1.dp, 12.dp)
+                    .semantics { contentDescription = addLabel },
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Plus, 24.dp, C.Yellow, 2.6f) }
         }

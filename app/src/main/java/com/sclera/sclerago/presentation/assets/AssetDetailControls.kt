@@ -1,5 +1,11 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -15,6 +21,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,7 +72,6 @@ import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.r
-import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -92,56 +99,61 @@ fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
 /**
  * Why this user can't change the asset, as one line under the top bar like the change request banner: "No edit access ·
  * Assigned to someone else" (or "· Submitted"). A tap opens the full reason. Validate and Request change stay in the
- * asset bar.
+ * asset bar. A submitted asset tells a [reviewer] (Validate) to move it to draft, as the web's lockedReason; anyone else
+ * that only an admin can change it.
  */
 @Composable
-internal fun LockBanner(lock: AssetLock, modifier: Modifier = Modifier) {
-    var open by rememberSaveable { mutableStateOf(false) }
-    val toggle = stringResource(if (open) R.string.change_banner_collapse else R.string.change_banner_expand)
+internal fun LockBanner(lock: AssetLock, reviewer: Boolean, modifier: Modifier = Modifier) {
     val (short, body) = when (lock) {
         AssetLock.NOT_ASSIGNED -> R.string.lock_banner_not_assigned to R.string.asset_lock_not_assigned
         AssetLock.NO_PERMISSION -> R.string.lock_banner_no_permission to R.string.lock_banner_no_permission_body
-        else -> R.string.lock_banner_submitted to R.string.detail_submitted_body
+        else -> if (reviewer) R.string.lock_banner_submitted_reviewer to R.string.lock_banner_submitted_reviewer_body
+        else R.string.lock_banner_submitted to R.string.detail_submitted_body
     }
-    Column(modifier.fillMaxWidth().background(C.WarnRow).bottomBorder(C.Orange.copy(alpha = 0.35f)).testTag(DetailTags.LOCK_BANNER)) {
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(onClickLabel = toggle) { open = !open }.padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            LineIcon(Icons.Lock, 15.dp, C.Orange, 2.2f)
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                Txt(stringResource(R.string.lock_banner_title), 13, 700, C.Orange)
-                Txt("·", 12, 400, C.Soft)
-                Txt(stringResource(short), 12, 400, C.Soft, Modifier.weight(1f, fill = false), maxLines = 1)
-            }
-            LineIcon(Icons.ChevronDown, 15.dp, C.Orange, 2.6f, Modifier.rotate(if (open) 180f else 0f))
-        }
-        AnimatedVisibility(open, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-            Txt(stringResource(body), 12, 400, C.Soft, Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp), maxLines = Int.MAX_VALUE)
-        }
-    }
+    FoldingBanner(Icons.Lock, C.Orange, C.WarnRow, R.string.lock_banner_title, short, body, modifier.testTag(DetailTags.LOCK_BANNER))
 }
 
 /**
- * Where an asset in Managed Assets would show its validation (the Info tab's validation strip): it is in Managed Assets,
- * read-only here, and comes back as a draft if Managed Assets sends it back (the web's note). A full-width strip like
- * the Info sections under it.
+ * An asset in Managed Assets, as one slim line under the top bar like the lock and change request banners: "In
+ * Managed Assets · Read-only here". A tap opens the rest: it comes back as a draft if Managed Assets sends it back.
  */
 @Composable
-fun ManagedNote(modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().testTag(DetailTags.MANAGED_NOTE).background(C.Surface).topBorder(C.Border).bottomBorder(C.Border)
-            .heightIn(min = 52.dp).padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Box(Modifier.size(32.dp).clip(r(9)).background(C.YTintBg), contentAlignment = Alignment.Center) {
-            LineIcon(Icons.Managed, 18.dp, C.Yellow, 2f)
+internal fun ManagedBanner(modifier: Modifier = Modifier) {
+    FoldingBanner(
+        Icons.Managed, C.Yellow, C.YTintBg, R.string.managed_note_title, R.string.managed_banner_short, R.string.managed_note_body,
+        modifier.testTag(DetailTags.MANAGED_NOTE),
+    )
+}
+
+/** The slim line under the top bar: [icon], [title] · [short] and a chevron; a tap folds [body] open or shut. */
+@Composable
+private fun FoldingBanner(
+    icon: Ico,
+    tint: Color,
+    background: Color,
+    @StringRes title: Int,
+    @StringRes short: Int,
+    @StringRes body: Int,
+    modifier: Modifier = Modifier,
+) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val toggle = stringResource(if (open) R.string.change_banner_collapse else R.string.change_banner_expand)
+    Column(modifier.fillMaxWidth().background(background).bottomBorder(tint.copy(alpha = 0.35f))) {
+        Row(
+            Modifier.pressClickable(pressed = PRESSED_CARD, onClickLabel = toggle) { open = !open }.fillMaxWidth().heightIn(min = 44.dp).padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            LineIcon(icon, 15.dp, tint, 2.2f)
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Txt(stringResource(title), 13, 700, tint)
+                Txt("·", 12, 400, C.Soft)
+                Txt(stringResource(short), 12, 400, C.Soft, Modifier.weight(1f, fill = false), maxLines = 1)
+            }
+            LineIcon(Icons.ChevronDown, 15.dp, tint, 2.6f, Modifier.rotate(if (open) 180f else 0f))
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(stringResource(R.string.managed_note_title), 13, 700)
-            Txt(stringResource(R.string.managed_note_body), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        AnimatedVisibility(open, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+            Txt(stringResource(body), 12, 400, C.Soft, Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp), maxLines = Int.MAX_VALUE)
         }
     }
 }
@@ -198,12 +210,14 @@ fun DetailTab(
     compact: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val fg = if (selected) C.Yellow else C.Muted
+    val fg by animateColorAsState(if (selected) C.Yellow else C.Muted, tween(120), label = "tab-fg")
+    val dot by animateColorAsState(if (selected) C.YTintBg else Color.Transparent, tween(120), label = "tab-dot")
+    val line by animateFloatAsState(if (selected) 1f else 0f, tween(140), label = "tab-line")
     Box(modifier.fillMaxHeight().selectable(selected, role = Role.Tab, onClick = onClick).padding(horizontal = 1.dp)) {
         val content: @Composable () -> Unit = {
             Box {
                 Box(
-                    Modifier.size(26.dp).background(if (selected) C.YTintBg else Color.Transparent, CircleShape),
+                    Modifier.size(26.dp).background(dot, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(icon, 16.dp, fg, 2.4f) }
                 val badge = Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-3).dp).heightIn(min = 15.dp).widthIn(min = 15.dp)
@@ -226,9 +240,10 @@ fun DetailTab(
         } else {
             Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) { content() }
         }
-        if (selected) {
+        if (line > 0f) {
             Box(
                 Modifier.align(Alignment.BottomCenter).padding(horizontal = 8.dp).fillMaxWidth().height(3.dp)
+                    .graphicsLayer { scaleX = line; alpha = line }
                     .background(C.Yellow, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)),
             )
         }
@@ -238,6 +253,8 @@ fun DetailTab(
 /**
  * The two floating buttons: AI fill above, voice below, with a short message beside the active one ([heard]: the words
  * heard so far). Both need the server: [offline], each is dimmed with the offline badge, and a tap says why in its bubble.
+ * Both ask the AI: with the property's AI switch off they stay, dimmed, and a tap says "AI off. An admin can turn it on."
+ * ([aiOff]: the AI button, which stays usable while a look-up's results wait; [voiceOff]: the voice button).
  */
 @Composable
 fun FormFloatingButtons(
@@ -248,9 +265,13 @@ fun FormFloatingButtons(
     onAi: () -> Unit,
     onMic: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A long press on the mic: describe the asset by typing instead. */
+    onType: () -> Unit = {},
     /** What was said is being read by the AI. */
     reading: Boolean = false,
     offline: Boolean = false,
+    aiOff: Boolean = false,
+    voiceOff: Boolean = false,
 ) {
     // Which button's offline reason shows in its bubble, for a few seconds after a tap.
     var why by remember { mutableStateOf<OnlineOnly?>(null) }
@@ -261,18 +282,43 @@ fun FormFloatingButtons(
             why = null
         }
     }
+    // Which button says AI is off in its bubble, for a few seconds after a tap.
+    var offTip by remember { mutableStateOf<FloatingButton?>(null) }
+    LaunchedEffect(offTip, aiOff, voiceOff) {
+        if (!aiOff && !voiceOff) offTip = null
+        if (offTip != null) {
+            delay(OFFLINE_TIP_MS)
+            offTip = null
+        }
+    }
+    val aiOffText = UiText.Res(R.string.ai_off)
     Column(modifier.padding(end = 16.dp, bottom = 16.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // A look-up or recording already running carries on (and can be stopped) whatever the connection.
         val aiOffline = offline && !aiBusy
-        val aiWhy = if (why == OnlineOnly.AI_SUGGESTIONS) UiText.Res(OnlineOnly.AI_SUGGESTIONS.message) else aiNotice
-        AiFillButton(aiBusy, aiWhy, onAi, aiOffline, onBlocked = { why = OnlineOnly.AI_SUGGESTIONS })
+        val aiWhy = when {
+            why == OnlineOnly.AI_SUGGESTIONS -> UiText.Res(OnlineOnly.AI_SUGGESTIONS.message)
+            offTip == FloatingButton.AI -> aiOffText
+            else -> aiNotice
+        }
+        AiFillButton(
+            aiBusy, aiWhy, onAi, aiOffline, onBlocked = { why = OnlineOnly.AI_SUGGESTIONS },
+            aiOff = aiOff && !aiBusy, onAiOff = { offTip = FloatingButton.AI },
+        )
         MicButton(
-            listening, reading, heard, onMic, offline && !listening && !reading,
-            why = if (why == OnlineOnly.VOICE_FILL) stringResource(OnlineOnly.VOICE_FILL.message) else null,
+            listening, reading, heard, onMic, offline && !listening && !reading, onType = onType,
+            why = when {
+                why == OnlineOnly.VOICE_FILL -> stringResource(OnlineOnly.VOICE_FILL.message)
+                offTip == FloatingButton.MIC -> aiOffText.asString()
+                else -> null
+            },
             onBlocked = { why = OnlineOnly.VOICE_FILL },
+            aiOff = voiceOff && !listening && !reading, onAiOff = { offTip = FloatingButton.MIC },
         )
     }
 }
+
+/** The floating buttons, to say which one shows the AI-off reason. */
+private enum class FloatingButton { AI, MIC }
 
 /** How long a floating button's offline reason stays in its bubble. */
 private const val OFFLINE_TIP_MS = 4_000L
@@ -289,7 +335,15 @@ private fun Bubble(text: String, maxLines: Int) {
 
 /** Small floating button above the mic: fills empty fields with AI suggestions. */
 @Composable
-private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit, offline: Boolean, onBlocked: () -> Unit) {
+private fun AiFillButton(
+    busy: Boolean,
+    notice: UiText?,
+    onClick: () -> Unit,
+    offline: Boolean,
+    onBlocked: () -> Unit,
+    aiOff: Boolean,
+    onAiOff: () -> Unit,
+) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         val tip = if (busy) stringResource(R.string.detail_ai_busy) else notice?.asString()
         if (tip != null) Bubble(tip, Int.MAX_VALUE)
@@ -298,12 +352,14 @@ private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit, of
         val blink by inf.animateFloat(1f, 0.25f, infiniteRepeatable(tween(550), RepeatMode.Reverse), label = "blink")
         val description = stringResource(R.string.detail_ai_fill)
         OfflineGate(offline, onBlocked) {
-            Box(
-                Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().clip(CircleShape).background(C.Surface)
-                    .border(if (busy) 2.dp else 1.dp, if (busy) C.Cyan.copy(alpha = 0.4f + 0.6f * blink) else C.Border2, CircleShape)
-                    .semantics { contentDescription = description }.clickable(onClick = onClick),
-                contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.alpha(blink) else Modifier) }
+            AiOffGate(aiOff, onAiOff) {
+                Box(
+                    Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().pressClickable(shape = CircleShape, onClick = onClick).background(C.Surface)
+                        .border(if (busy) 2.dp else 1.dp, if (busy) C.Cyan.copy(alpha = 0.4f + 0.6f * blink) else C.Border2, CircleShape)
+                        .semantics { contentDescription = description },
+                    contentAlignment = Alignment.Center,
+                ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.alpha(blink) else Modifier) }
+            }
         }
     }
 }
@@ -312,6 +368,7 @@ private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit, of
  * The voice button, like play and stop: tap to start recording, talk about the asset as long as needed (pauses don't
  * end it), tap ■ to stop. Then the AI reads it ([reading]) and the voice fill sheet shows what it found.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MicButton(
     listening: Boolean,
@@ -319,8 +376,11 @@ private fun MicButton(
     heard: String,
     onClick: () -> Unit,
     offline: Boolean,
+    onType: () -> Unit,
     why: String?,
     onBlocked: () -> Unit,
+    aiOff: Boolean,
+    onAiOff: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         when {
@@ -329,25 +389,33 @@ private fun MicButton(
             listening -> Bubble(heard.ifBlank { stringResource(R.string.voice_listening) }, 3)
         }
         val description = stringResource(if (listening) R.string.voice_stop else R.string.detail_voice_fill)
+        val typeLabel = stringResource(R.string.describe_type_instead)
         OfflineGate(offline, onBlocked) {
-            Box(contentAlignment = Alignment.Center) {
-                if (listening) {
-                    val inf = rememberInfiniteTransition(label = "mic")
-                    val p by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "p")
-                    Canvas(Modifier.size(54.dp)) {
-                        listOf(p, (p + 0.5f) % 1f).forEach { t ->
-                            drawCircle(C.Red.copy(alpha = 0.8f * (1f - t)), (27f + 18f * t).dp.toPx(), style = Stroke(2.dp.toPx()))
+            AiOffGate(aiOff, onAiOff) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (listening) {
+                        val inf = rememberInfiniteTransition(label = "mic")
+                        val p by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "p")
+                        Canvas(Modifier.size(54.dp)) {
+                            listOf(p, (p + 0.5f) % 1f).forEach { t ->
+                                drawCircle(C.Red.copy(alpha = 0.8f * (1f - t)), (27f + 18f * t).dp.toPx(), style = Stroke(2.dp.toPx()))
+                            }
                         }
                     }
-                }
-                Box(
-                    // Recording: a stop square to tap when done. Reading: dimmed and not tappable until the sheet shows.
-                    Modifier.size(54.dp).testTag(FloatingTags.MIC).alpha(if (reading) 0.5f else 1f).fabShadow().clip(CircleShape)
-                        .background(if (listening) C.Red else C.Yellow)
-                        .semantics { contentDescription = description }.clickable(enabled = !reading, onClick = onClick),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (listening) LineIcon(Icons.Stop, 24.dp, C.White, 2.2f) else LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f)
+                    Box(
+                        // Recording: a stop square to tap when done. Reading: dimmed and not tappable until the sheet shows.
+                        Modifier.size(54.dp).testTag(FloatingTags.MIC).alpha(if (reading) 0.5f else 1f).fabShadow().clip(CircleShape)
+                            .background(if (listening) C.Red else C.Yellow)
+                            .semantics { contentDescription = description }
+                            // A long press types the description instead (noisy sites, or when speaking won't do).
+                            .combinedClickable(
+                                enabled = !reading, onLongClickLabel = typeLabel,
+                                onLongClick = { if (!listening) onType() }, onClick = onClick,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (listening) LineIcon(Icons.Stop, 24.dp, C.White, 2.2f) else LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f)
+                    }
                 }
             }
         }

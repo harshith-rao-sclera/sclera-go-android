@@ -12,4 +12,6 @@
     <string name="doc_open_with">Open with</string>
     <string name="doc_attachment">Document</string>
     <string name="media_source_document">Source document</string>
+    <!-- Read out over the placeholder cards while the AI lookup or manual search is still finding documents. -->
+    <string name="doc_searching">Looking for documents…</string>
 </resources>

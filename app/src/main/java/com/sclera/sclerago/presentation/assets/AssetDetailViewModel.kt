@@ -46,6 +46,7 @@ import com.sclera.sclerago.domain.model.photosShort
 import com.sclera.sclerago.domain.model.taggedByFields
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.asset.AddAssetFieldUseCase
+import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetFormUseCases
 import com.sclera.sclerago.domain.usecase.asset.AssetHandling
 import com.sclera.sclerago.domain.usecase.asset.AssetHandlingUseCase
@@ -61,6 +62,7 @@ import com.sclera.sclerago.domain.usecase.asset.PhotoFill
 import com.sclera.sclerago.domain.usecase.asset.PlanPhotoFillUseCase
 import com.sclera.sclerago.domain.usecase.asset.RemoveAssetFieldUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveOnlineUseCase
+import com.sclera.sclerago.domain.usecase.config.AiSwitchUseCases
 import com.sclera.sclerago.domain.usecase.config.ObserveAssetConfigUseCase
 import com.sclera.sclerago.domain.usecase.media.DeleteOwnedMediaUseCase
 import com.sclera.sclerago.domain.validation.AssetValidation
@@ -140,6 +142,8 @@ data class AssetDetailState(
     val changeRequester: String? = null,
     /** The signed-in user is an admin (who can decline a change request or reopen the asset). */
     val admin: Boolean = false,
+    /** The signed-in user may validate (a reviewer or an admin): a submitted asset is theirs to move back to draft. */
+    val reviewer: Boolean = false,
     /** The asset's comments and history, newest first (none for a new asset). */
     val activity: List<AssetActivity> = emptyList(),
     /** Who the asset is assigned to and who submitted it, when (null for a new asset). */
@@ -148,7 +152,6 @@ data class AssetDetailState(
     val commentDraft: String = "",
     val commentError: UiText? = null,
     val commentPosting: Boolean = false,
-    val savedFlash: Boolean = false,
     /** The AI suggestions dialog while it is open (null: closed). */
     val ai: AiDialogState? = null,
     /** A spec look-up is running, shown or not (the AI button spins). */
@@ -157,6 +160,8 @@ data class AssetDetailState(
     val voice: VoiceFillState? = null,
     /** What was said is being read by the server's AI (the mic shows it is working). */
     val voiceReading: Boolean = false,
+    /** The describe sheet (typing instead of speaking) while it is open: its text (null: closed). */
+    val typing: String? = null,
     /** Photos just added are being read on the device to sort them into nameplate, label ID or asset. */
     val sortingPhotos: Boolean = false,
     /**
@@ -182,9 +187,24 @@ data class AssetDetailState(
     val pendingPlace: LocValue? = null,
     /** The device is online; offline, the server-only actions (AI, voice, Suggest type, Validate, Assign) say so instead. */
     val online: Boolean = true,
+    /** A pull to refresh is reading the asset and its tabs again (the ring shows). */
+    val refreshing: Boolean = false,
     /** The user may comment (collect or validate), as the web's comment box; not on a signed-off asset or one in Managed Assets. */
     val mayComment: Boolean = false,
+    /**
+     * The property's AI switch is on. Off, the AI buttons (AI suggestions, its look-ups, voice fill) stay where they are,
+     * dimmed, and a tap says "AI off. An admin can turn it on."; photos and scans no longer fill the form by AI.
+     */
+    val aiOn: Boolean = true,
+    /** A look-up's results are here to read again (kept until the asset is closed), whether or not its sheet is open. */
+    val aiHasResults: Boolean = false,
 ) {
+    /**
+     * The AI suggestions button can be used: AI is on, or a look-up's results (or one still running) are here to read, as
+     * the web keeps it usable while a look-up's suggestions wait.
+     */
+    val aiUsable: Boolean get() = aiOn || aiBusy || aiHasResults
+
     val values: Map<String, String> get() = saved + edits
     fun value(key: String): String = edits[key] ?: saved[key].orEmpty()
     fun dirty(key: String): Boolean = key in edits && edits[key] != saved[key].orEmpty()
@@ -288,6 +308,8 @@ class AssetDetailViewModel @Inject constructor(
     private val removeField: RemoveAssetFieldUseCase,
     private val deleteOwned: DeleteOwnedMediaUseCase,
     observeAccess: ObserveAccessChangesUseCase,
+    private val reloadData: ReloadAssetsUseCase,
+    private val aiSwitch: AiSwitchUseCases,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
 
@@ -311,11 +333,12 @@ class AssetDetailViewModel @Inject constructor(
         /** Field key -> the page each applied AI suggestion came from; dropped when that field is typed over. */
         val aiSources: Map<String, AiSource> = emptyMap(),
         val place: LocValue? = null,
-        val savedFlash: Boolean = false,
         val ai: AiDialogState? = null,
         val aiOpen: Boolean = false,
         val voice: VoiceFillState? = null,
         val voiceReading: Boolean = false,
+        /** The describe sheet's text while it is open (null: closed). */
+        val typing: String? = null,
         val newPicks: List<Media> = emptyList(),
         val commentDraft: String = "",
         val commentProblem: CommentProblem? = null,
@@ -333,27 +356,39 @@ class AssetDetailViewModel @Inject constructor(
         val addFieldOpen: Boolean = false,
         val addingField: Boolean = false,
         val addFieldError: UiText? = null,
+        /** A pull to refresh is reading the asset, its activity, checks and documents again. */
+        val refreshing: Boolean = false,
     )
 
     private val target = MutableStateFlow<Target?>(null)
     private val form = MutableStateFlow(Form())
     private val message = MutableSharedFlow<UiText>(extraBufferCapacity = 8)
+    private val done = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
     private val classifier = AssetClassifier(classifying, viewModelScope)
     private val jacsPicker = JacsPicker(jacsCodes, viewModelScope)
     private val photoFill = PhotoAutoFill(viewModelScope) { fillFromPhotos() }
 
+    /** What [pickers] puts together. */
+    private data class Pickers(val classified: ClassifierUi, val jacs: JacsPickerState?, val online: Boolean, val aiOn: Boolean)
+
     /**
-     * The classifier's part of the screen, the JACS code picker and whether the device is online, as one (the screen's
-     * state takes five sources), again whenever the signed-in user's access changes.
+     * The classifier's part of the screen, the JACS code picker, whether the device is online and the property's AI switch,
+     * as one (the screen's state takes five sources), again whenever the signed-in user's access changes.
      */
-    private val pickers = combine(classifier.ui, jacsPicker.state, observeOnline(), observeAccess()) { classified, jacs, online, _ ->
+    private val pickers = combine(classifier.ui, jacsPicker.state, observeOnline(), observeAccess(), aiSwitch.observe()) { classified, jacs, online, _, aiOn ->
         // The access itself isn't kept: a change to it (fetched, changed, failed) only makes the screen work out its
         // permission checks again (lock, Check, Clone, comments, own fields, change actions, tags).
-        Triple(classified, jacs, online)
+        Pickers(classified, jacs, online, aiOn)
     }
 
     /** Messages to flash after saving, submitting, validating or adding media. */
     val notices: SharedFlow<UiText> = message.asSharedFlow()
+
+    /**
+     * The asset was saved, or its status or change request changed: what to flash, and the page closes back to the list
+     * (which shows it where it now belongs, with the new counts).
+     */
+    val finished: SharedFlow<UiText> = done.asSharedFlow()
 
     /**
      * The open asset's comments and history and its fields (the standard ones plus its own), with the type catalogue and
@@ -390,7 +425,7 @@ class AssetDetailViewModel @Inject constructor(
         }
 
     val state: StateFlow<AssetDetailState> =
-        combine(opened, form, observeConfig(), fromDb, pickers) { o, f, config, db, (classified, jacs, online) ->
+        combine(opened, form, observeConfig(), fromDb, pickers) { o, f, config, db, (classified, jacs, online, aiOn) ->
             val t = o?.target ?: return@combine AssetDetailState()
             val asset = o.asset ?: return@combine AssetDetailState()
             val details = o.details
@@ -411,13 +446,14 @@ class AssetDetailViewModel @Inject constructor(
                 documents = (asset.media + f.newPicks).filter { it.isDoc && !it.audio && !it.video && !it.sourceDocument }.map { it.toAttachment() } +
                     (if (t.isNew) emptyList() else db.documents),
                 saved = saved, edits = f.edits, fields = fields, details = details,
-                media = asset.media + f.newPicks.filterNot { it.sourceDocument }, newPicks = f.newPicks, savedFlash = f.savedFlash,
-                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase.let { it == AiPhase.SEARCHING || it == AiPhase.LOADING }, voice = f.voice, voiceReading = f.voiceReading, sortingPhotos = f.sorting > 0,
+                media = asset.media + f.newPicks.filterNot { it.sourceDocument }, newPicks = f.newPicks,
+                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase.let { it == AiPhase.SEARCHING || it == AiPhase.LOADING }, voice = f.voice, voiceReading = f.voiceReading, typing = f.typing, sortingPhotos = f.sorting > 0,
                 activity = if (t.isNew) emptyList() else db.activity,
                 handling = if (t.isNew) null else handling(asset, db.activity),
                 commentDraft = f.commentDraft, commentError = f.commentProblem?.problemText(), commentPosting = f.commentPosting,
                 validation = if (t.isNew) null else db.validation, validating = f.validating,
                 changeNote = f.changeNote, changeRequestMine = changeRequests.isMine(asset.changeRequest), admin = changeRequests.isAdmin(),
+                reviewer = changeRequests.isReviewer(),
                 cloneOpen = f.cloneOpen && !t.isNew, cloning = f.cloning,
                 aiManuals = f.aiManuals, manualsSearching = f.manualsSearching,
                 canAddField = !t.isNew && !asset.managed && addField.allowed(),
@@ -437,6 +473,9 @@ class AssetDetailViewModel @Inject constructor(
                 classify = classified.sheet,
                 jacs = jacs,
                 online = online,
+                refreshing = f.refreshing,
+                aiOn = aiOn,
+                aiHasResults = f.ai?.phase == AiPhase.RESULTS,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetDetailState())
 
@@ -467,6 +506,8 @@ class AssetDetailViewModel @Inject constructor(
         form.value = Form()
         target.value = Target(asset, isNew, prefill)
         classifier.refreshOnce()
+        // Someone may have flipped the property's AI switch: read again when the last read is old (the web's askAiOn).
+        viewModelScope.launch { aiSwitch.refresh() }
         if (isNew) startWithCaptures(asset)
         if (isNew && scan != null) startScanFill(asset.id)
     }
@@ -487,7 +528,8 @@ class AssetDetailViewModel @Inject constructor(
             } ?: return@launch
             when {
                 ready.locked -> Unit
-                ready.value("model").isNotBlank() -> autoFill(emptyList(), fromScan = true)
+                // With AI off the look-up isn't asked; Suggest type still answers (from same-model assets only).
+                ready.value("model").isNotBlank() && ready.aiOn -> autoFill(emptyList(), fromScan = true)
                 else -> openClassify()
             }
         }
@@ -521,6 +563,24 @@ class AssetDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Pull to refresh, as on the asset list: the asset, its comments and history, checks and documents are read again
+     * from the property's data (what the last sync brought). The ring stays a moment so the pull is seen to have worked.
+     */
+    fun refresh() {
+        if (form.value.refreshing || target.value?.isNew != false) return
+        form.update { it.copy(refreshing = true) }
+        viewModelScope.launch {
+            try {
+                launch { aiSwitch.refresh(maxAgeMs = 0) }
+                reloadData()
+                delay(REFRESH_SHOW_MS)
+            } finally {
+                form.update { it.copy(refreshing = false) }
+            }
+        }
+    }
+
     fun close() {
         aiJob?.cancel()
         manualsJob?.cancel()
@@ -537,7 +597,7 @@ class AssetDetailViewModel @Inject constructor(
         // A new system or asset type also resets the types below it that the catalogue doesn't file under it.
         val changes = if (key in CLASS_KEYS) formData.reclassify(s.formats, s.values, key, value) else mapOf(key to value)
         // A value typed over an applied AI suggestion no longer came from its page, as the server drops it.
-        form.update { it.copy(edits = it.edits + changes, aiSources = it.aiSources - changes.keys, savedFlash = false) }
+        form.update { it.copy(edits = it.edits + changes, aiSources = it.aiSources - changes.keys) }
         // A new type shows its fields.
         if (key in CLASS_KEYS) classifier.showTypeFields(s.formats, s.fields, s.values + changes)
     }
@@ -550,7 +610,7 @@ class AssetDetailViewModel @Inject constructor(
         val asset = state.value.asset ?: return
         if (state.value.locked) return
         val current = asset.locationId ?: asset.floorId ?: asset.buildingId
-        form.update { it.copy(place = place.takeIf { p -> p.placeId != current }, savedFlash = false) }
+        form.update { it.copy(place = place.takeIf { p -> p.placeId != current }) }
     }
 
     fun discardEdits() {
@@ -568,9 +628,7 @@ class AssetDetailViewModel @Inject constructor(
             // place picked goes in with the rest of the changes, in one history line.
             useCases.saveDetails(id, s.values, sources = aiPages(s), place = s.pendingPlace)
             clearEditsOnceRefreshed(s)
-            form.update { it.copy(savedFlash = true) }
-            state.value.let { classifier.showTypeFields(it.formats, it.fields, it.values) }
-            message.emit(UiText.Res(R.string.asset_changes_saved))
+            done.emit(UiText.Res(R.string.asset_changes_saved))
         }
     }
 
@@ -585,7 +643,7 @@ class AssetDetailViewModel @Inject constructor(
         write {
             useCases.saveDetails(id, s.values, Status.SUBMITTED, sources = aiPages(s), place = s.pendingPlace)
             clearEditsOnceRefreshed(s)
-            message.emit(UiText.Res(if (s.complete) R.string.asset_submitted_notice else R.string.asset_exception_notice))
+            done.emit(UiText.Res(if (s.complete) R.string.asset_submitted_notice else R.string.asset_exception_notice))
         }
     }
 
@@ -700,7 +758,8 @@ class AssetDetailViewModel @Inject constructor(
     private fun autoFill(photos: List<Media>, fromScan: Boolean) {
         val s = state.value
         val asset = s.asset ?: return
-        if (s.locked) return
+        // AI off for the property: nothing is filled by AI, as the server's background work skips it.
+        if (s.locked || !s.aiOn) return
         aiJob?.cancel()
         form.update {
             it.copy(ai = AiDialogState(AiPhase.SEARCHING, s.value("make"), s.value("model"), startedAt = System.currentTimeMillis(), fromPhoto = photos.isNotEmpty()))
@@ -712,10 +771,15 @@ class AssetDetailViewModel @Inject constructor(
                 // names (which is the asset's own type when it already has the right one).
                 formData.lookups.lookUpOnPhone(asset.id, photos, s.values.filterValues { it.isNotBlank() }, masterFormatId = null)
             } catch (e: OnlineException) {
-                setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
+                val why = e.error.aiText()
+                setAi { it.copy(phase = AiPhase.ERROR, error = why) }
                 message.emit(
-                    if (e.error == OnlineError.Offline) UiText.Res(R.string.ai_auto_offline)
-                    else UiText.Res(if (fromScan) R.string.ai_scan_failed else R.string.ai_auto_failed, listOf(e.error.aiText())),
+                    when {
+                        e.error == OnlineError.Offline -> UiText.Res(R.string.ai_auto_offline)
+                        // Turned off meanwhile: said as it is, and nothing more is asked of the AI.
+                        why == AI_OFF -> AI_OFF
+                        else -> UiText.Res(if (fromScan) R.string.ai_scan_failed else R.string.ai_auto_failed, listOf(why))
+                    },
                 )
                 return@launch
             }
@@ -731,7 +795,7 @@ class AssetDetailViewModel @Inject constructor(
             }
             // Each looked-up field's page goes with it, kept on Save while the value stays as suggested.
             val pages = fill.sources.mapValues { (key, page) -> AiSource(page, fill.values.getValue(key)) }
-            form.update { it.copy(edits = it.edits + fill.values, aiSources = it.aiSources - fill.values.keys + pages, savedFlash = false) }
+            form.update { it.copy(edits = it.edits + fill.values, aiSources = it.aiSources - fill.values.keys + pages) }
             if (fill.typeSet) classifier.showTypeFields(now.formats, now.fields, now.values + fill.values)
             message.emit(photoFillText(fill))
         }
@@ -831,7 +895,7 @@ class AssetDetailViewModel @Inject constructor(
         jacsPicker.close()
         val value = code.trim()
         classifier.noteCode(value)
-        form.update { it.copy(edits = it.edits + ("jacs" to value), aiSources = it.aiSources - "jacs", savedFlash = false) }
+        form.update { it.copy(edits = it.edits + ("jacs" to value), aiSources = it.aiSources - "jacs") }
         if (value.isEmpty()) return
         viewModelScope.launch {
             val type = try {
@@ -890,7 +954,7 @@ class AssetDetailViewModel @Inject constructor(
     private fun editFromSuggestion(add: Map<String, String>, remove: Map<String, String> = emptyMap()) {
         form.update { f ->
             val kept = f.edits.filterNot { (k, v) -> k !in add && remove[k] == v }
-            f.copy(edits = kept + add, aiSources = f.aiSources - add.keys - remove.keys, savedFlash = false)
+            f.copy(edits = kept + add, aiSources = f.aiSources - add.keys - remove.keys)
         }
     }
 
@@ -945,7 +1009,7 @@ class AssetDetailViewModel @Inject constructor(
             // not) goes in, and with a model the look-up goes ahead.
             AiPhase.IDENTIFY -> {
                 setAi { it.copy(make = s.value("make").ifBlank { it.make }, model = s.value("model").ifBlank { it.model }) }
-                if (form.value.ai?.model?.isNotBlank() == true) lookUp()
+                if (form.value.ai?.model?.isNotBlank() == true && s.aiOn) lookUp()
                 return
             }
             AiPhase.RESULTS -> {
@@ -957,9 +1021,10 @@ class AssetDetailViewModel @Inject constructor(
         form.update { it.copy(ai = AiDialogState(AiPhase.LOADING, s.value("make"), s.value("model"))) }
         aiJob?.cancel()
         aiJob = viewModelScope.launch {
-            // An asset being added is only on the phone: the phone's look-up, from its photos and what is typed.
+            // An asset being added is only on the phone: the phone's look-up, from its photos and what is typed (not with
+            // AI off for the property).
             if (s.isNew) {
-                lookUpOnPhone()
+                if (state.value.aiOn) lookUpOnPhone() else setAi { it.copy(phase = AiPhase.ERROR, error = AI_OFF) }
                 return@launch
             }
             try {
@@ -973,11 +1038,13 @@ class AssetDetailViewModel @Inject constructor(
                 when {
                     latest != null && latest.status.waiting -> follow(asset.id, latest)
                     latest != null && latest.status == LookupStatus.COMPLETED && hasNews(latest) -> show(latest)
+                    // AI off: what was already found can still be reviewed (above), and nothing new is started (the web's).
+                    !state.value.aiOn -> setAi { it.copy(phase = AiPhase.ERROR, error = AI_OFF) }
                     s.value("model").isNotBlank() -> runLookup()
                     else -> lookUpOnPhone()
                 }
             } catch (e: OnlineException) {
-                setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
+                failAi(e.error)
             }
         }
     }
@@ -1003,7 +1070,7 @@ class AssetDetailViewModel @Inject constructor(
         } catch (e: OnlineException) {
             // Nothing to go on (422): no photo could be read here and no model is typed.
             if (e.error == OnlineError.Invalid) setAi { it.copy(phase = AiPhase.IDENTIFY, error = UiText.Res(R.string.ai_need_model)) }
-            else setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
+            else failAi(e.error)
             return
         }
         show(found)
@@ -1151,7 +1218,7 @@ class AssetDetailViewModel @Inject constructor(
         form.update { it.copy(changeNote = null) }
         write {
             changeRequests.request(id, note)
-            message.emit(UiText.Res(R.string.change_request_sent))
+            done.emit(UiText.Res(R.string.change_request_sent))
         }
     }
 
@@ -1164,47 +1231,52 @@ class AssetDetailViewModel @Inject constructor(
         val declining = s.admin && !s.changeRequestMine
         write {
             changeRequests.close(asset.id, request)
-            message.emit(UiText.Res(if (declining) R.string.change_request_declined else R.string.change_request_withdrawn))
+            done.emit(UiText.Res(if (declining) R.string.change_request_declined else R.string.change_request_withdrawn))
         }
     }
 
-    /** An admin reopens the asset: back to draft, which closes its change request, as the server's. */
+    /** An admin or a reviewer reopens the asset: back to draft, which approves its change request, as the server's. */
     fun reopenAsset() {
         if (state.value.managed) return
         val id = state.value.asset?.id ?: return
         write {
-            useCases.setStatus(listOf(id), Status.DRAFT)
-            message.emit(UiText.Res(R.string.change_request_reopened))
+            changeRequests.reopen(listOf(id))
+            done.emit(UiText.Res(R.string.change_request_reopened))
         }
     }
 
-    /** Back to draft (the web's Move to draft): an exception to be collected again, or an admin reopening a submitted asset. */
+    /**
+     * Back to draft (the web's Move to draft): an exception to be collected again, or an admin or a reviewer reopening a
+     * submitted asset.
+     */
     fun moveToDraft() {
         if (state.value.managed) return
         val id = state.value.asset?.id ?: return
         write {
-            useCases.setStatus(listOf(id), Status.DRAFT)
-            message.emit(UiText.Plural(R.plurals.change_bulk_drafted, 1))
+            changeRequests.reopen(listOf(id))
+            done.emit(UiText.Plural(R.plurals.change_bulk_drafted, 1))
         }
     }
 
-    /** An admin signs the submitted asset off without a validation run (the server's bulk validate). */
+    /** A reviewer or an admin signs the submitted asset off without a validation run (the server's bulk validate). */
     fun markValidated() {
         if (state.value.managed) return
         val id = state.value.asset?.id ?: return
         write {
             val outcome = changeRequests.markValidated(listOf(id))
-            message.emit(
-                if (outcome.validated > 0) UiText.Plural(R.plurals.sign_off_done, outcome.validated)
-                else UiText.Plural(R.plurals.sign_off_not_submitted, 1),
-            )
+            if (outcome.validated > 0) done.emit(UiText.Plural(R.plurals.sign_off_done, outcome.validated))
+            else message.emit(UiText.Plural(R.plurals.sign_off_not_submitted, 1))
         }
     }
 
     fun editAiIdentity(make: String, model: String) = setAi { it.copy(make = make, model = model) }
 
-    /** Starts (again) a look-up with the manufacturer and model typed in the dialog. */
+    /** Starts (again) a look-up with the manufacturer and model typed in the dialog (not while the property has AI off). */
     fun lookUp() {
+        if (!state.value.aiOn) {
+            message.tryEmit(AI_OFF)
+            return
+        }
         aiJob?.cancel()
         aiJob = viewModelScope.launch { runLookup() }
     }
@@ -1251,7 +1323,7 @@ class AssetDetailViewModel @Inject constructor(
         }.toMap()
         // What the AI found stays (the AI button shows it again) until the asset is closed.
         form.update {
-            it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys + pages, savedFlash = false, aiOpen = false)
+            it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys + pages, aiOpen = false)
         }
         message.tryEmit(UiText.Plural(R.plurals.ai_applied, update.size))
     }
@@ -1264,6 +1336,11 @@ class AssetDetailViewModel @Inject constructor(
     fun heard(said: String, sure: Float?) {
         val s = state.value
         if (s.asset == null || s.locked || said.isBlank() || form.value.voiceReading) return
+        // Voice fill asks the AI: with AI off for the property its button is off too (turned off while listening).
+        if (!s.aiOn) {
+            message.tryEmit(AI_OFF)
+            return
+        }
         form.update { it.copy(voiceReading = true) }
         viewModelScope.launch {
             try {
@@ -1282,6 +1359,32 @@ class AssetDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Describe the asset by typing (the web's "Describe the asset"): opens the sheet with [prefill] (what was heard, to
+     * correct it; empty to start). The same AI fill as the voice button, so not with AI off.
+     */
+    fun openTyping(prefill: String = "") {
+        val s = state.value
+        if (s.asset == null || s.locked) return
+        if (!s.aiOn) {
+            message.tryEmit(AI_OFF)
+            return
+        }
+        form.update { it.copy(typing = prefill.take(DESCRIBE_MAX), voice = null) }
+    }
+
+    fun setTyping(text: String) = form.update { f -> f.typing?.let { f.copy(typing = text.take(DESCRIBE_MAX)) } ?: f }
+
+    fun closeTyping() = form.update { it.copy(typing = null) }
+
+    /** Fill form: what was typed goes to the AI fill as if spoken; the voice fill sheet then shows what it found. */
+    fun submitTyping() {
+        val text = form.value.typing?.trim().orEmpty()
+        if (text.isEmpty() || form.value.voiceReading) return
+        form.update { it.copy(typing = null) }
+        heard(text, null)
+    }
+
     fun toggleVoicePick(key: String) = form.update { f ->
         val v = f.voice ?: return@update f
         val pick = v.picks[key] ?: return@update f
@@ -1295,7 +1398,7 @@ class AssetDetailViewModel @Inject constructor(
         val v = form.value.voice ?: return
         val update = v.picks.filterValues { it.on }.mapValues { it.value.value }
         if (update.isEmpty()) return
-        form.update { it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys, savedFlash = false, voice = null) }
+        form.update { it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys, voice = null) }
         message.tryEmit(UiText.Plural(R.plurals.ai_applied, update.size))
     }
 
@@ -1322,7 +1425,7 @@ class AssetDetailViewModel @Inject constructor(
                 // Not on the server yet, or no model to look up by (422): the phone's look-up reads the photos here
                 // (it asks for the model when there are none).
                 e.error == OnlineError.NotFound || e.error == OnlineError.Invalid -> lookUpOnPhone()
-                else -> setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
+                else -> failAi(e.error)
             }
         }
     }
@@ -1332,7 +1435,7 @@ class AssetDetailViewModel @Inject constructor(
         val done = try {
             formData.lookups.follow(assetId, lookup)
         } catch (e: OnlineException) {
-            setAi { it.copy(phase = AiPhase.ERROR, error = e.error.aiText()) }
+            failAi(e.error)
             return
         }
         show(done)
@@ -1399,9 +1502,22 @@ class AssetDetailViewModel @Inject constructor(
         }
     }
 
-    /** A new asset, or one not synced yet, is not known to the server: it has to be synced before it can be looked up. */
-    private fun OnlineError.aiText(): UiText =
-        if (this == OnlineError.NotFound) UiText.Res(R.string.detail_ai_sync_first) else toUiText()
+    /**
+     * Why something asked of the AI failed: a new asset, or one not synced yet, is not known to the server (it has to be
+     * synced before it can be looked up); a 403 because the property has AI off says so ("AI off. An admin can turn it
+     * on."), which also turns the AI buttons off.
+     */
+    private suspend fun OnlineError.aiText(): UiText = when {
+        this == OnlineError.NotFound -> UiText.Res(R.string.detail_ai_sync_first)
+        aiSwitch.isAiOffRefusal(this) -> AI_OFF
+        else -> toUiText()
+    }
+
+    /** The AI suggestions sheet shows why [error] stopped it. */
+    private suspend fun failAi(error: OnlineError) {
+        val why = error.aiText()
+        setAi { it.copy(phase = AiPhase.ERROR, error = why) }
+    }
 
     /**
      * Validates the asset again at the server ([fromStart]: every step, else from its first step to look at), as the web's
@@ -1502,8 +1618,13 @@ class AssetDetailViewModel @Inject constructor(
     private companion object {
         const val REFRESH_MS = 1000L
 
+        /** What an AI button says while the property has AI off (the web's AI_OFF). */
+        val AI_OFF: UiText = UiText.Res(R.string.ai_off)
+
         /** How often the manuals are asked for again while the server searches for them (as the web's sheet). */
         const val MANUALS_POLL_MS = 2_500L
+        /** How long the pull-to-refresh ring shows after the data is read again. */
+        const val REFRESH_SHOW_MS = 600L
 
         /** How long a new asset opened from a scan waits for its form before the AI is asked (it takes a moment to load). */
         const val FORM_WAIT_MS = 5_000L

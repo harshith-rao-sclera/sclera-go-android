@@ -180,7 +180,7 @@
     <string name="access_deleted">%1$s deleted</string>
     <string name="access_no_access_hint">The user can still sign in, but cannot open any property.</string>
     <string name="access_view_only_hint">View-only access.</string>
-    <string name="access_needs_all_hint">%1$s includes permission to %2$s, which requires access to all properties.</string>
+    <string name="access_needs_all_hint">%1$s can %2$s, so they get all properties.</string>
     <string name="access_and">" and "</string>
     <string name="access_search_properties">Search properties</string>
     <string name="access_no_properties_yet">There are no properties yet.</string>
@@ -217,13 +217,13 @@
     <string name="access_what_they_can_do">Permissions</string>
     <string name="access_needs_all">Requires all properties</string>
     <string name="access_perm_collect">Collect</string>
-    <string name="access_perm_collect_desc">Add, edit and delete assets; upload files and media; review assets read from files; submit.</string>
+    <string name="access_perm_collect_desc">Add, edit and delete assets; upload files and media; review assets read from files; submit. Configure includes it.</string>
     <string name="access_perm_check">Check</string>
     <string name="access_perm_check_desc">Run validations, and accept or dismiss fixes on assets not yet submitted. Validate includes it.</string>
     <string name="access_perm_validate">Validate</string>
     <string name="access_perm_validate_desc">Run validations; accept or dismiss fixes; sign assets off or send them back; merge duplicates.</string>
     <string name="access_perm_configure">Configure</string>
-    <string name="access_perm_configure_desc">Set up a property: buildings, floors, locations, fields and types.</string>
+    <string name="access_perm_configure_desc">Set up a property: buildings, floors, locations, fields and types. Includes Collect.</string>
     <string name="access_perm_manage_properties">Manage properties</string>
     <string name="access_perm_manage_properties_desc">Create, edit and delete properties. Needs access to all properties.</string>
     <string name="access_perm_manage_access">Manage access</string>
@@ -521,7 +521,6 @@
     <string name="detail_comment_too_long">A comment can be up to %1$d characters.</string>
     <string name="detail_back">Back to list</string>
     <string name="detail_name_hint">Asset name</string>
-    <string name="detail_saved">Saved</string>
     <string name="detail_menu_camera">Take photo or video</string>
     <string name="detail_menu_files">Upload from files</string>
     <string name="detail_photo">Photo</string>
