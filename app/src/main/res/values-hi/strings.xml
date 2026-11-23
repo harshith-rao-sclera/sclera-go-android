@@ -599,4 +599,18 @@
     <string name="valt_count_need_look">देखने की जरूरत</string>
     <string name="detail_select_jacs">JACS कोड चुनें</string>
     <string name="detail_required_tag">आवश्यक</string>
+    <string name="property_group_address">पता</string>
+    <string name="property_pill_ready">तैयार</string>
+    <string name="property_pill_required">%1$d आवश्यक</string>
+    <string name="property_pill_none_yet">अभी कोई नहीं</string>
+    <string name="property_label_type">प्रकार</string>
+    <string name="property_label_contact_name">संपर्क का नाम</string>
+    <string name="property_label_contact_email">संपर्क ईमेल</string>
+    <string name="property_label_contact_phone">संपर्क फ़ोन</string>
+    <string name="property_label_available_from">उपलब्ध से</string>
+    <string name="property_label_available_until">उपलब्ध तक</string>
+    <string name="property_type_or_select_country">देश लिखें या चुनें</string>
+    <string name="property_type_or_select_state">राज्य लिखें या चुनें</string>
+    <string name="property_type_or_select_city">शहर लिखें या चुनें</string>
+    <string name="property_choose_country_first">पहले देश चुनें</string>
 </resources>

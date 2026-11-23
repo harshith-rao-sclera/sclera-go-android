@@ -610,4 +610,18 @@
     <string name="valt_count_need_look">דורשים בדיקה</string>
     <string name="detail_select_jacs">בחר קוד JACS</string>
     <string name="detail_required_tag">שדה חובה</string>
+    <string name="property_group_address">כתובת</string>
+    <string name="property_pill_ready">מוכן</string>
+    <string name="property_pill_required">%1$d חובה</string>
+    <string name="property_pill_none_yet">אין עדיין</string>
+    <string name="property_label_type">סוג</string>
+    <string name="property_label_contact_name">שם איש קשר</string>
+    <string name="property_label_contact_email">אימייל איש קשר</string>
+    <string name="property_label_contact_phone">טלפון איש קשר</string>
+    <string name="property_label_available_from">זמין מ־</string>
+    <string name="property_label_available_until">זמין עד</string>
+    <string name="property_type_or_select_country">הקלד או בחר מדינה</string>
+    <string name="property_type_or_select_state">הקלד או בחר מדינה פדרלית</string>
+    <string name="property_type_or_select_city">הקלד או בחר עיר</string>
+    <string name="property_choose_country_first">בחר מדינה תחילה</string>
 </resources>

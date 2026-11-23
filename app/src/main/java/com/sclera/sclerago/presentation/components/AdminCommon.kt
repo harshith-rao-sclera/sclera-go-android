@@ -38,7 +38,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 // "Sclera VDMS Mobile" design canvas.
 
 /** Opacity of a field that can't be edited right now (the design's locked and waiting fields). */
-private const val DimmedAlpha = 0.55f
+private const val DimmedAlpha = 0.45f
 
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
@@ -346,15 +346,15 @@ internal fun FormGroup(
     val chevron by animateFloatAsState(if (open) 0f else -90f, label = "group")
     Column(Modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(bottom = 6.dp)) {
         Row(
-            Modifier.fillMaxWidth().height(52.dp).then(if (collapsible) Modifier.clickable { open = !open } else Modifier)
+            Modifier.fillMaxWidth().height(48.dp).then(if (collapsible) Modifier.clickable { open = !open } else Modifier)
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Box(Modifier.size(28.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 15.dp, C.Yellow, 1.9f) }
-            Txt(title, 14, 700, modifier = Modifier.weight(1f))
+            Box(Modifier.size(28.dp).clip(r(8)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 13.dp, C.Yellow, 1.9f) }
+            Txt(title, 15, 700, modifier = Modifier.weight(1f))
             trailing?.invoke()
-            if (collapsible) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f, Modifier.rotate(chevron))
+            if (collapsible) LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 2.8f, Modifier.rotate(chevron))
         }
         AnimatedVisibility(open) { Column(content = content) }
     }
@@ -385,7 +385,7 @@ internal fun RowScope.InlineInput(
     enabled: Boolean = true,
     keyboard: KeyboardType = KeyboardType.Text,
 ) {
-    PlainField(value, onChange, placeholder, Modifier.weight(1f).then(modifier), size = 14, readOnly = !enabled, keyboard = keyboard)
+    PlainField(value, onChange, placeholder, Modifier.weight(1f).then(modifier), size = 15, readOnly = !enabled, keyboard = keyboard)
 }
 
 @Composable
@@ -394,14 +394,15 @@ internal fun RowScope.InlineSelect(
     placeholder: String,
     enabled: Boolean = true,
     chevron: Boolean = true,
-    upDown: Boolean = false,
+    upDown: Boolean = true,
     onClick: () -> Unit,
 ) {
     Row(
         Modifier.weight(1f).heightIn(min = 44.dp).clickable(enabled = enabled, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Txt(value.ifEmpty { placeholder }, 14, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
+        // The design shows the placeholder in the normal text colour.
+        Txt(value.ifEmpty { placeholder }, 15, 400, C.Text, Modifier.weight(1f))
         if (chevron && upDown) LineIcon(Icons.ChevronUpDown, 12.dp, C.Yellow, 2.4f)
         else if (chevron) LineIcon(Icons.ChevronDown, 14.dp, C.Muted, 2.6f)
     }

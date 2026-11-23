@@ -808,4 +808,18 @@
     <string name="valt_count_need_look">need a look</string>
     <string name="detail_select_jacs">Select JACS code</string>
     <string name="detail_required_tag">REQUIRED</string>
+    <string name="property_group_address">Address</string>
+    <string name="property_pill_ready">Ready</string>
+    <string name="property_pill_required">%1$d required</string>
+    <string name="property_pill_none_yet">None yet</string>
+    <string name="property_label_type">Type</string>
+    <string name="property_label_contact_name">Contact name</string>
+    <string name="property_label_contact_email">Contact email</string>
+    <string name="property_label_contact_phone">Contact phone</string>
+    <string name="property_label_available_from">Available from</string>
+    <string name="property_label_available_until">Available until</string>
+    <string name="property_type_or_select_country">Type or select country</string>
+    <string name="property_type_or_select_state">Type or select state</string>
+    <string name="property_type_or_select_city">Type or select city</string>
+    <string name="property_choose_country_first">Choose a country first</string>
 </resources>

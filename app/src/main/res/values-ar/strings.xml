@@ -627,4 +627,18 @@
     <string name="valt_count_need_look">تحتاج إلى مراجعة</string>
     <string name="detail_select_jacs">اختر رمز JACS</string>
     <string name="detail_required_tag">مطلوب</string>
+    <string name="property_group_address">العنوان</string>
+    <string name="property_pill_ready">جاهز</string>
+    <string name="property_pill_required">%1$d مطلوب</string>
+    <string name="property_pill_none_yet">لا شيء بعد</string>
+    <string name="property_label_type">النوع</string>
+    <string name="property_label_contact_name">اسم جهة الاتصال</string>
+    <string name="property_label_contact_email">البريد الإلكتروني لجهة الاتصال</string>
+    <string name="property_label_contact_phone">هاتف جهة الاتصال</string>
+    <string name="property_label_available_from">متاح من</string>
+    <string name="property_label_available_until">متاح حتى</string>
+    <string name="property_type_or_select_country">اكتب أو اختر الدولة</string>
+    <string name="property_type_or_select_state">اكتب أو اختر الولاية</string>
+    <string name="property_type_or_select_city">اكتب أو اختر المدينة</string>
+    <string name="property_choose_country_first">اختر الدولة أولاً</string>
 </resources>

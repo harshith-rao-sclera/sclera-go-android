@@ -613,4 +613,18 @@
     <string name="valt_count_need_look">потребують перевірки</string>
     <string name="detail_select_jacs">Виберіть код JACS</string>
     <string name="detail_required_tag">ОБОВ\'ЯЗКОВО</string>
+    <string name="property_group_address">Адреса</string>
+    <string name="property_pill_ready">Готово</string>
+    <string name="property_pill_required">Обов\'язкових: %1$d</string>
+    <string name="property_pill_none_yet">Поки немає</string>
+    <string name="property_label_type">Тип</string>
+    <string name="property_label_contact_name">Ім\'я контакту</string>
+    <string name="property_label_contact_email">Email контакту</string>
+    <string name="property_label_contact_phone">Телефон контакту</string>
+    <string name="property_label_available_from">Доступно з</string>
+    <string name="property_label_available_until">Доступно до</string>
+    <string name="property_type_or_select_country">Введіть або виберіть країну</string>
+    <string name="property_type_or_select_state">Введіть або виберіть штат</string>
+    <string name="property_type_or_select_city">Введіть або виберіть місто</string>
+    <string name="property_choose_country_first">Спершу виберіть країну</string>
 </resources>

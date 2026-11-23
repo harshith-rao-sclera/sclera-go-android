@@ -599,4 +599,18 @@
     <string name="valt_count_need_look">nakijken</string>
     <string name="detail_select_jacs">JACS-code selecteren</string>
     <string name="detail_required_tag">VERPLICHT</string>
+    <string name="property_group_address">Adres</string>
+    <string name="property_pill_ready">Klaar</string>
+    <string name="property_pill_required">%1$d vereist</string>
+    <string name="property_pill_none_yet">Nog geen</string>
+    <string name="property_label_type">Type</string>
+    <string name="property_label_contact_name">Contactnaam</string>
+    <string name="property_label_contact_email">Contacte-mail</string>
+    <string name="property_label_contact_phone">Contacttelefoon</string>
+    <string name="property_label_available_from">Beschikbaar vanaf</string>
+    <string name="property_label_available_until">Beschikbaar tot</string>
+    <string name="property_type_or_select_country">Typ of selecteer land</string>
+    <string name="property_type_or_select_state">Typ of selecteer staat</string>
+    <string name="property_type_or_select_city">Typ of selecteer stad</string>
+    <string name="property_choose_country_first">Kies eerst een land</string>
 </resources>

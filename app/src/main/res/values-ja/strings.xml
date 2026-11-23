@@ -578,4 +578,18 @@
     <string name="valt_count_need_look">要確認</string>
     <string name="detail_select_jacs">JACSコードを選択</string>
     <string name="detail_required_tag">必須</string>
+    <string name="property_group_address">住所</string>
+    <string name="property_pill_ready">準備完了</string>
+    <string name="property_pill_required">必須 %1$d 件</string>
+    <string name="property_pill_none_yet">まだありません</string>
+    <string name="property_label_type">種類</string>
+    <string name="property_label_contact_name">連絡先の名前</string>
+    <string name="property_label_contact_email">連絡先のメール</string>
+    <string name="property_label_contact_phone">連絡先の電話</string>
+    <string name="property_label_available_from">利用開始</string>
+    <string name="property_label_available_until">利用終了</string>
+    <string name="property_type_or_select_country">国を入力または選択</string>
+    <string name="property_type_or_select_state">州を入力または選択</string>
+    <string name="property_type_or_select_city">市区町村を入力または選択</string>
+    <string name="property_choose_country_first">先に国を選択してください</string>
 </resources>
