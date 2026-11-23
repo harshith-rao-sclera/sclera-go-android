@@ -79,6 +79,7 @@ import com.sclera.sclerago.presentation.launch.Entrance
 import com.sclera.sclerago.presentation.launch.launchEntrance
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.property.PropertyListScreen
+import com.sclera.sclerago.presentation.property.PropertySheet
 import com.sclera.sclerago.presentation.scan.BluetoothPage
 import com.sclera.sclerago.presentation.scan.NetworkPage
 import com.sclera.sclerago.presentation.theme.C
@@ -231,6 +232,7 @@ fun ScleraApp(
         BackHandler(enabled = selecting) { list.clearSelection() }
         BackHandler(enabled = vm.devSelOn) { vm.clearDevicePick() }
 
+        var propertySheet by rememberSaveable { mutableStateOf(false) }
         val keyboardUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         Box(Modifier.fillMaxSize().background(C.Bg)) {
             Column(Modifier.fillMaxSize().imePadding()) {
@@ -240,7 +242,7 @@ fun ScleraApp(
                     selected = s.loc,
                     onMenu = vm::openMenu,
                     onPick = vm::tapLocTab,
-                    onChevron = { if (it == LocFilter.ALL) vm.openProp() else vm.openLocFilter() },
+                    onChevron = { if (it == LocFilter.ALL) propertySheet = true else vm.openLocFilter() },
                     modifier = Modifier.launchEntrance(Entrance.DashHeader),
                 )
                 // The user's access couldn't be loaded: pages and changes that need a permission stay unavailable until it is.
@@ -340,6 +342,9 @@ fun ScleraApp(
 
             // Integration page (side menu): the property's link to a VDMS.
             if (vm.integrationShown) IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration, onMenu = vm::openMenu)
+
+            // The header's property dropdown: pick another property without leaving the dashboard.
+            if (propertySheet) PropertySheet(vm, onClose = { propertySheet = false })
 
             // Property list / People and access (side menu).
             when (s.adminPage) {

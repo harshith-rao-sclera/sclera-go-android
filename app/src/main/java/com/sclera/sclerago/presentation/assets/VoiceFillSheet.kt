@@ -76,8 +76,8 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(R.string.voice_you_said), 11, 500, C.Soft)
-                        Txt(stringResource(R.string.scrt_quoted_speech, v.said), 14, 700, maxLines = Int.MAX_VALUE)
+                        Txt(stringResource(R.string.voice_you_said), 11, 600, C.Muted)
+                        Txt(stringResource(R.string.scrt_quoted_speech, v.said), 14, 400, maxLines = Int.MAX_VALUE)
                     }
                     if (v.picks.isNotEmpty()) {
                         Column(Modifier.fillMaxWidth().clip(r(12)).border(1.dp, C.Border, r(12))) {
@@ -91,10 +91,10 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                                 ) {
                                     TickBox(pick.on) { actions.onToggle(key) }
                                     Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                        Txt(spec.label(key).removeSuffix(" *"), 12, 600, C.Soft, maxLines = 2)
-                                        Txt(shown(kind, pick.value), 14, 800, maxLines = Int.MAX_VALUE)
+                                        Txt(spec.label(key).removeSuffix(" *"), 13, 600, C.Muted, maxLines = 2)
+                                        Txt(shown(kind, pick.value), 15, 600, maxLines = Int.MAX_VALUE)
                                         if (now.isNotEmpty() && now != pick.value) {
-                                            Txt(stringResource(R.string.voice_now, shown(kind, now)), 12, 600, C.Orange, maxLines = Int.MAX_VALUE)
+                                            Txt(stringResource(R.string.voice_now, shown(kind, now)), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                                         }
                                         v.sure[key]?.let { sure ->
                                             Txt(stringResource(R.string.ai_sure, (sure * 100).roundToInt()), 11, 700, if (sure < VOICE_SURE_ENOUGH) C.Orange else C.Green)
@@ -107,7 +107,7 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                     // What was said that no field took (shown, never saved), as the server lists it.
                     if (v.unmatched.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Txt(stringResource(R.string.voice_not_used), 11, 500, C.Soft)
+                            Txt(stringResource(R.string.voice_not_used), 12, 600, C.Muted)
                             v.unmatched.forEach { u ->
                                 Txt(stringResource(R.string.scrt_quoted_speech, u.text), 12, 500, C.Muted, maxLines = Int.MAX_VALUE)
                                 u.reason?.let { Txt(it, 11, 400, C.Soft, Modifier.padding(start = 8.dp), maxLines = Int.MAX_VALUE) }
@@ -120,11 +120,11 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     val n = v.picks.count { it.value.on }
-                    Pill(stringResource(R.string.voice_speak_again), actions.onSpeakAgain, Modifier.weight(1f), height = 46.dp, size = 13, weight = 700)
+                    Pill(stringResource(R.string.voice_speak_again), actions.onSpeakAgain, Modifier.weight(1f), height = 44.dp, size = 13, weight = 600)
                     Pill(
                         stringResource(R.string.voice_apply), { if (n > 0) actions.onApply() },
                         Modifier.weight(1f).testTag(VoiceTags.APPLY).alpha(if (n > 0) 1f else 0.45f),
-                        bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 13, weight = 700,
+                        bg = C.Yellow, fg = C.OnYellow, height = 44.dp, size = 15, weight = 700,
                     )
                 }
             }

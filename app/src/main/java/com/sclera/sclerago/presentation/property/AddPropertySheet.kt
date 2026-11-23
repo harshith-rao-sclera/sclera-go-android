@@ -104,6 +104,7 @@ internal fun AddPropertySheet(
     var state by rememberSaveable { mutableStateOf(from.address.state) }
     var country by rememberSaveable { mutableStateOf(from.address.country) }
     var region by rememberSaveable { mutableStateOf(from.address.region) }
+    var postcode by rememberSaveable { mutableStateOf(from.address.postcode) }
     var contactName by rememberSaveable { mutableStateOf(from.contact.name) }
     var contactEmail by rememberSaveable { mutableStateOf(from.contact.email) }
     var contactPhone by rememberSaveable { mutableStateOf(from.contact.phone) }
@@ -188,7 +189,7 @@ internal fun AddPropertySheet(
     val regionLabel = if (region.isBlank()) "" else labelOf(region, PROPERTY_REGIONS)
     val draft = from.copy(
         name = name, type = type,
-        address = from.address.copy(line1 = line1.trim(), line2 = line2.trim(), country = country.trim(), state = state.trim(), region = region, city = city.trim()),
+        address = from.address.copy(line1 = line1.trim(), line2 = line2.trim(), country = country.trim(), state = state.trim(), region = region, city = city.trim(), postcode = postcode.trim()),
         contact = Contact(contactName.trim(), contactEmail.trim(), contactPhone.trim()),
         notes = notes.trim(),
         availability = Availability(start, end, accessCode.trim()),
@@ -196,17 +197,21 @@ internal fun AddPropertySheet(
 
     Box(Modifier.fillMaxSize()) {
         FormSheet(
-            stringResource(if (initial != null) R.string.property_info_title else R.string.property_add_title), null,
+            stringResource(if (initial != null) R.string.property_info_title else R.string.property_add_title),
+            if (initial == null) stringResource(R.string.property_add_sub) else null,
             stringResource(if (initial != null) R.string.action_save else R.string.property_add_primary),
-            editable, (error ?: serverError)?.asString(), onClose,
+            // Add stays off until the required fields (name and type) are filled in, as in the design.
+            editable && name.isNotBlank() && type.isNotBlank(), (error ?: serverError)?.asString(), onClose,
             onPrimary = { if (editable) error = onAdd(draft) },
             leadingIcon = Icons.Building,
+            // How many of the two required fields (name, type) are filled in.
+            progress = if (initial == null) ((if (name.isNotBlank()) 1 else 0) + (if (type.isNotBlank()) 1 else 0)) / 2f else null,
             footerLeading = deleteButton,
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
             // Something was typed or changed: closing asks before discarding it.
             dirty = listOf(
                 name to from.name, type to from.type, line1 to from.address.line1, line2 to from.address.line2,
-                city to from.address.city, state to from.address.state, country to from.address.country, region to from.address.region,
+                city to from.address.city, state to from.address.state, country to from.address.country, region to from.address.region, postcode to from.address.postcode,
                 contactName to from.contact.name, contactEmail to from.contact.email, contactPhone to from.contact.phone,
                 notes to from.notes, start to from.availability.start, end to from.availability.end,
                 accessCode to from.availability.accessCode,
@@ -227,10 +232,13 @@ internal fun AddPropertySheet(
                 }
                 InlineField(stringResource(R.string.field_address_line1)) { InlineInput(line1, { line1 = it }, stringResource(R.string.field_address_line1_hint), enabled = editable) }
                 InlineField(stringResource(R.string.field_address_line2)) { InlineInput(line2, { line2 = it }, stringResource(R.string.field_address_line2_hint), enabled = editable) }
-                AddressInput(AddressField.CITY, R.string.field_city, R.string.property_enter_city)
-                AddressInput(AddressField.STATE, R.string.field_state, R.string.property_enter_state)
                 AddressInput(AddressField.COUNTRY, R.string.field_country, R.string.property_enter_country)
+                AddressInput(AddressField.STATE, R.string.field_state, R.string.property_enter_state)
                 InlineField(stringResource(R.string.field_region)) { InlineSelect(regionLabel, stringResource(R.string.property_select_region), enabled = editable) { picker = Picker.REGION } }
+                AddressInput(AddressField.CITY, R.string.field_city, R.string.property_enter_city)
+                InlineField(stringResource(R.string.field_postal_code)) {
+                    InlineInput(postcode, { postcode = it }, stringResource(R.string.field_postal_code_hint), enabled = editable)
+                }
             }
             FormGroup(stringResource(R.string.property_group_contact), Icons.User) {
                 InlineField(stringResource(R.string.field_name)) { InlineInput(contactName, { contactName = it }, stringResource(R.string.field_contact_name_hint), enabled = editable) }

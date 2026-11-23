@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,6 +43,7 @@ import com.sclera.sclerago.domain.model.MatchHow
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Pill
@@ -138,7 +140,7 @@ internal fun ImportSheetContent(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Column(
                     Modifier.fillMaxWidth().heightIn(min = 110.dp).clip(r(16)).background(C.Bg)
-                        .dashedBorder(if (fileName != null) C.Yellow else C.Border2, 1.5.dp, 16.dp)
+                        .dashedBorder(C.Border2, 1.5.dp, 16.dp)
                         .testTag(ImportTags.DROP_ZONE).clickable(role = Role.Button, onClick = onChoose).padding(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -146,19 +148,19 @@ internal fun ImportSheetContent(
                     Box(Modifier.size(42.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.Upload, 22.dp, C.Yellow, 2f)
                     }
-                    if (fileName == null) Txt(stringResource(R.string.import_choose_file), 13, 600)
+                    if (fileName == null) Txt(stringResource(R.string.import_choose_file), 14, 600)
                     else Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(fileName, 13, 600, modifier = Modifier.padding(horizontal = 16.dp))
+                        Txt(fileName, 14, 600, modifier = Modifier.padding(horizontal = 16.dp))
                         Txt(
                             if (fileSize >= 0) stringResource(R.string.import_file_size_change, formatSize(fileSize))
                             else stringResource(R.string.import_choose_different),
-                            11, 400, C.Muted, maxLines = Int.MAX_VALUE,
+                            12, 400, C.Muted, maxLines = Int.MAX_VALUE,
                         )
                     }
                 }
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt(stringResource(R.string.import_formats), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
-                    Txt(stringResource(R.string.import_max_size), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                    Txt(stringResource(R.string.import_formats), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                    Txt(stringResource(R.string.import_max_size), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 }
             }
             error?.let { Txt(it.asString(), 12, 500, C.Red, Modifier.testTag(ImportTags.ERROR), maxLines = Int.MAX_VALUE) }
@@ -171,8 +173,8 @@ internal fun ImportSheetContent(
                     LineIcon(Icons.FileDoc, 16.dp, C.Yellow, 1.9f)
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt(stringResource(R.string.import_sample_title), 13, 600)
-                    Txt(stringResource(R.string.import_sample_sub), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                    Txt(stringResource(R.string.import_sample_title), 14, 600)
+                    Txt(stringResource(R.string.import_sample_sub), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 }
                 RoundButton(40.dp, C.Btn, onSample, Modifier.semantics { contentDescription = downloadLabel }) {
                     LineIcon(Icons.Download, 14.dp, C.Text, 2.2f)
@@ -216,10 +218,6 @@ private fun MappingSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             PickerNote(plan, mapping)
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Txt(stringResource(R.string.import_source_fields), 11, 600, C.Muted, Modifier.weight(1f))
-                Txt(stringResource(R.string.import_target_fields), 11, 600, C.Muted, Modifier.weight(1f))
-            }
             plan.targets.forEach { target ->
                 val heading = mapping[target.key]
                 val suggested = plan.suggestion.columns.firstOrNull { it.target == target.key }
@@ -228,6 +226,7 @@ private fun MappingSheet(
                     badge = suggested?.how?.takeIf { suggested.heading == heading },
                 ) { choosingFor = target }
             }
+            NotImportedNote(plan, mapping)
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
             val ready = mapping.isNotEmpty()
@@ -263,42 +262,56 @@ private const val SAMPLES_SHOWN = 3
 private fun PickerNote(plan: ImportPlan, mapping: Map<String, String>) {
     val matched = mapping.values.toSet()
     val total = plan.suggestion.columns.size
-    val leftOut = plan.suggestion.columns.map { it.heading }.filter { it !in matched }
-    Column(
-        Modifier.fillMaxWidth().clip(r(12)).background(C.CardWash).border(1.dp, C.Border, r(12)).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Txt(
             stringResource(if (plan.suggestion.aiUsed) R.string.import_matched_ai else R.string.import_matched, matched.size, total),
-            12, 500, maxLines = Int.MAX_VALUE,
+            12, 400, C.Muted, maxLines = Int.MAX_VALUE,
         )
         plan.suggestion.aiNote?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
-        if (leftOut.isNotEmpty()) Txt(stringResource(R.string.import_not_imported, leftOut.joinToString(", ")), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     }
 }
 
-/** One detail: the column it is read from (tap to change), an arrow, and the detail's name with how it was matched. */
+/** The file's columns that no detail reads from, as the last line of the list. */
+@Composable
+private fun NotImportedNote(plan: ImportPlan, mapping: Map<String, String>) {
+    val matched = mapping.values.toSet()
+    val leftOut = plan.suggestion.columns.map { it.heading }.filter { it !in matched }
+    if (leftOut.isNotEmpty()) {
+        Txt(
+            stringResource(R.string.import_not_imported, leftOut.joinToString(", ")), 12, 400, C.Muted,
+            Modifier.padding(top = 4.dp), maxLines = Int.MAX_VALUE,
+        )
+    }
+}
+
+/** One detail: its name (with how it was matched) and, as a pill, the column it is read from (tap to change). */
 @Composable
 private fun MappingRow(target: ImportTarget, heading: String?, missing: Boolean, badge: MatchHow?, onChoose: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().testTag(ImportTags.target(target.key)),
+        Modifier.fillMaxWidth().testTag(ImportTags.target(target.key)).clip(r(12)).background(C.Surface)
+            .border(1.dp, if (missing) C.Red else C.Border, r(12)).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Txt(if (target.required) target.header + " *" else target.header, 14, 600, maxLines = 2, modifier = Modifier.weight(1f, fill = false))
+                badge?.let { TintChip(stringResource(it.labelRes())) }
+            }
+            if (missing) Txt(stringResource(R.string.import_required_pick_column), 11, 600, C.Red, maxLines = Int.MAX_VALUE)
+        }
         Row(
-            Modifier.weight(1f).heightIn(min = 48.dp).clip(r(10)).background(C.Bg)
-                .border(1.dp, if (missing) C.Red else C.Border, r(10))
-                .clickable(role = Role.Button, onClick = onChoose).padding(horizontal = 10.dp),
+            Modifier.heightIn(min = 48.dp).clip(Capsule).clickable(role = Role.Button, onClick = onChoose),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Txt(heading ?: stringResource(R.string.import_select_field), 13, if (heading != null) 600 else 400, if (heading != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = 2)
-            LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 2.4f)
-        }
-        LineIcon(Icons.ChevronRight, 12.dp, C.Dim, 2.4f)
-        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Txt(target.header, 13, 600, if (missing) C.Red else C.Text, maxLines = 2)
-            if (target.required) Txt("*", 13, 600, C.Yellow)
-            badge?.let { TintChip(stringResource(it.labelRes())) }
+            Row(
+                Modifier.height(34.dp).clip(Capsule).background(C.Raised).padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Txt(heading ?: stringResource(R.string.import_not_imported_pill), 13, 600, if (heading != null) C.Yellow else C.Muted)
+                LineIcon(Icons.ChevronUpDown, 10.dp, C.Muted, 2.8f)
+            }
         }
     }
 }
@@ -313,7 +326,7 @@ private fun MatchHow.labelRes(): Int = when (this) {
 private fun SheetTitle(title: String, onClose: () -> Unit) {
     val closeLabel = stringResource(R.string.action_close)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Txt(title, 17, 700, modifier = Modifier.weight(1f))
+        Txt(title, 20, 700, modifier = Modifier.weight(1f))
         RoundButton(36.dp, C.Btn, onClose, Modifier.semantics { contentDescription = closeLabel }) {
             LineIcon(Icons.Close, 14.dp, C.Text, 2.6f)
         }

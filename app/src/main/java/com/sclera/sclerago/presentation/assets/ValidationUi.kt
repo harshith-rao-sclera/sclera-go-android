@@ -176,7 +176,7 @@ fun ValidationTab(
             Txt(
                 if (problems > 0) pluralStringResource(R.plurals.val_steps_attention, problems, problems)
                 else stringResource(R.string.val_passed_every_step),
-                16, 800, maxLines = 2,
+                16, 700, maxLines = 2,
             )
             Txt(stringResource(R.string.val_quality, v.score), 12, 500, C.Muted)
         }
@@ -185,7 +185,7 @@ fun ValidationTab(
     val runToOpen = v.problems.firstOrNull()?.value?.jobId?.takeIf { it.isNotBlank() } ?: v.jobId.takeIf { it.isNotBlank() }
     if (onOpenRun != null && runToOpen != null) {
         Txt(
-            stringResource(R.string.val_open_in_validation), 13, 700, C.Yellow,
+            stringResource(R.string.val_open_in_validation), 14, 600, C.Yellow,
             Modifier.clip(r(8)).clickable(role = Role.Button) { onOpenRun(runToOpen) }.heightIn(min = 48.dp)
                 .padding(horizontal = 4.dp, vertical = 14.dp).testTag(ValidationTags.OPEN_RUN),
         )
@@ -232,7 +232,7 @@ private fun StepRow(step: StepResult, v: AssetValidation, startsHere: Boolean, d
         OutcomeIcon(step.outcome)
         Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Txt(stepNameText(step.rule).asString(), 15, 800)
+                Txt(stepNameText(step.rule).asString(), 14, 600)
                 Txt(stringResource(outcomeRes(step.outcome)), 11, 700, if (step.outcome == StepOutcome.SKIPPED) C.Soft else toneOf(step.outcome))
                 if (startsHere) Txt(stringResource(R.string.val_starts_here).uppercase(Locale.getDefault()), 10, 800, C.Yellow)
             }

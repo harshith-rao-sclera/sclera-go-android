@@ -26,11 +26,11 @@ import com.sclera.sclerago.R
 
 /** Design tokens lifted from the Sclera Go prototype. */
 object C {
-    val Bg = Color(0xFF141518)
-    val Surface = Color(0xFF1E2024)
+    val Bg = Color(0xFF0E0F11)
+    val Surface = Color(0xFF17181B)
     val Border = Color(0xFF2C2F35)
     val Strip = Color(0xFF17181B)
-    val Raised = Color(0xFF272A2F)
+    val Raised = Color(0xFF202226)
     val Text = Color(0xFFF4F4F5)
     val Muted = Color(0xFFA9ACB3)
     val Soft = Color(0xFFD2D4D8)
@@ -54,7 +54,7 @@ object C {
     val Scrim = Color(0xB808090A)
     val White = Color.White
     val IconGrey = Color(0xFF8B8F97)
-    val SheetBg = Color(0xFF1B1D21)
+    val SheetBg = Color(0xFF151619)
     val SheetHandle = Color(0xFF45464C)
     val TintText = Color(0xFFD8CFA8)
     val PrimaryOffBg = Color(0xFF5C4A10)

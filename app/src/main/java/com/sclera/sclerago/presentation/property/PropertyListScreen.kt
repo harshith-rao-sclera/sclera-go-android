@@ -123,6 +123,7 @@ fun PropertyListScreen(
     Box(Modifier.fillMaxSize()) {
         PropertyListContent(
             state, app.currentProp,
+            currentName = app.propName.takeIf { it.isNotBlank() },
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
             onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onRefresh = vm::refresh,
             canManage = canManage, onInfo = vm::openEdit, onOffline = vm::explainOffline,
@@ -167,6 +168,8 @@ internal fun PropertyListContent(
     state: PropertyListState,
     currentId: String,
     onBack: () -> Unit,
+    /** The property being worked on, under the title (none until one has been opened). */
+    currentName: String? = null,
     onQuery: (String) -> Unit,
     onOpen: (String) -> Unit,
     onAdd: () -> Unit,
@@ -187,13 +190,13 @@ internal fun PropertyListContent(
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            SubPageBar(stringResource(R.string.property_list_title), property = null, onMenu = onBack)
+            SubPageBar(stringResource(R.string.property_list_title), property = currentName, onMenu = onBack)
             if (accessFailed) AccessFailedBanner(onRetryAccess, Modifier.padding(horizontal = gutter + 10.dp).padding(top = 10.dp))
             // The first read shows its own loader, so a pull waits until it is done.
             PullRefresh(state.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !state.loading) {
                 LazyColumn(
                     Modifier.fillMaxSize().testTag(PropertyTags.LIST),
-                    contentPadding = PaddingValues(start = gutter + 10.dp, end = gutter + 10.dp, top = 10.dp, bottom = 160.dp),
+                    contentPadding = PaddingValues(start = gutter + 8.dp, end = gutter + 8.dp, top = 10.dp, bottom = 160.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     item { Header(state) }
@@ -270,12 +273,12 @@ private fun Header(state: PropertyListState) {
         StatCard(
             Icons.Building, C.Yellow, if (state.loading) "–" else state.propertyTotal.toString(),
             stringResource(R.string.label_properties),
-            Modifier.weight(1f).testTag(PropertyTags.COUNT), valueSize = 24, labelSize = 12, prominent = true,
+            Modifier.weight(1f).testTag(PropertyTags.COUNT), valueSize = 20, labelSize = 12, prominent = true,
         )
         StatCard(
             Icons.Download, C.Green, if (state.loading) "–" else state.syncedTotal.toString(),
             stringResource(R.string.property_synced),
-            Modifier.weight(1f).testTag(PropertyTags.SYNCED), valueSize = 24, labelSize = 12, prominent = true,
+            Modifier.weight(1f).testTag(PropertyTags.SYNCED), valueSize = 20, labelSize = 12, prominent = true,
         )
     }
 }
@@ -306,7 +309,7 @@ private fun PropertyCard(
     val faint = !online && !downloaded && !download.inProgress
     val currentLabel = stringResource(R.string.menu_current_property)
     // The yellow wash starts on the icon's side, which is the right in right-to-left languages.
-    val wash = listOf(C.Yellow.copy(alpha = 0.16f), C.Surface)
+    val wash = listOf(C.Yellow.copy(alpha = 0.32f), C.YTintBg)
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val surface = when {
         current -> Modifier.background(Brush.horizontalGradient(if (rtl) wash.reversed() else wash))
@@ -317,7 +320,7 @@ private fun PropertyCard(
     val fade = Modifier.alpha(if (faint) FaintAlpha else 1f)
     Box(
         Modifier.fillMaxWidth().clip(r(12)).then(surface)
-            .border(1.dp, if (faint) Color.Transparent else if (current) C.Yellow.copy(alpha = 0.3f) else C.Border, r(12))
+            .border(if (current) 1.5.dp else 1.dp, if (faint) Color.Transparent else if (current) C.Yellow else C.Border, r(12))
             .semantics {
                 selected = current
                 if (current) stateDescription = currentLabel
@@ -325,16 +328,16 @@ private fun PropertyCard(
             .clickable(role = Role.Button, onClick = if (faint) onOffline else onClick),
     ) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 10.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
+            Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
-                fade.size(40.dp).clip(CircleShape).background(if (current) C.YTintBg else C.Raised)
+                fade.size(42.dp).clip(CircleShape).background(if (current) C.YTintBg else C.Raised)
                     .border(1.dp, if (current) C.YTintBd else C.Border, CircleShape),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Building, 17.dp, if (current) C.Yellow else C.Muted, 1.9f) }
-            Txt(name, 14, 600, modifier = Modifier.weight(1f).then(fade), maxLines = 2)
+            Txt(name, 15, 600, modifier = Modifier.weight(1f).then(fade), maxLines = 2)
             // Property Info (the web's info icon on each property).
             val infoLabel = stringResource(R.string.property_info_open, name)
             Box(

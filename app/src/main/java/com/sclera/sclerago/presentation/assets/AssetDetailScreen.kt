@@ -489,7 +489,7 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
         PlainField(
             name, onName, stringResource(R.string.detail_name_hint),
             Modifier.weight(1f).padding(end = 6.dp).height(40.dp).bottomBorder(headLine, 1.5.dp).padding(horizontal = 2.dp),
-            size = 17, weight = 700, readOnly = state.locked,
+            size = 19, weight = 700, readOnly = state.locked,
         )
         if (state.dirtyCount == 0 && state.savedFlash) {
             Row(
@@ -512,13 +512,13 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
-                    Modifier.height(28.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.Yellow.copy(alpha = 0.7f), Capsule)
-                        .padding(horizontal = 9.dp),
+                    Modifier.height(32.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule)
+                        .padding(horizontal = 11.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     LineIcon(Icons.Clone, 13.dp, C.Yellow, 2.2f)
-                    Txt(stringResource(R.string.clone_action), 12, 700, C.Yellow)
+                    Txt(stringResource(R.string.clone_action), 13, 700, C.Yellow)
                 }
             }
         }

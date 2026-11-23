@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -59,13 +60,13 @@ fun OfflineGate(
 @Composable
 fun OfflineBanner(reason: OnlineOnly, modifier: Modifier = Modifier) {
     Row(
-        modifier.fillMaxWidth().clip(r(10)).background(C.WarnRow).border(1.dp, C.Orange.copy(alpha = 0.35f), r(10))
-            .padding(horizontal = 12.dp, vertical = 10.dp).testTag(OfflineTags.BANNER),
+        modifier.fillMaxWidth().clip(r(12)).background(C.WarnRow).border(1.dp, C.Orange.copy(alpha = 0.35f), r(12))
+            .padding(12.dp).testTag(OfflineTags.BANNER),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
         LineIcon(Icons.NoWifi, 18.dp, C.Orange, 2.2f)
-        Txt(stringResource(reason.message), 12, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+        Txt(stringResource(reason.message), 12, 400, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE, lineHeight = 17.sp)
     }
 }
 

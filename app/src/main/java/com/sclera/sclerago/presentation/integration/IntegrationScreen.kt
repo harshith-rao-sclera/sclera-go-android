@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -87,9 +88,9 @@ fun IntegrationScreen(
         Column(Modifier.fillMaxSize()) {
             SubPageBar(stringResource(R.string.int_title), propName, onMenu)
             Column(
-                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(16.dp)
-                    .padding(bottom = 72.dp), // room for the floating +
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter())
+                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 60.dp), // room for the floating +
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 // The link is read and made on the server: offline the page says so (what was last read still shows).
                 if (!online) OfflineBanner(OnlineOnly.INTEGRATION)
@@ -130,18 +131,29 @@ private fun LinkCard(name: String, vdmsId: String) {
         Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(14.dp).testTag("integration_card"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Image(painterResource(R.drawable.login_logo), contentDescription = null, modifier = Modifier.height(28.dp).aspectRatio(512f / 357f))
-        ReadOnly(stringResource(R.string.int_field_integration), name)
-        ReadOnly(stringResource(R.string.int_field_vdms), vdmsId)
+        Image(painterResource(R.drawable.login_logo), contentDescription = null, modifier = Modifier.height(34.dp).aspectRatio(512f / 357f))
+        ReadOnly(stringResource(R.string.int_field_integration), name, inline = true)
+        ReadOnly(stringResource(R.string.int_field_vdms), vdmsId, inline = true)
     }
 }
 
+/** A read-only value in a bordered box; [inline] puts the label to its left (the link card), else above it. */
 @Composable
-private fun ReadOnly(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Txt(label, 12, 600, C.Muted)
-        Box(Modifier.fillMaxWidth().clip(r(10)).background(C.Bg).border(1.dp, C.Border2, r(10)).padding(horizontal = 12.dp, vertical = 11.dp)) {
-            Txt(value.ifBlank { "—" }, 13, 500, C.Soft, maxLines = Int.MAX_VALUE)
+private fun ReadOnly(label: String, value: String, inline: Boolean = false) {
+    val box: @Composable (Modifier) -> Unit = { m ->
+        Box(m.fillMaxWidth().heightIn(min = 40.dp).clip(r(10)).background(C.Bg).border(1.dp, C.Border2, r(10)).padding(horizontal = 12.dp, vertical = 11.dp), contentAlignment = Alignment.CenterStart) {
+            if (inline) Txt(value.ifBlank { "—" }, 14, 600, maxLines = Int.MAX_VALUE) else Txt(value.ifBlank { "—" }, 13, 500, C.Soft, maxLines = Int.MAX_VALUE)
+        }
+    }
+    if (inline) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Txt(label, 13, 400, C.Muted, Modifier.width(90.dp), maxLines = 2)
+            box(Modifier.weight(1f))
+        }
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Txt(label, 12, 600, C.Muted)
+            box(Modifier)
         }
     }
 }

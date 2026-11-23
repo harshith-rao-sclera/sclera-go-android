@@ -92,7 +92,7 @@ internal fun StatCard(
     val shape = r(if (prominent) 16 else 12)
     val look = if (prominent) {
         // Bigger, on the plain card background (no coloured wash); the colour is on the icon tile only.
-        Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(horizontal = 14.dp, vertical = 14.dp)
+        Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(12.dp)
     } else {
         Modifier.clip(shape).background(C.Surface).border(1.dp, C.Border, shape).padding(horizontal = 10.dp, vertical = 6.dp)
     }
@@ -102,14 +102,14 @@ internal fun StatCard(
         horizontalArrangement = Arrangement.spacedBy(if (prominent) 12.dp else 10.dp),
     ) {
         Box(
-            Modifier.size(if (prominent) 46.dp else 36.dp).clip(r(if (prominent) 13 else 10)).background(tint.copy(alpha = if (prominent) 0.2f else 0.16f)),
+            Modifier.size(if (prominent) 40.dp else 36.dp).clip(r(if (prominent) 12 else 10)).background(tint.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
         ) {
-            LineIcon(icon, if (prominent) 21.dp else 16.dp, tint, if (prominent) 2.1f else 1.9f)
+            LineIcon(icon, if (prominent) 22.dp else 16.dp, tint, if (prominent) 2f else 1.9f)
         }
         Column(verticalArrangement = Arrangement.spacedBy(if (prominent) 2.dp else 1.dp)) {
-            Txt(value, valueSize, if (prominent) 800 else 700)
-            Txt(label, labelSize, if (prominent) 500 else 400, C.Muted)
+            Txt(value, valueSize, 700)
+            Txt(label, labelSize, 400, C.Muted)
         }
     }
 }
@@ -117,7 +117,7 @@ internal fun StatCard(
 /** Two [StatCard]s side by side, equal width. */
 @Composable
 internal fun StatRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), content = content)
 }
 
 /** Rounded label in [color] with an icon (permissions, groups, asset counts); [small] for compact rows. */

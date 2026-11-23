@@ -213,11 +213,11 @@ internal fun SideMenuPanel(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Avatar(name, session?.avatarUrl)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(name, 15, 700)
+                        Txt(name, 16, 700)
                         listOfNotNull(session?.role, session?.organisation).joinToString(" · ").takeIf { it.isNotEmpty() }?.let {
-                            Txt(it, 11, 600, C.Yellow)
+                            Txt(it, 12, 600, C.Yellow)
                         }
-                        session?.email?.let { Txt(it, 11, 400, C.Muted) }
+                        session?.email?.let { Txt(it, 12, 400, C.Muted) }
                     }
                     val closeLabel = stringResource(R.string.action_close)
                     RoundButton(38.dp, C.Btn, onClose, Modifier.semantics { contentDescription = closeLabel }) {
@@ -249,17 +249,17 @@ internal fun SideMenuPanel(
                             }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Txt(stringResource(R.string.menu_current_property).uppercase(Locale.getDefault()), 10, 600, C.Muted, spacing = 0.4f)
-                                Txt(propertyName, 14, 700)
-                                Txt(pluralStringResource(R.plurals.asset_count, assetCount, assetCount), 11, 400, C.Muted)
+                                Txt(propertyName, 15, 700)
+                                Txt(pluralStringResource(R.plurals.asset_count, assetCount, assetCount), 12, 400, C.Muted)
                             }
                         }
                         // Switch property: opens the property list to pick another one.
                         val switchLabel = stringResource(R.string.menu_switch_property)
                         Box(
-                            Modifier.size(40.dp).clip(r(10)).background(C.Btn).clickable(role = Role.Button) { onPick(MenuItem.PROPERTY) }
+                            Modifier.size(38.dp).clip(r(10)).background(C.YTintBg).border(1.dp, C.YTintBd, r(10)).clickable(role = Role.Button) { onPick(MenuItem.PROPERTY) }
                                 .semantics { contentDescription = switchLabel }.testTag(MenuTags.SWITCH_PROPERTY),
                             contentAlignment = Alignment.Center,
-                        ) { LineIcon(Icons.Switch, 18.dp, C.Yellow, 2.2f) }
+                        ) { LineIcon(Icons.Switch, 16.dp, C.Yellow, 2.6f) }
                         Box(Modifier.width(22.dp).clickable { sectionsOpen = !sectionsOpen }, contentAlignment = Alignment.Center) {
                             LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 3f, Modifier.rotate(chevron))
                         }
@@ -289,7 +289,7 @@ internal fun SideMenuPanel(
                 ) {
                     LineIcon(Icons.SignOut, 19.dp, C.Red, 2.2f)
                     Spacer(Modifier.width(8.dp))
-                    Txt(stringResource(R.string.menu_sign_out), 14, 600, C.Red)
+                    Txt(stringResource(R.string.menu_sign_out), 15, 600, C.Red)
                 }
             }
         }
@@ -339,8 +339,8 @@ private fun TopRow(item: MenuItem, label: String, icon: Ico, active: MenuItem, o
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         IconBox(icon)
-        Txt(label, 14, 600, modifier = Modifier.weight(1f))
-        LineIcon(Icons.ChevronRight, 14.dp, C.Dim, 2.6f)
+        Txt(label, 15, 600, modifier = Modifier.weight(1f))
+        LineIcon(Icons.ChevronRight, 11.dp, C.Dim, 3f)
     }
 }
 
@@ -366,12 +366,12 @@ private fun SectionRow(
             Modifier.weight(1f).heightIn(min = 48.dp).then(if (first) Modifier else Modifier.topBorder(C.Border)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Txt(label, 14, 600, modifier = Modifier.weight(1f))
+            Txt(label, 15, 600, modifier = Modifier.weight(1f))
             when (trailing) {
                 is Trailing.Count -> Box(Modifier.clip(CircleShape).background(C.Raised).padding(horizontal = 9.dp, vertical = 3.dp)) {
-                    Txt(trailing.n.toString(), 11, 700)
+                    Txt(trailing.n.toString(), 12, 700)
                 }
-                Trailing.Open -> LineIcon(Icons.ChevronRight, 14.dp, C.Dim, 2.6f)
+                Trailing.Open -> LineIcon(Icons.ChevronRight, 11.dp, C.Dim, 3f)
             }
         }
     }

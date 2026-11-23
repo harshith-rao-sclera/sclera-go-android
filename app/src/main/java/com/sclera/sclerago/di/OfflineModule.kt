@@ -20,6 +20,7 @@ import com.sclera.sclerago.data.repository.AssetActivityRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetDocumentsRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetFormRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetTypeCatalogRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetOwnFieldsRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetIconRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetRepositoryImpl
@@ -38,6 +39,7 @@ import com.sclera.sclerago.domain.repository.AssetActivityRepository
 import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
+import com.sclera.sclerago.domain.repository.AssetTypeCatalogRepository
 import com.sclera.sclerago.domain.repository.AssetOwnFieldsRepository
 import com.sclera.sclerago.domain.repository.AssetIconRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
@@ -136,6 +138,7 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun assets(impl: AssetRepositoryImpl): AssetRepository
     @Binds abstract fun assetActivity(impl: AssetActivityRepositoryImpl): AssetActivityRepository
     @Binds abstract fun assetForm(impl: AssetFormRepositoryImpl): AssetFormRepository
+    @Binds abstract fun assetTypeCatalog(impl: AssetTypeCatalogRepositoryImpl): AssetTypeCatalogRepository
     @Binds abstract fun assetOwnFields(impl: AssetOwnFieldsRepositoryImpl): AssetOwnFieldsRepository
     @Binds abstract fun assetValidation(impl: AssetValidationRepositoryImpl): AssetValidationRepository
     @Binds abstract fun photoRules(impl: PhotoRulesRepositoryImpl): PhotoRulesRepository

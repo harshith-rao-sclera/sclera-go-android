@@ -35,17 +35,11 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.ChoiceSheet
-import com.sclera.sclerago.presentation.components.FormGroup
 import com.sclera.sclerago.presentation.components.FormSheet
-import com.sclera.sclerago.presentation.components.InlineField
-import com.sclera.sclerago.presentation.components.InlineInput
-import com.sclera.sclerago.presentation.components.InlineSelect
 import com.sclera.sclerago.presentation.components.RadioDot
 import com.sclera.sclerago.presentation.components.SearchField
-import com.sclera.sclerago.presentation.components.TintChip
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
-import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
@@ -90,72 +84,71 @@ internal fun PersonSheet(
 
     Box(Modifier.fillMaxSize().testTag(AccessTags.PERSON_SHEET)) {
         FormSheet(
-            if (isNew) stringResource(R.string.access_person_add_title) else initial.name,
+            if (isNew) stringResource(R.string.access_person_add_heading) else initial.name,
             // The email goes under the name only when there is a name (as the web shows it).
-            if (isNew) stringResource(R.string.access_person_add_sub) else initial.email.takeIf { it != initial.name },
-            stringResource(if (isNew) R.string.access_add_person else R.string.access_action_save),
+            if (isNew) stringResource(R.string.access_person_add_sub_short) else initial.email.takeIf { it != initial.name },
+            stringResource(if (isNew) R.string.access_action_add else R.string.access_action_save),
             problem(draft) == null, error?.asString(), onClose,
             onPrimary = { error = onSave(draft)?.toUiText() },
-            leadingIcon = Icons.Users,
-            bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
+            bodyPadding = PaddingValues(16.dp), bodySpacing = 18.dp,
             primaryModifier = Modifier.testTag(AccessTags.SHEET_PRIMARY),
             dirty = email.trim() != initial.email.trim() || groupId != initial.groupId ||
                 all != initial.allProperties || chosen != initial.propertyIds,
         ) {
-            FormGroup(stringResource(R.string.access_section_person), Icons.Users) {
-                if (isNew) {
-                    InlineField(stringResource(R.string.access_field_email)) {
-                        InlineInput(
-                            email, { email = it; error = null; onEmailTyped(it) }, stringResource(R.string.access_email_or_name_hint),
-                            Modifier.testTag(AccessTags.EMAIL).onFocusChanged {
-                                // Tapping in lists the organisation's people straight away, so nobody has to remember an email.
-                                if (it.isFocused && !emailFocused) onEmailTyped(email)
-                                emailFocused = it.isFocused
-                            },
-                            keyboard = KeyboardType.Email,
-                        )
-                    }
+            if (isNew) {
+                StackedField(stringResource(R.string.access_field_email)) {
+                    BoxedInput(
+                        email, { email = it; error = null; onEmailTyped(it) }, stringResource(R.string.access_email_or_name_hint),
+                        Modifier.testTag(AccessTags.EMAIL).onFocusChanged {
+                            // Tapping in lists the organisation's people straight away, so nobody has to remember an email.
+                            if (it.isFocused && !emailFocused) onEmailTyped(email)
+                            emailFocused = it.isFocused
+                        },
+                        keyboard = KeyboardType.Email,
+                    )
                     suggestionHint?.takeIf { emailFocused }?.let {
-                        Txt(it.asString(), 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp), maxLines = Int.MAX_VALUE)
+                        Txt(it.asString(), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     }
-                    if (emailFocused && picked?.email != email.trim()) {
-                        suggestions.forEach { person ->
-                            Suggestion(person) {
-                                email = person.email
-                                picked = person
-                                error = null
-                                onSuggestionPicked()
+                    if (emailFocused && picked?.email != email.trim() && suggestions.isNotEmpty()) {
+                        RowsCard {
+                            suggestions.forEach { person ->
+                                Suggestion(person) {
+                                    email = person.email
+                                    picked = person
+                                    error = null
+                                    onSuggestionPicked()
+                                }
                             }
                         }
                     }
                 }
-                InlineField(stringResource(R.string.access_field_group)) {
-                    InlineSelect(group?.name ?: if (isNew) "" else noAccess, stringResource(R.string.access_choose_group), upDown = true) {
-                        choosingGroup = true
-                    }
-                }
-                groupHint(group, isNew)?.let {
-                    Txt(it, 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = Int.MAX_VALUE)
-                }
+            }
+            StackedField(stringResource(R.string.access_field_group)) {
+                BoxedSelect(group?.name ?: if (isNew) "" else noAccess, stringResource(R.string.access_choose_group)) { choosingGroup = true }
+                groupHint(group, isNew)?.let { Txt(it, 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
             }
             if (group != null) {
-                FormGroup(stringResource(R.string.label_properties), Icons.Building) {
-                    ScopeOption(stringResource(R.string.access_all_properties), stringResource(R.string.access_scope_all_desc), all) {
-                        all = true
-                        error = null
+                StackedField(stringResource(R.string.label_properties)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ChoiceCard(
+                            all, Role.RadioButton, { RadioDot(all) },
+                            stringResource(R.string.access_all_properties), stringResource(R.string.access_scope_all_desc_short),
+                        ) {
+                            all = true
+                            error = null
+                        }
+                        ChoiceCard(
+                            !all, Role.RadioButton, { RadioDot(!all) },
+                            stringResource(R.string.access_scope_chosen), stringResource(R.string.access_scope_chosen_desc_short),
+                            chip = if (all) null else stringResource(R.string.access_n_chosen, chosen.size),
+                        ) {
+                            all = false
+                            error = null
+                        }
+                        organisationWideHint(group)?.takeIf { !all }?.let { Txt(it, 12, 400, C.Orange, maxLines = Int.MAX_VALUE) }
                     }
-                    ScopeOption(
-                        stringResource(R.string.access_scope_chosen), stringResource(R.string.access_scope_chosen_desc), !all,
-                        tag = if (all) null else stringResource(R.string.access_n_chosen, chosen.size),
-                    ) {
-                        all = false
-                        error = null
-                    }
-                    organisationWideHint(group)?.takeIf { !all }?.let {
-                        Txt(it, 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = Int.MAX_VALUE)
-                    }
-                    if (!all) PropertyPicker(properties, chosen) { id -> chosen = if (id in chosen) chosen - id else chosen + id }
                 }
+                if (!all) PropertyPicker(properties, chosen) { id -> chosen = if (id in chosen) chosen - id else chosen + id }
             }
         }
         if (choosingGroup) {
@@ -191,49 +184,27 @@ private fun organisationWideHint(group: Group): String? {
     return stringResource(R.string.access_needs_all_hint, group.name, names.joinToString(stringResource(R.string.access_and)))
 }
 
-/** One of the two ways to give properties: a radio, its name (and how many are chosen), and what it means. */
-@Composable
-private fun ScopeOption(title: String, description: String, on: Boolean, tag: String? = null, onPick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).semantics { selected = on }
-            .clickable(role = Role.RadioButton, onClick = onPick).padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        RadioDot(on)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Txt(title, 14, 600)
-                tag?.let { TintChip(it) }
-            }
-            Txt(description, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
-        }
-    }
-}
-
-/** The properties to tick, with a search field when there are many. */
+/** The properties to tick, in a card, with a search field when there are many. */
 @Composable
 private fun PropertyPicker(properties: List<Property>, chosen: Set<String>, onToggle: (String) -> Unit) {
     var q by remember { mutableStateOf("") }
-    if (properties.size > PropertySearchFrom) {
-        Box(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            SearchField(q, { q = it }, stringResource(R.string.access_search_properties))
-        }
-    }
+    if (properties.size > PropertySearchFrom) SearchField(q, { q = it }, stringResource(R.string.access_search_properties))
     val typed = q.trim().lowercase()
     val listed = properties.filter { typed.isEmpty() || typed in it.name.lowercase() }
     if (listed.isEmpty()) {
         val empty = if (properties.isEmpty()) R.string.access_no_properties_yet else R.string.access_no_property_match
-        Txt(stringResource(empty), 12, 400, C.Muted, Modifier.padding(horizontal = 12.dp, vertical = 10.dp), maxLines = Int.MAX_VALUE)
+        Txt(stringResource(empty), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        return
     }
-    listed.forEach { p ->
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).semantics { selected = p.id in chosen }
-                .clickable(role = Role.Checkbox) { onToggle(p.id) }.padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            CheckBox(p.id in chosen, shape = r(5), offColor = C.Soft, checkSize = 12.dp)
-            Txt(p.name, 13, 500, modifier = Modifier.weight(1f))
+    RowsCard {
+        listed.forEachIndexed { i, p ->
+            CardOptionRow(
+                Modifier.then(if (i > 0) Modifier.topBorder(C.Border) else Modifier).semantics { selected = p.id in chosen },
+                onClick = { onToggle(p.id) },
+            ) {
+                CheckBox(p.id in chosen, shape = r(5), offColor = C.Soft, checkSize = 12.dp, size = 20.dp)
+                Txt(p.name, 14, 400, modifier = Modifier.weight(1f))
+            }
         }
     }
 }

@@ -53,6 +53,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.sclera.sclerago.presentation.components.AddFab
@@ -156,9 +157,6 @@ fun ValidationScreen(
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 160.dp)) {
                 item(key = "top") { Spacer(Modifier.height(4.dp)) }
                 if (offline) item(key = "offline") { OfflineBanner(OnlineOnly.VALIDATION, Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
-                item(key = "lead") {
-                    Txt(stringResource(R.string.val_lead), 12, 400, C.Muted, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), maxLines = Int.MAX_VALUE)
-                }
                 item(key = "templates") {
                     SectionTitle(stringResource(R.string.valt_templates), null) {
                         if (s.catalogLoaded) Txt(stringResource(R.string.valt_default_order), 11, 600, C.Yellow, Modifier.clip(r(6)).clickable(onClick = vm::openOrder).padding(4.dp))
@@ -216,7 +214,7 @@ fun ValidationScreen(
         }
         // Create a validation (+, above) and run one (below), floating like the main screen's buttons.
         if (s.reviewJobId == null && !offline) {
-            if (s.canValidate) AddFab(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(bottom = 68.dp)) { vm.newValidation() }
+            if (s.canValidate) AddFab(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 4.dp, bottom = 72.dp)) { vm.newValidation() }
             if (s.canCheck && s.catalogLoaded) Box(
                 Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp).size(54.dp).fabShadow()
                     .clip(CircleShape).background(C.Btn).clickable { vm.openRunSheet() },
@@ -263,62 +261,86 @@ internal fun SectionTitle(title: String, count: Int?, trailing: (@Composable () 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Txt(title, 15, 700)
-        count?.let {
-            Box(Modifier.size(22.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
-                Txt(it.toString(), 10, 700, C.Soft)
-            }
-        }
+        Txt(title, 16, 700)
+        count?.let { CountPill(it) }
         Spacer(Modifier.weight(1f))
         trailing?.invoke()
     }
 }
 
+/** The small grey count after a section's title (min 22 x 20dp). */
 @Composable
-internal fun YellowButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, height: Int = 44) {
+internal fun CountPill(n: Int) {
+    Box(Modifier.heightIn(min = 20.dp).widthIn(min = 22.dp).clip(Capsule).background(C.Raised).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+        Txt(n.toString(), 11, 700, C.Muted)
+    }
+}
+
+/** The yellow action button; [pill] makes it a full capsule (the Run sheet's), [play] shows the play icon. */
+@Composable
+internal fun YellowButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    height: Int = 44,
+    textSize: Int = 13,
+    pill: Boolean = false,
+    play: Boolean = true,
+) {
+    val shape = if (pill) Capsule else r(9)
     Row(
-        modifier.height(height.dp).clip(r(10)).background(if (enabled) C.Yellow else C.Raised)
+        modifier.height(height.dp).clip(shape).background(if (enabled) C.Yellow else C.Raised)
             .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         val fg = if (enabled) C.OnYellow else C.Dim
-        LineIcon(Icons.Play, 13.dp, fg)
-        Txt(text, 13, 700, fg)
+        if (play) LineIcon(Icons.Play, 13.dp, fg)
+        Txt(text, textSize, 700, fg)
     }
 }
 
 @Composable
 internal fun AiBadge() {
     Row(
-        Modifier.clip(Capsule).background(Color(0xFF26233A)).padding(horizontal = 6.dp, vertical = 2.dp),
+        Modifier.height(18.dp).clip(Capsule).background(Color(0xFF211E2E)).border(1.dp, Color(0xFF383150), Capsule).padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        LineIcon(Icons.Sparkles, 10.dp, C.Purple)
+        LineIcon(Icons.Sparkles, 8.dp, C.Purple, 3f)
         Txt(stringResource(R.string.valt_ai_badge), 10, 700, C.Purple)
     }
+}
+
+/** The outlined "Review" / "View" button of a job. */
+@Composable
+private fun OutlineButton(text: String, onClick: () -> Unit) {
+    Box(
+        Modifier.height(30.dp).clip(r(8)).border(1.dp, C.Border2, r(8)).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) { Txt(text, 12, 600) }
 }
 
 @Composable
 private fun TemplateCard(t: ValTemplate, ai: Boolean, canRun: Boolean, onRun: () -> Unit, onChoose: () -> Unit, onChecks: () -> Unit) {
     Column(
-        Modifier.width(272.dp).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        Modifier.width(272.dp).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(36.dp).clip(r(9)).background(C.YTintBg), contentAlignment = Alignment.Center) {
-                LineIcon(templateIcon(t.key), 18.dp, C.Yellow, 2.2f)
+            Box(Modifier.size(34.dp).clip(r(9)).background(C.YTintBg), contentAlignment = Alignment.Center) {
+                LineIcon(templateIcon(t.key), 16.dp, C.Yellow, 2f)
             }
-            Txt(t.name, 14, 700, modifier = Modifier.weight(1f, fill = false))
+            Txt(t.name, 15, 700, modifier = Modifier.weight(1f, fill = false))
             if (ai) AiBadge()
         }
-        Txt(templateTagline(t), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
-        if (canRun) YellowButton(stringResource(R.string.valt_run_on_all), onRun, Modifier.fillMaxWidth(), height = 40)
+        Txt(templateTagline(t), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        if (canRun) YellowButton(stringResource(R.string.valt_run_on_all), onRun, Modifier.fillMaxWidth(), height = 40, textSize = 14)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (canRun) Txt(stringResource(R.string.valt_choose_assets), 11, 600, C.Soft, Modifier.clip(r(6)).clickable(onClick = onChoose).padding(vertical = 4.dp))
+            if (canRun) Txt(stringResource(R.string.valt_choose_assets), 12, 600, C.Soft, Modifier.clip(r(6)).clickable(onClick = onChoose).padding(vertical = 4.dp))
             Spacer(Modifier.weight(1f))
-            Txt(pluralStringResource(R.plurals.valt_see_steps, t.steps.size, t.steps.size), 11, 600, C.Yellow, Modifier.clip(r(6)).clickable(onClick = onChecks).padding(vertical = 4.dp))
+            Txt(pluralStringResource(R.plurals.valt_see_steps, t.steps.size, t.steps.size), 12, 600, C.Yellow, Modifier.clip(r(6)).clickable(onClick = onChecks).padding(vertical = 4.dp))
         }
     }
 }
@@ -333,38 +355,38 @@ private fun SavedCard(
     showLocked: Boolean = false,
 ) {
     Column(
-        Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
-            .border(1.dp, C.Border, r(14)).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.padding(horizontal = 14.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
+            .border(1.dp, C.Border, r(14)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         val last = sv.lastRun
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Txt(sv.name, 14, 700, modifier = Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Txt(sv.name, 15, 700)
+            Txt(sv.steps.joinToString(" · ") { stepName(steps, it) }, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
             Txt(
                 when {
                     last == null -> stringResource(R.string.valt_not_run_yet)
                     last.status.active -> stringResource(R.string.valt_last_run_running, relativeTime(last.createdAt ?: 0L))
                     else -> stringResource(R.string.valt_last_run_review, relativeTime(last.createdAt ?: 0L), last.openCount)
                 },
-                11, 400, C.Muted,
+                11, 500, C.Dim, Modifier.padding(top = 2.dp),
             )
         }
-        Txt(sv.steps.joinToString(" · ") { stepName(steps, it) }, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         if (showLocked) Txt(stringResource(R.string.valt_locked_note), 11, 400, C.Soft, maxLines = Int.MAX_VALUE)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             onRun?.let { YellowButton(stringResource(R.string.valt_run), it, height = 36) }
             Spacer(Modifier.weight(1f))
-            onEdit?.let { Txt(stringResource(R.string.action_edit), 12, 700, C.Soft, Modifier.clip(r(8)).clickable(onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
-            onDelete?.let { Txt(stringResource(R.string.action_delete), 12, 700, C.Red, Modifier.clip(r(8)).clickable(onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
+            onEdit?.let { Txt(stringResource(R.string.action_edit), 13, 600, C.Soft, Modifier.clip(r(8)).clickable(onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
+            onDelete?.let { Txt(stringResource(R.string.action_delete), 13, 600, C.Red, Modifier.clip(r(8)).clickable(onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
         }
     }
 }
 
 /** Red / orange / green bar for failed / to look at / passed. */
 @Composable
-internal fun ResultBar(failed: Int, look: Int, passed: Int, modifier: Modifier = Modifier) {
+internal fun ResultBar(failed: Int, look: Int, passed: Int, modifier: Modifier = Modifier, barHeight: Dp = 6.dp) {
     val total = (failed + look + passed).coerceAtLeast(1)
-    Row(modifier.fillMaxWidth().height(6.dp).clip(Capsule).background(C.Raised)) {
+    Row(modifier.fillMaxWidth().height(barHeight).clip(Capsule).background(C.Raised)) {
         if (failed > 0) Box(Modifier.weight(failed.toFloat() / total).fillMaxHeight().background(C.Red))
         if (look > 0) Box(Modifier.weight(look.toFloat() / total).fillMaxHeight().background(C.Orange))
         if (passed > 0) Box(Modifier.weight(passed.toFloat() / total).fillMaxHeight().background(C.Green))
@@ -380,8 +402,8 @@ internal fun Counts(failed: Int, look: Int, passed: Int) {
             Triple(passed, stringResource(R.string.valt_count_passed), C.Green),
         ).forEach { (n, l, c) ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Txt(n.toString(), 11, 700, if (n > 0) c else C.Soft)
-                Txt(l, 11, 400, C.Muted)
+                Txt(n.toString(), 12, 700, c)
+                Txt(l, 12, 400, C.Muted)
             }
         }
     }
@@ -398,9 +420,9 @@ internal fun StatusChip(status: RunStatus) {
         RunStatus.COMPLETED -> Triple(Color(0xFF17241D), C.Green, stringResource(R.string.valt_status_completed))
     }
     Row(
-        Modifier.clip(Capsule).background(bg).padding(horizontal = 9.dp, vertical = 4.dp),
+        Modifier.height(26.dp).clip(Capsule).background(bg).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (status.active) {
             val spin by rememberInfiniteTransition(label = "job").animateFloat(
@@ -410,22 +432,22 @@ internal fun StatusChip(status: RunStatus) {
         } else {
             Box(Modifier.size(7.dp).clip(CircleShape).background(fg))
         }
-        Txt(label, 10, 700, fg)
+        Txt(label, 12, 600, fg)
     }
 }
 
 /** The bar of a running job: how far it has got (or a moving bar while it's queued). */
 @Composable
-internal fun JobProgress(j: ValRun) {
+internal fun JobProgress(j: ValRun, barHeight: Dp = 6.dp) {
     if (j.status == RunStatus.RUNNING && j.total > 0) {
-        Box(Modifier.fillMaxWidth().height(6.dp).clip(Capsule).background(C.Raised)) {
+        Box(Modifier.fillMaxWidth().height(barHeight).clip(Capsule).background(C.Raised)) {
             Box(Modifier.fillMaxWidth((j.processed.toFloat() / j.total).coerceIn(0.08f, 1f)).fillMaxHeight().background(C.Yellow.copy(alpha = 0.7f)))
         }
     } else {
         val p by rememberInfiniteTransition(label = "bar").animateFloat(
             0.1f, 0.9f, infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Reverse), label = "p",
         )
-        Box(Modifier.fillMaxWidth().height(6.dp).clip(Capsule).background(C.Raised)) {
+        Box(Modifier.fillMaxWidth().height(barHeight).clip(Capsule).background(C.Raised)) {
             Box(Modifier.fillMaxWidth(p).fillMaxHeight().background(C.Yellow.copy(alpha = 0.7f)))
         }
     }
@@ -445,21 +467,21 @@ internal fun scopeText(j: ValRun): String = ValidationViewModel.scopeText(j).asS
 private fun JobRow(j: ValRun, busy: Boolean, onReview: () -> Unit, onStart: (() -> Unit)?, onDiscard: (() -> Unit)?) {
     val ready = j.status == RunStatus.READY
     Column(
-        Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
-            .border(1.dp, C.Border, r(14)).clickable(enabled = !ready, onClick = onReview).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.padding(horizontal = 14.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
+            .border(1.dp, C.Border, r(14)).clickable(enabled = !ready, onClick = onReview).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatusChip(j.status)
             Spacer(Modifier.weight(1f))
-            Txt(relativeTime(j.startedAt ?: j.createdAt ?: 0L), 11, 400, C.Muted)
+            Txt(relativeTime(j.startedAt ?: j.createdAt ?: 0L), 12, 400, C.Muted)
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(j.name, 14, 700)
-                Txt(stringResource(R.string.valt_dot_pair, scopeText(j), pluralStringResource(R.plurals.rev_steps, j.steps.size, j.steps.size)), 11, 400, C.Muted)
+                Txt(j.name, 15, 700)
+                Txt(stringResource(R.string.valt_dot_pair, scopeText(j), pluralStringResource(R.plurals.rev_steps, j.steps.size, j.steps.size)), 12, 400, C.Muted)
             }
-            if (!ready) Pill(stringResource(if (j.status.active) R.string.valt_view else R.string.rev_title), onReview, height = 34.dp, hPad = 14.dp, size = 12)
+            if (!ready) OutlineButton(stringResource(if (j.status.active) R.string.valt_view else R.string.rev_title), onReview)
         }
         when {
             ready -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -508,7 +530,7 @@ internal fun OptionCard(
 @Composable
 private fun RuleChip(text: String, ai: Boolean) {
     Row(
-        Modifier.clip(Capsule).background(C.Raised).padding(horizontal = 10.dp, vertical = 5.dp),
+        Modifier.height(24.dp).clip(Capsule).background(C.Raised).padding(horizontal = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -535,49 +557,55 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
     }
     GuardedClose(sh.changed, vm::closeRunSheet) { close ->
         BottomSheet(close) {
-            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Txt(stringResource(R.string.valt_run_validation), 16, 700, modifier = Modifier.weight(1f))
-                CloseButton(close, size = 36.dp, iconSize = 15.dp)
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Txt(stringResource(R.string.valt_run_validation), 20, 700)
+                    Txt(stringResource(R.string.val_run_sub), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                }
+                CloseButton(close, size = 36.dp, iconSize = 14.dp)
             }
-            Txt(stringResource(R.string.val_run_sub), 12, 400, C.Muted, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp), maxLines = Int.MAX_VALUE)
             Column(
-                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Txt(stringResource(R.string.valt_what_to_check), 12, 600, C.Soft, Modifier.padding(start = 2.dp, bottom = 2.dp))
+                Txt(stringResource(R.string.valt_what_to_check), 13, 600)
                 options.forEach { o ->
                     val on = sh.source == o.source
                     Column(
                         Modifier.fillMaxWidth().clip(r(12)).background(if (on) C.YTintBg else C.Surface)
                             .border(if (on) 1.5.dp else 1.dp, if (on) C.Yellow else C.Border, r(12))
-                            .clickable { vm.setRunSource(o.source) }.padding(10.dp),
+                            .clickable { vm.setRunSource(o.source) }.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Box(Modifier.size(30.dp).clip(r(8)).background(C.Raised), contentAlignment = Alignment.Center) {
-                                LineIcon(templateIcon(o.icon), 16.dp, C.Yellow, 2.2f)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Box(
+                                Modifier.size(34.dp).clip(r(9)).background(if (on) C.Yellow.copy(alpha = 0.18f) else C.Raised),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                LineIcon(templateIcon(o.icon), 16.dp, C.Yellow, 2f)
                             }
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Txt(o.name, 13, 700, modifier = Modifier.weight(1f, fill = false))
+                                    Txt(o.name, 14, 700, modifier = Modifier.weight(1f, fill = false))
                                     if (o.ai) AiBadge()
                                     if (o.saved) Txt(stringResource(R.string.valt_saved_badge), 10, 600, C.Muted)
                                 }
-                                Txt(stringResource(R.string.valt_dot_pair, o.tagline, pluralStringResource(R.plurals.rev_steps, o.steps.size, o.steps.size)), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                                Txt(stringResource(R.string.valt_dot_pair, o.tagline, pluralStringResource(R.plurals.rev_steps, o.steps.size, o.steps.size)), 12, 400, C.Muted)
                             }
                             RadioDot(on)
                         }
                         // The chosen one shows what it checks.
                         if (on && o.steps.isNotEmpty()) FlowRow(
-                            Modifier.padding(start = 40.dp, top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                            Modifier.padding(start = 46.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             o.steps.forEach { RuleChip(stepName(steps, it), steps[it]?.usesAi == true) }
                         }
                     }
                 }
 
-                Txt(stringResource(R.string.valt_which_assets), 12, 600, C.Soft, Modifier.padding(start = 2.dp, top = 10.dp, bottom = 2.dp))
+                Txt(stringResource(R.string.valt_which_assets), 13, 600, modifier = Modifier.padding(top = 14.dp))
                 val modes = listOf(RunMode.ALL, RunMode.CHOSEN, RunMode.CHANGED)
                 ScopeTabs(
                     listOf(
@@ -594,10 +622,10 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
                     RunMode.CHOSEN -> pluralStringResource(R.plurals.valt_ticked_choose, sh.chosen.size, sh.chosen.size)
                     RunMode.CHANGED -> stringResource(R.string.valt_changed_hint)
                     RunMode.ALL -> null
-                }?.let { Txt(it, 11, 400, C.Muted, Modifier.padding(start = 2.dp), maxLines = Int.MAX_VALUE) }
-                Spacer(Modifier.height(4.dp))
+                }?.let { Txt(it, 12, 400, C.Muted, Modifier.padding(top = 2.dp), maxLines = Int.MAX_VALUE) }
+                Spacer(Modifier.height(16.dp))
             }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val ok = chosen != null && count != 0 && !sh.busy
                 val name = chosen?.name ?: stringResource(R.string.valt_run_name_fallback)
                 val label = when {
@@ -605,8 +633,8 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
                     count < 0 -> stringResource(R.string.valt_run_on_changed, name)
                     else -> pluralStringResource(R.plurals.valt_run_on_n, count, count, name)
                 }
-                Pill(stringResource(R.string.valt_save_as_ready), { if (ok) vm.submitRunSheet(now = false) }, Modifier.alpha(if (ok) 1f else 0.5f), height = 44.dp, hPad = 14.dp, size = 13)
-                YellowButton(label, { vm.submitRunSheet(now = true) }, Modifier.weight(1f), enabled = ok, height = 44)
+                Pill(stringResource(R.string.valt_save_as_ready), { if (ok) vm.submitRunSheet(now = false) }, Modifier.alpha(if (ok) 1f else 0.5f), height = 48.dp, hPad = 16.dp, size = 13)
+                YellowButton(label, { vm.submitRunSheet(now = true) }, Modifier.weight(1f), enabled = ok, height = 48, textSize = 15, pill = true, play = false)
             }
         }
     }
@@ -616,15 +644,15 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
 @Composable
 private fun ScopeTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(r(10)).background(C.Raised).padding(3.dp),
+        Modifier.fillMaxWidth().clip(r(12)).background(C.Raised).padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         labels.forEachIndexed { i, l ->
             val on = i == selected
             Box(
-                Modifier.weight(1f).height(32.dp).clip(r(8)).background(if (on) C.Yellow else Color.Transparent).clickable { onSelect(i) },
+                Modifier.weight(1f).height(36.dp).clip(r(9)).background(if (on) C.Yellow else Color.Transparent).clickable { onSelect(i) },
                 contentAlignment = Alignment.Center,
-            ) { Txt(l, 11, if (on) 700 else 500, if (on) C.OnYellow else C.Muted, maxLines = 1) }
+            ) { Txt(l, 13, if (on) 700 else 600, if (on) C.OnYellow else C.Muted, maxLines = 1) }
         }
     }
 }
@@ -801,15 +829,15 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
                         stringResource(R.string.val_editor_description_hint), compact = true,
                     )
                     Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Pill(stringResource(R.string.val_cancel), close, height = 44.dp, hPad = 16.dp, size = 13, weight = 700)
+                        Pill(stringResource(R.string.val_cancel), close, height = 42.dp, hPad = 14.dp, size = 14)
                         Pill(
                             stringResource(R.string.val_save), { if (ok) vm.saveEditor(andRun = false) }, Modifier.alpha(if (ok) 1f else 0.5f),
-                            height = 44.dp, hPad = 18.dp, size = 13, weight = 700,
+                            height = 42.dp, hPad = 16.dp, size = 14,
                         )
                         if (s.canCheck) Pill(
                             stringResource(R.string.val_editor_save_and_run), { if (ok) vm.saveEditor(andRun = true) },
                             Modifier.weight(1f).alpha(if (ok) 1f else 0.5f),
-                            bg = if (ok) C.Yellow else C.Btn, fg = if (ok) C.OnYellow else C.Text, height = 44.dp, size = 13, weight = 700,
+                            bg = if (ok) C.Yellow else C.Btn, fg = if (ok) C.OnYellow else C.Text, height = 42.dp, hPad = 18.dp, size = 14, weight = 700,
                         )
                     }
                 }
@@ -817,35 +845,32 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
 
             // Steps
             CfgCard {
-                Column(Modifier.padding(EditorCardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(EditorCardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Txt(stringResource(R.string.val_editor_steps), 15, 700)
-                        Box(
-                            Modifier.heightIn(min = 20.dp).widthIn(min = 20.dp).clip(Capsule).background(C.Raised).padding(horizontal = 6.dp),
-                            contentAlignment = Alignment.Center,
-                        ) { Txt(e.steps.size.toString(), 10, 700, C.Soft) }
+                        Txt(stringResource(R.string.val_editor_steps), 16, 700)
+                        CountPill(e.steps.size)
                         Spacer(Modifier.weight(1f))
                         if (e.steps.isNotEmpty()) {
                             Txt(
-                                stringResource(R.string.val_editor_clear_all), 11, 600, C.Soft,
+                                stringResource(R.string.val_editor_clear_all), 12, 600, C.Soft,
                                 Modifier.clip(r(8)).clickable(onClick = vm::clearSteps).padding(4.dp),
                             )
                         }
                     }
-                    Txt(stringResource(R.string.val_editor_steps_hint), 11, 400, C.Soft, maxLines = Int.MAX_VALUE)
+                    Txt(stringResource(R.string.val_editor_steps_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Txt(stringResource(R.string.val_editor_start_from), 11, 500, C.Soft)
-                        Spacer(Modifier.width(8.dp))
+                        Txt(stringResource(R.string.val_editor_start_from), 12, 500, C.Muted)
+                        Spacer(Modifier.width(6.dp))
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             s.templates.forEach { t ->
                                 // The template the steps came from stands out, as on the web.
                                 val on = e.templateKey == t.key
                                 Box(
-                                    Modifier.heightIn(min = 34.dp).clip(Capsule).background(if (on) C.YTintBg else Color.Transparent)
+                                    Modifier.height(30.dp).clip(Capsule).background(if (on) C.YTintBg else Color.Transparent)
                                         .border(1.dp, if (on) C.Yellow else C.Border2, Capsule).clickable { vm.startFrom(t) }
-                                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                                        .padding(horizontal = 10.dp),
                                     contentAlignment = Alignment.Center,
-                                ) { Txt(t.name, 11, 700, if (on) C.Yellow else C.Text) }
+                                ) { Txt(t.name, 12, 600, if (on) C.Yellow else C.Text) }
                             }
                             if (e.undo != null) {
                                 Txt(
@@ -876,8 +901,8 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
             // Steps to add
             CfgCard {
                 Column(Modifier.padding(EditorCardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Txt(stringResource(R.string.val_editor_library), 15, 700)
-                    Txt(stringResource(R.string.val_editor_library_hint), 11, 400, C.Soft, maxLines = Int.MAX_VALUE)
+                    Txt(stringResource(R.string.val_editor_library), 16, 700)
+                    Txt(stringResource(R.string.val_editor_library_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     SearchField(q, { q = it }, stringResource(R.string.val_editor_search))
                     val query = q.trim()
                     val all = s.steps.filter { r ->
@@ -887,7 +912,7 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
                     listOf(StepGroup.FIELD, StepGroup.GROUP, StepGroup.AI).map { g -> groupText(g) to all.filter { it.group == g } }
                         .filter { it.second.isNotEmpty() }
                         .forEach { (title, list) ->
-                            Txt(title.uppercase(), 10, 700, C.Soft, Modifier.padding(top = 6.dp, bottom = 2.dp), spacing = 0.8f)
+                            Txt(title.uppercase(), 11, 600, C.Muted, Modifier.padding(top = 6.dp, bottom = 2.dp), spacing = 0.6f)
                             list.forEach { r -> CheckRow(r, r.key in e.steps) { vm.addStep(r.key) } }
                         }
                     if (s.steps.isEmpty()) Txt(stringResource(R.string.val_editor_library_offline), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
@@ -980,17 +1005,17 @@ private fun StepRow(
     handle: Modifier = Modifier,
 ) {
     Row(
-        modifier.fillMaxWidth().clip(r(11)).background(C.Bg).border(1.dp, C.Border, r(11)).padding(start = 6.dp, end = 6.dp, top = 9.dp, bottom = 9.dp),
+        modifier.fillMaxWidth().clip(r(10)).background(C.Bg).border(1.dp, C.Border, r(10)).padding(start = 2.dp, end = 2.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // The drag handle (dragging is handled by the list, which moves the row).
         Box(Modifier.size(30.dp, 40.dp).then(handle), contentAlignment = Alignment.Center) { LineIcon(Icons.Menu, 16.dp, C.Muted, 2.2f) }
-        Box(Modifier.size(24.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
-            Txt("${i + 1}", 11, 700, C.Yellow)
+        Box(Modifier.size(26.dp).clip(CircleShape).background(C.YTintBg), contentAlignment = Alignment.Center) {
+            Txt("${i + 1}", 12, 700, C.Yellow)
         }
-        Column(Modifier.weight(1f).padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Txt(name, 12, 600, maxLines = 2)
-            Txt(sub, 10, 400, C.Muted, maxLines = 2)
+        Column(Modifier.weight(1f).padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Txt(name, 13, 600, maxLines = 2)
+            Txt(sub, 11, 400, C.Muted, maxLines = 2)
         }
         onInfo?.let { StepIcon(Icons.Gear, true, it) }
         StepIcon(Icons.ChevronDown, !first, { onMove(-1) }, flip = true)
@@ -1013,35 +1038,34 @@ private fun StepIcon(icon: Ico, enabled: Boolean, onClick: () -> Unit, flip: Boo
 @Composable
 private fun CheckRow(rule: ValStep, added: Boolean, onAdd: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(start = 12.dp, end = 10.dp, top = 10.dp, bottom = 12.dp),
+        Modifier.fillMaxWidth().clip(r(10)).background(C.Bg).border(1.dp, C.Border, r(10)).padding(10.dp),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Txt(rule.name, 13, 700, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
+                Txt(rule.name, 13, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
                 if (rule.usesAi) AiBadge()
             }
-            Txt(rule.description, 11, 600, C.Soft, maxLines = Int.MAX_VALUE)
-            if (rule.checks.isNotEmpty()) Txt(rule.checks.joinToString(" · ") { it.name }, 10, 400, C.Muted, maxLines = Int.MAX_VALUE)
+            Txt(rule.description, 11, 400, C.Muted, maxLines = 2)
         }
         if (added) {
             Row(
-                Modifier.clip(Capsule).border(1.dp, C.Border2, Capsule).padding(horizontal = 10.dp, vertical = 5.dp).alpha(0.5f),
+                Modifier.height(30.dp).clip(Capsule).border(1.dp, C.Border, Capsule).padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                LineIcon(Icons.Check, 12.dp, C.Muted, 2.4f)
-                Txt(stringResource(R.string.val_editor_added), 11, 600, C.Muted)
+                LineIcon(Icons.Check, 12.dp, C.Dim, 2.4f)
+                Txt(stringResource(R.string.val_editor_added), 12, 700, C.Dim)
             }
         } else {
             Row(
-                Modifier.clip(Capsule).border(1.dp, C.Soft.copy(alpha = 0.6f), Capsule).clickable(onClick = onAdd).padding(horizontal = 11.dp, vertical = 5.dp),
+                Modifier.height(30.dp).clip(Capsule).border(1.dp, C.Soft.copy(alpha = 0.6f), Capsule).clickable(onClick = onAdd).padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
                 LineIcon(Icons.PlusSmall, 12.dp, C.Text, 2.6f)
-                Txt(stringResource(R.string.action_add), 11, 700)
+                Txt(stringResource(R.string.action_add), 12, 700)
             }
         }
     }

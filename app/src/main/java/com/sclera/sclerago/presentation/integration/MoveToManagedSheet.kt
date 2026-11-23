@@ -40,7 +40,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 fun MoveToManagedSheet(networks: List<String>, s: MoveSheetState, vm: MoveToManagedViewModel, onSubmitted: () -> Unit) {
     GuardedClose(s.network != null || s.assignee != null, vm::close) { close ->
         BottomSheet(close) {
-            SheetHeader(stringResource(R.string.mv_title), null, close)
+            SheetHeader(stringResource(R.string.mv_title), null, close, titleSize = 20)
             Column(
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).testTag("move_sheet"),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -63,7 +63,7 @@ fun MoveToManagedSheet(networks: List<String>, s: MoveSheetState, vm: MoveToMana
                 val ok = s.network != null
                 Pill(
                     stringResource(R.string.mv_submit), { if (vm.submit()) onSubmitted() },
-                    Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
+                    Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f), bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 15, weight = 700,
                 )
             }
         }

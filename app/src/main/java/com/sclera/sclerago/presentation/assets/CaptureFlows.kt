@@ -301,13 +301,16 @@ fun CameraCapture(
         }
 
         if (chosen > 0 && !isRecording) {
-            Box(
-                Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 228.dp).size(60.dp).fabShadow()
-                    .clip(CircleShape).background(C.Yellow).clickable(onClick = onDone),
-                contentAlignment = Alignment.Center,
-            ) {
-                LineIcon(Icons.Check, 26.dp, C.OnYellow, 3f)
-                Txt(chosen.toString(), 11, 800, C.OnYellow, Modifier.align(Alignment.BottomEnd).padding(end = 9.dp, bottom = 6.dp))
+            Box(Modifier.align(Alignment.BottomEnd).padding(end = 18.dp, bottom = 232.dp).size(60.dp)) {
+                Box(
+                    Modifier.fillMaxSize().fabShadow().clip(CircleShape).background(C.Yellow).clickable(onClick = onDone),
+                    contentAlignment = Alignment.Center,
+                ) { LineIcon(Icons.Check, 22.dp, C.OnYellow, 3.6f) }
+                Box(
+                    Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp).widthIn(min = 22.dp).height(22.dp)
+                        .background(C.Bg, CircleShape).border(1.5.dp, C.Yellow, CircleShape).padding(horizontal = 5.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Txt(chosen.toString(), 12, 800, C.Yellow) }
             }
         }
 
@@ -432,16 +435,16 @@ fun FilePage(vm: AppViewModel, files: FileImportViewModel, online: Boolean) {
 @Composable
 private fun FileWaiting(vm: AppViewModel) {
     Column(
-        Modifier.fillMaxSize().background(Color(0xFF1B1D21)).padding(32.dp),
+        Modifier.fillMaxSize().background(Color(0xFF151619)).padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
     ) {
-        LineIcon(Icons.FileUpload, 40.dp, C.Muted, 1.8f)
-        Txt(stringResource(R.string.file_import_title), 16, 700)
-        Txt(stringResource(R.string.file_import_hint, MAX_DOCUMENT_UPLOAD_MB), 12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
+        LineIcon(Icons.FileUpload, 52.dp, C.Yellow, 1.6f)
+        Txt(stringResource(R.string.file_choose_title), 16, 700)
+        Txt(stringResource(R.string.file_import_hint, MAX_DOCUMENT_UPLOAD_MB), 13, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
         // Adding assets needs Collect: a view-only group is told so instead (the web hides its Add).
         if (vm.mayCollect()) {
-            Pill(stringResource(R.string.file_open_manager), vm::openFile, bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700)
+            Pill(stringResource(R.string.file_browse_files), vm::openFile, bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700)
         } else {
             Txt(stringResource(R.string.view_only_no_add), 12, 500, C.Orange, maxLines = 3, align = TextAlign.Center)
         }
