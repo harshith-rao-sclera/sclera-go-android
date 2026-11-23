@@ -224,8 +224,6 @@
     <string name="doc_upload">ドキュメントをアップロード</string>
     <string name="doc_none">ドキュメントはありません</string>
     <string name="doc_category">カテゴリ:</string>
-    <string name="doc_used_for">用途:</string>
-    <string name="doc_model">モデル:</string>
     <string name="doc_link">リンク:</string>
     <string name="doc_created_by">作成者:</string>
     <string name="doc_ai_source">AI 仕様の出典</string>

@@ -59,7 +59,7 @@ object DetailTags {
     const val TAB_INFO = "detail-tab-info"
     const val TAB_VALIDATION = "detail-tab-validation"
     const val TAB_EMPTY = "detail-tab-empty"
-    const val NOT_ASSIGNED = "detail-not-assigned"
+    const val LOCK_BANNER = "detail-lock-banner"
     const val MOVE_TO_DRAFT = "detail-move-to-draft"
     const val MARK_VALIDATED = "detail-mark-validated"
     const val COMMENT_FIELD = "detail-comment-field"
@@ -70,6 +70,7 @@ object DetailTags {
     const val LOCATION = "detail-location"
     const val SUGGEST_TYPE = "detail-suggest-type"
     const val CLONE = "detail-clone"
+    const val MANAGED_NOTE = "detail-managed-note"
 }
 
 /** What a field value came from, shown at the end of its row. */
@@ -162,7 +163,7 @@ fun FieldRow(
     rowBg: Color = Color.Transparent,
     mono: Boolean = false,
     requester: BringIntoViewRequester? = null,
-    /** A long text (notes): the value wraps over several lines. */
+    /** A text that may be long (notes, description): the value wraps over as many lines as it needs. */
     multiLine: Boolean = false,
 ) {
     Row(
@@ -212,7 +213,7 @@ fun ValueRow(label: String, value: String?, modifier: Modifier = Modifier, onCli
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Txt(label, 12, 500, C.Muted, Modifier.width(92.dp), maxLines = 2)
-        Txt(value ?: stringResource(R.string.detail_value_none), 14, 600, if (value != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = 2)
+        Txt(value ?: stringResource(R.string.detail_value_none), 14, 600, if (value != null) C.Text else C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
         if (onClick != null) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
     }
 }
@@ -254,7 +255,7 @@ fun PickRow(
         FieldLabel(label, Modifier.width(92.dp))
         Txt(
             value.ifEmpty { empty }, if (mono) 13 else 14, 600, if (value.isEmpty()) C.Muted else C.Text,
-            Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp), maxLines = 1,
+            Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp), maxLines = Int.MAX_VALUE,
         )
         BadgeText(key, badge)
         if (!readOnly) LineIcon(Icons.ChevronDown, 16.dp, C.Muted, 2.4f)
@@ -290,11 +291,12 @@ fun SelectRow(
             Txt(
                 shown, 14, 600, if (value.isEmpty()) C.Muted else C.Text,
                 Modifier.fillMaxWidth().bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
+                maxLines = Int.MAX_VALUE,
             )
             DropdownMenu(open, { open = false }, containerColor = C.Surface) {
                 options.forEach { (k, text) ->
                     DropdownMenuItem(
-                        text = { Txt(text, 14, if (k == value) 700 else 500, if (k == value) C.Yellow else C.Text) },
+                        text = { Txt(text, 14, if (k == value) 700 else 500, if (k == value) C.Yellow else C.Text, maxLines = Int.MAX_VALUE) },
                         onClick = { onChange(k); open = false },
                     )
                 }

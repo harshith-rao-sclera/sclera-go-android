@@ -3,6 +3,7 @@ package com.sclera.sclerago.presentation.tagging
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.NfcFailure
 import com.sclera.sclerago.domain.model.TagKind
@@ -103,8 +104,9 @@ class TagViewModel @Inject constructor(
      */
     fun start(kind: TagKind, nfcProblem: NfcFailure? = null) {
         val now = target ?: return
-        // A submitted (or signed-off) asset keeps the tags it has, whoever is signed in.
-        if (tags.isSubmitted(now.asset)) return
+        // A submitted (or signed-off) asset keeps the tags it has, whoever is signed in; and only someone who may change
+        // the asset tags it (collect, theirs or nobody's unless an admin, not in Managed Assets), as the server's.
+        if (tags.isSubmitted(now.asset) || !tags.canTag(now.asset)) return
         // A QR code is tagged in the phone's own tables when offline; barcodes and NFC tags are checked on the server.
         if (kind != TagKind.QR && !network.isOnline()) return fail(UiText.Res(R.string.tag_error_offline))
         if (kind == TagKind.NFC && nfcProblem != null) return nfcFailed(nfcProblem)
@@ -205,6 +207,9 @@ class TagViewModel @Inject constructor(
                 fail(e.tagFailureText(tags.holderName::invoke))
             }
         } catch (e: OnlineException) {
+            fail(e.tagFailureText())
+        } catch (e: DataException) {
+            // Refused before anything was written: the user may not change this asset (any more).
             fail(e.tagFailureText())
         } catch (e: Exception) {
             fail(UiText.Res(R.string.tag_error_generic))

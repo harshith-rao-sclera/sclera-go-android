@@ -8,7 +8,13 @@
     <string name="cfg_loading">Loading…</string>
     <string name="cfg_try_again">Try again</string>
     <string name="cfg_needs_connection">Configuration is read from and saved to Sclera, so it needs an internet connection.</string>
-    <string name="cfg_import_unreadable">Couldn’t read that file</string>
+    <string name="cfg_import_unreadable">Couldn’t read that file. Choose an .xlsx file of at most 100MB.</string>
+    <string name="cfg_import_sample_saved">Sample Format saved</string>
+    <string name="cfg_import_columns_ignored">Columns not imported: %1$s</string>
+    <plurals name="cfg_import_rows_to_fix">
+        <item quantity="one">Nothing was imported. Fix row %1$s and import the file again.</item>
+        <item quantity="other">Nothing was imported. Fix rows %1$s and import the file again.</item>
+    </plurals>
 
     <!-- Asset fields -->
     <plurals name="cfg_fields_added">
@@ -26,7 +32,19 @@
     <string name="cfg_field_delete_body">The %1$s field will be deleted</string>
     <string name="cfg_option_duplicate">Option already added</string>
     <string name="cfg_option_invalid">Enter valid option name</string>
-    <string name="cfg_import_fields_nothing_new">No new fields in that file · every column is already a field</string>
+    <string name="cfg_import_fields_sheet_wrong">Nothing was imported. The sheet needs a Field name column in its first row and one field per row. Start from the Sample Format.</string>
+    <plurals name="cfg_import_skip_existing">
+        <item quantity="one">%1$d already exists</item>
+        <item quantity="other">%1$d already exist</item>
+    </plurals>
+    <plurals name="cfg_import_skip_media">
+        <item quantity="one">%1$d photo, video or voice memo: add it in Media</item>
+        <item quantity="other">%1$d photos, videos or voice memos: add them in Media</item>
+    </plurals>
+    <string name="cfg_import_skip_both">%1$s; %2$s</string>
+    <string name="cfg_import_fields_skipped">Skipped: %1$s.</string>
+    <string name="cfg_import_fields_nothing">Nothing to add. %1$s.</string>
+    <string name="cfg_import_fields_none">No fields found in that file.</string>
 
     <!-- Checks -->
     <string name="cfg_checks_pattern_label">Regular expression</string>
@@ -72,7 +90,6 @@
     <string name="cfg_photos_load_failed">Couldn’t load the photo rules.</string>
 
     <!-- Building info -->
-    <string name="cfg_place_hidden">Hidden</string>
     <string name="cfg_building_visible_hint">Field workers can pick this building and its floors.</string>
     <string name="cfg_building_added">Building added</string>
     <string name="cfg_building_saved">Building saved</string>
@@ -105,11 +122,23 @@
         <item quantity="one">%1$d deleted</item>
         <item quantity="other">%1$d deleted</item>
     </plurals>
-    <string name="cfg_import_buildings_nothing">No buildings found · use columns Building, Floor, Location, Type, Code</string>
-    <string name="cfg_import_buildings_all_there">Everything in the file is already here</string>
-    <plurals name="cfg_import_buildings_done">
-        <item quantity="one">Imported %1$d row</item>
-        <item quantity="other">Imported %1$d rows</item>
+    <string name="cfg_import_places_sheet_wrong">Nothing was imported. The sheet needs Building name, Floor name and Location name columns in its first row and one location per row. Start from the Sample Format.</string>
+    <plurals name="cfg_import_n_buildings">
+        <item quantity="one">%1$d building</item>
+        <item quantity="other">%1$d buildings</item>
+    </plurals>
+    <plurals name="cfg_import_n_floors">
+        <item quantity="one">%1$d floor</item>
+        <item quantity="other">%1$d floors</item>
+    </plurals>
+    <plurals name="cfg_import_n_locations">
+        <item quantity="one">%1$d location</item>
+        <item quantity="other">%1$d locations</item>
+    </plurals>
+    <string name="cfg_import_places_done">Imported: %1$s, %2$s and %3$s added.</string>
+    <plurals name="cfg_import_places_done_skipped">
+        <item quantity="one">Imported: %2$s, %3$s and %4$s added; %1$d location already there, skipped.</item>
+        <item quantity="other">Imported: %2$s, %3$s and %4$s added; %1$d locations already there, skipped.</item>
     </plurals>
 
     <!-- Geofencing -->

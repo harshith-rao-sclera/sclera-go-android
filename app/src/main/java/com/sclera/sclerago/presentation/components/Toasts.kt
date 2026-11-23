@@ -200,7 +200,7 @@ private fun ToastCard(m: ToastMessage, kind: ToastKind, close: () -> Unit) {
         Box(Modifier.size(24.dp).clip(CircleShape).background(wash).border(1.dp, ring, CircleShape), contentAlignment = Alignment.Center) {
             LineIcon(icon, 13.dp, tint, 2.6f)
         }
-        Txt(m.text.asString(), 13, 600, modifier = Modifier.weight(1f), maxLines = 4)
+        Txt(m.text.asString(), 13, 600, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE)
         m.action?.let { a ->
             Pill(
                 a.label.asString(), { a.onClick(); close() }, Modifier.testTag(ToastTags.ACTION),

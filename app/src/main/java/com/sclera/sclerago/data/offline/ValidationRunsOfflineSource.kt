@@ -21,6 +21,10 @@ private const val VR_LAST_RUNS = """
     SELECT * FROM validation_jobs WHERE validation_id IS NOT NULL AND validation_id <> '' AND status <> 'ready' AND %LIVE%
     ORDER BY created_at DESC, id DESC"""
 
+/** The saved validations that have runs (ready ones too): they can't be edited any more (the server's `locked`). */
+private const val VR_RUN_VALIDATIONS = """
+    SELECT DISTINCT validation_id FROM validation_jobs WHERE validation_id IS NOT NULL AND validation_id <> '' AND %LIVE%"""
+
 private const val VR_RUNS = "SELECT * FROM validation_jobs WHERE %LIVE% ORDER BY created_at DESC, id DESC LIMIT %LIMIT%"
 
 private const val VR_RUN = "SELECT * FROM validation_jobs WHERE id = ? AND %LIVE%"
@@ -50,7 +54,10 @@ class ValidationRunsOfflineSource(private val db: AdcDatabase, private val io: C
             val last = db.whenTable("validation_jobs", emptyMap()) {
                 db.query(VR_LAST_RUNS.live("validation_jobs")).map { it.toValRun() }.groupBy { it.validationId }.mapValues { it.value.first() }
             }
-            db.query(VR_VALIDATIONS.live("validations")).map { it.toValidationDef(last[it.string("id")]) }
+            val ran = db.whenTable("validation_jobs", emptySet<String>()) {
+                db.query(VR_RUN_VALIDATIONS.live("validation_jobs")).mapNotNull { it.string("validation_id") }.toSet()
+            }
+            db.query(VR_VALIDATIONS.live("validations")).map { it.toValidationDef(last[it.string("id")], it.string("id") in ran) }
         }
     }
 

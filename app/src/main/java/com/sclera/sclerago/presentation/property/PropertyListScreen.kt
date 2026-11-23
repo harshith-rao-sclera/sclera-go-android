@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.property
 
 import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.AccessFailedBanner
 import com.sclera.sclerago.presentation.components.OfflineGate
 import java.util.Locale
 import java.text.NumberFormat
@@ -125,6 +126,7 @@ fun PropertyListScreen(
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
             onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onRefresh = vm::refresh,
             canManage = canManage, onInfo = vm::openEdit, onOffline = vm::explainOffline,
+            accessFailed = app.accessFailed, onRetryAccess = app::retryAccess,
         )
         if (state.importOpen) ImportSheet(importer, vm::closeImport, onImported = vm::closeImport)
         if (state.addOpen) {
@@ -133,14 +135,17 @@ fun PropertyListScreen(
                 suggestions, vm::suggestAddress, vm::clearSuggestions,
             )
         }
-        // The info button on a property: its details straight in the edit form, with Delete before Cancel (view only offline).
+        // The info button on a property: its details straight in the edit form, with Delete before Cancel. View only
+        // offline, and for a group without Manage properties (the server refuses their changes and deletes).
         state.editing?.let { p ->
             key(p.id) {
                 AddPropertySheet(
                     vm::closeEdit, vm::saveEdit, state.editError,
-                    suggestions, vm::suggestAddress, vm::clearSuggestions, initial = p, onDelete = vm::askDelete,
+                    suggestions, vm::suggestAddress, vm::clearSuggestions, initial = p,
+                    onDelete = if (canManage) vm::askDelete else null,
                     // Offline it shows the copy saved on the device, to look at only.
-                    readOnly = !state.online,
+                    readOnly = !state.online || !canManage,
+                    readOnlyReason = if (canManage) R.string.property_offline_edit else R.string.property_view_only,
                 )
             }
         }
@@ -174,12 +179,16 @@ internal fun PropertyListContent(
     onInfo: (Property) -> Unit = {},
     /** An online-only button was tapped offline (download, New property, Import): say why it needs the server. */
     onOffline: (OnlineOnly) -> Unit = {},
+    /** The user's access couldn't be loaded: a banner says so, with Retry (properties needing a permission stay hidden). */
+    accessFailed: Boolean = false,
+    onRetryAccess: () -> Unit = {},
 ) {
     val gutter = pageGutter()
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             SubPageBar(stringResource(R.string.property_list_title), property = null, onMenu = onBack)
+            if (accessFailed) AccessFailedBanner(onRetryAccess, Modifier.padding(horizontal = gutter + 10.dp).padding(top = 10.dp))
             // The first read shows its own loader, so a pull waits until it is done.
             PullRefresh(state.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !state.loading) {
                 LazyColumn(
@@ -218,7 +227,7 @@ internal fun PropertyListContent(
                             Txt(
                                 text, 13, 400, C.Muted,
                                 Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 30.dp).testTag(PropertyTags.EMPTY),
-                                maxLines = 3, align = TextAlign.Center,
+                                maxLines = Int.MAX_VALUE, align = TextAlign.Center,
                             )
                         }
                     }

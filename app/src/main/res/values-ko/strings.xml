@@ -224,8 +224,6 @@
     <string name="doc_upload">문서 업로드</string>
     <string name="doc_none">문서 없음</string>
     <string name="doc_category">카테고리:</string>
-    <string name="doc_used_for">용도:</string>
-    <string name="doc_model">모델:</string>
     <string name="doc_link">링크:</string>
     <string name="doc_created_by">작성자:</string>
     <string name="doc_ai_source">AI 사양 출처</string>

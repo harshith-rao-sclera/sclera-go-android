@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Users and access: deleting a group (the web's wording). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- A group that still has users can't be deleted yet (1: the group). -->
+    <string name="access_delete_not_yet_title">%1$s can\'t be deleted yet</string>
+    <plurals name="access_delete_not_yet_body">
+        <item quantity="one">%1$d user is still in this group. Move them to another group first.</item>
+        <item quantity="other">%1$d users are still in this group. Move them all to another group first.</item>
+    </plurals>
+    <string name="access_go_to_users">Go to users</string>
+    <string name="access_delete_cant_undo">This can\'t be undone.</string>
+</resources>

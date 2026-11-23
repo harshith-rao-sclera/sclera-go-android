@@ -1,13 +1,13 @@
 package com.sclera.sclerago.presentation.config
 
+import com.sclera.sclerago.presentation.common.storedTimeText
 import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -90,7 +90,6 @@ import com.sclera.sclerago.domain.usecase.config.checksProblem
 import com.sclera.sclerago.domain.usecase.config.nameTaken
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import com.sclera.sclerago.presentation.common.asString
-import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.BottomTabBar
 import com.sclera.sclerago.presentation.components.Capsule
@@ -134,22 +133,16 @@ import com.sclera.sclerago.presentation.theme.Txt
 import java.util.Locale
 import kotlinx.serialization.json.JsonPrimitive
 
-private class CfgTabSpec(val page: CfgPage, val label: String, val icon: Ico)
+private class CfgTabSpec(val page: CfgPage, @StringRes val label: Int, val icon: Ico)
 
 private val CFG_TABS = listOf(
-    CfgTabSpec(CfgPage.FIELDS, "Asset Fields", Icons.Box),
-    CfgTabSpec(CfgPage.BUILDING, "Building Info", Icons.Building),
-    CfgTabSpec(CfgPage.GEO, "Geofencing", Icons.Pin),
-    CfgTabSpec(CfgPage.SETTINGS, "Settings", Icons.Toggles),
+    CfgTabSpec(CfgPage.FIELDS, R.string.cfgt_tab_asset_fields, Icons.Box),
+    CfgTabSpec(CfgPage.BUILDING, R.string.cfgt_tab_building_info, Icons.Building),
+    CfgTabSpec(CfgPage.GEO, R.string.cfgt_tab_geofencing, Icons.Pin),
+    CfgTabSpec(CfgPage.SETTINGS, R.string.cfgt_tab_settings, Icons.Toggles),
 )
 
 private val PageEasing = CubicBezierEasing(0.22f, 0.8f, 0.24f, 1f)
-
-/** What Import buildings lets you pick: CSV or Excel files. */
-private val IMPORT_SHEET_TYPES = arrayOf(
-    "text/csv", "text/comma-separated-values", "text/plain", "application/csv",
-    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-)
 
 /**
  * The Configuration page (side menu → Configuration), as four bottom tabs that work like the main
@@ -199,7 +192,7 @@ fun ConfigScreen(
     SecureWindow() // building access codes and contacts are shown here
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            SubPageBar("Configuration", vm.propName, vm::openMenu)
+            SubPageBar(stringResource(R.string.menu_configuration), vm.propName, vm::openMenu)
             // Every tab stays composed (as the web keeps them mounted), so unsaved work on one, such as fences being
             // drawn on the map, survives switching to another.
             HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = CFG_TABS.size - 1, key = { it }) { i ->
@@ -222,7 +215,7 @@ fun ConfigScreen(
             BottomTabBar {
                 CFG_TABS.forEachIndexed { i, t ->
                     val on = (1f - kotlin.math.abs(pos - i)).coerceIn(0f, 1f)
-                    NavItem(t.label, t.icon, 21.dp, on, first = i == 0, last = i == CFG_TABS.size - 1) { vm.cfgGo(t.page) }
+                    NavItem(stringResource(t.label), t.icon, 21.dp, on, first = i == 0, last = i == CFG_TABS.size - 1) { vm.cfgGo(t.page) }
                 }
             }
         }
@@ -289,8 +282,6 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
     // Add / edit building sheet: null = closed, "" = new building, else the building's id.
     var buildingSheet by remember { mutableStateOf<String?>(null) }
     var floorsSheet by remember { mutableStateOf(false) }
-    // Import buildings: pick a spreadsheet (CSV or Excel) in the phone's file manager.
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { places.importBuildings(it.toString()) } }
 
     fun closeSearch() { searching = false; q = "" }
     fun addFloor(b: LocNode) {
@@ -299,14 +290,13 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
     BackHandler(enabled = searching, onBack = ::closeSearch)
     BackHandler(enabled = dial) { dial = false }
 
-    val hiddenWord = stringResource(R.string.cfg_place_hidden)
     val buildingMenu = buildList {
-        tree.forEach { b -> add(MenuAct(Icons.Building, if (b.active) b.name else "${b.name} · $hiddenWord", selected = b.id == building?.id) { bId = b.id; fId = null }) }
-        add(MenuAct(Icons.PlusCircle, "Add building", divider = tree.isNotEmpty()) { buildingSheet = "" })
-        if (building != null) add(MenuAct(Icons.Pencil, "Edit ${building.name}") { buildingSheet = building.id })
-        if (floors.isNotEmpty()) add(MenuAct(Icons.Floor, "Edit floors") { floorsSheet = true })
-        add(MenuAct(Icons.Import, "Import buildings") { importer.launch(IMPORT_SHEET_TYPES) })
-        if (building != null) add(MenuAct(Icons.Trash, "Delete ${building.name}", danger = true, divider = true) {
+        tree.forEach { b -> add(MenuAct(Icons.Building, if (b.active) b.name else stringResource(R.string.cfgt_name_hidden, b.name), selected = b.id == building?.id) { bId = b.id; fId = null }) }
+        add(MenuAct(Icons.PlusCircle, stringResource(R.string.cfgt_add_building), divider = tree.isNotEmpty()) { buildingSheet = "" })
+        if (building != null) add(MenuAct(Icons.Pencil, stringResource(R.string.access_edit_group, building.name)) { buildingSheet = building.id })
+        if (floors.isNotEmpty()) add(MenuAct(Icons.Floor, stringResource(R.string.cfgt_edit_floors)) { floorsSheet = true })
+        add(MenuAct(Icons.Import, stringResource(R.string.cfgt_import_buildings)) { places.openImport() })
+        if (building != null) add(MenuAct(Icons.Trash, stringResource(R.string.property_delete_label, building.name), danger = true, divider = true) {
             deleteAsk = DeleteAsk(
                 res.getString(R.string.cfg_delete_place_title, building.name),
                 withVdmsNote(res, res.getString(R.string.cfg_delete_building_body, building.name), listOf(building)),
@@ -331,20 +321,20 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
                         hit.location?.let { openLoc = it }
                         closeSearch()
                     }
-                    building == null -> EmptyNote("Add a building, then its floors and locations. Tap + to start.")
+                    building == null -> EmptyNote(stringResource(R.string.cfgt_buildings_empty))
                     else -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         FloorRail(floors, floor?.id, onPick = { fId = it }, onAdd = { addFloor(building) })
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             if (floor == null) {
-                                Txt("No floors yet", 16, 700)
-                                Txt("Tap + beside the floors to add one, then add its locations.", 13, 400, C.Muted, maxLines = 3)
+                                Txt(stringResource(R.string.cfgt_no_floors), 16, 700)
+                                Txt(stringResource(R.string.cfgt_no_floors_hint), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
                             } else {
                                 Column {
                                     Txt(floor.name, 16, 700)
-                                    Txt(plural(locs.size, "location", "locations"), 13, 400, C.Muted)
+                                    Txt(pluralStringResource(R.plurals.pi_count_locations, locs.size, locs.size), 13, 400, C.Muted)
                                 }
                                 if (locs.isEmpty()) {
-                                    Txt("No locations on this floor yet. Tap + to add one.", 13, 400, C.Muted, maxLines = 3)
+                                    Txt(stringResource(R.string.cfgt_no_locations), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
                                 } else {
                                     Column(Modifier.fillMaxWidth().clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16))) {
                                         locs.forEachIndexed { i, l ->
@@ -361,7 +351,8 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
                 Spacer(Modifier.height(150.dp)) // room for the floating buttons
             }
 
-            val sheetOpen = adding || openLoc != null || buildingSheet != null || floorsSheet || nameAsk != null || deleteAsk != null
+            val sheetOpen = adding || openLoc != null || buildingSheet != null || floorsSheet || nameAsk != null || deleteAsk != null ||
+                places.importing != null
             if (!sheetOpen && sel.isEmpty()) {
                 BuildingFabs(
                     dial = dial,
@@ -372,9 +363,9 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
                     onSearch = { dial = false; searching = true },
                     onCloseSearch = ::closeSearch,
                     options = buildList {
-                        if (floor != null) add(DialAct("Location", "On ${floor.name}", Icons.Pin, C.Yellow) { dial = false; adding = true })
-                        if (building != null) add(DialAct("Floor", "In ${building.name}", Icons.Floor, C.Text) { dial = false; addFloor(building) })
-                        add(DialAct("Building", "In $propName", Icons.Building, C.Text) { dial = false; buildingSheet = "" })
+                        if (floor != null) add(DialAct(stringResource(R.string.pi_kind_location_label), stringResource(R.string.cfgt_on_place, floor.name), Icons.Pin, C.Yellow) { dial = false; adding = true })
+                        if (building != null) add(DialAct(stringResource(R.string.pi_kind_floor_label), stringResource(R.string.cfgt_in_place, building.name), Icons.Floor, C.Text) { dial = false; addFloor(building) })
+                        add(DialAct(stringResource(R.string.pi_kind_building_label), stringResource(R.string.cfgt_in_place, propName), Icons.Building, C.Text) { dial = false; buildingSheet = "" })
                     },
                 )
             }
@@ -385,9 +376,9 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Txt(plural(sel.size, "location", "locations") + " selected", 12, 700, modifier = Modifier.weight(1f))
-                Pill("Clear", { sel = emptySet() }, height = 40.dp, hPad = 14.dp)
-                Pill("Delete", {
+                Txt(pluralStringResource(R.plurals.cfgt_locations_selected, sel.size, sel.size), 12, 700, modifier = Modifier.weight(1f))
+                Pill(stringResource(R.string.assign_clear), { sel = emptySet() }, height = 40.dp, hPad = 14.dp)
+                Pill(stringResource(R.string.action_delete), {
                     val ids = sel
                     deleteAsk = DeleteAsk(
                         res.getQuantityString(R.plurals.cfg_delete_locations_title, ids.size, ids.size),
@@ -428,11 +419,14 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String) {
     if (floorsSheet && building != null) EditFloorsSheet(building, onClose = { floorsSheet = false }) { list ->
         places.saveFloors(building, list); floorsSheet = false
     }
+    places.importing?.let { state ->
+        ConfigImportSheet(state, places::pickImport, places::saveImportSample, places::runImport, places::closeImport)
+    }
     nameAsk?.let { a -> NameDialog(a) { nameAsk = null } }
     deleteAsk?.let { d ->
         ConfirmDialog(
             icon = Icons.Trash, iconBg = Color(0xFF2A1919), iconFg = C.Red, title = d.title, body = d.body,
-            no = "Cancel", yes = "Delete", onNo = { deleteAsk = null }, onYes = { d.onYes(); deleteAsk = null },
+            no = stringResource(R.string.cfg_cancel), yes = stringResource(R.string.action_delete), onNo = { deleteAsk = null }, onYes = { d.onYes(); deleteAsk = null },
         )
     }
 }
@@ -453,14 +447,18 @@ private fun BuildingCard(building: LocNode?, menu: List<MenuAct>) {
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 if (building == null) {
-                    Txt("No buildings yet", 16, 700)
-                    Txt("Add one or import a spreadsheet", 13, 400, C.Muted)
+                    Txt(stringResource(R.string.cfgt_no_buildings), 16, 700)
+                    Txt(stringResource(R.string.cfgt_no_buildings_hint), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 } else {
                     val floors = building.kids.orEmpty()
+                    val locations = floors.sumOf { it.kids.orEmpty().size }
                     Txt(building.name, 16, 700)
                     Txt(
-                        plural(floors.size, "floor", "floors") + " · " + plural(floors.sumOf { it.kids.orEmpty().size }, "location", "locations") +
-                            if (building.active) "" else " · " + stringResource(R.string.cfg_place_hidden),
+                        stringResource(
+                            if (building.active) R.string.cfgt_building_summary else R.string.cfgt_building_summary_hidden,
+                            pluralStringResource(R.plurals.pi_count_floors, floors.size, floors.size),
+                            pluralStringResource(R.plurals.pi_count_locations, locations, locations),
+                        ),
                         13, 400, C.Muted,
                     )
                 }
@@ -497,7 +495,8 @@ private fun FloorRail(floors: List<LocNode>, current: String?, onPick: (String) 
 }
 
 /** A floor's short label: its code when that is short (e.g. "L2"), else F1, F2… in list order. */
-private fun floorTag(f: LocNode, i: Int) = f.code.trim().takeIf { it.isNotEmpty() && it.length <= 3 } ?: "F${i + 1}"
+@Composable
+private fun floorTag(f: LocNode, i: Int) = f.code.trim().takeIf { it.isNotEmpty() && it.length <= 3 } ?: stringResource(R.string.cfgt_floor_tag, i + 1)
 
 /** One location on the chosen floor; the line between rows starts at the text, after the icon. */
 @Composable
@@ -516,7 +515,7 @@ private fun LocationRow(l: LocNode, picked: Boolean, first: Boolean, onOpen: () 
         ) {
             Column(Modifier.weight(1f).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Txt(l.name, 14, 600, maxLines = 2)
-                Txt(listOf(l.type, l.code).filter { it.isNotBlank() }.joinToString(" · ").ifEmpty { "No type yet" }, 12, 400, C.Muted)
+                Txt(listOf(l.type, l.code).filter { it.isNotBlank() }.joinToString(" · ").ifEmpty { stringResource(R.string.cfgt_no_type) }, 12, 400, C.Muted)
             }
             Box(Modifier.clip(r(8)).clickable(onClick = onTick).padding(10.dp)) { CheckBox(picked) }
         }
@@ -529,13 +528,16 @@ private class SearchHit(val icon: Ico, val title: String, val sub: String, val b
 /** Buildings, floors and locations whose name (or a location's type or code) contains [query]. */
 @Composable
 private fun SearchHits(tree: List<LocNode>, query: String, onPick: (SearchHit) -> Unit) {
+    // The hits are worked out once per query, outside composition, so they read the strings from here.
+    val res = LocalContext.current.resources
     val hits = remember(tree, query) {
         fun has(vararg s: String) = s.any { it.contains(query, ignoreCase = true) }
         buildList {
             tree.forEach { b ->
-                if (has(b.name)) add(SearchHit(Icons.Building, b.name, plural(b.kids.orEmpty().size, "floor", "floors"), b.id, null, null))
+                val floors = b.kids.orEmpty().size
+                if (has(b.name)) add(SearchHit(Icons.Building, b.name, res.getQuantityString(R.plurals.pi_count_floors, floors, floors), b.id, null, null))
                 b.kids.orEmpty().forEach { f ->
-                    if (has(f.name, f.code)) add(SearchHit(Icons.Floor, f.name, "In ${b.name}", b.id, f.id, null))
+                    if (has(f.name, f.code)) add(SearchHit(Icons.Floor, f.name, res.getString(R.string.cfgt_in_place, b.name), b.id, f.id, null))
                     f.kids.orEmpty().forEach { l ->
                         if (has(l.name, l.type, l.code)) add(SearchHit(Icons.Pin, l.name, "${f.name} · ${b.name}", b.id, f.id, l.id))
                     }
@@ -544,7 +546,7 @@ private fun SearchHits(tree: List<LocNode>, query: String, onPick: (SearchHit) -
         }
     }
     if (hits.isEmpty()) {
-        EmptyNote("Nothing matches “$query”.")
+        EmptyNote(stringResource(R.string.pi_no_match, query))
         return
     }
     Column(Modifier.fillMaxWidth().clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16))) {
@@ -633,7 +635,7 @@ private fun BuildingFabs(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     LineIcon(Icons.Search, 20.dp, C.Yellow, 2.2f)
-                    PlainField(query, onQuery, "Search buildings, floors, locations", Modifier.weight(1f).focusRequester(focus))
+                    PlainField(query, onQuery, stringResource(R.string.cfgt_search_places), Modifier.weight(1f).focusRequester(focus))
                     RoundButton(42.dp, C.Btn, onCloseSearch) { LineIcon(Icons.Close, 16.dp, C.Text, 2.6f) }
                 }
             }
@@ -683,12 +685,13 @@ private fun TimeField(label: String, value: String, placeholder: String, modifie
             Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12))
                 .clickable {
                     val (h, m) = value.split(":").mapNotNull { it.toIntOrNull() }.let { (it.getOrNull(0) ?: 9) to (it.getOrNull(1) ?: 0) }
-                    android.app.TimePickerDialog(context, { _, hh, mm -> onPick("%02d:%02d".format(hh, mm)) }, h, m, true).show()
+                    android.app.TimePickerDialog(context, { _, hh, mm -> onPick("%02d:%02d".format(hh, mm)) }, h, m, android.text.format.DateFormat.is24HourFormat(context)).show()
                 }
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Txt(value.ifEmpty { placeholder }, 13, 400, if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f))
+            // Shown on the phone's 12/24-hour clock; kept as HH:mm.
+            Txt(if (value.isEmpty()) placeholder else storedTimeText(value), 13, 400, if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f))
             LineIcon(Icons.Clock, 20.dp, C.Soft, 2f)
         }
     }
@@ -720,53 +723,53 @@ private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String,
     GuardedClose(name.trim() != b?.name.orEmpty().trim() || info != i0 || visible != (b?.active ?: true), onClose) { onClose ->
     BottomSheet(onClose) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 10.dp, top = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Txt(if (b == null) "Add building" else "Edit ${b.name}", 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
+            Txt(if (b == null) stringResource(R.string.cfgt_add_building) else stringResource(R.string.access_edit_group, b.name), 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
             CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp).padding(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            SheetSection("Building details")
-            LabeledInput("Building name *", name, { name = it.take(MAX_PLACE_NAME) }, "Enter building name")
-            PickField("Building type *", info.type, "Select type", BUILDING_TYPES) { info = info.copy(type = it) }
-            LabeledInput("Address line 1", info.address1, { info = info.copy(address1 = it) }, "Enter address line 1")
-            LabeledInput("Address line 2", info.address2, { info = info.copy(address2 = it) }, "Enter address line 2")
+            SheetSection(stringResource(R.string.cfgt_building_details))
+            LabeledInput(stringResource(R.string.cfgt_building_name), name, { name = it.take(MAX_PLACE_NAME) }, stringResource(R.string.cfgt_building_name_hint))
+            PickField(stringResource(R.string.cfgt_building_type), info.type, stringResource(R.string.property_select_type), BUILDING_TYPES) { info = info.copy(type = it) }
+            LabeledInput(stringResource(R.string.field_address_line1), info.address1, { info = info.copy(address1 = it) }, stringResource(R.string.field_address_line1_hint))
+            LabeledInput(stringResource(R.string.field_address_line2), info.address2, { info = info.copy(address2 = it) }, stringResource(R.string.field_address_line2_hint))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PickField("Country", info.country, "Select country", COUNTRIES, Modifier.weight(1f)) { info = info.copy(country = it) }
-                Box(Modifier.weight(1f)) { LabeledInput("State", info.state, { info = info.copy(state = it) }, "Enter state") }
+                PickField(stringResource(R.string.field_country), info.country, stringResource(R.string.cfgt_select_country), COUNTRIES, Modifier.weight(1f)) { info = info.copy(country = it) }
+                Box(Modifier.weight(1f)) { LabeledInput(stringResource(R.string.field_state), info.state, { info = info.copy(state = it) }, stringResource(R.string.property_enter_state)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PickField("Region", info.region, "Select region", REGIONS, Modifier.weight(1f)) { info = info.copy(region = it) }
-                Box(Modifier.weight(1f)) { LabeledInput("City", info.city, { info = info.copy(city = it) }, "Enter city") }
+                PickField(stringResource(R.string.field_region), info.region, stringResource(R.string.property_select_region), REGIONS, Modifier.weight(1f)) { info = info.copy(region = it) }
+                Box(Modifier.weight(1f)) { LabeledInput(stringResource(R.string.field_city), info.city, { info = info.copy(city = it) }, stringResource(R.string.property_enter_city)) }
             }
 
             Spacer(Modifier.height(4.dp))
-            SheetSection("Primary contact")
-            LabeledInput("Name", info.contactName, { info = info.copy(contactName = it) }, "Enter name")
-            LabeledInput("Email", info.email, { info = info.copy(email = it) }, "Enter valid email")
-            if (emailBad) Txt("That doesn’t look like an email address.", 11, 500, C.Red)
-            LabeledInput("Phone number", info.phone, { info = info.copy(phone = it) }, "Enter valid phone number")
-            if (phoneBad) Txt("Use digits, spaces, + ( ) and -, at least 6 digits.", 11, 500, C.Red)
+            SheetSection(stringResource(R.string.property_group_contact))
+            LabeledInput(stringResource(R.string.field_name), info.contactName, { info = info.copy(contactName = it) }, stringResource(R.string.field_contact_name_hint))
+            LabeledInput(stringResource(R.string.field_email), info.email, { info = info.copy(email = it) }, stringResource(R.string.field_email_hint))
+            if (emailBad) Txt(stringResource(R.string.cfgt_email_invalid), 11, 500, C.Red, maxLines = Int.MAX_VALUE)
+            LabeledInput(stringResource(R.string.property_field_phone), info.phone, { info = info.copy(phone = it) }, stringResource(R.string.field_phone_hint))
+            if (phoneBad) Txt(stringResource(R.string.cfgt_phone_invalid), 11, 500, C.Red, maxLines = Int.MAX_VALUE)
 
             Spacer(Modifier.height(4.dp))
-            SheetSection("Notes")
-            LabeledInput("Notes", info.notes, { info = info.copy(notes = it) }, "Enter notes", singleLine = false, minLines = 3)
+            SheetSection(stringResource(R.string.property_group_notes))
+            LabeledInput(stringResource(R.string.property_group_notes), info.notes, { info = info.copy(notes = it) }, stringResource(R.string.property_notes_hint), singleLine = false, minLines = 3)
 
             Spacer(Modifier.height(4.dp))
-            SheetSection("Availability")
+            SheetSection(stringResource(R.string.property_group_availability))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TimeField("Start time", info.startTime, "Select start time", Modifier.weight(1f)) { info = info.copy(startTime = it) }
-                TimeField("End time", info.endTime, "Select end time", Modifier.weight(1f)) { info = info.copy(endTime = it) }
+                TimeField(stringResource(R.string.field_start_time), info.startTime, stringResource(R.string.cfgt_select_start_time), Modifier.weight(1f)) { info = info.copy(startTime = it) }
+                TimeField(stringResource(R.string.field_end_time), info.endTime, stringResource(R.string.cfgt_select_end_time), Modifier.weight(1f)) { info = info.copy(endTime = it) }
             }
-            LabeledInput("Access code", info.accessCode, { info = info.copy(accessCode = it) }, "Enter access code")
+            LabeledInput(stringResource(R.string.field_access_code), info.accessCode, { info = info.copy(accessCode = it) }, stringResource(R.string.field_access_code_hint))
             if (b != null) {
                 Spacer(Modifier.height(4.dp))
                 SheetSection(stringResource(R.string.cfg_place_visibility))
-                CfgCard { ToggleRow("Visible", stringResource(R.string.cfg_building_visible_hint), visible, enabled = true) { visible = it } }
+                CfgCard { ToggleRow(stringResource(R.string.cfgt_visible), stringResource(R.string.cfg_building_visible_hint), visible, enabled = true) { visible = it } }
             }
         }
-        SheetButtons(if (b == null) "Add building" else "Save", ok, onClose) { onSave(name, info, visible) }
+        SheetButtons(if (b == null) stringResource(R.string.cfgt_add_building) else stringResource(R.string.cfg_save), ok, onClose) { onSave(name, info, visible) }
     }
     }
 }
@@ -779,40 +782,41 @@ private fun EditFloorsSheet(b: LocNode, onClose: () -> Unit, onSave: (List<LocNo
     fun edit(id: String, f: (LocNode) -> LocNode) { floors = floors.map { if (it.id == id) f(it) else it } }
     GuardedClose(floors != b.kids.orEmpty(), onClose) { onClose ->
     BottomSheet(onClose) {
-        SheetHeader("Edit floors", "${b.name} · top of the list is shown first", onClose)
+        SheetHeader(stringResource(R.string.cfgt_edit_floors), stringResource(R.string.cfgt_edit_floors_sub, b.name), onClose)
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (floors.isEmpty()) EmptyNote("No floors left. Save to remove them all, or Cancel to keep them.")
+            if (floors.isEmpty()) EmptyNote(stringResource(R.string.cfgt_no_floors_left))
             floors.forEachIndexed { i, f ->
                 var menu by remember(f.id) { mutableStateOf(false) }
                 CfgCard {
                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             LineIcon(Icons.Floor, 19.dp, C.Yellow, 2.1f)
-                            PlainField(f.name, { v -> edit(f.id) { it.copy(name = v) } }, "Floor name", Modifier.weight(1f), size = 13, weight = 700)
-                            Txt(plural(f.kids.orEmpty().size, "location", "locations"), 11, 400, C.Muted)
+                            PlainField(f.name, { v -> edit(f.id) { it.copy(name = v) } }, stringResource(R.string.cfgt_floor_name), Modifier.weight(1f), size = 13, weight = 700)
+                            val locations = f.kids.orEmpty().size
+                            Txt(pluralStringResource(R.plurals.pi_count_locations, locations, locations), 11, 400, C.Muted)
                             Box {
                                 RoundButton(36.dp, Color.Transparent, { menu = true }) { LineIcon(Icons.Dots, 18.dp, C.Soft) }
                                 IconMenu(menu, { menu = false }, listOf(
-                                    MenuAct(Icons.ArrowUp, "Move up", enabled = i > 0) {
+                                    MenuAct(Icons.ArrowUp, stringResource(R.string.cfgt_move_up), enabled = i > 0) {
                                         floors = floors.toMutableList().also { it.add(i - 1, it.removeAt(i)) }
                                     },
-                                    MenuAct(Icons.ArrowDown, "Move down", enabled = i < floors.size - 1) {
+                                    MenuAct(Icons.ArrowDown, stringResource(R.string.cfgt_move_down), enabled = i < floors.size - 1) {
                                         floors = floors.toMutableList().also { it.add(i + 1, it.removeAt(i)) }
                                     },
-                                    MenuAct(Icons.Trash, "Remove", danger = true) { floors = floors.filter { it.id != f.id } },
+                                    MenuAct(Icons.Trash, stringResource(R.string.media_remove), danger = true) { floors = floors.filter { it.id != f.id } },
                                 ))
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SmallInput(f.type, { v -> edit(f.id) { it.copy(type = v.take(MAX_PLACE_TYPE)) } }, "Type", Modifier.weight(1f))
-                            SmallInput(f.code, { v -> edit(f.id) { it.copy(code = v.take(MAX_PLACE_CODE)) } }, "Code", Modifier.weight(1f))
+                            SmallInput(f.type, { v -> edit(f.id) { it.copy(type = v.take(MAX_PLACE_TYPE)) } }, stringResource(R.string.cfg_add_type), Modifier.weight(1f))
+                            SmallInput(f.code, { v -> edit(f.id) { it.copy(code = v.take(MAX_PLACE_CODE)) } }, stringResource(R.string.cfg_add_code), Modifier.weight(1f))
                         }
                     }
                     // Hidden floors can't be picked by field workers (the server's isActive).
-                    ToggleRow("Visible", stringResource(R.string.cfg_floor_visible_hint), f.active, enabled = true, divider = true) { on ->
+                    ToggleRow(stringResource(R.string.cfgt_visible), stringResource(R.string.cfg_floor_visible_hint), f.active, enabled = true, divider = true) { on ->
                         edit(f.id) { it.copy(active = on) }
                     }
                 }
@@ -822,11 +826,11 @@ private fun EditFloorsSheet(b: LocNode, onClose: () -> Unit, onSave: (List<LocNo
                 val note = stringResource(R.string.cfg_floors_removed_note, removed.joinToString { it.name })
                 Txt(
                     if (removed.any { it.linkedToVdms }) stringResource(R.string.cfg_delete_vdms_note, note) else note,
-                    12, 500, C.Orange, maxLines = 5,
+                    12, 500, C.Orange, maxLines = Int.MAX_VALUE,
                 )
             }
         }
-        SheetButtons("Save", floors.all { it.name.isNotBlank() }, onClose) { onSave(floors) }
+        SheetButtons(stringResource(R.string.cfg_save), floors.all { it.name.isNotBlank() }, onClose) { onSave(floors) }
     }
     }
 }
@@ -943,14 +947,16 @@ private fun LocationSheet(l: LocNode, onClose: () -> Unit, onSave: (String, Stri
         }
         Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (editing) {
-                LabeledInput("Name *", name, { name = it.take(MAX_PLACE_NAME) }, "Location name")
-                LabeledInput("Type", type, { type = it.take(MAX_PLACE_TYPE) }, "e.g. Plant room")
-                LabeledInput("Code", code, { code = it.take(MAX_PLACE_CODE) }, "e.g. B2-PR-01")
+                LabeledInput(stringResource(R.string.cfg_add_name), name, { name = it.take(MAX_PLACE_NAME) }, stringResource(R.string.cfgt_location_name))
+                LabeledInput(stringResource(R.string.cfg_add_type), type, { type = it.take(MAX_PLACE_TYPE) }, stringResource(R.string.cfgt_location_type_hint))
+                LabeledInput(stringResource(R.string.cfg_add_code), code, { code = it.take(MAX_PLACE_CODE) }, stringResource(R.string.cfg_add_code_hint))
             } else {
-                listOf("Name" to l.name, "Type" to l.type, "Code" to l.code).forEach { (k, v) ->
+                listOf(
+                    stringResource(R.string.field_name) to l.name, stringResource(R.string.cfg_add_type) to l.type, stringResource(R.string.cfg_add_code) to l.code,
+                ).forEach { (k, v) ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Txt(k, 11, 600, C.Muted)
-                        Txt(v.ifBlank { "–" }, 12, 600)
+                        Txt(v.ifBlank { "–" }, 12, 600, maxLines = Int.MAX_VALUE)
                     }
                 }
             }
@@ -961,16 +967,16 @@ private fun LocationSheet(l: LocNode, onClose: () -> Unit, onSave: (String, Stri
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (editing) {
-                Pill("Cancel", { if (changed) askCancel = true else stopEditing() }, height = 40.dp, hPad = 16.dp)
+                Pill(stringResource(R.string.cfg_cancel), { if (changed) askCancel = true else stopEditing() }, height = 40.dp, hPad = 16.dp)
                 Pill(
-                    "Save", { if (name.isNotBlank()) { onSave(name, type, code); editing = false } },
+                    stringResource(R.string.cfg_save), { if (name.isNotBlank()) { onSave(name, type, code); editing = false } },
                     Modifier.weight(1f).alpha(if (name.isNotBlank()) 1f else 0.4f),
                     bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
                 )
             } else {
                 RoundButton(40.dp, Color(0xFF2A1919), onDelete) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
                 Spacer(Modifier.weight(1f))
-                Pill("Done", onClose, height = 40.dp, hPad = 20.dp)
+                Pill(stringResource(R.string.action_done), onClose, height = 40.dp, hPad = 20.dp)
             }
         }
     }
@@ -1001,9 +1007,9 @@ private fun NameDialogBody(a: NameAsk, v: String, setV: (String) -> Unit, close:
                 size = 13,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill("Cancel", close, Modifier.weight(1f), height = 40.dp)
+                Pill(stringResource(R.string.cfg_cancel), close, Modifier.weight(1f), height = 40.dp)
                 Pill(
-                    "Save", { if (v.isNotBlank()) { a.onSave(v.trim()); onSaved() } },
+                    stringResource(R.string.cfg_save), { if (v.isNotBlank()) { a.onSave(v.trim()); onSaved() } },
                     Modifier.weight(1f).alpha(if (v.isNotBlank()) 1f else 0.4f),
                     bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
                 )
@@ -1021,14 +1027,11 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
     var dial by remember { mutableStateOf(false) }
     // Fields read from a spreadsheet, waiting in the Add field sheet.
     var drafts by remember { mutableStateOf<List<FieldCfg>>(emptyList()) }
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { fv.importFields(it.toString()) { list -> drafts = list; setAdding(true) } }
-    }
     val ready = fv.load == LoadState.READY
     val photos = cfg.photos
     val photosReady = photos.load == LoadState.READY
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(top = 10.dp)) {
-        Txt(stringResource(R.string.cfg_fields_intro, propName), 12, 400, C.Muted, Modifier.padding(horizontal = 6.dp), maxLines = 4)
+        Txt(stringResource(R.string.cfg_fields_intro, propName), 12, 400, C.Muted, Modifier.padding(horizontal = 6.dp), maxLines = Int.MAX_VALUE)
         if (!ready) OnlineNote(fv.load, fv.failure, fv::retry)
         // The fields as one table, as the web's and the iOS app's: name, type, mandatory and checks.
         TableCard(Modifier.padding(top = 12.dp)) {
@@ -1061,7 +1064,7 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Txt(stringResource(p.kind.nameRes()), 13, 700)
-                        Txt(stringResource(p.kind.hintRes()), 11, 400, C.Muted, maxLines = 2)
+                        Txt(stringResource(p.kind.hintRes()), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     }
                     Stepper(
                         p.min, Modifier.width(STEPPER_W), photosReady,
@@ -1093,18 +1096,25 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
                         LoadState.FAILED -> stringResource(R.string.cfg_photos_load_failed)
                         LoadState.READY -> stringResource(R.string.cfg_photos_usage, photos.totalMax, MAX_PHOTOS_PER_ASSET)
                     },
-                    11, 400, C.Muted, Modifier.weight(1f), maxLines = 3,
+                    11, 400, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE,
                 )
             }
         }
         Spacer(Modifier.height(160.dp)) // room for the floating +, as on the Assets list
     }
     // The floating + opens two ways to add fields. Drawn under the sheets and hidden while one is open.
-    if (ready && !adding && editFor == null && checksFor == null) {
+    if (ready && !adding && editFor == null && checksFor == null && fv.importing == null) {
         AddDial(
             dial, onToggle = { dial = !dial },
-            onExcel = { dial = false; importer.launch(IMPORT_SHEET_TYPES) },
+            onExcel = { dial = false; fv.openImport() },
             onNew = { dial = false; drafts = emptyList(); setAdding(true) },
+        )
+    }
+    fv.importing?.let { state ->
+        ConfigImportSheet(
+            state, fv::pickImport, fv::saveImportSample,
+            onImport = { fv.runImport { list -> drafts = list; setAdding(true) } },
+            onClose = fv::closeImport,
         )
     }
     if (adding) AddFieldsSheet(fv.fields, drafts, onClose = { setAdding(false); drafts = emptyList() }) { list ->
@@ -1166,18 +1176,19 @@ private val FIXED_OPTIONS = setOf("sys", "typ", "sub", "jacs")
 @Composable
 private fun checksSummary(f: FieldCfg): String {
     val parts = mutableListOf<String>()
-    if (f.required || f.flagEmpty) parts += "Flagged when empty"
+    if (f.required || f.flagEmpty) parts += stringResource(R.string.cfgt_flagged_when_empty)
     if (f.rule != ValueRule.NONE) parts += stringResource(f.rule.labelRes(f.kind))
     if (f.kind == FieldKind.NUMBER && f.wholeNumber) parts += stringResource(R.string.cfg_checks_whole)
-    val unit = if (f.kind == FieldKind.NUMBER) "" else " characters"
+    // Numbers are a range of values; anything else is a range of lengths, in characters.
+    val number = f.kind == FieldKind.NUMBER
     val lo = f.min.takeIf { it.isNotBlank() }
     val hi = f.max.takeIf { it.isNotBlank() }
     when {
-        lo != null && hi != null -> parts += "$lo–$hi$unit"
-        lo != null -> parts += "At least $lo$unit"
-        hi != null -> parts += "At most $hi$unit"
+        lo != null && hi != null -> parts += stringResource(if (number) R.string.cfgt_checks_between else R.string.cfgt_checks_between_chars, lo, hi)
+        lo != null -> parts += stringResource(if (number) R.string.cfgt_checks_at_least else R.string.cfgt_checks_at_least_chars, lo)
+        hi != null -> parts += stringResource(if (number) R.string.cfgt_checks_at_most else R.string.cfgt_checks_at_most_chars, hi)
     }
-    return parts.joinToString(" · ").ifEmpty { "Nothing beyond its type" }
+    return parts.joinToString(" · ").ifEmpty { stringResource(R.string.cfgt_checks_nothing) }
 }
 
 /** What a rule is called for a field of [kind] (the server's text formats, and past / future for dates). */
@@ -1252,8 +1263,8 @@ private fun AddDial(open: Boolean, onToggle: () -> Unit, onExcel: () -> Unit, on
     ) {
         AnimatedVisibility(open, enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut()) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DialOption("Import from Excel", "One field per column", Icons.Table, C.Green, onExcel)
-                DialOption("New field", "Pick types and set them up", Icons.FileDoc, C.Text, onNew)
+                DialOption(stringResource(R.string.cfgt_import_excel), stringResource(R.string.cfgt_import_excel_hint), Icons.Table, C.Green, onExcel)
+                DialOption(stringResource(R.string.cfgt_new_field), stringResource(R.string.cfgt_new_field_hint), Icons.FileDoc, C.Text, onNew)
             }
         }
         Box(
@@ -1287,7 +1298,7 @@ private fun TightSheetHeader(title: String, sub: String?, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(title, 15, 700)
-            sub?.let { Txt(it, 11, 400, C.Muted, maxLines = 2) }
+            sub?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
         }
         CloseButton(onClose, size = 34.dp, iconSize = 14.dp)
     }
@@ -1313,7 +1324,7 @@ private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, on
     }
     GuardedClose(drafts.isNotEmpty(), onClose) { onClose ->
     BottomSheet(onClose) {
-        TightSheetHeader("Add field", "Pick a type to add a field and set it up. Save adds them all.", onClose)
+        TightSheetHeader(stringResource(R.string.own_field_title), stringResource(R.string.cfgt_add_field_hint), onClose)
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -1330,7 +1341,7 @@ private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, on
             }
             if (drafts.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
-                SheetSection("Selected fields")
+                SheetSection(stringResource(R.string.cfgt_selected_fields))
                 CfgCard {
                     drafts.forEachIndexed { i, d ->
                         Row(
@@ -1342,7 +1353,7 @@ private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, on
                             LineIcon(d.kind.icon(), 20.dp, C.Yellow, 2.1f)
                             Column(Modifier.weight(1f)) {
                                 Txt(d.label, 12, 700)
-                                Txt(d.kind.shown + if (d.required) " · Mandatory" else "", 11, 400, C.Muted)
+                                Txt(if (d.required) stringResource(R.string.cfgt_kind_mandatory, d.kind.shown) else d.kind.shown, 11, 400, C.Muted)
                             }
                             LineIcon(Icons.ChevronRight, 15.dp, C.Muted, 2.4f)
                         }
@@ -1352,7 +1363,7 @@ private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, on
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp).topBorder(C.Border).padding(horizontal = 10.dp, vertical = 10.dp)) {
             Pill(
-                if (drafts.isEmpty()) "Save" else "Save ${plural(drafts.size, "field", "fields")}", { if (drafts.isNotEmpty()) onSave(drafts) },
+                if (drafts.isEmpty()) stringResource(R.string.cfg_save) else pluralStringResource(R.plurals.cfgt_save_fields, drafts.size, drafts.size), { if (drafts.isNotEmpty()) onSave(drafts) },
                 Modifier.fillMaxWidth().alpha(if (drafts.isNotEmpty()) 1f else 0.4f),
                 bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
             )
@@ -1435,17 +1446,17 @@ private fun FieldSheet(
             Box(Modifier.size(34.dp).clip(r(10)).background(C.YTintBg), contentAlignment = Alignment.Center) {
                 LineIcon(f.kind.icon(), 19.dp, C.Yellow, 2.2f)
             }
-            Txt(if (draft) f.kind.shown else "Edit ${f.label}", 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
+            Txt(if (draft) f.kind.shown else stringResource(R.string.access_edit_group, f.label), 16, 700, modifier = Modifier.weight(1f), maxLines = 2)
             CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp).padding(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LabeledInput("Name *", cur.label, { cur = cur.copy(label = it) }, "Field name")
-            if (duplicate) Txt(stringResource(R.string.cfg_field_exists), 11, 500, C.Red)
+            LabeledInput(stringResource(R.string.cfg_add_name), cur.label, { cur = cur.copy(label = it) }, stringResource(R.string.own_field_name_hint))
+            if (duplicate) Txt(stringResource(R.string.cfg_field_exists), 11, 500, C.Red, maxLines = Int.MAX_VALUE)
             if (ownOptions) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FieldLabel("Options *")
+                FieldLabel(stringResource(R.string.cfgt_options_label))
                 if (cur.options.isNotEmpty()) CfgCard {
                     cur.options.forEachIndexed { i, o ->
                         Row(
@@ -1471,23 +1482,23 @@ private fun FieldSheet(
                     Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12)).padding(start = 10.dp, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PlainField(opt, { opt = it; optProblem = null }, "Add an option", Modifier.weight(1f), size = 13)
+                    PlainField(opt, { opt = it; optProblem = null }, stringResource(R.string.cfgt_add_option), Modifier.weight(1f), size = 13)
                     Box(Modifier.size(34.dp).clip(CircleShape).background(C.Yellow).clickable(onClick = ::addOption), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.PlusSmall, 18.dp, C.OnYellow, 2.8f)
                     }
                 }
                 optProblem?.let {
-                    Txt(stringResource(if (it == OptionProblem.DUPLICATE) R.string.cfg_option_duplicate else R.string.cfg_option_invalid), 11, 500, C.Red)
+                    Txt(stringResource(if (it == OptionProblem.DUPLICATE) R.string.cfg_option_duplicate else R.string.cfg_option_invalid), 11, 500, C.Red, maxLines = Int.MAX_VALUE)
                 }
             }
             DefaultValueInput(cur, if (ownOptions) cur.options else f.options) { cur = cur.copy(defaultValue = it) }
-            LabeledInput("Tooltip", cur.tooltip, { cur = cur.copy(tooltip = it.take(MAX_TOOLTIP_LENGTH)) }, "Help shown next to the field", singleLine = false, minLines = 3)
+            LabeledInput(stringResource(R.string.cfgt_tooltip), cur.tooltip, { cur = cur.copy(tooltip = it.take(MAX_TOOLTIP_LENGTH)) }, stringResource(R.string.cfgt_tooltip_hint), singleLine = false, minLines = 3)
             CfgCard {
-                ToggleRow("Mandatory", "Must be filled before submitting", cur.required, enabled = !f.locked) {
+                ToggleRow(stringResource(R.string.cfg_col_mandatory), stringResource(R.string.cfgt_mandatory_hint), cur.required, enabled = !f.locked) {
                     cur = cur.copy(required = it, visible = cur.visible || it)
                 }
             }
-            CfgCard { LinkRow(Icons.ShieldCheck, "Checks", checksSummary(cur), { checks = true }) }
+            CfgCard { LinkRow(Icons.ShieldCheck, stringResource(R.string.cfg_col_checks), checksSummary(cur), { checks = true }) }
             if (onDelete != null) Row(
                 Modifier.fillMaxWidth().height(42.dp).clip(r(14)).border(1.dp, C.Red.copy(alpha = 0.7f), r(14))
                     .clickable { confirmDelete = !draft; if (draft) onDelete() },
@@ -1495,10 +1506,10 @@ private fun FieldSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             ) {
                 LineIcon(Icons.Trash, 17.dp, C.Red, 2.2f)
-                Txt("Delete field", 12, 700, C.Red)
+                Txt(stringResource(R.string.cfgt_delete_field), 12, 700, C.Red)
             }
         }
-        SheetButtons(if (draft) "Submit" else "Save", ok, onClose) { onSubmit(cur) }
+        SheetButtons(stringResource(if (draft) R.string.action_submit else R.string.cfg_save), ok, onClose) { onSubmit(cur) }
     }
     }
     if (checks) {
@@ -1511,7 +1522,7 @@ private fun FieldSheet(
         ConfirmDialog(
             icon = Icons.Trash, iconBg = Color(0xFF2A1919), iconFg = C.Red,
             title = stringResource(R.string.cfg_field_delete_title, f.label), body = stringResource(R.string.cfg_field_delete_body, f.label),
-            no = "Cancel", yes = "Delete", onNo = { confirmDelete = false }, onYes = { confirmDelete = false; onDelete() },
+            no = stringResource(R.string.cfg_cancel), yes = stringResource(R.string.action_delete), onNo = { confirmDelete = false }, onYes = { confirmDelete = false; onDelete() },
         )
     }
     colorFor?.let { o ->
@@ -1556,6 +1567,8 @@ private fun hexColor(hex: String): Color = runCatching { Color(android.graphics.
 @Composable
 private fun DefaultValueInput(f: FieldCfg, choices: List<String>, onChange: (String) -> Unit) {
     val v = f.defaultValue
+    val none = stringResource(R.string.import_none)
+    val label = stringResource(R.string.cfgt_default_value)
     when (f.kind) {
         FieldKind.CHECKBOX -> Row(
             Modifier.fillMaxWidth().clip(r(10)).clickable { onChange(if (v == CHECKED || v == ANSWER_YES) UNCHECKED else CHECKED) }.padding(vertical = 4.dp),
@@ -1564,26 +1577,34 @@ private fun DefaultValueInput(f: FieldCfg, choices: List<String>, onChange: (Str
         ) {
             CheckBox(v == CHECKED || v == ANSWER_YES)
             Column {
-                Txt("Default status", 12, 700)
-                Txt("Ticked when a new asset is started", 11, 400, C.Muted)
+                Txt(stringResource(R.string.cfgt_default_status), 12, 700)
+                Txt(stringResource(R.string.cfgt_default_status_hint), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
             }
         }
         FieldKind.YESNO -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            FieldLabel("Default value")
+            FieldLabel(label)
+            // The stored values (the web's), shown as None / Yes / No in the phone's language.
             val vals = listOf("", "Yes", "No")
-            Segmented(listOf("None", "Yes", "No"), vals.indexOf(v).coerceAtLeast(0), { onChange(vals[it]) })
+            Segmented(listOf(none, stringResource(R.string.detail_yes), stringResource(R.string.detail_no)), vals.indexOf(v).coerceAtLeast(0), { onChange(vals[it]) })
         }
-        FieldKind.DATE -> DefaultChoice(v, listOf("" to "None", DEFAULT_DATE_PICKER to "Date Picker", DEFAULT_TODAY to "Today"), onChange)
-        FieldKind.TIME -> DefaultChoice(v, listOf("" to "None", DEFAULT_TIME_PICKER to "Time Picker", DEFAULT_NOW to "Now"), onChange)
+        FieldKind.DATE -> DefaultChoice(
+            v, listOf("" to none, DEFAULT_DATE_PICKER to stringResource(R.string.cfgt_default_date_picker), DEFAULT_TODAY to stringResource(R.string.cfgt_default_today)), onChange,
+        )
+        FieldKind.TIME -> DefaultChoice(
+            v, listOf("" to none, DEFAULT_TIME_PICKER to stringResource(R.string.cfgt_default_time_picker), DEFAULT_NOW to stringResource(R.string.cfgt_default_now)), onChange,
+        )
         FieldKind.DROPDOWN, FieldKind.MULTI ->
-            PickField("Default value", v, if (choices.isEmpty()) "Add options first" else "Select…", if (choices.isEmpty()) emptyList() else listOf("None") + choices) {
-                onChange(if (it == "None") "" else it)
+            PickField(
+                label, v, stringResource(if (choices.isEmpty()) R.string.cfgt_add_options_first else R.string.cfgt_select),
+                if (choices.isEmpty()) emptyList() else listOf(none) + choices,
+            ) {
+                onChange(if (it == none) "" else it)
             }
-        FieldKind.NUMBER -> LabeledInput("Default value", v, { s -> onChange(s.filter { it.isDigit() || it == '.' || it == '-' }) }, "Pre-filled number")
+        FieldKind.NUMBER -> LabeledInput(label, v, { s -> onChange(s.filter { it.isDigit() || it == '.' || it == '-' }) }, stringResource(R.string.cfgt_prefilled_number))
         FieldKind.URL -> Unit // the web keeps no default for links
         // Image, video, voice memo and key value: nothing is typed in, so no default.
         FieldKind.IMAGE, FieldKind.VIDEO, FieldKind.VOICE_MEMO, FieldKind.KEY_VALUE -> Unit
-        else -> LabeledInput("Default value", v, onChange, "Pre-filled text")
+        else -> LabeledInput(label, v, onChange, stringResource(R.string.cfgt_prefilled_text))
     }
 }
 
@@ -1591,7 +1612,7 @@ private fun DefaultValueInput(f: FieldCfg, choices: List<String>, onChange: (Str
 @Composable
 private fun DefaultChoice(value: String, choices: List<Pair<String, String>>, onChange: (String) -> Unit) {
     val shown = choices.firstOrNull { it.first.isNotEmpty() && it.first.equals(value, ignoreCase = true) }?.second ?: value
-    PickField("Default value", shown, "Select…", choices.map { it.second }) { name ->
+    PickField(stringResource(R.string.cfgt_default_value), shown, stringResource(R.string.cfgt_select), choices.map { it.second }) { name ->
         onChange(choices.firstOrNull { it.second == name }?.first.orEmpty())
     }
 }
@@ -1605,7 +1626,7 @@ private fun ToggleRow(title: String, sub: String, on: Boolean, enabled: Boolean,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(title, 13, 700)
-            Txt(sub, 11, 400, C.Muted)
+            Txt(sub, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         OnOffSwitch(on) { if (enabled) onChange(it) }
     }
@@ -1622,7 +1643,7 @@ private fun LinkRow(icon: Ico, title: String, sub: String, onClick: () -> Unit, 
         LineIcon(icon, 19.dp, C.Yellow, 2.1f)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(title, 13, 700)
-            Txt(sub, 11, 400, C.Muted, maxLines = 2)
+            Txt(sub, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         LineIcon(Icons.ChevronRight, 16.dp, C.Muted, 2.4f)
     }
@@ -1634,7 +1655,7 @@ private fun SheetSection(text: String) = Txt(text.uppercase(), 11, 700, C.Yellow
 
 @Composable
 private fun InfoBox(text: String) {
-    Txt(text, 12, 400, C.Soft, Modifier.fillMaxWidth().clip(r(12)).background(C.Raised).padding(10.dp), maxLines = 4)
+    Txt(text, 12, 400, C.Soft, Modifier.fillMaxWidth().clip(r(12)).background(C.Raised).padding(10.dp), maxLines = Int.MAX_VALUE)
 }
 
 /** The rules a field of [kind] can pick, in the web’s order (text formats, or past / future for dates). */
@@ -1670,23 +1691,23 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
     val digits: (String) -> String = { v -> v.filter(Char::isDigit) }
     GuardedClose(now != f.checks, onClose) { onClose ->
     BottomSheet(onClose) {
-        TightSheetHeader("Checks: ${f.label}", "What validation looks for in this field, beyond its type.", onClose)
+        TightSheetHeader(stringResource(R.string.cfgt_checks_title, f.label), stringResource(R.string.cfgt_checks_sub), onClose)
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SheetSection("When it’s empty")
-            if (f.required) InfoBox("This field is mandatory, so validation always flags it when it’s left empty.")
-            else CfgCard { ToggleRow("Flag it when it’s left empty", "Validation lists it as something to fix.", flag, enabled = true) { flag = it } }
+            SheetSection(stringResource(R.string.cfgt_when_empty))
+            if (f.required) InfoBox(stringResource(R.string.cfgt_checks_mandatory_info))
+            else CfgCard { ToggleRow(stringResource(R.string.cfgt_flag_empty), stringResource(R.string.cfgt_flag_empty_hint), flag, enabled = true) { flag = it } }
 
             Spacer(Modifier.height(4.dp))
-            SheetSection("Format")
+            SheetSection(stringResource(R.string.cfg_checks_format))
             val fixedNote = when (f.kind) {
-                FieldKind.DROPDOWN, FieldKind.MULTI -> "Values must be one of its ${plural(options, "option", "options")}."
-                FieldKind.CHECKBOX -> "Ticked or not: nothing more to check."
-                FieldKind.YESNO -> "Yes or No: nothing more to check."
-                FieldKind.URL -> "Values must be a web link starting with http:// or https://."
-                FieldKind.TIME -> "Values must be a time, like 09:30."
+                FieldKind.DROPDOWN, FieldKind.MULTI -> pluralStringResource(R.plurals.cfgt_checks_one_of, options, options)
+                FieldKind.CHECKBOX -> stringResource(R.string.cfgt_checks_checkbox)
+                FieldKind.YESNO -> stringResource(R.string.cfgt_checks_yesno)
+                FieldKind.URL -> stringResource(R.string.cfgt_checks_url)
+                FieldKind.TIME -> stringResource(R.string.cfgt_checks_time)
                 FieldKind.IMAGE, FieldKind.VIDEO, FieldKind.VOICE_MEMO, FieldKind.KEY_VALUE -> stringResource(R.string.cfg_checks_no_format)
                 else -> null
             }
@@ -1694,7 +1715,7 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
                 InfoBox(fixedNote)
             } else {
                 if (rules.isNotEmpty()) {
-                    Txt("Values must be", 12, 600, C.Soft)
+                    Txt(stringResource(R.string.cfgt_values_must_be), 12, 600, C.Soft)
                     Box {
                         Row(
                             Modifier.fillMaxWidth().height(44.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12))
@@ -1722,14 +1743,14 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
                         stringResource(R.string.cfg_checks_pattern_label), pattern, { pattern = it.take(MAX_PATTERN_LENGTH) },
                         stringResource(R.string.cfg_checks_pattern_placeholder),
                     )
-                    Txt(stringResource(R.string.cfg_checks_pattern_hint), 11, 400, C.Muted, maxLines = 3)
+                    Txt(stringResource(R.string.cfg_checks_pattern_hint), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 }
                 // Dates have no limits at the server: past or future only.
                 if (f.kind != FieldKind.DATE) {
                     val (loLabel, hiLabel, loHint, hiHint) = when (f.kind) {
-                        FieldKind.NUMBER -> listOf("Min value (optional)", "Max value (optional)", "e.g. 0", "e.g. 5000")
-                        else -> listOf("Min length (optional)", "Max length (optional)", "e.g. 4", "e.g. 20")
-                    }
+                        FieldKind.NUMBER -> listOf(R.string.cfgt_min_value, R.string.cfgt_max_value, R.string.cfgt_min_value_hint, R.string.cfgt_max_value_hint)
+                        else -> listOf(R.string.cfgt_min_length, R.string.cfgt_max_length, R.string.cfgt_min_length_hint, R.string.cfgt_max_length_hint)
+                    }.map { stringResource(it) }
                     val filter = if (f.kind == FieldKind.NUMBER) numeric else digits
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.weight(1f)) { LabeledInput(loLabel, lo, { lo = filter(it) }, loHint) }
@@ -1739,7 +1760,7 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
                 if (f.kind == FieldKind.NUMBER) {
                     CfgCard { ToggleRow(stringResource(R.string.cfg_checks_whole), stringResource(R.string.cfg_checks_whole_hint), whole, enabled = true) { whole = it } }
                 }
-                shown?.let { Txt(stringResource(it.messageRes()), 11, 500, C.Red, maxLines = 3) }
+                shown?.let { Txt(stringResource(it.messageRes()), 11, 500, C.Red, maxLines = Int.MAX_VALUE) }
             }
             if (onRemove != null && f.checks.isSet) Row(
                 Modifier.fillMaxWidth().height(42.dp).clip(r(14)).border(1.dp, C.Red.copy(alpha = 0.7f), r(14)).clickable(onClick = onRemove),
@@ -1750,7 +1771,7 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
                 Txt(stringResource(R.string.cfg_checks_remove), 12, 700, C.Red)
             }
         }
-        SheetButtons("Save", shown == null, onClose) {
+        SheetButtons(stringResource(R.string.cfg_save), shown == null, onClose) {
             tried = true
             if (problem == null) onSave(FieldChecks(flag && !f.required, rule, pattern, lo, hi, whole))
         }
@@ -1908,7 +1929,7 @@ private fun Geofencing(cfg: ConfigViewModel) {
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             LineIcon(Icons.Pin, 16.dp, C.Yellow, 2.2f)
-                            Txt(h.name, 12, 500, modifier = Modifier.weight(1f), maxLines = 2)
+                            Txt(h.name, 12, 500, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                         }
                     }
                 }
@@ -1917,7 +1938,7 @@ private fun Geofencing(cfg: ConfigViewModel) {
         if (map.drawing) {
             // Drawing: how many corners so far, then Cancel, Undo and Finish (3 corners or more).
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Txt(pluralStringResource(R.plurals.cfg_geo_drawing, map.points, map.points), 13, 500, C.Soft, maxLines = 2)
+                Txt(pluralStringResource(R.plurals.cfg_geo_drawing, map.points, map.points), 13, 500, C.Soft, maxLines = Int.MAX_VALUE)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Pill(stringResource(R.string.cfg_cancel), { js("adcCancelDraw()") }, height = 40.dp, hPad = 16.dp, size = 13)
                     Pill(stringResource(R.string.cfg_geo_undo), { if (map.points > 0) js("adcUndo()") }, Modifier.alpha(if (map.points > 0) 1f else 0.4f), height = 40.dp, hPad = 16.dp, size = 13)
@@ -1947,7 +1968,7 @@ private fun Geofencing(cfg: ConfigViewModel) {
                                 LoadState.FAILED -> stringResource(R.string.cfg_geo_load_failed)
                                 LoadState.READY -> stringResource(R.string.cfg_geo_enforce_hint)
                             },
-                            12, 400, C.Muted, maxLines = 3,
+                            12, 400, C.Muted, maxLines = Int.MAX_VALUE,
                         )
                     }
                     Box(Modifier.alpha(if (canEnforce) 1f else 0.5f).testTag("geo-enforce")) {
@@ -1974,7 +1995,7 @@ private fun Geofencing(cfg: ConfigViewModel) {
                     }
                 }
                 // A picked fence: how to change its corners, and Remove corner for the tapped one (a fence keeps 3).
-                if (map.selected >= 0) Txt(stringResource(R.string.cfg_geo_corner_hint), 12, 400, C.Muted, maxLines = 3)
+                if (map.selected >= 0) Txt(stringResource(R.string.cfg_geo_corner_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Pill(stringResource(R.string.cfg_geo_draw_fence), { if (on) js("adcStartDraw()") }, Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-draw"), height = 40.dp, hPad = 18.dp, size = 13, weight = 700)
                     if (map.corner >= 0) {

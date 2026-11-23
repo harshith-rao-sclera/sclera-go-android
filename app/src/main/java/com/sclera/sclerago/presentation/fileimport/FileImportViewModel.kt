@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AssetDraft
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.DocumentStatus
@@ -13,6 +14,7 @@ import com.sclera.sclerago.domain.model.DraftField
 import com.sclera.sclerago.domain.model.NAME_FIELD_KEY
 import com.sclera.sclerago.domain.model.DraftsAccepted
 import com.sclera.sclerago.domain.model.ImportedFile
+import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.UploadProblem
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
@@ -146,6 +148,11 @@ class FileImportViewModel @Inject constructor(
      */
     fun add(uris: List<Uri>) {
         if (uris.isEmpty() || !acceptsFiles) return
+        // Adding from files needs Collect, as the web's Add: files picked by someone who can only view go nowhere.
+        if (!useCases.access.allowed()) {
+            set { copy(outcome = FileOutcome.Failed(UiText.Res(R.string.view_only_no_add))) }
+            return
+        }
         viewModelScope.launch {
             val picked = fileUseCases.describeFiles(uris.map { it.toString() })
             if (!acceptsFiles) return@launch
@@ -212,7 +219,7 @@ class FileImportViewModel @Inject constructor(
                 val updated = useCases.updateDraft(prop, found.draft, edit.values)
                 set { copy(edit = null, drafts = drafts.map { if (it.draft.id == updated.id) it.copy(draft = updated) else it }) }
             } catch (e: OnlineException) {
-                set { copy(edit = this.edit?.copy(saving = false, error = e.error.toUiText())) }
+                set { copy(edit = this.edit?.copy(saving = false, error = e.reason())) }
             }
         }
     }
@@ -251,7 +258,7 @@ class FileImportViewModel @Inject constructor(
                 }
             }
         } catch (e: OnlineException) {
-            job(FileJob.Failed(e.error.toUiText()))
+            job(FileJob.Failed(e.reason()))
             emptyList()
         }
     }
@@ -268,7 +275,7 @@ class FileImportViewModel @Inject constructor(
                 val result = useCases.accept(prop, ids, createFields)
                 state = FileImportState(outcome = FileOutcome.Added(result))
             } catch (e: OnlineException) {
-                set { copy(busy = false, outcome = FileOutcome.Failed(e.error.toUiText())) }
+                set { copy(busy = false, outcome = FileOutcome.Failed(e.reason())) }
             }
         }
     }
@@ -289,7 +296,7 @@ class FileImportViewModel @Inject constructor(
                 val count = useCases.discard(prop, ids)
                 state = FileImportState(outcome = FileOutcome.Discarded(count))
             } catch (e: OnlineException) {
-                set { copy(busy = false, outcome = FileOutcome.Failed(e.error.toUiText())) }
+                set { copy(busy = false, outcome = FileOutcome.Failed(e.reason())) }
             }
         }
     }
@@ -301,6 +308,10 @@ class FileImportViewModel @Inject constructor(
     val hasWork: Boolean get() = state.files.isNotEmpty() || state.drafts.isNotEmpty()
 
     fun outcomeShown() = set { copy(outcome = null) }
+
+    /** What to say about a refused or failed call: a refusal is the group's (it can only view), as elsewhere. */
+    private fun OnlineException.reason(): UiText =
+        if (error == OnlineError.Forbidden) UiText.Res(R.string.view_only_no_add) else error.toUiText()
 
     private fun reset(outcome: FileOutcome? = null) {
         readJob?.cancel()

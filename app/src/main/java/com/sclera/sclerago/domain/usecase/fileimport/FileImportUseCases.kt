@@ -7,10 +7,14 @@ import com.sclera.sclerago.domain.model.NAME_FIELD_KEY
 import com.sclera.sclerago.domain.model.DraftsAccepted
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
+import com.sclera.sclerago.domain.model.OnlineError
+import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.UploadProblem
 import com.sclera.sclerago.domain.model.UploadedDocument
 import com.sclera.sclerago.domain.model.documentKind
 import com.sclera.sclerago.domain.repository.FileImportRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 
@@ -28,17 +32,30 @@ class CheckUploadUseCase @Inject constructor() {
 }
 
 /**
+ * Adding assets from files is for those who may collect ([Permission.COLLECT]), as the server's documents and drafts
+ * routes and the web's Add (hidden otherwise).
+ */
+class FileImportAccessUseCase @Inject constructor(private val guard: PermissionGuard) {
+    /** Whether the signed-in user may upload files and add, correct or throw away what was read from them. */
+    fun allowed(): Boolean = guard.allows(Permission.COLLECT)
+
+    /** Throws [OnlineException] ([OnlineError.Forbidden]) unless [allowed]; nothing is sent. */
+    fun require() = guard.requireOnline(Permission.COLLECT)
+}
+
+/**
  * Uploads [ImportedFile] and waits while the server reads it, as the web does: the document is asked for every
  * [POLL_EVERY_MS] until it is `ready` or `failed`, for up to ten minutes. A document still `processing` after that
- * timed out.
+ * timed out. Needs [Permission.COLLECT] (else [OnlineException] [OnlineError.Forbidden], nothing uploaded).
  */
-class ReadFileUseCase @Inject constructor(private val files: FileImportRepository) {
+class ReadFileUseCase @Inject constructor(private val files: FileImportRepository, private val access: FileImportAccessUseCase) {
     suspend operator fun invoke(
         property: String,
         file: ImportedFile,
         onProgress: (Int) -> Unit,
         onUploaded: () -> Unit,
     ): UploadedDocument {
+        access.require()
         var document = files.upload(property, file, onProgress)
         onUploaded()
         repeat(MAX_POLLS) {
@@ -67,10 +84,11 @@ class ListDraftFieldsUseCase @Inject constructor(private val files: FileImportRe
 
 /**
  * Corrects a draft's values as the web does: only the fields whose text changed are sent, trimmed, and an emptied one
- * as null (cleared). Returns the draft unchanged (no call) when nothing changed.
+ * as null (cleared). Returns the draft unchanged (no call) when nothing changed. Needs [Permission.COLLECT].
  */
-class UpdateDraftUseCase @Inject constructor(private val files: FileImportRepository) {
+class UpdateDraftUseCase @Inject constructor(private val files: FileImportRepository, private val access: FileImportAccessUseCase) {
     suspend operator fun invoke(property: String, draft: AssetDraft, edited: Map<String, String>): AssetDraft {
+        access.require()
         val changes = edited.mapValues { (_, text) -> text.trim() }
             .filter { (field, text) -> text != draft.values[field].orEmpty() }
             .mapValues { (_, text) -> text.ifEmpty { null } }
@@ -83,19 +101,26 @@ class SaveSampleUseCase @Inject constructor(private val files: FileImportReposit
     suspend operator fun invoke(property: String, destination: String) = files.saveSample(property, destination)
 }
 
-/** Adds the drafts [ids] as assets (they reach the device with the next sync). */
-class AcceptDraftsUseCase @Inject constructor(private val files: FileImportRepository) {
-    suspend operator fun invoke(property: String, ids: List<String>, createFields: Boolean): DraftsAccepted =
-        files.accept(property, ids, createFields)
+/** Adds the drafts [ids] as assets (they reach the device with the next sync). Needs [Permission.COLLECT]. */
+class AcceptDraftsUseCase @Inject constructor(private val files: FileImportRepository, private val access: FileImportAccessUseCase) {
+    suspend operator fun invoke(property: String, ids: List<String>, createFields: Boolean): DraftsAccepted {
+        access.require()
+        return files.accept(property, ids, createFields)
+    }
 }
 
-/** Throws the drafts [ids] away at the server. */
-class DiscardDraftsUseCase @Inject constructor(private val files: FileImportRepository) {
-    suspend operator fun invoke(property: String, ids: List<String>): Int = if (ids.isEmpty()) 0 else files.discard(property, ids)
+/** Throws the drafts [ids] away at the server. Needs [Permission.COLLECT]. */
+class DiscardDraftsUseCase @Inject constructor(private val files: FileImportRepository, private val access: FileImportAccessUseCase) {
+    suspend operator fun invoke(property: String, ids: List<String>): Int {
+        if (ids.isEmpty()) return 0
+        access.require()
+        return files.discard(property, ids)
+    }
 }
 
 /** The File tab's use cases, for injecting as one. */
 class FileImportUseCases @Inject constructor(
+    val access: FileImportAccessUseCase,
     val check: CheckUploadUseCase,
     val read: ReadFileUseCase,
     val drafts: ListDraftsUseCase,

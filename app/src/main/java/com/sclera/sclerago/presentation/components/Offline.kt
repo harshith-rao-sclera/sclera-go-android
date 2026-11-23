@@ -65,7 +65,7 @@ fun OfflineBanner(reason: OnlineOnly, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LineIcon(Icons.NoWifi, 18.dp, C.Orange, 2.2f)
-        Txt(stringResource(reason.message), 12, 500, C.Soft, Modifier.weight(1f), maxLines = 4)
+        Txt(stringResource(reason.message), 12, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
     }
 }
 

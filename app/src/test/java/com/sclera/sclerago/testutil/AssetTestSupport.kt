@@ -165,6 +165,6 @@ fun assetUseCases(
         BuildCheckInputUseCase(repo, config, photoRules), BuildAssetListUseCase(), ToggleSelectionUseCase(), SelectAllUseCase(),
         CanWorkOnAssetUseCase(repo, guard), EvaluateAssetChecksUseCase(), AutofillAssetUseCase(autofill, guard), BuildFormValuesUseCase(time),
         ObserveAssetActivityUseCase(activity, InMemoryAccessRepository(), FakeAuthRepository(), guard), AddCommentUseCase(activity, guard),
-        UpdateCommentUseCase(activity), RemoveCommentUseCase(activity),
+        UpdateCommentUseCase(activity, repo), RemoveCommentUseCase(activity, repo),
     )
 }

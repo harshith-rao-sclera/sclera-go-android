@@ -28,6 +28,26 @@ private val ASSET_COLUMNS = mapOf("name" to "name", "make" to "manufacturer", "m
  */
 const val DESCRIPTION_COLUMN = "description"
 
+/**
+ * The server's VdmsState MOVED in the `assets` table's `vdms_state`: Managed Assets (the linked VDMS) took the asset. It
+ * is read-only here until Managed Assets sends it back (RETURNING 3 / RETURNED 4, a draft again).
+ */
+const val VDMS_MOVED = 2
+
+/** The `assets` columns a text search looks in: the API's SEARCHED_COLUMNS (services/values.py). */
+private val SEARCHED_COLUMNS = listOf("name", "manufacturer", "model", "serial_number", DESCRIPTION_COLUMN)
+
+/**
+ * What the asset list's search looks in ([Asset.searchText]), lowercase: the searched columns of this `assets` row and
+ * every answer in [answers] (its `asset_values`), as the API's `q` does.
+ */
+fun DbRow.searchText(answers: Collection<String>): String =
+    (SEARCHED_COLUMNS.mapNotNull { string(it) } + answers)
+        .map { it.trim() }.filter { it.isNotEmpty() }.joinToString(SEARCH_SEPARATOR).lowercase()
+
+/** Between the parts of [searchText], so a search can't match across two of them. */
+private const val SEARCH_SEPARATOR = "\n"
+
 /** An answer below this confidence is shown as "low confidence" on the details screen. */
 private const val LOW_CONFIDENCE = 0.7
 
@@ -80,6 +100,7 @@ fun DbRow.toAsset(
             )
         },
         assignedTo = string("assigned_to")?.takeIf { it.isNotBlank() },
+        managed = int("vdms_state") == VDMS_MOVED,
         tagged = buildSet {
             if (isTagFlagSet("qr_code_tag")) add(TagKind.QR)
             if (isTagFlagSet("barcode_tag")) add(TagKind.BARCODE)

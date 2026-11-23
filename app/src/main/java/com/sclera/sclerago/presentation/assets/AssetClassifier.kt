@@ -112,7 +112,8 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
             // A scan's identifying lines (IP, MAC, BSSID, names) never go to the AI.
             .mapNotNull { f -> withoutScanIdentifiers(value(f.key)).trim().takeIf { it.isNotEmpty() }?.let { f.label to it } }
             .take(MAX_OTHER_DETAILS).toMap()
-        details = ClassifyDetails(value("name"), value("make"), value("model"), value("serial"), other)
+        // An unnamed scanned device's name is its address: it doesn't go to the AI.
+        details = ClassifyDetails(withoutScanIdentifiers(value("name")), value("make"), value("model"), value("serial"), other)
         sheetJob?.cancel()
         sheet.value = ClassifyState(ClassifyPhase.LOADING)
         sheetJob = scope.launch {

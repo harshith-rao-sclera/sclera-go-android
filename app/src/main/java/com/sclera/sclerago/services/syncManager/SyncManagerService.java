@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.util.Log;
 
 import com.sclera.sclerago.services.syncManager.enums.SyncMode;
+import com.sclera.sclerago.services.syncManager.services.CloudSyncService;
 import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
 import com.sclera.sclerago.utility.Utility;
 
@@ -106,6 +107,8 @@ public class SyncManagerService {
                     SyncManager finalCurrentInstance = currentInstance;
                     executorService.execute(() -> {
                         finalCurrentInstance.startConnection();
+                        // Sends the QR, barcode and NFC tags saved without a connection (once per engine).
+                        CloudSyncService.ensureRunning(finalCurrentInstance);
 
                         if (finalCurrentInstance.isSynced == 2) {
                             finalCurrentInstance.setCurrentDataSyncMode(SyncMode.POLLING);

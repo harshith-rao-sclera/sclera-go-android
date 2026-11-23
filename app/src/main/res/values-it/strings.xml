@@ -232,8 +232,6 @@
     <string name="doc_upload">Carica documento</string>
     <string name="doc_none">Nessun documento</string>
     <string name="doc_category">Categoria:</string>
-    <string name="doc_used_for">Usato per:</string>
-    <string name="doc_model">Modello:</string>
     <string name="doc_link">Link:</string>
     <string name="doc_created_by">Creato da:</string>
     <string name="doc_ai_source">Fonte specifiche IA</string>

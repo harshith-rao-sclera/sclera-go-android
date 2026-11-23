@@ -1,5 +1,7 @@
 package com.sclera.sclerago.domain.usecase.tagging
 
+import com.sclera.sclerago.domain.model.DataException
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.TagCheck
 import com.sclera.sclerago.domain.model.TagPhoto
 import com.sclera.sclerago.domain.model.TagPlacement
@@ -17,15 +19,48 @@ import com.sclera.sclerago.domain.repository.QrDirectionSource
 import com.sclera.sclerago.domain.repository.TagServerInfo
 import com.sclera.sclerago.domain.repository.TagHistory
 import com.sclera.sclerago.domain.repository.TaggingRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import com.sclera.sclerago.domain.usecase.asset.requireUnlocked
 import javax.inject.Inject
+
+/**
+ * Whether the signed-in user may tag an asset. A tag sets the asset's QR / barcode / NFC flags, which the server changes
+ * only for someone who can collect and may change the asset (its check_editable): an admin any asset, anyone else one
+ * assigned to them or to nobody that isn't submitted or signed off; nobody one in Managed Assets.
+ */
+class CanTagAssetUseCase @Inject constructor(private val assets: AssetRepository, private val guard: PermissionGuard) {
+    /** True when [asset] may be tagged by the signed-in user. */
+    operator fun invoke(asset: String): Boolean = try {
+        requireTaggable(asset)
+        true
+    } catch (e: DataException) {
+        false
+    }
+
+    /**
+     * Refuses tagging [asset]: [DataException] FORBIDDEN without the collect permission (or while the access isn't
+     * known), NOT_ASSIGNED for someone else's, FORBIDDEN for a submitted one (not an admin), MANAGED in Managed Assets.
+     * An asset this device doesn't know yet (a new one) is left to the server.
+     */
+    fun requireTaggable(asset: String) {
+        guard.requireOffline(Permission.COLLECT)
+        requireUnlocked(assets, guard, listOf(asset))
+    }
+}
 
 /**
  * The rules for attaching a tag to an asset: ask the server about the tag, accept it, refuse it with a reason, or ask the
  * user to move it from another draft, then write it.
  */
-class AttachTagUseCase @Inject constructor(private val repo: TaggingRepository, private val history: TagHistory) {
+class AttachTagUseCase @Inject constructor(
+    private val repo: TaggingRepository,
+    private val history: TagHistory,
+    private val canTag: CanTagAssetUseCase,
+) {
     /**
-     * Attaches [tag] to [asset]. With [isMoveConfirmed] a tag held by another draft is taken from it; without, that case throws
+     * Attaches [tag] to [asset]; first refuses ([DataException], see [CanTagAssetUseCase.requireTaggable]) an asset the
+     * signed-in user may not change, so nothing is written offline that the server would refuse. With [isMoveConfirmed] a
+     * tag held by another draft is taken from it; without, that case throws
      * [TaggingError.NEEDS_MOVE] so the user can be asked first. [isSubmitted] says whether an asset was submitted (an asset the
      * phone doesn't know counts as not submitted; the server has the last word when the tag is written).
      */
@@ -38,6 +73,7 @@ class AttachTagUseCase @Inject constructor(private val repo: TaggingRepository, 
         isMoveConfirmed: Boolean = false,
         isSubmitted: suspend (String) -> Boolean = { false },
     ): TagUpdate {
+        canTag.requireTaggable(asset)
         val check = repo.check(tag, asset, property)
         val previous = if (isMoveConfirmed) {
             check.heldBy?.takeIf { it != asset }
@@ -125,4 +161,5 @@ class TagUseCases @Inject constructor(
     val isSubmitted: IsAssetSubmittedUseCase,
     val holderName: TagHolderNameUseCase,
     val property: TagPropertyUseCase,
+    val canTag: CanTagAssetUseCase,
 )

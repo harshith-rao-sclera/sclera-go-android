@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.integration
 
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.MissingParent
 import com.sclera.sclerago.domain.model.PlaceCounts
 import com.sclera.sclerago.domain.model.PlaceKind
 import com.sclera.sclerago.domain.model.PlaceNode
@@ -50,7 +51,7 @@ fun badgeOf(n: PlaceNode, direction: PlacesDirection): PlaceBadge? {
     }
 }
 
-/** "Send 3 to VDMS", "Send 3, update 1", "Update 2 in VDMS"; "Import 3", "Import 3, update 1", "Update 2 here". */
+/** "Export 3 to VDMS", "Export 3, update 1", "Update 2 in VDMS"; "Import 3", "Import 3, update 1", "Update 2 here". */
 fun submitText(direction: PlacesDirection, split: SelectionSplit): UiText {
     val toVdms = direction == PlacesDirection.TO_VDMS
     return when {
@@ -70,7 +71,7 @@ fun resultHead(r: PlacesImportResult, direction: PlacesDirection): UiText {
             UiText.Res(if (toVdms) R.string.pi_result_sent_updated else R.string.pi_result_imported_updated, listOf(added, updated))
         added > 0 -> UiText.Plural(if (toVdms) R.plurals.pi_result_sent else R.plurals.pi_result_imported, added)
         updated > 0 -> UiText.Plural(R.plurals.pi_result_updated, updated)
-        else -> UiText.Res(R.string.pi_result_nothing)
+        else -> UiText.Res(if (toVdms) R.string.pi_result_nothing_exported else R.string.pi_result_nothing)
     }
 }
 
@@ -92,6 +93,33 @@ fun skippedText(o: PlaceOutcome, direction: PlacesDirection): UiText {
     }
     return UiText.Res(res, listOf(UiText.Raw(o.name ?: o.id), kindText(o.kind)))
 }
+
+/**
+ * After a tick brought parents along: "Also ticked Ground (floor) and Annex (building): they aren't in VDMS yet, and a
+ * location can't be added without its floor and building."
+ */
+fun parentsAddedText(added: List<MissingParent>, direction: PlacesDirection): UiText {
+    val names = added.map { UiText.Res(R.string.pi_place_named, listOf(UiText.Raw(it.name), kindText(it.key.kind))) }
+    val list = if (names.size == 1) names[0] else UiText.Res(R.string.pi_list_and, listOf(joinedNames(names.dropLast(1)), names.last()))
+    return UiText.Res(if (direction == PlacesDirection.TO_VDMS) R.string.pi_parents_added_vdms else R.string.pi_parents_added_here, listOf(list))
+}
+
+/** "a, b, c" for the names before the last of [parentsAddedText]'s list. */
+private fun joinedNames(names: List<UiText>): UiText =
+    names.drop(1).fold(names.first()) { acc, n -> UiText.Res(R.string.pi_join_2, listOf(acc, n)) }
+
+/** After unticking a parent took ticked places under it with it. */
+fun orphansRemovedText(removed: Int): UiText = UiText.Plural(R.plurals.pi_orphans_removed, removed)
+
+/** "Building", "Floor", "Location": a place's kind as the history's rows label it. */
+fun kindLabel(kind: PlaceKind?): UiText = UiText.Res(
+    when (kind) {
+        PlaceKind.BUILDING -> R.string.pi_kind_building_label
+        PlaceKind.FLOOR -> R.string.pi_kind_floor_label
+        PlaceKind.LOCATION -> R.string.pi_kind_location_label
+        null -> R.string.pi_kind_place_label
+    },
+)
 
 private fun kindText(kind: PlaceKind?): UiText = UiText.Res(
     when (kind) {

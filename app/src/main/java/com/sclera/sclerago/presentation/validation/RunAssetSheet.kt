@@ -79,7 +79,10 @@ internal fun RunAssetSheet(
     val res = s.panelResult
     val leave = { vm.openAsset(null) }
     val local = assets.firstOrNull { it.id == p.assetId }
-    val locked = local != null && isLockedFor(local.st, isAdmin = s.canValidate)
+    // As the web: the server's status of the asset first (the phone's copy may be stale, or the asset not on the phone),
+    // so a Check-only user isn't offered a fix the server refuses on a submitted or signed-off asset.
+    val status = res?.assetStatus ?: local?.st
+    val locked = status != null && isLockedFor(status, isAdmin = s.canValidate)
     var tab by rememberSaveable(p.assetId) { mutableIntStateOf(0) }
     GuardedClose(p.typed.values.any { it.isNotBlank() }, leave) { close ->
         BottomSheet(close, maxHeightFraction = 0.95f) {
@@ -101,7 +104,7 @@ internal fun RunAssetSheet(
                         Txt(
                             first?.let { stringResource(R.string.rev_first_problem, it + 1, stepShort(steps, run.steps[it])) }
                                 ?: stringResource(R.string.rev_passed_every),
-                            11, 500, C.Muted, Modifier.weight(1f), maxLines = 2,
+                            11, 500, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE,
                         )
                     }
                     val open = if (p.loading) res.openCount else p.issues.count { it.status == IssueStatus.OPEN }
@@ -143,12 +146,12 @@ private fun DecisionRow(
     when {
         decision != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SmallChip(decisionLabel(decision), decisionColor(decision), decisionColor(decision).copy(alpha = 0.16f))
-            Txt(note?.takeIf { it.isNotBlank() }?.let { "“$it”" }.orEmpty(), 12, 400, C.Soft, Modifier.weight(1f), maxLines = 3)
+            Txt(note?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.valt_quoted, it) }.orEmpty(), 12, 400, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
             if (s.canValidate) {
                 TextAction(stringResource(R.string.rev_undo_decision), { vm.decide(listOf(p.assetId), Decision.CLEAR) }, color = C.Soft, enabled = !s.busy, icon = Icons.Refresh)
             }
         }
-        !s.canValidate -> Txt(stringResource(R.string.rev_reviewer_signs_off), 12, 400, C.Muted, maxLines = 3)
+        !s.canValidate -> Txt(stringResource(R.string.rev_reviewer_signs_off), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill(
@@ -158,8 +161,8 @@ private fun DecisionRow(
                 Pill(stringResource(R.string.rev_decision_recollect), { if (!s.busy) vm.askRecollect(listOf(p.assetId)) }, height = 38.dp, hPad = 14.dp, size = 12, weight = 700)
                 Pill(stringResource(R.string.rev_exclude), { if (!s.busy) vm.decide(listOf(p.assetId), Decision.EXCLUDED) }, height = 38.dp, hPad = 14.dp, size = 12, weight = 700)
             }
-            if (checkOnly) Txt(stringResource(R.string.rev_check_only_hint), 11, 400, C.Muted, maxLines = 3)
-            else if (open > 0) Txt(pluralStringResource(R.plurals.rev_fix_to_validate, open, open), 11, 400, C.Muted, maxLines = 2)
+            if (checkOnly) Txt(stringResource(R.string.rev_check_only_hint), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+            else if (open > 0) Txt(pluralStringResource(R.plurals.rev_fix_to_validate, open, open), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
     }
 }
@@ -191,15 +194,18 @@ private fun StepBlock(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Txt("${index + 1}. ${stepName(steps, key)}", 14, 700, modifier = Modifier.weight(1f), maxLines = 2)
+                    Txt(stringResource(R.string.valt_step_numbered, index + 1, stepName(steps, key)), 14, 700, modifier = Modifier.weight(1f), maxLines = 2)
                     Txt(
-                        outcomeLabel(outcome) + if (issues.isEmpty()) "" else " · " +
+                        if (issues.isEmpty()) outcomeLabel(outcome)
+                        else stringResource(
+                            R.string.valt_dot_pair, outcomeLabel(outcome),
                             if (open > 0) stringResource(R.string.rev_n_open, open) else stringResource(R.string.rev_all_handled),
+                        ),
                         11, 700, c,
                     )
                 }
                 val about = if (outcome == StepOutcome.SKIPPED && issues.isEmpty()) stringResource(R.string.rev_step_not_applicable) else steps[key]?.description
-                about?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, C.Muted, maxLines = 3) }
+                about?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
             }
             issues.forEach { IssueRow(it, p, s, vm, locked) }
         }
@@ -226,11 +232,11 @@ private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, v
             val fromWeb = issue.suggestions.any { it.sourceUrl != null }
             if (about.isNotBlank() || fromWeb) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Txt(about, 10, 600, C.Muted, Modifier.weight(1f), maxLines = 2)
+                    Txt(about, 10, 600, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                     if (fromWeb) SmallChip(stringResource(R.string.rev_from_web), C.Blue, C.Blue.copy(alpha = 0.14f))
                 }
             }
-            Txt(issue.message, 13, 700, C.Text, maxLines = 6)
+            Txt(issue.message, 13, 700, C.Text, maxLines = Int.MAX_VALUE)
             if (open) OpenIssue(issue, p, s, vm, busy, locked) else ClosedIssue(issue, s, vm, busy)
         }
     }
@@ -246,7 +252,7 @@ private fun OpenIssue(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, 
         }
     }
     if (locked) {
-        Txt(stringResource(R.string.rev_locked_note), 11, 400, C.Muted, maxLines = 4)
+        Txt(stringResource(R.string.rev_locked_note), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         return
     }
     if (issue.canType) {
@@ -290,7 +296,7 @@ private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Txt(sug.shown.ifBlank { "—" }, 13, 700, modifier = Modifier.weight(1f, fill = false), maxLines = 3)
+                Txt(sug.shown.ifBlank { "—" }, 13, 700, modifier = Modifier.weight(1f, fill = false), maxLines = Int.MAX_VALUE)
                 if (best) Txt(stringResource(R.string.rev_best_match), 10, 600, C.Yellow)
             }
             val pct = (sug.confidence * 100).roundToInt()
@@ -300,7 +306,7 @@ private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean,
                 else -> C.Red
             }
             Txt(stringResource(R.string.rev_sure, pct), 10, 600, confColor)
-            sug.reason?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, C.Muted, maxLines = 4) }
+            sug.reason?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
             sug.sourceUrl?.let { url ->
                 val host = runCatching { java.net.URI(url).host }.getOrNull() ?: url
                 Txt(
@@ -323,7 +329,7 @@ private fun ClosedIssue(issue: RunIssue, s: RunReviewUiState, vm: RunReviewViewM
             IssueStatus.RESOLVED -> stringResource(R.string.rev_fixed)
             else -> stringResource(R.string.rev_set_to, shown ?: "—")
         },
-        12, 600, if (issue.status == IssueStatus.DISMISSED) C.Muted else C.Green,
+        12, 600, if (issue.status == IssueStatus.DISMISSED) C.Muted else C.Green, maxLines = Int.MAX_VALUE,
     )
     if (s.canValidate && (issue.status == IssueStatus.ACCEPTED || issue.status == IssueStatus.DISMISSED)) {
         val label = when {
@@ -358,7 +364,7 @@ internal fun MergeSheet(m: MergeState, s: RunReviewUiState, vm: RunReviewViewMod
                 val differing = m.differing
                 if (m.assets.isNotEmpty()) {
                     Txt(stringResource(R.string.rev_merge_differ), 12, 700, C.Yellow, Modifier.padding(top = 8.dp))
-                    if (differing.isEmpty()) Txt(stringResource(R.string.rev_merge_same), 12, 400, C.Muted)
+                    if (differing.isEmpty()) Txt(stringResource(R.string.rev_merge_same), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 }
                 differing.forEach { f ->
                     Column(
@@ -377,7 +383,7 @@ internal fun MergeSheet(m: MergeState, s: RunReviewUiState, vm: RunReviewViewMod
                             ) {
                                 RadioDot(on)
                                 Column(Modifier.weight(1f)) {
-                                    Txt(v.ifBlank { stringResource(R.string.rev_empty) }, 12, 600, if (v.isBlank()) C.Muted else C.Text, maxLines = 3)
+                                    Txt(v.ifBlank { stringResource(R.string.rev_empty) }, 12, 600, if (v.isBlank()) C.Muted else C.Text, maxLines = Int.MAX_VALUE)
                                     Txt(a.name, 10, 400, C.Muted)
                                 }
                             }
@@ -389,7 +395,7 @@ internal fun MergeSheet(m: MergeState, s: RunReviewUiState, vm: RunReviewViewMod
                 val gone = m.assets.size - 1
                 Txt(
                     pluralStringResource(R.plurals.rev_merge_deleted, gone, gone), 11, 400, C.Muted,
-                    Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                    Modifier.fillMaxWidth().topBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 8.dp), maxLines = Int.MAX_VALUE,
                 )
             }
             Row(Modifier.fillMaxWidth().then(if (m.assets.size > 1) Modifier else Modifier.topBorder(C.Border)).padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

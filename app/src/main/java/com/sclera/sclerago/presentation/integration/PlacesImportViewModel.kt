@@ -8,12 +8,17 @@ import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.PlaceKey
 import com.sclera.sclerago.domain.model.PlaceNode
 import com.sclera.sclerago.domain.model.PlacesDirection
 import com.sclera.sclerago.domain.model.VdmsPlaces
 import com.sclera.sclerago.domain.model.isSelectable
 import com.sclera.sclerago.domain.model.key
 import com.sclera.sclerago.domain.model.keysUnder
+import com.sclera.sclerago.domain.model.missingParents
+import com.sclera.sclerago.domain.model.selectableKeys
+import com.sclera.sclerago.domain.model.withParents
+import com.sclera.sclerago.domain.model.withoutOrphans
 import com.sclera.sclerago.domain.usecase.integration.VdmsPlacesUseCases
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.model.OnlineOnly
@@ -25,7 +30,8 @@ import javax.inject.Inject
 
 /**
  * Buildings, floors & locations on the Integration page, as the web's: they don't sync with the linked VDMS, so an admin
- * sends this property's to VDMS or imports VDMS's here by hand, and can ask VDMS to send its list again. Online only.
+ * sends this property's to VDMS or imports VDMS's here by hand. The sheet asks VDMS for a fresh list when it opens.
+ * Online only.
  */
 @HiltViewModel
 class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlacesUseCases) : ViewModel() {
@@ -47,6 +53,8 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
     /** Changes the open sheet and works its tree out again. */
     private fun setSheet(f: PlacesSheetState.() -> PlacesSheetState) = set { copy(sheet = sheet?.f()?.withView(places)) }
 
+    private fun now(): Long = System.currentTimeMillis()
+
     /** Loads [propertyId]'s places (only called once the property is known to be linked to a VDMS). */
     fun bind(propertyId: String) {
         listOf(loadJob, refreshJob, pageWatchJob, sheetWatchJob).forEach { it?.cancel() }
@@ -65,14 +73,24 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
         }
     }
 
-    /** Both sides, now; null when they couldn't be fetched (what was shown stays). */
+    /**
+     * Both sides, now; null when they couldn't be fetched (what was shown stays). In an open sheet, ticks on places no
+     * longer there (or no longer choosable) go, and so do the places whose parent went with them.
+     */
     private suspend fun fetch(): VdmsPlaces? {
         val found = try {
             useCases.get(state.propertyId)
         } catch (_: OnlineException) {
             return null
         }
-        set { copy(places = found, failed = false, sheet = sheet?.withView(found)) }
+        set {
+            val kept = sheet?.let { sh ->
+                val tree = found.treeFor(sh.direction)
+                val still = tree.selectableKeys()
+                sh.copy(selected = sh.selected.filter { it in still }.toSet().withoutOrphans(tree.missingParents()).selected)
+            }
+            copy(places = found, failed = false, pushActive = found.push?.isActive(now()) == true, sheet = kept?.withView(found))
+        }
         return found
     }
 
@@ -84,16 +102,19 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
             repeat(PAGE_CHECKS) {
                 delay(PAGE_CHECK_MS)
                 val found = fetch()
-                if (found != null && found.push?.active != true) return@launch
+                if (found != null && found.push?.isActive(now()) != true) return@launch
             }
         }
     }
 
-    /** Asks VDMS to send its list again, then checks every 2 seconds for up to 30 until it has. */
+    /**
+     * Asks VDMS to send its list again, then checks every 2 seconds for up to 30 until it has; when it hasn't, says so.
+     * The stored list shows meanwhile.
+     */
     fun refresh() {
         if (state.refreshing) return
         refreshJob?.cancel()
-        set { copy(refreshing = true, refreshLate = false) }
+        set { copy(refreshing = true) }
         val before = state.places?.snapshotAt
         refreshJob = viewModelScope.launch {
             val asked = try {
@@ -112,7 +133,8 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
                     return@launch
                 }
             }
-            set { copy(refreshing = false, refreshLate = true) }
+            set { copy(refreshing = false) }
+            flash(UiText.Res(R.string.pi_refresh_late))
         }
     }
 
@@ -128,15 +150,25 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
         }
     }
 
+    // ---------------------------------------------------------------- History
+
+    fun openHistory() = set { copy(historyOpen = true) }
+
+    fun closeHistory() = set { copy(historyOpen = false) }
+
     // ---------------------------------------------------------------- Sheet
 
-    /** Opens Send to VDMS or Import from VDMS (not while a send is still running, for sending). */
+    /**
+     * Opens Send to VDMS or Import from VDMS (not while a send is still running, for sending). VDMS's list is a copy from
+     * its last send, so a fresh one is asked for at once, as the web does.
+     */
     fun open(direction: PlacesDirection) {
         val s = state
         if (!s.canImport || s.places == null || s.loading || s.sheet != null) return
         if (direction == PlacesDirection.TO_VDMS && s.pushActive) return
         pageWatchJob?.cancel()
         set { copy(sheet = PlacesSheetState(direction).withView(places)) }
+        refresh()
     }
 
     /** Closes the sheet and reads both sides again, as the web. */
@@ -156,20 +188,40 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
 
     fun toggleOpen(n: PlaceNode) = setSheet { copy(expanded = if (n.key in expanded) expanded - n.key else expanded + n.key) }
 
-    /** Ticks or unticks [n] (a row as shown) and what can be added under it; unticking takes off what is under it too. */
-    fun toggle(n: PlaceNode) = setSheet {
+    /**
+     * Ticks or unticks [n] (a row as shown) and what can be added under it; unticking takes off what is under it too.
+     * Ticking brings along the parents the other side lacks; unticking one drops what needs it. The sheet says so.
+     */
+    fun toggle(n: PlaceNode) {
+        val sh = state.sheet ?: return
         val keys = n.keysUnder()
-        val on = if (n.isSelectable) n.key in selected else keys.all { it in selected }
-        copy(selected = if (on) selected - keys.toSet() else selected + keys)
+        val on = if (n.isSelectable) n.key in sh.selected else keys.all { it in sh.selected }
+        choose(if (on) sh.selected - keys.toSet() else sh.selected + keys, adding = !on)
     }
 
-    /** Ticks every place shown that can be added. */
-    fun selectAll() = setSheet { copy(selected = selected + view.addable) }
+    /** Ticks every place shown that can be added (and the parents they need). */
+    fun selectAll() {
+        state.sheet?.let { choose(it.selected + it.view.addable, adding = true) }
+    }
 
-    /** Ticks every changed place shown (to update it on the other side). */
-    fun selectChanges() = setSheet { copy(selected = selected + view.changes) }
+    /** Ticks every changed place shown, to update it on the other side (and the parents they need). */
+    fun selectChanges() {
+        state.sheet?.let { choose(it.selected + it.view.changes, adding = true) }
+    }
 
-    fun clear() = setSheet { copy(selected = emptySet()) }
+    fun clear() = setSheet { copy(selected = emptySet(), parentNote = null) }
+
+    private fun choose(next: Set<PlaceKey>, adding: Boolean) {
+        val sh = state.sheet ?: return
+        val needs = state.places?.treeFor(sh.direction).orEmpty().missingParents()
+        val change = if (adding) next.withParents(needs) else next.withoutOrphans(needs)
+        val note = when {
+            adding -> change.added.takeIf { it.isNotEmpty() }?.let { parentsAddedText(it, sh.direction) }
+            change.removed > 0 -> orphansRemovedText(change.removed)
+            else -> null
+        }
+        setSheet { copy(selected = change.selected, parentNote = note) }
+    }
 
     /**
      * Sends the ticked places to VDMS (it adds them in the background: the sheet waits up to a minute for the result), or
@@ -183,7 +235,7 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
             try {
                 if (sh.direction == PlacesDirection.TO_VDMS) {
                     val push = useCases.send(state.propertyId, sh.selected)
-                    if (push.active) {
+                    if (push.isActive(now())) {
                         setSheet { copy(waiting = true) }
                         waitForSend(push.id)
                     } else {
@@ -218,7 +270,7 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
             repeat(SEND_CHECKS) {
                 delay(CHECK_MS)
                 val push = fetch()?.push
-                if (push != null && push.id == pushId && !push.active) {
+                if (push != null && push.id == pushId && !push.isActive(now())) {
                     setSheet { copy(waiting = false, result = push.result) }
                     return@launch
                 }

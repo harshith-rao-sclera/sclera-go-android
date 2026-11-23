@@ -144,7 +144,7 @@ internal fun TintChip(text: String, bg: Color = C.YTintBg, fg: Color = C.TintTex
 internal fun FieldLabel(text: String, optional: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Txt(text, 13, 600)
-        if (optional) Txt(" (optional)", 13, 400, C.Muted)
+        if (optional) Txt(stringResource(R.string.scrt_field_optional), 13, 400, C.Muted)
     }
 }
 
@@ -287,7 +287,7 @@ private fun FormSheetBody(
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Txt(title, 17, 700)
-                    sub?.let { Txt(it, 12, 400, C.Muted, maxLines = 3) }
+                    sub?.let { Txt(it, 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
                 }
                 CloseButton(onClose, size = 36.dp, iconSize = 14.dp)
             }
@@ -308,7 +308,7 @@ private fun FormSheetBody(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     LineIcon(Icons.Alert, 16.dp, C.Red, 2.2f)
-                    Txt(it, 12, 500, C.Text, Modifier.weight(1f), maxLines = 3)
+                    Txt(it, 12, 500, C.Text, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                 }
             }
             Row(

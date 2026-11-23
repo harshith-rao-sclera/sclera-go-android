@@ -1,12 +1,8 @@
 package com.sclera.sclerago.presentation.assets
 
-import androidx.compose.ui.semantics.Role
-import androidx.compose.foundation.layout.Spacer
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.ui.platform.LocalContext
-import com.sclera.sclerago.presentation.common.formatDate
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,76 +12,85 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import com.sclera.sclerago.R
-import com.sclera.sclerago.presentation.theme.ScleraFonts
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.material3.Text
-import androidx.compose.material3.CircularProgressIndicator
-import com.sclera.sclerago.domain.model.ManualKind
-import com.sclera.sclerago.domain.model.DocumentSource
-import com.sclera.sclerago.domain.model.DocumentFileStatus
-import com.sclera.sclerago.domain.model.AssetDocument
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.platform.LocalUriHandler
-import com.sclera.sclerago.presentation.components.topBorder
-import com.sclera.sclerago.presentation.components.Capsule
-import com.sclera.sclerago.domain.model.PhotoRule
-import com.sclera.sclerago.domain.model.PhotoKind
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.ActivityKind
 import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.DocumentFileStatus
+import com.sclera.sclerago.domain.model.DocumentSource
+import com.sclera.sclerago.domain.model.ManualKind
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.PhotoKind
+import com.sclera.sclerago.domain.model.PhotoRule
+import com.sclera.sclerago.domain.model.formatDuration
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.common.formatDate
 import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
+import com.sclera.sclerago.presentation.common.is24Hour
+import com.sclera.sclerago.presentation.components.Capsule
+import com.sclera.sclerago.presentation.components.IconMenu
 import com.sclera.sclerago.presentation.components.LocalReadOnly
+import com.sclera.sclerago.presentation.components.MenuAct
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.bottomBorder
-import com.sclera.sclerago.presentation.components.IconMenu
-import com.sclera.sclerago.presentation.components.MenuAct
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
-import com.sclera.sclerago.domain.model.formatDuration
 
 /** The tabs an asset's details can show, in the web app's order (Info, Validation, Documents, Media, Comments, History). */
 enum class DetailTabKind(@StringRes val label: Int, val icon: Ico, val tag: String) {
@@ -209,14 +214,14 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
         DocumentSource.ATTACHMENT -> stringResource(R.string.doc_attachment)
     }
     val about: String? = when (d.source) {
-        DocumentSource.WEB_PAGE -> d.usedFor.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.doc_used_for) + " " + it.joinToString(", ") }
-        DocumentSource.MANUAL -> d.model?.let { stringResource(R.string.doc_model) + " " + it }
+        DocumentSource.WEB_PAGE -> d.usedFor.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.scrt_doc_used_for_list, it.joinToString(", ")) }
+        DocumentSource.MANUAL -> d.model?.let { stringResource(R.string.scrt_doc_model_line, it) }
         DocumentSource.SOURCE_FILE ->
             listOfNotNull(d.uploaderName ?: stringResource(R.string.doc_uploader_unknown), d.uploadedAt?.let { formatDate(it, locale) }).joinToString(" · ")
         DocumentSource.ATTACHMENT -> d.uploadedAt?.let { formatDate(it, locale) }
     }
     val type = d.contentType?.substringAfter('/')?.uppercase(locale)
-    val fileLine = listOfNotNull(d.sizeBytes?.let(::sizeText), type).joinToString(" · ").ifEmpty { null }
+    val fileLine = listOfNotNull(d.sizeBytes?.let { sizeText(it) }, type).joinToString(" · ").ifEmpty { null }
     Row(
         Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("doc-${d.id}").clip(r(14)).background(C.Surface)
             .border(1.dp, C.Border, r(14)).padding(12.dp),
@@ -244,7 +249,7 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
                 if (d.source == DocumentSource.MANUAL) LineIcon(Icons.FileDoc, 11.dp, C.Yellow, 2.2f)
                 Txt(tag, 11, 700, C.Yellow, maxLines = 1)
             }
-            about?.let { Txt(it, 12, 500, C.Soft, maxLines = 2) }
+            about?.let { Txt(it, 12, 500, C.Soft, maxLines = Int.MAX_VALUE) }
             if (web) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     (d.publisher ?: d.url)?.let { Txt(it, 12, 700, C.Yellow, Modifier.weight(1f, fill = false), maxLines = 1) }
@@ -284,7 +289,7 @@ private fun SortingNote(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         CircularProgressIndicator(Modifier.size(16.dp), color = C.Yellow, strokeWidth = 2.dp)
-        Txt(stringResource(R.string.media_sorting), 13, 600, C.Yellow)
+        Txt(stringResource(R.string.media_sorting), 13, 600, C.Yellow, maxLines = Int.MAX_VALUE)
     }
 }
 
@@ -323,8 +328,10 @@ private fun PhotoKind.hintRes() = when (this) {
 }
 
 /** A file's size as the web shows it: "2.4 MB", or "180 KB" (at least 1 KB). */
+@Composable
 private fun sizeText(bytes: Long): String =
-    if (bytes >= 1024 * 1024) "%.1f MB".format(bytes / (1024f * 1024f)) else "${(bytes / 1024).coerceAtLeast(1)} KB"
+    if (bytes >= 1024 * 1024) stringResource(R.string.scrt_size_mb, bytes / (1024f * 1024f))
+    else stringResource(R.string.scrt_size_kb, (bytes / 1024).coerceAtLeast(1))
 
 /**
  * The Media tab, edge to edge like Info: a card per kind of photo the property's photo rules count (how many it has against
@@ -342,25 +349,51 @@ fun MediaTab(
     sourceFile: AssetDocument? = null,
     canRemoveSource: Boolean = false,
     onRemoveSource: (AssetDocument) -> Unit = {},
+    /** A new asset's photo moved to another kind's card (null: Other photos); null when photos can't be moved. */
+    onMove: ((Media, PhotoKind?) -> Unit)? = null,
 ) {
     // Photos just added are read on the device and sorted into their kinds before they show.
     if (sorting) SortingNote(Modifier.padding(horizontal = 12.dp))
     val indexed = media.withIndex().toList()
     val photos = indexed.filter { (_, m) -> !m.video && !m.isDoc && !m.audio }
-    rules.forEach { r ->
+    val shown = rules.filter { r -> r.max > 0 || photos.any { it.value.category == r.kind } }
+    // A new asset's photos can be dragged between the cards (tap and hold one); a kind at its most takes no more.
+    val scope = rememberCoroutineScope()
+    val drag = remember(onMove != null) { onMove?.let { PhotoDrag(scope) } }
+    val full = { key: String -> shown.firstOrNull { it.kind.db == key }?.let { r -> photos.count { it.value.category == r.kind } >= r.max } == true }
+    drag?.accept = { m, key ->
+        if (full(key)) false else {
+            onMove?.invoke(m, PhotoKind.of(key))
+            true
+        }
+    }
+    val lookOf = { key: String ->
+        when {
+            drag?.media == null || drag.from == key || drag.over != key -> DropLook.NONE
+            full(key) -> DropLook.FULL
+            else -> DropLook.TAKES
+        }
+    }
+    // Every card a photo can go to, named, for moving one without dragging (TalkBack's actions).
+    val cardNames = shown.map { it.kind.db to stringResource(it.kind.nameRes()) } + (OTHER_PHOTOS_KEY to stringResource(R.string.media_other))
+    if (drag != null && photos.isNotEmpty()) {
+        Txt(stringResource(R.string.media_drag_hint), 11, 500, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = 2)
+    }
+    shown.forEach { r ->
         val mine = photos.filter { it.value.category == r.kind }
-        if (r.max == 0 && mine.isEmpty()) return@forEach
         val count = mine.size
         val chip = if (count < r.min) stringResource(R.string.media_needed, count, r.min) else stringResource(R.string.media_allowed, count, r.max)
         PhotoCard(
             title = stringResource(r.kind.nameRes()), hint = stringResource(r.kind.hintRes()), chip = chip, chipWarn = count < r.min,
             items = mine, onOpen = onOpen, modifier = Modifier.testTag("media-card-${r.kind.db}"),
+            drag = drag, key = r.kind.db, look = lookOf(r.kind.db), moveTo = cardNames.filter { it.first != r.kind.db && !full(it.first) },
         )
     }
     PhotoCard(
         title = stringResource(R.string.media_other), hint = stringResource(R.string.media_other_hint), chip = null, chipWarn = false,
         items = photos.filter { it.value.category == null && it.value.fieldId == null },
         onOpen = onOpen, modifier = Modifier.testTag("media-card-other"),
+        drag = drag, key = OTHER_PHOTOS_KEY, look = lookOf(OTHER_PHOTOS_KEY), moveTo = cardNames.filter { it.first != OTHER_PHOTOS_KEY && !full(it.first) },
     )
     FileList(stringResource(R.string.media_videos), indexed.filter { (_, m) -> m.video }, onOpen)
     SourceDocumentSection(sourceFile, canRemove = sourceFile?.removable == true && canRemoveSource, onRemove = onRemoveSource)
@@ -379,7 +412,7 @@ private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (I
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Txt(title, 14, 700, maxLines = 2)
-        if (files.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
+        if (files.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         else Column(Modifier.fillMaxWidth()) { FileRows(files, onOpen) }
     }
 }
@@ -397,7 +430,7 @@ private fun SourceDocumentSection(doc: AssetDocument?, canRemove: Boolean, onRem
     ) {
         Txt(stringResource(R.string.media_source_document), 14, 700, maxLines = 2)
         if (doc == null) {
-            Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
+            Txt(stringResource(R.string.media_none), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
             return@Column
         }
         val open = documentOpener(doc)
@@ -410,7 +443,7 @@ private fun SourceDocumentSection(doc: AssetDocument?, canRemove: Boolean, onRem
             Txt(doc.typeTag(), 10, 700, C.Soft, Modifier.background(C.Btn, Capsule).padding(horizontal = 8.dp, vertical = 3.dp))
             Column(Modifier.weight(1f)) {
                 Txt(doc.title, 13, 700, maxLines = 1)
-                val meta = listOfNotNull(doc.sizeBytes?.let(::sizeText), doc.uploadedAt?.let { formatDate(it, locale) }).joinToString(" · ")
+                val meta = listOfNotNull(doc.sizeBytes?.let { sizeText(it) }, doc.uploadedAt?.let { formatDate(it, locale) }).joinToString(" · ")
                 if (meta.isNotEmpty()) Txt(meta, 11, 400, C.Muted)
             }
             if (open != null) LineIcon(Icons.Eye, 15.dp, C.Yellow, 2.2f)
@@ -444,7 +477,7 @@ private fun FileRows(files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
                 Column(Modifier.weight(1f)) {
                     Txt(m.fileName ?: stringResource(tag), 13, 700, maxLines = 1)
                     val length = lengthMs(m).takeIf { (m.video || m.audio) && it > 0 }?.let(::formatDuration)
-                    val meta = listOfNotNull(m.sizeBytes?.let(::sizeText), length).joinToString(" · ")
+                    val meta = listOfNotNull(m.sizeBytes?.let { sizeText(it) }, length).joinToString(" · ")
                     if (meta.isNotEmpty()) Txt(meta, 11, 400, C.Muted)
                 }
                 LineIcon(if (m.video || m.audio) Icons.Play else Icons.Download, 15.dp, C.Yellow, 2.2f)
@@ -452,7 +485,11 @@ private fun FileRows(files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
         }
 }
 
-/** One photo card: its name with a count chip, what it shows, and its photos (or "None yet."). */
+/**
+ * One photo card: its name with a count chip, what it shows, and its photos (or "None yet."). With [drag] (a new asset)
+ * its photos can be picked up and dragged to another card ([moveTo]: the cards that can take one, by key and name), and it
+ * lights up ([look]) while one is dragged over it.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotoCard(
@@ -463,10 +500,19 @@ private fun PhotoCard(
     items: List<IndexedValue<Media>>,
     onOpen: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    drag: PhotoDrag? = null,
+    key: String = "",
+    look: DropLook = DropLook.NONE,
+    moveTo: List<Pair<String, String>> = emptyList(),
 ) {
+    val (bg, edge) = dropColors(look)
+    val moveLabel = stringResource(R.string.media_move_to)
     Column(
-        // Full width, like the Info sections.
-        modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).padding(horizontal = 12.dp, vertical = 8.dp),
+        // Full width, like the Info sections; above the other cards while one of its photos is being dragged.
+        modifier.zIndex(if (drag != null && drag.from == key) 1f else 0f)
+            .then(if (drag != null) Modifier.photoDropTarget(drag, key) else Modifier)
+            .fillMaxWidth().background(bg.value).topBorder(C.Border).bottomBorder(C.Border).border(2.dp, edge.value)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -480,12 +526,19 @@ private fun PhotoCard(
                         )
                     }
                 }
-                Txt(hint, 11, 400, C.Muted, maxLines = 2)
+                Txt(hint, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
             }
         }
-        if (items.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted)
+        if (items.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.forEach { (i, m) -> MediaTile(m, { onOpen(i) }, Modifier.size(96.dp).testTag(PhotoTags.tile(i))) }
+            items.forEach { (i, m) ->
+                val movable = if (drag != null) {
+                    Modifier.draggablePhoto(drag, m, key).semantics {
+                        customActions = moveTo.map { (to, name) -> CustomAccessibilityAction(moveLabel.format(name)) { drag.accept(m, to) } }
+                    }
+                } else Modifier
+                MediaTile(m, { onOpen(i) }, Modifier.size(96.dp).then(movable).testTag(PhotoTags.tile(i)))
+            }
         }
     }
 }
@@ -508,11 +561,10 @@ fun CommentList(
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     var editText by rememberSaveable { mutableStateOf("") }
     val someone = stringResource(R.string.detail_comment_someone)
-    val edited = stringResource(R.string.detail_comment_edited)
     // None yet: "No comments yet" in the middle of the tab, as the web's.
     if (comments.isEmpty()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 120.dp).testTag(DetailTags.TAB_EMPTY), contentAlignment = Alignment.Center) {
-            Txt(stringResource(R.string.detail_no_comments), 13, 700, C.Muted, align = TextAlign.Center)
+            Txt(stringResource(R.string.detail_no_comments), 13, 700, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
         }
         return
     }
@@ -544,7 +596,10 @@ fun CommentList(
                         Txt(e.text, 14, 700, maxLines = Int.MAX_VALUE)
                     }
                     Txt(e.authorName ?: someone, 11, 500, C.Muted, maxLines = 1)
-                    e.createdAt?.let { Txt(formatDateTimeSeconds(it, locale) + if (e.edited) " · $edited" else "", 11, 400, C.Muted) }
+                    e.createdAt?.let {
+                        val time = formatDateTimeSeconds(it, locale, use24Hour = is24Hour())
+                        Txt(if (e.edited) stringResource(R.string.scrt_comment_time_edited, time) else time, 11, 400, C.Muted)
+                    }
                 }
                 when {
                     // While editing: Save and Cancel where the ⋮ was.
@@ -596,23 +651,23 @@ fun HistoryList(activity: List<AssetActivity>) {
                 }
                 Column(Modifier.weight(1f).padding(start = 10.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // History lines are written by the server and the app; their sentence is kept as recorded.
-                    Txt(e.text.ifEmpty { e.action.orEmpty() }, 14, 500, maxLines = 2)
+                    Txt(e.text.ifEmpty { e.action.orEmpty() }, 14, 500, maxLines = Int.MAX_VALUE)
                     // As the web: "Building: empty → Harbour Point Tower", the old value struck through.
                     e.fieldChanges.forEach { c ->
                         Text(
                             buildAnnotatedString {
-                                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = C.Text)) { append("${c.field}: ") }
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = C.Text)) { append(stringResource(R.string.scrt_history_field_label, c.field)) }
                                 withStyle(SpanStyle(color = C.Muted, textDecoration = TextDecoration.LineThrough)) { append(c.from ?: empty) }
                                 append(" → ")
                                 withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = C.Text)) { append(c.to ?: empty) }
                             },
-                            color = C.Soft, fontSize = 12.sp, fontFamily = ScleraFonts.Inter, maxLines = 3,
+                            color = C.Soft, fontSize = 12.sp, fontFamily = ScleraFonts.Inter, maxLines = Int.MAX_VALUE,
                         )
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         // Who made the change, by email.
                         Txt(e.authorName.orEmpty(), 11, 500, C.Muted, Modifier.weight(1f), maxLines = 1)
-                        e.createdAt?.let { Txt(formatDateTimeSeconds(it, locale), 11, 400, C.Muted) }
+                        e.createdAt?.let { Txt(formatDateTimeSeconds(it, locale, use24Hour = is24Hour()), 11, 400, C.Muted) }
                     }
                 }
             }
@@ -637,7 +692,7 @@ fun CommentBox(draft: String, error: UiText?, posting: Boolean, onChange: (Strin
                 size = 14, singleLine = false, minLines = 3, readOnly = posting,
             )
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(Modifier.weight(1f)) { error?.let { Txt(it.asString(), 12, 600, C.Orange, maxLines = 3) } }
+                Box(Modifier.weight(1f)) { error?.let { Txt(it.asString(), 12, 600, C.Orange, maxLines = Int.MAX_VALUE) } }
                 Pill(
                     stringResource(R.string.action_add), { if (canPost) onPost() },
                     Modifier.testTag(DetailTags.COMMENT_POST).alpha(if (canPost) 1f else 0.45f),
@@ -655,6 +710,6 @@ private fun EmptyTab(text: String) {
         Modifier.fillMaxWidth().testTag(DetailTags.TAB_EMPTY).clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))
             .padding(horizontal = 12.dp, vertical = 18.dp),
         contentAlignment = Alignment.Center,
-    ) { Txt(text, 13, 400, C.Muted, maxLines = 3, align = TextAlign.Center) }
+    ) { Txt(text, 13, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center) }
 }
 

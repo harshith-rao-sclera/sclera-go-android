@@ -80,7 +80,7 @@ internal fun Modifier.listCard() =
 
 /** Cancel + a yellow main button along the bottom of a sheet. */
 @Composable
-internal fun SheetButtons(yes: String, enabled: Boolean, onNo: () -> Unit, no: String = "Cancel", onYes: () -> Unit) {
+internal fun SheetButtons(yes: String, enabled: Boolean, onNo: () -> Unit, no: String = stringResource(R.string.cfg_cancel), onYes: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(top = 8.dp).topBorder(C.Border).padding(horizontal = 10.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -100,22 +100,24 @@ fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
     val bt = vm.onboardingOn(Tab.BT)
     val net = vm.onboardingOn(Tab.NET)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(horizontal = 4.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Txt("Choose how people can add assets in ${vm.propName} from their phone.", 11, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = 3)
+        Txt(stringResource(R.string.cfgt_onboarding_intro, vm.propName), 11, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = Int.MAX_VALUE)
         CfgCard {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt("Network onboarding", 13, 700)
+                Txt(stringResource(R.string.cfgt_network_onboarding), 13, 700)
                 Txt(
-                    when {
-                        bt && net -> "Both are on, so the phone shows its Bluetooth and Network tabs for this property."
-                        bt -> "Only Bluetooth is on, so the phone hides its Network tab for this property."
-                        net -> "Only Wi-Fi is on, so the phone hides its Bluetooth tab for this property."
-                        else -> "Both are off, so the phone hides its Bluetooth and Network tabs for this property."
-                    },
-                    11, 400, C.Muted, maxLines = 3,
+                    stringResource(
+                        when {
+                            bt && net -> R.string.cfgt_onboarding_both_on
+                            bt -> R.string.cfgt_onboarding_bt_only
+                            net -> R.string.cfgt_onboarding_wifi_only
+                            else -> R.string.cfgt_onboarding_both_off
+                        },
+                    ),
+                    11, 400, C.Muted, maxLines = Int.MAX_VALUE,
                 )
             }
-            OnboardRow(Icons.Bluetooth, "Bluetooth onboarding", "People can add assets by finding them over Bluetooth on their phone.", bt, vm.onboardingSaving(Tab.BT)) { vm.setOnboarding(Tab.BT, it) }
-            OnboardRow(Icons.Wifi, "Wi-Fi onboarding", "People can add assets by finding them on the Wi-Fi network.", net, vm.onboardingSaving(Tab.NET)) { vm.setOnboarding(Tab.NET, it) }
+            OnboardRow(Icons.Bluetooth, stringResource(R.string.cfgt_bt_onboarding), stringResource(R.string.cfgt_bt_onboarding_hint), bt, vm.onboardingSaving(Tab.BT)) { vm.setOnboarding(Tab.BT, it) }
+            OnboardRow(Icons.Wifi, stringResource(R.string.cfgt_wifi_onboarding), stringResource(R.string.cfgt_wifi_onboarding_hint), net, vm.onboardingSaving(Tab.NET)) { vm.setOnboarding(Tab.NET, it) }
         }
         // AI in validation: a property setting at the server; unknown until the settings are read (then it can't be changed).
         val ai = cfg.aiValidation
@@ -128,7 +130,7 @@ fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
                         cfg.photos.load == LoadState.LOADING -> stringResource(R.string.cfg_loading)
                         else -> stringResource(R.string.cfg_settings_load_failed)
                     },
-                    11, 400, C.Muted, maxLines = 3,
+                    11, 400, C.Muted, maxLines = Int.MAX_VALUE,
                 )
             }
             OnboardRow(Icons.Sparkles, stringResource(R.string.cfg_ai_validation), stringResource(R.string.cfg_ai_validation_row), ai == true, cfg.aiSaving) {
@@ -146,19 +148,20 @@ fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
                         cfg.photos.load == LoadState.LOADING -> stringResource(R.string.cfg_loading)
                         else -> stringResource(R.string.cfg_settings_load_failed)
                     },
-                    11, 400, C.Muted, maxLines = 3,
+                    11, 400, C.Muted, maxLines = Int.MAX_VALUE,
                 )
             }
             OnboardRow(Icons.Globe, stringResource(R.string.cfg_units_metric), stringResource(R.string.cfg_units_metric_row), metric == true, cfg.unitsSaving) {
                 if (metric != null) cfg.setMetricUnits(it)
             }
         }
-        Txt("ON THE PHONE", 10, 700, C.Muted, Modifier.padding(start = 12.dp, top = 6.dp), spacing = 0.6f)
+        Txt(stringResource(R.string.cfgt_on_the_phone), 10, 700, C.Muted, Modifier.padding(start = 12.dp, top = 6.dp), spacing = 0.6f)
         CfgCard {
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                 listOf(
-                    Triple(Tab.BT, "Bluetooth", Icons.Bluetooth), Triple(Tab.NET, "Network", Icons.Wifi), Triple(Tab.ASSETS, "Assets", Icons.Box),
-                    Triple(Tab.CAMERA, "Camera", Icons.Camera), Triple(Tab.FILE, "File", Icons.FileUpload),
+                    Triple(Tab.BT, stringResource(R.string.nav_bluetooth), Icons.Bluetooth), Triple(Tab.NET, stringResource(R.string.nav_network), Icons.Wifi),
+                    Triple(Tab.ASSETS, stringResource(R.string.label_assets), Icons.Box),
+                    Triple(Tab.CAMERA, stringResource(R.string.nav_camera), Icons.Camera), Triple(Tab.FILE, stringResource(R.string.nav_file), Icons.FileUpload),
                 ).filter { it.first in vm.navTabs }.forEach { (_, label, icon) ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         LineIcon(icon, 20.dp, C.Soft, 2f)
@@ -167,7 +170,7 @@ fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
                 }
             }
         }
-        Txt("Turning onboarding off only hides it on the phone; assets already added stay as they are.", 11, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = 3)
+        Txt(stringResource(R.string.cfgt_onboarding_footer), 11, 400, C.Muted, Modifier.padding(horizontal = 12.dp), maxLines = Int.MAX_VALUE)
         Spacer(Modifier.height(12.dp))
     }
 }
@@ -184,7 +187,7 @@ private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, busy
         Box(Modifier.size(38.dp).clip(r(10)).background(C.YTintBg), contentAlignment = Alignment.Center) { LineIcon(icon, 19.dp, C.Yellow, 2.1f) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(title, 12, 700)
-            Txt(body, 11, 400, C.Muted, maxLines = 2)
+            Txt(body, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         OnOffSwitch(on) { if (!busy) onChange(it) }
     }

@@ -1,8 +1,9 @@
 package com.sclera.sclerago.domain.model
 
 /**
- * What assigning assets to a person did, as the server says it: how many were [assigned], to whom ([email], [name];
- * no email when they were taken off whoever had them), and whether that person was [added] as a Collector on the
+ * What assigning assets to a person did, as the server says it: how many were [assigned], how many already were theirs
+ * ([unchanged]) and how many the server doesn't have ([notFound]: made on this phone and not synced yet), to whom ([email],
+ * [name]; no email when they were taken off whoever had them), and whether that person was [added] as a Collector on the
  * property or [givenAccess] to it first.
  */
 data class AssignResult(
@@ -11,4 +12,6 @@ data class AssignResult(
     val name: String?,
     val added: Boolean,
     val givenAccess: Boolean,
+    val unchanged: Int = 0,
+    val notFound: Int = 0,
 )

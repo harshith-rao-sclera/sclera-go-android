@@ -54,7 +54,14 @@ fun AssetDetailRoute(
     onChangeLoc: () -> Unit,
     /** [exception]: submitted with a mandatory field empty or too few photos, so it goes in as an exception. */
     /** Creates the new asset; [place] is the location picked in its form (null: where it started). */
-    onCreate: (name: String, detail: String, media: List<Media>, values: Map<String, String>, submit: Boolean, exception: Boolean, place: LocValue?) -> Unit,
+    /**
+     * Saves the new asset. [shots] are the photos it was opened with as the page has them (sorted, or moved between kinds
+     * by hand), kept as they are; null while they are still being sorted.
+     */
+    onCreate: (
+        name: String, detail: String, media: List<Media>, values: Map<String, String>, submit: Boolean, exception: Boolean, place: LocValue?,
+        shots: List<Media>?,
+    ) -> Unit,
     onDelete: (String) -> Unit,
     onNotice: (UiText) -> Unit,
     /** A place picked for this asset in the location sheet, to keep as an unsaved change; [onPlaceTaken] once kept. */
@@ -146,6 +153,7 @@ fun AssetDetailRoute(
             onCreate(
                 state.value("name"), if (serial.isNotEmpty()) "S/N $serial" else state.value("model"),
                 state.newPicks, state.values, submit, submit && !state.complete, state.pendingPlace,
+                state.asset?.media?.takeIf { !state.sortingPhotos },
             )
         },
         onValidate = onValidate,
@@ -184,6 +192,7 @@ fun AssetDetailRoute(
             mediaSave.launch(m)
         },
         onRemoveMedia = { vm.removeMedia(it, onDropCapture) },
+        onMovePhoto = vm::movePhoto,
         onSuggestType = vm::openClassify,
         onOffline = { onNotice(UiText.Res(it.message)) },
         onOpenClone = vm::openClone,

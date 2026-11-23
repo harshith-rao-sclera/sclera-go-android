@@ -4,6 +4,7 @@ import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldChecks
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
+import com.sclera.sclerago.domain.model.FieldsRead
 import com.sclera.sclerago.domain.model.MAX_TOOLTIP_LENGTH
 import com.sclera.sclerago.domain.model.NO_INPUT_KINDS
 import com.sclera.sclerago.domain.model.OPTION_KINDS
@@ -150,43 +151,21 @@ class SetFieldChecksUseCase @Inject constructor(private val repo: ConfigFieldsRe
 }
 
 /**
- * Import from Excel: one field per column. The header row names the fields; the values below pick
- * each field's kind (numbers, dates, yes/no, links, a short list → dropdown, else text). Columns that
- * match a field already here are skipped. The new fields are returned for review, not added.
+ * Import from Excel, as the web: the server reads the .xlsx [file] (a content URI; one field per row with its type,
+ * options, mandatory, active, default value and help text, columns matched by heading) and returns the new fields to
+ * review in the Add field sheet; nothing is added yet. Names the property already has and photo, video or voice memo
+ * rows come back as skipped. Throws OnlineException, or SheetRejectedException when a row is wrong.
  */
-class ImportFieldsUseCase @Inject constructor(private val files: FileRepository) {
-    sealed interface Result {
-        data object Unreadable : Result
-        data object NothingNew : Result
-        data class Fields(val fields: List<FieldCfg>) : Result
+class ImportFieldsUseCase @Inject constructor(private val repo: ConfigFieldsRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(propertyId: String, file: String): FieldsRead {
+        guard.requireOnline(Permission.CONFIGURE)
+        return repo.readSheet(propertyId, file)
     }
+}
 
-    suspend operator fun invoke(existing: List<FieldCfg>, uri: String): Result {
-        val rows = files.readSheet(uri)
-        val header = rows?.firstOrNull() ?: return Result.Unreadable
-        val have = existing.map { fieldNameKey(it.label) }.toMutableSet()
-        val stamp = System.currentTimeMillis()
-        val made = header.mapIndexedNotNull { c, h ->
-            val label = h.trim()
-            if (label.isEmpty() || !have.add(fieldNameKey(label))) return@mapIndexedNotNull null
-            val vals = rows.drop(1).mapNotNull { it.getOrNull(c)?.trim()?.takeIf(String::isNotEmpty) }
-            val distinct = vals.distinct()
-            val guessed = when {
-                vals.isEmpty() -> FieldKind.TEXT
-                vals.all { it.toDoubleOrNull() != null } -> FieldKind.NUMBER
-                vals.all { Regex("^\\d{1,4}[-/.]\\d{1,2}[-/.]\\d{1,4}$").matches(it) } -> FieldKind.DATE
-                vals.all { it.lowercase() in setOf("yes", "no", "true", "false", "y", "n") } -> FieldKind.YESNO
-                vals.all { it.startsWith("http", ignoreCase = true) } -> FieldKind.URL
-                distinct.size <= 8 && vals.size >= distinct.size * 2 -> FieldKind.DROPDOWN
-                else -> FieldKind.TEXT
-            }
-            // Option names can't hold / , { } (the web's rule); a list with no usable option becomes text.
-            val options = if (guessed == FieldKind.DROPDOWN) distinct.filter { o -> o.none { ch -> ch in "/,{}" } } else emptyList()
-            val kind = if (guessed == FieldKind.DROPDOWN && options.isEmpty()) FieldKind.TEXT else guessed
-            FieldCfg("cf_${stamp}_$c", label, kind, FieldSection.MORE, custom = true, options = options)
-        }
-        return if (made.isEmpty()) Result.NothingNew else Result.Fields(made)
-    }
+/** Import from Excel's Sample Format: saves the server's sample sheet to [destination]; false when it can't be written. Throws OnlineException. */
+class SaveFieldsSampleUseCase @Inject constructor(private val repo: ConfigFieldsRepository, private val files: FileRepository) {
+    suspend operator fun invoke(propertyId: String, destination: String): Boolean = files.writeFile(destination, repo.importSample(propertyId))
 }
 
 /** The Asset fields use cases, for injecting as one. */
@@ -198,4 +177,5 @@ class FieldsConfigUseCases @Inject constructor(
     val delete: DeleteFieldUseCase,
     val setChecks: SetFieldChecksUseCase,
     val importFields: ImportFieldsUseCase,
+    val saveImportSample: SaveFieldsSampleUseCase,
 )

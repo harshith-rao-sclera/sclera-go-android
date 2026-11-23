@@ -1,6 +1,7 @@
 package com.sclera.sclerago.data.offline
 
 import com.sclera.sclerago.data.mapper.DbRow
+import com.sclera.sclerago.data.mapper.VDMS_MOVED
 import com.sclera.sclerago.data.sync.AdcDatabase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -57,6 +58,29 @@ internal fun AdcDatabase.assetsInAdc(alias: String = "assets"): String {
 internal fun AdcDatabase.listedAssets(alias: String = "assets"): String {
     val inAdc = assetsInAdc(alias)
     return if (hasColumn("assets", "needs_review")) "$inAdc AND COALESCE($alias.needs_review, 0) = 0" else inAdc
+}
+
+/**
+ * `assets` rows (alias [alias]) in Managed Assets, as the server's list with `managed=true`: not removed, not a file
+ * import waiting for review, and vdms_state MOVED. None in a database without that column.
+ */
+internal fun AdcDatabase.managedAssets(alias: String = "assets"): String {
+    if (!hasColumn("assets", "vdms_state")) return "1 = 0"
+    val live = notRemoved("assets", alias)
+    val reviewed = if (hasColumn("assets", "needs_review")) " AND COALESCE($alias.needs_review, 0) = 0" else ""
+    return "$live$reviewed AND COALESCE($alias.vdms_state, 0) = $VDMS_MOVED"
+}
+
+/** The assets one can open: [assetsInAdc] or [managedAssets] (the server reads one in Managed Assets, read-only). */
+internal fun AdcDatabase.readableAssets(alias: String = "assets"): String = "((${assetsInAdc(alias)}) OR (${managedAssets(alias)}))"
+
+/**
+ * `assets` rows (alias [alias]) a change may be made to: not removed and not in Managed Assets (every change the server
+ * would make to one of those answers 404).
+ */
+internal fun AdcDatabase.changeableAssets(alias: String = "assets"): String {
+    val live = notRemoved("assets", alias)
+    return if (hasColumn("assets", "vdms_state")) "$live AND COALESCE($alias.vdms_state, 0) <> $VDMS_MOVED" else live
 }
 
 /**

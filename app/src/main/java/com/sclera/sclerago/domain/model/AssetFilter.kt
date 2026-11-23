@@ -11,7 +11,8 @@ fun typeKeyParts(key: String): Pair<String, String> = key.substringBefore(TYPE_S
 
 /**
  * The asset list's filter (the web's people filter and its type filters); empty means no filter.
- * [assignees]: assets assigned to any of these people (user ids).
+ * [assignees]: assets assigned to any of these people (user ids), and to nobody when it holds [UNASSIGNED_ID] (the web's
+ * "Unassigned").
  * [systems] (system type names), [types] ([typeKey]s) and [subtypes] (master format ids): assets of those types. A choice
  * under a chosen system or asset type narrows it: Plumbing with Pumps (in Plumbing) picked is Plumbing's pumps only.
  * [untyped]: assets with no type yet. Any of the type choices may match; the people and the types must both.
@@ -31,8 +32,12 @@ data class AssetFilter(
     /** How many choices are made (the filter button's badge). */
     val count: Int get() = assignees.size + systems.size + types.size + subtypes.size + (if (untyped) 1 else 0)
 
-    /** [asset] is assigned to one of the people chosen (or nobody is chosen). */
-    fun peopleMatch(asset: Asset): Boolean = assignees.isEmpty() || asset.assignedTo in assignees
+    /** [asset] is assigned to one of the people chosen, or to nobody with "Unassigned" chosen (or no one is chosen). */
+    fun peopleMatch(asset: Asset): Boolean {
+        if (assignees.isEmpty()) return true
+        val to = asset.assignedTo?.takeIf { it.isNotBlank() } ?: return UNASSIGNED_ID in assignees
+        return to in assignees
+    }
 
     /** An asset of the type [formatId] (null: no type) passes the type choices; [formats] is the type catalogue by id. */
     fun typeMatches(formatId: String?, formats: Map<String, MasterFormat>): Boolean {
@@ -55,6 +60,9 @@ data class AssetFilter(
     fun matches(asset: Asset, formats: Map<String, MasterFormat>): Boolean =
         peopleMatch(asset) && typeMatches(asset.masterFormatId, formats)
 }
+
+/** In [AssetFilter.assignees]: the assets assigned to nobody (the server's `assignedTo=none`). */
+const val UNASSIGNED_ID = "none"
 
 /** The filter sheet's side rail: the type levels and "Other" (assets with no type). */
 enum class FilterCategory { SYSTEM, TYPE, SUBTYPE, OTHER }
@@ -100,9 +108,13 @@ data class FilterChoice(val key: String, val label: String, val parent: String?,
  */
 data class FilterPerson(val userId: String, val name: String?, val me: Boolean, val count: Int, val selected: Boolean)
 
-/** What the filter sheet offers: the people, the choices of each type level, and the assets with no type. */
+/**
+ * What the filter sheet offers: the people, "Unassigned" (null while no asset is assigned to nobody and it isn't chosen),
+ * the choices of each type level, and the assets with no type.
+ */
 data class AssetFilterOptions(
     val people: List<FilterPerson> = emptyList(),
+    val unassigned: FilterPerson? = null,
     val systems: List<FilterChoice> = emptyList(),
     val types: List<FilterChoice> = emptyList(),
     val subtypes: List<FilterChoice> = emptyList(),

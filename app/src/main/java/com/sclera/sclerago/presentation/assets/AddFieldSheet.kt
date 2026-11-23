@@ -101,7 +101,7 @@ internal fun AddFieldRow(onClick: () -> Unit) {
                 Txt(stringResource(R.string.own_field_add), 12, 700, C.Yellow)
             }
         }
-        Txt(stringResource(R.string.own_field_hint), 11, 500, C.Muted, Modifier.weight(1f))
+        Txt(stringResource(R.string.own_field_hint), 11, 500, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
     }
 }
 

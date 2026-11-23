@@ -67,15 +67,20 @@ internal fun AdcDatabase.assetWhere(filter: AssetQueryFilter, withStatus: Boolea
         parts += "(a.building_id IN ($marks) OR a.floor_id IN ($marks) OR a.location_id IN ($marks))"
         repeat(3) { args += filter.placeIds }
     }
-    if (filter.unmappedOnly) parts += "(a.location_id IS NULL OR a.location_id = '')"
+    // Placed nowhere: no building, floor or location (as Asset.unplaced).
+    if (filter.unmappedOnly) {
+        parts += listOf("building_id", "floor_id", "location_id").joinToString(" AND ") { "(a.$it IS NULL OR a.$it = '')" }
+    }
     if (filter.text.isNotBlank()) {
         val like = likeContains(filter.text)
         val inValues = if (hasTable("asset_values")) {
             " OR EXISTS (SELECT 1 FROM asset_values v WHERE v.asset_id = a.id AND v.${answersColumn()} LIKE ? ESCAPE '\\')"
         } else ""
-        parts += "(a.name LIKE ? ESCAPE '\\' OR a.manufacturer LIKE ? ESCAPE '\\' OR a.model LIKE ? ESCAPE '\\' " +
-            "OR a.serial_number LIKE ? ESCAPE '\\'$inValues)"
-        repeat(if (inValues.isEmpty()) 4 else 5) { args += like }
+        // As the API's `q`: its searched columns (description once the server has that column) or any other answer.
+        val columns = listOf("name", "manufacturer", "model", "serial_number") +
+            listOfNotNull("description".takeIf { hasColumn("assets", it) })
+        parts += "(" + columns.joinToString(" OR ") { "a.$it LIKE ? ESCAPE '\\'" } + "$inValues)"
+        repeat(columns.size + if (inValues.isEmpty()) 0 else 1) { args += like }
     }
     return Where(parts.joinToString(" AND "), args)
 }

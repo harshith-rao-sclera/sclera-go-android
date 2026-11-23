@@ -21,8 +21,8 @@ data class BleDevice(
     /** Advertised local name, when the peripheral broadcasts one. */
     val name: String? = null,
     val rssiDbm: Int,
-    /** The strongest signal heard from it during this scan. */
-    val bestRssiDbm: Int = rssiDbm,
+    /** The strongest signal heard from it during this scan (null: only the one in [rssiDbm] so far). */
+    val bestRssiDbm: Int? = null,
     /** Advertised GATT service UUIDs. */
     val serviceUuids: List<String> = emptyList(),
     /** Bluetooth SIG company that owns the manufacturer-data block, if known. */

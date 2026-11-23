@@ -11,12 +11,14 @@ import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.NewLocation
 import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.domain.model.OnlineException
-import com.sclera.sclerago.domain.usecase.config.ImportBuildingsUseCase
+import com.sclera.sclerago.domain.model.SheetRejectedException
 import com.sclera.sclerago.domain.usecase.config.PlaceProblem
 import com.sclera.sclerago.domain.usecase.config.PlaceRefused
 import com.sclera.sclerago.domain.usecase.config.PlacesConfigUseCases
+import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
+import com.sclera.sclerago.presentation.property.PickedSheet
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -30,9 +32,16 @@ import javax.inject.Inject
  * The tree is read again after every change. Messages for the screen come through [messages].
  */
 @HiltViewModel
-class PlacesConfigViewModel @Inject constructor(private val useCases: PlacesConfigUseCases) : ViewModel() {
+class PlacesConfigViewModel @Inject constructor(
+    private val useCases: PlacesConfigUseCases,
+    validateFile: ValidateImportFileUseCase,
+) : ViewModel() {
     private var propertyId = ""
     private var loadJob: Job? = null
+    private val sheetImport = SheetImportFlow(validateFile)
+
+    /** The Import buildings sheet; null while it is closed. */
+    val importing: SheetImportState? get() = sheetImport.state
 
     var load by mutableStateOf(LoadState.LOADING)
         private set
@@ -145,13 +154,41 @@ class PlacesConfigViewModel @Inject constructor(private val useCases: PlacesConf
         }
     }
 
-    /** Import buildings: rows of Building, Floor, Location, Type, Code from a CSV or Excel file, added at the server. */
-    fun importBuildings(uri: String) = send {
-        when (val r = useCases.importBuildings(propertyId, tree, uri)) {
-            ImportBuildingsUseCase.Result.Unreadable -> say(UiText.Res(R.string.cfg_import_unreadable))
-            ImportBuildingsUseCase.Result.NothingFound -> say(UiText.Res(R.string.cfg_import_buildings_nothing))
-            is ImportBuildingsUseCase.Result.Imported ->
-                say(if (r.added == 0) UiText.Res(R.string.cfg_import_buildings_all_there) else UiText.Plural(R.plurals.cfg_import_buildings_done, r.rows))
+    // ---- Import buildings (as the web's Import: the server reads the sheet and makes everything in one go)
+
+    fun openImport() = sheetImport.open()
+
+    fun closeImport() = sheetImport.close()
+
+    fun pickImport(file: PickedSheet) = sheetImport.pick(file)
+
+    /** Sample Format: saves the server's sample sheet to [destination] (a document the user picked). */
+    fun saveImportSample(destination: String) {
+        val property = propertyId
+        viewModelScope.launch { say(saveSampleMessage { useCases.saveImportSample(property, destination) }) }
+    }
+
+    /**
+     * Import: the server matches the sheet's columns by heading, checks every row and makes the buildings, floors and
+     * locations (all or nothing). Says what was added and skipped, and the columns it didn't read; a refused sheet is
+     * told in the sheet, with the rows to fix.
+     */
+    fun runImport() {
+        val file = sheetImport.begin() ?: return
+        val property = propertyId
+        viewModelScope.launch {
+            try {
+                val r = useCases.importBuildings(property, file.uri)
+                sheetImport.close()
+                say(placesImportedMessage(r))
+                ignoredColumnsMessage(r.ignoredColumns)?.let(::say)
+                reload(showLoading = false)
+            } catch (e: SheetRejectedException) {
+                sheetImport.refused(refusedMessage(e.rows, R.string.cfg_import_places_sheet_wrong))
+            } catch (e: OnlineException) {
+                sheetImport.failed()
+                say(importFailure(e))
+            }
         }
     }
 

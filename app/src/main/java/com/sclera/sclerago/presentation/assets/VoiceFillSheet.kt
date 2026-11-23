@@ -64,8 +64,12 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
             Column(Modifier.weight(1f, fill = false).testTag(VoiceTags.SHEET)) {
                 // Nothing found: the AI found no field for it; the phone's own reading (offline) needs the field names said.
                 val summary = if (v.picks.isEmpty()) stringResource(if (v.byAi) R.string.voice_nothing_matched else R.string.voice_none)
-                else pluralStringResource(R.plurals.voice_filled, v.picks.size, v.picks.size) +
-                    if (differs > 0) " " + pluralStringResource(R.plurals.voice_differs, differs, differs) else ""
+                else if (differs > 0) stringResource(
+                    R.string.scrt_voice_summary_differs,
+                    pluralStringResource(R.plurals.voice_filled, v.picks.size, v.picks.size),
+                    pluralStringResource(R.plurals.voice_differs, differs, differs),
+                )
+                else pluralStringResource(R.plurals.voice_filled, v.picks.size, v.picks.size)
                 SheetTitleRow(stringResource(R.string.voice_title), summary, close)
                 Column(
                     Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
@@ -73,7 +77,7 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Txt(stringResource(R.string.voice_you_said), 11, 500, C.Soft)
-                        Txt("“${v.said}”", 14, 700, maxLines = 6)
+                        Txt(stringResource(R.string.scrt_quoted_speech, v.said), 14, 700, maxLines = Int.MAX_VALUE)
                     }
                     if (v.picks.isNotEmpty()) {
                         Column(Modifier.fillMaxWidth().clip(r(12)).border(1.dp, C.Border, r(12))) {
@@ -88,9 +92,9 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                                     TickBox(pick.on) { actions.onToggle(key) }
                                     Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         Txt(spec.label(key).removeSuffix(" *"), 12, 600, C.Soft, maxLines = 2)
-                                        Txt(shown(kind, pick.value), 14, 800, maxLines = 6)
+                                        Txt(shown(kind, pick.value), 14, 800, maxLines = Int.MAX_VALUE)
                                         if (now.isNotEmpty() && now != pick.value) {
-                                            Txt(stringResource(R.string.voice_now, shown(kind, now)), 12, 600, C.Orange, maxLines = 4)
+                                            Txt(stringResource(R.string.voice_now, shown(kind, now)), 12, 600, C.Orange, maxLines = Int.MAX_VALUE)
                                         }
                                         v.sure[key]?.let { sure ->
                                             Txt(stringResource(R.string.ai_sure, (sure * 100).roundToInt()), 11, 700, if (sure < VOICE_SURE_ENOUGH) C.Orange else C.Green)
@@ -105,8 +109,8 @@ fun VoiceFillSheet(v: VoiceFillState, state: AssetDetailState, actions: VoiceFil
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Txt(stringResource(R.string.voice_not_used), 11, 500, C.Soft)
                             v.unmatched.forEach { u ->
-                                Txt("“${u.text}”", 12, 500, C.Muted, maxLines = 3)
-                                u.reason?.let { Txt(it, 11, 400, C.Soft, Modifier.padding(start = 8.dp), maxLines = 3) }
+                                Txt(stringResource(R.string.scrt_quoted_speech, u.text), 12, 500, C.Muted, maxLines = Int.MAX_VALUE)
+                                u.reason?.let { Txt(it, 11, 400, C.Soft, Modifier.padding(start = 8.dp), maxLines = Int.MAX_VALUE) }
                             }
                         }
                     }

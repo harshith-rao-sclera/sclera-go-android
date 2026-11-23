@@ -4,6 +4,8 @@ import com.sclera.sclerago.data.remote.adc.MovePreviewDto
 import com.sclera.sclerago.data.remote.adc.PlaceCountsDto
 import com.sclera.sclerago.data.remote.adc.PlaceNodeDto
 import com.sclera.sclerago.data.remote.adc.PlaceResultDto
+import com.sclera.sclerago.data.remote.adc.PlacesHistoryDto
+import com.sclera.sclerago.data.remote.adc.PlacesTransferDto
 import com.sclera.sclerago.data.remote.adc.PlacesDto
 import com.sclera.sclerago.data.remote.adc.PlacesImportDto
 import com.sclera.sclerago.data.remote.adc.PlacesPushDto
@@ -15,6 +17,12 @@ import com.sclera.sclerago.domain.model.PlaceNode
 import com.sclera.sclerago.domain.model.PlaceOutcome
 import com.sclera.sclerago.domain.model.PlaceSkipReason
 import com.sclera.sclerago.domain.model.PlaceStatus
+import com.sclera.sclerago.domain.model.PlacesDirection
+import com.sclera.sclerago.domain.model.PlacesHistoryPage
+import com.sclera.sclerago.domain.model.PlacesTransfer
+import com.sclera.sclerago.domain.model.PlacesTransferDetail
+import com.sclera.sclerago.domain.model.TransferCounts
+import com.sclera.sclerago.domain.model.TransferStatus
 import com.sclera.sclerago.domain.model.PlacesImportResult
 import com.sclera.sclerago.domain.model.PlacesPush
 import com.sclera.sclerago.domain.model.PlacesPushStatus
@@ -70,6 +78,7 @@ fun PlacesPushDto.toDomain() = PlacesPush(
         else -> PlacesPushStatus.DONE
     },
     requestedAt = parseDbTime(requestedAt),
+    startedAt = parseDbTime(startedAt),
     finishedAt = parseDbTime(finishedAt),
     result = PlacesImportResult(imported.toOutcomes(), updated.toOutcomes(), skipped.toOutcomes()),
 )
@@ -94,8 +103,38 @@ private fun List<PlaceResultDto>.toOutcomes() = map { r ->
             "error" -> PlaceSkipReason.ERROR
             else -> PlaceSkipReason.OTHER
         },
+        update = r.update,
     )
 }
+
+/** One send or import of the history (its places too, when the server sent them). */
+fun PlacesTransferDto.toDomain() = PlacesTransfer(
+    id = id,
+    direction = if (direction.lowercase() == "to_vdms") PlacesDirection.TO_VDMS else PlacesDirection.FROM_VDMS,
+    forMove = forMove,
+    status = when (status.lowercase()) {
+        "pending" -> TransferStatus.PENDING
+        "running" -> TransferStatus.RUNNING
+        "done" -> TransferStatus.DONE
+        "no_reply" -> TransferStatus.NO_REPLY
+        else -> TransferStatus.OTHER
+    },
+    counts = TransferCounts(
+        counts.sending.coerceAtLeast(0), counts.imported.coerceAtLeast(0), counts.updated.coerceAtLeast(0), counts.skipped.coerceAtLeast(0),
+    ),
+    createdAt = parseDbTime(createdAt),
+    startedAt = parseDbTime(startedAt),
+    finishedAt = parseDbTime(finishedAt),
+    byName = createdByName?.takeIf { it.isNotBlank() }?.take(MAX_TEXT),
+)
+
+fun PlacesTransferDto.toDetail() = PlacesTransferDetail(
+    transfer = toDomain(),
+    sending = sending.toOutcomes(),
+    result = PlacesImportResult(imported.toOutcomes(), updated.toOutcomes(), skipped.toOutcomes()),
+)
+
+fun PlacesHistoryDto.toDomain() = PlacesHistoryPage(items.filter { it.id.isNotBlank() }.map { it.toDomain() }, total.coerceAtLeast(0))
 
 fun PlaceCountsDto.toDomain() = PlaceCounts(buildings.coerceAtLeast(0), floors.coerceAtLeast(0), locations.coerceAtLeast(0))
 

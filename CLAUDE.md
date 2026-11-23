@@ -257,11 +257,13 @@ Still open:
 - Release logs: confirm `Log.d/i/w` are stripped or free of identifiers (R8 keep rules).
 - `./gradlew dependencyCheckAnalyze` is configured but needs an `NVD_API_KEY`; run it and record the result.
 - An asset made from a scan is named after the scanned device (an access point's SSID, a Bluetooth device's own name,
-  which can be a person's), and that name is sent to the AI with the other fields. Kept by product decision. Its
+  which can be a person's), and that name is sent to the AI with the other fields. Kept by product decision. A device
+  with no name is named after its IP or Bluetooth address; `withoutScanIdentifiers` keeps such a bare address out of
+  AI requests. Its
   Description holds everything the scan found, addresses included (IP, MAC, Bluetooth address, BSSID, SSID, host
   names), by product decision; it is stored and synced with the asset, and `withoutScanIdentifiers` takes those lines
   out of every AI request (spec lookup, autofill, Suggest type).
-- QR tags saved offline keep their photo (base64) and direction in the unencrypted global config database (`qr_code_table`, `client_qr_code_table`, `sync_status = '1'`) until a sync sends them; they are excluded from backups and wiped on sign-out, but need the same encrypted engine as below. The sync that sends them (push) is not built on Android yet.
+- QR tags saved offline keep their photo (base64) and direction in the unencrypted global config database (`qr_code_table`, `client_qr_code_table`, `sync_status = '1'`) until a sync sends them; they are excluded from backups and wiped on sign-out, but need the same encrypted engine as below. `services/syncManager/services/CloudSyncService` (copied from the old app, started per property engine by `SyncManagerBridge`) sends them every 30 seconds (rows with `sync_status = '1'`) and clears the flag and the photo once the server has them.
 - The synced offline SQLite databases (one per property, `ASSET_DATA_COLLECTION_<propertyId>.db`, app-private `databases/`) are unencrypted at rest, and the Java sync engine also keeps the access token and session id in plain text in `global_config.db`; both need an encrypted SQLite engine (e.g. SQLCipher). They are excluded from backups and wiped on sign-out.
 - Every user's phone keeps each downloaded property's assignees (user id, name, email) in `global_config.db`'s `property_assignees` table (`PropertyAssigneeStore`, from `GET /properties/{id}/assets/assignees`), by product decision, so "Assigned to" and the filter show their names and emails offline as the web does. It is plain SQLite like the rest of that database (same fix: an encrypted engine); the table is wiped on sign-out and the database is excluded from backups. The organisation's user list (admins only) is held in memory only, never stored.
 

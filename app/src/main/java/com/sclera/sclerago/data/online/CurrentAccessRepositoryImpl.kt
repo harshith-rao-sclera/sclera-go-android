@@ -14,6 +14,7 @@ import com.sclera.sclerago.domain.repository.CurrentAccessRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -41,31 +42,72 @@ class CurrentAccessRepositoryImpl @Inject constructor(
     session: OnlineSession,
     private val identity: OnlineIdentity,
     private val cache: EncryptedCache,
-    @ApplicationScope scope: CoroutineScope,
+    @ApplicationScope private val scope: CoroutineScope,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : CurrentAccessRepository, UserDataCleaner {
     private val _state = MutableStateFlow<AccessState>(AccessState.Loading)
     override val state: StateFlow<AccessState> = _state
+
+    /** The signed-in user's email, for [retry] and [refresh]. */
+    @Volatile
+    private var email: String? = null
+
+    /** The fetch after sign-in (or a cold start) is running: a return to the app right then doesn't fetch again. */
+    @Volatile
+    private var signInFetch = false
+
+    /** The fetch [retry] or [refresh] started, so a return to the app doesn't start a second one. */
+    @Volatile
+    private var fetchJob: Job? = null
 
     init {
         scope.launch {
             // Keyed on the email only: learning the organisation changes the session's user but must not fetch again.
             session.user.map { it?.email }.distinctUntilChanged().collectLatest { email ->
                 clear()
+                this@CurrentAccessRepositoryImpl.email = email
                 if (email != null) load(email)
             }
         }
     }
 
-    private suspend fun load(email: String) {
-        val cached = withContext(io) { readCache(email) }
-        if (cached != null) publish(email, cached)
-        try {
-            val fresh = api.me()
+    override fun retry() {
+        val email = email ?: return
+        if (_state.value !is AccessState.Failed) return
+        _state.value = AccessState.Loading
+        fetchJob = scope.launch { load(email) }
+    }
+
+    override fun refresh() {
+        val email = email ?: return
+        if (fetchJob?.isActive == true || signInFetch) return
+        if (_state.value is AccessState.Failed) return retry()
+        fetchJob = scope.launch {
+            val fresh = try {
+                api.me()
+            } catch (_: OnlineException) {
+                return@launch // Offline or refused: what is known stays (a session-ending answer signs out elsewhere).
+            }
+            if (this@CurrentAccessRepositoryImpl.email != email) return@launch // Signed out or another user meanwhile.
             publish(email, fresh)
             withContext(io) { writeCache(email, fresh) }
-        } catch (e: OnlineException) {
-            if (cached == null) _state.value = AccessState.Failed(e.error)
+        }
+    }
+
+    private suspend fun load(email: String) {
+        signInFetch = true
+        try {
+            val cached = withContext(io) { readCache(email) }
+            if (cached != null) publish(email, cached)
+            try {
+                val fresh = api.me()
+                publish(email, fresh)
+                withContext(io) { writeCache(email, fresh) }
+            } catch (e: OnlineException) {
+                if (cached == null) _state.value = AccessState.Failed(e.error)
+            }
+        } finally {
+            signInFetch = false
         }
     }
 

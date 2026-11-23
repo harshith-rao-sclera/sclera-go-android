@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.property
 
+import com.sclera.sclerago.presentation.common.storedTimeText
 import android.app.TimePickerDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,9 +50,6 @@ import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** Test tags of the Add property sheet. */
 object AddPropertyTags {
@@ -78,8 +76,8 @@ private const val SuggestionsShown = 8
  * server refused. [suggestions] are those for the address field being typed in ([onSuggest] asks for them).
  * With [initial] it edits that property instead (the info button on a property): the form starts from it, is titled
  * "Property Info", and its footer has Delete and Save (Delete takes Cancel's place; [onDelete] asks first). While
- * [readOnly] (offline: the copy saved on the device) it only shows the property: nothing can be changed, Save is off,
- * Delete is hidden and a line says why.
+ * [readOnly] (offline: the copy saved on the device; or a group without Manage properties) it only shows the property:
+ * nothing can be changed, Save is off, Delete is hidden and a line says why ([readOnlyReason]).
  */
 @Composable
 internal fun AddPropertySheet(
@@ -92,6 +90,7 @@ internal fun AddPropertySheet(
     initial: Property? = null,
     onDelete: (() -> Unit)? = null,
     readOnly: Boolean = false,
+    readOnlyReason: Int = R.string.property_offline_edit,
 ) {
     val editable = !readOnly
     val context = LocalContext.current
@@ -118,7 +117,7 @@ internal fun AddPropertySheet(
 
     fun pickTime(current: String, set: (String) -> Unit) {
         val (h, m) = current.split(':').map { it.toIntOrNull() ?: 0 }
-        TimePickerDialog(context, { _, hh, mm -> set("%02d:%02d".format(hh, mm)) }, h, m, false).show()
+        TimePickerDialog(context, { _, hh, mm -> set("%02d:%02d".format(hh, mm)) }, h, m, android.text.format.DateFormat.is24HourFormat(context)).show()
     }
 
     /** What each address field holds, and what picking a suggestion there also changes (as the web's AddressFields). */
@@ -215,8 +214,8 @@ internal fun AddPropertySheet(
         ) {
             if (readOnly) {
                 Txt(
-                    stringResource(R.string.property_offline_edit), 12, 400, C.Muted,
-                    Modifier.padding(horizontal = 16.dp).testTag(AddPropertyTags.READ_ONLY), maxLines = 3,
+                    stringResource(readOnlyReason), 12, 400, C.Muted,
+                    Modifier.padding(horizontal = 16.dp).testTag(AddPropertyTags.READ_ONLY), maxLines = Int.MAX_VALUE,
                 )
             }
             FormGroup(stringResource(R.string.property_group_details), Icons.Building) {
@@ -255,8 +254,8 @@ internal fun AddPropertySheet(
                 }
             }
             FormGroup(stringResource(R.string.property_group_availability), Icons.Clock) {
-                InlineField(stringResource(R.string.field_start_time)) { InlineSelect(clockTime(start), "", enabled = editable, chevron = false) { pickTime(start) { start = it } } }
-                InlineField(stringResource(R.string.field_end_time)) { InlineSelect(clockTime(end), "", enabled = editable, chevron = false) { pickTime(end) { end = it } } }
+                InlineField(stringResource(R.string.field_start_time)) { InlineSelect(storedTimeText(start), "", enabled = editable, chevron = false) { pickTime(start) { start = it } } }
+                InlineField(stringResource(R.string.field_end_time)) { InlineSelect(storedTimeText(end), "", enabled = editable, chevron = false) { pickTime(end) { end = it } } }
                 InlineField(stringResource(R.string.field_access_code)) { InlineInput(accessCode, { accessCode = it }, stringResource(R.string.field_access_code_hint), enabled = editable) }
             }
         }
@@ -274,10 +273,6 @@ internal fun AddPropertySheet(
     }
 }
 
-/** "00:01" shown as the web shows times: "12:01 AM". */
-private fun clockTime(hhmm: String): String = runCatching {
-    LocalTime.parse(hhmm).format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
-}.getOrDefault(hhmm)
 
 /** One suggestion under an address field: its name, and its state when that differs from the one chosen. */
 @Composable
@@ -288,6 +283,6 @@ private fun Suggestion(s: AddressSuggestion, onPick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Txt(s.name, 13, 600)
-        s.detail?.let { Txt(it, 11, 400, C.Muted) }
+        s.detail?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
     }
 }

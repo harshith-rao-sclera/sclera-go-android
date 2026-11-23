@@ -3,6 +3,7 @@ package com.sclera.sclerago.presentation.session
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.usecase.access.RefreshAccessOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.CheckSessionOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.ClearUserDataUseCase
 import com.sclera.sclerago.domain.usecase.auth.LogoutUseCase
@@ -21,6 +22,7 @@ class SessionViewModel @Inject constructor(
     private val logoutUseCase: LogoutUseCase,
     private val clearUserData: ClearUserDataUseCase,
     private val trackSessionChange: TrackSessionChangeUseCase,
+    private val refreshAccess: RefreshAccessOnForegroundUseCase,
 ) : ViewModel() {
     val authState: StateFlow<AuthState> = observeAuthState()
 
@@ -36,7 +38,11 @@ class SessionViewModel @Inject constructor(
         }
     }
 
-    fun onForeground() = checkSessionOnForeground()
+    /** Back in the foreground: the session is checked, and the user's access read again (as the web does on return). */
+    fun onForeground() {
+        checkSessionOnForeground()
+        refreshAccess()
+    }
 
     fun logout() = logoutUseCase()
 }

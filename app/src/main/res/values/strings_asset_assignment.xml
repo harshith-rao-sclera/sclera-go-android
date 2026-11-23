@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Asset details → Info → Assignment: who has the asset, and who submitted it and when. English only for now. -->
+<!-- Asset details → Info → Assignment: who has the asset, and who submitted it and when. Assign asset sheet. English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="detail_sec_assignment">Assignment</string>
     <string name="detail_assigned_to">Assigned to</string>
@@ -7,4 +7,22 @@
     <string name="detail_submitted_on">Submitted on</string>
     <string name="detail_unassigned">Not assigned</string>
     <string name="detail_person_unknown">Unknown user</string>
+
+    <!-- Assign asset sheet, worded as the web's assign modal. -->
+    <string name="assign_assignee">Assignee</string>
+    <string name="assign_apply">Apply</string>
+    <string name="assign_nobody">Nobody (unassigned)</string>
+    <!-- %1$s: the signed-in user's email. -->
+    <string name="assign_to_me">Assign to me (%1$s)</string>
+    <string name="assign_admin_only">Only an admin can assign assets to someone.</string>
+    <plurals name="assign_done_nobody">
+        <item quantity="one">%1$d asset unassigned</item>
+        <item quantity="other">%1$d assets unassigned</item>
+    </plurals>
+    <plurals name="assign_not_found">
+        <item quantity="one">%1$d asset isn’t on the server yet, so it was left as it was. Assign it again after it syncs.</item>
+        <item quantity="other">%1$d assets aren’t on the server yet, so they were left as they were. Assign them again after they sync.</item>
+    </plurals>
+    <!-- %1$s: what was assigned ("3 assets assigned to Ada"); %2$s: the assets the server doesn't have yet. -->
+    <string name="assign_done_and_not_found">%1$s. %2$s</string>
 </resources>

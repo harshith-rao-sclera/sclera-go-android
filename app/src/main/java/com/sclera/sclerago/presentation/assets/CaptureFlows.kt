@@ -90,7 +90,7 @@ fun CameraPage(vm: AppViewModel) {
     val s = vm.state
     when {
         s.camOpen -> CameraView(vm)
-        else -> SubList(vm, Tab.CAMERA, "Camera", vm::openCam)
+        else -> SubList(vm, Tab.CAMERA, stringResource(R.string.nav_camera), vm::openCam)
     }
 }
 
@@ -316,7 +316,7 @@ fun CameraCapture(
             Box(
                 Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).clip(Capsule).background(Glass)
                     .padding(horizontal = 12.dp, vertical = 7.dp),
-            ) { Txt("Take a photo or video to start a new asset", 11, 600, C.Soft) }
+            ) { Txt(stringResource(R.string.capture_start_hint), 11, 600, C.Soft, maxLines = Int.MAX_VALUE) }
         } else {
             LazyRow(
                 Modifier.align(Alignment.BottomStart).padding(bottom = 136.dp).fillMaxWidth().height(78.dp),
@@ -385,8 +385,8 @@ fun CameraCapture(
             Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp).alpha(if (isRecording) 0.4f else 1f),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            ModePill("Video", videoMode) { if (!isRecording) onVideoMode(true) }
-            ModePill("Photo", !videoMode) { if (!isRecording) onVideoMode(false) }
+            ModePill(stringResource(R.string.camera_mode_video), videoMode) { if (!isRecording) onVideoMode(true) }
+            ModePill(stringResource(R.string.camera_mode_photo), !videoMode) { if (!isRecording) onVideoMode(false) }
         }
     }
 }
@@ -399,14 +399,13 @@ private fun PermissionPrompt(blocked: Boolean, onAllow: () -> Unit, modifier: Mo
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         LineIcon(Icons.Camera, 40.dp, C.Muted, 1.8f)
-        Txt("Camera access is off", 16, 700)
+        Txt(stringResource(R.string.camera_off_title), 16, 700)
         Txt(
-            if (blocked) "Turn on Camera for Sclera Go in Settings to photograph nameplates and assets."
-            else "Allow the camera to photograph nameplates and assets.",
-            12, 400, C.Muted, maxLines = 3, align = TextAlign.Center,
+            stringResource(if (blocked) R.string.camera_off_blocked else R.string.camera_off_ask),
+            12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center,
         )
         Pill(
-            if (blocked) "Open settings" else "Allow camera", onAllow,
+            stringResource(if (blocked) R.string.camera_open_settings else R.string.camera_allow), onAllow,
             bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700,
         )
     }
@@ -425,7 +424,7 @@ fun FilePage(vm: AppViewModel, files: FileImportViewModel, online: Boolean) {
     when {
         s.revFile -> FileImportReview(files, onAddFiles = vm::backToFiles, onClose = vm::closeFiles, flash = vm::flash, online = online)
         s.fileOpen -> FileWaiting(vm)
-        else -> SubList(vm, Tab.FILE, "File", vm::openFile, Icons.FileUploadBadge)
+        else -> SubList(vm, Tab.FILE, stringResource(R.string.nav_file), vm::openFile, Icons.FileUploadBadge)
     }
 }
 
@@ -438,10 +437,15 @@ private fun FileWaiting(vm: AppViewModel) {
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
     ) {
         LineIcon(Icons.FileUpload, 40.dp, C.Muted, 1.8f)
-        Txt("Import from files", 16, 700)
-        Txt(stringResource(R.string.file_import_hint, MAX_DOCUMENT_UPLOAD_MB), 12, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
-        Pill("Open file manager", vm::openFile, bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700)
-        Pill("Cancel", vm::cancelFile, bg = Color.Transparent, fg = C.Muted, height = 40.dp)
+        Txt(stringResource(R.string.file_import_title), 16, 700)
+        Txt(stringResource(R.string.file_import_hint, MAX_DOCUMENT_UPLOAD_MB), 12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
+        // Adding assets needs Collect: a view-only group is told so instead (the web hides its Add).
+        if (vm.mayCollect()) {
+            Pill(stringResource(R.string.file_open_manager), vm::openFile, bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700)
+        } else {
+            Txt(stringResource(R.string.view_only_no_add), 12, 500, C.Orange, maxLines = 3, align = TextAlign.Center)
+        }
+        Pill(stringResource(R.string.action_cancel), vm::cancelFile, bg = Color.Transparent, fg = C.Muted, height = 40.dp)
     }
 }
 
@@ -455,7 +459,7 @@ private fun SubList(vm: AppViewModel, tab: Tab, label: String, onOpen: () -> Uni
     PullRefresh(list.refreshing, list.onRefresh, Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             assetList(list) {
-                SegHeader(listOf("Assets", label), 0, icons = listOf(null, labelIcon)) { if (it == 1) onOpen() }
+                SegHeader(listOf(stringResource(R.string.label_assets), label), 0, icons = listOf(null, labelIcon)) { if (it == 1) onOpen() }
             }
         }
     }

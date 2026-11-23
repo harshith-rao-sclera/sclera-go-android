@@ -28,13 +28,21 @@ enum class AssetLock {
 
     /** Submitted or signed off: only an admin may change it. */
     SUBMITTED,
+
+    /** In Managed Assets ([Asset.managed]): read-only for everyone, admins too (the server answers 404 to every change). */
+    MANAGED,
+
+    /** The user can't collect (a viewer): every asset is read-only for them, as the server refuses their changes. */
+    NO_PERMISSION,
 }
 
 /**
- * As the server's check_editable (and the web's lockedForMe): an admin may change any asset; anyone else one that
- * isn't someone else's ([assignedElsewhere]) and isn't submitted or signed off. Null when the change is allowed.
+ * As the server's check_editable (and the web's lockedForMe): nobody changes an asset in Managed Assets ([managed]);
+ * otherwise an admin may change any asset, and anyone else one that isn't someone else's ([assignedElsewhere]) and isn't
+ * submitted or signed off. Null when the change is allowed.
  */
-fun assetLock(status: Status, isAdmin: Boolean, assignedElsewhere: Boolean): AssetLock? = when {
+fun assetLock(status: Status, isAdmin: Boolean, assignedElsewhere: Boolean, managed: Boolean = false): AssetLock? = when {
+    managed -> AssetLock.MANAGED
     isAdmin -> null
     assignedElsewhere -> AssetLock.NOT_ASSIGNED
     status in LOCKED_STATUSES -> AssetLock.SUBMITTED

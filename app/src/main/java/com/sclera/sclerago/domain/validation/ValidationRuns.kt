@@ -65,6 +65,11 @@ data class ValidationDef(
     val stepSeverity: Map<String, StepSeverity>,
     val typeScope: TypeScope?,
     val lastRun: ValRun?,
+    /**
+     * It has runs (or one set up as ready), as the server's `locked`: its runs keep the steps and settings they were made
+     * with, so it can't be edited any more (the server answers 409); a new validation is made instead.
+     */
+    val locked: Boolean = false,
 )
 
 /** What is saved for a validation (new or changed). */
@@ -142,6 +147,8 @@ data class ValRun(
     val createdAt: Long?,
     val startedAt: Long?,
     val finishedAt: Long?,
+    /** Who started it (the server's `startedBy`, a name); null when the server doesn't say. */
+    val startedBy: String? = null,
 ) {
     /** The server's step state: nothing seen yet is waiting (or skipped once done); else the worst outcome. */
     fun stateOf(step: String): StepState {

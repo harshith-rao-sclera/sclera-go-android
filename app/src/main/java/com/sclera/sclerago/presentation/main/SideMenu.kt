@@ -60,6 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.UserSession
+import com.sclera.sclerago.presentation.components.AccessFailedBanner
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.endBorder
 import com.sclera.sclerago.presentation.components.noRippleClick
@@ -112,10 +113,13 @@ fun SideMenu(vm: AppViewModel, sessionVm: SessionViewModel = hiltViewModel()) {
         session = (auth as? AuthState.SignedIn)?.session,
         propertyName = vm.propName.takeIf { vm.hasProperty },
         assetCount = vm.assets.size,
+        showAssets = vm.seesAssets,
         showValidation = vm.canCheck,
         showConfiguration = vm.canConfigure,
         showIntegration = vm.canConfigure,
         showUsers = vm.canManageAccess,
+        accessFailed = vm.accessFailed,
+        onRetryAccess = vm::retryAccess,
         active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen, s.intOpen),
         onClose = vm::closeMenu,
         onPick = vm::pickMenu,
@@ -133,6 +137,8 @@ internal fun SideMenuPanel(
     assetCount: Int,
     active: MenuItem,
     onClose: () -> Unit,
+    /** The Assets section shows except to a group that only configures (the web's seesDataCollection). */
+    showAssets: Boolean = true,
     /** The Validation section shows only to someone who may run checks (the server's check permission). */
     showValidation: Boolean = true,
     /** The Configuration section shows only to someone who may configure the property (the server's configure permission), as on the web. */
@@ -141,6 +147,9 @@ internal fun SideMenuPanel(
     showIntegration: Boolean = true,
     /** Users shows only to someone who may manage people and access (the server lists users only to them). */
     showUsers: Boolean = true,
+    /** The user's access couldn't be loaded: a note under the profile says why sections are missing, with Retry. */
+    accessFailed: Boolean = false,
+    onRetryAccess: () -> Unit = {},
     onPick: (MenuItem) -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -159,12 +168,12 @@ internal fun SideMenuPanel(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Txt(
                         if (email != null) stringResource(R.string.menu_sign_out_message, email) else stringResource(R.string.menu_sign_out_message_generic),
-                        13, 400, C.Muted, maxLines = 4,
+                        13, 400, C.Muted, maxLines = Int.MAX_VALUE,
                     )
                     // Signing out deletes this device's data, so work that hasn't reached the server would be lost.
                     Txt(
                         stringResource(R.string.menu_sign_out_sync_warning),
-                        13, 600, C.Red, Modifier.testTag(MenuTags.SIGN_OUT_WARNING), maxLines = 5,
+                        13, 600, C.Red, Modifier.testTag(MenuTags.SIGN_OUT_WARNING), maxLines = Int.MAX_VALUE,
                     )
                 }
             },
@@ -216,6 +225,8 @@ internal fun SideMenuPanel(
                     }
                 }
 
+                if (accessFailed) AccessFailedBanner(onRetryAccess)
+
                 // Top-level destinations
                 TopRow(MenuItem.PROPERTY, stringResource(R.string.property_list_title), Icons.Buildings, active, onPick)
                 if (showUsers) TopRow(MenuItem.USERS, stringResource(R.string.menu_users), Icons.Users, active, onPick)
@@ -255,7 +266,7 @@ internal fun SideMenuPanel(
                     }
                     AnimatedVisibility(sectionsOpen, enter = expandVertically(), exit = shrinkVertically()) {
                         Column(Modifier.topBorder(C.Border).padding(start = 12.dp, end = 8.dp)) {
-                            SectionRow(MenuItem.ASSETS, stringResource(R.string.label_assets), Icons.Box, Trailing.Count(assetCount), active, onPick, first = true)
+                            if (showAssets) SectionRow(MenuItem.ASSETS, stringResource(R.string.label_assets), Icons.Box, Trailing.Count(assetCount), active, onPick, first = true)
                             if (showValidation) SectionRow(
                                 MenuItem.VALIDATION, stringResource(R.string.menu_validation), Icons.ShieldCheck,
                                 Trailing.Open, active, onPick,

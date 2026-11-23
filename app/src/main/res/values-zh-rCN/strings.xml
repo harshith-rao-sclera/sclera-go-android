@@ -224,8 +224,6 @@
     <string name="doc_upload">上传文档</string>
     <string name="doc_none">没有文档</string>
     <string name="doc_category">类别：</string>
-    <string name="doc_used_for">用途：</string>
-    <string name="doc_model">型号：</string>
     <string name="doc_link">链接：</string>
     <string name="doc_created_by">创建者：</string>
     <string name="doc_ai_source">AI 规格来源</string>

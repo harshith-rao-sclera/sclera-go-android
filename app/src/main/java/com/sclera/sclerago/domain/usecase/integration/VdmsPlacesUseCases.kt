@@ -14,9 +14,12 @@ import javax.inject.Inject
 // Buildings, floors and locations on the Integration page: they don't sync with the linked VDMS, so they are sent there
 // or imported from there by hand, as on the web. Sending, importing and refreshing need the configure permission.
 
-/** "Send to VDMS" and "Import from VDMS" are turned off for the plain "user" role, as on the web. */
+/**
+ * "Send to VDMS" and "Import from VDMS" are offered only to someone who may configure the property, as the server needs
+ * (the web tests the plain "user" role, which gives the same answer on its Configure-only page).
+ */
 class CanImportPlacesUseCase @Inject constructor(private val guard: PermissionGuard) {
-    operator fun invoke(): Boolean = !guard.isPlainUser()
+    operator fun invoke(): Boolean = guard.allows(Permission.CONFIGURE)
 }
 
 /** Both sides' buildings, floors and locations, and the latest send to VDMS. */

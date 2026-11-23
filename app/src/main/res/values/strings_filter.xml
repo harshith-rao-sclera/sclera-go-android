@@ -9,6 +9,8 @@
     </plurals>
     <string name="filter_assigned_to">Assigned to</string>
     <string name="filter_someone">Someone</string>
+    <!-- The assets assigned to nobody, in the people filter. -->
+    <string name="filter_unassigned">Unassigned</string>
     <string name="filter_system_type">System type</string>
     <string name="filter_asset_type">Asset type</string>
     <string name="filter_sub_type">Sub type</string>

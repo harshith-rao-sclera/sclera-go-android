@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asset details: the line under the top bar when this user can't change the asset. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="lock_banner_title">No edit access</string>
+    <!-- A group that can neither collect nor check taps or selects assets on the list. -->
+    <string name="view_only_not_selectable">Your group can only view assets, so there\'s nothing to select them for.</string>
+    <!-- The File tab for a group that can't collect: adding assets would be refused. -->
+    <string name="view_only_no_add">Your group can only view assets, so it can\'t add them.</string>
+    <string name="lock_banner_not_assigned">Assigned to someone else</string>
+    <string name="lock_banner_submitted">Submitted, only an admin can change it</string>
+    <string name="lock_banner_no_permission">Your access is view only</string>
+    <string name="lock_banner_no_permission_body">You can look at this asset but not change it, add media or ask for changes. Ask an admin for collect access.</string>
+    <!-- A property opened by someone who can't manage properties: they can look but not change it. -->
+    <string name="property_view_only">You can look at this property but not change it. Only someone who manages properties can edit it.</string>
+</resources>

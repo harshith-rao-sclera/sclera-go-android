@@ -322,7 +322,7 @@ class AssetsWriter(
         db.write(io) {
             val now = now()
             assetIds.forEach { id ->
-                if (!exists(ASSET_STATE.live("assets"), listOf(id))) return@forEach
+                if (!exists(ASSET_STATE.changeable(), listOf(id))) return@forEach
                 query(MEDIA_OF_ASSET.live("asset_media"), listOf(id)).forEach { m ->
                     val mediaId = m.string("id").orEmpty()
                     mediaIds += mediaId
@@ -344,7 +344,7 @@ class AssetsWriter(
         val ready = files.prepare(media)
         try {
             db.write(io) {
-                if (!exists(ASSET_STATE.live("assets"), listOf(id))) throw DataException(DataError.FAILED)
+                if (!exists(ASSET_STATE.changeable(), listOf(id))) throw DataException(DataError.FAILED)
                 val now = now()
                 ready.forEach { insertMedia(id, it, now) }
                 takeIfUnassigned(id, now)
@@ -361,6 +361,7 @@ class AssetsWriter(
      */
     suspend fun removeMedia(assetId: String, mediaId: String) {
         db.write(io) {
+            refuseIfManaged(assetId)
             val row = queryOne(MEDIA_ROW.live("asset_media"), listOf(mediaId, assetId)) ?: throw DataException(DataError.FAILED)
             val now = now()
             row.id("field_id")?.let { dropFromAnswer(assetId, it, mediaId, now) }
@@ -375,6 +376,7 @@ class AssetsWriter(
 
     /** Adds a field named [name] of type [type] to asset [assetId] alone; its key, or null when the name is taken. */
     suspend fun addOwnField(assetId: String, name: String, type: String): String? = db.write(io) {
+        refuseIfManaged(assetId)
         with(typeFields) { addOwnField(assetId, name, type, now()) }
     }
 
@@ -384,6 +386,7 @@ class AssetsWriter(
      * False when [key] isn't one of the asset's own fields.
      */
     suspend fun removeOwnField(assetId: String, key: String): Boolean = db.write(io) {
+        refuseIfManaged(assetId)
         val field = query(OWN_FIELDS.live("asset_fields"), listOf(assetId)).firstOrNull { it.string("key") == key } ?: return@write false
         val now = now()
         removeRows("asset_fields", "id = ?", listOf(field.string("id").orEmpty()), now)
@@ -393,13 +396,14 @@ class AssetsWriter(
 
     /** Adds the comment [text] (already checked) to asset [assetId], written by the signed-in user; the sync pushes it. */
     suspend fun addComment(assetId: String, text: String) = db.write(io) {
-        if (!exists(ASSET_STATE.live("assets"), listOf(assetId))) throw DataException(DataError.FAILED)
+        if (!exists(ASSET_STATE.changeable(), listOf(assetId))) throw DataException(DataError.FAILED)
         val now = now()
         execute(COMMENT_INSERT, listOf(ids.next(), assetId, text, user.userId(), now, now), setOf("asset_activity"))
     }
 
     /** Changes comment [commentId] of asset [assetId] to [text] (already checked); nothing is written when it is the same. */
     suspend fun updateComment(assetId: String, commentId: String, text: String) = db.write(io) {
+        refuseIfManaged(assetId)
         val row = queryOne(COMMENT_ROW.live("asset_activity"), listOf(commentId, assetId)) ?: throw DataException(DataError.FAILED)
         if (row.string("text") == text) return@write
         execute(COMMENT_UPDATE.live("asset_activity"), listOf(text, now(), commentId, assetId), setOf("asset_activity"))
@@ -407,6 +411,7 @@ class AssetsWriter(
 
     /** Removes comment [commentId] of asset [assetId]: marked removed for the sync, as the server's DELETE does. */
     suspend fun removeComment(assetId: String, commentId: String) = db.write(io) {
+        refuseIfManaged(assetId)
         if (queryOne(COMMENT_ROW.live("asset_activity"), listOf(commentId, assetId)) == null) throw DataException(DataError.FAILED)
         removeRows("asset_activity", "id = ? AND asset_id = ? AND kind = 'comment'", listOf(commentId, assetId), now())
     }
@@ -669,7 +674,7 @@ class AssetsWriter(
             .toMap()
     }
 
-    private fun AdcDatabase.assetState(id: String): DbRow? = queryOne(ASSET_STATE.live("assets"), listOf(id))
+    private fun AdcDatabase.assetState(id: String): DbRow? = queryOne(ASSET_STATE.changeable(), listOf(id))
 
     private fun AdcDatabase.placeColumns(placeId: String?): PlaceColumns {
         val steps = placeId?.let(places::pathNow).orEmpty()
@@ -740,6 +745,14 @@ class AssetsWriter(
     private fun now() = formatDbTime(time.nowMillis())
 
     private fun String.live(table: String) = replace("%LIVE%", db.notRemoved(table))
+
+    /** For `assets`: not removed and not in Managed Assets (read-only: the server refuses every change to one). */
+    private fun String.changeable() = replace("%LIVE%", db.changeableAssets())
+
+    /** Refuses ([DataException] MANAGED) a change to asset [id] while it is in Managed Assets, as the server answers 404. */
+    private fun AdcDatabase.refuseIfManaged(id: String) {
+        if (hasColumn("assets", "vdms_state") && exists(ASSET_IN_MANAGED, listOf(id))) throw DataException(DataError.MANAGED)
+    }
 
     private fun String?.orNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
 

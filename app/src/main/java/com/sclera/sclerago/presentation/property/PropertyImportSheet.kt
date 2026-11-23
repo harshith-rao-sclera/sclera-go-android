@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.property
 
+import android.content.Context
+import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,7 +55,7 @@ import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.services.media.formatSize
 
-private const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+internal const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 /** Test tags of the Import sheet. */
 object ImportTags {
@@ -75,13 +77,7 @@ internal fun ImportSheet(vm: PropertyImportViewModel, onClose: () -> Unit, onImp
     val context = LocalContext.current
     val s = vm.state
     val chooser = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        val picked = runCatching {
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
-                if (c.moveToFirst()) PickedSheet(uri.toString(), c.getString(0) ?: "file", if (c.isNull(1)) -1 else c.getLong(1)) else null
-            }
-        }.getOrNull() ?: PickedSheet(uri.toString(), uri.lastPathSegment ?: "file", -1)
-        vm.pick(picked)
+        if (uri != null) vm.pick(pickedSheet(context, uri))
     }
     val sampleSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(XLSX_MIME)) { uri ->
         if (uri != null) vm.saveSample(uri.toString())
@@ -91,7 +87,7 @@ internal fun ImportSheet(vm: PropertyImportViewModel, onClose: () -> Unit, onImp
         if (plan == null) {
             ImportSheetContent(
                 s.file?.name, s.file?.size ?: -1, s.error, close,
-                onChoose = { chooser.launch(arrayOf(XLSX_MIME, "application/octet-stream")) },
+                onChoose = { chooser.launch(IMPORT_PICK_TYPES) },
                 onSample = { sampleSaver.launch(SAMPLE_NAME) },
                 onProceed = vm::proceed,
                 loading = s.loading,
@@ -103,9 +99,22 @@ internal fun ImportSheet(vm: PropertyImportViewModel, onClose: () -> Unit, onImp
 }
 
 /** The name the sample is saved under, as the web's download. */
-private const val SAMPLE_NAME = "Sample Format.xlsx"
+internal const val SAMPLE_NAME = "Sample Format.xlsx"
 
-/** The first step (design "Import"): drop zone, limits, sample card and Proceed; a loader while the server reads the file. */
+/** The spreadsheet types the file picker offers for an import (.xlsx; some providers only say octet-stream). */
+internal val IMPORT_PICK_TYPES = arrayOf(XLSX_MIME, "application/octet-stream")
+
+/** The file picked at [uri], with the name and size its provider reports (checked by the caller, not trusted). */
+internal fun pickedSheet(context: Context, uri: Uri): PickedSheet = runCatching {
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
+        if (c.moveToFirst()) PickedSheet(uri.toString(), c.getString(0) ?: "file", if (c.isNull(1)) -1 else c.getLong(1)) else null
+    }
+}.getOrNull() ?: PickedSheet(uri.toString(), uri.lastPathSegment ?: "file", -1)
+
+/**
+ * The first step (design "Import"): drop zone, limits, sample card and the action ([actionLabel]: Proceed, or Import
+ * when there is no mapping step); a loader while the server reads the file.
+ */
 @Composable
 internal fun ImportSheetContent(
     fileName: String?,
@@ -116,6 +125,7 @@ internal fun ImportSheetContent(
     onSample: () -> Unit,
     onProceed: () -> Unit,
     loading: Boolean = false,
+    actionLabel: String = stringResource(R.string.import_proceed),
 ) {
     val downloadLabel = stringResource(R.string.import_sample_download)
     BottomSheet(onClose, maxHeightFraction = 0.6f, background = C.SheetBg) {
@@ -142,16 +152,16 @@ internal fun ImportSheetContent(
                         Txt(
                             if (fileSize >= 0) stringResource(R.string.import_file_size_change, formatSize(fileSize))
                             else stringResource(R.string.import_choose_different),
-                            11, 400, C.Muted,
+                            11, 400, C.Muted, maxLines = Int.MAX_VALUE,
                         )
                     }
                 }
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Txt(stringResource(R.string.import_formats), 11, 400, C.Muted)
-                    Txt(stringResource(R.string.import_max_size), 11, 400, C.Muted)
+                    Txt(stringResource(R.string.import_formats), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                    Txt(stringResource(R.string.import_max_size), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 }
             }
-            error?.let { Txt(it.asString(), 12, 500, C.Red, Modifier.testTag(ImportTags.ERROR), maxLines = 3) }
+            error?.let { Txt(it.asString(), 12, 500, C.Red, Modifier.testTag(ImportTags.ERROR), maxLines = Int.MAX_VALUE) }
             Row(
                 Modifier.fillMaxWidth().clip(r(12)).background(C.CardWash).border(1.dp, C.Border, r(12)).padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -162,14 +172,14 @@ internal fun ImportSheetContent(
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Txt(stringResource(R.string.import_sample_title), 13, 600)
-                    Txt(stringResource(R.string.import_sample_sub), 11, 400, C.Muted, maxLines = 2)
+                    Txt(stringResource(R.string.import_sample_sub), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 }
                 RoundButton(40.dp, C.Btn, onSample, Modifier.semantics { contentDescription = downloadLabel }) {
                     LineIcon(Icons.Download, 14.dp, C.Text, 2.2f)
                 }
             }
             Pill(
-                stringResource(R.string.import_proceed), { if (fileName != null) onProceed() }, Modifier.fillMaxWidth().testTag(ImportTags.PROCEED),
+                actionLabel, { if (fileName != null) onProceed() }, Modifier.fillMaxWidth().testTag(ImportTags.PROCEED),
                 bg = if (fileName != null) C.Yellow else C.Raised, fg = if (fileName != null) C.OnYellow else C.Muted,
                 height = 46.dp, size = 14, weight = 700,
             )
@@ -260,10 +270,10 @@ private fun PickerNote(plan: ImportPlan, mapping: Map<String, String>) {
     ) {
         Txt(
             stringResource(if (plan.suggestion.aiUsed) R.string.import_matched_ai else R.string.import_matched, matched.size, total),
-            12, 500, maxLines = 3,
+            12, 500, maxLines = Int.MAX_VALUE,
         )
-        plan.suggestion.aiNote?.let { Txt(it, 11, 400, C.Muted, maxLines = 4) }
-        if (leftOut.isNotEmpty()) Txt(stringResource(R.string.import_not_imported, leftOut.joinToString(", ")), 11, 400, C.Muted, maxLines = 4)
+        plan.suggestion.aiNote?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
+        if (leftOut.isNotEmpty()) Txt(stringResource(R.string.import_not_imported, leftOut.joinToString(", ")), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     }
 }
 

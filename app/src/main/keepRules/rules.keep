@@ -30,3 +30,13 @@
 #-keepclassmembers class com.sclera.sclerago.SomeJsBridge {
 #   @android.webkit.JavascriptInterface <methods>;
 #}
+
+# The sync engine's CloudSyncService (copied from the old Sclera app) reads the server's QR/NFC/barcode/proxy-profile
+# records into these DTOs with Jackson, which finds their fields, constructors and getters/setters by name.
+-keepclassmembers class com.sclera.sclerago.services.syncManager.dto.** {
+    <init>();
+    <fields>;
+    public *** get*();
+    public *** is*();
+    public void set*(***);
+}

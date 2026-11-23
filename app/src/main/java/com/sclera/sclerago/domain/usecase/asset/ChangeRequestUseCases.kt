@@ -27,6 +27,7 @@ class RequestChangeUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(assetId: String, note: String) {
         guard.requireOffline(Permission.COLLECT)
+        requireNotManaged(assets, listOf(assetId))
         val status = assets.catalog.value.assets.firstOrNull { it.id == assetId }?.st
         // Not submitted: it can be edited as it is, so there is nothing to ask for.
         if (status != null && !isLockedFor(status, isAdmin = false)) throw DataException(DataError.FAILED)
@@ -74,6 +75,9 @@ data class ChangeActionOption(val action: ChangeAction, val blocked: ChangeActio
 class ChangeRequestActionsUseCase @Inject constructor(private val guard: PermissionGuard) {
     operator fun invoke(assets: List<Asset>): List<ChangeActionOption> {
         if (assets.isEmpty()) return emptyList()
+        // Asking for a change and moving back to draft both need Collect (the server's rule): a group without it gets
+        // none, admins included (the web's mayCollect).
+        if (!guard.allows(Permission.COLLECT)) return emptyList()
         val locked = { a: Asset -> isLockedFor(a.st, isAdmin = false) }
         val exception = { a: Asset -> a.st == Status.EXCEPTION }
         if (assets.none(locked)) {

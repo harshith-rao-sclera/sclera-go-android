@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Camera and File tabs' capture screens (CaptureFlows). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="capture_start_hint">Take a photo or video to start a new asset</string>
+    <string name="camera_mode_video">Video</string>
+    <string name="camera_mode_photo">Photo</string>
+    <string name="camera_off_title">Camera access is off</string>
+    <string name="camera_off_blocked">Turn on Camera for Sclera Go in Settings to photograph nameplates and assets.</string>
+    <string name="camera_off_ask">Allow the camera to photograph nameplates and assets.</string>
+    <string name="camera_open_settings">Open settings</string>
+    <string name="camera_allow">Allow camera</string>
+    <string name="file_import_title">Import from files</string>
+    <string name="file_open_manager">Open file manager</string>
+</resources>

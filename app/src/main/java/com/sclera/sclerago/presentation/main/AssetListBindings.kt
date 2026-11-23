@@ -7,7 +7,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.EmptyReason
 import com.sclera.sclerago.presentation.assets.AssetListBinding
-import com.sclera.sclerago.presentation.integration.ManagedSummaryViewModel
 
 private val NoAssets = AssetListData(emptyList(), emptyList(), EmptyReason.ASSETS_TAB)
 
@@ -20,7 +19,6 @@ fun rememberAssetListBinding(
     app: AppViewModel,
     tab: Tab,
     list: AssetListViewModel = hiltViewModel(),
-    summary: ManagedSummaryViewModel = hiltViewModel(),
 ): AssetListBinding {
     val s by list.state.collectAsStateWithLifecycle()
     return AssetListBinding(
@@ -30,11 +28,11 @@ fun rememberAssetListBinding(
         onChip = { list.setStatusFilter(tab, it.status) },
         onChangeRequests = { list.selectChangeRequests(tab) },
         onValidation = { list.selectValidation(tab, it) },
+        onManaged = { list.selectManaged(tab) },
         onToggle = list::toggle,
         onOpen = { id -> if (s.selecting) list.toggle(id) else app.openAsset(id) },
         loading = s.loading,
         refreshing = s.refreshing,
         onRefresh = list::refresh,
-        onInfo = { summary.open(app.currentProp, app.placeScope) },
     )
 }

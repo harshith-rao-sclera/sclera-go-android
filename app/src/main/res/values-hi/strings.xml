@@ -228,8 +228,6 @@
     <string name="doc_upload">दस्तावेज़ अपलोड करें</string>
     <string name="doc_none">कोई दस्तावेज़ नहीं</string>
     <string name="doc_category">श्रेणी:</string>
-    <string name="doc_used_for">उपयोग:</string>
-    <string name="doc_model">मॉडल:</string>
     <string name="doc_link">लिंक:</string>
     <string name="doc_created_by">बनाने वाले:</string>
     <string name="doc_ai_source">AI स्पेसिफ़िकेशन स्रोत</string>

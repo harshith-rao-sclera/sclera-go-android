@@ -60,6 +60,7 @@ data class JobDto(
     val createdAt: String? = null,
     val startedAt: String? = null,
     val finishedAt: String? = null,
+    val startedBy: String? = null,
 )
 
 @Serializable
@@ -71,6 +72,7 @@ data class SavedValidationDto(
     val templateKey: String? = null,
     val settings: JsonObject = JsonObject(emptyMap()),
     val lastRun: JobDto? = null,
+    val locked: Boolean = false,
 )
 
 @Serializable

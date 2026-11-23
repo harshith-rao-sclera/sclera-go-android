@@ -5,7 +5,7 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.repository.FileRepository
 
 /** A [FileRepository] that returns what the test sets and records what was deleted or written. */
-class FakeFileRepository(var sheet: List<List<String>>? = null) : FileRepository {
+class FakeFileRepository : FileRepository {
     var media: List<Media> = emptyList()
     var files: List<ImportedFile> = emptyList()
     val deleted = mutableListOf<Media>()
@@ -16,7 +16,6 @@ class FakeFileRepository(var sheet: List<List<String>>? = null) : FileRepository
         deleted += media.filter { it.owned }
     }
 
-    override suspend fun readSheet(uri: String): List<List<String>>? = sheet
     override suspend fun writeFile(uri: String, bytes: ByteArray) = false
     override suspend fun copyFile(from: String, to: String) = false
 }

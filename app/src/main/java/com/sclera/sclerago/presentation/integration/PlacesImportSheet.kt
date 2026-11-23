@@ -2,6 +2,7 @@ package com.sclera.sclerago.presentation.integration
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -97,31 +98,32 @@ internal fun PlacesImportSheet(sh: PlacesSheetState, s: PlacesUiState, vm: Place
     }
 }
 
-/** What the sheet does, and how old VDMS's list is (with Refresh). */
+/** Asks VDMS for its list again; its description says how old the list is. */
 @Composable
-private fun Intro(sh: PlacesSheetState, s: PlacesUiState, vm: PlacesImportViewModel) {
-    val toVdms = sh.direction == PlacesDirection.TO_VDMS
-    Column(Modifier.padding(bottom = 8.dp)) {
-        Txt(stringResource(if (toVdms) R.string.pi_to_intro else R.string.pi_from_intro), 12, 400, C.Soft, maxLines = 5)
-        val ago = agoText(s.places?.snapshotAt)
-        if (ago.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) {
-            Txt(stringResource(R.string.pi_list_from, ago), 12, 400, C.Muted, Modifier.weight(1f), maxLines = 2)
-            LinkText(stringResource(if (s.refreshing) R.string.pi_refreshing else R.string.pi_refresh), enabled = !s.refreshing, onClick = vm::refresh)
-        }
+private fun RefreshButton(s: PlacesUiState, vm: PlacesImportViewModel) {
+    val ago = agoText(s.places?.snapshotAt)
+    val label = when {
+        s.refreshing -> stringResource(R.string.pi_refreshing_list)
+        ago.isNotEmpty() -> stringResource(R.string.pi_list_from, ago)
+        else -> stringResource(R.string.pi_ask_list)
     }
+    Box(
+        Modifier.size(48.dp).clip(r(10)).clickable(enabled = !s.refreshing, role = Role.Button, onClick = vm::refresh)
+            .semantics { contentDescription = label }.testTag("places_refresh"),
+        contentAlignment = Alignment.Center,
+    ) { LineIcon(Icons.Refresh, 18.dp, if (s.refreshing) C.Muted else C.Yellow, 2.2f) }
 }
 
-/** The intro, the toolbar and the tree, scrolling as one (so a short screen or large text still reaches the tree). */
+/** The toolbar and the tree, scrolling as one (so a short screen or large text still reaches the tree). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapshot: Boolean, vm: PlacesImportViewModel) {
     val toVdms = sh.direction == PlacesDirection.TO_VDMS
     val v = sh.view
     LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("places_tree"), contentPadding = PaddingValues(bottom = 8.dp)) {
-        item { Intro(sh, s, vm) }
         when {
             noSnapshot -> item {
-                EmptyBlock(stringResource(R.string.pi_no_snapshot)) {
+                EmptyBlock(stringResource(if (s.refreshing) R.string.pi_getting_list else R.string.pi_no_snapshot)) {
                     LinkText(stringResource(if (s.refreshing) R.string.pi_asking_vdms else R.string.pi_ask_vdms), enabled = !s.refreshing, onClick = vm::refresh)
                 }
             }
@@ -132,7 +134,12 @@ private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapsho
                 }
             }
             else -> {
-                item { SearchField(sh.search, vm::setSearch, stringResource(R.string.pi_search)) }
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SearchField(sh.search, vm::setSearch, stringResource(R.string.pi_search), Modifier.weight(1f))
+                        RefreshButton(s, vm)
+                    }
+                }
                 item {
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(r(8)).clickable(role = Role.Checkbox) { vm.setHideExisting(!sh.hideExisting) },
@@ -140,7 +147,7 @@ private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapsho
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         CheckBox(sh.hideExisting, size = 20.dp, checkSize = 12.dp)
-                        Txt(stringResource(if (toVdms) R.string.pi_to_hide else R.string.pi_from_hide), 13, 500, C.Text, Modifier.weight(1f), maxLines = 2)
+                        Txt(stringResource(if (toVdms) R.string.pi_to_hide else R.string.pi_from_hide), 13, 500, C.Text, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                     }
                 }
                 item {
@@ -149,7 +156,7 @@ private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapsho
                     } else {
                         stringResource(R.string.pi_selection, sh.selected.size, v.tally.fresh, v.tally.total)
                     }
-                    Txt(summary, 12, 500, C.Muted, Modifier.testTag("places_selection"), maxLines = 2)
+                    Txt(summary, 12, 500, C.Muted, Modifier.testTag("places_selection"), maxLines = Int.MAX_VALUE)
                 }
                 item {
                     FlowRow(verticalArrangement = Arrangement.Center) {
@@ -159,6 +166,17 @@ private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapsho
                         )
                         if (v.changes.isNotEmpty()) LinkText(stringResource(R.string.pi_select_changes), onClick = vm::selectChanges)
                         LinkText(stringResource(R.string.pi_clear), enabled = sh.selected.isNotEmpty(), onClick = vm::clear)
+                    }
+                }
+                sh.parentNote?.let { note ->
+                    item {
+                        Row(
+                            Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(r(10)).background(C.WarnRow).padding(10.dp).testTag("places_parent_note"),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            LineIcon(Icons.Info, 15.dp, C.Orange, 2.2f, Modifier.padding(top = 1.dp))
+                            Txt(note.asString(), 12, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+                        }
                     }
                 }
                 if (v.noneShown) item { EmptyBlock(stringResource(R.string.pi_no_match, sh.search.trim())) }
@@ -171,7 +189,7 @@ private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapsho
 @Composable
 private fun EmptyBlock(text: String, action: (@Composable () -> Unit)? = null) {
     Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Txt(text, 13, 400, C.Muted, maxLines = 4)
+        Txt(text, 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
         action?.invoke()
     }
 }
@@ -244,7 +262,7 @@ private fun Badge(b: PlaceBadge) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         TintChip(b.label.asString(), bg = color.copy(alpha = 0.15f), fg = color)
-        b.detail?.let { Txt(it.asString(), 11, 400, C.Muted, maxLines = 2) }
+        b.detail?.let { Txt(it.asString(), 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
     }
 }
 
@@ -257,13 +275,13 @@ private fun ColumnScope.ResultBody(sh: PlacesSheetState) {
         Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 8.dp).testTag("places_result"),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Txt(resultHead(r, sh.direction).asString(), 15, 700, maxLines = 3)
-        r.updated.forEach { Txt(updatedText(it, sh.direction).asString(), 12, 400, C.Soft, maxLines = 3) }
+        Txt(resultHead(r, sh.direction).asString(), 15, 700, maxLines = Int.MAX_VALUE)
+        r.updated.forEach { Txt(updatedText(it, sh.direction).asString(), 12, 400, C.Soft, maxLines = Int.MAX_VALUE) }
         if (r.skipped.isNotEmpty()) {
             val n = r.skipped.size
             Txt(
                 pluralStringResource(if (toVdms) R.plurals.pi_skipped_sent else R.plurals.pi_skipped_imported, n, n),
-                12, 500, C.Muted, Modifier.padding(top = 4.dp), maxLines = 3,
+                12, 500, C.Muted, Modifier.padding(top = 4.dp), maxLines = Int.MAX_VALUE,
             )
             r.skipped.forEach { SkippedLine(skippedText(it, sh.direction).asString()) }
         }
@@ -274,7 +292,7 @@ private fun ColumnScope.ResultBody(sh: PlacesSheetState) {
 @Composable
 private fun ColumnScope.WaitingBody(timedOut: Boolean) {
     Box(Modifier.weight(1f).fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
-        if (timedOut) Txt(stringResource(R.string.pi_timed_out), 13, 400, C.Soft, maxLines = 5)
+        if (timedOut) Txt(stringResource(R.string.pi_timed_out), 13, 400, C.Soft, maxLines = Int.MAX_VALUE)
         else ListLoader(stringResource(R.string.pi_waiting))
     }
 }

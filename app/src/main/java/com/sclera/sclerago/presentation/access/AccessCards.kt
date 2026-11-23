@@ -188,7 +188,7 @@ internal fun GroupCard(row: GroupRow, onEdit: () -> Unit) {
                 Txt(g.name, 14, 700, modifier = Modifier.weight(1f), maxLines = 1)
                 Txt(pluralStringResource(R.plurals.access_person_count, row.members, row.members), 11, 400, C.Muted)
             }
-            if (g.description.isNotBlank()) Txt(g.description.trim(), 12, 400, C.Muted, maxLines = 2)
+            if (g.description.isNotBlank()) Txt(g.description.trim(), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
             FlowRow(
                 Modifier.padding(top = 3.dp),
                 horizontalArrangement = Arrangement.spacedBy(5.dp),

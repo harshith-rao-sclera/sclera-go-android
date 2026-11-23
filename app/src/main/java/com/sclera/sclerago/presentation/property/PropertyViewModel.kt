@@ -165,6 +165,7 @@ class PropertyViewModel @Inject constructor(
 
     /** Add: the property is created on the server, so offline the form doesn't open and the user is told why. */
     fun openAdd() {
+        if (!canManage.value) return
         if (!downloads.isOnline()) {
             online.value = false
             explainOffline(OnlineOnly.NEW_PROPERTY)
@@ -178,6 +179,7 @@ class PropertyViewModel @Inject constructor(
     }
     /** Import: properties are imported on the server, so offline the sheet doesn't open and the user is told why. */
     fun openImport() {
+        if (!canManage.value) return
         if (!downloads.isOnline()) {
             online.value = false
             explainOffline(OnlineOnly.IMPORT_PROPERTIES)
@@ -266,6 +268,7 @@ class PropertyViewModel @Inject constructor(
     }
 
     // ---- The info button on a property: its details open straight in the edit form (Save), with Delete in the footer.
+    // Saving and deleting need Manage properties, as the server; without it the form only shows the property.
 
     /** Editing and deleting a property happen on the server, so offline they are blocked (and the user is told why). */
     private fun blockedOffline(): Boolean {
@@ -308,6 +311,8 @@ class PropertyViewModel @Inject constructor(
      * the change (as the web refreshes); "Unable to update property" says when it wasn't.
      */
     fun saveEdit(draft: Property): UiText? {
+        // Only with Manage properties (the server's rule); the form opens view only for anyone else.
+        if (!canManage.value) return OnlineError.Forbidden.toUiText()
         useCases.validate(draft)?.let { return it.toUiText() }
         if (adding) return null
         if (!downloads.isOnline()) {
@@ -334,6 +339,7 @@ class PropertyViewModel @Inject constructor(
 
     /** Delete: asks first ("Delete Property?"). */
     fun askDelete() {
+        if (!canManage.value) return
         if (blockedOffline()) return
         flags.update { it.copy(confirmDelete = it.editing) }
     }
@@ -342,6 +348,10 @@ class PropertyViewModel @Inject constructor(
     /** Deletes the property after the confirmation; the form closes once it is gone, or "Unable to delete" says it isn't. */
     fun deleteProperty() {
         val p = flags.value.confirmDelete ?: return
+        if (!canManage.value) {
+            flags.update { it.copy(confirmDelete = null) }
+            return
+        }
         if (blockedOffline()) {
             flags.update { it.copy(confirmDelete = null) }
             return

@@ -10,7 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -24,14 +26,14 @@ import com.sclera.sclerago.presentation.theme.Txt
 fun DiscardChangesDialog(
     onKeep: () -> Unit,
     onDiscard: () -> Unit,
-    title: String = "Discard your changes?",
-    body: String = "You’ve changed something that isn’t saved yet. If you leave now, those changes are lost.",
-    keep: String = "Keep editing",
+    title: String = stringResource(R.string.scrt_discard_title),
+    body: String = stringResource(R.string.scrt_discard_body),
+    keep: String = stringResource(R.string.action_keep_editing),
 ) {
     BackHandler(onBack = onKeep)
     ConfirmDialog(
         icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange, title = title, body = body,
-        no = keep, yes = "Discard", onNo = onKeep, onYes = onDiscard,
+        no = keep, yes = stringResource(R.string.action_discard), onNo = onKeep, onYes = onDiscard,
     )
 }
 
@@ -76,7 +78,7 @@ fun ConfirmDialog(
                 LineIcon(icon, 20.dp, iconFg, 2.2f)
             }
             Txt(title, 16, 700)
-            Txt(body, 13, 400, C.Muted, maxLines = 4, lineHeight = androidx.compose.ui.unit.TextUnit(20f, androidx.compose.ui.unit.TextUnitType.Sp))
+            Txt(body, 13, 400, C.Muted, maxLines = Int.MAX_VALUE,lineHeight = androidx.compose.ui.unit.TextUnit(20f, androidx.compose.ui.unit.TextUnitType.Sp))
             Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Pill(no, onNo, Modifier.weight(1f), height = 46.dp, size = 14)
                 Pill(yes, onYes, Modifier.weight(1f), bg = yesBg, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700)

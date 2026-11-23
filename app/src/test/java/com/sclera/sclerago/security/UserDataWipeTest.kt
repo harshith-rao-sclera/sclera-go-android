@@ -1,12 +1,14 @@
 package com.sclera.sclerago.security
 
 import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.usecase.access.RefreshAccessOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.CheckSessionOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.ClearUserDataUseCase
 import com.sclera.sclerago.domain.usecase.auth.LogoutUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.domain.usecase.telemetry.TrackSessionChangeUseCase
 import com.sclera.sclerago.presentation.session.SessionViewModel
+import com.sclera.sclerago.testutil.AllowAllAccess
 import com.sclera.sclerago.testutil.CountingCleaner
 import com.sclera.sclerago.testutil.FakeAuthRepository
 import com.sclera.sclerago.testutil.NoopAnalytics
@@ -52,6 +54,7 @@ class UserDataWipeTest {
 
     private fun viewModel(repo: FakeAuthRepository, cleaner: CountingCleaner) = SessionViewModel(
         ObserveAuthStateUseCase(repo), CheckSessionOnForegroundUseCase(repo), LogoutUseCase(repo), ClearUserDataUseCase(setOf(cleaner)), TrackSessionChangeUseCase(NoopAnalytics),
+        RefreshAccessOnForegroundUseCase(AllowAllAccess()),
     )
 
     @Test

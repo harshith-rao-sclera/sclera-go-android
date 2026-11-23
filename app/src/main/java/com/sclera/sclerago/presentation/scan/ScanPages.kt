@@ -68,7 +68,7 @@ fun BluetoothPage(vm: AppViewModel) {
     PullRefresh(list.refreshing, list.onRefresh, Modifier.fillMaxSize(), enabled = !s.btScan) {
         LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             val seg: @Composable () -> Unit = {
-                SegHeader(listOf("Assets", "Scan"), if (s.btScan) 1 else 0) { vm.setBtScan(it == 1) }
+                SegHeader(listOf(stringResource(R.string.label_assets), stringResource(R.string.scrt_scan_tab_scan)), if (s.btScan) 1 else 0) { vm.setBtScan(it == 1) }
             }
             if (!s.btScan) {
                 assetList(list, header = seg)
@@ -83,7 +83,8 @@ fun BluetoothPage(vm: AppViewModel) {
                     devices = vm.btDevices,
                     mono = false,
                     onOpen = vm::openDevice,
-                    onAdd = vm::addDevice,
+                    // Adding needs Collect: without it there is no + and no ticking (a tap says the group can only view).
+                    onAdd = if (vm.mayCollect()) vm::addDevice else null,
                     picks = devicePicks(vm),
                     blocked = ScanService.Target.BLUETOOTH.takeIf { vm.scanBlocked(it) },
                     onRetry = { vm.retryScan(ScanService.Target.BLUETOOTH) },
@@ -103,10 +104,10 @@ fun NetworkPage(vm: AppViewModel) {
             val head: @Composable () -> Unit = {
                 Column(Modifier.background(C.Bg)) {
                     Row(Modifier.fillMaxWidth().background(C.Strip).bottomBorder(C.Border)) {
-                        NetTab("Wi-Fi network", Icons.Wifi, s.netMode == NetMode.WIFI, Modifier.weight(1f)) { vm.setNetMode(NetMode.WIFI) }
-                        NetTab("Access points", Icons.AccessPoint, s.netMode == NetMode.AP, Modifier.weight(1f)) { vm.setNetMode(NetMode.AP) }
+                        NetTab(stringResource(R.string.scrt_scan_wifi_network), Icons.Wifi, s.netMode == NetMode.WIFI, Modifier.weight(1f)) { vm.setNetMode(NetMode.WIFI) }
+                        NetTab(stringResource(R.string.scrt_scan_access_points), Icons.AccessPoint, s.netMode == NetMode.AP, Modifier.weight(1f)) { vm.setNetMode(NetMode.AP) }
                     }
-                    SegHeader(listOf("Assets", "Scan"), if (s.netScan) 1 else 0, top = 8.dp) { vm.setNetScan(it == 1) }
+                    SegHeader(listOf(stringResource(R.string.label_assets), stringResource(R.string.scrt_scan_tab_scan)), if (s.netScan) 1 else 0, top = 8.dp) { vm.setNetScan(it == 1) }
                 }
             }
             if (!s.netScan) {
@@ -123,7 +124,7 @@ fun NetworkPage(vm: AppViewModel) {
                     devices = vm.netDevices,
                     mono = true,
                     onOpen = vm::openDevice,
-                    onAdd = vm::addDevice,
+                    onAdd = if (vm.mayCollect()) vm::addDevice else null,
                     picks = devicePicks(vm),
                     blocked = vm.netTarget.takeIf { vm.scanBlocked(it) },
                     onRetry = { vm.retryScan(vm.netTarget) },
@@ -193,7 +194,8 @@ private fun LazyListScope.scanSection(
     devices: List<Device>,
     mono: Boolean,
     onOpen: (Device) -> Unit,
-    onAdd: (Device) -> Unit,
+    /** Adds a device straight away (its + button); null: the user may not add assets, so no +, ticking or Select all. */
+    onAdd: ((Device) -> Unit)?,
     picks: DevicePicks,
     blocked: ScanService.Target? = null,
     onRetry: () -> Unit = {},
@@ -215,7 +217,7 @@ private fun LazyListScope.scanSection(
             Radar(on, dots, coreIcon)
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(title, 15, 700)
-                Txt(sub, 11, 400, C.Muted, maxLines = 2, align = androidx.compose.ui.text.style.TextAlign.Center)
+                Txt(sub, 11, 400, C.Muted, maxLines = Int.MAX_VALUE, align = androidx.compose.ui.text.style.TextAlign.Center)
             }
             // How far the scan has got, with the percentage done beside it.
             if (on && progress != null) {
@@ -228,13 +230,20 @@ private fun LazyListScope.scanSection(
                     Box(Modifier.weight(1f).height(6.dp).clip(Capsule).background(C.Raised)) {
                         Box(Modifier.fillMaxWidth(progress).fillMaxHeight().clip(Capsule).background(C.Yellow))
                     }
-                    Txt("$pct% done", 11, 700, C.Yellow)
+                    Txt(stringResource(R.string.scrt_scan_percent_done, pct), 11, 700, C.Yellow)
                 }
             }
         }
     }
+    // Without Collect nothing can be added from the list: say so where Select all would be.
+    if (onAdd == null && devices.isNotEmpty()) item(key = "viewonly") {
+        Txt(
+            stringResource(R.string.view_only_no_add), 12, 500, C.Orange,
+            Modifier.readableWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), maxLines = Int.MAX_VALUE,
+        )
+    }
     // How many can still be added, and Select all, while any device is left to add.
-    if (picks.addable > 0) item(key = "selectall") {
+    if (onAdd != null && picks.addable > 0) item(key = "selectall") {
         Row(
             Modifier.readableWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -245,14 +254,14 @@ private fun LazyListScope.scanSection(
                     else pluralStringResource(R.plurals.scan_devices_to_add, picks.addable, picks.addable),
                     12, 600, C.Muted,
                 )
-                if (picks.auto) Txt("New finds are selected too", 11, 500, C.Yellow)
+                if (picks.auto) Txt(stringResource(R.string.scrt_scan_new_finds_selected), 11, 500, C.Yellow, maxLines = Int.MAX_VALUE)
             }
             Row(
                 Modifier.clip(Capsule).clickable(onClick = picks.selectAll).padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Txt(if (picks.allPicked) "Clear all" else "Select all", 12, 700, C.Yellow)
+                Txt(stringResource(if (picks.allPicked) R.string.dash_clear_all else R.string.pi_select_all), 12, 700, C.Yellow)
                 CheckBox(picks.allPicked)
             }
         }
@@ -266,12 +275,13 @@ private fun LazyListScope.scanSection(
         val tap = {
             if (picks.selecting && !added) picks.toggle(d.id) else onOpen(d)
         }
+        val longPress = { if (!added && onAdd != null) picks.toggle(d.id) }
         // The same card spacing as the asset rows (AssetRow): 8dp at the sides, 3dp between cards.
         Row(
             Modifier.readableWidth().padding(horizontal = 8.dp, vertical = 1.5.dp).heightIn(min = 54.dp).clip(r(12))
                 .background(if (picked) C.PickedRow else C.Surface)
                 .border(1.dp, if (picked) C.YTintBd else C.Border, r(12))
-                .combinedClickable(onClick = tap, onLongClick = { if (!added) picks.toggle(d.id) })
+                .combinedClickable(onClick = tap, onLongClick = longPress)
                 .padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -291,7 +301,7 @@ private fun LazyListScope.scanSection(
                     Modifier.size(38.dp).clip(r(10)).clickable { picks.toggle(d.id) },
                     contentAlignment = Alignment.Center,
                 ) { CheckBox(picked) }
-                else -> Box(
+                onAdd != null -> Box(
                     Modifier.size(38.dp).clip(r(10)).background(C.YTintBg).border(1.dp, C.YTintBd, r(10))
                         .clickable { onAdd(d) },
                     contentAlignment = Alignment.Center,

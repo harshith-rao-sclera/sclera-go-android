@@ -43,7 +43,7 @@ private fun CountRow(heading: String, sub: String, count: Int) {
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Txt(heading, 14, 700, maxLines = 2)
-            Txt(sub, 12, 400, C.Muted, maxLines = 4)
+            Txt(sub, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         Txt(count.toString(), 20, 800, C.Yellow)
     }

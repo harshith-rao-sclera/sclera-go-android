@@ -83,7 +83,8 @@ fun DashboardFabs(
     onSearchOpenChange: (Boolean) -> Unit,
     query: String,
     onQueryChange: (String) -> Unit,
-    onAdd: () -> Unit,
+    /** The "+" (add an asset); null hides it (a group without Collect, as the web hides Add). */
+    onAdd: (() -> Unit)?,
     modifier: Modifier = Modifier,
     onFilter: (() -> Unit)? = null,
     filterCount: Int = 0,
@@ -93,7 +94,7 @@ fun DashboardFabs(
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        CircleFab(Icons.Plus, stringResource(R.string.dash_add_asset), onAdd, Modifier.testTag(DashTags.ADD))
+        onAdd?.let { CircleFab(Icons.Plus, stringResource(R.string.dash_add_asset), it, Modifier.testTag(DashTags.ADD)) }
         onFilter?.let { FilterFab(filterCount, it) }
         SearchFab(
             searchOpen, onSearchOpenChange, query, onQueryChange, stringResource(R.string.dash_search_hint),
@@ -146,11 +147,14 @@ fun SelectionDock(
     onOffline: (OnlineOnly) -> Unit = {},
     /** The change-request actions; null hides it (nothing selected is submitted). */
     onChange: (() -> Unit)? = null,
+    /** Greys Submit out (a ticked asset is already submitted, an exception or signed off); a tap then says why. */
+    submitDimmed: Boolean = false,
 ) {
     Column(modifier.testTag(DashTags.DOCK)) {
         ActionDock(
             onValidate = onValidate, onAssign = onAssign, onSubmit = onSubmit, onDelete = onDelete, floating = true,
             onMove = onMove, moveDimmed = moveDimmed, onEdit = onEdit, offline = offline, onOffline = onOffline, onChange = onChange,
+            submitDimmed = submitDimmed,
         ) {
             SelectionSummary(count, visible, allPicked, onClear, onSelectAll, Modifier.testTag(DashTags.SELECT_ALL))
         }

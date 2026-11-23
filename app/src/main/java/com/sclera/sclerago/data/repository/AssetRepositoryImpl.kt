@@ -35,7 +35,7 @@ class AssetRepositoryImpl @Inject constructor(
     @ApplicationScope scope: CoroutineScope,
 ) : AssetRepository {
     override val catalog: StateFlow<AssetCatalog> =
-        source.listReadFlow().map { read -> AssetCatalog(read.assets, loaded = read.open) }.stateIn(scope, SharingStarted.Eagerly, AssetCatalog(loaded = false))
+        source.listReadFlow().map { read -> AssetCatalog(read.assets, loaded = read.open, managed = read.managed) }.stateIn(scope, SharingStarted.Eagerly, AssetCatalog(loaded = false))
 
     override suspend fun add(assets: List<NewAsset>) = writer.add(assets)
 

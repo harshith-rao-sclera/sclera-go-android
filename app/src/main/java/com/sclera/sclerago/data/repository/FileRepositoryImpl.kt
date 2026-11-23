@@ -2,7 +2,6 @@ package com.sclera.sclerago.data.repository
 
 import android.content.Context
 import android.net.Uri
-import com.sclera.sclerago.data.readSheet
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.di.IoDispatcher
@@ -40,9 +39,6 @@ class FileRepositoryImpl @Inject constructor(
             owned.forEach { m -> runCatching { Uri.parse(m.uri).path?.let { File(it).delete() } } }
         }
     }
-
-    override suspend fun readSheet(uri: String): List<List<String>>? =
-        withContext(ioDispatcher) { runCatching { readSheet(context, Uri.parse(uri)) }.getOrNull() }
 
     /** Deletes the user's photos and videos (taken here) and the downloaded reference photos. */
     override fun clear() {

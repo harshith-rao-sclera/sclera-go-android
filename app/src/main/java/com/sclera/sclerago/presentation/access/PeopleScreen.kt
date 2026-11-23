@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -100,18 +101,31 @@ fun PeopleScreen(
             s.groupForm?.let { form ->
                 GroupSheet(
                     initial = form, problem = access::groupProblem, onSave = access::saveGroup, onClose = access::closeGroupForm,
-                    // As on the web, any group but Admins can be deleted (the server refuses one with people in it).
+                    // As on the web, any group but Admins offers Delete (one with people in it then says to move them first).
                     canDelete = form.id.isNotEmpty() && !form.locked, onDelete = access::askDeleteGroup,
                 )
             }
             s.confirmDelete?.let { g ->
                 BackHandler { access.askDeleteGroup(null) }
-                ConfirmDialog(
-                    Icons.Trash, C.DangerBg, C.Red,
-                    stringResource(R.string.access_delete_title, g.name), stringResource(R.string.access_delete_has_people),
-                    stringResource(R.string.action_cancel), stringResource(R.string.access_action_delete),
-                    { access.askDeleteGroup(null) }, { access.deleteGroup(g) },
-                )
+                val members = access.peopleIn(g.id)
+                if (members > 0) {
+                    // As the web: a group that still has people in it isn't sent to the server (which refuses it); their
+                    // users are moved to another group first.
+                    ConfirmDialog(
+                        Icons.Users, C.YTintBg, C.Yellow,
+                        stringResource(R.string.access_delete_not_yet_title, g.name),
+                        pluralStringResource(R.plurals.access_delete_not_yet_body, members, members),
+                        stringResource(R.string.action_cancel), stringResource(R.string.access_go_to_users),
+                        { access.askDeleteGroup(null) }, access::goToUsers, yesBg = C.Yellow,
+                    )
+                } else {
+                    ConfirmDialog(
+                        Icons.Trash, C.DangerBg, C.Red,
+                        stringResource(R.string.access_delete_title, g.name), stringResource(R.string.access_delete_cant_undo),
+                        stringResource(R.string.action_cancel), stringResource(R.string.access_action_delete),
+                        { access.askDeleteGroup(null) }, { access.deleteGroup(g) },
+                    )
+                }
             }
         }
     }
@@ -258,7 +272,7 @@ private fun Blank(title: String, body: String, modifier: Modifier) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Txt(title, 14, 600, align = TextAlign.Center)
-        Txt(body, 13, 400, C.Muted, maxLines = 4, align = TextAlign.Center)
+        Txt(body, 13, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
     }
 }
 
@@ -269,8 +283,8 @@ private fun OthersFooter(list: AccessListState) {
         Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (list.othersLoading) Txt(stringResource(R.string.access_loading_users), 12, 400, C.Muted, Modifier.testTag(AccessTags.LOADING_USERS))
-        list.othersReason?.let { Txt(stringResource(R.string.access_others_unavailable, it.asString()), 12, 400, C.Muted, maxLines = 4) }
+        if (list.othersLoading) Txt(stringResource(R.string.access_loading_users), 12, 400, C.Muted, Modifier.testTag(AccessTags.LOADING_USERS), maxLines = Int.MAX_VALUE)
+        list.othersReason?.let { Txt(stringResource(R.string.access_others_unavailable, it.asString()), 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
     }
 }
 

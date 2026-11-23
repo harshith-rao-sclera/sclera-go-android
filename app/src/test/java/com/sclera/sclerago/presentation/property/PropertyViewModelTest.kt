@@ -68,7 +68,7 @@ class PropertyViewModelTest {
                 ObservePropertiesUseCase(properties), AddPropertyUseCase(properties, guard), ValidatePropertyUseCase(),
                 RefreshPropertiesUseCase(properties), ObserveOnboardingUseCase(onboarding), SetOnboardingUseCase(onboarding, guard),
                 ObservePropertySummariesUseCase(properties, assets), FilterPropertySummariesUseCase(), ObserveCanManagePropertiesUseCase(guard),
-                GetPropertyUseCase(properties), UpdatePropertyUseCase(properties), DeletePropertyUseCase(properties),
+                GetPropertyUseCase(properties), UpdatePropertyUseCase(properties, guard), DeletePropertyUseCase(properties, guard),
             ),
             propertyDownloadUseCases(downloads, network),
             AddressUseCases(SuggestCountriesUseCase(addresses), SuggestStatesUseCase(addresses), SuggestCitiesUseCase(addresses)),

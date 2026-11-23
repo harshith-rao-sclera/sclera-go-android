@@ -2,4 +2,7 @@
 <!-- Side menu additions. English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="menu_switch_property">Switch property</string>
+    <!-- The signed-in user's access couldn't be loaded (main screen, side menu, property list). -->
+    <string name="menu_access_failed">Your access couldn’t be loaded, so pages and changes that need a permission aren’t available yet.</string>
+    <string name="menu_access_retry">Retry</string>
 </resources>

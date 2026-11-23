@@ -318,7 +318,7 @@ fun PlainField(
         ),
         decorator = { inner ->
             Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) {
-                if (state.text.isEmpty()) Txt(placeholder, size, 400, C.Muted, maxLines = minLines)
+                if (state.text.isEmpty()) Txt(placeholder, size, 400, C.Muted, maxLines = if (singleLine) 1 else Int.MAX_VALUE)
                 inner()
             }
         },
@@ -390,6 +390,8 @@ fun ActionDock(
     onOffline: (OnlineOnly) -> Unit = {},
     /** The change-request actions for submitted assets (request, move to draft, decline, withdraw); null hides it. */
     onChange: (() -> Unit)? = null,
+    /** Greys Submit out (as the web's "Some are already submitted"); it still answers a tap, to say why. */
+    submitDimmed: Boolean = false,
     leading: @Composable RowScope.() -> Unit,
 ) {
     // Floating: inset from the edges with rounded corners and a shadow; otherwise flush with a top border.
@@ -420,7 +422,7 @@ fun ActionDock(
                 DockAction(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth())
             }
         }
-        onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item) }
+        onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item.alpha(if (submitDimmed) 0.35f else 1f)) }
         onChange?.let { DockAction(stringResource(R.string.action_change), Icons.Alert, C.Orange, it, item) }
         onMove?.let {
             OfflineGate(offline, { onOffline(OnlineOnly.MOVE_TO_MANAGED) }, item) {

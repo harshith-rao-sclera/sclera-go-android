@@ -103,12 +103,12 @@ class SaveGroupUseCase @Inject constructor(private val repo: AccessRepository, p
 }
 
 /**
- * Deletes a group; returns false for a locked group (Admins), which can't be deleted. The server refuses a group
- * that still has people in it. Throws [OnlineException].
+ * Deletes a group; returns false for a locked group (Admins) or one that still has [members] (people in it), which
+ * can't be deleted (the server refuses them; the web asks for its people to be moved first). Throws [OnlineException].
  */
 class DeleteGroupUseCase @Inject constructor(private val repo: AccessRepository, private val guard: PermissionGuard) {
-    suspend operator fun invoke(g: Group): Boolean {
-        if (g.locked) return false
+    suspend operator fun invoke(g: Group, members: Int = 0): Boolean {
+        if (g.locked || members > 0) return false
         guard.requireOnline(Permission.MANAGE_ACCESS)
         repo.deleteGroup(g.id)
         return true

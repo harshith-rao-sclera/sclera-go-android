@@ -140,7 +140,7 @@ private fun FieldError(message: String) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         LineIcon(Icons.Alert, 14.dp, C.Red, 2.2f)
-        Txt(message, 12, 500, C.Red, Modifier.weight(1f), maxLines = 3)
+        Txt(message, 12, 500, C.Red, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
     }
 }
 
@@ -301,7 +301,7 @@ private fun SignInForm(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(size.gap)) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Txt(stringResource(R.string.login_title), size.title, 700)
-            Txt(stringResource(R.string.login_subtitle), size.subtitle, 400, C.Muted, maxLines = 2)
+            Txt(stringResource(R.string.login_subtitle), size.subtitle, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             BasicTextField(
@@ -354,7 +354,7 @@ private fun SignInForm(
         ) {
             LineIcon(Icons.Lock, size.noteIcon, C.IconGrey, 2.4f)
             Spacer(Modifier.width(6.dp))
-            Txt(stringResource(R.string.login_sso_note), size.note, 400, C.IconGrey)
+            Txt(stringResource(R.string.login_sso_note), size.note, 400, C.IconGrey, maxLines = Int.MAX_VALUE)
         }
     }
 }

@@ -1,11 +1,16 @@
 package com.sclera.sclerago.presentation.assets
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,11 +36,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
@@ -47,14 +54,17 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
-import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.formatDayAndTime
+import com.sclera.sclerago.presentation.common.is24Hour
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.OfflineGate
+import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.r
+import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -80,43 +90,58 @@ fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
 }
 
 /**
- * End of the form of an asset assigned to someone else: read-only for anyone but an admin (the server's check_editable,
- * the web's lock note). What can still be done (Validate) is in the asset bar under it.
+ * Why this user can't change the asset, as one line under the top bar like the change request banner: "No edit access ·
+ * Assigned to someone else" (or "· Submitted"). A tap opens the full reason. Validate and Request change stay in the
+ * asset bar.
  */
 @Composable
-fun NotAssignedCard(modifier: Modifier) {
-    Column(
-        modifier.fillMaxWidth().clip(r(14)).background(C.WarnRow).border(1.dp, C.Border, r(14)).padding(10.dp)
-            .testTag(DetailTags.NOT_ASSIGNED),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(38.dp).clip(r(10)).background(C.WarnRow), contentAlignment = Alignment.Center) {
-                LineIcon(Icons.Lock, 20.dp, C.Orange, 2.2f)
+internal fun LockBanner(lock: AssetLock, modifier: Modifier = Modifier) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val toggle = stringResource(if (open) R.string.change_banner_collapse else R.string.change_banner_expand)
+    val (short, body) = when (lock) {
+        AssetLock.NOT_ASSIGNED -> R.string.lock_banner_not_assigned to R.string.asset_lock_not_assigned
+        AssetLock.NO_PERMISSION -> R.string.lock_banner_no_permission to R.string.lock_banner_no_permission_body
+        else -> R.string.lock_banner_submitted to R.string.detail_submitted_body
+    }
+    Column(modifier.fillMaxWidth().background(C.WarnRow).bottomBorder(C.Orange.copy(alpha = 0.35f)).testTag(DetailTags.LOCK_BANNER)) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(onClickLabel = toggle) { open = !open }.padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            LineIcon(Icons.Lock, 15.dp, C.Orange, 2.2f)
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Txt(stringResource(R.string.lock_banner_title), 13, 700, C.Orange)
+                Txt("·", 12, 400, C.Soft)
+                Txt(stringResource(short), 12, 400, C.Soft, Modifier.weight(1f, fill = false), maxLines = 1)
             }
-            Txt(stringResource(R.string.asset_lock_not_assigned), 12, 500, C.Orange, maxLines = 3, modifier = Modifier.weight(1f))
+            LineIcon(Icons.ChevronDown, 15.dp, C.Orange, 2.6f, Modifier.rotate(if (open) 180f else 0f))
+        }
+        AnimatedVisibility(open, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+            Txt(stringResource(body), 12, 400, C.Soft, Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp), maxLines = Int.MAX_VALUE)
         }
     }
 }
 
 /**
- * End of a submitted asset form: it is read-only now; a change request would reopen it. Validate, Request change and
- * Withdraw are in the asset bar under it; a request already made shows in the banner under the top bar.
+ * Where an asset in Managed Assets would show its validation (the Info tab's validation strip): it is in Managed Assets,
+ * read-only here, and comes back as a draft if Managed Assets sends it back (the web's note). A full-width strip like
+ * the Info sections under it.
  */
 @Composable
-fun SubmittedCard(modifier: Modifier) {
-    Column(
-        modifier.fillMaxWidth().clip(r(14)).background(Status.SUBMITTED.chipBg).border(1.dp, Status.SUBMITTED.chipBd, r(14)).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+fun ManagedNote(modifier: Modifier = Modifier) {
+    Row(
+        modifier.fillMaxWidth().testTag(DetailTags.MANAGED_NOTE).background(C.Surface).topBorder(C.Border).bottomBorder(C.Border)
+            .heightIn(min = 52.dp).padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(38.dp).clip(r(10)).background(C.GreenBg), contentAlignment = Alignment.Center) {
-                LineIcon(Icons.CheckCircle, 20.dp, C.Green, 2.2f)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(stringResource(R.string.status_submitted), 14, 700, C.Green)
-                Txt(stringResource(R.string.detail_submitted_body), 11, 400, C.Muted, maxLines = 3)
-            }
+        Box(Modifier.size(32.dp).clip(r(9)).background(C.YTintBg), contentAlignment = Alignment.Center) {
+            LineIcon(Icons.Managed, 18.dp, C.Yellow, 2f)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Txt(stringResource(R.string.managed_note_title), 13, 700)
+            Txt(stringResource(R.string.managed_note_body), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
     }
 }
@@ -132,11 +157,24 @@ fun StatusLine(asset: Asset, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val st = asset.st
-        Box(
-            Modifier.clip(Capsule).background(st.chipBg).border(1.dp, st.chipBd, Capsule).padding(horizontal = 8.dp, vertical = 4.dp),
-        ) { Txt(stringResource(st.labelRes), 10, 700, st.chipFg) }
+        if (asset.managed) {
+            // In Managed Assets: that is where it stands here (the web's "In Managed Assets").
+            Row(
+                Modifier.clip(Capsule).background(C.YTintBg).border(1.dp, C.Yellow.copy(alpha = 0.7f), Capsule)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                LineIcon(Icons.Managed, 11.dp, C.Yellow, 2.4f)
+                Txt(stringResource(R.string.managed_status), 10, 700, C.Yellow)
+            }
+        } else {
+            Box(
+                Modifier.clip(Capsule).background(st.chipBg).border(1.dp, st.chipBd, Capsule).padding(horizontal = 8.dp, vertical = 4.dp),
+            ) { Txt(stringResource(st.labelRes), 10, 700, st.chipFg) }
+        }
         InfoChip(stringResource(asset.src.viaRes))
-        asset.updatedAt?.let { InfoChip(stringResource(R.string.detail_updated, formatDayAndTime(it, locale)), Modifier.weight(1f, fill = false)) }
+        asset.updatedAt?.let { InfoChip(stringResource(R.string.detail_updated, formatDayAndTime(it, locale, use24Hour = is24Hour())), Modifier.weight(1f, fill = false)) }
     }
 }
 
@@ -254,7 +292,7 @@ private fun Bubble(text: String, maxLines: Int) {
 private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit, offline: Boolean, onBlocked: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         val tip = if (busy) stringResource(R.string.detail_ai_busy) else notice?.asString()
-        if (tip != null) Bubble(tip, if (offline) 4 else 2)
+        if (tip != null) Bubble(tip, Int.MAX_VALUE)
         val inf = rememberInfiniteTransition(label = "ai")
         // Working (a look-up, or filling the form from new photos): the sparkle blinks inside a cyan ring.
         val blink by inf.animateFloat(1f, 0.25f, infiniteRepeatable(tween(550), RepeatMode.Reverse), label = "blink")
@@ -286,8 +324,8 @@ private fun MicButton(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         when {
-            why != null -> Bubble(why, 4)
-            reading -> Bubble(stringResource(R.string.voice_reading), 2)
+            why != null -> Bubble(why, Int.MAX_VALUE)
+            reading -> Bubble(stringResource(R.string.voice_reading), Int.MAX_VALUE)
             listening -> Bubble(heard.ifBlank { stringResource(R.string.voice_listening) }, 3)
         }
         val description = stringResource(if (listening) R.string.voice_stop else R.string.detail_voice_fill)

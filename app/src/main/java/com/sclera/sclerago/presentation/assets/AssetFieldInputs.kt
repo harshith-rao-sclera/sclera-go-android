@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.common.is24Hour
+import com.sclera.sclerago.presentation.common.timeFormatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -75,12 +77,13 @@ fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: B
     var open by remember { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
     val locale = LocalConfiguration.current.locales[0]
+    val clock24 = is24Hour()
     val instant = storedInstant(value)
     val shown = when {
         value.isBlank() -> null
         instant == null -> value
         kind == WhenKind.DATE -> DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(instant.atZone(zone))
-        else -> DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(instant.atZone(zone))
+        else -> timeFormatter(locale, clock24).format(instant.atZone(zone))
     }
     Row(
         Modifier.fillMaxWidth().testTag(DetailTags.field(key)).heightIn(min = 48.dp).topBorder(C.Border).background(rowBg)
@@ -163,7 +166,7 @@ fun MultiCheckRow(key: String, label: String, value: String, options: List<Strin
                         Modifier.size(18.dp).background(if (on) C.Yellow else Color.Transparent, r(4)).border(1.5.dp, if (on) C.Yellow else C.Border2, r(4)),
                         contentAlignment = Alignment.Center,
                     ) { if (on) LineIcon(Icons.Check, 11.dp, C.OnYellow, 3.2f) }
-                    Txt(option, 13, 500)
+                    Txt(option, 13, 500, maxLines = Int.MAX_VALUE)
                 }
             }
         }

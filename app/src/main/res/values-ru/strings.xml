@@ -236,8 +236,6 @@
     <string name="doc_upload">Загрузить документ</string>
     <string name="doc_none">Нет документов</string>
     <string name="doc_category">Категория:</string>
-    <string name="doc_used_for">Используется для:</string>
-    <string name="doc_model">Модель:</string>
     <string name="doc_link">Ссылка:</string>
     <string name="doc_created_by">Автор:</string>
     <string name="doc_ai_source">Источник характеристик ИИ</string>

@@ -1,6 +1,8 @@
 package com.sclera.sclerago.testutil
 
 import com.sclera.sclerago.domain.model.AccessState
+import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.CurrentAccess
 import com.sclera.sclerago.domain.model.AssignResult
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FormEntry
@@ -42,12 +44,14 @@ import com.sclera.sclerago.domain.repository.NetworkMonitor
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.usecase.asset.ApplyChangeActionUseCase
 import com.sclera.sclerago.domain.usecase.asset.ChangeRequestActionsUseCase
 import com.sclera.sclerago.domain.usecase.asset.ChangeRequestUseCases
 import com.sclera.sclerago.domain.usecase.asset.CloseChangeRequestUseCase
 import com.sclera.sclerago.domain.usecase.asset.MarkAssetsValidatedUseCase
+import com.sclera.sclerago.domain.usecase.asset.ObserveSelectionAccessUseCase
 import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.RequestChangeUseCase
 import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
@@ -86,9 +90,19 @@ import kotlinx.coroutines.flow.StateFlow
 // Fakes for the list-loading tests, written against the current repository interfaces. A "gated" repository's
 // refresh() waits until the test finishes or fails it, so the state while the server read runs can be checked.
 
-/** Lets everything through: what the user may do is still loading, so the server decides. */
+/**
+ * Lets everything through: a signed-in user (not an admin) whose group has every permission. (While the access is still
+ * loading nothing is allowed, so the fake is a loaded one.)
+ */
 class AllowAllAccess : CurrentAccessRepository {
-    override val state: StateFlow<AccessState> = MutableStateFlow(AccessState.Loading)
+    override val state: StateFlow<AccessState> = MutableStateFlow(
+        AccessState.Loaded(
+            CurrentAccess(
+                userId = "me", email = "me@example.com", name = null, role = null, organisationId = "org", groupId = "g",
+                groupName = "Everyone", permissions = Permission.entries.toSet(), allProperties = true, canManageProperties = true,
+            ),
+        ),
+    )
 }
 
 fun allowAllGuard() = PermissionGuard(AllowAllAccess())
@@ -168,7 +182,6 @@ class NoFiles : FileRepository {
     override suspend fun describeMedia(uris: List<String>): List<Media> = emptyList()
     override suspend fun describeFiles(uris: List<String>): List<ImportedFile> = emptyList()
     override fun deleteOwned(media: List<Media>) = Unit
-    override suspend fun readSheet(uri: String): List<List<String>>? = null
     override suspend fun writeFile(uri: String, bytes: ByteArray) = false
     override suspend fun copyFile(from: String, to: String) = false
 }
@@ -244,7 +257,7 @@ fun propertyListViewModel(properties: PropertyRepository, assets: AssetRepositor
             ObservePropertiesUseCase(properties), AddPropertyUseCase(properties, guard), ValidatePropertyUseCase(),
             RefreshPropertiesUseCase(properties), ObserveOnboardingUseCase(onboarding), SetOnboardingUseCase(onboarding, guard),
             ObservePropertySummariesUseCase(properties, assets), FilterPropertySummariesUseCase(), ObserveCanManagePropertiesUseCase(guard),
-            GetPropertyUseCase(properties), UpdatePropertyUseCase(properties), DeletePropertyUseCase(properties),
+            GetPropertyUseCase(properties), UpdatePropertyUseCase(properties, guard), DeletePropertyUseCase(properties, guard),
         ),
         PropertyDownloadUseCases(
             ObservePropertyDownloadsUseCase(downloads), StartPropertyDownloadUseCase(downloads, AlwaysOnline),
@@ -260,7 +273,10 @@ fun accessViewModel(repo: AccessRepository): AccessViewModel =
 
 /** The asset lists' view model over [repo] (see [assetUseCases] for the rest of the wiring). */
 fun assetListViewModel(repo: AssetRepository): AssetListViewModel =
-    AssetListViewModel(assetUseCases(repo), ReloadAssetsUseCase(NoReload()), changeRequestUseCases(repo), assetFilterUseCases())
+    AssetListViewModel(
+        assetUseCases(repo), ReloadAssetsUseCase(NoReload()), changeRequestUseCases(repo), assetFilterUseCases(),
+        allowAllGuard().let { ObserveSelectionAccessUseCase(ObserveAccessChangesUseCase(it), it) },
+    )
 
 /** The list filter's use cases with nobody's names from a server and an empty type catalogue. */
 fun assetFilterUseCases(guard: PermissionGuard = allowAllGuard()): AssetFilterUseCases = AssetFilterUseCases(

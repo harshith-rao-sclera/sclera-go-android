@@ -5,6 +5,7 @@ import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.toAsset
 import com.sclera.sclerago.data.mapper.toAssetActivity
 import com.sclera.sclerago.data.mapper.toAssetDetails
+import com.sclera.sclerago.data.mapper.searchText
 import com.sclera.sclerago.data.mapper.toMedia
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.domain.model.Asset
@@ -20,8 +21,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
-/** One read of the asset list: [open] says whether the database was open for it (when not, [assets] is empty). */
-data class AssetsRead(val open: Boolean, val assets: List<Asset>)
+/**
+ * One read of the asset list: [open] says whether the database was open for it (when not, [assets] is empty). [managed]
+ * are the assets in Managed Assets, read alongside and kept apart: [assets] never holds them.
+ */
+data class AssetsRead(val open: Boolean, val assets: List<Asset>, val managed: List<Asset> = emptyList())
 
 /** Spec values shown after the make and model in an asset's one-line detail: database key to unit. */
 private val SPEC_UNITS = listOf("rated_power_kw" to "kW", "voltage" to "V", "speed" to "RPM")
@@ -63,7 +67,7 @@ class AssetsOfflineSource(
      */
     fun listReadFlow(filter: AssetQueryFilter = AssetQueryFilter()): Flow<AssetsRead> =
         db.watch(io, *ASSET_TABLES) {
-            if (db.isOpen && db.hasTable("assets")) AssetsRead(true, loadPage(filter, null, 0, "")) else AssetsRead(false, emptyList())
+            if (db.isOpen && db.hasTable("assets")) AssetsRead(true, loadPage(filter, null, 0, ""), loadManaged()) else AssetsRead(false, emptyList())
         }
 
     /** One page of [list]: [limit] assets from [offset]. */
@@ -110,6 +114,11 @@ class AssetsOfflineSource(
             toAssets(rows, propertyId)
         }
 
+    /** The assets in Managed Assets, newest first: what the Managed assets chip lists (read-only). */
+    private fun loadManaged(): List<Asset> = db.whenTable("assets", emptyList()) {
+        toAssets(db.query("SELECT a.* FROM assets a WHERE ${db.managedAssets("a")} $ASSET_ORDER", emptyList()), "")
+    }
+
     private fun loadCount(filter: AssetQueryFilter): Int = db.whenTable("assets", 0) {
         val where = db.assetWhere(filter)
         db.queryOne("SELECT COUNT(*) AS n FROM assets a WHERE ${where.sql}", where.args)?.int("n") ?: 0
@@ -128,7 +137,8 @@ class AssetsOfflineSource(
     }
 
     private fun loadFull(assetId: String, propertyId: String): AssetFull? = db.whenTable("assets", null) {
-        val row = db.queryOne(ASSET_BY_ID.replace("%LIVE%", db.assetsInAdc("a")), listOf(assetId))
+        // One in Managed Assets opens too (read-only), as the server's GET answers for it.
+        val row = db.queryOne(ASSET_BY_ID.replace("%LIVE%", db.readableAssets("a")), listOf(assetId))
         row?.let {
             val asset = toAssets(listOf(it), propertyId).first()
             val valuesRow = db.whenTable("asset_values", null) { db.queryOne(ASSET_VALUES_ONE, listOf(assetId)) }
@@ -161,6 +171,7 @@ class AssetsOfflineSource(
             val asset = row.toAsset(propertyId, place, formatById[row.string("master_format_id")], media[id].orEmpty())
             asset.copy(
                 detail = detailLine(asset.detail, values[id].orEmpty()),
+                searchText = row.searchText(values[id].orEmpty().values),
                 where = place?.where ?: index.floorOrBuilding(asset.floorId, asset.buildingId),
                 // As the server's recollect_condition: still drafted, and either a reviewer's latest decision sent it back
                 // or Managed Assets (VDMS) returned it.

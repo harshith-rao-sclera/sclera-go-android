@@ -224,8 +224,6 @@
     <string name="doc_upload">อัปโหลดเอกสาร</string>
     <string name="doc_none">ไม่มีเอกสาร</string>
     <string name="doc_category">หมวดหมู่:</string>
-    <string name="doc_used_for">ใช้สำหรับ:</string>
-    <string name="doc_model">รุ่น:</string>
     <string name="doc_link">ลิงก์:</string>
     <string name="doc_created_by">สร้างโดย:</string>
     <string name="doc_ai_source">แหล่งข้อมูลจำเพาะของ AI</string>

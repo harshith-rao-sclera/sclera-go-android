@@ -128,7 +128,7 @@ fun VoiceMemoSheet(onSaved: (Media) -> Unit, onClose: () -> Unit, onFailed: (UiT
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.Mic, 32.dp, if (recording) C.Red else C.Muted, 2.2f) }
                 Txt(formatDuration(elapsed), 28, 800, modifier = Modifier.testTag(MemoTags.TIME))
-                Txt(stringResource(R.string.memo_limit), 12, 500, C.Muted)
+                Txt(stringResource(R.string.memo_limit), 12, 500, C.Muted, maxLines = Int.MAX_VALUE)
             }
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 14.dp),

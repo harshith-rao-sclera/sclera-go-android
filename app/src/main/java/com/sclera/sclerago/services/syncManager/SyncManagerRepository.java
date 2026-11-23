@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.database.Cursor;
 
 import com.sclera.sclerago.services.syncManager.enums.SyncMode;
+import com.sclera.sclerago.services.syncManager.services.CloudSyncService;
 import com.sclera.sclerago.services.syncManager.utils.SyncUtils;
 import com.sclera.sclerago.utility.Utility;
 
@@ -71,6 +72,8 @@ public class SyncManagerRepository {
                         Runnable syncTask = () -> {
                             try {
                                 syncManager.startConnection();
+                                // On every app start too: sends the tags saved without a connection (once per engine).
+                                CloudSyncService.ensureRunning(syncManager);
 
                                 if (syncManager.isSynced == 2) {
                                     syncManager.setCurrentDataSyncMode(SyncMode.POLLING);

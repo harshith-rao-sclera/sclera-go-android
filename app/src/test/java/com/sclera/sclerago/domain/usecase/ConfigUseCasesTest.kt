@@ -7,7 +7,6 @@ import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.ValueRule
 import com.sclera.sclerago.domain.usecase.config.FieldProblem
-import com.sclera.sclerago.domain.usecase.config.ImportFieldsUseCase
 import com.sclera.sclerago.domain.usecase.config.ObserveAssetConfigUseCase
 import com.sclera.sclerago.domain.usecase.config.PhotoBound
 import com.sclera.sclerago.domain.usecase.config.PhotoStepBlock
@@ -19,9 +18,7 @@ import com.sclera.sclerago.domain.usecase.config.photoRulesValid
 import com.sclera.sclerago.domain.usecase.config.photoStepBlock
 import com.sclera.sclerago.domain.usecase.config.stepPhotoRule
 import com.sclera.sclerago.presentation.preview.SAMPLE_FIELDS
-import com.sclera.sclerago.testutil.FakeFileRepository
 import com.sclera.sclerago.testutil.InMemoryAssetConfig
-import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -53,38 +50,6 @@ class ConfigUseCasesTest {
         assertTrue(nameTaken(fields, "manufacturer", "a"))
         assertFalse(nameTaken(fields, " Colour ", "b"))
         assertFalse(nameTaken(fields, " ", "c"))
-    }
-
-    @Test
-    fun importFields_infersKindsFromTheColumnValues() = runTest {
-        val files = FakeFileRepository()
-        val import = ImportFieldsUseCase(files)
-        files.sheet = null
-        assertEquals(ImportFieldsUseCase.Result.Unreadable, import(fields, "u"))
-        files.sheet = listOf(
-            listOf("Weight", "Bought", "Active", "Site", "Kind", "Remarks", "Empty"),
-            listOf("1.5", "2020-01-02", "yes", "https://a", "A", "free text one", ""),
-            listOf("2", "03/04/2021", "No", "http://b", "B", "free text two", ""),
-            listOf("3", "5.6.2022", "y", "https://c", "A", "free text three", ""),
-            listOf("4", "7-8-2023", "n", "https://d", "B", "free text four", ""),
-        )
-        val result = import(fields, "u") as ImportFieldsUseCase.Result.Fields
-        val kinds = result.fields.associate { it.label to it.kind }
-        assertEquals(FieldKind.NUMBER, kinds["Weight"])
-        assertEquals(FieldKind.DATE, kinds["Bought"])
-        assertEquals(FieldKind.YESNO, kinds["Active"])
-        assertEquals(FieldKind.URL, kinds["Site"])
-        assertEquals(FieldKind.DROPDOWN, kinds["Kind"])
-        assertEquals(FieldKind.TEXT, kinds["Remarks"])
-        assertEquals(FieldKind.TEXT, kinds["Empty"])
-        assertEquals(listOf("A", "B"), result.fields.first { it.label == "Kind" }.options)
-        assertTrue(fields.none { it.custom })
-    }
-
-    @Test
-    fun importFields_reportsWhenNothingIsNew() = runTest {
-        val files = FakeFileRepository(listOf(listOf("Name", "model", " ")))
-        assertEquals(ImportFieldsUseCase.Result.NothingNew, ImportFieldsUseCase(files)(fields, "u"))
     }
 
     @Test

@@ -191,6 +191,11 @@ object Icons {
     )
     /** Every building in the app uses the side menu's two-building icon. */
     val Building: Ico get() = Buildings
+    /** In Managed Assets (handed over to the property's VDMS): one tall building with a wing, as the web's status glyph. */
+    val Managed = Ico(
+        s("M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"), s("M15 10h2a2 2 0 0 1 2 2v9"), s("M3 21h18"),
+        s("M9 7.5h2M9 11.5h2M9 15.5h2"),
+    )
     val Floor = Ico(s("M12 3l9 5-9 5-9-5z"), s("M3 13l9 5 9-5"))
     val Info = Ico(s(circle(12f, 12f, 9f)), s("M12 11v6M12 7.5v.5"))
     val Users = Ico(

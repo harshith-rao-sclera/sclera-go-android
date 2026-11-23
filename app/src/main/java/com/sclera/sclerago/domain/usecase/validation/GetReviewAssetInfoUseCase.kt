@@ -1,5 +1,7 @@
 package com.sclera.sclerago.domain.usecase.validation
 
+import com.sclera.sclerago.domain.system.ClockFormat
+import java.util.Locale
 import com.sclera.sclerago.domain.model.ANSWER_NO
 import com.sclera.sclerago.domain.model.ANSWER_YES
 import com.sclera.sclerago.domain.model.CHECKED
@@ -25,6 +27,7 @@ import javax.inject.Inject
 class GetReviewAssetInfoUseCase @Inject constructor(
     private val details: GetAssetDetailsUseCase,
     private val fields: ObserveAssetFieldsUseCase,
+    private val clock: ClockFormat,
 ) {
     suspend operator fun invoke(assetId: String, zone: ZoneId = ZoneId.systemDefault()): ReviewAssetInfo? {
         val values = details(assetId)?.fields ?: return null
@@ -38,7 +41,8 @@ class GetReviewAssetInfoUseCase @Inject constructor(
         val at = v.toLongOrNull()?.let { Instant.ofEpochSecond(it).atZone(zone) }
         return when {
             f.kind == FieldKind.DATE && at != null -> at.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-            f.kind == FieldKind.TIME && at != null -> at.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+            // On the phone's 12/24-hour clock.
+            f.kind == FieldKind.TIME && at != null -> at.format(DateTimeFormatter.ofPattern(if (clock.is24Hour()) "HH:mm" else "h:mm a", Locale.getDefault()))
             f.kind == FieldKind.CHECKBOX -> if (v.equals(CHECKED, ignoreCase = true)) ANSWER_YES else ANSWER_NO
             else -> v
         }

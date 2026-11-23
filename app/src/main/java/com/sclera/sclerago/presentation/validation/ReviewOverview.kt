@@ -73,7 +73,7 @@ internal fun ReviewCard(
                 Txt(title, 15, 700, modifier = Modifier.weight(1f))
                 count?.let { CountBadge(it) }
             }
-            sub?.let { Txt(it, 11, 400, C.Soft, maxLines = 3) }
+            sub?.let { Txt(it, 11, 400, C.Soft, maxLines = Int.MAX_VALUE) }
         }
         content()
     }
@@ -99,10 +99,13 @@ internal fun ReviewHead(j: ValRun) {
             listOfNotNull(
                 scopeText(j),
                 pluralStringResource(R.plurals.rev_steps, j.steps.size, j.steps.size),
-                stringResource(R.string.rev_started, relativeTime(j.startedAt ?: j.createdAt ?: 0L)),
+                relativeTime(j.startedAt ?: j.createdAt ?: 0L).let { at ->
+                    // Who started it, as the web's "by …" (runs started by others are listed too).
+                    j.startedBy?.let { stringResource(R.string.rev_started_by, at, it) } ?: stringResource(R.string.rev_started, at)
+                },
                 took,
             ).joinToString(" · "),
-            11, 500, C.Muted, maxLines = 2,
+            11, 500, C.Muted, maxLines = Int.MAX_VALUE,
         )
     }
 }
@@ -141,7 +144,7 @@ internal fun ReviewSummary(j: ValRun, confident: Int, canCheck: Boolean, busy: B
                     j.status == RunStatus.FAILED -> stringResource(R.string.rev_status_stopped, percent)
                     else -> stringResource(R.string.rev_status_finished)
                 },
-                11, 500, C.Muted, maxLines = 2,
+                11, 500, C.Muted, maxLines = Int.MAX_VALUE,
             )
         }
         if (j.status.active) JobProgress(j) else ResultBar(j.failedCount, j.warningCount, j.passedCount)
@@ -150,7 +153,7 @@ internal fun ReviewSummary(j: ValRun, confident: Int, canCheck: Boolean, busy: B
             StatTile(j.warningCount, stringResource(R.string.rev_stat_look), dot = C.Orange)
             StatTile(j.passedCount, stringResource(R.string.rev_stat_passed), dot = C.Green)
         }
-        j.statusDetail?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, if (j.status == RunStatus.FAILED) C.Red else C.Muted, maxLines = 5) }
+        j.statusDetail?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, if (j.status == RunStatus.FAILED) C.Red else C.Muted, maxLines = Int.MAX_VALUE) }
         if (j.status.finished || j.processed > 0) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (j.status.finished && confident > 0 && canCheck) {
                 Pill(
@@ -187,7 +190,7 @@ private fun RowScope.StatTile(n: Int, label: String, dot: Color? = null, mark: C
 @Composable
 internal fun FieldsToFix(ins: RunInsights) {
     ReviewCard(stringResource(R.string.rev_fields_title), stringResource(R.string.rev_fields_sub), count = ins.topFields.size) {
-        if (ins.topFields.isEmpty()) Txt(stringResource(R.string.rev_fields_none), 11, 400, C.Muted)
+        if (ins.topFields.isEmpty()) Txt(stringResource(R.string.rev_fields_none), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         ins.topFields.forEach { f ->
             Row(Modifier.fillMaxWidth().heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
                 Txt(f.fieldName, 13, 600, modifier = Modifier.weight(1f), maxLines = 2)
@@ -211,7 +214,7 @@ internal fun ReviewProgress(ins: RunInsights) {
             StatTile(ins.applied, stringResource(R.string.rev_fixed))
             StatTile(ins.kept, stringResource(R.string.rev_kept))
         }
-        if (ins.aiSuggested > 0) Txt(stringResource(R.string.rev_ai_applied, ins.aiApplied, ins.aiSuggested), 11, 400, C.Muted)
+        if (ins.aiSuggested > 0) Txt(stringResource(R.string.rev_ai_applied, ins.aiApplied, ins.aiSuggested), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         SmallHeading(stringResource(R.string.rev_assets_label))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatTile(ins.validated, stringResource(R.string.rev_decision_validated))
@@ -263,7 +266,7 @@ private fun StepNode(i: Int, key: String, j: ValRun, steps: Map<String, ValStep>
                 StepState.PENDING -> Txt("${i + 1}", 12, 700, c)
             }
         }
-        Txt("${i + 1}. ${stepShort(steps, key)}", 11, 700, if (on) C.Yellow else C.Text, maxLines = 2, align = TextAlign.Center)
+        Txt(stringResource(R.string.valt_step_numbered, i + 1, stepShort(steps, key)), 11, 700, if (on) C.Yellow else C.Text, maxLines = 2, align = TextAlign.Center)
         Txt(
             when (state) {
                 StepState.FAILED -> stringResource(R.string.rev_step_failed, st?.failed ?: 0)
@@ -282,7 +285,7 @@ private fun StepNode(i: Int, key: String, j: ValRun, steps: Map<String, ValStep>
 internal fun ReviewAssetsHead(j: ValRun, outcome: StepOutcome?, onOutcome: (StepOutcome?) -> Unit) {
     Column(Modifier.padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Txt(stringResource(R.string.rev_assets_label), 15, 700)
-        Txt(stringResource(R.string.rev_assets_sub), 11, 400, C.Soft, maxLines = 2)
+        Txt(stringResource(R.string.rev_assets_sub), 11, 400, C.Soft, maxLines = Int.MAX_VALUE)
     }
     Row(
         Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp),

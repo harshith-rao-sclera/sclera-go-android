@@ -2,11 +2,13 @@ package com.sclera.sclerago.domain.repository
 
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldsRead
 import com.sclera.sclerago.domain.model.Geofence
 import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.NewLocation
 import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.domain.model.PlaceChange
+import com.sclera.sclerago.domain.model.PlacesImported
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.PropertySettings
 
@@ -54,6 +56,15 @@ interface ConfigFieldsRepository {
 
     /** Deletes a field (refused with a conflict when it is built in or assets have answered it). */
     suspend fun delete(propertyId: String, id: String)
+
+    /**
+     * Import from Excel: the server reads the .xlsx [file] (a content URI), one field per row, and returns the new fields to
+     * review; nothing is made. Throws [com.sclera.sclerago.domain.model.SheetRejectedException] when the sheet is wrong.
+     */
+    suspend fun readSheet(propertyId: String, file: String): FieldsRead
+
+    /** The server's sample sheet for Import from Excel (`.xlsx` bytes). */
+    suspend fun importSample(propertyId: String): ByteArray
 }
 
 /**
@@ -80,4 +91,14 @@ interface ConfigPlacesRepository {
     fun saveBuildingInfo(buildingId: String, info: BuildingInfo)
 
     suspend fun delete(propertyId: String, kind: NodeKind, id: String)
+
+    /**
+     * Import buildings: the server reads the .xlsx [file] (a content URI), one location per row with its floor and
+     * building, and makes them in one go (all or nothing). Throws [com.sclera.sclerago.domain.model.SheetRejectedException]
+     * when the sheet is wrong.
+     */
+    suspend fun importSheet(propertyId: String, file: String): PlacesImported
+
+    /** The server's sample sheet for Import buildings (`.xlsx` bytes). */
+    suspend fun importSample(propertyId: String): ByteArray
 }

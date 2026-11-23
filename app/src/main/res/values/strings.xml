@@ -245,12 +245,10 @@
     <string name="action_delete">Delete</string>
     <string name="action_edit">Edit</string>
     <string name="assign_title">Assign asset</string>
-    <string name="assign_primary">Primary assignee</string>
     <string name="assign_clear">Clear</string>
     <string name="assign_select">Select</string>
     <string name="assign_loading">Loading…</string>
     <string name="assign_no_options">No options</string>
-    <string name="assign_add">Add</string>
     <string name="assign_failed">Couldn’t assign the assets.</string>
     <plurals name="assign_done">
         <item quantity="one">%1$d asset assigned to %2$s</item>
@@ -276,7 +274,7 @@
     <string name="nav_network">Network</string>
     <string name="nav_camera">Camera</string>
     <string name="nav_file">File</string>
-    <string name="dash_search_hint">Search name, serial no. or tag</string>
+    <string name="dash_search_hint">Search name, serial no. or any field</string>
     <string name="dash_add_asset">Add asset</string>
     <string name="dash_selected">%1$d selected</string>
     <string name="dash_select_all">Select all %1$d</string>
@@ -333,8 +331,6 @@
     <string name="doc_upload">Upload document</string>
     <string name="doc_none">No Documents</string>
     <string name="doc_category">Category:</string>
-    <string name="doc_used_for">Used for:</string>
-    <string name="doc_model">Model:</string>
     <string name="doc_link">Link:</string>
     <string name="doc_created_by">Created by:</string>
     <string name="doc_ai_source">AI spec source</string>

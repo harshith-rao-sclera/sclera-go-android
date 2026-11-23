@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.tagging
 
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.TaggingError
 import com.sclera.sclerago.domain.model.TaggingException
@@ -14,6 +15,7 @@ fun Throwable.tagFailureText(holderName: ((String) -> String?)? = null): UiText 
         if (error == TaggingError.TAKEN_BY_SUBMITTED && holder != null) UiText.Res(R.string.tag_error_submitted_named, listOf(holder)) else error.toUiText()
     }
     is OnlineException -> error.toUiText()
+    is DataException -> error.toUiText()
     else -> UiText.Res(R.string.tag_error_generic)
 }
 

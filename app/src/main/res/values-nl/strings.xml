@@ -228,8 +228,6 @@
     <string name="doc_upload">Document uploaden</string>
     <string name="doc_none">Geen documenten</string>
     <string name="doc_category">Categorie:</string>
-    <string name="doc_used_for">Gebruikt voor:</string>
-    <string name="doc_model">Model:</string>
     <string name="doc_link">Link:</string>
     <string name="doc_created_by">Gemaakt door:</string>
     <string name="doc_ai_source">AI-specificatiebron</string>

@@ -23,8 +23,15 @@ data class LocNode(
     val linkedToVdms: Boolean = false,
 )
 
-/** What the location picker hands back on Confirm. */
-data class LocPick(val id: String, val label: String, val locs: List<String>, val where: String, val path: List<String>)
+/** What the location picker hands back on Confirm: [id] is a building, floor or location, as [kind] says. */
+data class LocPick(
+    val id: String,
+    val label: String,
+    val locs: List<String>,
+    val where: String,
+    val path: List<String>,
+    val kind: NodeKind,
+)
 
 // ---------------------------------------------------------------- Location tree
 

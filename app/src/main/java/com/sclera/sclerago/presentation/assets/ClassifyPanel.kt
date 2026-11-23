@@ -95,7 +95,7 @@ internal fun ClassifyPanel(
             )
         }
         when (c?.phase) {
-            ClassifyPhase.ERROR -> Txt(c.error?.asString() ?: stringResource(R.string.classify_failed), 12, 500, C.Orange, maxLines = 6)
+            ClassifyPhase.ERROR -> Txt(c.error?.asString() ?: stringResource(R.string.classify_failed), 12, 500, C.Orange, maxLines = Int.MAX_VALUE)
             ClassifyPhase.RESULTS -> Column(Modifier.testTag(ClassifyTags.RESULTS), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Results(c, actions)
             }
@@ -107,13 +107,13 @@ internal fun ClassifyPanel(
 @Composable
 private fun Results(c: ClassifyState, actions: ClassifyActions) {
     val r = c.result ?: return
-    r.message?.let { Txt(it, 12, 500, C.Soft, maxLines = 5) }
+    r.message?.let { Txt(it, 12, 500, C.Soft, maxLines = Int.MAX_VALUE) }
     if (r.suggestions.isEmpty()) {
-        if (r.message == null) Txt(stringResource(R.string.classify_none), 12, 500, C.Soft, maxLines = 4)
+        if (r.message == null) Txt(stringResource(R.string.classify_none), 12, 500, C.Soft, maxLines = Int.MAX_VALUE)
         return
     }
     Choices(r.suggestions, { it.masterFormatId }, { it.masterFormatId == c.picked }, actions.onPickType, ClassifyTags::type) { s ->
-        Txt(typePath(s), 13, 700, maxLines = 3)
+        Txt(typePath(s), 13, 700, maxLines = Int.MAX_VALUE)
         Txt(
             stringResource(
                 R.string.classify_meta, (s.confidence * 100).roundToInt(), stringResource(s.source.labelRes()),
@@ -121,19 +121,19 @@ private fun Results(c: ClassifyState, actions: ClassifyActions) {
             ),
             11, 700, sureColor(s.confidence), maxLines = 1,
         )
-        if (s.reason.isNotBlank()) Txt(s.reason, 12, 400, C.Soft, maxLines = 3)
+        if (s.reason.isNotBlank()) Txt(s.reason, 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
     }
 
     // The picked type's JACS codes, best first: its likeliest is filled with the type; another can be picked here.
     if (c.picked != null) {
         Txt(stringResource(R.string.detail_jacs_code), 12, 700, C.Muted, modifier = Modifier.padding(top = 2.dp))
         when {
-            c.codesLoading -> Txt(stringResource(R.string.classify_jacs_loading), 12, 500, C.Soft, maxLines = 3)
-            c.codes.isEmpty() -> Txt(stringResource(R.string.classify_jacs_none), 12, 500, C.Soft, maxLines = 3)
+            c.codesLoading -> Txt(stringResource(R.string.classify_jacs_loading), 12, 500, C.Soft, maxLines = Int.MAX_VALUE)
+            c.codes.isEmpty() -> Txt(stringResource(R.string.classify_jacs_none), 12, 500, C.Soft, maxLines = Int.MAX_VALUE)
             else -> Choices(c.codes, { it.code }, { it.code == c.code }, actions.onPickCode, ClassifyTags::code) { j ->
-                Txt(listOfNotNull(j.code, j.title).joinToString(" · "), 13, 700, maxLines = 3)
+                Txt(listOfNotNull(j.code, j.title).joinToString(" · "), 13, 700, maxLines = Int.MAX_VALUE)
                 Txt(stringResource(R.string.ai_sure, (j.confidence * 100).roundToInt()), 11, 700, sureColor(j.confidence))
-                j.reason?.let { Txt(it, 12, 400, C.Soft, maxLines = 3) }
+                j.reason?.let { Txt(it, 12, 400, C.Soft, maxLines = Int.MAX_VALUE) }
             }
         }
     }

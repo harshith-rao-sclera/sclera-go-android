@@ -9,15 +9,17 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldChecks
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.SheetRejectedException
 import com.sclera.sclerago.domain.usecase.config.ChecksProblem
 import com.sclera.sclerago.domain.usecase.config.DeleteFieldUseCase
 import com.sclera.sclerago.domain.usecase.config.FieldProblem
 import com.sclera.sclerago.domain.usecase.config.FieldsConfigUseCases
-import com.sclera.sclerago.domain.usecase.config.ImportFieldsUseCase
 import com.sclera.sclerago.domain.usecase.config.SaveFieldUseCase
 import com.sclera.sclerago.domain.usecase.config.SetFieldChecksUseCase
+import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
+import com.sclera.sclerago.presentation.property.PickedSheet
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -31,9 +33,16 @@ import javax.inject.Inject
  * is sent at once; what the server returns replaces the field shown. Messages for the screen come through [messages].
  */
 @HiltViewModel
-class FieldsConfigViewModel @Inject constructor(private val useCases: FieldsConfigUseCases) : ViewModel() {
+class FieldsConfigViewModel @Inject constructor(
+    private val useCases: FieldsConfigUseCases,
+    validateFile: ValidateImportFileUseCase,
+) : ViewModel() {
     private var propertyId = ""
     private var loadJob: Job? = null
+    private val sheetImport = SheetImportFlow(validateFile)
+
+    /** The Import from Excel sheet; null while it is closed. */
+    val importing: SheetImportState? get() = sheetImport.state
 
     var load by mutableStateOf(LoadState.LOADING)
         private set
@@ -150,13 +159,47 @@ class FieldsConfigViewModel @Inject constructor(private val useCases: FieldsConf
         }
     }
 
-    /** Import from Excel: [onReady] gets the new fields to review. */
-    fun importFields(uri: String, onReady: (List<FieldCfg>) -> Unit) {
+    // ---- Import from Excel (as the web's Import: the server reads one field per row; the fields are reviewed before adding)
+
+    fun openImport() = sheetImport.open()
+
+    fun closeImport() = sheetImport.close()
+
+    fun pickImport(file: PickedSheet) = sheetImport.pick(file)
+
+    /** Sample Format: saves the server's sample sheet to [destination] (a document the user picked). */
+    fun saveImportSample(destination: String) {
+        val property = propertyId
+        viewModelScope.launch { say(saveSampleMessage { useCases.saveImportSample(property, destination) }) }
+    }
+
+    /**
+     * Import: the server reads the sheet (nothing is added yet); [onReady] gets the new fields to review in the Add field
+     * sheet. Rows left out (names already there, photos, videos and voice memos) and columns not read are told; a
+     * refused sheet is told in the sheet, with the rows to fix.
+     */
+    fun runImport(onReady: (List<FieldCfg>) -> Unit) {
+        val file = sheetImport.begin() ?: return
+        val property = propertyId
         viewModelScope.launch {
-            when (val r = useCases.importFields(fields, uri)) {
-                ImportFieldsUseCase.Result.Unreadable -> say(UiText.Res(R.string.cfg_import_unreadable))
-                ImportFieldsUseCase.Result.NothingNew -> say(UiText.Res(R.string.cfg_import_fields_nothing_new))
-                is ImportFieldsUseCase.Result.Fields -> onReady(r.fields)
+            try {
+                val r = useCases.importFields(property, file.uri)
+                sheetImport.close()
+                val skipped = skippedReasons(r.skipped)
+                when {
+                    r.fields.isEmpty() && skipped != null -> say(UiText.Res(R.string.cfg_import_fields_nothing, listOf(skipped)))
+                    r.fields.isEmpty() -> say(UiText.Res(R.string.cfg_import_fields_none))
+                    else -> {
+                        skipped?.let { say(UiText.Res(R.string.cfg_import_fields_skipped, listOf(it))) }
+                        onReady(r.fields)
+                    }
+                }
+                ignoredColumnsMessage(r.ignoredColumns)?.let(::say)
+            } catch (e: SheetRejectedException) {
+                sheetImport.refused(refusedMessage(e.rows, R.string.cfg_import_fields_sheet_wrong))
+            } catch (e: OnlineException) {
+                sheetImport.failed()
+                say(importFailure(e))
             }
         }
     }

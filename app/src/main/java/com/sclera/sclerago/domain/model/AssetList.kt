@@ -1,18 +1,45 @@
 package com.sclera.sclerago.domain.model
 
-/** Which assets the Assets pages show by location: everything, the chosen locations, or the unmapped ones. */
+/** Which assets the Assets pages show by location: everything, the chosen place, or the unmapped ones. */
 sealed interface LocationFilter {
     data object All : LocationFilter
-    data class Specific(val locations: List<String>) : LocationFilter
+
+    /**
+     * The assets in [place], by id, as the API's `buildingId` / `floorId` / `locationId` filters: a building keeps every
+     * asset in it, whether it sits on the building itself, on one of its floors or in one of their locations.
+     */
+    data class Specific(val place: PlaceScope) : LocationFilter
+
+    /** The assets placed nowhere: no building, floor or location. */
     data object Unmapped : LocationFilter
 }
+
+/** One building, floor or location as a [PlaceScope] of that [kind]; [id] empty is the whole property. */
+fun placeScopeOf(kind: NodeKind?, id: String): PlaceScope = when {
+    id.isEmpty() || kind == null -> PlaceScope()
+    kind == NodeKind.BUILDING -> PlaceScope(buildingIds = listOf(id))
+    kind == NodeKind.FLOOR -> PlaceScope(floorIds = listOf(id))
+    else -> PlaceScope(locationIds = listOf(id))
+}
+
+/**
+ * Whether [asset] is in these places, as the API filters (`Asset.building_id IN buildingIds AND floor_id IN floorIds AND
+ * location_id IN locationIds`, each only when given): an empty scope holds every asset.
+ */
+fun PlaceScope.holds(asset: Asset): Boolean =
+    (buildingIds.isEmpty() || asset.buildingId in buildingIds) &&
+        (floorIds.isEmpty() || asset.floorId in floorIds) &&
+        (locationIds.isEmpty() || asset.locationId in locationIds)
+
+/** The asset is placed nowhere: no building, floor or location (the Unmapped tab). */
+val Asset.unplaced: Boolean get() = buildingId == null && floorId == null && locationId == null
 
 /** Why an asset list is empty, so the screen can say it in the user's language. */
 enum class EmptyReason { SEARCH, STATUS, FILTER, ASSETS_TAB, SOURCE_TAB }
 
 /**
- * One status chip: [status] null is "All"; [count] is how many of the tab's assets are in it. As the web's tabs (the
- * server's /assets/summary, asked for the whole property), it doesn't follow the chosen location or the search.
+ * One status chip: [status] null is "All"; [count] is how many of the tab's assets are in it. It follows the chosen
+ * location and the filter sheet, but not the search (see BuildAssetListUseCase).
  */
 data class StatusCount(val status: Status?, val count: Int, val selected: Boolean)
 
@@ -27,6 +54,11 @@ data class AssetListData(
     val empty: EmptyReason,
     val changeRequests: ToggleChip? = null,
     val validation: Map<ValidationMark, ToggleChip> = emptyMap(),
+    /**
+     * The Managed assets chip: the assets in Managed Assets that match the other choices (the web's managedCount); null
+     * hides it (none, and it isn't chosen). While it is [ToggleChip.selected], [items] are those assets, read-only.
+     */
+    val managed: ToggleChip? = null,
 )
 
 /** A chip that narrows the list to some assets: [count] of them; [selected] when the list shows only them. */
@@ -48,4 +80,9 @@ data class AssetListQuery(
     val validation: ValidationMark? = null,
     /** The filter sheet's choices (people and types); they narrow the chips as well as the rows. */
     val filter: AssetFilter = AssetFilter(),
+    /**
+     * Narrows it to the assets in Managed Assets (the web's Managed assets tab, one of its tabs: it turns the status,
+     * Change requests and validation chips off). Those are never in the list otherwise.
+     */
+    val managed: Boolean = false,
 )

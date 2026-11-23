@@ -6,44 +6,64 @@ import com.sclera.sclerago.domain.model.AssetListQuery
 import com.sclera.sclerago.domain.model.EmptyReason
 import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.MasterFormat
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
 import com.sclera.sclerago.domain.model.ToggleChip
 import com.sclera.sclerago.domain.model.ValidationMark
+import com.sclera.sclerago.domain.model.hasText
+import com.sclera.sclerago.domain.model.holds
 import com.sclera.sclerago.domain.model.isIn
+import com.sclera.sclerago.domain.model.unplaced
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 /** The status chips in the web's order (its status tabs): Draft, Submitted, Exception, Validated, then AI suggestions. */
 private val CHIP_ORDER = listOf(Status.DRAFT, Status.SUBMITTED, Status.EXCEPTION, Status.VALIDATED, Status.AI)
 
 /**
  * The rows and chips of one asset list: [assets] of the tab's sources, narrowed by location, search text and the chosen
- * chip. The chip counts (status and Change requests) follow the chosen location (all of the property,
- * one location or the unmapped assets) but not the search text. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
+ * chip. The assets in Managed Assets ([managed], never in [assets]) are listed only while the Managed assets chip is on
+ * ([AssetListQuery.managed]), on their own; its count follows the location and the filter, as the other chips. The
+ * chip counts (status and Change requests) follow the chosen location (all of the property,
+ * one building, floor or location, or the unmapped assets) but not the search text. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
  * so it can overlap the other chips. The Change requests chip shows for admins ([AssetListQuery.showChangeRequests]),
  * who act on the requests, and for anyone else only while there are some (as on the web). The Failed validation and
  * Needs a look chips show while some assets have that mark. The filter sheet's choices ([AssetListQuery.filter], read
  * against the type catalogue [formats]) narrow the list and the chip counts alike, as the location does.
  */
 class BuildAssetListUseCase @Inject constructor() {
-    operator fun invoke(assets: List<Asset>, query: AssetListQuery, formats: Map<String, MasterFormat> = emptyMap()): AssetListData {
+    operator fun invoke(
+        assets: List<Asset>,
+        query: AssetListQuery,
+        formats: Map<String, MasterFormat> = emptyMap(),
+        managed: List<Asset> = emptyList(),
+    ): AssetListData {
         val text = query.text.trim().lowercase()
+        // As the API's `q`: the name, manufacturer, model, serial number, description or any other answer.
+        fun searched(list: List<Asset>) = if (text.isEmpty()) list else list.filter { it.hasText(text) }
         // The tab's assets in the chosen location that pass the filter: what the chips count.
         val tab = scope(assets, query).filter { query.filter.matches(it, formats) }
-        val shown = tab.filter { text.isEmpty() || "${it.name} ${it.detail}".lowercase().contains(text) }
-        val changesOn = query.changeRequests
-        val chosen = query.status.takeUnless { changesOn }
-        val markOn = query.validation?.takeIf { chosen == null && !changesOn }
-        val chips = listOf(StatusCount(null, tab.size, chosen == null && !changesOn && markOn == null)) +
+        // The same of the assets in Managed Assets: what the Managed assets chip counts.
+        val inManaged = scope(managed, query).filter { query.filter.matches(it, formats) }
+        val managedOn = query.managed
+        val changesOn = query.changeRequests && !managedOn
+        val chosen = query.status.takeUnless { changesOn || managedOn }
+        val markOn = query.validation?.takeIf { chosen == null && !changesOn && !managedOn }
+        val chips = listOf(StatusCount(null, tab.size, chosen == null && !changesOn && markOn == null && !managedOn)) +
             CHIP_ORDER.map { st -> StatusCount(st, tab.count { it.isIn(st) }, chosen == st) }
         val reason = when {
             text.isNotEmpty() -> EmptyReason.SEARCH
-            chosen != null || changesOn || markOn != null -> EmptyReason.STATUS
+            chosen != null || changesOn || markOn != null || managedOn -> EmptyReason.STATUS
             !query.filter.isEmpty -> EmptyReason.FILTER
             query.sources == null -> EmptyReason.ASSETS_TAB
             else -> EmptyReason.SOURCE_TAB
         }
-        val items = shown.filter {
+        val items = if (managedOn) searched(inManaged) else searched(tab).filter {
             (chosen == null || it.isIn(chosen)) && (!changesOn || it.changeRequest != null) &&
                 (markOn == null || it.validationMark == markOn)
         }
@@ -51,17 +71,20 @@ class BuildAssetListUseCase @Inject constructor() {
         val changeChip = ToggleChip(changeCount, changesOn).takeIf { query.showChangeRequests || changeCount > 0 || changesOn }
         val markChips = ValidationMark.entries.associateWith { m -> ToggleChip(tab.count { it.validationMark == m }, markOn == m) }
             .filterValues { it.count > 0 || it.selected }
-        return AssetListData(items, chips, reason, changeChip, markChips)
+        // As the web's optional Managed assets tab: shown while there are some, or while it is chosen.
+        val managedChip = ToggleChip(inManaged.size, managedOn).takeIf { it.count > 0 || it.selected }
+        return AssetListData(items, chips, reason, changeChip, markChips, managedChip)
     }
 
     /** The tab's assets ([AssetListQuery.sources]) in the chosen location, before the filter, chips and search. */
     fun scope(assets: List<Asset>, query: AssetListQuery): List<Asset> =
         assets.filter { (query.sources == null || it.src in query.sources) && inLocation(it, query.location) }
 
+    /** By building, floor and location id, as the API's filters (see [LocationFilter]). */
     private fun inLocation(a: Asset, filter: LocationFilter) = when (filter) {
         LocationFilter.All -> true
-        is LocationFilter.Specific -> a.loc != null && a.loc in filter.locations
-        LocationFilter.Unmapped -> a.loc == null
+        is LocationFilter.Specific -> filter.place.holds(a)
+        LocationFilter.Unmapped -> a.unplaced
     }
 }
 
@@ -85,3 +108,42 @@ class SelectAllUseCase @Inject constructor() {
         return if (pickable.isNotEmpty() && picked.containsAll(pickable)) emptySet() else picked + pickable
     }
 }
+
+/**
+ * What the signed-in user's access says, for the asset lists' selection: which permissions they have, whether they are an
+ * admin and who they are (whose assets count as assigned to someone else). All false (and no one) while it isn't known.
+ */
+data class SelectionAccess(
+    val collect: Boolean = false,
+    val check: Boolean = false,
+    val validate: Boolean = false,
+    val admin: Boolean = false,
+    val userId: String? = null,
+)
+
+/**
+ * [SelectionAccess], again whenever the access is fetched or changes, so what the selection offers (and which assets can
+ * be ticked) follows the user's group at once rather than when the list next changes.
+ */
+class ObserveSelectionAccessUseCase @Inject constructor(
+    private val changes: ObserveAccessChangesUseCase,
+    private val guard: PermissionGuard,
+) {
+    operator fun invoke(): Flow<SelectionAccess> = changes().map { now() }.distinctUntilChanged()
+
+    /** The access as it is now. */
+    fun now(): SelectionAccess = SelectionAccess(
+        collect = guard.allows(Permission.COLLECT),
+        check = guard.allows(Permission.CHECK),
+        validate = guard.allows(Permission.VALIDATE),
+        admin = guard.isAdmin(),
+        userId = guard.userId(),
+    )
+}
+
+/**
+ * As the web's selection bar, Submit can't be used (it shows greyed out, "Some are already submitted") while any of
+ * [assets] is no longer being collected: submitted, an exception or signed off. The server would leave those as they are.
+ */
+fun someAlreadySubmitted(assets: Collection<Asset>): Boolean =
+    assets.any { it.st != Status.DRAFT && it.st != Status.INPUT && it.st != Status.AI }

@@ -134,7 +134,7 @@ fun ValidationBanner(validation: AssetValidation?, onOpen: () -> Unit) {
         OutcomeIcon(v.outcome)
         Txt(
             stringResource(R.string.val_banner, v.problems.size, v.steps.size, problemCountText(v)),
-            13, 600, modifier = Modifier.weight(1f), maxLines = 3,
+            13, 600, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE,
         )
         LineIcon(Icons.ChevronRight, 14.dp, C.Muted, 2.4f)
     }
@@ -157,7 +157,7 @@ fun ValidationTab(
         Txt(
             stringResource(R.string.val_none_message), 13, 500, C.Soft,
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 32.dp).testTag(ValidationTags.NONE),
-            maxLines = 4, align = TextAlign.Center,
+            maxLines = Int.MAX_VALUE, align = TextAlign.Center,
         )
         return
     }
@@ -191,8 +191,8 @@ fun ValidationTab(
         )
     }
     if (v.runs.size > 1) {
-        val runs = v.runs.map { "${it.jobName} ${agoText(it.checkedAt)}" }.joinToString(", ")
-        Txt(stringResource(R.string.val_every_step_from, v.runs.size, runs), 11, 400, C.Soft, maxLines = 4)
+        val runs = v.runs.map { stringResource(R.string.scrt_val_run_checked_ago, it.jobName, agoText(it.checkedAt)) }.joinToString(", ")
+        Txt(stringResource(R.string.val_every_step_from, v.runs.size, runs), 11, 400, C.Soft, maxLines = Int.MAX_VALUE)
     }
     // Every step in one card.
     Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))) {
@@ -239,7 +239,7 @@ private fun StepRow(step: StepResult, v: AssetValidation, startsHere: Boolean, d
             if (v.runs.size > 1) Txt(step.jobName, 10, 500, C.Muted)
             if (step.outcome.problem) {
                 val issues = v.issuesFor(step)
-                if (issues.isEmpty()) Txt(stringResource(R.string.val_no_issues), 12, 400, C.Muted)
+                if (issues.isEmpty()) Txt(stringResource(R.string.val_no_issues), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 issues.forEach { IssueRow(it) }
             }
         }
@@ -272,15 +272,15 @@ private fun IssueRow(issue: StepIssue) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (label != null) Txt(label, 12, 600, maxLines = 2)
                 if (label != null && next != null) {
-                    if (now != null) Txt(issueNowText(now), 12, 400, if (now is IssueNow.Text) C.Soft else C.Muted, maxLines = 2)
+                    if (now != null) Txt(issueNowText(now), 12, 400, if (now is IssueNow.Text) C.Soft else C.Muted, maxLines = Int.MAX_VALUE)
                     val changeTo = stringResource(R.string.val_issue_change_to)
                     Txt("→", 12, 400, C.Muted, modifier = Modifier.semantics { contentDescription = changeTo })
-                    Txt(next, 12, 600, maxLines = 2, modifier = Modifier.weight(1f, fill = false))
+                    Txt(next, 12, 600, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f, fill = false))
                 } else {
-                    Txt(issue.message, 12, 400, maxLines = 6, modifier = Modifier.weight(1f, fill = false))
+                    Txt(issue.message, 12, 400, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f, fill = false))
                 }
             }
-            if (open) details.forEach { Txt(it, 11, 400, C.Muted, maxLines = 6) }
+            if (open) details.forEach { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
         }
         issueStatusText(issue.status)?.let { Txt(it, 10, 500, C.Muted) }
     }

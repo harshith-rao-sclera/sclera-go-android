@@ -244,8 +244,6 @@
     <string name="doc_upload">رفع مستند</string>
     <string name="doc_none">لا توجد مستندات</string>
     <string name="doc_category">الفئة:</string>
-    <string name="doc_used_for">يُستخدم لـ:</string>
-    <string name="doc_model">الطراز:</string>
     <string name="doc_link">الرابط:</string>
     <string name="doc_created_by">أنشأه:</string>
     <string name="doc_ai_source">مصدر مواصفات الذكاء الاصطناعي</string>

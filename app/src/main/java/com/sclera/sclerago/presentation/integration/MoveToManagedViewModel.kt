@@ -6,11 +6,13 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessState
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.MovePreview
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.VdmsAssignee
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.integration.ManagedAssetsUseCases
 import com.sclera.sclerago.presentation.common.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,9 +50,15 @@ data class MoveUiState(
 
 /** "Move to Managed assets" on the asset list selection, as the web's asset list: validated assets go to the linked VDMS. */
 @HiltViewModel
-class MoveToManagedViewModel @Inject constructor(private val useCases: ManagedAssetsUseCases) : ViewModel() {
+class MoveToManagedViewModel @Inject constructor(
+    private val useCases: ManagedAssetsUseCases,
+    accessChanges: ObserveAccessChangesUseCase,
+) : ViewModel() {
     var state by mutableStateOf(MoveUiState())
         private set
+
+    /** The signed-in user's access as last seen; [offered] reads it, so a screen showing the action follows a change to it. */
+    private var access by mutableStateOf<AccessState?>(null)
 
     private val message = MutableSharedFlow<UiText>(extraBufferCapacity = 8)
 
@@ -60,6 +68,10 @@ class MoveToManagedViewModel @Inject constructor(private val useCases: ManagedAs
     private var bindJob: Job? = null
     private var searchJob: Job? = null
     private var previewJob: Job? = null
+
+    init {
+        viewModelScope.launch { accessChanges().collect { access = it } }
+    }
 
     private fun set(f: MoveUiState.() -> MoveUiState) {
         state = state.f()
@@ -91,7 +103,7 @@ class MoveToManagedViewModel @Inject constructor(private val useCases: ManagedAs
     }
 
     /** Whether the action shows for the selected [assets]: one of them is validated (it may still be greyed out, see [blockedReason]). */
-    fun offered(assets: Collection<Asset>): Boolean = useCases.offered(assets)
+    fun offered(assets: Collection<Asset>): Boolean = access.let { useCases.offered(assets) }
 
     /** Why the action can't be used right now, or null when it can: the link first, then the Validated filter (the web's Validated tab). */
     fun blockedReason(onValidatedFilter: Boolean): UiText? = when (state.block) {

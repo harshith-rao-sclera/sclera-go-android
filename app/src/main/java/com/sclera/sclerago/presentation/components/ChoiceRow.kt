@@ -55,7 +55,7 @@ internal fun <T> ChoiceList(
                 if (multi) CheckBox(on, r(4), checkSize = 10.dp, size = 16.dp, stroke = 1.5.dp) else SmallRadio(on)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     Txt(title(item), 13, if (on) 600 else 500, maxLines = 2)
-                    subtitle(item)?.let { Txt(it, 11, 400, C.Muted, maxLines = 2) }
+                    subtitle(item)?.let { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
                 }
             }
         }

@@ -100,7 +100,7 @@ internal fun CloneSheet(
             Box(Modifier.testTag(CloneTags.QUANTITY)) {
                 SheetInput(copies, { copies = it.filter(Char::isDigit).take(3) }, stringResource(R.string.clone_quantity_hint), keyboard = KeyboardType.Number)
             }
-            Txt(stringResource(R.string.clone_quantity_range), 11, 500, if (valid) C.Muted else C.Orange)
+            Txt(stringResource(R.string.clone_quantity_range), 11, 500, if (valid) C.Muted else C.Orange, maxLines = Int.MAX_VALUE)
         }
 
         Txt(stringResource(R.string.clone_pick_title), 14, 700)

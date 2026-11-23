@@ -224,8 +224,6 @@
     <string name="doc_upload">Unggah dokumen</string>
     <string name="doc_none">Tidak ada dokumen</string>
     <string name="doc_category">Kategori:</string>
-    <string name="doc_used_for">Digunakan untuk:</string>
-    <string name="doc_model">Model:</string>
     <string name="doc_link">Tautan:</string>
     <string name="doc_created_by">Dibuat oleh:</string>
     <string name="doc_ai_source">Sumber spesifikasi AI</string>

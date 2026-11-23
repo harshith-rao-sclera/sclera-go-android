@@ -87,7 +87,7 @@ fun ReviewScreen(
                 Row(Modifier.readableWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Txt(stringResource(R.string.review_title), 16, 700)
-                        Txt(sub, 11, 400, C.Muted)
+                        Txt(sub, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     }
                     if (onAdd != null) Pill(addLabel, onAdd, Modifier.testTag(ReviewTags.ADD))
                 }
@@ -107,9 +107,9 @@ fun ReviewScreen(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Txt(ri.name, 14, 600)
-                        Txt(ri.sub.asString(), 11, 400, C.Muted)
+                        Txt(ri.sub.asString(), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                         if (ri.note != null) {
-                            Txt(ri.note.asString(), 11, 600, ri.noteColor.takeOrElse { C.Muted }, maxLines = 3)
+                            Txt(ri.note.asString(), 11, 600, ri.noteColor.takeOrElse { C.Muted }, maxLines = Int.MAX_VALUE)
                         } else {
                             Txt(
                                 stringResource(if (ri.ready) R.string.review_ready else R.string.review_needs_input),

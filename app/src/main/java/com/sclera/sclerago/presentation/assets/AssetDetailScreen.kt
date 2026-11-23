@@ -1,6 +1,5 @@
 package com.sclera.sclerago.presentation.assets
 
-import com.sclera.sclerago.domain.model.DocumentSource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -45,9 +44,12 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.AssetLock
+import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
 import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ConfirmDialog
@@ -64,7 +66,6 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.model.chipBg
-import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
 import com.sclera.sclerago.presentation.tagging.TagUiState
 import com.sclera.sclerago.presentation.tagging.TagsBar
 import com.sclera.sclerago.presentation.theme.C
@@ -87,6 +88,8 @@ fun AssetDetailScreen(
     val asset = state.asset ?: return
     val isNew = state.isNew
     val locked = state.locked
+    // Photos, videos and documents: read-only like the rest, and on a signed-off asset for an admin too (the web's).
+    val mediaLocked = locked || (!isNew && asset.st == Status.VALIDATED)
     val tabs = detailTabs(state)
     // Going from one asset to the next keeps the tab that's open (Media stays Media), as on the web; a newly opened details screen starts on Info.
     var chosen by rememberSaveable { mutableStateOf(DetailTabKind.INFO) }
@@ -146,15 +149,20 @@ fun AssetDetailScreen(
         Column(Modifier.fillMaxSize()) {
             TopBar(state, onBack = ::back, onName = { actions.onEdit("name", it) }, onClone = actions.onOpenClone)
             // A change request on a submitted (or signed-off) asset: one line under the top bar on every tab, opened on a tap.
-            asset.changeRequest?.takeIf { !isNew && (asset.st == Status.SUBMITTED || asset.st == Status.VALIDATED) }?.let { request ->
+            // (None for one in Managed Assets: it is read-only here.)
+            val request = asset.changeRequest?.takeIf { !isNew && !state.managed && (asset.st == Status.SUBMITTED || asset.st == Status.VALIDATED) }
+            request?.let {
                 ChangeRequestBanner(
-                    request, state.changeRequestMine, state.changeRequester,
+                    it, state.changeRequestMine, state.changeRequester,
                     // An admin can change a submitted asset (it isn't locked for them): theirs to decline or reopen.
                     admin = !locked,
                     onClose = actions.changeRequest.onClose,
                     onReopen = { modal = DetailModal.APPROVE_REQUEST },
                 )
             }
+            // Read-only for this user (someone else's, or submitted): the same kind of line says why, unless a change
+            // request already shows. (One in Managed Assets says so at the top of Info.)
+            state.lock?.takeIf { locked && !isNew && request == null && it != AssetLock.MANAGED }?.let { LockBanner(it) }
             // The bar follows the pages live: while they move it shows the page they are heading to (past halfway on a drag,
             // straight away for a tapped tab), not the one picked when they stop.
             val barTab = if (pager.isScrollInProgress) kinds.getOrNull(pager.targetPage) ?: tab else tab
@@ -186,32 +194,51 @@ fun AssetDetailScreen(
                             DetailTabKind.INFO -> {
                                 // The Tags bar first (a new asset has its id already, so it can be tagged too), then the photos,
                                 // with a + that opens the camera (as the Media tab's Camera, into Other photos).
-                                TagsBar(tags, actions.tags, enabled = !isSubmittedOrSignedOff(asset.st))
-                                InfoPhotoStrip(state.media, onAdd = if (locked) null else ({ actions.onAddPhoto(null) }), onOpen = open)
-                                // A step that failed or needs a look shows first; tapping it opens the Validation tab.
-                                ValidationBanner(state.validation) { chosen = DetailTabKind.VALIDATION }
+                                // Tagging changes the asset (its tag flags), so only for whoever may change it (collect,
+                                // theirs or nobody's unless an admin, not in Managed Assets), and, as the old app, never
+                                // a submitted or signed-off asset.
+                                TagsBar(tags, actions.tags, enabled = state.canEdit && !isSubmittedOrSignedOff(asset.st))
+                                InfoPhotoStrip(state.media, onAdd = if (mediaLocked) null else ({ actions.onAddPhoto(null) }), onOpen = open)
+                                if (state.managed) {
+                                    // In Managed Assets: said once, where its validation would be (its checks went with the move).
+                                    ManagedNote()
+                                } else {
+                                    // A step that failed or needs a look shows first; tapping it opens the Validation tab.
+                                    ValidationBanner(state.validation) { chosen = DetailTabKind.VALIDATION }
+                                }
                                 AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it })
                             }
                             DetailTabKind.VALIDATION -> {
                                 // Validating again is done by the server: offline the last synced results show under a banner.
                                 if (!state.online) OfflineBanner(OnlineOnly.REVALIDATE)
-                                ValidationTab(state.validation, onOpenRun = actions.onOpenRun)
+                                // The link to the run opens the Validation page, so only for who may check (that page
+                                // needs it), and not for one in Managed Assets (the web's mayCheck).
+                                ValidationTab(state.validation, onOpenRun = actions.onOpenRun.takeIf { state.canCheck && !state.managed })
                             }
                             // The documents added to the asset and its web documents; its source file shows in Media, under Videos.
-                            DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents.filter { it.source != DocumentSource.SOURCE_FILE }, locked) { removeDoc = it }
+                            DetailTabKind.DOCUMENTS -> DocumentsTab(state.documents.filter { it.source != DocumentSource.SOURCE_FILE }, mediaLocked) { removeDoc = it }
                             DetailTabKind.MEDIA -> MediaTab(
                                 state.media, state.photoRules, open, sorting = state.sortingPhotos,
                                 sourceFile = state.documents.firstOrNull { it.source == DocumentSource.SOURCE_FILE },
-                                canRemoveSource = !locked, onRemoveSource = { removeDoc = it },
+                                // The uploaded file isn't the asset's: who may delete it is the server's rule for files
+                                // (its `removable`), whether or not the asset can be changed; not from Managed Assets.
+                                canRemoveSource = !state.managed, onRemoveSource = { removeDoc = it },
+                                // Only while adding an asset: its photos can be dragged between the kinds.
+                                onMove = if (isNew && !locked) actions.onMovePhoto else null,
                             )
                             DetailTabKind.COMMENTS -> {
-                                // The list runs edge to edge; the box keeps the other tabs' margin.
-                                CommentBox(
-                                    state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment,
-                                    Modifier.padding(horizontal = maxOf(pageGutter(), PhoneSide)),
-                                )
+                                // The list runs edge to edge; the box keeps the other tabs' margin. None for one in Managed
+                                // Assets: its comments are read-only (the web's).
+                                if (state.mayComment) {
+                                    CommentBox(
+                                        state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment,
+                                        Modifier.padding(horizontal = maxOf(pageGutter(), PhoneSide)),
+                                    )
+                                }
                                 // As the web: a signed-off asset's comments can't be changed or removed.
-                                CommentList(state.activity, readOnly = asset.st == Status.VALIDATED, onSave = actions.onUpdateComment) { removeComment = it }
+                                CommentList(
+                                    state.activity, readOnly = asset.st == Status.VALIDATED || state.managed, onSave = actions.onUpdateComment,
+                                ) { removeComment = it }
                             }
                             DetailTabKind.HISTORY -> HistoryList(state.activity)
                             else -> AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it })
@@ -240,12 +267,12 @@ fun AssetDetailScreen(
             }
         }
         // Documents and Media add with floating buttons, like the other pages.
-        if (!locked && tab == DetailTabKind.DOCUMENTS) {
+        if (!mediaLocked && tab == DetailTabKind.DOCUMENTS) {
             Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
                 UploadDocumentFab(actions.onUploadDocument, Modifier.align(Alignment.BottomEnd))
             }
         }
-        if (!locked && tab == DetailTabKind.MEDIA) {
+        if (!mediaLocked && tab == DetailTabKind.MEDIA) {
             Box(Modifier.align(Alignment.BottomCenter).readableWidth()) {
                 MediaFabs(
                     state.media, state.photoRules, actions.onAddPhoto, actions.onPickFiles, actions.onRecordMemo,
@@ -291,7 +318,7 @@ fun AssetDetailScreen(
                 m, onClose = { preview = null },
                 onDownload = actions.onDownloadMedia,
                 // As the web: media can be removed unless the asset is read-only (a new asset's too, before it is saved).
-                onRemove = if (locked) null else ({ removeMedia = it }),
+                onRemove = if (mediaLocked) null else ({ removeMedia = it }),
             ) }
         }
         removeMedia?.let { m ->
@@ -476,7 +503,9 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
         }
         // Clone (the web's header button): copies of this asset as saved; with unsaved changes it is dimmed and says why.
         // A yellow outlined pill with its icon and label, as the iOS app's; the tap area is the full 48dp high.
-        if (!state.isNew) {
+        // Also for one in Managed Assets (the copies are new drafts; the original doesn't change), as the web's; not for a
+        // group that can't collect (the copies would be refused).
+        if (state.canClone) {
             Box(
                 Modifier.heightIn(min = 48.dp).clip(Capsule).clickable(role = Role.Button, onClick = onClone)
                     .alpha(if (state.dirtyCount == 0) 1f else 0.4f).testTag(DetailTags.CLONE),

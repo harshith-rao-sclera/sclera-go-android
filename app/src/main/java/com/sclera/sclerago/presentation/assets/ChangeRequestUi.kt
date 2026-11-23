@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.common.is24Hour
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -96,14 +97,14 @@ internal fun ChangeRequestLine(
             val who = requester ?: stringResource(if (mine) R.string.change_request_you else R.string.change_request_someone)
             val locale = LocalConfiguration.current.locales[0]
             Txt(
-                request.requestedAt?.let { stringResource(R.string.change_request_by_on, who, formatDateAndTime(it, locale)) }
+                request.requestedAt?.let { stringResource(R.string.change_request_by_on, who, formatDateAndTime(it, locale, use24Hour = is24Hour())) }
                     ?: stringResource(R.string.change_request_by, who),
-                12, if (banner) 400 else 700, C.Orange, maxLines = 2,
+                12, if (banner) 400 else 700, C.Orange, maxLines = Int.MAX_VALUE,
             )
             // As the web: what needs changing, or that nothing was said.
             val note = request.note?.takeIf { it.isNotBlank() }
-            if (note != null) Txt(stringResource(R.string.change_request_note_line, note), 12, 400, C.Soft, maxLines = 6)
-            else Txt(stringResource(R.string.change_request_note_none), 12, 400, C.Muted, italic = true)
+            if (note != null) Txt(stringResource(R.string.change_request_note_line, note), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
+            else Txt(stringResource(R.string.change_request_note_none), 12, 400, C.Muted, italic = true, maxLines = Int.MAX_VALUE)
         }
     }
 }
@@ -191,7 +192,7 @@ internal fun ChangeRequestDialog(
                 LineIcon(Icons.Pencil, 20.dp, C.Orange, 2.2f)
             }
             Txt(title, 16, 700)
-            Txt(stringResource(R.string.change_request_body), 13, 400, C.Muted, maxLines = 4)
+            Txt(stringResource(R.string.change_request_body), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
             Box(Modifier.testTag(ChangeRequestTags.NOTE)) {
                 LabeledInput(
                     stringResource(R.string.change_request_note_label), note, onNote, stringResource(R.string.change_request_note_hint),

@@ -232,8 +232,6 @@
     <string name="doc_upload">Enviar documento</string>
     <string name="doc_none">Nenhum documento</string>
     <string name="doc_category">Categoria:</string>
-    <string name="doc_used_for">Usado para:</string>
-    <string name="doc_model">Modelo:</string>
     <string name="doc_link">Link:</string>
     <string name="doc_created_by">Criado por:</string>
     <string name="doc_ai_source">Fonte de especificações da IA</string>

@@ -107,7 +107,7 @@ internal fun SelectionChangeDialogs(state: AssetListState, list: AssetListViewMo
                         ChangeRequestLine(request, list.isMine(request), list.requesterName(request))
                     }
                     if (asked.size > MAX_REQUESTS_SHOWN) {
-                        Txt(stringResource(R.string.change_requests_more, asked.size - MAX_REQUESTS_SHOWN), 12, 500, C.Muted)
+                        Txt(stringResource(R.string.change_requests_more, asked.size - MAX_REQUESTS_SHOWN), 12, 500, C.Muted, maxLines = Int.MAX_VALUE)
                     }
                 },
                 onNo = list::closeChange, onYes = list::applyChange,
@@ -135,7 +135,7 @@ private fun ChangeConfirm(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Txt(title, 16, 700)
-            Txt(body, 13, 400, C.Muted, maxLines = 6)
+            Txt(body, 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
             requests()
             Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Pill(stringResource(R.string.action_cancel), onNo, Modifier.weight(1f), height = 48.dp, size = 14)

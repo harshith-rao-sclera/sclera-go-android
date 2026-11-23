@@ -44,6 +44,7 @@ import com.sclera.sclerago.domain.model.photoCounts
 import com.sclera.sclerago.domain.model.photoRoom
 import com.sclera.sclerago.domain.model.photosShort
 import com.sclera.sclerago.domain.model.taggedByFields
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.asset.AddAssetFieldUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetFormUseCases
 import com.sclera.sclerago.domain.usecase.asset.AssetHandling
@@ -165,6 +166,8 @@ data class AssetDetailState(
     val lock: AssetLock? = null,
     /** The signed-in user may validate the asset (the server's check permission; validate includes it). */
     val canCheck: Boolean = true,
+    /** Clone is offered: a saved asset (one in Managed Assets too), for a group that can collect (the copy would be refused). */
+    val canClone: Boolean = true,
     /**
      * The open asset can go back to draft from here (the web's asset bar Move to draft): an exception for whoever may work
      * on it, or a submitted / validated asset for an admin while nobody has asked for a change (then it's Approve).
@@ -179,6 +182,8 @@ data class AssetDetailState(
     val pendingPlace: LocValue? = null,
     /** The device is online; offline, the server-only actions (AI, voice, Suggest type, Validate, Assign) say so instead. */
     val online: Boolean = true,
+    /** The user may comment (collect or validate), as the web's comment box; not on a signed-off asset or one in Managed Assets. */
+    val mayComment: Boolean = false,
 ) {
     val values: Map<String, String> get() = saved + edits
     fun value(key: String): String = edits[key] ?: saved[key].orEmpty()
@@ -190,8 +195,17 @@ data class AssetDetailState(
     /** The signed-in user may change this asset. */
     val canEdit: Boolean get() = lock == null
 
-    /** Read-only for anyone but an admin: submitted or validated (until a recollect is requested), or someone else's. */
+    /**
+     * Read-only for anyone but an admin: submitted or validated (until a recollect is requested), or someone else's; and
+     * for everyone while it is in Managed Assets.
+     */
     val locked: Boolean get() = !isNew && !canEdit
+
+    /**
+     * In Managed Assets ([Asset.managed]): read-only for everyone, admins too. No AI suggestions, validating, comments,
+     * media, change requests or moves; a note says so where its validation would show.
+     */
+    val managed: Boolean get() = !isNew && asset?.managed == true
 
     /** The tags the asset's "QR / Barcode / NFC Tagged" fields say it carries (shown in the Tags bar, not the form). */
     val fieldTags: Set<TagKind> get() = taggedByFields(fields.associate { it.label to saved[it.key].orEmpty() })
@@ -273,6 +287,7 @@ class AssetDetailViewModel @Inject constructor(
     private val addField: AddAssetFieldUseCase,
     private val removeField: RemoveAssetFieldUseCase,
     private val deleteOwned: DeleteOwnedMediaUseCase,
+    observeAccess: ObserveAccessChangesUseCase,
 ) : ViewModel() {
     private data class Target(val asset: Asset, val isNew: Boolean, val prefill: Map<String, String>)
 
@@ -329,9 +344,13 @@ class AssetDetailViewModel @Inject constructor(
 
     /**
      * The classifier's part of the screen, the JACS code picker and whether the device is online, as one (the screen's
-     * state takes five sources).
+     * state takes five sources), again whenever the signed-in user's access changes.
      */
-    private val pickers = combine(classifier.ui, jacsPicker.state, observeOnline()) { classified, jacs, online -> Triple(classified, jacs, online) }
+    private val pickers = combine(classifier.ui, jacsPicker.state, observeOnline(), observeAccess()) { classified, jacs, online, _ ->
+        // The access itself isn't kept: a change to it (fetched, changed, failed) only makes the screen work out its
+        // permission checks again (lock, Check, Clone, comments, own fields, change actions, tags).
+        Triple(classified, jacs, online)
+    }
 
     /** Messages to flash after saving, submitting, validating or adding media. */
     val notices: SharedFlow<UiText> = message.asSharedFlow()
@@ -364,7 +383,9 @@ class AssetDetailViewModel @Inject constructor(
             when {
                 t == null -> null
                 t.isNew -> Opened(t, t.asset, null)
-                else -> catalog.assets.firstOrNull { it.id == t.asset.id }.let { a -> Opened(t, a, a?.let { useCases.details(it.id) }) }
+                // One in Managed Assets is kept apart from the others; it opens read-only.
+                else -> (catalog.assets.firstOrNull { it.id == t.asset.id } ?: catalog.managed.firstOrNull { it.id == t.asset.id })
+                    .let { a -> Opened(t, a, a?.let { useCases.details(it.id) }) }
             }
         }
 
@@ -399,13 +420,19 @@ class AssetDetailViewModel @Inject constructor(
                 changeNote = f.changeNote, changeRequestMine = changeRequests.isMine(asset.changeRequest), admin = changeRequests.isAdmin(),
                 cloneOpen = f.cloneOpen && !t.isNew, cloning = f.cloning,
                 aiManuals = f.aiManuals, manualsSearching = f.manualsSearching,
-                canAddField = !t.isNew && addField.allowed(),
+                canAddField = !t.isNew && !asset.managed && addField.allowed(),
                 addFieldOpen = f.addFieldOpen && !t.isNew, addingField = f.addingField, addFieldError = f.addFieldError,
                 changeRequester = changeRequests.requesterName(asset.changeRequest),
                 lock = if (t.isNew) null else canEditAsset.lock(asset),
-                canCheck = formData.revalidate.allowed(),
-                // The change-request actions (and the admin's sign-off) this asset offers, as the web's asset bar.
-                changeActions = if (t.isNew) emptyList() else
+                mayComment = useCases.addComment.allowed() && !asset.managed && asset.st != Status.VALIDATED,
+                // One in Managed Assets isn't validated again here (its checks went with the move).
+                canCheck = !asset.managed && formData.revalidate.allowed(),
+                // Every saved asset, one in Managed Assets too (as the web's: the copies are new drafts), for a group that
+                // can collect.
+                canClone = !t.isNew && useCases.canWorkOn.canCollect(),
+                // The change-request actions (and the admin's sign-off) this asset offers, as the web's asset bar (none for
+                // one in Managed Assets: it is read-only here).
+                changeActions = if (t.isNew || asset.managed) emptyList() else
                     (changeRequests.signOff(listOf(asset)) + changeRequests.actions(listOf(asset))).filter { it.blocked == null }.map { it.action },
                 classify = classified.sheet,
                 jacs = jacs,
@@ -535,7 +562,7 @@ class AssetDetailViewModel @Inject constructor(
     fun save() {
         val s = state.value
         val id = s.asset?.id ?: return
-        if (s.dirtyCount == 0) return
+        if (s.dirtyCount == 0 || s.managed) return
         write {
             // An edit keeps the asset's status, as the server's; its AI flag is worked out again from its empty fields. The
             // place picked goes in with the rest of the changes, in one history line.
@@ -554,6 +581,7 @@ class AssetDetailViewModel @Inject constructor(
     fun submit() {
         val s = state.value
         val id = s.asset?.id ?: return
+        if (s.managed) return
         write {
             useCases.saveDetails(id, s.values, Status.SUBMITTED, sources = aiPages(s), place = s.pendingPlace)
             clearEditsOnceRefreshed(s)
@@ -634,7 +662,7 @@ class AssetDetailViewModel @Inject constructor(
     private fun addPicked(picked: List<Media>) {
         val s = state.value
         val asset = s.asset ?: return
-        if (picked.isEmpty()) return
+        if (picked.isEmpty() || s.managed) return
         // A kind that is full (by its card, or as sorted off the photo) passes the extra photos to Other photos.
         val (media, moved) = fitPhotoRules(s.photoRules, s.media, picked)
         if (moved > 0) message.tryEmit(UiText.Plural(R.plurals.photos_to_other, moved))
@@ -746,6 +774,28 @@ class AssetDetailViewModel @Inject constructor(
         write {
             useCases.removeMedia(asset.id, m.id)
             message.emit(UiText.Res(R.string.media_removed))
+        }
+    }
+
+    /**
+     * Moves a new asset's photo [m] to the card of [kind] (null: Other photos), within that kind's most photos; a saved
+     * asset's photos keep their kind. It is saved with the asset in that kind.
+     */
+    fun movePhoto(m: Media, kind: PhotoKind?) {
+        val s = state.value
+        if (!s.isNew || s.locked || m.category == kind || m.video || m.audio || m.isDoc || m.fieldId != null) return
+        if (kind != null) {
+            val max = s.photoRules.firstOrNull { it.kind == kind }?.max ?: 0
+            if (s.media.count { it.category == kind && !it.video && !it.audio && !it.isDoc } >= max) {
+                message.tryEmit(UiText.Res(R.string.media_kind_full, listOf(UiText.Res(kind.nameRes()), max)))
+                return
+            }
+        }
+        val moved = { x: Media -> if (x.id == m.id) x.copy(category = kind) else x }
+        if (form.value.newPicks.any { it.id == m.id }) {
+            form.update { f -> f.copy(newPicks = f.newPicks.map(moved)) }
+        } else {
+            target.update { t -> if (t != null && t.isNew) t.copy(asset = t.asset.copy(media = t.asset.media.map(moved))) else t }
         }
     }
 
@@ -987,7 +1037,7 @@ class AssetDetailViewModel @Inject constructor(
      */
     fun openClone() {
         val s = state.value
-        if (s.asset == null || s.isNew) return
+        if (s.asset == null || !s.canClone) return
         if (s.dirtyCount > 0) {
             message.tryEmit(UiText.Res(R.string.clone_save_first))
             return
@@ -1004,7 +1054,7 @@ class AssetDetailViewModel @Inject constructor(
     fun clone(copies: Int, place: ClonePlace, keys: Set<String>) {
         val s = state.value
         val source = s.asset ?: return
-        if (s.isNew || form.value.cloning) return
+        if (s.isNew || !s.canClone || form.value.cloning) return
         val values = s.saved.filterKeys { it in keys }.filterValues { it.isNotBlank() }
         val request = CloneRequest(copies = copies, place = place, values = values, keepType = CLONE_TYPE_KEYS.all { it in keys })
         form.update { it.copy(cloning = true) }
@@ -1041,7 +1091,7 @@ class AssetDetailViewModel @Inject constructor(
     fun addOwnField(name: String, kind: FieldKind) {
         val s = state.value
         val asset = s.asset ?: return
-        if (s.isNew || form.value.addingField) return
+        if (s.isNew || s.managed || form.value.addingField) return
         form.update { it.copy(addingField = true, addFieldError = null) }
         viewModelScope.launch {
             try {
@@ -1085,13 +1135,17 @@ class AssetDetailViewModel @Inject constructor(
         }
     }
 
-    fun openChangeRequest() = form.update { it.copy(changeNote = state.value.asset?.changeRequest?.note.orEmpty()) }
+    fun openChangeRequest() {
+        if (state.value.managed) return
+        form.update { it.copy(changeNote = state.value.asset?.changeRequest?.note.orEmpty()) }
+    }
 
     fun editChangeNote(text: String) = form.update { it.copy(changeNote = text.take(CHANGE_NOTE_MAX)) }
 
     fun cancelChangeRequest() = form.update { it.copy(changeNote = null) }
 
     fun sendChangeRequest() {
+        if (state.value.managed) return
         val id = state.value.asset?.id ?: return
         val note = form.value.changeNote ?: return
         form.update { it.copy(changeNote = null) }
@@ -1106,6 +1160,7 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         val asset = s.asset ?: return
         val request = asset.changeRequest ?: return
+        if (s.managed) return
         val declining = s.admin && !s.changeRequestMine
         write {
             changeRequests.close(asset.id, request)
@@ -1115,6 +1170,7 @@ class AssetDetailViewModel @Inject constructor(
 
     /** An admin reopens the asset: back to draft, which closes its change request, as the server's. */
     fun reopenAsset() {
+        if (state.value.managed) return
         val id = state.value.asset?.id ?: return
         write {
             useCases.setStatus(listOf(id), Status.DRAFT)
@@ -1124,6 +1180,7 @@ class AssetDetailViewModel @Inject constructor(
 
     /** Back to draft (the web's Move to draft): an exception to be collected again, or an admin reopening a submitted asset. */
     fun moveToDraft() {
+        if (state.value.managed) return
         val id = state.value.asset?.id ?: return
         write {
             useCases.setStatus(listOf(id), Status.DRAFT)
@@ -1133,6 +1190,7 @@ class AssetDetailViewModel @Inject constructor(
 
     /** An admin signs the submitted asset off without a validation run (the server's bulk validate). */
     fun markValidated() {
+        if (state.value.managed) return
         val id = state.value.asset?.id ?: return
         write {
             val outcome = changeRequests.markValidated(listOf(id))
@@ -1352,7 +1410,7 @@ class AssetDetailViewModel @Inject constructor(
     fun revalidate(fromStart: Boolean = false) {
         val s = state.value
         val id = s.asset?.id ?: return
-        if (s.isNew || form.value.validating) return
+        if (s.isNew || s.managed || form.value.validating) return
         val before = s.validation
         form.update { it.copy(validating = true) }
         viewModelScope.launch {
@@ -1379,6 +1437,7 @@ class AssetDetailViewModel @Inject constructor(
     /** Takes a web page off the asset (after the confirmation), as the web's remove on a document does. */
     /** Takes [document] off the asset: a web page it came from, or its uploaded file. */
     fun removeDocument(document: AssetDocument) {
+        if (state.value.managed) return
         // A document added to the asset is one of its media: it goes as Media's remove takes it off.
         if (document.source == DocumentSource.ATTACHMENT) {
             state.value.media.firstOrNull { it.id == document.id }?.let { removeMedia(it) }
@@ -1398,7 +1457,7 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         val id = s.asset?.id ?: return
         val draft = form.value.commentDraft
-        if (s.isNew || form.value.commentPosting) return
+        if (s.isNew || s.managed || form.value.commentPosting) return
         form.update { it.copy(commentPosting = true) }
         viewModelScope.launch {
             try {
@@ -1418,6 +1477,7 @@ class AssetDetailViewModel @Inject constructor(
 
     /** Saves the new [text] of [comment]; [onSaved] once it is saved (otherwise what is wrong is flashed). */
     fun updateComment(comment: AssetActivity, text: String, onSaved: () -> Unit) {
+        if (state.value.managed) return
         viewModelScope.launch {
             try {
                 val problem = useCases.updateComment(comment, text)
@@ -1429,7 +1489,10 @@ class AssetDetailViewModel @Inject constructor(
     }
 
     /** Removes [comment] (after the screen asked), as the web's Delete. */
-    fun removeComment(comment: AssetActivity) = write { useCases.removeComment(comment) }
+    fun removeComment(comment: AssetActivity) {
+        if (state.value.managed) return
+        write { useCases.removeComment(comment) }
+    }
 
     private fun CommentProblem.problemText(): UiText = when (this) {
         CommentProblem.EMPTY -> UiText.Res(R.string.detail_comment_empty)

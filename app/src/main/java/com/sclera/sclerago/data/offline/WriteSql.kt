@@ -1,5 +1,7 @@
 package com.sclera.sclerago.data.offline
 
+import com.sclera.sclerago.data.mapper.VDMS_MOVED
+
 // Every statement the offline writers run, with `?` for each value. `%LIVE%` stands for the "not removed" condition
 // of the table (`is_removed = 0` once the sync engine has added that column). The engine's change triggers record
 // each insert and update, so a row is inserted without the sync columns (`changes`, `flag`, `sync_timestamp`,
@@ -19,6 +21,9 @@ internal const val ASSET_INSERT = """INSERT INTO assets (id, name, building_id, 
 
 /** Whether AI suggestions could fill an empty field, worked out again after the answers or fields change (the server's refresh_ai_suggestion). */
 internal const val ASSET_SET_AI_SUGGESTION = "UPDATE assets SET ai_suggestion = ? WHERE id = ?"
+
+/** The asset is in Managed Assets (vdms_state MOVED): every change to it is refused, as the server answers 404. */
+internal const val ASSET_IN_MANAGED = "SELECT 1 FROM assets WHERE id = ? AND COALESCE(vdms_state, 0) = $VDMS_MOVED"
 
 /** Deleted in a property linked to a VDMS: VDMS has to confirm it (the server's vdms_state DELETING). */
 internal const val ASSET_VDMS_DELETING = "UPDATE assets SET vdms_state = 5 WHERE id = ?"

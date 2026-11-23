@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -14,8 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
@@ -36,38 +39,38 @@ private val RedBd = Color(0xFF4A2827)
 /** What to say about one scan's permission. */
 private class ScanPermText(
     val icon: Ico,
-    val sheetTitle: String,
-    val sheetBody: String,
+    @param:StringRes val sheetTitle: Int,
+    @param:StringRes val sheetBody: Int,
     val blockedIcon: Ico,
-    val blockedTitle: String,
-    val blockedBody: String,
-    val settingsStep: String,
+    @param:StringRes val blockedTitle: Int,
+    @param:StringRes val blockedBody: Int,
+    @param:StringRes val settingsStep: Int,
 )
 
 private fun textFor(t: ScanService.Target): ScanPermText = when (t) {
     ScanService.Target.BLUETOOTH -> ScanPermText(
         Icons.Bluetooth,
-        "Find Bluetooth tags nearby",
-        "To see asset tags and sensors near you.",
-        Icons.Bluetooth, "Nearby devices is blocked",
-        "Sclera Go needs Nearby devices to find Bluetooth tags and sensors.",
-        "Allow Nearby devices",
+        R.string.scrt_perm_bt_title,
+        R.string.scrt_perm_bt_body,
+        Icons.Bluetooth, R.string.scrt_perm_bt_blocked_title,
+        R.string.scrt_perm_bt_blocked_body,
+        R.string.scrt_perm_bt_settings_step,
     )
     ScanService.Target.NETWORK -> ScanPermText(
         Icons.Wifi,
-        "Find devices on this network",
-        "To find devices on the Wi-Fi you're connected to.",
-        Icons.Wifi, "Local network is blocked",
-        "Android won't let Sclera Go reach other devices on your Wi-Fi without it.",
-        "Allow access to the local network",
+        R.string.scrt_perm_net_title,
+        R.string.scrt_perm_net_body,
+        Icons.Wifi, R.string.scrt_perm_net_blocked_title,
+        R.string.scrt_perm_net_blocked_body,
+        R.string.scrt_perm_net_settings_step,
     )
     ScanService.Target.ACCESS_POINTS -> ScanPermText(
         Icons.AccessPoint,
-        "See Wi-Fi access points",
-        "To list the access points in range.",
-        Icons.Unmapped, "Location is blocked",
-        "Android only lists access points to apps with Location access.",
-        "Allow Location while using the app",
+        R.string.scrt_perm_ap_title,
+        R.string.scrt_perm_ap_body,
+        Icons.Unmapped, R.string.scrt_perm_ap_blocked_title,
+        R.string.scrt_perm_ap_blocked_body,
+        R.string.scrt_perm_ap_settings_step,
     )
 }
 
@@ -95,13 +98,13 @@ fun PermissionSheet(target: ScanService.Target, onContinue: () -> Unit, onNotNow
                 contentAlignment = Alignment.Center,
             ) { LineIcon(t.icon, 32.dp, C.Yellow, 2f) }
             Spacer(Modifier.height(14.dp))
-            Txt(t.sheetTitle, 17, 700, maxLines = 2, align = TextAlign.Center)
+            Txt(stringResource(t.sheetTitle), 17, 700, maxLines = 2, align = TextAlign.Center)
             Spacer(Modifier.height(6.dp))
-            Txt(t.sheetBody, 13, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
+            Txt(stringResource(t.sheetBody), 13, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Pill("Not now", onNotNow, Modifier.weight(1f), height = 48.dp, size = 14)
-                Pill("Allow", onContinue, Modifier.weight(1.4f), bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700)
+                Pill(stringResource(R.string.scrt_perm_not_now), onNotNow, Modifier.weight(1f), height = 48.dp, size = 14)
+                Pill(stringResource(R.string.scrt_perm_allow), onContinue, Modifier.weight(1.4f), bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700)
             }
         }
     }
@@ -124,21 +127,21 @@ fun BlockedCard(target: ScanService.Target, onRetry: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) { LineIcon(t.blockedIcon, 32.dp, C.Red, 2f) }
         Spacer(Modifier.height(12.dp))
-        Txt(t.blockedTitle, 16, 700, maxLines = 2, align = TextAlign.Center)
+        Txt(stringResource(t.blockedTitle), 16, 700, maxLines = 2, align = TextAlign.Center)
         Spacer(Modifier.height(4.dp))
-        Txt(t.blockedBody, 12, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
+        Txt(stringResource(t.blockedBody), 12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
         Spacer(Modifier.height(14.dp))
         Column(
             Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Txt("In Settings", 12, 700, C.Soft)
-            Txt("1 · Open Permissions", 12, 400, C.Muted)
-            Txt("2 · ${t.settingsStep}", 12, 400, C.Muted, maxLines = 2)
+            Txt(stringResource(R.string.scrt_perm_in_settings), 12, 700, C.Soft)
+            Txt(stringResource(R.string.scrt_perm_step_open_permissions), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+            Txt(stringResource(R.string.scrt_perm_step_two, stringResource(t.settingsStep)), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
         Spacer(Modifier.height(14.dp))
-        Pill("Open settings", { openAppSettings(context) }, Modifier.fillMaxWidth(), bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700)
+        Pill(stringResource(R.string.camera_open_settings), { openAppSettings(context) }, Modifier.fillMaxWidth(), bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700)
         Spacer(Modifier.height(4.dp))
-        Pill("Try again", onRetry, bg = Color.Transparent, fg = C.Yellow, height = 40.dp, size = 14, weight = 700)
+        Pill(stringResource(R.string.ai_try_again), onRetry, bg = Color.Transparent, fg = C.Yellow, height = 40.dp, size = 14, weight = 700)
     }
 }

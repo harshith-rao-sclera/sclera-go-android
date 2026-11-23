@@ -122,7 +122,7 @@ fun AiSuggestDialog(d: AiDialogState, state: AssetDetailState, actions: AiDialog
                         AiPhase.LOADING -> repeat(3) { Box(Modifier.fillMaxWidth().height(36.dp).background(C.Raised, r(8))) }
                         AiPhase.IDENTIFY -> Identify(d, state, actions)
                         AiPhase.SEARCHING -> Searching(d)
-                        AiPhase.ERROR -> Txt(d.error?.asString() ?: stringResource(R.string.ai_failed), 13, 500, maxLines = 6)
+                        AiPhase.ERROR -> Txt(d.error?.asString() ?: stringResource(R.string.ai_failed), 13, 500, maxLines = Int.MAX_VALUE)
                         AiPhase.RESULTS -> if (nothing) NothingFound(d) else Results(d, state, actions)
                     }
                 }
@@ -149,9 +149,9 @@ private fun NothingFound(d: AiDialogState) {
         LineIcon(Icons.Sparkles, 26.dp, C.Cyan.copy(alpha = 0.6f), 2.2f)
         Txt(
             d.lookup?.message?.trim()?.removeSuffix(".")?.takeIf { it.isNotEmpty() } ?: stringResource(R.string.ai_no_suggestions),
-            15, 700, maxLines = 4, align = TextAlign.Center,
+            15, 700, maxLines = Int.MAX_VALUE, align = TextAlign.Center,
         )
-        if (lookedUp.isNotEmpty()) Txt(lookedUp, 12, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
+        if (lookedUp.isNotEmpty()) Txt(lookedUp, 12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
     }
 }
 
@@ -161,7 +161,7 @@ private fun Header(name: String, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f).padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Txt(stringResource(R.string.ai_title), 18, 800)
-            Txt(stringResource(R.string.ai_sheet_subtitle, name), 12, 400, C.Soft, maxLines = 4)
+            Txt(stringResource(R.string.ai_sheet_subtitle, name), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
         }
         CloseButton(onClose, size = 36.dp, iconSize = 16.dp)
     }
@@ -170,7 +170,7 @@ private fun Header(name: String, onClose: () -> Unit) {
 /** The manufacturer and model to look up, labelled with the property's own field names. */
 @Composable
 private fun Identify(d: AiDialogState, state: AssetDetailState, actions: AiDialogActions) {
-    Txt(d.error?.asString() ?: stringResource(R.string.ai_identify_lead), 13, 500, maxLines = 5)
+    Txt(d.error?.asString() ?: stringResource(R.string.ai_identify_lead), 13, 500, maxLines = Int.MAX_VALUE)
     val spec = FieldSpec(state.fields)
     LabeledBox(spec.label("make", stringResource(R.string.ai_make_label)).removeSuffix(" *"), d.make, stringResource(R.string.ai_make_hint)) {
         actions.onIdentity(it, d.model)
@@ -178,7 +178,7 @@ private fun Identify(d: AiDialogState, state: AssetDetailState, actions: AiDialo
     LabeledBox(spec.label("model", stringResource(R.string.ai_model_label)).removeSuffix(" *"), d.model, stringResource(R.string.ai_model_hint)) {
         actions.onIdentity(d.make, it)
     }
-    Txt(stringResource(R.string.ai_typed_note), 11, 400, C.Muted, maxLines = 3)
+    Txt(stringResource(R.string.ai_typed_note), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
 }
 
 @Composable
@@ -212,7 +212,7 @@ private fun Searching(d: AiDialogState) {
         LineIcon(Icons.Sparkles, 20.dp, C.Cyan.copy(alpha = 0.6f), 2.2f)
         Txt(
             if (what.isNotEmpty()) stringResource(R.string.ai_searching_for, what) else stringResource(R.string.ai_searching),
-            14, 700, modifier = Modifier.weight(1f), maxLines = 2,
+            14, 700, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE,
         )
     }
     val percent = (95 * (1 - exp(-seconds / 18.0))).roundToInt()
@@ -237,12 +237,12 @@ private fun Searching(d: AiDialogState) {
                         reached -> Box(Modifier.size(7.dp).background(C.Yellow, CircleShape))
                     }
                 }
-                Txt(stringResource(step), 13, if (reached && !done) 700 else 500, if (reached && !done) C.Text else C.Soft)
+                Txt(stringResource(step), 13, if (reached && !done) 700 else 500, if (reached && !done) C.Text else C.Soft, maxLines = Int.MAX_VALUE)
             }
         }
     }
     val wait = stringResource(if (seconds < 30) R.string.ai_wait_short else R.string.ai_wait_long)
-    Txt("$wait ${seconds}s", 12, 400, C.Soft, maxLines = 3)
+    Txt(stringResource(R.string.scrt_ai_wait_seconds, wait, seconds), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
 }
 
 /**
@@ -265,7 +265,7 @@ private fun Results(d: AiDialogState, state: AssetDetailState, actions: AiDialog
 
     Summary(d, rows.map { it.key })
     if (typed.isNotEmpty()) {
-        Txt(stringResource(R.string.ai_also_saves, typed.joinToString(", ") { (f, v) -> "$f “$v”" }), 12, 400, C.Soft, maxLines = 4)
+        Txt(stringResource(R.string.ai_also_saves, typed.map { (f, v) -> stringResource(R.string.scrt_ai_typed_value, f, v) }.joinToString(", ")), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
     }
     if (type != null) TypeCard(type, d.typeOn == true, actions.onToggleType)
     if (rows.isNotEmpty()) FieldsCard(d, rows, state, actions)
@@ -275,7 +275,7 @@ private fun Results(d: AiDialogState, state: AssetDetailState, actions: AiDialog
     val manuals = state.aiManuals.ifEmpty { state.documents.filter { it.source == DocumentSource.MANUAL } }
     if (manuals.isNotEmpty()) ManualsCard(manuals)
     if (state.manualsSearching || (manuals.isEmpty() && lookup?.manualsSearch == true)) {
-        Txt(stringResource(R.string.ai_manuals_search), 12, 400, C.Soft, maxLines = 3)
+        Txt(stringResource(R.string.ai_manuals_search), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
     }
 }
 
@@ -338,7 +338,7 @@ private fun Summary(d: AiDialogState, shown: List<String>) {
             color = C.Soft, fontSize = 13.sp, fontFamily = ScleraFonts.Inter, lineHeight = 18.sp,
         )
     } else {
-        Txt(parts.joinToString(" "), 13, 400, C.Soft, maxLines = 4)
+        Txt(parts.joinToString(" "), 13, 400, C.Soft, maxLines = Int.MAX_VALUE)
     }
 }
 
@@ -353,9 +353,9 @@ private fun TypeCard(t: LookupType, on: Boolean, onToggle: () -> Unit) {
         AiTick(on, onToggle)
         Column(Modifier.weight(1f).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Txt(stringResource(R.string.ai_type_title), 13, 700)
-            Txt(t.label ?: listOfNotNull(t.systemType, t.assetType, t.subtype).filter { it.isNotBlank() }.joinToString(" › "), 14, 700, C.Yellow, maxLines = 3)
+            Txt(t.label ?: listOfNotNull(t.systemType, t.assetType, t.subtype).filter { it.isNotBlank() }.joinToString(" › "), 14, 700, C.Yellow, maxLines = Int.MAX_VALUE)
             t.jacsCode?.let { Txt(stringResource(R.string.ai_type_jacs, it), 12, 500, C.Soft, maxLines = 1) }
-            if (t.reason.isNotBlank()) Txt(t.reason, 12, 400, C.Soft, maxLines = 4)
+            if (t.reason.isNotBlank()) Txt(t.reason, 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
             SureText(t.confidence)
         }
     }
@@ -388,7 +388,7 @@ private fun FieldsCard(d: AiDialogState, rows: List<Map.Entry<String, AiPick>>, 
                     )
                     // The photo shows something else than the form has: both are shown, and Apply replaces it when ticked.
                     if (lookup?.differs?.contains(key) == true) {
-                        Txt(stringResource(R.string.ai_photo_differs, state.value(key)), 12, 500, C.Orange, maxLines = 4)
+                        Txt(stringResource(R.string.ai_photo_differs, state.value(key)), 12, 500, C.Orange, maxLines = Int.MAX_VALUE)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         SureText(sure)
@@ -425,7 +425,7 @@ private fun AlsoOnPhotos(notes: List<PhotoNote>) {
         notes.forEach { note ->
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Txt(stringResource(R.string.ai_photo_note_name, note.name), 12, 500, C.Muted, maxLines = 2)
-                Txt(note.value, 12, 500, modifier = Modifier.weight(1f), maxLines = 3)
+                Txt(note.value, 12, 500, modifier = Modifier.weight(1f), maxLines = Int.MAX_VALUE)
             }
         }
     }
@@ -452,7 +452,7 @@ internal fun SheetTitleRow(title: String, subtitle: String, onClose: () -> Unit)
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Txt(title, 18, 800)
-            Txt(subtitle, 12, 400, C.Soft, maxLines = 4)
+            Txt(subtitle, 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
         }
         CloseButton(onClose, size = 36.dp, iconSize = 16.dp)
     }

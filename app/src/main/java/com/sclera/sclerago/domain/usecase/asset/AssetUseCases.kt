@@ -1,5 +1,7 @@
 package com.sclera.sclerago.domain.usecase.asset
 
+import com.sclera.sclerago.domain.model.clockTimeLabel
+import com.sclera.sclerago.domain.system.ClockFormat
 import com.sclera.sclerago.domain.model.ActivityKind
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetActivity
@@ -22,7 +24,6 @@ import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.model.assetLock
 import com.sclera.sclerago.domain.model.fitPhotoRules
-import com.sclera.sclerago.domain.model.timeLabel
 import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
@@ -87,6 +88,9 @@ class ObserveAssetActivityUseCase @Inject constructor(
  * with text that passes [checkComment]. Returns the problem with [text] and posts nothing, or null once it is posted.
  */
 class AddCommentUseCase @Inject constructor(private val repo: AssetActivityRepository, private val guard: PermissionGuard) {
+    /** Whether the signed-in user may comment at all (collect or validate), as the web's comment box. */
+    fun allowed(): Boolean = guard.allows(Permission.COLLECT) || guard.allows(Permission.VALIDATE)
+
     suspend operator fun invoke(assetId: String, text: String): CommentProblem? {
         if (!guard.allows(Permission.COLLECT) && !guard.allows(Permission.VALIDATE)) throw DataException(DataError.FORBIDDEN)
         checkComment(text)?.let { return it }
@@ -166,7 +170,13 @@ class SaveAssetDetailsUseCase @Inject constructor(
  * any asset; anyone else one assigned to them or to nobody that isn't submitted or validated.
  */
 class CanEditAssetUseCase @Inject constructor(private val guard: PermissionGuard) {
-    fun lock(asset: Asset): AssetLock? = assetLock(asset.st, guard.isAdmin(), guard.isAssignedElsewhere(asset.assignedTo))
+    fun lock(asset: Asset): AssetLock? = when {
+        asset.managed -> AssetLock.MANAGED
+        // No Collect permission (a viewer, or a group that only checks): nothing can be changed, whoever they are, as the
+        // server refuses it (the web's lockedForMe).
+        !guard.allows(Permission.COLLECT) -> AssetLock.NO_PERMISSION
+        else -> assetLock(asset.st, guard.isAdmin(), guard.isAssignedElsewhere(asset.assignedTo))
+    }
 
     operator fun invoke(asset: Asset): Boolean = lock(asset) == null
 }
@@ -177,6 +187,7 @@ class CanEditAssetUseCase @Inject constructor(private val guard: PermissionGuard
  * Unknown ids are left to the writer. (An asset assigned to nobody becomes theirs when the writer saves the change.)
  */
 internal fun requireUnlocked(repo: AssetRepository, guard: PermissionGuard, ids: Collection<String>) {
+    requireNotManaged(repo, ids)
     if (guard.isAdmin()) return
     val wanted = ids.toSet()
     val locks = repo.catalog.value.assets.filter { it.id in wanted }
@@ -186,8 +197,17 @@ internal fun requireUnlocked(repo: AssetRepository, guard: PermissionGuard, ids:
 }
 
 /**
- * Whether the signed-in user may pick asset [id] for a bulk action (the web's mayWorkOn): an admin any asset, anyone
- * else one assigned to them or to nobody.
+ * Nobody changes an asset in Managed Assets, an admin neither: it is read-only here, and the server answers 404 to every
+ * change ([DataException] MANAGED; nothing changes).
+ */
+internal fun requireNotManaged(repo: AssetRepository, ids: Collection<String>) {
+    val wanted = ids.toSet()
+    if (repo.catalog.value.managed.any { it.id in wanted }) throw DataException(DataError.MANAGED)
+}
+
+/**
+ * Whether the signed-in user may pick asset [id] for a bulk action (the web's canWorkOn): nobody whose group can only
+ * view ([viewOnly]); otherwise an admin any asset, anyone else one assigned to them or to nobody.
  */
 class CanWorkOnAssetUseCase @Inject constructor(private val repo: AssetRepository, private val guard: PermissionGuard) {
     operator fun invoke(id: String): Boolean = checker()(id)
@@ -198,8 +218,15 @@ class CanWorkOnAssetUseCase @Inject constructor(private val repo: AssetRepositor
     /** The signed-in user may add, edit, submit and delete assets ([Permission.COLLECT]); a viewer may not. */
     fun canCollect(): Boolean = guard.allows(Permission.COLLECT)
 
+    /**
+     * The signed-in user's group can neither collect nor check (Viewers): nothing changes an asset and there are no
+     * validations to run, so there is nothing to select assets for.
+     */
+    fun viewOnly(): Boolean = !guard.allows(Permission.COLLECT) && !guard.allows(Permission.CHECK)
+
     /** The same check for many ids (say a select-all), worked out once over the property's assets. */
     fun checker(): (String) -> Boolean {
+        if (viewOnly()) return { false }
         if (guard.isAdmin()) return { true }
         val elsewhere = repo.catalog.value.assets.filter { guard.isAssignedElsewhere(it.assignedTo) }.mapTo(HashSet()) { it.id }
         return { it !in elsewhere }
@@ -211,6 +238,7 @@ class CanWorkOnAssetUseCase @Inject constructor(private val repo: AssetRepositor
  * NOT_ASSIGNED).
  */
 private fun requireAssigned(repo: AssetRepository, guard: PermissionGuard, ids: Collection<String>) {
+    requireNotManaged(repo, ids)
     if (guard.isAdmin()) return
     val wanted = ids.toSet()
     if (repo.catalog.value.assets.any { it.id in wanted && guard.isAssignedElsewhere(it.assignedTo) }) {
@@ -284,6 +312,15 @@ class AddAssetsUseCase @Inject constructor(
     private val ids: IdGenerator,
     private val guard: PermissionGuard,
 ) {
+    /**
+     * Whether the signed-in user may add assets ([Permission.COLLECT]), as the web shows its Add only then: checked before
+     * anything is captured or typed, so the work isn't lost to a refusal when it is saved.
+     */
+    fun allowed(): Boolean = guard.allows(Permission.COLLECT)
+
+    /** [allowed], again whenever the access is fetched or changes (for showing or hiding a way to add). */
+    fun observeAllowed(): Flow<Boolean> = guard.observe(Permission.COLLECT)
+
     suspend operator fun invoke(count: Int, build: (id: String, index: Int) -> Asset): List<Asset> {
         if (count <= 0) return emptyList()
         guard.requireOffline(Permission.COLLECT)
@@ -306,10 +343,21 @@ class CreateAssetUseCase @Inject constructor(
     private val guard: PermissionGuard,
     private val photoRules: PhotoRulesRepository,
     private val sortPhotos: SortPhotosUseCase,
+    /** The phone's 12/24-hour setting, for the "captured" time on a camera asset's detail line. */
+    private val clock: ClockFormat = ClockFormat { true },
 ) {
     enum class Via { CAMERA, SCAN, MANUAL }
 
     data class Created(val id: String, val via: Via, val source: Source)
+
+    /**
+     * Whether the signed-in user may create an asset ([Permission.COLLECT]), as the web shows its Add only then. The
+     * screens check it before opening the camera or a new-asset form, so nobody types an asset that is refused at save.
+     */
+    fun allowed(): Boolean = guard.allows(Permission.COLLECT)
+
+    /** [allowed], again whenever the access is fetched or changes (for showing or hiding a way to add). */
+    fun observeAllowed(): Flow<Boolean> = guard.observe(Permission.COLLECT)
 
     /** How an asset made from [captures] or [device] (or neither) is added. */
     fun viaFor(captures: List<Media>, device: Device?): Via = when {
@@ -328,6 +376,8 @@ class CreateAssetUseCase @Inject constructor(
         captures: List<Media>,
         device: Device?,
         deviceSource: Source,
+        /** False when [captures] are already sorted (on the page, perhaps moved between kinds by hand): kept as they are. */
+        sortCaptures: Boolean = true,
     ): Created {
         guard.requireOffline(Permission.COLLECT)
         val id = ids.next()
@@ -341,9 +391,10 @@ class CreateAssetUseCase @Inject constructor(
                 // From the Camera tab: the shot(s), plus anything added in the form. Each shot is read on the device and
                 // sorted into nameplate, label ID or asset; one that can't be read is an equipment (asset) photo, as before.
                 val first = captures.first()
-                val captured = (if (first.video) "Video ${first.durationText}" else "Photo") + " · captured " + timeLabel(first.createdAt).take(5)
+                val captured = (if (first.video) "Video ${first.durationText}" else "Photo") + " · captured " + clockTimeLabel(first.createdAt, clock.is24Hour())
                 // Several shots may sort into one kind: those past its most go to Other photos rather than failing.
-                val shots = fitPhotoRules(photoRules.rules().first(), emptyList(), sortPhotos(captures, fallback = PhotoKind.ASSET) + media).first
+                val sorted = if (sortCaptures) sortPhotos(captures, fallback = PhotoKind.ASSET) else captures
+                val shots = fitPhotoRules(photoRules.rules().first(), emptyList(), sorted + media).first
                 // The name is what the form has (typed, or read off the photo by the AI); no "Asset from photo …" stand-in.
                 Asset(id, name, formDetail ?: captured, place.loc, place.where, Source.CAMERA, st, typeOf(name), place.prop, shots, locationId = place.placeId) to Source.CAMERA
             }

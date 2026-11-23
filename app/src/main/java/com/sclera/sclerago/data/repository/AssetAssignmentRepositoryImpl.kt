@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.sclera.sclerago.data.local.PropertyAssigneeStore
+import com.sclera.sclerago.data.offline.AssetAssigneeCache
 import com.sclera.sclerago.data.mapper.assignBody
 import com.sclera.sclerago.data.mapper.toAssignResult
 import com.sclera.sclerago.data.remote.adc.AdcApi
@@ -35,6 +36,7 @@ import javax.inject.Singleton
 class AssetAssignmentRepositoryImpl @Inject constructor(
     private val api: AdcApi,
     private val store: PropertyAssigneeStore,
+    private val assigneeCache: AssetAssigneeCache,
     private val time: TimeProvider,
     downloads: PropertyDownloadRepository,
     network: NetworkMonitor,
@@ -63,13 +65,18 @@ class AssetAssignmentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun assign(propertyId: String, assetIds: Collection<String>, email: String?): AssignResult {
-        val result = api.assignAssets(propertyId, assignBody(assetIds, email)).toAssignResult()
+        val done = api.assignAssets(propertyId, assignBody(assetIds, email))
+        val result = done.toAssignResult()
         // Someone may have assets for the first time now: the property's assignees are fetched again.
         try {
             fetch(propertyId)
         } catch (_: OnlineException) {
             // The assigning went through; the list catches up at the next refresh.
         }
+        // Then the phone's copy follows at once. The server only counts the assets it doesn't have (made here, not synced
+        // yet), so with any of those it isn't known which ones it changed: the sync brings the change then.
+        val assignee = done.userId?.takeIf { it.isNotBlank() }
+        if (result.notFound == 0 && (assignee != null || result.email == null)) assigneeCache.mark(propertyId, assetIds, assignee)
         return result
     }
 

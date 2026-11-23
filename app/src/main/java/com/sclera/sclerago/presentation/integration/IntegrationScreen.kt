@@ -117,6 +117,7 @@ fun IntegrationScreen(
         }
         s.adding?.let { a -> AddSheet(a, vm.nameOf(null), vm) }
         p.sheet?.let { sh -> PlacesImportSheet(sh, p, places) }
+        if (p.historyOpen) PlacesHistorySheet(propertyId, places::closeHistory)
         ToastEffect(s.message)
         ToastEffect(p.message)
     }
@@ -140,7 +141,7 @@ private fun ReadOnly(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Txt(label, 12, 600, C.Muted)
         Box(Modifier.fillMaxWidth().clip(r(10)).background(C.Bg).border(1.dp, C.Border2, r(10)).padding(horizontal = 12.dp, vertical = 11.dp)) {
-            Txt(value.ifBlank { "—" }, 13, 500, C.Soft, maxLines = 3)
+            Txt(value.ifBlank { "—" }, 13, 500, C.Soft, maxLines = Int.MAX_VALUE)
         }
     }
 }
@@ -157,7 +158,7 @@ private fun AddSheet(a: AddLinkState, organisation: String, vm: IntegrationViewM
                 SearchField(a.query, vm::setQuery, stringResource(R.string.int_select))
                 when {
                     a.searching -> Txt(stringResource(R.string.int_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
-                    a.choices.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
+                    a.choices.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
                 }
                 ChoiceList(a.choices, { it.label() }, { it.vdmsId == a.picked?.vdmsId }, vm::pick)
             }
@@ -168,7 +169,7 @@ private fun AddSheet(a: AddLinkState, organisation: String, vm: IntegrationViewM
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     LineIcon(Icons.Alert, 15.dp, C.Orange, 2.2f)
-                    Txt(stringResource(R.string.int_once_note), 12, 500, C.Soft, Modifier.weight(1f), maxLines = 3)
+                    Txt(stringResource(R.string.int_once_note), 12, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                 }
                 val ok = a.picked != null
                 Pill(

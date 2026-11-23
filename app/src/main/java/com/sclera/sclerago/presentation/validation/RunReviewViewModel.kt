@@ -31,6 +31,7 @@ import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -124,6 +125,24 @@ class RunReviewViewModel @Inject constructor(
 
     private val p get() = state.propertyId
     private val j get() = state.jobId
+
+    init {
+        // The buttons follow the access as it is fetched or changes, not only when the run opens (as the web).
+        viewModelScope.launch {
+            combine(useCases.access.observeCheck(), useCases.access.observeValidate(), ::Pair).collect { (check, validate) ->
+                set {
+                    copy(
+                        canCheck = check,
+                        canValidate = validate,
+                        // Ticking rows, merging and recollection notes are the reviewer's (Validate) only.
+                        selected = if (validate) selected else emptySet(),
+                        merge = merge?.takeIf { validate },
+                        recollectFor = recollectFor?.takeIf { validate },
+                    )
+                }
+            }
+        }
+    }
 
     fun bind(propertyId: String, jobId: String) {
         if (propertyId == state.propertyId && jobId == state.jobId) {

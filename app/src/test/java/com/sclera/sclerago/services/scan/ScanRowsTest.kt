@@ -1,6 +1,5 @@
 package com.sclera.sclerago.services.scan
 
-import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
 import com.sclera.sclerago.domain.validation.MAX_SCAN_TEXT
 import com.sclera.sclerago.services.scan.model.BleDevice
 import com.sclera.sclerago.services.scan.model.WifiAccessPoint
@@ -16,11 +15,11 @@ class ScanRowsTest {
     @Test fun bleRowShowsKindSignalAndDistance() {
         val row = ble("TH-22 sensor").toRow()
         assertEquals("TH-22 sensor", row.name)
-        assertEquals("Connectable · −52 dBm · ~1 m", row.sub)
+        assertEquals("AA:BB:CC:DD:EE:FF · Connectable · −52 dBm · ~1 m", row.sub)
         assertTrue(row.lvl in 1..4)
     }
 
-    @Test fun unnamedBleDeviceIsUnknown() = assertEquals(UNKNOWN_DEVICE, ble(null).toRow().name)
+    @Test fun unnamedBleDeviceIsListedByItsAddress() = assertEquals("AA:BB:CC:DD:EE:FF", ble(null).toRow().name)
 
     @Test fun bleNameIsSanitised() {
         val row = ble("‮tag\u0000\n" + "x".repeat(300)).toRow()
@@ -31,7 +30,7 @@ class ScanRowsTest {
     @Test fun manufacturerIsSanitisedInTheDetailLine() {
         val row = ble("Tag", maker = "Acme\r\nCorp").toRow()
         assertFalse(row.sub.contains('\n'))
-        assertTrue(row.sub.startsWith("Acme Corp · "))
+        assertTrue(row.sub.contains("Acme Corp · "))
     }
 
     @Test fun farAwayDeviceIsCappedAt30mPlus() = assertTrue(ble("Tag", rssi = -120).toRow().sub.endsWith("30 m+"))

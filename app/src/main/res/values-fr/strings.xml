@@ -232,8 +232,6 @@
     <string name="doc_upload">Importer un document</string>
     <string name="doc_none">Aucun document</string>
     <string name="doc_category">Catégorie :</string>
-    <string name="doc_used_for">Utilisé pour :</string>
-    <string name="doc_model">Modèle :</string>
     <string name="doc_link">Lien :</string>
     <string name="doc_created_by">Créé par :</string>
     <string name="doc_ai_source">Source des spécifications IA</string>

@@ -51,7 +51,8 @@ object TagTags {
 
 /**
  * The Tags bar at the top of an asset's Info tab (the design's): "Tags" and how many of the three kinds the asset has, then one icon
- * per kind: green once tagged, yellow while not. Tapping an icon starts that kind; with [enabled] false (a submitted or signed-off asset) the icons are dimmed and do nothing.
+ * per kind: green once tagged, yellow while not. Tapping an icon starts that kind; with [enabled] false (an asset the user may not
+ * change, or a submitted or signed-off one) the icons are dimmed and do nothing.
  */
 @Composable
 fun TagsBar(state: TagUiState, actions: TagsActions, modifier: Modifier = Modifier, enabled: Boolean = true) {

@@ -162,7 +162,11 @@ class ObserveAssetDocumentsUseCase @Inject constructor(
 /** The server's rule for deleting an uploaded file: its uploader with collect, anyone else with configure. */
 internal fun canRemoveSourceFile(mine: Boolean, collect: Boolean, configure: Boolean): Boolean = if (mine) collect else configure
 
-/** Deletes the asset's uploaded file [document], as the server allows ([canRemoveSourceFile]; else FORBIDDEN). */
+/**
+ * Deletes the asset's uploaded file [document], as the server allows ([canRemoveSourceFile]; else FORBIDDEN). The file
+ * isn't the asset's (other assets may have been read from it), so the server doesn't ask whether the asset may be changed
+ * (submitted, someone else's) and neither does this; one in Managed Assets stays read-only here (MANAGED).
+ */
 class RemoveSourceFileUseCase @Inject constructor(
     private val repo: AssetDocumentsRepository,
     private val assets: AssetRepository,
@@ -173,7 +177,7 @@ class RemoveSourceFileUseCase @Inject constructor(
         if (!canRemoveSourceFile(mine, guard.allows(Permission.COLLECT), guard.allows(Permission.CONFIGURE))) {
             throw DataException(DataError.FORBIDDEN)
         }
-        requireUnlocked(assets, guard, listOf(assetId))
+        requireNotManaged(assets, listOf(assetId))
         repo.removeSourceFile(document.id)
     }
 }

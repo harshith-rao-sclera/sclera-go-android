@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Text of various screens, moved out of the code. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Scan permission sheet and blocked card (components/Permissions.kt) -->
+    <string name="scrt_perm_bt_title">Find Bluetooth tags nearby</string>
+    <string name="scrt_perm_bt_body">To see asset tags and sensors near you.</string>
+    <string name="scrt_perm_bt_blocked_title">Nearby devices is blocked</string>
+    <string name="scrt_perm_bt_blocked_body">Sclera Go needs Nearby devices to find Bluetooth tags and sensors.</string>
+    <string name="scrt_perm_bt_settings_step">Allow Nearby devices</string>
+    <string name="scrt_perm_net_title">Find devices on this network</string>
+    <string name="scrt_perm_net_body">To find devices on the Wi-Fi you\'re connected to.</string>
+    <string name="scrt_perm_net_blocked_title">Local network is blocked</string>
+    <string name="scrt_perm_net_blocked_body">Android won\'t let Sclera Go reach other devices on your Wi-Fi without it.</string>
+    <string name="scrt_perm_net_settings_step">Allow access to the local network</string>
+    <string name="scrt_perm_ap_title">See Wi-Fi access points</string>
+    <string name="scrt_perm_ap_body">To list the access points in range.</string>
+    <string name="scrt_perm_ap_blocked_title">Location is blocked</string>
+    <string name="scrt_perm_ap_blocked_body">Android only lists access points to apps with Location access.</string>
+    <string name="scrt_perm_ap_settings_step">Allow Location while using the app</string>
+    <string name="scrt_perm_not_now">Not now</string>
+    <string name="scrt_perm_allow">Allow</string>
+    <string name="scrt_perm_in_settings">In Settings</string>
+    <string name="scrt_perm_step_open_permissions">1 · Open Permissions</string>
+    <string name="scrt_perm_step_two">2 · %1$s</string>
+    <!-- Location picker and document viewer (components/Sheets.kt) -->
+    <string name="scrt_loc_no_floors_yet">No floors added yet</string>
+    <string name="scrt_loc_no_locations_yet">No locations added yet</string>
+    <string name="scrt_loc_no_buildings">No buildings have been added to %1$s yet.</string>
+    <string name="scrt_loc_no_match">No building, floor or location matches “%1$s”.</string>
+    <string name="scrt_loc_select_title">Select location</string>
+    <string name="scrt_loc_search_hint">Search building, floor or location</string>
+    <string name="scrt_loc_selected_caps">SELECTED</string>
+    <string name="scrt_loc_nothing_selected">Nothing selected</string>
+    <string name="scrt_loc_pick_hint">Pick a building, floor or location</string>
+    <string name="scrt_loc_whole_building">Whole building</string>
+    <string name="scrt_loc_confirm">Confirm</string>
+    <!-- A place's line under its name: its kind (Building, Floor) and what it holds. -->
+    <string name="scrt_loc_sub_count">%1$s · %2$s</string>
+    <string name="scrt_loc_sub_no_floors">%1$s · no floors yet</string>
+    <string name="scrt_loc_sub_no_locations">%1$s · no locations yet</string>
+    <string name="scrt_doc_open">Open</string>
+    <!-- Discard-changes dialog (components/Dialogs.kt) -->
+    <string name="scrt_discard_title">Discard your changes?</string>
+    <string name="scrt_discard_body">You’ve changed something that isn’t saved yet. If you leave now, those changes are lost.</string>
+    <!-- After a form field's label (components/AdminCommon.kt); the leading space is kept by the quotes. -->
+    <string name="scrt_field_optional">" (optional)"</string>
+    <!-- Bluetooth and network scan pages (scan/ScanPages.kt) -->
+    <string name="scrt_scan_tab_scan">Scan</string>
+    <string name="scrt_scan_wifi_network">Wi-Fi network</string>
+    <string name="scrt_scan_access_points">Access points</string>
+    <string name="scrt_scan_percent_done">%1$d%% done</string>
+    <string name="scrt_scan_new_finds_selected">New finds are selected too</string>
+    <!-- Asset detail tabs: documents, media, comments, history (assets/AssetDetailTabs.kt) -->
+    <string name="scrt_doc_used_for_list">Used for: %1$s</string>
+    <string name="scrt_doc_model_line">Model: %1$s</string>
+    <string name="scrt_size_mb">%1$.1f MB</string>
+    <string name="scrt_size_kb">%1$d KB</string>
+    <!-- A comment's time, once it was edited. -->
+    <string name="scrt_comment_time_edited">%1$s · edited</string>
+    <!-- A changed field's name before its old and new values in the History tab; the trailing space is kept by the quotes. -->
+    <string name="scrt_history_field_label">"%1$s: "</string>
+    <!-- Scan onboarding and adding scanned devices (main/AppViewModel.kt, main/DeviceAddDock.kt) -->
+    <plurals name="scrt_assets_added_as_drafts">
+        <item quantity="one">%1$d asset added as a draft</item>
+        <item quantity="other">%1$d assets added as drafts</item>
+    </plurals>
+    <string name="scrt_onboarding_bt_on">Bluetooth onboarding on</string>
+    <string name="scrt_onboarding_bt_off">Bluetooth onboarding off</string>
+    <string name="scrt_onboarding_wifi_on">Wi-Fi onboarding on</string>
+    <string name="scrt_onboarding_wifi_off">Wi-Fi onboarding off</string>
+    <plurals name="scrt_add_n_as_assets">
+        <item quantity="one">Add %1$d as asset</item>
+        <item quantity="other">Add %1$d as assets</item>
+    </plurals>
+    <!-- AI suggestions, voice fill and validation results in the asset form (assets/) -->
+    <!-- The waiting hint, then the seconds waited so far. -->
+    <string name="scrt_ai_wait_seconds">%1$s %2$ds</string>
+    <!-- A typed field and its value, e.g. Model “X200”. -->
+    <string name="scrt_ai_typed_value">%1$s “%2$s”</string>
+    <!-- How many fields the voice filled, then how many differ from what was saved. -->
+    <string name="scrt_voice_summary_differs">%1$s %2$s</string>
+    <!-- A validation run's name and how long ago it checked the asset. -->
+    <string name="scrt_val_run_checked_ago">%1$s %2$s</string>
+    <!-- What the user said, in quotes. -->
+    <string name="scrt_quoted_speech">“%1$s”</string>
+</resources>

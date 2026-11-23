@@ -50,37 +50,22 @@
 
     <!-- Integration page: buildings, floors and locations, sent to or imported from VDMS by hand (places import) -->
     <string name="pi_section_title">Buildings, floors &amp; locations</string>
-    <string name="pi_section_intro">These don\'t sync automatically. Import them when you need them; asset fields keep syncing.</string>
-    <string name="pi_send">Send to VDMS</string>
+    <string name="pi_send">Export to VDMS</string>
     <string name="pi_import">Import from VDMS</string>
     <string name="pi_load_failed">Couldn\'t load buildings, floors and locations.</string>
     <string name="pi_try_again">Try again</string>
-    <string name="pi_asking">Asking VDMS for its list…</string>
-    <string name="pi_list_updated">VDMS list updated %1$s.</string>
-    <string name="pi_no_list">VDMS hasn\'t sent its list yet.</string>
-    <string name="pi_refresh">Refresh</string>
-    <string name="pi_refreshing">Refreshing…</string>
-    <string name="pi_refresh_late">VDMS hasn\'t answered yet. Its list updates here once it does.</string>
+    <string name="pi_refresh_late">VDMS hasn\'t answered yet. Its list updates once it does.</string>
     <string name="pi_refresh_failed">Couldn\'t ask VDMS for its list</string>
-    <string name="pi_push_running">VDMS is adding the buildings, floors and locations sent %1$s…</string>
-    <string name="pi_last_push">Last sent to VDMS %1$s: %2$d added.</string>
-    <string name="pi_last_push_updated">Last sent to VDMS %1$s: %2$d added, %3$d updated.</string>
-    <string name="pi_last_push_skipped">Last sent to VDMS %1$s: %2$d added, %3$d skipped.</string>
-    <string name="pi_last_push_both">Last sent to VDMS %1$s: %2$d added, %3$d updated, %4$d skipped.</string>
-    <string name="pi_show_skipped">Show what was skipped</string>
-    <string name="pi_hide_skipped">Hide what was skipped</string>
 
-    <string name="pi_to_title">Send buildings, floors &amp; locations to VDMS</string>
-    <string name="pi_to_intro">Choose what to copy from this property to VDMS. Anything VDMS already has is skipped. Tick a changed item to update its name in VDMS.</string>
+    <string name="pi_to_title">Export buildings, floors &amp; locations to VDMS</string>
     <string name="pi_to_hide">Hide items already in VDMS</string>
     <string name="pi_to_nothing">VDMS already has every building, floor and location in this property.</string>
     <string name="pi_to_empty">This property has no buildings yet.</string>
     <string name="pi_from_title">Import buildings, floors &amp; locations from VDMS</string>
-    <string name="pi_from_intro">Choose what to copy from VDMS into this property. Anything this property already has is skipped. Tick a changed item to update its name here.</string>
     <string name="pi_from_hide">Hide items already in this property</string>
     <string name="pi_from_nothing">This property already has every building, floor and location VDMS has.</string>
     <string name="pi_from_empty">VDMS has no buildings.</string>
-    <string name="pi_list_from">VDMS\'s list is from %1$s.</string>
+    <string name="pi_list_from">VDMS\'s list is from %1$s. Refresh</string>
     <string name="pi_no_snapshot">VDMS hasn\'t sent its buildings, floors and locations yet.</string>
     <string name="pi_ask_vdms">Ask VDMS for them</string>
     <string name="pi_asking_vdms">Asking VDMS…</string>
@@ -124,8 +109,8 @@
     <string name="pi_join_3">%1$s, %2$s, %3$s</string>
     <string name="pi_working">Working…</string>
     <plurals name="pi_submit_send">
-        <item quantity="one">Send %1$d to VDMS</item>
-        <item quantity="other">Send %1$d to VDMS</item>
+        <item quantity="one">Export %1$d to VDMS</item>
+        <item quantity="other">Export %1$d to VDMS</item>
     </plurals>
     <plurals name="pi_submit_import">
         <item quantity="one">Import %1$d</item>
@@ -139,11 +124,11 @@
         <item quantity="one">Update %1$d here</item>
         <item quantity="other">Update %1$d here</item>
     </plurals>
-    <string name="pi_submit_send_update">Send %1$d, update %2$d</string>
+    <string name="pi_submit_send_update">Export %1$d, update %2$d</string>
     <string name="pi_submit_import_update">Import %1$d, update %2$d</string>
     <plurals name="pi_result_sent">
-        <item quantity="one">%1$d item sent to VDMS.</item>
-        <item quantity="other">%1$d items sent to VDMS.</item>
+        <item quantity="one">%1$d item exported to VDMS.</item>
+        <item quantity="other">%1$d items exported to VDMS.</item>
     </plurals>
     <plurals name="pi_result_imported">
         <item quantity="one">%1$d item imported.</item>
@@ -153,12 +138,13 @@
         <item quantity="one">%1$d updated.</item>
         <item quantity="other">%1$d updated.</item>
     </plurals>
-    <string name="pi_result_sent_updated">%1$d sent to VDMS, %2$d updated.</string>
+    <string name="pi_result_sent_updated">%1$d exported to VDMS, %2$d updated.</string>
     <string name="pi_result_imported_updated">%1$d imported, %2$d updated.</string>
     <string name="pi_result_nothing">Nothing was imported or updated.</string>
+    <string name="pi_result_nothing_exported">Nothing was exported or updated.</string>
     <plurals name="pi_skipped_sent">
-        <item quantity="one">%1$d skipped. The rest were sent without it.</item>
-        <item quantity="other">%1$d skipped. The rest were sent without them.</item>
+        <item quantity="one">%1$d skipped. The rest were exported without it.</item>
+        <item quantity="other">%1$d skipped. The rest were exported without them.</item>
     </plurals>
     <plurals name="pi_skipped_imported">
         <item quantity="one">%1$d skipped. The rest were imported without it.</item>
@@ -179,8 +165,78 @@
     <string name="pi_kind_place">place</string>
     <string name="pi_waiting">VDMS is adding them</string>
     <string name="pi_timed_out">VDMS hasn\'t finished yet. It will finish this when it\'s connected; the result shows here next time.</string>
-    <string name="pi_send_busy">VDMS is still working on the last send. Try again when it\'s done.</string>
+    <string name="pi_send_busy">VDMS is still working on the last export. Try again when it\'s done.</string>
     <string name="pi_import_failed">Couldn\'t start the import</string>
+
+    <!-- Places import: refresh, parents ticked along, history -->
+    <string name="pi_history">History</string>
+    <string name="pi_ask_list">Ask VDMS for its list</string>
+    <string name="pi_refreshing_list">Getting VDMS\'s latest list…</string>
+    <string name="pi_getting_list">Getting VDMS\'s buildings, floors and locations…</string>
+    <!-- %1$s is the name of a place, %2$s its kind (building, floor or location). -->
+    <string name="pi_place_named">%1$s (%2$s)</string>
+    <!-- The last two items of a list: "Ground (floor), Annex (building) and Lobby (location)". -->
+    <string name="pi_list_and">%1$s and %2$s</string>
+    <!-- %1$s is the list of places ticked along. -->
+    <string name="pi_parents_added_vdms">Also ticked %1$s: they aren\'t in VDMS yet, and a location can\'t be added without its floor and building.</string>
+    <string name="pi_parents_added_here">Also ticked %1$s: they aren\'t in this property yet, and a location can\'t be added without its floor and building.</string>
+    <plurals name="pi_orphans_removed">
+        <item quantity="one">Also unticked %1$d item under it: a location can\'t be added without its floor and building.</item>
+        <item quantity="other">Also unticked %1$d items under it: a location can\'t be added without its floor and building.</item>
+    </plurals>
+    <string name="pi_kind_building_label">Building</string>
+    <string name="pi_kind_floor_label">Floor</string>
+    <string name="pi_kind_location_label">Location</string>
+    <string name="pi_kind_place_label">Place</string>
+
+    <string name="ph_title">Buildings, floors &amp; locations history</string>
+    <string name="ph_filter_all">All</string>
+    <string name="ph_filter_sent">Exported to VDMS</string>
+    <string name="ph_filter_imported">Imported from VDMS</string>
+    <plurals name="ph_total">
+        <item quantity="one">%1$d import</item>
+        <item quantity="other">%1$d imports</item>
+    </plurals>
+    <string name="ph_load_failed">Couldn\'t load the history.</string>
+    <string name="ph_more_failed">Couldn\'t load more.</string>
+    <string name="ph_empty">No buildings, floors or locations have been exported or imported yet.</string>
+    <string name="ph_empty_sent">Nothing has been exported to VDMS yet.</string>
+    <string name="ph_empty_imported">Nothing has been imported from VDMS yet.</string>
+    <string name="ph_show_more">Show more (%1$d)</string>
+    <string name="ph_close">Close</string>
+    <string name="ph_expanded">Showing its places</string>
+    <string name="ph_collapsed">Places hidden</string>
+    <string name="ph_to_vdms">To VDMS</string>
+    <string name="ph_from_vdms">From VDMS</string>
+    <string name="ph_with_move">With asset move</string>
+    <string name="ph_by_move">Asset move</string>
+    <string name="ph_by_someone">Someone</string>
+    <string name="ph_status_done">Done</string>
+    <string name="ph_status_skipped">Skipped</string>
+    <string name="ph_status_pending">Waiting for VDMS</string>
+    <string name="ph_status_running">VDMS is adding</string>
+    <string name="ph_status_no_reply">No reply</string>
+    <string name="ph_status_other">Unknown</string>
+    <string name="ph_count_added">Added</string>
+    <string name="ph_count_sent">Exported</string>
+    <string name="ph_count_updated">Updated</string>
+    <string name="ph_count_skipped">Skipped</string>
+    <string name="ph_detail_loading">Loading…</string>
+    <string name="ph_detail_failed">Couldn\'t load what was imported.</string>
+    <string name="ph_no_reply_note">VDMS didn\'t report back on this. It may still add them when it reconnects; check its list with Refresh.</string>
+    <string name="ph_nothing">Nothing was imported.</string>
+    <string name="ph_section_sending">Exported, waiting for VDMS</string>
+    <string name="ph_section_added_vdms">Added in VDMS</string>
+    <string name="ph_section_added_here">Added here</string>
+    <string name="ph_section_updated_vdms">Updated in VDMS</string>
+    <string name="ph_section_updated_here">Updated here</string>
+    <string name="ph_section_skipped">Skipped</string>
+    <string name="ph_reason_update">update</string>
+    <string name="ph_reason_exists">already there</string>
+    <string name="ph_reason_parent">its parent isn\'t there</string>
+    <string name="ph_reason_not_found">not found</string>
+    <string name="ph_reason_error">couldn\'t be imported</string>
+    <string name="ph_reason_other">skipped</string>
 
     <!-- Recollect (asset list): assets sent back to be collected again -->
     <string name="dash_recollect_badge">Recollect: sent back to be collected again</string>
@@ -192,4 +248,13 @@
     <string name="ms_moved_sub">Assets handed over to Managed Assets. They\'re managed there now, not in data collection.</string>
     <string name="ms_returned">Returned from Managed Assets</string>
     <string name="ms_returned_sub">Assets sent back to data collection to be recollected. They\'re counted here until they\'re moved again.</string>
+
+    <!-- Managed assets (asset list chip and asset details): assets in Managed Assets, read-only here -->
+    <string name="managed_chip">Managed assets</string>
+    <string name="managed_status">In Managed Assets</string>
+    <string name="managed_list_note">These are in Managed Assets, and read-only here.</string>
+    <string name="managed_note_title">In Managed Assets.</string>
+    <string name="managed_note_body">It\'s read-only here. If Managed Assets sends it back, it returns as a draft.</string>
+    <string name="asset_lock_managed">In Managed Assets. It\'s read-only here.</string>
+    <string name="managed_not_selectable">This asset is in Managed Assets, so it can\'t be selected. It\'s read-only here.</string>
 </resources>

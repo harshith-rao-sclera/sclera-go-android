@@ -202,7 +202,7 @@ class BleScanner(
             existing.copy(
                 name = existing.name ?: sighting.name,
                 rssiDbm = sighting.rssiDbm,
-                bestRssiDbm = maxOf(existing.bestRssiDbm, sighting.rssiDbm),
+                bestRssiDbm = maxOf(existing.bestRssiDbm ?: existing.rssiDbm, sighting.rssiDbm),
                 serviceUuids = sighting.serviceUuids.ifEmpty { existing.serviceUuids },
                 manufacturerName = existing.manufacturerName ?: sighting.manufacturerName,
                 companyId = existing.companyId ?: sighting.companyId,

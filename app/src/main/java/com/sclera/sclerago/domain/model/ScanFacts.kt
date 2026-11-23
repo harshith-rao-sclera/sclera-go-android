@@ -26,8 +26,15 @@ val SCAN_IDENTIFYING_LABELS = setOf(
     "Bluetooth address", "Network name", "BSSID",
 )
 
-/** [text] without its scan lines that identify the device ([SCAN_IDENTIFYING_LABELS]): what an AI request may carry. */
+/** A bare IPv4 address, or a MAC / Bluetooth address: what an unnamed scanned device is named after. */
+private val BARE_ADDRESS = Regex("^\\s*((\\d{1,3}\\.){3}\\d{1,3}|([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})\\s*$")
+
+/**
+ * [text] without its scan lines that identify the device ([SCAN_IDENTIFYING_LABELS]), and empty when it is only an
+ * address (an unnamed device's name is its IP or Bluetooth address): what an AI request may carry.
+ */
 fun withoutScanIdentifiers(text: String): String {
+    if (BARE_ADDRESS.matches(text)) return ""
     if (SCAN_IDENTIFYING_LABELS.none { text.contains("$it:") }) return text
     return text.lines().filterNot { line -> SCAN_IDENTIFYING_LABELS.any { line.trimStart().startsWith("$it:") } }.joinToString("\n")
 }

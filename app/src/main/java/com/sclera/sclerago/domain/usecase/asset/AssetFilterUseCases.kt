@@ -9,6 +9,7 @@ import com.sclera.sclerago.domain.model.FilterPerson
 import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.PropertyAssignee
+import com.sclera.sclerago.domain.model.UNASSIGNED_ID
 import com.sclera.sclerago.domain.model.typeKey
 import com.sclera.sclerago.domain.model.typeKeyParts
 import com.sclera.sclerago.domain.repository.AccessRepository
@@ -67,7 +68,8 @@ class BuildFilterOptionsUseCase @Inject constructor() {
             chosenCounts = typed.groupingBy { it.id }.eachCount(),
         )
         return AssetFilterOptions(
-            people = people(ofTypes, filter.assignees, me, names, everyone),
+            people = people(ofTypes, filter.assignees - UNASSIGNED_ID, me, names, everyone),
+            unassigned = unassigned(ofTypes, UNASSIGNED_ID in filter.assignees),
             systems = systems,
             types = types,
             subtypes = subtypes,
@@ -92,6 +94,12 @@ class BuildFilterOptionsUseCase @Inject constructor() {
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
         // The parent only helps tell choices apart when they don't all sit under the same one.
         return if (list.mapTo(HashSet()) { it.parent }.size <= 1) list.map { it.copy(parent = null) } else list
+    }
+
+    /** "Unassigned": the assets assigned to nobody, offered while there are some or it is chosen. */
+    private fun unassigned(assets: List<Asset>, chosen: Boolean): FilterPerson? {
+        val count = assets.count { it.assignedTo.isNullOrBlank() }
+        return if (count > 0 || chosen) FilterPerson(UNASSIGNED_ID, null, me = false, count = count, selected = chosen) else null
     }
 
     private fun people(

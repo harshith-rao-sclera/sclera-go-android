@@ -228,8 +228,6 @@
     <string name="doc_upload">Dokument hochladen</string>
     <string name="doc_none">Keine Dokumente</string>
     <string name="doc_category">Kategorie:</string>
-    <string name="doc_used_for">Verwendet für:</string>
-    <string name="doc_model">Modell:</string>
     <string name="doc_link">Link:</string>
     <string name="doc_created_by">Erstellt von:</string>
     <string name="doc_ai_source">KI-Spezifikationsquelle</string>

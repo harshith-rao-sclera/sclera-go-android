@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration screens' text, moved out of the code. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Bottom tabs -->
+    <string name="cfgt_tab_asset_fields">Asset Fields</string>
+    <string name="cfgt_tab_building_info">Building Info</string>
+    <string name="cfgt_tab_geofencing">Geofencing</string>
+    <string name="cfgt_tab_settings">Settings</string>
+
+    <!-- Building info -->
+    <string name="cfgt_name_hidden">%1$s · Hidden</string>
+    <string name="cfgt_add_building">Add building</string>
+    <string name="cfgt_edit_floors">Edit floors</string>
+    <string name="cfgt_import_buildings">Import buildings</string>
+    <string name="cfgt_buildings_empty">Add a building, then its floors and locations. Tap + to start.</string>
+    <string name="cfgt_no_floors">No floors yet</string>
+    <string name="cfgt_no_floors_hint">Tap + beside the floors to add one, then add its locations.</string>
+    <string name="cfgt_no_locations">No locations on this floor yet. Tap + to add one.</string>
+    <!-- Under a choice of the floating +, and a search result: where the new or found place is. -->
+    <string name="cfgt_on_place">On %1$s</string>
+    <string name="cfgt_in_place">In %1$s</string>
+    <plurals name="cfgt_locations_selected">
+        <item quantity="one">%1$d location selected</item>
+        <item quantity="other">%1$d locations selected</item>
+    </plurals>
+    <string name="cfgt_no_buildings">No buildings yet</string>
+    <string name="cfgt_no_buildings_hint">Add one or import a spreadsheet</string>
+    <!-- A building's counts, such as "3 floors · 12 locations". -->
+    <string name="cfgt_building_summary">%1$s · %2$s</string>
+    <string name="cfgt_building_summary_hidden">%1$s · %2$s · Hidden</string>
+    <!-- A floor's short label when it has no short code: F1, F2… -->
+    <string name="cfgt_floor_tag">F%1$d</string>
+    <string name="cfgt_no_type">No type yet</string>
+    <string name="cfgt_search_places">Search buildings, floors, locations</string>
+    <string name="cfgt_building_details">Building details</string>
+    <string name="cfgt_building_name">Building name *</string>
+    <string name="cfgt_building_name_hint">Enter building name</string>
+    <string name="cfgt_building_type">Building type *</string>
+    <string name="cfgt_select_country">Select country</string>
+    <string name="cfgt_email_invalid">That doesn’t look like an email address.</string>
+    <string name="cfgt_phone_invalid">Use digits, spaces, + ( ) and -, at least 6 digits.</string>
+    <string name="cfgt_select_start_time">Select start time</string>
+    <string name="cfgt_select_end_time">Select end time</string>
+    <string name="cfgt_visible">Visible</string>
+    <string name="cfgt_edit_floors_sub">%1$s · top of the list is shown first</string>
+    <string name="cfgt_no_floors_left">No floors left. Save to remove them all, or Cancel to keep them.</string>
+    <string name="cfgt_floor_name">Floor name</string>
+    <string name="cfgt_move_up">Move up</string>
+    <string name="cfgt_move_down">Move down</string>
+    <string name="cfgt_location_name">Location name</string>
+    <string name="cfgt_location_type_hint">e.g. Plant room</string>
+
+    <!-- Asset fields -->
+    <string name="cfgt_flagged_when_empty">Flagged when empty</string>
+    <string name="cfgt_checks_between">%1$s–%2$s</string>
+    <string name="cfgt_checks_between_chars">%1$s–%2$s characters</string>
+    <string name="cfgt_checks_at_least">At least %1$s</string>
+    <string name="cfgt_checks_at_least_chars">At least %1$s characters</string>
+    <string name="cfgt_checks_at_most">At most %1$s</string>
+    <string name="cfgt_checks_at_most_chars">At most %1$s characters</string>
+    <string name="cfgt_checks_nothing">Nothing beyond its type</string>
+    <string name="cfgt_import_excel">Import from Excel</string>
+    <string name="cfgt_import_excel_hint">One field per row</string>
+    <string name="cfgt_new_field">New field</string>
+    <string name="cfgt_new_field_hint">Pick types and set them up</string>
+    <string name="cfgt_add_field_hint">Pick a type to add a field and set it up. Save adds them all.</string>
+    <string name="cfgt_selected_fields">Selected fields</string>
+    <!-- A field's type, marked mandatory, such as "Text · Mandatory". -->
+    <string name="cfgt_kind_mandatory">%1$s · Mandatory</string>
+    <plurals name="cfgt_save_fields">
+        <item quantity="one">Save %1$d field</item>
+        <item quantity="other">Save %1$d fields</item>
+    </plurals>
+    <string name="cfgt_options_label">Options *</string>
+    <string name="cfgt_add_option">Add an option</string>
+    <string name="cfgt_tooltip">Tooltip</string>
+    <string name="cfgt_tooltip_hint">Help shown next to the field</string>
+    <string name="cfgt_mandatory_hint">Must be filled before submitting</string>
+    <string name="cfgt_delete_field">Delete field</string>
+    <string name="cfgt_default_status">Default status</string>
+    <string name="cfgt_default_status_hint">Ticked when a new asset is started</string>
+    <string name="cfgt_default_value">Default value</string>
+    <string name="cfgt_default_date_picker">Date Picker</string>
+    <string name="cfgt_default_today">Today</string>
+    <string name="cfgt_default_time_picker">Time Picker</string>
+    <string name="cfgt_default_now">Now</string>
+    <string name="cfgt_add_options_first">Add options first</string>
+    <string name="cfgt_select">Select…</string>
+    <string name="cfgt_prefilled_number">Pre-filled number</string>
+    <string name="cfgt_prefilled_text">Pre-filled text</string>
+    <string name="cfgt_checks_title">Checks: %1$s</string>
+    <string name="cfgt_checks_sub">What validation looks for in this field, beyond its type.</string>
+    <string name="cfgt_when_empty">When it’s empty</string>
+    <string name="cfgt_checks_mandatory_info">This field is mandatory, so validation always flags it when it’s left empty.</string>
+    <string name="cfgt_flag_empty">Flag it when it’s left empty</string>
+    <string name="cfgt_flag_empty_hint">Validation lists it as something to fix.</string>
+    <plurals name="cfgt_checks_one_of">
+        <item quantity="one">Values must be one of its %1$d option.</item>
+        <item quantity="other">Values must be one of its %1$d options.</item>
+    </plurals>
+    <string name="cfgt_checks_checkbox">Ticked or not: nothing more to check.</string>
+    <string name="cfgt_checks_yesno">Yes or No: nothing more to check.</string>
+    <string name="cfgt_checks_url">Values must be a web link starting with http:// or https://.</string>
+    <string name="cfgt_checks_time">Values must be a time, like 09:30.</string>
+    <string name="cfgt_values_must_be">Values must be</string>
+    <string name="cfgt_min_value">Min value (optional)</string>
+    <string name="cfgt_max_value">Max value (optional)</string>
+    <string name="cfgt_min_value_hint">e.g. 0</string>
+    <string name="cfgt_max_value_hint">e.g. 5000</string>
+    <string name="cfgt_min_length">Min length (optional)</string>
+    <string name="cfgt_max_length">Max length (optional)</string>
+    <string name="cfgt_min_length_hint">e.g. 4</string>
+    <string name="cfgt_max_length_hint">e.g. 20</string>
+
+    <!-- Property Settings -->
+    <string name="cfgt_onboarding_intro">Choose how people can add assets in %1$s from their phone.</string>
+    <string name="cfgt_network_onboarding">Network onboarding</string>
+    <string name="cfgt_onboarding_both_on">Both are on, so the phone shows its Bluetooth and Network tabs for this property.</string>
+    <string name="cfgt_onboarding_bt_only">Only Bluetooth is on, so the phone hides its Network tab for this property.</string>
+    <string name="cfgt_onboarding_wifi_only">Only Wi-Fi is on, so the phone hides its Bluetooth tab for this property.</string>
+    <string name="cfgt_onboarding_both_off">Both are off, so the phone hides its Bluetooth and Network tabs for this property.</string>
+    <string name="cfgt_bt_onboarding">Bluetooth onboarding</string>
+    <string name="cfgt_bt_onboarding_hint">People can add assets by finding them over Bluetooth on their phone.</string>
+    <string name="cfgt_wifi_onboarding">Wi-Fi onboarding</string>
+    <string name="cfgt_wifi_onboarding_hint">People can add assets by finding them on the Wi-Fi network.</string>
+    <string name="cfgt_on_the_phone">ON THE PHONE</string>
+    <string name="cfgt_onboarding_footer">Turning onboarding off only hides it on the phone; assets already added stay as they are.</string>
+</resources>

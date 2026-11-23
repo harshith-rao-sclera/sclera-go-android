@@ -70,6 +70,12 @@ class AdcIntegrationApi @Inject constructor(private val service: AdcIntegrationS
     suspend fun pushPlaces(p: String, body: JsonObject): PlacesPushDto =
         call.json({ service.pushPlaces(p, body.toString().toRequestBody(JSON)) }) { AdcJson.decodeFromString(PlacesPushDto.serializer(), it) }
 
+    suspend fun placesHistory(p: String, direction: String?, limit: Int, offset: Int): PlacesHistoryDto =
+        call.json({ service.placesHistory(p, direction, limit, offset) }) { AdcJson.decodeFromString(PlacesHistoryDto.serializer(), it) }
+
+    suspend fun placesTransfer(p: String, transferId: String): PlacesTransferDto =
+        call.json({ service.placesTransfer(p, transferId) }) { AdcJson.decodeFromString(PlacesTransferDto.serializer(), it) }
+
     /** [body] is built by `placesSelectionBody` (`data/mapper/IntegrationMapper.kt`). */
     suspend fun importPlaces(p: String, body: JsonObject): PlacesImportDto =
         call.json({ service.importPlaces(p, body.toString().toRequestBody(JSON)) }) { AdcJson.decodeFromString(PlacesImportDto.serializer(), it) }

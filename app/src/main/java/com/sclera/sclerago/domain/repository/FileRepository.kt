@@ -14,9 +14,6 @@ interface FileRepository {
     /** Deletes the files of [media] that this app took itself (others aren't ours to delete). */
     fun deleteOwned(media: List<Media>)
 
-    /** The rows of a CSV or Excel file; null when it can't be read. */
-    suspend fun readSheet(uri: String): List<List<String>>?
-
     /** Writes [bytes] to the document [uri] the user picked to save to; false when it can't be written. */
     suspend fun writeFile(uri: String, bytes: ByteArray): Boolean
 

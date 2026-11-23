@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +49,7 @@ import com.sclera.sclerago.presentation.components.PersonAvatar
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.bottomBorder
+import com.sclera.sclerago.presentation.components.dashedBorder
 import com.sclera.sclerago.presentation.components.endBorder
 import com.sclera.sclerago.presentation.components.initialsOf
 import com.sclera.sclerago.presentation.components.isTablet
@@ -89,7 +92,7 @@ fun AssetFilterSheet(
     BottomSheet(onClose) {
         Column(Modifier.testTag(FilterTags.SHEET)) {
             FilterHeader(onClose)
-            if (s.options.people.isNotEmpty()) PeopleRow(s.options.people, onPerson)
+            if (s.options.people.isNotEmpty() || s.options.unassigned != null) PeopleRow(s.options.people, s.options.unassigned, onPerson)
         }
         Row(Modifier.weight(1f, fill = false).fillMaxWidth().topBorder(C.Border)) {
             CategoryRail(category, s.draft, Modifier.width(if (isTablet()) 170.dp else 116.dp)) { category = it }
@@ -121,15 +124,38 @@ private fun FilterHeader(onClose: () -> Unit) {
     }
 }
 
-/** "Assigned to" and a row of the people with assets here: initials, name and how many each has; a tap picks or un-picks. */
+/**
+ * "Assigned to" and a row of the people with assets here: initials, name and how many each has, with "Unassigned" (the
+ * assets assigned to nobody) first when there are any; a tap picks or un-picks.
+ */
 @Composable
-private fun PeopleRow(people: List<FilterPerson>, onPerson: (String) -> Unit) {
+private fun PeopleRow(people: List<FilterPerson>, unassigned: FilterPerson?, onPerson: (String) -> Unit) {
     Txt(stringResource(R.string.filter_assigned_to), 12, 600, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 6.dp))
     LazyRow(
         contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        unassigned?.let { n -> item(key = n.userId) { NobodyChoice(n) { onPerson(n.userId) } } }
         items(people, key = { it.userId }) { p -> PersonChoice(p) { onPerson(p.userId) } }
+    }
+}
+
+/** "Unassigned": an empty dashed circle with a person's outline where initials would be, as the web's. */
+@Composable
+private fun NobodyChoice(p: FilterPerson, onClick: () -> Unit) {
+    Column(
+        Modifier.width(60.dp).clip(r(10)).testTag(FilterTags.person(p.userId))
+            .toggleable(p.selected, role = Role.Checkbox) { onClick() }.padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Box(
+            Modifier.size(40.dp).clip(CircleShape)
+                .then(if (p.selected) Modifier.border(2.dp, C.Yellow, CircleShape) else Modifier.dashedBorder(C.Muted, 1.5.dp, 20.dp)),
+            contentAlignment = Alignment.Center,
+        ) { LineIcon(Icons.User, 20.dp, C.Muted, 2f) }
+        Txt(stringResource(R.string.filter_unassigned), 10, if (p.selected) 700 else 500, if (p.selected) C.Text else C.Soft, maxLines = 2, align = TextAlign.Center)
+        Txt(p.count.toString(), 10, 500, C.Muted)
     }
 }
 
@@ -199,7 +225,7 @@ private fun ChoiceList(category: FilterCategory, options: AssetFilterOptions, mo
         ).filter { it.count > 0 || it.selected }
     }
     if (choices.isEmpty()) {
-        Box(modifier.padding(16.dp)) { Txt(stringResource(R.string.filter_nothing), 12, 400, C.Muted, maxLines = 3) }
+        Box(modifier.padding(16.dp)) { Txt(stringResource(R.string.filter_nothing), 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
         return
     }
     LazyColumn(modifier, contentPadding = PaddingValues(horizontal = 10.dp)) {

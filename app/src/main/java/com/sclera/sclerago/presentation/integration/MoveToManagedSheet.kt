@@ -46,7 +46,7 @@ fun MoveToManagedSheet(networks: List<String>, s: MoveSheetState, vm: MoveToMana
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Txt(stringResource(R.string.mv_network_label), 12, 600, C.Muted)
-                if (networks.isEmpty()) Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
+                if (networks.isEmpty()) Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
                 // The web shows each name capitalised and sends it as it is.
                 ChoiceList(networks, { n -> n.replaceFirstChar { it.uppercaseChar() } }, { it == s.network }, vm::pickNetwork)
 
@@ -54,7 +54,7 @@ fun MoveToManagedSheet(networks: List<String>, s: MoveSheetState, vm: MoveToMana
                 SearchField(s.query, vm::setQuery, stringResource(R.string.int_select))
                 when {
                     s.searching -> Txt(stringResource(R.string.int_loading), 12, 400, C.Muted, Modifier.padding(8.dp))
-                    s.assignees.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp))
+                    s.assignees.isEmpty() -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
                 }
                 ChoiceList(s.assignees, { it.email }, { it.email == s.assignee }, onPick = { vm.pickAssignee(it.email) })
             }
@@ -82,6 +82,6 @@ private fun MovePlacesNote(preview: MovePreview?) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LineIcon(Icons.Info, 15.dp, C.Orange, 2.2f)
-        Txt(text, 12, 500, C.Soft, Modifier.weight(1f), maxLines = 3)
+        Txt(text, 12, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
     }
 }

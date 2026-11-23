@@ -4,7 +4,9 @@ import com.sclera.sclerago.domain.model.ImportPlan
 import com.sclera.sclerago.domain.model.ImportResult
 import com.sclera.sclerago.domain.model.ImportTarget
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.repository.PropertyImportRepository
+import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import javax.inject.Inject
 
 // Import properties (property list → Import), as the web's Import on the new API: choose the sheet, check the column
@@ -17,10 +19,11 @@ class SavePropertyTemplateUseCase @Inject constructor(private val repo: Property
 
 /**
  * Proceed: the server reads [file] and proposes a detail for each column; the mapping starts from those proposals
- * (detail key → column heading). Throws [OnlineException].
+ * (detail key → column heading). Needs [Permission.MANAGE_PROPERTIES], as the server. Throws [OnlineException].
  */
-class PreparePropertyImportUseCase @Inject constructor(private val repo: PropertyImportRepository) {
+class PreparePropertyImportUseCase @Inject constructor(private val repo: PropertyImportRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(file: String): ImportPlan {
+        guard.requireOnline(Permission.MANAGE_PROPERTIES)
         val suggestion = repo.suggest(file)
         val targets = repo.targets()
         val known = targets.map { it.key }.toSet()
@@ -33,9 +36,10 @@ class PreparePropertyImportUseCase @Inject constructor(private val repo: Propert
 
 /**
  * Import: needs a column for every required detail (the property's name); then imports [file] with [mapping]
- * (detail key → column heading), sent as the web sends it (column heading → detail key). Throws [OnlineException].
+ * (detail key → column heading), sent as the web sends it (column heading → detail key). Needs
+ * [Permission.MANAGE_PROPERTIES], as the server. Throws [OnlineException].
  */
-class ImportPropertiesUseCase @Inject constructor(private val repo: PropertyImportRepository) {
+class ImportPropertiesUseCase @Inject constructor(private val repo: PropertyImportRepository, private val guard: PermissionGuard) {
     sealed interface Result {
         data class Imported(val result: ImportResult) : Result
 
@@ -44,6 +48,7 @@ class ImportPropertiesUseCase @Inject constructor(private val repo: PropertyImpo
     }
 
     suspend operator fun invoke(file: String, targets: List<ImportTarget>, mapping: Map<String, String>): Result {
+        guard.requireOnline(Permission.MANAGE_PROPERTIES)
         val chosen = mapping.filterValues { it.isNotBlank() }
         val needed = targets.filter { it.required }.map { it.key }.ifEmpty { listOf(ImportTarget.REQUIRED_KEY) }
         if (needed.any { it !in chosen }) return Result.MissingRequired

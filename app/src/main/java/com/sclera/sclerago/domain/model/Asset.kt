@@ -87,7 +87,21 @@ data class Asset(
     val validationProblems: Int = 0,
     /** The kinds of tag the synced data says it carries (the assets table's qr_code_tag, barcode_tag, nfc_tag). */
     val tagged: Set<TagKind> = emptySet(),
+    /**
+     * In Managed Assets: moved to the property's VDMS, which took it (the server's vdms_state MOVED, the web's
+     * `managed`). Listed on the Managed assets chip only and read-only for everyone, admins too, until Managed Assets
+     * sends it back as a draft.
+     */
+    val managed: Boolean = false,
+    /**
+     * What the list's search looks in, lowercase: the same as the API's `q` (its name, manufacturer, model, serial number
+     * and description, and every other field's answer). Empty for an asset not read from the database: then its name.
+     */
+    val searchText: String = "",
 )
+
+/** Whether [text] (trimmed, lowercase; empty matches every asset) is in what the search looks in ([Asset.searchText]). */
+fun Asset.hasText(text: String): Boolean = text.isEmpty() || searchText.ifEmpty { name.lowercase() }.contains(text)
 
 /** A validation result worth showing on an asset's row: the web's "Failed validation" and "Needs a look". */
 enum class ValidationMark { FAILED, NEEDS_LOOK }

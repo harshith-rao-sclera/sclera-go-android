@@ -236,8 +236,6 @@
     <string name="doc_upload">Prześlij dokument</string>
     <string name="doc_none">Brak dokumentów</string>
     <string name="doc_category">Kategoria:</string>
-    <string name="doc_used_for">Zastosowanie:</string>
-    <string name="doc_model">Model:</string>
     <string name="doc_link">Link:</string>
     <string name="doc_created_by">Autor:</string>
     <string name="doc_ai_source">Źródło specyfikacji AI</string>

@@ -109,6 +109,7 @@ fun JobDto.toDomain() = ValRun(
     createdAt = parseDbTime(createdAt),
     startedAt = parseDbTime(startedAt),
     finishedAt = parseDbTime(finishedAt),
+    startedBy = startedBy?.takeIf { it.isNotBlank() }?.clip(),
 )
 
 fun ResultDto.toDomain() = RunAssetResult(
@@ -202,7 +203,7 @@ private fun settingsOf(settings: JsonObject): Triple<Map<String, List<String>>, 
 
 fun SavedValidationDto.toDomain(): ValidationDef {
     val (fields, severity, scope) = settingsOf(settings)
-    return ValidationDef(id, name.clip(), description?.clip(), rules, templateKey, fields, severity, scope, lastRun?.toDomain())
+    return ValidationDef(id, name.clip(), description?.clip(), rules, templateKey, fields, severity, scope, lastRun?.toDomain(), locked)
 }
 
 /** The body of `POST /validations` (with the template) or `PATCH /validations/{id}`: settings are sent camelCase. */
@@ -362,7 +363,8 @@ fun DbRow.toRunIssue(fieldNames: Map<String, Pair<String, String>>): RunIssue {
     )
 }
 
-fun DbRow.toValidationDef(lastRun: ValRun?): ValidationDef {
+/** [locked]: it has runs on the phone's copy (ready ones too), as the server's `locked`. */
+fun DbRow.toValidationDef(lastRun: ValRun?, locked: Boolean): ValidationDef {
     val (fields, severity, scope) = settingsOf(DbJson.obj(string("settings")))
     return ValidationDef(
         id = string("id").orEmpty(),
@@ -374,5 +376,6 @@ fun DbRow.toValidationDef(lastRun: ValRun?): ValidationDef {
         stepSeverity = severity,
         typeScope = scope,
         lastRun = lastRun,
+        locked = locked || lastRun != null,
     )
 }

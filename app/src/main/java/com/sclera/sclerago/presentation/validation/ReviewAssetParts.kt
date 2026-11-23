@@ -56,11 +56,11 @@ internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, inf
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (local == null) {
-                Txt(stringResource(R.string.rev_asset_not_here), 11, 400, C.Muted, maxLines = 3)
+                Txt(stringResource(R.string.rev_asset_not_here), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 return@Column
             }
             val where = local.where.ifBlank { stringResource(R.string.rev_no_location) }
-            Txt(if (propName.isBlank()) where else stringResource(R.string.rev_place, propName, where), 13, 700, maxLines = 2)
+            Txt(if (propName.isBlank()) where else stringResource(R.string.rev_place, propName, where), 13, 700, maxLines = Int.MAX_VALUE)
             Txt(
                 info?.let { stringResource(R.string.rev_fields_filled, statusText(local.st), it.filled, it.total) } ?: statusText(local.st),
                 11, 500, C.Muted, maxLines = 2,
@@ -78,7 +78,7 @@ internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, inf
 @Composable
 internal fun ReviewAssetInfoTab(local: Asset?, info: ReviewAssetInfo?, loading: Boolean, onOpenAsset: (String) -> Unit) {
     if (local == null) {
-        Txt(stringResource(R.string.rev_asset_not_here), 12, 400, C.Muted, maxLines = 3)
+        Txt(stringResource(R.string.rev_asset_not_here), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         return
     }
     if (loading) {
@@ -97,7 +97,7 @@ internal fun ReviewAssetInfoTab(local: Asset?, info: ReviewAssetInfo?, loading: 
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Txt(row.label, 12, 500, C.Muted, Modifier.weight(0.42f), maxLines = 2)
-                Txt(row.value ?: "—", 13, 600, if (row.value == null) C.Muted else C.Text, Modifier.weight(0.58f), maxLines = 4)
+                Txt(row.value ?: "—", 13, 600, if (row.value == null) C.Muted else C.Text, Modifier.weight(0.58f), maxLines = Int.MAX_VALUE)
             }
         }
     }
@@ -105,5 +105,5 @@ internal fun ReviewAssetInfoTab(local: Asset?, info: ReviewAssetInfo?, loading: 
         stringResource(R.string.rev_open_asset), { onOpenAsset(local.id) }, Modifier.fillMaxWidth(),
         bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700,
     )
-    Txt(stringResource(R.string.rev_info_hint), 11, 400, C.Muted, Modifier.fillMaxWidth(), maxLines = 3, align = TextAlign.Center)
+    Txt(stringResource(R.string.rev_info_hint), 11, 400, C.Muted, Modifier.fillMaxWidth(), maxLines = Int.MAX_VALUE, align = TextAlign.Center)
 }

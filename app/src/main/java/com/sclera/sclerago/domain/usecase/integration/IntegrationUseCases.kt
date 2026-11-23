@@ -37,9 +37,12 @@ class LinkVdmsUseCase @Inject constructor(private val repo: IntegrationRepositor
     }
 }
 
-/** "+ Integration" is turned off for the plain "user" role, as on the web. */
+/**
+ * "+ Integration" is offered only to someone who may configure the property, as the server needs for searching and
+ * linking (the web tests the plain "user" role, which gives the same answer on its Configure-only page).
+ */
 class CanAddIntegrationUseCase @Inject constructor(private val guard: PermissionGuard) {
-    operator fun invoke(): Boolean = !guard.isPlainUser()
+    operator fun invoke(): Boolean = guard.allows(Permission.CONFIGURE)
 }
 
 /** The Integration use cases, for injecting as one. */

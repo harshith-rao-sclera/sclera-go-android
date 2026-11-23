@@ -23,11 +23,23 @@ class PermissionGuard @Inject constructor(private val access: CurrentAccessRepos
     /** [allows], kept up to date as the access is fetched or changes (for showing or hiding a button). */
     fun observe(permission: Permission): Flow<Boolean> = access.state.map { allows(it, permission) }.distinctUntilChanged()
 
+    /**
+     * Only what the access says, as the web (which won't sign someone in until `/me` answers): while it isn't known
+     * (being fetched, or failed with no copy kept on the device) nothing is allowed, so no page or change the server
+     * may refuse is offered, and no change is made offline that the sync would send unchecked. A kept copy shows at
+     * once, so this only holds back a first sign-in.
+     */
     private fun allows(state: AccessState, permission: Permission): Boolean = when (state) {
         is AccessState.Loaded -> permission in state.access.permissions
         is AccessState.NoGroup -> false
-        AccessState.Loading, is AccessState.Failed -> true
+        AccessState.Loading, is AccessState.Failed -> false
     }
+
+    /** The access is known (fetched, or kept from before): false while it is being fetched or failed. */
+    fun known(): Boolean = access.state.value.let { it is AccessState.Loaded || it is AccessState.NoGroup }
+
+    /** Every change to the access (fetched, failed, changed), for re-reading permission checks shown on screen. */
+    fun changes(): Flow<AccessState> = access.state
 
     /** The signed-in user's id, as the server knows them; null until the access has been fetched. */
     fun userId(): String? = (access.state.value as? AccessState.Loaded)?.access?.userId

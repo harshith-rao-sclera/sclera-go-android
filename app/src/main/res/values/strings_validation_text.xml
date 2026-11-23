@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Validation screens' text, moved out of the code. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Shared pieces -->
+    <!-- Two parts of one line, e.g. "Failed · 2 open" or "All assets (12) · 3 steps". -->
+    <string name="valt_dot_pair">%1$s · %2$s</string>
+    <!-- A step with its number in the run, e.g. "2. Duplicates". -->
+    <string name="valt_step_numbered">%1$d. %2$s</string>
+    <!-- A reviewer's note, shown in quotes. -->
+    <string name="valt_quoted">“%1$s”</string>
+    <string name="valt_ai_badge">AI</string>
+
+    <!-- How long a job took or has left -->
+    <string name="valt_duration_seconds">%1$ds</string>
+    <string name="valt_duration_minutes">%1$d min</string>
+    <string name="valt_duration_hours">%1$.1f h</string>
+
+    <!-- Validation page -->
+    <string name="valt_tagline_quick_check">The basics before handover</string>
+    <string name="valt_tagline_clean_up">Find duplicates and mismatches</string>
+    <string name="valt_tagline_ai_check">Published specs, JACS codes and an AI review</string>
+    <string name="valt_tagline_full_audit">Every step, all at once</string>
+    <string name="valt_group_each">Each asset</string>
+    <string name="valt_group_across">Across assets</string>
+    <string name="valt_group_ai">AI and web</string>
+    <string name="valt_templates">Templates</string>
+    <string name="valt_default_order">Default order</string>
+    <string name="valt_templates_offline">Templates load when you\'re online.</string>
+    <string name="valt_templates_loading">Loading templates…</string>
+    <string name="valt_saved_validations">Saved validations</string>
+    <string name="valt_recent_jobs">Recent jobs</string>
+    <string name="valt_run_on_all">Run on all assets</string>
+    <string name="valt_choose_assets">Choose assets</string>
+    <plurals name="valt_see_steps">
+        <item quantity="one">See the %1$d step</item>
+        <item quantity="other">See the %1$d steps</item>
+    </plurals>
+    <string name="valt_not_run_yet">Not run yet</string>
+    <!-- %1$s is how long ago, e.g. "5 min ago". -->
+    <string name="valt_last_run_running">Last run %1$s · running</string>
+    <string name="valt_last_run_review">Last run %1$s · %2$d to review</string>
+    <string name="valt_run">Run</string>
+    <string name="valt_count_failed">failed</string>
+    <string name="valt_count_look">to look at</string>
+    <string name="valt_count_passed">passed</string>
+    <string name="valt_status_running">Running</string>
+    <string name="valt_status_queued">Queued</string>
+    <string name="valt_status_ready">Ready</string>
+    <string name="valt_status_completed">Completed</string>
+    <plurals name="valt_checking_assets">
+        <item quantity="one">Checking %1$d asset</item>
+        <item quantity="other">Checking %1$d assets</item>
+    </plurals>
+    <!-- %1$s is what the job is doing; then assets checked of the total. -->
+    <string name="valt_progress_count">%1$s · %2$d/%3$d</string>
+    <string name="valt_progress_pending">%1$s…</string>
+    <string name="valt_view">View</string>
+    <string name="valt_ready_changed">Ready to run · picks up new or changed assets when it starts</string>
+    <string name="valt_ready_not_started">Ready to run · not started yet</string>
+    <string name="valt_starting">Starting…</string>
+
+    <!-- Run validation sheet -->
+    <string name="valt_saved_validation">Saved validation</string>
+    <string name="valt_these_steps">These steps</string>
+    <string name="valt_these_steps_sub">The steps of the job you ran</string>
+    <string name="valt_run_validation">Run validation</string>
+    <string name="valt_what_to_check">What to check</string>
+    <string name="valt_saved_badge">saved</string>
+    <string name="valt_which_assets">Which assets</string>
+    <string name="valt_mode_all">All · %1$d</string>
+    <string name="valt_mode_choose">Choose</string>
+    <string name="valt_mode_changed">New or changed</string>
+    <plurals name="valt_ticked_choose">
+        <item quantity="one">%1$d asset ticked · tap Choose to change</item>
+        <item quantity="other">%1$d assets ticked · tap Choose to change</item>
+    </plurals>
+    <string name="valt_changed_hint">Only what was added or changed since this last ran</string>
+    <string name="valt_tick_first">Tick some assets first</string>
+    <string name="valt_no_assets_to_check">No assets to check</string>
+    <!-- Stands in for the validation's name when none is chosen: "Run validation on …". -->
+    <string name="valt_run_name_fallback">validation</string>
+    <string name="valt_run_on_changed">Run %1$s on new or changed assets</string>
+    <plurals name="valt_run_on_n">
+        <item quantity="one">Run %2$s on %1$d asset</item>
+        <item quantity="other">Run %2$s on %1$d assets</item>
+    </plurals>
+    <string name="valt_save_as_ready">Save as ready</string>
+
+    <!-- Choose assets sheet -->
+    <plurals name="valt_n_ticked">
+        <item quantity="one">%1$d asset ticked</item>
+        <item quantity="other">%1$d assets ticked</item>
+    </plurals>
+
+    <!-- A template's steps -->
+    <plurals name="valt_steps_some_ai">
+        <item quantity="one">%1$d step · some use AI and look things up online</item>
+        <item quantity="other">%1$d steps · some use AI and look things up online</item>
+    </plurals>
+    <!-- %2$s is the list of checks. -->
+    <plurals name="valt_checks_list">
+        <item quantity="one">%1$d check: %2$s</item>
+        <item quantity="other">%1$d checks: %2$s</item>
+    </plurals>
+    <string name="valt_customize">Customize</string>
+
+    <!-- Default order sheet -->
+    <string name="valt_reset_default">Reset to default</string>
+    <string name="valt_save_order">Save order</string>
+
+    <!-- A step's settings in the editor -->
+    <plurals name="valt_match_on_fields">
+        <item quantity="one">Match on %1$d field</item>
+        <item quantity="other">Match on %1$d fields</item>
+    </plurals>
+    <string name="valt_as_errors">As errors</string>
+    <string name="valt_as_warnings">As warnings</string>
+    <string name="valt_match_on">Match on</string>
+    <string name="valt_fields">Fields</string>
+    <string name="valt_match_on_hint">Assets count as duplicates when these fields match.</string>
+    <string name="valt_fields_hint">Check only these fields, or all of them.</string>
+    <string name="valt_all_fields">All fields</string>
+    <string name="valt_report_as">Report problems as</string>
+    <string name="valt_sev_each">As each check decides</string>
+    <string name="valt_sev_warnings">Warnings</string>
+    <string name="valt_sev_errors">Errors</string>
+
+    <!-- Job review -->
+    <string name="valt_job_load_failed">This job couldn\'t be loaded.</string>
+    <string name="valt_checking_first">Checking the first assets… Results show up here as soon as the first batch is done.</string>
+    <plurals name="valt_n_selected">
+        <item quantity="one">%1$d asset selected</item>
+        <item quantity="other">%1$d assets selected</item>
+    </plurals>
+    <plurals name="valt_recollect_title">
+        <item quantity="one">Send %1$d asset back</item>
+        <item quantity="other">Send %1$d assets back</item>
+    </plurals>
+    <string name="valt_recollect_sub">They go back to drafts for the field team.</string>
+    <string name="valt_note_optional">Note (optional)</string>
+    <string name="valt_recollect_hint">What should the field team collect again?</string>
+    <string name="valt_send_recollect">Send for recollection</string>
+</resources>

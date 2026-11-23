@@ -354,11 +354,22 @@ class AccessViewModel @Inject constructor(
 
     fun askDeleteGroup(g: Group?) = set { copy(confirmDelete = g) }
 
-    /** Deletes [g]; the server refuses a group that still has people in it, and the user is told why. */
+    /**
+     * "Go to users" on "can't be deleted yet" (a group that still has people in it, as the web): the question and the
+     * group's form close and the Users tab shows, to move them to another group.
+     */
+    fun goToUsers() {
+        set { copy(confirmDelete = null, groupForm = null) }
+        setTab(AccessTab.PEOPLE)
+    }
+
+    /** Deletes [g]; a group that still has people in it isn't sent (the server refuses it; the page says so first). */
     fun deleteGroup(g: Group) {
+        val members = peopleIn(g.id)
+        if (members > 0) return set { copy(confirmDelete = null) }
         viewModelScope.launch {
             var deleted = false
-            online { deleted = useCases.deleteGroup(g) }
+            online { deleted = useCases.deleteGroup(g, members) }
             set {
                 copy(
                     confirmDelete = null,

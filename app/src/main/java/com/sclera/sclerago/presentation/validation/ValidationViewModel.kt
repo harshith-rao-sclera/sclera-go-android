@@ -26,6 +26,7 @@ import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -40,10 +41,10 @@ data class RunSheetState(
     val busy: Boolean = false,
     /** Opened from Data Collection ([QuickValidate]) rather than the Validation page. */
     val quick: Boolean = false,
-    /** What it opened with, so closing after a change asks first ([changed]). */
-    val startSource: RunSource? = source,
-    val startMode: RunMode = mode,
-    val startChosen: Set<String> = chosen,
+    /** What it opened with, so closing after a change asks first ([changed]); set when it opens. */
+    val startSource: RunSource? = null,
+    val startMode: RunMode = RunMode.ALL,
+    val startChosen: Set<String> = emptySet(),
 ) {
     /** What to check, which assets or the assets ticked differ from how it opened: closing asks first. */
     val changed: Boolean get() = source != startSource || mode != startMode || chosen != startChosen
@@ -55,8 +56,8 @@ data class OrderSheetState(
     val custom: Boolean = false,
     val loading: Boolean = true,
     val saving: Boolean = false,
-    /** The order as it was loaded. */
-    val startSteps: List<String> = steps,
+    /** The order as it was loaded (set once it has loaded). */
+    val startSteps: List<String> = emptyList(),
 ) {
     /** The order was changed and not saved: closing asks first. */
     val changed: Boolean get() = !loading && steps != startSteps
@@ -139,6 +140,24 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
 
     private fun set(f: ValidationUiState.() -> ValidationUiState) {
         state = state.f()
+    }
+
+    init {
+        // The buttons follow the access as it is fetched or changes, not only when the page opens (as the web).
+        viewModelScope.launch {
+            combine(useCases.access.observeCheck(), useCases.access.observeValidate(), ::Pair).collect { (check, validate) ->
+                set {
+                    copy(
+                        canCheck = check,
+                        canValidate = validate,
+                        // What the user may no longer do closes: running needs Check, keeping saved validations Validate.
+                        runSheet = runSheet?.takeIf { check },
+                        editor = editor?.takeIf { validate },
+                        confirmDelete = confirmDelete?.takeIf { validate },
+                    )
+                }
+            }
+        }
     }
 
     /** Opens the page for [propertyId] (again when it changed). */
@@ -240,11 +259,17 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     fun openRunSheet(source: RunSource? = null, pick: Boolean = false, assetIds: Set<String> = emptySet(), quick: Boolean = false) {
         val s = source ?: state.templates.firstOrNull()?.let { RunSource.Template(it.key) }
         val choose = pick || assetIds.isNotEmpty()
-        set { copy(runSheet = RunSheetState(s, if (choose) RunMode.CHOSEN else RunMode.ALL, assetIds, picking = pick, quick = quick), templateDetails = null) }
+        val mode = if (choose) RunMode.CHOSEN else RunMode.ALL
+        set {
+            copy(
+                runSheet = RunSheetState(s, mode, assetIds, picking = pick, quick = quick, startSource = s, startMode = mode, startChosen = assetIds),
+                templateDetails = null,
+            )
+        }
     }
 
     /** Whether this user may run checks (Validate in Data Collection shows only then). */
-    fun mayCheck(): Boolean = useCases.access.canCheck()
+    fun mayCheck(): Boolean = state.canCheck
 
     /** The note of a run started from Data Collection has been shown there. */
     fun quickShown() = set { copy(quickStarted = null) }
@@ -428,6 +453,8 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     }
 
     fun editValidation(v: ValidationDef) {
+        // One that has run keeps its steps and settings for its runs: the server refuses the change (409).
+        if (v.locked) return flash(UiText.Res(R.string.valt_locked_note))
         set {
             copy(
                 editor = EditorState(

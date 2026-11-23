@@ -32,6 +32,7 @@ import com.sclera.sclerago.data.repository.ValidationRunRepositoryImpl
 import com.sclera.sclerago.data.repository.IntegrationRepositoryImpl
 import com.sclera.sclerago.data.repository.VdmsLinkRepositoryImpl
 import com.sclera.sclerago.data.repository.ManagedAssetsRepositoryImpl
+import com.sclera.sclerago.data.repository.PlacesHistoryRepositoryImpl
 import com.sclera.sclerago.data.repository.VdmsPlacesRepositoryImpl
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AddressLookupRepository
@@ -52,6 +53,7 @@ import com.sclera.sclerago.domain.repository.ValidationRunRepository
 import com.sclera.sclerago.domain.repository.IntegrationRepository
 import com.sclera.sclerago.domain.repository.VdmsLinkRepository
 import com.sclera.sclerago.domain.repository.ManagedAssetsRepository
+import com.sclera.sclerago.domain.repository.PlacesHistoryRepository
 import com.sclera.sclerago.domain.repository.VdmsPlacesRepository
 import dagger.Binds
 import dagger.Module
@@ -88,6 +90,7 @@ abstract class OnlineModule {
     @Binds abstract fun vdmsLink(impl: VdmsLinkRepositoryImpl): VdmsLinkRepository
     @Binds abstract fun managedAssets(impl: ManagedAssetsRepositoryImpl): ManagedAssetsRepository
     @Binds abstract fun vdmsPlaces(impl: VdmsPlacesRepositoryImpl): VdmsPlacesRepository
+    @Binds abstract fun placesHistory(impl: PlacesHistoryRepositoryImpl): PlacesHistoryRepository
     @Binds abstract fun propertySettings(impl: PropertySettingsRepositoryImpl): PropertySettingsRepository
     @Binds abstract fun geofence(impl: GeofenceRepositoryImpl): GeofenceRepository
     @Binds abstract fun configFields(impl: ConfigFieldsRepositoryImpl): ConfigFieldsRepository

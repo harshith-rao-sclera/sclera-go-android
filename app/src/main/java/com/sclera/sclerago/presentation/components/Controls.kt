@@ -49,7 +49,7 @@ internal fun ListLoader(text: String, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         CircularProgressIndicator(Modifier.size(28.dp), color = C.Yellow, strokeWidth = 2.5.dp)
-        Txt(text, 13, 400, C.Muted, maxLines = 2, align = TextAlign.Center)
+        Txt(text, 13, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
     }
 }
 
@@ -58,7 +58,7 @@ internal fun EmptyNote(text: String) {
     Txt(
         text, 12, 400, C.Muted,
         Modifier.padding(horizontal = 12.dp).fillMaxWidth().dashedBorder(C.Border2, 1.dp, 12.dp).padding(12.dp),
-        maxLines = 3,
+        maxLines = Int.MAX_VALUE,
     )
 }
 

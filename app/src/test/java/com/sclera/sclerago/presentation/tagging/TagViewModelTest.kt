@@ -11,6 +11,7 @@ import com.sclera.sclerago.domain.model.TaggingError
 import com.sclera.sclerago.domain.model.TaggingException
 import com.sclera.sclerago.domain.usecase.tagging.AttachTagUseCase
 import com.sclera.sclerago.domain.usecase.tagging.BuildScannedTagUseCase
+import com.sclera.sclerago.domain.usecase.tagging.CanTagAssetUseCase
 import com.sclera.sclerago.domain.usecase.tagging.IsAssetSubmittedUseCase
 import com.sclera.sclerago.domain.usecase.tagging.TagHolderNameUseCase
 import com.sclera.sclerago.domain.usecase.tagging.TagPropertyUseCase
@@ -24,6 +25,7 @@ import com.sclera.sclerago.testutil.FakePropertyDownloads
 import com.sclera.sclerago.testutil.FakeTagServer
 import com.sclera.sclerago.testutil.FakeTaggingRepository
 import com.sclera.sclerago.testutil.InMemoryAssetRepository
+import com.sclera.sclerago.testutil.allowAllGuard
 import com.sclera.sclerago.testutil.heldTag
 import com.sclera.sclerago.testutil.unknownTag
 import kotlinx.coroutines.Dispatchers
@@ -44,9 +46,10 @@ class TagViewModelTest {
     private val repo = FakeTaggingRepository()
     private val network = FakeNetworkMonitor()
     private val assets = InMemoryAssetRepository()
+    private val canTag = CanTagAssetUseCase(InMemoryAssetRepository(emptyList()), allowAllGuard())
 
     private fun vm() = TagViewModel(
-        TagUseCases(AttachTagUseCase(repo, NoTagHistory), BuildScannedTagUseCase(FakeDirectionSource(), FakeTagServer()), IsAssetSubmittedUseCase(assets), TagHolderNameUseCase(assets), TagPropertyUseCase(FakePropertyDownloads(PropertyDownloads(currentId = "p1", restored = true)))),
+        TagUseCases(AttachTagUseCase(repo, NoTagHistory, canTag), BuildScannedTagUseCase(FakeDirectionSource(), FakeTagServer()), IsAssetSubmittedUseCase(assets), TagHolderNameUseCase(assets), TagPropertyUseCase(FakePropertyDownloads(PropertyDownloads(currentId = "p1", restored = true))), canTag),
         network,
     ).also { it.open("a2", "p1") }
 
@@ -217,7 +220,7 @@ class TagViewModelTest {
     @Test
     fun `nothing happens before an asset is open`() {
         val vm = TagViewModel(
-            TagUseCases(AttachTagUseCase(repo, NoTagHistory), BuildScannedTagUseCase(FakeDirectionSource(), FakeTagServer()), IsAssetSubmittedUseCase(assets), TagHolderNameUseCase(assets), TagPropertyUseCase(FakePropertyDownloads(PropertyDownloads(currentId = "p1", restored = true)))),
+            TagUseCases(AttachTagUseCase(repo, NoTagHistory, canTag), BuildScannedTagUseCase(FakeDirectionSource(), FakeTagServer()), IsAssetSubmittedUseCase(assets), TagHolderNameUseCase(assets), TagPropertyUseCase(FakePropertyDownloads(PropertyDownloads(currentId = "p1", restored = true))), canTag),
             network,
         )
         vm.start(TagKind.QR)

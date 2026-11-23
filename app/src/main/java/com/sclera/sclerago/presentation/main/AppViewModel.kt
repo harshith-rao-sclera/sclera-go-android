@@ -3,6 +3,7 @@ package com.sclera.sclerago.presentation.main
 import com.sclera.sclerago.domain.usecase.access.CanManageAccessUseCase
 import android.net.Uri
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -25,16 +26,21 @@ import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.PlaceScope
+import com.sclera.sclerago.domain.model.placeScopeOf
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
-import com.sclera.sclerago.domain.model.findNode
 import com.sclera.sclerago.domain.usecase.asset.AssetPlace
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessFailedUseCase
+import com.sclera.sclerago.domain.usecase.access.RetryAccessUseCase
+import com.sclera.sclerago.domain.usecase.access.SeesAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
+import com.sclera.sclerago.domain.usecase.fileimport.FileImportAccessUseCase
 import com.sclera.sclerago.domain.usecase.integration.IntegrationAccessUseCase
 import com.sclera.sclerago.domain.usecase.location.LocationUseCases
 import com.sclera.sclerago.domain.usecase.media.FileUseCases
@@ -43,7 +49,6 @@ import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.validation.ValidationAccessUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.observedIn
-import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.common.toUiText
 import com.sclera.sclerago.presentation.components.UnsavedForms
 import com.sclera.sclerago.presentation.model.viaRes
@@ -53,6 +58,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -93,6 +99,8 @@ data class UiState(
     val specPath: List<String> = emptyList(),
     val specWhere: String = "",
     val specSel: String = "",
+    /** What [specSel] is: a building, floor or location (null until one is picked). */
+    val specKind: NodeKind? = null,
     val sheet: Sheet = Sheet.NONE,
     val sheetFor: SheetFor = SheetFor.FILTER,
     /** A place picked for the open asset, waiting for its details to take it as an unsaved change. */
@@ -190,9 +198,28 @@ class AppViewModel @Inject constructor(
     private val fileUseCases: FileUseCases,
     private val downloads: PropertyDownloadUseCases,
     private val manageAccess: CanManageAccessUseCase,
+    private val seesAssetsUseCase: SeesAssetsUseCase,
+    private val observeAccessChanges: ObserveAccessChangesUseCase,
+    private val observeAccessFailed: ObserveAccessFailedUseCase,
+    private val retryAccessUseCase: RetryAccessUseCase,
+    private val fileImportAccess: FileImportAccessUseCase,
 ) : ViewModel() {
     var state by mutableStateOf(UiState())
         private set
+
+    /**
+     * Bumped whenever the signed-in user's access changes (fetched, failed, changed): every permission check the
+     * screens read ([canCheck], [canConfigure], [canManageAccess], [seesAssets], [mayCollect]) reads it first, so they
+     * recompose with the new answer instead of keeping the one from when they were first drawn.
+     */
+    private var accessVersion by mutableIntStateOf(0)
+
+    /** The access couldn't be loaded (and none was kept): pages and changes that need a permission stay unavailable. */
+    var accessFailed by mutableStateOf(false)
+        private set
+
+    /** "Retry" on the banner saying the access couldn't be loaded: fetches it again. */
+    fun retryAccess() = retryAccessUseCase()
 
     private fun set(f: UiState.() -> UiState) {
         state = state.f()
@@ -240,21 +267,13 @@ class AppViewModel @Inject constructor(
     val locationFilter: LocationFilter
         get() = when (state.loc) {
             LocFilter.ALL -> LocationFilter.All
-            LocFilter.SPEC -> LocationFilter.Specific(state.specLocs)
+            LocFilter.SPEC -> LocationFilter.Specific(placeScopeOf(state.specKind, state.specSel))
             LocFilter.NONE -> LocationFilter.Unmapped
         }
 
     /** The place the location filter picked, as building / floor / location ids (the whole property: none), for the Managed Assets Summary. */
     val placeScope: PlaceScope
-        get() {
-            val node = if (state.loc == LocFilter.SPEC) treeFor().findNode(state.specSel) else null
-            return when (node?.kind) {
-                NodeKind.BUILDING -> PlaceScope(buildingIds = listOf(node.id))
-                NodeKind.FLOOR -> PlaceScope(floorIds = listOf(node.id))
-                NodeKind.LOCATION -> PlaceScope(locationIds = listOf(node.id))
-                null -> PlaceScope()
-            }
-        }
+        get() = if (state.loc == LocFilter.SPEC) placeScopeOf(state.specKind, state.specSel) else PlaceScope()
 
     /**
      * Where new assets go: the location chosen in the filter (its name, its "where" text and its id), also while the
@@ -287,7 +306,10 @@ class AppViewModel @Inject constructor(
                 state.newSrc, Status.DRAFT, d?.type ?: AssetType.GENERIC, currentProp,
                 media = state.newMedia, locationId = tgtPlace,
             )
-        } else state.assetId?.let { id -> assets.firstOrNull { it.id == id } }
+        } else state.assetId?.let { id ->
+            // One in Managed Assets (opened from the Managed assets chip) opens too, read-only.
+            assets.firstOrNull { it.id == id } ?: catalog.value.managed.firstOrNull { it.id == id }
+        }
 
     /** What the new-asset form starts with: for a scanned device, what the scan found (a note, its BLE tag / IP). */
     val newPrefill: Map<String, String>
@@ -422,8 +444,10 @@ class AppViewModel @Inject constructor(
     private fun switchTab(t: Tab) {
         set {
             var o = copy(tab = t, assetId = null, newAsset = false, newMedia = emptyList(), newDevice = null, devPick = emptySet(), devAll = false, devSkip = emptySet())
-            if (t == Tab.CAMERA) o = o.copy(camOpen = true)
-            if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = true)
+            // Adding assets needs Collect (the web hides Add): without it the camera stays shut and the file manager
+            // isn't launched (the File tab's page says why).
+            if (t == Tab.CAMERA) o = o.copy(camOpen = mayCollect())
+            if (t == Tab.FILE) o = o.copy(fileOpen = true, revFile = false, pendingFilePicker = mayUploadFiles())
             // Scanning tabs always open on their Scan segment, not their asset list.
             if (t == Tab.BT) o = o.copy(btScan = true)
             if (t == Tab.NET) o = o.copy(netScan = true)
@@ -433,9 +457,13 @@ class AppViewModel @Inject constructor(
         when (t) {
             Tab.BT -> scans.start(ScanService.Target.BLUETOOTH, auto = true)
             Tab.NET -> scans.start(netTarget, auto = true)
+            Tab.CAMERA -> if (!mayCollect()) flashViewOnly()
             else -> {}
         }
     }
+
+    /** Someone without Collect tried to add an asset: their group can only view assets. */
+    private fun flashViewOnly() = flash(UiText.Res(R.string.view_only_no_add))
 
     /**
      * [t]'s scan list is on screen: its tab on its Scan segment (for the Network tab, in [t]'s mode), with no asset
@@ -466,6 +494,8 @@ class AppViewModel @Inject constructor(
      * asset, sheet, preview, side menu or side-menu page over it). Anywhere else a shake does nothing. True when it opened.
      */
     fun openCameraByShake(): Boolean {
+        // Without Collect there is nothing to add, so a shake does nothing.
+        if (!mayCollect()) return false
         val s = state
         val onAssetsPage = s.tab == Tab.ASSETS && listInteractive && s.pv == null && !s.menuOpen &&
             !s.valOpen && !s.cfgOpen && !s.intOpen && s.adminPage == null
@@ -478,7 +508,7 @@ class AppViewModel @Inject constructor(
         when (f) {
             LocFilter.ALL -> if (cur == LocFilter.ALL) openProp() else set { copy(loc = LocFilter.ALL, assetId = null) }
             // No location chosen yet: the tab opens the picker straight away.
-            LocFilter.SPEC -> if (cur == LocFilter.SPEC || state.specLocs.isEmpty()) openLocFilter() else set { copy(loc = LocFilter.SPEC, assetId = null) }
+            LocFilter.SPEC -> if (cur == LocFilter.SPEC || state.specSel.isEmpty()) openLocFilter() else set { copy(loc = LocFilter.SPEC, assetId = null) }
             LocFilter.NONE -> set { copy(loc = LocFilter.NONE, assetId = null) }
         }
     }
@@ -492,7 +522,10 @@ class AppViewModel @Inject constructor(
     fun pickMenu(item: MenuItem) {
         closeMenu()
         if (item == MenuItem.CONFIGURATION && !canConfigure) return
+        if (item == MenuItem.ASSETS && !seesAssets) return
         if (item == MenuItem.USERS && !canManageAccess) return
+        if (item == MenuItem.VALIDATION && !canCheck) return
+        if (item == MenuItem.INTEGRATION && !canConfigure) return
         // The page on screen goes: asked once, here, before anything closes (photos just taken, unsaved changes).
         leaving {
             when (item) {
@@ -527,8 +560,15 @@ class AppViewModel @Inject constructor(
         if (id !in downloadFlow.value.downloadedIds) return
         if (id != currentProp) downloads.open(id)
         closeAdmin()
-        goTab(Tab.ASSETS)
+        // Its first page: the assets, or Configuration for a group that only configures (the web's propertyHome).
+        if (seesAssets) goTab(Tab.ASSETS) else showConfig()
     }
+
+    /**
+     * The property's assets are offered (the web's Data Collection): not to a group that only configures, whose first
+     * page is Configuration.
+     */
+    val seesAssets: Boolean get() = accessVersion.let { seesAssetsUseCase() }
 
     fun openLocFilter() = set { copy(sheet = Sheet.LOC, sheetFor = SheetFor.FILTER) }
     fun openLocAsset() = set { copy(sheet = Sheet.LOC, sheetFor = SheetFor.ASSET) }
@@ -550,7 +590,7 @@ class AppViewModel @Inject constructor(
         } else set {
             copy(
                 sheet = Sheet.NONE, loc = LocFilter.SPEC, specLocs = r.locs, specPath = r.path.ifEmpty { listOf(r.label) },
-                specWhere = r.where, specSel = r.id, assetId = null,
+                specWhere = r.where, specSel = r.id, specKind = r.kind, assetId = null,
             )
         }
     }
@@ -602,7 +642,13 @@ class AppViewModel @Inject constructor(
     val devAllOn: Boolean get() = state.devAll
 
     /** Ticking is under way: rows show tick boxes and the add bar shows. */
-    val devSelOn: Boolean get() = pickedDevices.isNotEmpty() && !showDetail && !sheetOpen
+    val devSelOn: Boolean get() = pickedDevices.isNotEmpty() && !showDetail && !sheetOpen && mayCollect()
+
+    /** The signed-in user's group can add assets (Collect); the web hides Add from anyone else. */
+    fun mayCollect(): Boolean = accessVersion.let { assetUseCases.create.allowed() }
+
+    /** The user may upload files to add assets from (Collect): only then does the File tab launch the file manager. */
+    private fun mayUploadFiles(): Boolean = accessVersion.let { fileImportAccess.allowed() }
     val allDevicesPicked: Boolean get() = addableDevices.let { a -> a.isNotEmpty() && pickedDevices.size == a.size }
     val addableCount: Int get() = addableDevices.size
 
@@ -627,6 +673,7 @@ class AppViewModel @Inject constructor(
      * (name, its scan line, type, BLE tag / IP and a note). They're then marked as added on the list.
      */
     fun addPickedDevices() {
+        if (!mayCollect()) return flashViewOnly()
         val picked = pickedDevices
         if (picked.isEmpty()) return
         clearDevicePick()
@@ -642,6 +689,8 @@ class AppViewModel @Inject constructor(
         val made = state.devAdded[src]?.get(d.id)
         when {
             made != null && assets.any { it.id == made } -> openAsset(made)
+            // The new-asset form is only for someone who may add assets (Collect).
+            !mayCollect() -> flashViewOnly()
             else -> {
                 if (made != null) unmarkAdded(src, d.id)
                 set { copy(newAsset = true, newSrc = src, newMedia = emptyList(), newDevice = d, assetId = null) }
@@ -654,6 +703,7 @@ class AppViewModel @Inject constructor(
 
     /** Adds [devices] as draft assets in the current place, filled in from each device (name, type, BLE tag / IP, a note). */
     private fun addDevices(devices: List<Device>) {
+        if (!mayCollect()) return flashViewOnly()
         val src = scanSource
         val place = AssetPlace(currentProp, tgtLoc, tgtWhere, tgtPlace)
         write {
@@ -664,14 +714,18 @@ class AppViewModel @Inject constructor(
                 )
                 markAdded(src, d.id, created.id)
             }
-            val added = plural(devices.size, "asset", "assets") + if (devices.size == 1) " added as a draft" else " added as drafts"
-            flash(UiText.Res(R.string.notice_with_source, listOf(UiText.Raw(added), UiText.Res(src.viaRes))))
+            val added = UiText.Plural(R.plurals.scrt_assets_added_as_drafts, devices.size)
+            flash(UiText.Res(R.string.notice_with_source, listOf(added, UiText.Res(src.viaRes))))
         }
     }
 
     fun openAsset(id: String) = set { copy(assetId = id, newAsset = false) }
 
-    fun openNew() = set { copy(newAsset = true, newSrc = Source.MANUAL, newMedia = emptyList(), newDevice = null, assetId = null) }
+    /** The "+" button: the new-asset form, only for someone who may add assets (Collect); the web hides Add otherwise. */
+    fun openNew() {
+        if (!mayCollect()) return flashViewOnly()
+        set { copy(newAsset = true, newSrc = Source.MANUAL, newMedia = emptyList(), newDevice = null, assetId = null) }
+    }
     fun closeDetail() {
         // A camera shot that never became an asset is thrown away with the form.
         if (state.newAsset) fileUseCases.deleteOwned(state.newMedia)
@@ -688,6 +742,7 @@ class AppViewModel @Inject constructor(
     /** Camera tab: open the new-asset details with these photos/videos already attached. */
     private fun openNewWithMedia(media: List<Media>) {
         if (media.isEmpty()) return
+        if (!mayCollect()) return flashViewOnly()
         set {
             copy(
                 newAsset = true, newSrc = Source.CAMERA, newMedia = media, newDevice = null, assetId = null,
@@ -703,6 +758,8 @@ class AppViewModel @Inject constructor(
         submit: Boolean = false,
         exception: Boolean = false,
         picked: LocValue? = null,
+        /** The shots as the page has them (sorted, or moved between kinds by hand); null: sort them again. */
+        shots: List<Media>? = null,
     ): CreateAssetUseCase.Via {
         val s = state
         // Camera shots, a scanned device (tapped on the scan list) or by hand.
@@ -726,7 +783,8 @@ class AppViewModel @Inject constructor(
         write {
             val created = assetUseCases.create(
                 name, detail, media, values, submit, place,
-                captures = s.newMedia, device = s.newDevice, deviceSource = s.newSrc,
+                captures = shots?.filter { m -> s.newMedia.any { it.id == m.id } } ?: s.newMedia, device = s.newDevice, deviceSource = s.newSrc,
+                sortCaptures = shots == null,
             )
             if (created.via == CreateAssetUseCase.Via.SCAN) s.newDevice?.let { markAdded(s.newSrc, it.id, created.id) }
             when (created.via) {
@@ -752,7 +810,7 @@ class AppViewModel @Inject constructor(
     // ---------- Camera ----------
 
     fun cancelCam() = leaving { set { copy(camOpen = false) } }
-    fun openCam() = set { copy(camOpen = true) }
+    fun openCam() = if (!mayCollect()) flashViewOnly() else set { copy(camOpen = true) }
 
     /** The camera is on screen with shots in its strip that aren't an asset yet (swiping away is off meanwhile). */
     val cameraHasShots: Boolean
@@ -837,6 +895,7 @@ class AppViewModel @Inject constructor(
 
     /** Done in the camera: the ticked shots open one new asset's details (sorted into their kinds, then read by the AI). */
     fun doneCapturing() {
+        if (!mayCollect()) return flashViewOnly()
         val picked = state.captures.filter { it.id in state.camSel }
         if (picked.isEmpty()) return
         set { copy(captures = captures.filter { it.id !in camSel }, camSel = emptySet(), camOpen = false) }
@@ -846,6 +905,7 @@ class AppViewModel @Inject constructor(
     /** Gallery button in the camera: the picked photos/videos open one new asset's details. */
     fun addPicked(uris: List<Uri>) {
         if (uris.isEmpty()) return
+        if (!mayCollect()) return flashViewOnly()
         viewModelScope.launch {
             openNewWithMedia(fileUseCases.describeMedia(uris.map { it.toString() }))
         }
@@ -856,7 +916,8 @@ class AppViewModel @Inject constructor(
     // ---------- Files ----------
 
     fun cancelFile() = set { copy(fileOpen = false) }
-    fun openFile() = set { copy(fileOpen = true, revFile = false, pendingFilePicker = true) }
+    /** The File tab's page; the system file manager opens over it only for someone who may add assets (Collect). */
+    fun openFile() = set { copy(fileOpen = true, revFile = false, pendingFilePicker = mayUploadFiles()) }
     fun filePickerLaunched() = set { copy(pendingFilePicker = false) }
 
     /**
@@ -865,7 +926,7 @@ class AppViewModel @Inject constructor(
      */
     fun onFilesPicked(anyFiles: Boolean) = set { copy(fileOpen = false, revFile = anyFiles) }
 
-    fun backToFiles() = set { copy(pendingFilePicker = true) }
+    fun backToFiles() = if (!mayUploadFiles()) flashViewOnly() else set { copy(pendingFilePicker = true) }
 
     /** The File tab's review is done with (added, discarded or emptied): back to its asset list. */
     fun closeFiles() = set { copy(revFile = false, fileOpen = false) }
@@ -873,17 +934,22 @@ class AppViewModel @Inject constructor(
     // ---------- Validation ----------
 
     /** The signed-in user may run validations (the server's check permission; validate includes it). */
-    val canCheck: Boolean get() = validationAccess.canCheck()
+    val canCheck: Boolean get() = accessVersion.let { validationAccess.canCheck() }
+
+    /** The Validation page is on screen: opened, and the user may run checks (as the web's route guard). */
+    val validationShown: Boolean get() = state.valOpen && canCheck
 
     // Side-menu pages always return to the Assets tab. It is also selected on open, so the
     // pager slides there hidden behind the page rather than visibly on close.
-    fun openValidation() = leaving { showValidation() }
-    private fun showValidation() =
+    fun openValidation() = if (!canCheck) Unit else leaving { showValidation() }
+    private fun showValidation() {
+        if (!canCheck) return
         set { copy(valOpen = true, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
+    }
     fun closeValidation() = set { copy(valOpen = false, valJobId = null, tab = Tab.ASSETS, assetId = null, newAsset = false) }
 
     /** "Open in Validation" from an asset: the Validation page, on the run [jobId] (the asset closes). */
-    fun openValidationRun(jobId: String) = leaving {
+    fun openValidationRun(jobId: String) = if (!canCheck) Unit else leaving {
         set { copy(valOpen = true, valJobId = jobId, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     }
 
@@ -893,15 +959,23 @@ class AppViewModel @Inject constructor(
     // ---------- Integration ----------
 
     /** The signed-in user may configure the property (the server's configure permission): the Integration page shows only then. */
-    val canConfigure: Boolean get() = integrationAccess()
+    val canConfigure: Boolean get() = accessVersion.let { integrationAccess() }
 
     /** The Users page is only for someone who may manage people and access (as the server's user list). */
-    val canManageAccess: Boolean get() = manageAccess()
+    val canManageAccess: Boolean get() = accessVersion.let { manageAccess() }
 
-    fun openIntegration() = leaving { showIntegration() }
-    private fun showIntegration() =
+    /** The Configuration / Integration / Users pages are on screen: opened, and still allowed (as the web's route guards). */
+    val configShown: Boolean get() = state.cfgOpen && canConfigure
+    val integrationShown: Boolean get() = state.intOpen && canConfigure
+    val peopleShown: Boolean get() = state.adminPage == AdminPage.PEOPLE && canManageAccess
+
+    fun openIntegration() = if (!canConfigure) Unit else leaving { showIntegration() }
+    private fun showIntegration() {
+        if (!canConfigure) return
         set { copy(intOpen = true, valOpen = false, cfgOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
-    fun closeIntegration() = set { copy(intOpen = false, tab = Tab.ASSETS) }
+    }
+    /** Back from Integration: to the assets, or to Configuration for a group that isn't offered them. */
+    fun closeIntegration() = if (!seesAssets) showConfig() else set { copy(intOpen = false, tab = Tab.ASSETS) }
 
     init {
         // When the session ends, forget everything on screen so the next user starts clean.
@@ -914,9 +988,17 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch {
             downloads.observe().map { it.currentId }.distinctUntilChanged().collect {
                 // Devices added in a scan were added to the property left behind.
-                set { copy(loc = LocFilter.ALL, specLocs = emptyList(), specPath = emptyList(), specWhere = "", specSel = "", assetId = null, devAdded = emptyMap()) }
+                set { copy(loc = LocFilter.ALL, specLocs = emptyList(), specPath = emptyList(), specWhere = "", specSel = "", specKind = null, assetId = null, devAdded = emptyMap()) }
                 if (state.tab !in navTabs) goTab(Tab.ASSETS)
             }
+        }
+        // A group that only configures isn't offered the assets: an open property shows Configuration, its first page,
+        // also once the access arrives after the property opened (sign-in, a restart).
+        viewModelScope.launch {
+            combine(downloads.observe().map { it.currentId }.distinctUntilChanged(), seesAssetsUseCase.observe()) { id, sees -> id != null && !sees }
+                .collect { configOnly ->
+                    if (configOnly && state.adminPage == null && !state.cfgOpen && !state.intOpen) showConfig()
+                }
         }
         // Bluetooth and network scans (the network sweep included) run only while their scan list is on screen:
         // another tab, the tab's Assets list, an asset's details or a side-menu page stops them (they cost battery).
@@ -963,9 +1045,12 @@ class AppViewModel @Inject constructor(
 
     /** Opens Configuration, only for someone who may configure the property (the web hides it otherwise). */
     fun openConfig() = if (!canConfigure) Unit else leaving { showConfig() }
-    private fun showConfig() =
+    private fun showConfig() {
+        if (!canConfigure) return
         set { copy(cfgOpen = true, valOpen = false, intOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
-    fun closeConfig() = set { copy(cfgOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
+    }
+    /** Back from Configuration: to the assets, or (Configuration being a configure-only group's first page) the side menu. */
+    fun closeConfig() = if (!seesAssets) openMenu() else set { copy(cfgOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
 
     /** Switches the Configuration tab (Building info / Asset fields / Geofencing / Property Settings). */
     fun cfgGo(page: CfgPage) = set { copy(cfgPage = page) }
@@ -994,13 +1079,57 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 propertyUseCases.setOnboarding(prop, channel, on)
-                flash((if (t == Tab.BT) "Bluetooth" else "Wi-Fi") + " onboarding " + if (on) "on" else "off")
+                flash(
+                    UiText.Res(
+                        if (t == Tab.BT) (if (on) R.string.scrt_onboarding_bt_on else R.string.scrt_onboarding_bt_off)
+                        else if (on) R.string.scrt_onboarding_wifi_on else R.string.scrt_onboarding_wifi_off,
+                    ),
+                )
             } catch (e: OnlineException) {
                 flash(e.error.toUiText())
             } finally {
                 // Saved: the server's settings now show; failed: the switch goes back to them.
                 onboardingPending = onboardingPending - channel
             }
+        }
+    }
+
+    // ---------- The signed-in user's access ----------
+
+    /** Changes with every change to the access; a screen that reads it redraws its permission checks then. */
+    val accessStamp: Int get() = accessVersion
+
+    // Last in the class, so everything it reads is set up before the access's current value arrives.
+    init {
+        // Every change to the access re-reads the checks on screen, and closes what is no longer allowed.
+        viewModelScope.launch {
+            observeAccessChanges().collect {
+                accessVersion++
+                closeWhatIsNotAllowed()
+            }
+        }
+        viewModelScope.launch { observeAccessFailed().collect { accessFailed = it } }
+    }
+
+    /**
+     * As the web's route guards, re-checked whenever the access changes: Validation needs Check, Configuration and
+     * Integration need Configure and the Users page needs Manage access; a page whose permission is lost (or not known
+     * yet) closes. Without Collect the camera closes and the file manager isn't launched. Unsaved changes on a closed
+     * page are dropped: the server would refuse them now.
+     */
+    private fun closeWhatIsNotAllowed() {
+        val s = state
+        if (s.valOpen && !canCheck) set { copy(valOpen = false, valJobId = null, tab = Tab.ASSETS) }
+        if ((s.cfgOpen || s.intOpen) && !canConfigure) set { copy(cfgOpen = false, intOpen = false, cfgPage = CfgPage.FIELDS, tab = Tab.ASSETS) }
+        if (s.adminPage == AdminPage.PEOPLE && !canManageAccess) closeAdmin()
+        // A group that only configures has no assets page to fall back on: Configuration is its first page.
+        if (hasProperty && !seesAssets && state.adminPage == null && !state.cfgOpen && !state.intOpen) showConfig()
+        if (!mayUploadFiles()) set { copy(pendingFilePicker = false) }
+        if (!mayCollect()) {
+            set { copy(camOpen = false) }
+        } else if (state.tab != Tab.CAMERA && !state.camOpen) {
+            // Collect arrived: the camera is ready again for when its tab opens (as before the access was known).
+            set { copy(camOpen = true) }
         }
     }
 }

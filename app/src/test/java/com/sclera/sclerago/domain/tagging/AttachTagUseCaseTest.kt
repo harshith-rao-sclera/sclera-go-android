@@ -10,11 +10,14 @@ import com.sclera.sclerago.domain.model.TaggingException
 import com.sclera.sclerago.domain.model.QrMeasurement
 import com.sclera.sclerago.domain.usecase.tagging.AttachTagUseCase
 import com.sclera.sclerago.domain.usecase.tagging.BuildScannedTagUseCase
+import com.sclera.sclerago.domain.usecase.tagging.CanTagAssetUseCase
 import com.sclera.sclerago.domain.usecase.tagging.TagScan
 import com.sclera.sclerago.domain.model.TagKind
 import com.sclera.sclerago.testutil.FakeDirectionSource
 import com.sclera.sclerago.testutil.FakeTagServer
 import com.sclera.sclerago.testutil.FakeTaggingRepository
+import com.sclera.sclerago.testutil.InMemoryAssetRepository
+import com.sclera.sclerago.testutil.allowAllGuard
 import com.sclera.sclerago.testutil.freeTag
 import com.sclera.sclerago.testutil.heldTag
 import com.sclera.sclerago.testutil.unknownTag
@@ -27,7 +30,7 @@ import org.junit.Test
 
 class AttachTagUseCaseTest {
     private val repo = FakeTaggingRepository()
-    private val attach = AttachTagUseCase(repo, NoTagHistory)
+    private val attach = AttachTagUseCase(repo, NoTagHistory, CanTagAssetUseCase(InMemoryAssetRepository(emptyList()), allowAllGuard()))
     private val own = TagValue.qr("own-1")
     private val system = TagValue.qr("https://x/qr?id=sys-1")
 

@@ -4,7 +4,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -28,11 +27,9 @@ import com.sclera.sclerago.domain.model.ANSWER_NO
 import com.sclera.sclerago.domain.model.ANSWER_YES
 import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDocument
-import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.model.FieldCfg
-import com.sclera.sclerago.domain.model.tagKindOfField
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.Media
@@ -43,10 +40,12 @@ import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.assetTypes
 import com.sclera.sclerago.domain.model.subtypes
 import com.sclera.sclerago.domain.model.systemTypes
+import com.sclera.sclerago.domain.model.tagKindOfField
 import com.sclera.sclerago.domain.usecase.asset.AssetPerson
 import com.sclera.sclerago.domain.usecase.asset.ChangeAction
 import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
+import com.sclera.sclerago.presentation.common.is24Hour
 import com.sclera.sclerago.presentation.components.ActionCard
 import com.sclera.sclerago.presentation.components.DockItem
 import com.sclera.sclerago.presentation.components.Pill
@@ -118,6 +117,8 @@ class AssetDetailActions(
     val onDownloadMedia: (Media) -> Unit = {},
     /** Remove a photo, video, voice memo or file from the asset (the media viewer's Remove, after the confirmation). */
     val onRemoveMedia: (Media) -> Unit = {},
+    /** A new asset's photo dragged to another kind's card (null: Other photos). */
+    val onMovePhoto: (Media, PhotoKind?) -> Unit = { _, _ -> },
     /** Open the "Suggest type" sheet (System details). */
     val onSuggestType: () -> Unit = {},
     /** What the JACS code row and its picker do. */
@@ -207,7 +208,7 @@ fun AssetInfoTab(
         ) {
             ValueRow(stringResource(R.string.detail_assigned_to), assignee)
             ValueRow(stringResource(R.string.detail_submitted_by), h.submittedBy?.let { personText(it) })
-            ValueRow(stringResource(R.string.detail_submitted_on), h.submittedAt?.let { formatDateTimeSeconds(it, locale) })
+            ValueRow(stringResource(R.string.detail_submitted_on), h.submittedAt?.let { formatDateTimeSeconds(it, locale, use24Hour = is24Hour()) })
         }
     }
 
@@ -317,12 +318,9 @@ fun AssetInfoTab(
         val submitModal = if (state.complete) DetailModal.SUBMIT else DetailModal.SUBMIT_EXCEPTION
         // Submitting is for drafts that can be changed here (a submitted or exception asset already was).
         val canSubmit = !locked && (asset.st == Status.DRAFT || asset.st == Status.INPUT || asset.st == Status.AI)
-        if (locked && state.lock == AssetLock.NOT_ASSIGNED) {
-            // Someone else's: read-only until an admin assigns it to this user (the web's lock note).
-            NotAssignedCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp))
-        } else if (locked) {
-            // Submitted: read-only. Request change (or Update / Withdraw) is in the asset bar; a request shows in the banner.
-            SubmittedCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp))
+        if (locked) {
+            // Read-only: why is in the banner under the top bar (someone else's, submitted) or the Managed Assets note at
+            // the top of Info; Validate and Request change stay in the asset bar.
         } else {
             // Save (makes it drafted with the AI flag on; asks first while a mandatory field is empty, as the web) and Submit,
             // with the other actions under it.
@@ -468,7 +466,9 @@ private fun AssetFieldRow(f: FieldCfg, state: AssetDetailState, spec: FieldSpec,
     } else {
         FieldRow(
             k, label, value, onChange, state.dirty(k), state.badgeFor(k), rowBg = bg,
-            mono = k in CODE_KEYS, requester = ui.requester(k), multiLine = f.kind == FieldKind.TEXTAREA,
+            // Text wraps over as many lines as it needs (no "…"); codes and addresses (serial, MAC, IP…) stay on one line.
+            mono = k in CODE_KEYS, requester = ui.requester(k),
+            multiLine = f.kind == FieldKind.TEXTAREA || (f.kind == FieldKind.TEXT && k !in CODE_KEYS),
         )
     }
 }

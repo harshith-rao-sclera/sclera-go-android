@@ -224,8 +224,6 @@
     <string name="doc_upload">上傳文件</string>
     <string name="doc_none">沒有文件</string>
     <string name="doc_category">類別：</string>
-    <string name="doc_used_for">用途：</string>
-    <string name="doc_model">型號：</string>
     <string name="doc_link">連結：</string>
     <string name="doc_created_by">建立者：</string>
     <string name="doc_ai_source">AI 規格來源</string>

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.repository
 
+import com.sclera.sclerago.data.SheetUploads
 import com.sclera.sclerago.data.mapper.aiValidationBody
 import com.sclera.sclerago.data.mapper.unitSystemBody
 import com.sclera.sclerago.data.mapper.fieldPatchJson
@@ -8,6 +9,8 @@ import com.sclera.sclerago.data.mapper.placeCreateJson
 import com.sclera.sclerago.data.mapper.placePatchJson
 import com.sclera.sclerago.data.mapper.placesTree
 import com.sclera.sclerago.data.mapper.toFieldCfg
+import com.sclera.sclerago.data.mapper.toFieldsRead
+import com.sclera.sclerago.data.mapper.toPlacesImported
 import com.sclera.sclerago.data.mapper.geofenceBody
 import com.sclera.sclerago.data.mapper.photoRulesBody
 import com.sclera.sclerago.data.mapper.toGeofence
@@ -20,11 +23,13 @@ import com.sclera.sclerago.data.remote.adc.CfgOptionDto
 import com.sclera.sclerago.data.remote.adc.SettingsDto
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldsRead
 import com.sclera.sclerago.domain.model.Geofence
 import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.NewLocation
 import com.sclera.sclerago.domain.model.NodeKind
 import com.sclera.sclerago.domain.model.PlaceChange
+import com.sclera.sclerago.domain.model.PlacesImported
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.PropertySettings
 import com.sclera.sclerago.domain.repository.ConfigFieldsRepository
@@ -72,10 +77,13 @@ class GeofenceRepositoryImpl @Inject constructor(private val api: AdcApi) : Geof
 
 /**
  * The property's standard fields at the server. The last list read is kept so a change sends only what differs and
- * dropdown options keep their colours.
+ * dropdown options keep their colours. Import from Excel sends the picked sheet to the server, which reads it.
  */
 @Singleton
-class ConfigFieldsRepositoryImpl @Inject constructor(private val api: AdcConfigApi) : ConfigFieldsRepository {
+class ConfigFieldsRepositoryImpl @Inject constructor(
+    private val api: AdcConfigApi,
+    private val sheets: SheetUploads,
+) : ConfigFieldsRepository {
     private val options = java.util.concurrent.ConcurrentHashMap<String, List<CfgOptionDto>>()
 
     private fun keep(dto: CfgFieldDto): CfgFieldDto = dto.also { options[it.id] = it.options.orEmpty() }
@@ -96,15 +104,25 @@ class ConfigFieldsRepositoryImpl @Inject constructor(private val api: AdcConfigA
         api.deleteField(propertyId, id)
         options.remove(id)
     }
+
+    override suspend fun readSheet(propertyId: String, file: String): FieldsRead {
+        val sheet = sheets.read(file)
+        return api.readFieldImport(propertyId, sheet.name, sheet.bytes).toFieldsRead()
+    }
+
+    override suspend fun importSample(propertyId: String): ByteArray = api.fieldImportTemplate(propertyId)
 }
 
 /**
  * The property's buildings, floors and locations at the server. A building's access code is its code there (as the
  * web saves it); its other details (type, address, contact) have no place there, so they are kept in memory on this
- * phone for the session and wiped on sign-out.
+ * phone for the session and wiped on sign-out. Import buildings sends the picked sheet to the server, which reads it.
  */
 @Singleton
-class ConfigPlacesRepositoryImpl @Inject constructor(private val api: AdcConfigApi) : ConfigPlacesRepository, UserDataCleaner {
+class ConfigPlacesRepositoryImpl @Inject constructor(
+    private val api: AdcConfigApi,
+    private val sheets: SheetUploads,
+) : ConfigPlacesRepository, UserDataCleaner {
     private val infos = java.util.concurrent.ConcurrentHashMap<String, BuildingInfo>()
 
     override suspend fun load(propertyId: String): List<LocNode> =
@@ -136,6 +154,13 @@ class ConfigPlacesRepositoryImpl @Inject constructor(private val api: AdcConfigA
         api.deletePlace(propertyId, kind.collection(), id)
         infos.remove(id)
     }
+
+    override suspend fun importSheet(propertyId: String, file: String): PlacesImported {
+        val sheet = sheets.read(file)
+        return api.importPlaces(propertyId, sheet.name, sheet.bytes).toPlacesImported()
+    }
+
+    override suspend fun importSample(propertyId: String): ByteArray = api.placeImportTemplate(propertyId)
 
     override fun clear() = infos.clear()
 

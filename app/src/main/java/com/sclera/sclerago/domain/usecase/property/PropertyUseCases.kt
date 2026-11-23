@@ -80,19 +80,23 @@ class GetPropertyUseCase @Inject constructor(private val repo: PropertyRepositor
 
 /**
  * Saves an edited property (Property Info → Edit → Save), with the same checks as adding one; returns why it can't be
- * saved, or null when it was. Throws [OnlineException].
+ * saved, or null when it was. Needs [Permission.MANAGE_PROPERTIES], as the server. Throws [OnlineException].
  */
-class UpdatePropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
+class UpdatePropertyUseCase @Inject constructor(private val repo: PropertyRepository, private val guard: PermissionGuard) {
     suspend operator fun invoke(property: Property): PropertyProblem? {
+        guard.requireOnline(Permission.MANAGE_PROPERTIES)
         propertyProblem(property)?.let { return it }
         repo.update(property.copy(name = property.name.trim()))
         return null
     }
 }
 
-/** Property Info's Delete (after its confirmation). Throws [OnlineException]. */
-class DeletePropertyUseCase @Inject constructor(private val repo: PropertyRepository) {
-    suspend operator fun invoke(id: String) = repo.delete(id)
+/** Property Info's Delete (after its confirmation). Needs [Permission.MANAGE_PROPERTIES], as the server. Throws [OnlineException]. */
+class DeletePropertyUseCase @Inject constructor(private val repo: PropertyRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(id: String) {
+        guard.requireOnline(Permission.MANAGE_PROPERTIES)
+        repo.delete(id)
+    }
 }
 
 class ObserveOnboardingUseCase @Inject constructor(private val repo: OnboardingRepository) {

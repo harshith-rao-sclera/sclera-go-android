@@ -79,6 +79,8 @@ object AssetListTags {
     const val LOADING = "asset-list-loading"
     const val INFO = "asset-list-info"
     const val CHANGE_REQUESTS = "asset-chip-CHANGE_REQUESTS"
+    const val MANAGED = "asset-chip-MANAGED"
+    const val MANAGED_NOTE = "asset-list-managed-note"
     fun row(id: String) = "asset-row-$id"
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
     fun validation(mark: ValidationMark) = "asset-chip-validation-${mark.name}"
@@ -100,6 +102,10 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
                 StatusChips(data, list)
             }
         }
+    }
+    // On the Managed assets chip: those are read-only here, so nothing on it can be ticked (the web's note).
+    if (data.managed?.selected == true && data.items.isNotEmpty()) {
+        item(key = "managed-note") { ManagedListNote(Modifier.readableWidth()) }
     }
     items(data.items, key = { it.id }) { a ->
         AssetRow(
@@ -153,6 +159,14 @@ private fun ChipRow(data: AssetListData, list: AssetListBinding) {
                 }
             }
             items(data.chips.filter { it.status == Status.AI }, key = { it.status?.name ?: "ALL" }) { c -> Chip(c) { list.onChip(c) } }
+            // The assets moved to Managed Assets (the web's optional Managed assets tab), read-only.
+            data.managed?.let { m ->
+                item(key = "MANAGED") {
+                    ChipBox(stringResource(R.string.managed_chip), m.count, m.selected, AssetListTags.MANAGED, list.onManaged) {
+                        LineIcon(Icons.Managed, 12.dp, C.Yellow, 2.4f)
+                    }
+                }
+            }
             // The web card's validation icon, as filters: a step failed, or one needs a look.
             data.validation.forEach { (mark, chip) ->
                 item(key = "VALIDATION_${mark.name}") {
@@ -215,7 +229,24 @@ private fun ChipBox(label: String, count: Int, selected: Boolean, tag: String, o
     }
 }
 
-/** One asset: its type icon, name, manufacturer and model, whether its validation failed or needs a look, how it was onboarded, and its status. */
+/** Above the rows of the Managed assets chip: they are in Managed Assets, and read-only here. */
+@Composable
+private fun ManagedListNote(modifier: Modifier = Modifier) {
+    Row(
+        modifier.padding(horizontal = 12.dp).padding(bottom = 6.dp).testTag(AssetListTags.MANAGED_NOTE),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LineIcon(Icons.Managed, 14.dp, C.Muted, 2f)
+        Txt(stringResource(R.string.managed_list_note), 11, 400, C.Muted, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f))
+    }
+}
+
+/**
+ * One asset: its type icon, name, manufacturer and model, whether its validation failed or needs a look, how it was
+ * onboarded, and its status. One in Managed Assets ([Asset.managed]) is read-only: it can't be ticked (its icon and a
+ * long press open it, as a tap does), and it shows "In Managed Assets" in place of its status and validation mark.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AssetRow(
@@ -226,12 +257,14 @@ fun AssetRow(
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Long press anywhere on the row selects it (and so starts multi-select).
+    // Long press anywhere on the row selects it (and so starts multi-select); one in Managed Assets is never selected.
     val haptics = LocalHapticFeedback.current
-    val longPress: () -> Unit = {
+    val selectable = !a.managed
+    val longPress: (() -> Unit)? = {
         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         onToggle()
-    }
+    }.takeIf { selectable }
+    val managedLabel = stringResource(R.string.managed_status)
     val recollectLabel = stringResource(R.string.dash_recollect_badge)
     val changeRequestedLabel = stringResource(R.string.dash_change_requested_badge)
     val rowBg by animateColorAsState(if (picked) C.PickedRow else C.Surface, label = "row")
@@ -246,7 +279,7 @@ fun AssetRow(
     ) {
         Box(
             Modifier.width(48.dp).fillMaxHeight()
-                .combinedClickable(interactionSource = press, indication = null, onClick = onToggle, onLongClick = longPress),
+                .combinedClickable(interactionSource = press, indication = null, onClick = if (selectable) onToggle else onOpen, onLongClick = longPress),
             contentAlignment = Alignment.CenterEnd,
         ) {
             Box(
@@ -276,13 +309,17 @@ fun AssetRow(
                 if (a.changeRequest != null) {
                     LineIcon(Icons.ChangeRequest, 14.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = changeRequestedLabel })
                 }
-                // The web card's validation icon, when a step failed or needs a look.
-                a.validationMark?.let { mark ->
+                // The web card's validation icon, when a step failed or needs a look (not for one in Managed Assets).
+                a.validationMark?.takeIf { !a.managed }?.let { mark ->
                     val described = pluralStringResource(mark.problemsRes, a.validationProblems, a.validationProblems)
                     ValidationMarkIcon(mark, a.validationProblems, Modifier.semantics { contentDescription = described })
                 }
                 LineIcon(a.src.icon, 15.dp, a.src.color, 2f)
-                Box(Modifier.width(17.dp), contentAlignment = Alignment.Center) { LineIcon(a.st.icon, 14.dp, a.st.color, 2f) }
+                Box(Modifier.width(17.dp), contentAlignment = Alignment.Center) {
+                    // In Managed Assets: that is its status here (the web card's "In Managed Assets").
+                    if (a.managed) LineIcon(Icons.Managed, 15.dp, C.Yellow, 2f, Modifier.semantics { contentDescription = managedLabel })
+                    else LineIcon(a.st.icon, 14.dp, a.st.color, 2f)
+                }
             }
         }
     }
@@ -317,7 +354,7 @@ private fun EmptyCard(reason: EmptyReason, query: String, modifier: Modifier = M
             EmptyReason.ASSETS_TAB -> stringResource(R.string.dash_empty_assets)
             EmptyReason.SOURCE_TAB -> stringResource(R.string.dash_empty_source)
         }
-        Txt(text, 12, 400, C.Muted, maxLines = 3, align = TextAlign.Center)
+        Txt(text, 12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
     }
 }
 
@@ -340,4 +377,6 @@ class AssetListBinding(
     val onChangeRequests: () -> Unit = {},
     /** The Failed validation / Needs a look chips: narrow the list to assets with that mark (it stays on when tapped again). */
     val onValidation: (ValidationMark) -> Unit = {},
+    /** The Managed assets chip: lists only the assets in Managed Assets, read-only (it stays on when tapped again). */
+    val onManaged: () -> Unit = {},
 )

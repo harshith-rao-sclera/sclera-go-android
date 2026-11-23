@@ -42,8 +42,11 @@ fun BleDevice.toRow(): Device {
     val services = serviceUuids.mapNotNull(::bleServiceName).distinct()
     return Device(
         id = BLE_ID + address,
-        name = if (isUnnamed) UNKNOWN_DEVICE else sanitizeScanText(displayName).ifEmpty { UNKNOWN_DEVICE },
-        sub = listOf(kind, dbm(rssiDbm), dist).joinToString(" · "),
+        // Its Bluetooth name when it advertises one, else its Bluetooth address, so each row can be told apart.
+        name = sanitizeScanText(name).ifEmpty { sanitizeScanText(address) }.ifEmpty { UNKNOWN_DEVICE },
+        // The Bluetooth address leads the line (as the IP does on the network list), unless it is already the name.
+        sub = (listOfNotNull(sanitizeScanText(address).takeIf { it.isNotEmpty() && !text(name).isNullOrEmpty() }) + listOf(kind, dbm(rssiDbm), dist))
+            .joinToString(" · "),
         lvl = signalBars.coerceIn(1, 4),
         known = false,
         // A Bluetooth advertisement only says what it is through its name ("TH-22 sensor", "Jabra Speak").
@@ -56,7 +59,8 @@ fun BleDevice.toRow(): Device {
                 add("Device name", name)
                 add("Manufacturer", manufacturerName)
                 add("Bluetooth address", address + if (addressIsRandom) " (random)" else "")
-                add("Signal", "$rssiDbm dBm" + if (bestRssiDbm != rssiDbm) " (best $bestRssiDbm dBm)" else "")
+                val best = bestRssiDbm ?: rssiDbm
+                add("Signal", "$rssiDbm dBm" + if (best != rssiDbm) " (best $best dBm)" else "")
                 add("Transmit power", txPowerDbm?.let { "$it dBm" })
                 add("Distance", dist)
                 add("Connectable", if (connectable) "Yes" else "No")

@@ -26,7 +26,10 @@ import com.sclera.sclerago.domain.usecase.asset.ChangeAction
 import com.sclera.sclerago.domain.usecase.asset.ChangeActionBlock
 import com.sclera.sclerago.domain.usecase.asset.ChangeActionOption
 import com.sclera.sclerago.domain.usecase.asset.ChangeRequestUseCases
+import com.sclera.sclerago.domain.usecase.asset.ObserveSelectionAccessUseCase
 import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
+import com.sclera.sclerago.domain.usecase.asset.SelectionAccess
+import com.sclera.sclerago.domain.usecase.asset.someAlreadySubmitted
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +41,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -90,8 +94,24 @@ data class AssetListState(
     val filter: AssetFilter = AssetFilter(),
     /** The filter sheet, while it is open (null: closed). */
     val filterSheet: FilterSheetState? = null,
+    /**
+     * The signed-in user's access, kept up to date: what the selection offers is read from it, so it follows a change of
+     * group (or the access arriving) at once.
+     */
+    val access: SelectionAccess = SelectionAccess(),
+    /** The tabs whose chip leaves Submit out, as the web's tabs: Submitted, Exception, Validated and Change requests. */
+    val noSubmit: Set<Tab> = emptySet(),
 ) {
     val selecting: Boolean get() = picked.isNotEmpty()
+
+    /** Submit is on the selection bar of [tab]: the user may collect and the tab's chip doesn't leave it out (the web's). */
+    fun submitOffered(tab: Tab): Boolean = access.collect && tab !in noSubmit
+
+    /**
+     * Submit shows greyed out (a tap says why, the web's "Some are already submitted"): a ticked asset is submitted, an
+     * exception or signed off.
+     */
+    val submitBlocked: Boolean get() = someAlreadySubmitted(pickedAssets)
 }
 
 /** The open filter sheet: the choices being made ([draft]), what it offers, and how many assets they would show. */
@@ -107,6 +127,7 @@ class AssetListViewModel @Inject constructor(
     private val reloadAssets: ReloadAssetsUseCase,
     private val changeRequests: ChangeRequestUseCases,
     private val filters: AssetFilterUseCases,
+    selectionAccess: ObserveSelectionAccessUseCase,
 ) : ViewModel() {
     private val scope = MutableStateFlow(AssetListScope())
     private val ui = MutableStateFlow(Ui())
@@ -125,6 +146,8 @@ class AssetListViewModel @Inject constructor(
         val changeRequests: Set<Tab> = emptySet(),
         /** The tabs narrowed to assets whose validation failed or needs a look (those chips). */
         val validation: Map<Tab, ValidationMark> = emptyMap(),
+        /** The tabs narrowed to the assets in Managed Assets (the Managed assets chip, on the Assets tab only). */
+        val managed: Set<Tab> = emptySet(),
         val refreshing: Boolean = false,
         val changeMenu: Boolean = false,
         val changeAction: ChangeAction? = null,
@@ -147,20 +170,35 @@ class AssetListViewModel @Inject constructor(
     /** The type catalogue by id, for the filter (kept for [toggleFilter], which drops choices under one taken off). */
     private val formats = filters.formats().stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    val state: StateFlow<AssetListState> = combine(useCases.observe(), formats, scope, ui) { catalog, types, sc, u ->
+    /** The signed-in user's access, again whenever it changes. */
+    private val access = selectionAccess().stateIn(viewModelScope, SharingStarted.Eagerly, selectionAccess.now())
+
+    init {
+        // A change of access (another group, or the access arriving) keeps ticked only the assets the user may still work on.
+        viewModelScope.launch {
+            access.drop(1).collect {
+                val mayWork = useCases.canWorkOn.checker()
+                ui.update { u -> if (u.picked.all(mayWork)) u else u.copy(picked = u.picked.filterTo(HashSet(), mayWork)) }
+            }
+        }
+    }
+
+    val state: StateFlow<AssetListState> = combine(useCases.observe(), formats, scope, ui, access) { catalog, types, sc, u, rights ->
         val assets = catalog.assets
-        val admin = useCases.canWorkOn.isAdmin()
+        val admin = rights.admin
         fun query(tab: Tab, filter: AssetFilter) = AssetListQuery(
             tab.sources(sc.network), sc.location, u.query, u.statusFilter[tab], changeRequests = tab in u.changeRequests, showChangeRequests = admin,
-            validation = u.validation[tab], filter = filter,
+            validation = u.validation[tab], filter = filter, managed = tab == Tab.ASSETS && tab in u.managed,
         )
-        val lists = Tab.entries.associateWith { tab -> useCases.buildList(assets, query(tab, u.filter), types) }
+        // The assets in Managed Assets have their chip on the Assets tab only; no other list ever shows them.
+        fun managedFor(tab: Tab) = if (tab == Tab.ASSETS) catalog.managed else emptyList()
+        val lists = Tab.entries.associateWith { tab -> useCases.buildList(assets, query(tab, u.filter), types, managedFor(tab)) }
         val sheet = u.draft?.let { draft ->
             val q = query(u.filterTab, draft)
             FilterSheetState(
                 draft,
-                filters.options(useCases.buildList.scope(assets, q), types, draft, filters.me(), u.names, u.everyone),
-                useCases.buildList(assets, q, types).items.size,
+                filters.options(useCases.buildList.scope(if (q.managed) managedFor(u.filterTab) else assets, q), types, draft, filters.me(), u.names, u.everyone),
+                useCases.buildList(assets, q, types, managedFor(u.filterTab)).items.size,
             )
         }
         val pickedAssets = assets.filter { it.id in u.picked }
@@ -172,6 +210,8 @@ class AssetListViewModel @Inject constructor(
             changeMenu = u.changeMenu, changeAction = u.changeAction, changeNote = u.changeNote,
             changeNoteChanged = u.changeNote != u.changeNoteStart,
             filter = u.filter, filterSheet = sheet,
+            access = rights,
+            noSubmit = Tab.entries.filterTo(HashSet()) { tab -> tab in u.changeRequests || u.statusFilter[tab]?.let { it in NO_SUBMIT_CHIPS } == true },
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState(loading = true))
 
@@ -225,7 +265,7 @@ class AssetListViewModel @Inject constructor(
     fun setStatusFilter(tab: Tab, status: Status?) = ui.update {
         it.copy(
             statusFilter = it.statusFilter + (tab to status), changeRequests = it.changeRequests - tab,
-            validation = it.validation - tab,
+            validation = it.validation - tab, managed = it.managed - tab,
         )
     }
 
@@ -237,7 +277,7 @@ class AssetListViewModel @Inject constructor(
     fun selectChangeRequests(tab: Tab) = ui.update {
         it.copy(
             statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests + tab,
-            validation = it.validation - tab,
+            validation = it.validation - tab, managed = it.managed - tab,
         )
     }
 
@@ -248,7 +288,19 @@ class AssetListViewModel @Inject constructor(
     fun selectValidation(tab: Tab, mark: ValidationMark) = ui.update {
         it.copy(
             statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests - tab,
-            validation = it.validation + (tab to mark),
+            validation = it.validation + (tab to mark), managed = it.managed - tab,
+        )
+    }
+
+    /**
+     * The Managed assets chip (the web's Managed assets tab): shows only the assets in Managed Assets, read-only. Like a
+     * status chip, tapping it again keeps it on; another chip turns it off. Nothing can be selected there, so a selection
+     * made before is cleared.
+     */
+    fun selectManaged(tab: Tab) = ui.update {
+        it.copy(
+            statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests - tab,
+            validation = it.validation - tab, managed = it.managed + tab, picked = emptySet(),
         )
     }
 
@@ -270,22 +322,36 @@ class AssetListViewModel @Inject constructor(
 
     /** Picks or unpicks [id]; someone who isn't an admin can't pick an asset assigned to someone else, and is told why. */
     fun toggle(id: String) {
+        // One in Managed Assets is read-only: nothing to select it for (the web's note).
+        if (isManaged(id)) {
+            message.tryEmit(UiText.Res(R.string.managed_not_selectable))
+            return
+        }
         val selectable = useCases.canWorkOn(id)
-        if (!selectable && id !in ui.value.picked) message.tryEmit(UiText.Res(R.string.asset_lock_not_assigned))
+        if (!selectable && id !in ui.value.picked) message.tryEmit(UiText.Res(notSelectableReason()))
         ui.update { it.copy(picked = useCases.toggleSelection(it.picked, id, selectable)) }
     }
     /** Whether the selection's Edit, Submit and Delete show: the signed-in user may collect (a viewer may not). */
-    fun mayCollect(): Boolean = useCases.canWorkOn.canCollect()
+    fun mayCollect(): Boolean = state.value.access.collect
 
-    /** Submit, as the web's selection bar: only while every ticked asset is still a draft (none submitted or an exception). */
-    fun maySubmit(assets: Collection<Asset>): Boolean =
-        mayCollect() && assets.isNotEmpty() && assets.all { it.st == Status.DRAFT || it.st == Status.INPUT || it.st == Status.AI }
+    /**
+     * Submit usable right away: the user may collect and every ticked asset is still a draft. The web's selection bar
+     * instead shows it greyed out with the reason: see [AssetListState.submitOffered] and [AssetListState.submitBlocked].
+     */
+    fun maySubmit(assets: Collection<Asset>): Boolean = mayCollect() && assets.isNotEmpty() && !someAlreadySubmitted(assets)
 
     /** Delete, as the web's: none of the ticked assets is submitted or signed off, unless the user is an admin (lockedForMe). */
     fun mayDelete(assets: Collection<Asset>): Boolean {
-        val admin = useCases.canWorkOn.isAdmin()
+        val admin = state.value.access.admin
         return mayCollect() && assets.none { isLockedFor(it.st, admin) }
     }
+
+    /** Why an asset can't be picked: the group can only view, or it is assigned to someone else. */
+    private fun notSelectableReason(): Int =
+        if (useCases.canWorkOn.viewOnly()) R.string.view_only_not_selectable else R.string.asset_lock_not_assigned
+
+    /** [id] is an asset in Managed Assets (read-only, never selected). */
+    private fun isManaged(id: String): Boolean = useCases.observe().value.managed.any { it.id == id }
 
     fun clearSelection() = ui.update { if (it.picked.isEmpty()) it else it.copy(picked = emptySet()) }
 
@@ -296,9 +362,15 @@ class AssetListViewModel @Inject constructor(
     fun selectAll(tab: Tab) {
         val visible = state.value.lists[tab]?.items.orEmpty().map { it.id }
         val before = ui.value.picked
-        val after = useCases.selectAll(before, visible, useCases.canWorkOn.checker())
+        val mayWork = useCases.canWorkOn.checker()
+        val managed = useCases.observe().value.managed.mapTo(HashSet()) { it.id }
+        val after = useCases.selectAll(before, visible) { id -> id !in managed && mayWork(id) }
         val skipped = if (after.isEmpty()) 0 else visible.count { it !in after }
-        if (skipped > 0) message.tryEmit(UiText.Plural(R.plurals.assets_not_selectable, skipped))
+        when {
+            // A view-only group selects nothing: one line says why, as the web's.
+            useCases.canWorkOn.viewOnly() && visible.isNotEmpty() -> message.tryEmit(UiText.Res(R.string.view_only_not_selectable))
+            skipped > 0 -> message.tryEmit(UiText.Plural(R.plurals.assets_not_selectable, skipped))
+        }
         ui.update { it.copy(picked = after) }
     }
 
@@ -309,8 +381,14 @@ class AssetListViewModel @Inject constructor(
      * exceptions, and the user is told how many of each.
      */
     fun submitSelected() {
-        val ids = state.value.picked
-        if (ids.isEmpty()) return
+        val s = state.value
+        val ids = s.picked
+        if (ids.isEmpty() || !s.access.collect) return
+        // Greyed out, as the web's: a tap says why and nothing is sent.
+        if (s.submitBlocked) {
+            message.tryEmit(UiText.Res(R.string.submit_block_some_submitted))
+            return
+        }
         ui.update { it.copy(picked = emptySet()) }
         write { message.emit(useCases.setStatus(ids, Status.SUBMITTED).toUiText()) }
     }
@@ -420,3 +498,6 @@ class AssetListViewModel @Inject constructor(
         }
     }
 }
+
+/** The status chips whose tab leaves Submit off the selection bar (the web's Submitted, Exception and Validated tabs). */
+private val NO_SUBMIT_CHIPS = setOf(Status.SUBMITTED, Status.EXCEPTION, Status.VALIDATED)

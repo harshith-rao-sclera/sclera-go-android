@@ -125,7 +125,10 @@ fun assignBody(assetIds: Collection<String>, email: String?): JsonObject = build
     put("email", email?.trim()?.takeIf { it.isNotEmpty() }?.let(::JsonPrimitive) ?: JsonNull)
 }
 
-fun AssignResultDto.toAssignResult() = AssignResult(assigned.coerceAtLeast(0), email?.takeIf { it.isNotBlank() }, name?.takeIf { it.isNotBlank() }, added, givenAccess)
+fun AssignResultDto.toAssignResult() = AssignResult(
+    assigned.coerceAtLeast(0), email?.takeIf { it.isNotBlank() }, name?.takeIf { it.isNotBlank() }, added, givenAccess,
+    unchanged = unchanged.coerceAtLeast(0), notFound = notFound.coerceAtLeast(0),
+)
 
 fun PermissionDto.toPermissionInfo() = PermissionInfo(key, name, description, needsAllProperties)
 

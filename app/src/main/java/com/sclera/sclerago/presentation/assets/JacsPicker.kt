@@ -165,11 +165,11 @@ fun JacsPickerSheet(s: JacsPickerState, current: String, actions: JacsPickerActi
                     if (current.isNotBlank()) row("", stringResource(R.string.jacs_none), on = false, tag = JacsTags.code(""))
                 }
                 when {
-                    s.error != null -> Txt(s.error.asString(), 12, 500, C.Orange, maxLines = 4)
+                    s.error != null -> Txt(s.error.asString(), 12, 500, C.Orange, maxLines = Int.MAX_VALUE)
                     s.loading -> Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.Center) {
                         CircularProgressIndicator(Modifier.size(20.dp), color = C.Yellow, strokeWidth = 2.dp)
                     }
-                    s.codes.isEmpty() && typed.isNotEmpty() -> Txt(stringResource(R.string.jacs_no_match), 12, 500, C.Soft, maxLines = 3)
+                    s.codes.isEmpty() && typed.isNotEmpty() -> Txt(stringResource(R.string.jacs_no_match), 12, 500, C.Soft, maxLines = Int.MAX_VALUE)
                     s.next != null -> Pill(
                         stringResource(R.string.jacs_more), actions.onMore, Modifier.fillMaxWidth().testTag(JacsTags.MORE),
                         height = 44.dp, size = 13, weight = 700,
@@ -190,6 +190,6 @@ private fun CodeRow(code: String, title: String?, on: Boolean, divider: Boolean,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (code.isNotEmpty()) Txt(code, 14, 700, if (on) C.Yellow else C.Text, maxLines = 1)
-        title?.let { Txt(it, 12, if (code.isEmpty()) 600 else 400, if (code.isEmpty()) C.Text else C.Soft, maxLines = 3) }
+        title?.let { Txt(it, 12, if (code.isEmpty()) 600 else 400, if (code.isEmpty()) C.Text else C.Soft, maxLines = Int.MAX_VALUE) }
     }
 }

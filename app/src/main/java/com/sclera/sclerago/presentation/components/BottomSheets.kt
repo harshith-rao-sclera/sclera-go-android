@@ -56,7 +56,7 @@ internal fun SheetHeader(title: String, sub: String?, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 6.dp, bottom = 10.dp), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(title, 16, 700)
-            sub?.let { Txt(it, 12, 400, C.Muted, maxLines = 2) }
+            sub?.let { Txt(it, 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
         }
         CloseButton(onClose, size = 36.dp, iconSize = 16.dp)
     }

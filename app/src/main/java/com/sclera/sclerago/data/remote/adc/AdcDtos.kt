@@ -141,12 +141,16 @@ data class PlaceNameDto(val code: String? = null, val name: String = "")
 data class CityDto(val name: String = "", val stateCode: String? = null, val state: String? = null)
 
 /**
- * What `POST /properties/{p}/assets/bulk/assign` did: how many assets were [assigned], to whom ([email], [name]),
+ * What `POST /properties/{p}/assets/bulk/assign` did: how many assets were [assigned], already theirs ([unchanged]) or
+ * not on the server ([notFound]), to whom ([userId], [email], [name]; all null when they were taken off whoever had them),
  * and whether that person was [added] as a Collector on the property or [givenAccess] to it first.
  */
 @Serializable
 data class AssignResultDto(
     val assigned: Int = 0,
+    val unchanged: Int = 0,
+    val notFound: Int = 0,
+    val userId: String? = null,
     val email: String? = null,
     val name: String? = null,
     val added: Boolean = false,

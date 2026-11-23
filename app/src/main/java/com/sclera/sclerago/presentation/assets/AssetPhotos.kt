@@ -155,7 +155,7 @@ fun PhotoViewer(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Txt(m.title(), 15, 700)
-                m.credit?.let { Txt(it, 10, 400, C.Muted, maxLines = 2) }
+                m.credit?.let { Txt(it, 10, 400, C.Muted, maxLines = Int.MAX_VALUE) }
             }
             HeaderButton(Icons.Download, stringResource(R.string.media_download), C.Text, Modifier.testTag(PhotoTags.DOWNLOAD)) { onDownload(m) }
             onRemove?.let { remove ->

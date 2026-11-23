@@ -116,7 +116,7 @@ internal fun PersonSheet(
                         )
                     }
                     suggestionHint?.takeIf { emailFocused }?.let {
-                        Txt(it.asString(), 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp), maxLines = 3)
+                        Txt(it.asString(), 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp), maxLines = Int.MAX_VALUE)
                     }
                     if (emailFocused && picked?.email != email.trim()) {
                         suggestions.forEach { person ->
@@ -135,7 +135,7 @@ internal fun PersonSheet(
                     }
                 }
                 groupHint(group, isNew)?.let {
-                    Txt(it, 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = 3)
+                    Txt(it, 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = Int.MAX_VALUE)
                 }
             }
             if (group != null) {
@@ -152,7 +152,7 @@ internal fun PersonSheet(
                         error = null
                     }
                     organisationWideHint(group)?.takeIf { !all }?.let {
-                        Txt(it, 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = 3)
+                        Txt(it, 11, 400, C.Muted, Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), maxLines = Int.MAX_VALUE)
                     }
                     if (!all) PropertyPicker(properties, chosen) { id -> chosen = if (id in chosen) chosen - id else chosen + id }
                 }
@@ -205,7 +205,7 @@ private fun ScopeOption(title: String, description: String, on: Boolean, tag: St
                 Txt(title, 14, 600)
                 tag?.let { TintChip(it) }
             }
-            Txt(description, 11, 400, C.Muted, maxLines = 3)
+            Txt(description, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
     }
 }
@@ -223,7 +223,7 @@ private fun PropertyPicker(properties: List<Property>, chosen: Set<String>, onTo
     val listed = properties.filter { typed.isEmpty() || typed in it.name.lowercase() }
     if (listed.isEmpty()) {
         val empty = if (properties.isEmpty()) R.string.access_no_properties_yet else R.string.access_no_property_match
-        Txt(stringResource(empty), 12, 400, C.Muted, Modifier.padding(horizontal = 12.dp, vertical = 10.dp), maxLines = 2)
+        Txt(stringResource(empty), 12, 400, C.Muted, Modifier.padding(horizontal = 12.dp, vertical = 10.dp), maxLines = Int.MAX_VALUE)
     }
     listed.forEach { p ->
         Row(

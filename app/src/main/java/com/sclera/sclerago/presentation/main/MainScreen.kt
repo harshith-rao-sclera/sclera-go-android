@@ -56,6 +56,7 @@ import com.sclera.sclerago.presentation.assign.AssignSheet
 import com.sclera.sclerago.presentation.assign.AssignViewModel
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessFailedBanner
 import com.sclera.sclerago.presentation.components.CapturePreview
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.DiscardChangesDialog
@@ -119,6 +120,9 @@ fun ScleraApp(
     // Every form reports unsaved changes here, so tabs and side-menu pages can ask before dropping them.
     CompositionLocalProvider(LocalUnsavedForms provides vm.unsavedForms) {
         val s = vm.state
+        // Read here so everything below (the menu's sections, the + button, an asset's Assign and Move, the selection
+        // dock's actions) is drawn again with the new answers whenever the signed-in user's access changes.
+        vm.accessStamp
         // The app's messages (every page's, asset details' and the side-menu pages' too) show as the one toast at the top.
         ToastEffect(s.toast, s.toastOn)
         // Offline, the server-only actions are dimmed with a badge; a tap says why.
@@ -188,24 +192,27 @@ fun ScleraApp(
         }
 
         val detail = vm.detailAsset
-        val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || s.valOpen || s.cfgOpen || s.intOpen || s.adminPage != null || move.state.sheet != null || summary.shown != null || assign.sheet != null || bulk.sheet != null || files.state.edit != null
+        // Each side-menu page shows only while its permission allows it (as the web's route guards).
+        val validationShown = vm.validationShown
+        val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || validationShown || vm.configShown || vm.integrationShown || s.adminPage != null || move.state.sheet != null || summary.shown != null || assign.sheet != null || bulk.sheet != null || files.state.edit != null
         val detailView: @Composable (Asset) -> Unit = { d ->
             AssetDetailRoute(
                 asset = d,
                 isNew = s.newAsset,
                 onBack = vm::closeDetail,
                 onChangeLoc = vm::openLocAsset,
-                onCreate = { name, info, media, values, submit, exception, place ->
+                onCreate = { name, info, media, values, submit, exception, place, shots ->
                     // A hand-made asset is shown in the full list, whatever status was being filtered.
-                    if (vm.createAsset(name, info, media, values, submit, exception, place) == CreateAssetUseCase.Via.MANUAL) list.setStatusFilter(Tab.ASSETS, null)
+                    if (vm.createAsset(name, info, media, values, submit, exception, place, shots) == CreateAssetUseCase.Via.MANUAL) list.setStatusFilter(Tab.ASSETS, null)
                 },
                 onDelete = vm::deleteAsset,
                 onNotice = vm::flash,
                 pickedPlace = s.detailPlace,
                 onPlaceTaken = vm::detailPlaceTaken,
-                onAssign = if (assign.mayAssign()) ({ assign.open(setOf(d.id)) }) else null,
+                // One in Managed Assets is read-only here: it can't be assigned or moved again.
+                onAssign = if (!d.managed && assign.mayAssign()) ({ assign.open(setOf(d.id), d.assignedTo) }) else null,
                 // A validated asset goes to Managed assets from its own bar too (a reviewer, once the property is linked).
-                onMove = if (move.offered(listOf(d))) ({ move.tap(setOf(d.id), onValidatedFilter = true) }) else null,
+                onMove = if (!d.managed && move.offered(listOf(d))) ({ move.tap(setOf(d.id), onValidatedFilter = true) }) else null,
                 onValidate = { quickIds = listOf(d.id) },
                 onOpenRun = vm::openValidationRun,
                 prefill = vm.newPrefill,
@@ -236,6 +243,8 @@ fun ScleraApp(
                     onChevron = { if (it == LocFilter.ALL) vm.openProp() else vm.openLocFilter() },
                     modifier = Modifier.launchEntrance(Entrance.DashHeader),
                 )
+                // The user's access couldn't be loaded: pages and changes that need a permission stay unavailable until it is.
+                if (vm.accessFailed) AccessFailedBanner(vm::retryAccess, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().launchEntrance(Entrance.DashContent)) {
                     HorizontalPager(
                         state = pager,
@@ -254,7 +263,7 @@ fun ScleraApp(
                         }
                     }
 
-                    if (detail != null && !s.valOpen) detailView(detail)
+                    if (detail != null && !validationShown) detailView(detail)
 
                     // The + and search buttons and the selection docks never show together: selecting hides the buttons.
                     // They belong to the asset lists: a scan list (Bluetooth, Wi-Fi, access points) doesn't show them.
@@ -265,7 +274,8 @@ fun ScleraApp(
                                 onSearchOpenChange = { if (it) list.openSearch() else list.closeSearch() },
                                 query = lists.query,
                                 onQueryChange = list::setQuery,
-                                onAdd = vm::openNew,
+                                // Adding needs Collect: the web hides Add from anyone else.
+                                onAdd = if (vm.mayCollect()) vm::openNew else null,
                                 modifier = Modifier.align(Alignment.BottomEnd),
                                 onFilter = { list.openFilter(s.tab) },
                                 filterCount = lists.filter.count,
@@ -288,9 +298,11 @@ fun ScleraApp(
                             onValidate = if (validation.mayCheck()) ({ quickIds = lists.picked.toList() }) else null,
                             // As the web's selection bar: no Assign, Submit or Delete on the Validated filter; Submit only for
                             // drafts; Delete not for submitted or signed-off assets unless an admin.
-                            onAssign = if (assign.mayAssign() && !onValidatedFilter) ({ assign.open(lists.picked) }) else null,
+                            onAssign = if (assign.mayAssign() && !onValidatedFilter) ({ assign.open(lists.picked, lists.pickedAssets.singleOrNull()?.assignedTo) }) else null,
                             onEdit = if (onValidatedFilter || !list.mayCollect()) null else ({ bulk.open(lists.picked) }),
-                            onSubmit = if (!onValidatedFilter && list.maySubmit(lists.pickedAssets)) list::submitSelected else null,
+                            // As the web: Submit stays on the bar, greyed out when a ticked asset is already submitted.
+                            onSubmit = if (!onValidatedFilter && lists.submitOffered(s.tab)) list::submitSelected else null,
+                            submitDimmed = lists.submitBlocked,
                             onDelete = if (!onValidatedFilter && list.mayDelete(lists.pickedAssets)) list::askDelete else null,
                             onMove = if (move.offered(lists.pickedAssets)) ({ move.tap(lists.picked, onValidatedFilter) }) else null,
                             moveDimmed = move.blockedReason(onValidatedFilter) != null,
@@ -313,7 +325,7 @@ fun ScleraApp(
             }
 
             // Validation page (side menu) covers the whole app; an asset opened from its results sits on top.
-            if (s.valOpen) {
+            if (validationShown) {
                 ValidationScreen(
                     vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation, onMenu = vm::openMenu,
                     openJobId = s.valJobId, onJobOpened = vm::validationRunShown,
@@ -324,16 +336,16 @@ fun ScleraApp(
             }
 
             // Configuration page (side menu): building info, asset fields, geofencing.
-            if (s.cfgOpen) ConfigScreen(vm)
+            if (vm.configShown) ConfigScreen(vm)
 
             // Integration page (side menu): the property's link to a VDMS.
-            if (s.intOpen) IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration, onMenu = vm::openMenu)
+            if (vm.integrationShown) IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration, onMenu = vm::openMenu)
 
             // Property list / People and access (side menu).
             when (s.adminPage) {
                 AdminPage.PROPERTIES -> PropertyListScreen(vm)
                 // Only for someone who may manage people and access.
-                AdminPage.PEOPLE -> if (vm.canManageAccess) PeopleScreen(vm)
+                AdminPage.PEOPLE -> if (vm.peopleShown) PeopleScreen(vm)
                 null -> {}
             }
 

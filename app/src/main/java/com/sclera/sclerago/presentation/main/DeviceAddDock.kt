@@ -15,10 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.fabShadow
@@ -42,16 +45,16 @@ internal fun DeviceAddDock(vm: AppViewModel) {
     ) {
         RoundButton(40.dp, Color.Transparent, vm::clearDevicePick) { LineIcon(Icons.Close, 18.dp, C.Text, 2.4f) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt("$n selected", 14, 700)
+            Txt(stringResource(R.string.dash_selected, n), 14, 700)
             Text(
-                if (vm.allDevicesPicked) "Clear all" else "Select all ${vm.addableCount}",
+                if (vm.allDevicesPicked) stringResource(R.string.dash_clear_all) else stringResource(R.string.dash_select_all, vm.addableCount),
                 Modifier.clickable(onClick = vm::selectAllDevices),
                 color = C.Soft, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                 textDecoration = TextDecoration.Underline, maxLines = 1,
             )
         }
         Pill(
-            "Add $n as ${if (n == 1) "asset" else "assets"}", vm::addPickedDevices,
+            pluralStringResource(R.plurals.scrt_add_n_as_assets, n, n), vm::addPickedDevices,
             bg = C.Yellow, fg = C.OnYellow, height = 42.dp, hPad = 16.dp, size = 14, weight = 700,
         )
     }

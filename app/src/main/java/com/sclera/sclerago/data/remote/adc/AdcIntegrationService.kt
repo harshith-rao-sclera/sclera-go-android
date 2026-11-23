@@ -58,6 +58,19 @@ interface AdcIntegrationService {
     @POST("properties/{p}/integration/places/push")
     suspend fun pushPlaces(@Path("p") property: String, @Body body: RequestBody): Response<ResponseBody>
 
+    /** Every send to VDMS and import from it, newest first; [direction] to_vdms or from_vdms (null: both). */
+    @GET("properties/{p}/integration/places/history")
+    suspend fun placesHistory(
+        @Path("p") property: String,
+        @Query("direction") direction: String?,
+        @Query("limit") limit: Int,
+        @Query("offset") offset: Int,
+    ): Response<ResponseBody>
+
+    /** One send or import with its places. */
+    @GET("properties/{p}/integration/places/history/{t}")
+    suspend fun placesTransfer(@Path("p") property: String, @Path("t") transferId: String): Response<ResponseBody>
+
     /** Imports the chosen VDMS places (VDMS ids) into this property, at once. */
     @POST("properties/{p}/integration/places/import")
     suspend fun importPlaces(@Path("p") property: String, @Body body: RequestBody): Response<ResponseBody>

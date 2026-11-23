@@ -228,8 +228,6 @@
     <string name="doc_upload">Belge yükle</string>
     <string name="doc_none">Belge yok</string>
     <string name="doc_category">Kategori:</string>
-    <string name="doc_used_for">Kullanım amacı:</string>
-    <string name="doc_model">Model:</string>
     <string name="doc_link">Bağlantı:</string>
     <string name="doc_created_by">Oluşturan:</string>
     <string name="doc_ai_source">YZ teknik özellik kaynağı</string>

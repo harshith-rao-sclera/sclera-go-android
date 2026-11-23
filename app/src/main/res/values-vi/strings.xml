@@ -224,8 +224,6 @@
     <string name="doc_upload">Tải lên tài liệu</string>
     <string name="doc_none">Không có tài liệu</string>
     <string name="doc_category">Danh mục:</string>
-    <string name="doc_used_for">Dùng cho:</string>
-    <string name="doc_model">Model:</string>
     <string name="doc_link">Liên kết:</string>
     <string name="doc_created_by">Người tạo:</string>
     <string name="doc_ai_source">Nguồn thông số AI</string>

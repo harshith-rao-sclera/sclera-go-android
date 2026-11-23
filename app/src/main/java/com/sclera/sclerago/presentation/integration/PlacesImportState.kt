@@ -56,6 +56,8 @@ data class PlacesSheetState(
     /** VDMS didn't finish the send within the wait; its result shows on the page later. */
     val timedOut: Boolean = false,
     val result: PlacesImportResult? = null,
+    /** Why ticks changed on their own: parents brought along, or places dropped with their parent (null: none). */
+    val parentNote: UiText? = null,
     val view: PlacesPickerView = PlacesPickerView(),
 ) {
     val searching: Boolean get() = search.isNotBlank()
@@ -71,13 +73,13 @@ data class PlacesUiState(
     val places: VdmsPlaces? = null,
     /** VDMS was asked for its list and hasn't answered yet. */
     val refreshing: Boolean = false,
-    /** VDMS didn't answer within the wait; its list updates once it does. */
-    val refreshLate: Boolean = false,
+    /** A send VDMS is still working on (and not given up on): another can't be sent yet. */
+    val pushActive: Boolean = false,
     val sheet: PlacesSheetState? = null,
+    /** The places history sheet is open. */
+    val historyOpen: Boolean = false,
     val message: UiText? = null,
 ) {
-    val pushActive: Boolean get() = places?.push?.active == true
-
     /** VDMS hasn't sent its list yet, so nothing can be imported from it. */
     fun noSnapshot(direction: PlacesDirection): Boolean = direction == PlacesDirection.FROM_VDMS && places?.snapshotAt == null
 }

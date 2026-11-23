@@ -1,13 +1,16 @@
 package com.sclera.sclerago.data.remote.adc
 
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -34,6 +37,15 @@ interface AdcConfigService {
 
     @DELETE("properties/{p}/fields/{id}")
     suspend fun deleteField(@Path("p") property: String, @Path("id") id: String): Response<ResponseBody>
+
+    /** The sample sheet (`.xlsx`) for Import from Excel. */
+    @GET("properties/{p}/fields/import/template")
+    suspend fun fieldImportTemplate(@Path("p") property: String): Response<ResponseBody>
+
+    /** Multipart: `file` (.xlsx). Reads one field per row; nothing is made. */
+    @Multipart
+    @POST("properties/{p}/fields/import/read")
+    suspend fun readFieldImport(@Path("p") property: String, @Part file: MultipartBody.Part): Response<ResponseBody>
 
     // ---- Buildings, floors, locations
 
@@ -65,4 +77,13 @@ interface AdcConfigService {
 
     @DELETE("properties/{p}/{kind}/{id}")
     suspend fun deletePlace(@Path("p") property: String, @Path("kind") kind: String, @Path("id") id: String): Response<ResponseBody>
+
+    /** The sample sheet (`.xlsx`) for Import buildings. */
+    @GET("properties/{p}/places/import/template")
+    suspend fun placeImportTemplate(@Path("p") property: String): Response<ResponseBody>
+
+    /** Multipart: `file` (.xlsx); columns are matched by heading at the server. All or nothing. */
+    @Multipart
+    @POST("properties/{p}/places/import")
+    suspend fun importPlaces(@Path("p") property: String, @Part file: MultipartBody.Part): Response<ResponseBody>
 }

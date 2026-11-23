@@ -17,6 +17,9 @@ enum class DataError {
     /** Someone who isn't an admin changes or submits only the assets assigned to them (the server's check_editable). */
     NOT_ASSIGNED,
 
+    /** The asset is in Managed Assets: read-only here for everyone, admins too (the server answers 404 to any change). */
+    MANAGED,
+
     /** A photo or file is bigger than the 5MB an asset keeps (and couldn't be made smaller). */
     FILE_TOO_LARGE,
 

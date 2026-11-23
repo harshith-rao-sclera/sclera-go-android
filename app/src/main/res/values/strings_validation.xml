@@ -143,7 +143,6 @@
     <string name="val_select_shown">Select shown (%1$d)</string>
     <string name="val_clear_shown">Clear shown (%1$d)</string>
     <string name="val_no_asset_match">No assets match.</string>
-    <string name="val_some_ai">" · some use AI and look things up online"</string>
     <string name="val_steps_in_order">Every asset goes through these steps in this order.</string>
     <string name="val_kind_field">Checks each asset\'s values</string>
     <string name="val_kind_group">Compares assets with each other</string>
@@ -168,4 +167,6 @@
     <string name="val_quick_started">%1$s is running. Follow it under Validation → Recent jobs.</string>
     <string name="val_quick_ready">%1$s is ready to run under Validation → Recent jobs.</string>
     <string name="val_quick_unavailable">Couldn\'t load validation.</string>
+    <string name="valt_locked_note">Already run, so it can\'t be edited. Make a new validation to change it.</string>
+    <string name="rev_started_by">Started %1$s by %2$s</string>
 </resources>

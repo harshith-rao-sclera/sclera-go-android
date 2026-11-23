@@ -11,6 +11,7 @@ import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.PlaceChange
+import com.sclera.sclerago.domain.model.PlacesImported
 import com.sclera.sclerago.domain.repository.ConfigPlacesRepository
 import com.sclera.sclerago.domain.repository.FileRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
@@ -183,50 +184,21 @@ class DeletePlacesUseCase @Inject constructor(private val repo: ConfigPlacesRepo
 }
 
 /**
- * Import buildings: rows of Building, Floor, Location, Type, Code (a header row is skipped) from a CSV or Excel file,
- * added at the server one by one. Buildings and floors are matched by name; locations already there are left alone.
+ * Import buildings, as the web: the server reads the .xlsx [file] (a content URI; one location per row, with its floor
+ * and building, columns matched by heading), checks every row and makes them in one go. Buildings and floors already
+ * there are used as they are, locations already there are skipped. Throws OnlineException, or SheetRejectedException
+ * when a row is wrong (then nothing is made).
  */
-class ImportBuildingsUseCase @Inject constructor(
-    private val repo: ConfigPlacesRepository,
-    private val files: FileRepository,
-    private val guard: PermissionGuard,
-) {
-    sealed interface Result {
-        data object Unreadable : Result
-        data object NothingFound : Result
-
-        /** [rows] read from the file; [added] buildings, floors and locations that were new. */
-        data class Imported(val rows: Int, val added: Int) : Result
-    }
-
-    suspend operator fun invoke(propertyId: String, tree: List<LocNode>, uri: String): Result {
-        val rows = files.readSheet(uri) ?: return Result.Unreadable
-        val data = rows.map { r -> List(5) { i -> r.getOrNull(i)?.trim().orEmpty() } }
-            .filter { it[0].isNotEmpty() }
-            .let { l -> if (l.firstOrNull()?.get(0)?.equals("building", ignoreCase = true) == true) l.drop(1) else l }
-        if (data.isEmpty()) return Result.NothingFound
+class ImportBuildingsUseCase @Inject constructor(private val repo: ConfigPlacesRepository, private val guard: PermissionGuard) {
+    suspend operator fun invoke(propertyId: String, file: String): PlacesImported {
         guard.requireOnline(Permission.CONFIGURE)
-        // Name (lower case) → id, filled as places are found or made.
-        val buildings = tree.associate { it.name.trim().lowercase() to it.id }.toMutableMap()
-        val floors = tree.flatMap { b -> b.kids.orEmpty().map { f -> (b.id to f.name.trim().lowercase()) to f.id } }.toMap().toMutableMap()
-        val locations = tree.flatMap { b -> b.kids.orEmpty().flatMap { f -> f.kids.orEmpty().map { l -> f.id to l.name.trim().lowercase() } } }.toMutableSet()
-        var added = 0
-        data.forEach { (building, floor, location, type, code) ->
-            val bName = building.cleanName()
-            val bId = buildings[bName.lowercase()]
-                ?: conflictAs(PlaceProblem.DUPLICATE) { repo.addBuilding(propertyId, bName, null) }.getOrNull()?.also { buildings[bName.lowercase()] = it; added++ }
-                ?: return@forEach
-            val fName = floor.cleanName()
-            if (fName.isEmpty()) return@forEach
-            val fId = floors[bId to fName.lowercase()]
-                ?: conflictAs(PlaceProblem.DUPLICATE) { repo.addFloor(propertyId, bId, fName) }.getOrNull()?.also { floors[bId to fName.lowercase()] = it; added++ }
-                ?: return@forEach
-            val lName = location.cleanName()
-            if (lName.isEmpty() || !locations.add(fId to lName.lowercase())) return@forEach
-            if (conflictAs(PlaceProblem.DUPLICATE) { repo.addLocation(propertyId, fId, NewLocation(lName, type.cleanType(), code.cleanCode())) }.isSuccess) added++
-        }
-        return Result.Imported(data.size, added)
+        return repo.importSheet(propertyId, file)
     }
+}
+
+/** Import buildings' Sample Format: saves the server's sample sheet to [destination]; false when it can't be written. Throws OnlineException. */
+class SavePlacesSampleUseCase @Inject constructor(private val repo: ConfigPlacesRepository, private val files: FileRepository) {
+    suspend operator fun invoke(propertyId: String, destination: String): Boolean = files.writeFile(destination, repo.importSample(propertyId))
 }
 
 /** The Building info use cases, for injecting as one. */
@@ -240,4 +212,5 @@ class PlacesConfigUseCases @Inject constructor(
     val updateLocation: UpdateLocationUseCase,
     val delete: DeletePlacesUseCase,
     val importBuildings: ImportBuildingsUseCase,
+    val saveImportSample: SavePlacesSampleUseCase,
 )

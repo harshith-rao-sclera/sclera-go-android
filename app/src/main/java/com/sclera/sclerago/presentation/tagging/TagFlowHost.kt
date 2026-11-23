@@ -145,7 +145,7 @@ private fun MessageSheet(
                 LineIcon(icon, 24.dp, tint, 1.7f)
             }
             Txt(title, 20, 700, modifier = Modifier.padding(top = 14.dp), align = TextAlign.Center, maxLines = 3)
-            Txt(message, 14, 400, C.Muted, Modifier.padding(top = 10.dp).widthIn(max = 320.dp), align = TextAlign.Center, maxLines = 6)
+            Txt(message, 14, 400, C.Muted, Modifier.padding(top = 10.dp).widthIn(max = 320.dp), align = TextAlign.Center, maxLines = Int.MAX_VALUE)
         }
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Pill(secondary, onSecondary, Modifier.weight(1f).testTag(TagTags.SHEET_SECONDARY), height = 50.dp, size = 15, weight = 700)
@@ -178,7 +178,7 @@ private fun NfcDialog(actions: TagFlowActions) {
         ) {
             NfcPulse()
             Txt(stringResource(R.string.tag_nfc_ready), 20, 700, align = TextAlign.Center)
-            Txt(stringResource(R.string.tag_nfc_hold_message), 14, 400, C.Muted, align = TextAlign.Center, maxLines = 3)
+            Txt(stringResource(R.string.tag_nfc_hold_message), 14, 400, C.Muted, align = TextAlign.Center, maxLines = Int.MAX_VALUE)
             Pill(stringResource(R.string.tag_cancel), actions.onCancel, Modifier.padding(top = 8.dp).fillMaxWidth().testTag(TagTags.NFC_CANCEL), height = 50.dp, size = 15, weight = 700)
         }
     }

@@ -90,11 +90,11 @@ fun TagScanScreen(
             ) {
                 Txt(
                     stringResource(if (isQr) R.string.tag_scan_qr_hint else R.string.tag_scan_barcode_hint),
-                    16, 600, align = TextAlign.Center, maxLines = 3,
+                    16, 600, align = TextAlign.Center, maxLines = Int.MAX_VALUE,
                 )
                 Txt(
                     stringResource(if (isQr) R.string.tag_scan_qr_sub else R.string.tag_scan_barcode_sub),
-                    13, 400, C.Muted, Modifier.padding(top = 6.dp), align = TextAlign.Center, maxLines = 2,
+                    13, 400, C.Muted, Modifier.padding(top = 6.dp), align = TextAlign.Center, maxLines = Int.MAX_VALUE,
                 )
             }
         }

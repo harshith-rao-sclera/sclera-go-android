@@ -128,7 +128,7 @@ private fun PermissionRow(p: Permission, on: Boolean, locked: Boolean, onToggle:
                 Txt(p.title(), 14, 600)
                 if (p.needsAll()) TintChip(stringResource(R.string.access_needs_all))
             }
-            Txt(p.description(), 11, 400, C.Muted, maxLines = 3, lineHeight = 15.sp)
+            Txt(p.description(), 11, 400, C.Muted, maxLines = Int.MAX_VALUE, lineHeight = 15.sp)
         }
     }
 }

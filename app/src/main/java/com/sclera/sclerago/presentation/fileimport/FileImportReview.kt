@@ -106,7 +106,7 @@ fun FileImportReview(
                 goLabel = if (s.busy) stringResource(R.string.file_import_adding) else null,
                 busy = s.busy,
                 footer = {
-                    Txt(stringResource(R.string.file_import_tap_to_correct), 11, 400, C.Muted, maxLines = 2)
+                    Txt(stringResource(R.string.file_import_tap_to_correct), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
                     if (extras > 0) CreateFieldsToggle(extras, s.createFields) { vm.setCreateFields(!s.createFields) }
                 },
                 onOpen = vm::openDraft,
@@ -125,7 +125,7 @@ private fun SampleLink(onClick: () -> Unit) {
         verticalArrangement = Arrangement.Center,
     ) {
         Txt(stringResource(R.string.file_import_sample), 13, 700, C.Yellow)
-        Txt(stringResource(R.string.file_import_sample_hint), 11, 400, C.Muted, maxLines = 2)
+        Txt(stringResource(R.string.file_import_sample_hint), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     }
 }
 
@@ -172,7 +172,7 @@ private fun CreateFieldsToggle(count: Int, on: Boolean, onToggle: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         CheckBox(on)
-        Txt(pluralStringResource(R.plurals.file_import_create_fields, count, count), 12, 500, C.Muted, maxLines = 3)
+        Txt(pluralStringResource(R.plurals.file_import_create_fields, count, count), 12, 500, C.Muted, maxLines = Int.MAX_VALUE)
     }
 }
 

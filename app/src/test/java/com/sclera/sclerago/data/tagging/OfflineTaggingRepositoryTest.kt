@@ -17,6 +17,9 @@ import com.sclera.sclerago.domain.model.TagWrite
 import com.sclera.sclerago.domain.model.TaggingError
 import com.sclera.sclerago.domain.model.TaggingException
 import com.sclera.sclerago.domain.usecase.tagging.AttachTagUseCase
+import com.sclera.sclerago.domain.usecase.tagging.CanTagAssetUseCase
+import com.sclera.sclerago.testutil.InMemoryAssetRepository
+import com.sclera.sclerago.testutil.allowAllGuard
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
@@ -129,7 +132,7 @@ class OfflineTaggingRepositoryTest {
     @Test
     fun `offline attach moves a tag from another draft without asking, as the old app did`() = runTest {
         tags.rows["own-1"] = QrTagRow("a9", "p1", isAdc = true)
-        AttachTagUseCase(repo, NoTagHistory)(qr, "a1", "p1", placement, photo)
+        AttachTagUseCase(repo, NoTagHistory, CanTagAssetUseCase(InMemoryAssetRepository(emptyList()), allowAllGuard()))(qr, "a1", "p1", placement, photo)
         assertEquals("a9", tags.saved.single().first.previousAsset)
     }
 

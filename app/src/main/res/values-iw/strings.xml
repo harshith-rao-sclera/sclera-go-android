@@ -236,8 +236,6 @@
     <string name="doc_upload">העלאת מסמך</string>
     <string name="doc_none">אין מסמכים</string>
     <string name="doc_category">קטגוריה:</string>
-    <string name="doc_used_for">משמש עבור:</string>
-    <string name="doc_model">דגם:</string>
     <string name="doc_link">קישור:</string>
     <string name="doc_created_by">נוצר על ידי:</string>
     <string name="doc_ai_source">מקור מפרט AI</string>

@@ -7,6 +7,7 @@ import com.sclera.sclerago.testutil.InMemoryAssetRepository
 import com.sclera.sclerago.domain.model.EmptyReason
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.LocationFilter
+import com.sclera.sclerago.domain.model.PlaceScope
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.presentation.common.UiText
@@ -31,7 +32,8 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AssetListViewModelTest {
     // The offline database holds one property: the sample property "p1".
-    private val repo = InMemoryAssetRepository(SAMPLE_ASSETS.filter { it.propertyId == "p1" })
+    // Placed by id as the offline data has them: each sample location name stands in for its id.
+    private val repo = InMemoryAssetRepository(SAMPLE_ASSETS.filter { it.propertyId == "p1" }.map { it.copy(locationId = it.loc) })
 
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -61,8 +63,9 @@ class AssetListViewModelTest {
         val vm = vm()
         vm.setScope(LocationFilter.Unmapped)
         assertTrue(vm.state.value.lists.getValue(Tab.ASSETS).items.all { it.loc == null })
-        vm.setScope(LocationFilter.Specific(listOf("location2")))
-        assertTrue(vm.state.value.lists.getValue(Tab.ASSETS).items.all { it.loc == "location2" })
+        vm.setScope(LocationFilter.Specific(PlaceScope(locationIds = listOf("location2"))))
+        val inLocation = vm.state.value.lists.getValue(Tab.ASSETS).items
+        assertTrue(inLocation.isNotEmpty() && inLocation.all { it.locationId == "location2" })
     }
 
     @Test

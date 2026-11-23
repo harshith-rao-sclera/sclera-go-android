@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -34,7 +35,6 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.validation.Decision
 import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.domain.validation.ValStep
-import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.GuardedClose
@@ -79,7 +79,7 @@ internal fun JobReview(
         Column(Modifier.fillMaxSize()) {
             PageBar(stringResource(R.string.rev_title), null, onBack = onBack)
             if (j == null) {
-                EmptyNote(if (s.runFailed) "This job couldn't be loaded." else stringResource(R.string.val_loading))
+                EmptyNote(stringResource(if (s.runFailed) R.string.valt_job_load_failed else R.string.val_loading))
             } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 24.dp)) {
                 item(key = "head") { ReviewHead(j) }
                 item(key = "summary") {
@@ -100,7 +100,7 @@ internal fun JobReview(
                     EmptyNote(
                         when {
                             s.loadingResults -> stringResource(R.string.val_loading)
-                            j.status.active && j.processed == 0 -> "Checking the first assets… Results show up here as soon as the first batch is done."
+                            j.status.active && j.processed == 0 -> stringResource(R.string.valt_checking_first)
                             else -> stringResource(R.string.rev_no_assets)
                         },
                     )
@@ -136,8 +136,9 @@ internal fun JobReview(
 }
 
 /** "Took 3 min" once a job has finished; null before. */
+@Composable
 internal fun took(j: ValRun): String? =
-    if (j.status.active || j.finishedAt == null) null else elapsedSeconds(j.startedAt ?: j.createdAt, j.finishedAt)?.let(::duration)?.ifBlank { null }
+    if (j.status.active || j.finishedAt == null) null else elapsedSeconds(j.startedAt ?: j.createdAt, j.finishedAt)?.let { duration(it) }?.ifBlank { null }
 
 /** While running, the time left from the pace so far; once finished, how long it took (the web's overview line). */
 @Composable
@@ -158,17 +159,17 @@ private fun SelectionBar(s: RunReviewUiState, vm: RunReviewViewModel) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Txt(plural(ids.size, "asset", "assets") + " selected", 12, 700, modifier = Modifier.weight(1f))
+            Txt(pluralStringResource(R.plurals.valt_n_selected, ids.size, ids.size), 12, 700, modifier = Modifier.weight(1f))
             val allShown = s.results.isNotEmpty() && s.results.all { it.assetId in s.selected }
             if (!allShown) Pill(stringResource(R.string.val_select_shown, s.results.size), { vm.selectAllShown(true) }, height = 40.dp, hPad = 14.dp)
-            Pill("Clear", vm::clearSelection, height = 40.dp, hPad = 14.dp)
+            Pill(stringResource(R.string.pi_clear), vm::clearSelection, height = 40.dp, hPad = 14.dp)
         }
         val checkOnly = s.results.any { it.assetId in s.selected && it.checkOnly }
         DecisionButtons(
             s.busy, onValidate = { vm.decide(ids, Decision.VALIDATED) }, onRecollect = { vm.askRecollect(ids) },
             onExclude = { vm.decide(ids, Decision.EXCLUDED) }, validateBlocked = checkOnly,
         )
-        if (checkOnly) Txt(stringResource(R.string.rev_submit_first), 11, 400, C.Muted, maxLines = 2)
+        if (checkOnly) Txt(stringResource(R.string.rev_submit_first), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     }
 }
 
@@ -196,13 +197,16 @@ internal fun DecisionButtons(
 private fun RecollectSheet(count: Int, s: RunReviewUiState, vm: RunReviewViewModel) {
     GuardedClose(s.recollectNote.isNotBlank(), { vm.askRecollect(null) }) { close ->
         BottomSheet(close) {
-            SheetHeader("Send ${plural(count, "asset", "assets")} back", "They go back to drafts for the field team.", close)
+            SheetHeader(pluralStringResource(R.plurals.valt_recollect_title, count, count), stringResource(R.string.valt_recollect_sub), close)
             Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                LabeledInput("Note (optional)", s.recollectNote, vm::setRecollectNote, "What should the field team collect again?", singleLine = false, minLines = 3)
+                LabeledInput(
+                    stringResource(R.string.valt_note_optional), s.recollectNote, vm::setRecollectNote,
+                    stringResource(R.string.valt_recollect_hint), singleLine = false, minLines = 3,
+                )
             }
             Row(Modifier.fillMaxWidth().padding(top = 8.dp).topBorder(C.Border).padding(horizontal = 10.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill("Cancel", close, height = 40.dp, hPad = 18.dp)
-                Pill("Send for recollection", { if (!s.busy) vm.sendRecollect() }, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700)
+                Pill(stringResource(R.string.val_cancel), close, height = 40.dp, hPad = 18.dp)
+                Pill(stringResource(R.string.valt_send_recollect), { if (!s.busy) vm.sendRecollect() }, Modifier.weight(1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700)
             }
         }
     }

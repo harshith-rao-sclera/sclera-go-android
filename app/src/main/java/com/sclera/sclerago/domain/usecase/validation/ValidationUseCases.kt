@@ -16,6 +16,7 @@ import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.domain.validation.ValTemplate
 import com.sclera.sclerago.domain.validation.ValidationDef
 import com.sclera.sclerago.domain.validation.ValidationDraft
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 // The Validation page: the catalogue, saved validations and starting runs. Every call goes to the server
@@ -28,10 +29,21 @@ const val VALIDATION_DESCRIPTION_MAX = 500
 /** How many recent runs the page lists (as the web). */
 const val RECENT_RUNS = 20
 
-/** Whether the signed-in user may run validations and fix values ([Permission.CHECK]) and sign off, send back, exclude, undo fixes and keep saved validations ([Permission.VALIDATE]). */
+/**
+ * Whether the signed-in user may run validations and fix values ([Permission.CHECK]) and sign off, send back, exclude,
+ * undo fixes and keep saved validations ([Permission.VALIDATE]). Screens collect [observeCheck] / [observeValidate] so
+ * their buttons follow the access as it is fetched or changes (as the web re-renders from its store); nothing is
+ * allowed while the access isn't known (see [PermissionGuard]).
+ */
 class ValidationAccessUseCase @Inject constructor(private val guard: PermissionGuard) {
     fun canCheck(): Boolean = guard.allows(Permission.CHECK)
     fun canValidate(): Boolean = guard.allows(Permission.VALIDATE)
+
+    /** [canCheck], kept up to date. */
+    fun observeCheck(): Flow<Boolean> = guard.observe(Permission.CHECK)
+
+    /** [canValidate], kept up to date. */
+    fun observeValidate(): Flow<Boolean> = guard.observe(Permission.VALIDATE)
 }
 
 /** The steps (in the user's order) and the templates. */

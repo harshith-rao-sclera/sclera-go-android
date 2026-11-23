@@ -39,8 +39,17 @@ data class PlaceKey(val kind: PlaceKind, val id: String)
 /** Why a chosen place was skipped. */
 enum class PlaceSkipReason { EXISTS, PARENT_MISSING, NOT_FOUND, ERROR, OTHER }
 
-/** One place a send or import added, updated or skipped ([reason] only for skipped ones). */
-data class PlaceOutcome(val kind: PlaceKind?, val id: String, val name: String?, val reason: PlaceSkipReason? = null)
+/**
+ * One place a send or import added, updated or skipped ([reason] only for skipped ones); in a send's list of what was
+ * sent, [update] says it was sent to update the place VDMS has.
+ */
+data class PlaceOutcome(
+    val kind: PlaceKind?,
+    val id: String,
+    val name: String?,
+    val reason: PlaceSkipReason? = null,
+    val update: Boolean = false,
+)
 
 data class PlacesImportResult(
     val imported: List<PlaceOutcome> = emptyList(),
@@ -55,11 +64,27 @@ data class PlacesPush(
     val id: String,
     val status: PlacesPushStatus,
     val requestedAt: Long?,
+    val startedAt: Long?,
     val finishedAt: Long?,
     val result: PlacesImportResult,
 ) {
-    /** VDMS hasn't finished it yet. */
-    val active: Boolean get() = status != PlacesPushStatus.DONE
+    /** VDMS has reported on it. */
+    val finished: Boolean get() = status == PlacesPushStatus.DONE
+
+    /**
+     * VDMS is still working on it at [now]: not reported yet, and not given up on. The server stops waiting after
+     * [PUSH_STALE_MS] from when VDMS started it (or it was asked for) and then lets a new send replace it.
+     */
+    fun isActive(now: Long): Boolean {
+        if (finished) return false
+        val since = startedAt ?: requestedAt ?: return true
+        return now - since < PUSH_STALE_MS
+    }
+
+    companion object {
+        /** The server's places_import.PUSH_STALE_SECONDS. */
+        const val PUSH_STALE_MS = 10 * 60 * 1000L
+    }
 }
 
 /**
@@ -77,6 +102,41 @@ data class VdmsPlaces(
     /** The tree places are chosen from when copying [direction]. */
     fun treeFor(direction: PlacesDirection): List<PlaceNode> = if (direction == PlacesDirection.TO_VDMS) adc else vdms
 }
+
+// ---------------------------------------------------------------- History
+
+/** How a send or import went: VDMS hasn't read it, is adding, finished, or didn't report back in time. */
+enum class TransferStatus { PENDING, RUNNING, DONE, NO_REPLY, OTHER }
+
+/** How many places a transfer sent (into VDMS only), added, updated and skipped. */
+data class TransferCounts(val sending: Int = 0, val imported: Int = 0, val updated: Int = 0, val skipped: Int = 0)
+
+/** One send to VDMS or import from it, as the history lists it; [forMove] when it went with assets moved to Managed Assets. */
+data class PlacesTransfer(
+    val id: String,
+    val direction: PlacesDirection,
+    val forMove: Boolean,
+    val status: TransferStatus,
+    val counts: TransferCounts,
+    val createdAt: Long?,
+    val startedAt: Long?,
+    val finishedAt: Long?,
+    /** Who asked for it (null when the server doesn't know). */
+    val byName: String?,
+) {
+    /** VDMS hasn't reported on it yet. */
+    val waiting: Boolean get() = status == TransferStatus.PENDING || status == TransferStatus.RUNNING
+}
+
+/** One page of the history, newest first, and how many there are in all. */
+data class PlacesHistoryPage(val items: List<PlacesTransfer>, val total: Int)
+
+/** A transfer with its places: what was sent (into VDMS, until it reports), added, updated and skipped. */
+data class PlacesTransferDetail(
+    val transfer: PlacesTransfer,
+    val sending: List<PlaceOutcome>,
+    val result: PlacesImportResult,
+)
 
 /** How many buildings, floors and locations. */
 data class PlaceCounts(val buildings: Int = 0, val floors: Int = 0, val locations: Int = 0) {

@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -31,7 +32,6 @@ import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.LocPick
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NodeKind
-import com.sclera.sclerago.presentation.common.plural
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.main.Preview
@@ -69,7 +69,6 @@ fun LocationPicker(
         while (x != null) { byId[x]?.let { c.add(0, it) }; x = parent[x] }
         return c
     }
-    fun countOf(n: LocNode): Int = if (n.kind == NodeKind.LOCATION) n.count else n.kids.orEmpty().sumOf { countOf(it) }
     fun leaves(n: LocNode): List<String> = if (n.kind == NodeKind.LOCATION) listOf(n.name) else n.kids.orEmpty().flatMap { leaves(it) }
 
     // What it opened on: another place picked but not confirmed makes closing ask before discarding it.
@@ -90,12 +89,14 @@ fun LocationPicker(
     val node = sel?.let { byId[it] }
     val names = selChain.map { it.name }
 
+    val noFloors = stringResource(R.string.scrt_loc_no_floors_yet)
+    val noLocations = stringResource(R.string.scrt_loc_no_locations_yet)
     val rows = buildList {
         fun walk(ns: List<LocNode>, d: Int) {
             ns.forEach { n ->
                 add(TreeRow.Node(n, d))
                 if (n.kids != null && n.id in open) {
-                    if (n.kids.isEmpty()) add(TreeRow.Empty("No ${if (n.kind == NodeKind.BUILDING) "floors" else "locations"} added yet", d + 1))
+                    if (n.kids.isEmpty()) add(TreeRow.Empty(if (n.kind == NodeKind.BUILDING) noFloors else noLocations, d + 1))
                     else walk(n.kids, d + 1)
                 }
             }
@@ -105,8 +106,8 @@ fun LocationPicker(
     val results = if (ql.isEmpty()) emptyList() else byId.values.filter { it.name.lowercase().contains(ql) }
         .sortedBy { if (it.kind == NodeKind.LOCATION) 0 else 1 }
     val emptyText = when {
-        tree.isEmpty() -> "No buildings have been added to $propName yet."
-        ql.isNotEmpty() && results.isEmpty() -> "No building, floor or location matches “${q.trim()}”."
+        tree.isEmpty() -> stringResource(R.string.scrt_loc_no_buildings, propName)
+        ql.isNotEmpty() && results.isEmpty() -> stringResource(R.string.scrt_loc_no_match, q.trim())
         else -> ""
     }
 
@@ -122,7 +123,7 @@ fun LocationPicker(
                     if (!isTablet()) SheetHandle(Modifier.align(Alignment.CenterHorizontally))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Txt("Select location", 17, 700)
+                            Txt(stringResource(R.string.scrt_loc_select_title), 17, 700)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 LineIcon(Icons.Property, 13.dp, C.Muted, 2.2f)
                                 Txt(propName, 11, 500, C.Muted)
@@ -131,7 +132,7 @@ fun LocationPicker(
                         CloseButton(close)
                     }
                     if (tree.isNotEmpty()) {
-                        SearchField(q, { q = it }, "Search building, floor or location")
+                        SearchField(q, { q = it }, stringResource(R.string.scrt_loc_search_hint))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -168,7 +169,7 @@ fun LocationPicker(
                                 KindIcon(n.kind, C.Yellow)
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Txt(n.name, 14, 600)
-                                    Txt(if (c.size > 1) c.dropLast(1).joinToString(" › ") { it.name } else "Building", 11, 400, C.Muted)
+                                    Txt(if (c.size > 1) c.dropLast(1).joinToString(" › ") { it.name } else stringResource(R.string.detail_building), 11, 400, C.Muted)
                                 }
                             }
                         }
@@ -178,17 +179,20 @@ fun LocationPicker(
                                 is TreeRow.Empty -> Txt(
                                     row.text, 12, 400, Color(0xFF8B8F97),
                                     Modifier.heightIn(min = 40.dp).padding(start = (4 + row.depth * 20 + 36).dp).wrapContentHeight(),
+                                    maxLines = Int.MAX_VALUE,
                                 )
                                 is TreeRow.Node -> TreeNodeRow(
                                     row.node, row.depth, row.node.id == sel, row.node.id in onPath, row.node.id in open,
-                                    subFor(row.node), countOf(row.node),
+                                    // Its own count (by its building, floor or location id, assets on the building or floor itself included):
+                                    // what the list shows when it is picked.
+                                    subFor(row.node), row.node.count,
                                     onToggle = { open = open.toggle(row.node.id) },
                                     onPick = { pick(row.node.id) },
                                 )
                             }
                         }
                     }
-                    if (emptyText.isNotEmpty()) item { Txt(emptyText, 13, 400, C.Muted, Modifier.padding(10.dp, 16.dp), maxLines = 3) }
+                    if (emptyText.isNotEmpty()) item { Txt(emptyText, 13, 400, C.Muted, Modifier.padding(10.dp, 16.dp), maxLines = Int.MAX_VALUE) }
                 }
 
                 Row(
@@ -197,19 +201,19 @@ fun LocationPicker(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt("SELECTED", 10, 500, C.Muted, spacing = 0.6f)
-                        Txt(node?.name ?: "Nothing selected", 15, 700)
+                        Txt(stringResource(R.string.scrt_loc_selected_caps), 10, 500, C.Muted, spacing = 0.6f)
+                        Txt(node?.name ?: stringResource(R.string.scrt_loc_nothing_selected), 15, 700)
                         Txt(
-                            if (node == null) "Pick a building, floor or location"
-                            else if (selChain.size > 1) names.dropLast(1).joinToString(" › ") else "Whole building",
-                            11, 400, C.Muted,
+                            if (node == null) stringResource(R.string.scrt_loc_pick_hint)
+                            else if (selChain.size > 1) names.dropLast(1).joinToString(" › ") else stringResource(R.string.scrt_loc_whole_building),
+                            11, 400, C.Muted, maxLines = Int.MAX_VALUE,
                         )
                     }
                     Pill(
-                        "Confirm",
+                        stringResource(R.string.scrt_loc_confirm),
                         {
                             node?.let {
-                                onPick(LocPick(it.id, it.name, leaves(it), names.reversed().take(2).joinToString(" · "), names))
+                                onPick(LocPick(it.id, it.name, leaves(it), names.reversed().take(2).joinToString(" · "), names, it.kind))
                             }
                         },
                         bg = if (node != null) C.Yellow else C.Raised, fg = if (node != null) C.OnYellow else C.Muted,
@@ -223,10 +227,24 @@ fun LocationPicker(
 
 private fun Set<String>.toggle(k: String) = if (k in this) this - k else this + k
 
+@Composable
 private fun subFor(n: LocNode): String {
-    val kids = n.kids ?: return n.kind.title
-    val (one, many) = if (n.kind == NodeKind.BUILDING) "floor" to "floors" else "location" to "locations"
-    return n.kind.title + " · " + if (kids.isNotEmpty()) plural(kids.size, one, many) else "no $many yet"
+    val kind = stringResource(
+        when (n.kind) {
+            NodeKind.BUILDING -> R.string.detail_building
+            NodeKind.FLOOR -> R.string.detail_floor
+            NodeKind.LOCATION -> R.string.detail_location
+        },
+    )
+    val kids = n.kids ?: return kind
+    val building = n.kind == NodeKind.BUILDING
+    return when {
+        kids.isEmpty() -> stringResource(if (building) R.string.scrt_loc_sub_no_floors else R.string.scrt_loc_sub_no_locations, kind)
+        else -> stringResource(
+            R.string.scrt_loc_sub_count, kind,
+            pluralStringResource(if (building) R.plurals.pi_count_floors else R.plurals.pi_count_locations, kids.size, kids.size),
+        )
+    }
 }
 
 @Composable
@@ -385,7 +403,7 @@ private fun AudioFull(media: Media) {
         val ready = player
         when {
             loading -> Unit
-            ready == null -> Txt(stringResource(R.string.memo_not_on_device), 12, 400, C.Muted, maxLines = 3)
+            ready == null -> Txt(stringResource(R.string.memo_not_on_device), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
             else -> Pill(
                 stringResource(if (playing) R.string.memo_pause else R.string.memo_play),
                 {
@@ -429,12 +447,13 @@ private fun DocFull(media: Media) {
         Box(Modifier.size(84.dp).clip(r(16)).background(C.Raised), contentAlignment = Alignment.Center) {
             Txt(media.ext, 18, 800, C.Yellow, spacing = 0.6f)
         }
-        Txt(media.fileName ?: "Document", 15, 600, maxLines = 3)
-        Pill("Open", {
+        Txt(media.fileName ?: stringResource(R.string.detail_document), 15, 600, maxLines = 3)
+        val openWith = stringResource(R.string.doc_open_with)
+        Pill(stringResource(R.string.scrt_doc_open), {
             val i = android.content.Intent(android.content.Intent.ACTION_VIEW)
                 .setData(Uri.parse(media.uri))
                 .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            runCatching { context.startActivity(android.content.Intent.createChooser(i, "Open with")) }
+            runCatching { context.startActivity(android.content.Intent.createChooser(i, openWith)) }
         }, bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 24.dp, size = 14, weight = 700)
     }
 }
