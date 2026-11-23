@@ -571,4 +571,11 @@
     <string name="premise_perm_body">此物业仅允许采集人员在现场添加和编辑资产。Sclera Go 会在这部手机上将你的位置与物业边界进行比对，不会保存或发送位置信息。</string>
     <string name="lock_banner_off_premise">不在物业范围内</string>
     <string name="lock_banner_off_premise_body">此物业使用地理围栏。采集人员远离现场或手机位置未知时，只能查看此资产，无法修改。</string>
+    <string name="property_fab_import_title">从电子表格导入</string>
+    <string name="property_fab_import_sub">从 .xlsx 文件导入多个物业</string>
+    <string name="property_fab_new_title">新建物业</string>
+    <string name="property_fab_new_sub">填写详细信息</string>
+    <string name="valt_count_need_look">需要查看</string>
+    <string name="detail_select_jacs">选择 JACS 代码</string>
+    <string name="detail_required_tag">必填</string>
 </resources>

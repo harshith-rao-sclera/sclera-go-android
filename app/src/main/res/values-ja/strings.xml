@@ -571,4 +571,11 @@
     <string name="premise_perm_body">この物件では、コレクターは現地でのみアセットを追加・編集できます。Sclera Go はこのスマートフォン上で現在地と物件の境界を照合します。位置情報は保存も送信もされません。</string>
     <string name="lock_banner_off_premise">物件の外</string>
     <string name="lock_banner_off_premise_body">この物件ではジオフェンスを使用しています。コレクターは、現地から離れている間や端末の位置情報が不明な間は、このアセットを閲覧のみでき、変更はできません。</string>
+    <string name="property_fab_import_title">スプレッドシートからインポート</string>
+    <string name="property_fab_import_sub">.xlsxファイルから複数の物件</string>
+    <string name="property_fab_new_title">新しい物件</string>
+    <string name="property_fab_new_sub">詳細を入力</string>
+    <string name="valt_count_need_look">要確認</string>
+    <string name="detail_select_jacs">JACSコードを選択</string>
+    <string name="detail_required_tag">必須</string>
 </resources>

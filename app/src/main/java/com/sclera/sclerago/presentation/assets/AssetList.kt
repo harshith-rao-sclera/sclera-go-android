@@ -154,7 +154,7 @@ private fun ChipRow(data: AssetListData, list: AssetListBinding) {
             data.changeRequests?.let { cr ->
                 item(key = "CHANGE_REQUESTS") {
                     ChipBox(stringResource(R.string.dash_chip_change_requests), cr.count, cr.selected, AssetListTags.CHANGE_REQUESTS, list.onChangeRequests) {
-                        LineIcon(Icons.ChangeRequest, 11.dp, C.Orange, 2.8f)
+                        LineIcon(Icons.ChangeRequest, 14.dp, C.Orange, 2f)
                     }
                 }
             }
@@ -163,7 +163,7 @@ private fun ChipRow(data: AssetListData, list: AssetListBinding) {
             data.managed?.let { m ->
                 item(key = "MANAGED") {
                     ChipBox(stringResource(R.string.managed_chip), m.count, m.selected, AssetListTags.MANAGED, list.onManaged) {
-                        LineIcon(Icons.Managed, 12.dp, C.Yellow, 2.4f)
+                        LineIcon(Icons.Managed, 14.dp, C.Yellow, 2f)
                     }
                 }
             }
@@ -171,7 +171,7 @@ private fun ChipRow(data: AssetListData, list: AssetListBinding) {
             data.validation.forEach { (mark, chip) ->
                 item(key = "VALIDATION_${mark.name}") {
                     ChipBox(stringResource(mark.labelRes), chip.count, chip.selected, AssetListTags.validation(mark), { list.onValidation(mark) }) {
-                        LineIcon(mark.icon, 12.dp, mark.color, 2.4f)
+                        LineIcon(mark.icon, 14.dp, mark.color, 2f)
                     }
                 }
             }
@@ -207,7 +207,7 @@ private fun EdgeFade(left: Boolean, description: String, modifier: Modifier, onC
 @Composable
 private fun Chip(c: StatusCount, onClick: () -> Unit) {
     ChipBox(stringResource(c.status?.labelRes ?: R.string.dash_chip_all), c.count, c.selected, AssetListTags.chip(c.status), onClick) {
-        LineIcon(c.status?.icon ?: Icons.StatusAll, 11.dp, c.status?.color ?: C.Yellow, 2.8f)
+        LineIcon(c.status?.icon ?: Icons.StatusAll, 14.dp, c.status?.color ?: C.Yellow, 2f)
     }
 }
 
@@ -299,10 +299,10 @@ fun AssetRow(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Txt(a.name, 15, 600)
-                // Manufacturer and model, when either is filled in.
-                if (a.makeModel.isNotEmpty()) Txt(a.makeModel, 12, 400, C.Muted, maxLines = 1)
+                // Manufacturer, model and its first specs (rated power, voltage, speed), when any is filled in.
+                if (a.detail.isNotEmpty()) Txt(a.detail, 12, 400, C.Muted, maxLines = 1)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
                 // The web's "Recollect" badge: sent back to be collected again.
                 if (a.recollect) LineIcon(Icons.Recollect, 14.dp, C.Orange, 2.1f, Modifier.semantics { contentDescription = recollectLabel })
                 // The web card's "Change requested" badge: someone asked an admin to reopen it.
@@ -317,8 +317,8 @@ fun AssetRow(
                 LineIcon(a.src.icon, 18.dp, a.src.color, 2f)
                 Box(Modifier.width(20.dp), contentAlignment = Alignment.Center) {
                     // In Managed Assets: that is its status here (the web card's "In Managed Assets").
-                    if (a.managed) LineIcon(Icons.Managed, 15.dp, C.Yellow, 2f, Modifier.semantics { contentDescription = managedLabel })
-                    else LineIcon(a.st.icon, 14.dp, a.st.color, 2f)
+                    if (a.managed) LineIcon(Icons.Managed, 18.dp, C.Yellow, 2f, Modifier.semantics { contentDescription = managedLabel })
+                    else LineIcon(a.st.icon, 18.dp, a.st.color, 2f)
                 }
             }
         }

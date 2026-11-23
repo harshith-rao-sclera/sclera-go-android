@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.MediaFull
 import com.sclera.sclerago.presentation.components.MediaImage
@@ -78,9 +79,12 @@ internal fun lengthMs(m: Media): Long {
     return read
 }
 
-/** One attachment as a square tile ([modifier] sets its size): the picture (or a document's type), a video's length, and an expand mark. */
+/**
+ * One attachment as a square tile ([modifier] sets its size): the picture (or a document's type), a video's length, and an
+ * expand mark. [label] is a chip along the bottom (the Info strip's photo kind, e.g. "NAMEPLATE"), with a smaller mark.
+ */
 @Composable
-internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifier, label: String? = null) {
     val title = m.title()
     Box(modifier.clip(r(12)).background(C.Raised).semantics { contentDescription = title }.clickable(onClick = onOpen)) {
         if (m.isDoc) Txt(m.ext, 11, 800, C.Yellow, Modifier.align(Alignment.Center))
@@ -91,10 +95,15 @@ internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifi
             9, 700, C.White,
             Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp), spacing = 0.4f,
         )
+        if (label != null) Txt(
+            label, 9, 700, C.White,
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp).background(C.shade(0.55f), Capsule).padding(horizontal = 6.dp, vertical = 1.dp),
+            spacing = 0.4f,
+        )
         Box(
             Modifier.align(Alignment.TopEnd).padding(5.dp).size(18.dp).background(C.shade(0.55f), r(5)),
             contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Expand, 11.dp, C.White, 2.6f) }
+        ) { if (label != null) LineIcon(Icons.Expand, 9.dp, C.White, 3.4f) else LineIcon(Icons.Expand, 11.dp, C.White, 2.6f) }
     }
 }
 
@@ -102,9 +111,9 @@ internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifi
 private val StripTile = 76.dp
 
 /**
- * The Info tab's photo strip: a dashed + first, which opens the camera ([onAdd]; null while the asset is read-only, when
- * it is left out), then the asset's photos and videos as square tiles; a tile (its
- * expand mark) opens it full screen ([onOpen] takes its place in [media]). Nothing shows for a read-only asset with none.
+ * The Info tab's photo strip: the asset's photos and videos as square tiles (a photo with a kind shows its name along the
+ * bottom), then a dashed + that opens the camera ([onAdd]; null while the asset is read-only, when it is left out); a
+ * tile opens full screen ([onOpen] takes its place in [media]). Nothing shows for a read-only asset with none.
  */
 @Composable
 internal fun InfoPhotoStrip(media: List<Media>, onAdd: (() -> Unit)?, onOpen: (Int) -> Unit) {
@@ -117,14 +126,19 @@ internal fun InfoPhotoStrip(media: List<Media>, onAdd: (() -> Unit)?, onOpen: (I
             .horizontalScroll(rememberScrollState()).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        shown.forEach { (i, m) ->
+            MediaTile(
+                m, { onOpen(i) }, Modifier.size(StripTile).testTag(PhotoTags.tile(i)),
+                label = if (m.video) null else m.category?.let { stringResource(it.nameRes()).uppercase(Locale.getDefault()) },
+            )
+        }
         onAdd?.let { add ->
             Box(
-                Modifier.size(StripTile).testTag(PhotoTags.ADD).clip(r(12)).dashedBorder(C.Border2, 1.dp, 12.dp)
+                Modifier.size(StripTile).testTag(PhotoTags.ADD).clip(r(12)).background(C.Bg).dashedBorder(C.Border2, 1.dp, 12.dp)
                     .semantics { contentDescription = addLabel }.clickable(onClick = add),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Plus, 24.dp, C.Yellow, 2.6f) }
         }
-        shown.forEach { (i, m) -> MediaTile(m, { onOpen(i) }, Modifier.size(StripTile).testTag(PhotoTags.tile(i))) }
     }
 }
 

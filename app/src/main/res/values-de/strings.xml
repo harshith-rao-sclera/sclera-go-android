@@ -592,4 +592,11 @@
     <string name="premise_perm_body">Diese Liegenschaft erlaubt Erfassern das Hinzufügen und Bearbeiten von Assets nur vor Ort. Sclera Go vergleicht deinen Standort auf diesem Telefon mit der Grenze der Liegenschaft. Er wird weder gespeichert noch gesendet.</string>
     <string name="lock_banner_off_premise">Außerhalb der Liegenschaft</string>
     <string name="lock_banner_off_premise_body">Diese Liegenschaft verwendet Geofencing. Erfasser können dieses Asset ansehen, aber nicht ändern, solange sie nicht vor Ort sind oder der Standort des Telefons unbekannt ist.</string>
+    <string name="property_fab_import_title">Aus Tabelle importieren</string>
+    <string name="property_fab_import_sub">Viele Objekte aus einer .xlsx-Datei</string>
+    <string name="property_fab_new_title">Neues Objekt</string>
+    <string name="property_fab_new_sub">Details eingeben</string>
+    <string name="valt_count_need_look">zu prüfen</string>
+    <string name="detail_select_jacs">JACS-Code auswählen</string>
+    <string name="detail_required_tag">ERFORDERLICH</string>
 </resources>

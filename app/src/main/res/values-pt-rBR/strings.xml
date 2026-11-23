@@ -596,4 +596,11 @@
     <string name="premise_perm_body">Esta propriedade só permite que os coletores adicionem e editem ativos no local. O Sclera Go compara sua localização com o limite da propriedade neste telefone. Ela não é salva nem enviada.</string>
     <string name="lock_banner_off_premise">Fora da propriedade</string>
     <string name="lock_banner_off_premise_body">Esta propriedade usa geocerca. Os coletores podem ver este ativo, mas não alterá-lo enquanto estiverem longe do local ou a localização do telefone for desconhecida.</string>
+    <string name="property_fab_import_title">Importar de planilha</string>
+    <string name="property_fab_import_sub">Várias propriedades de um arquivo .xlsx</string>
+    <string name="property_fab_new_title">Nova propriedade</string>
+    <string name="property_fab_new_sub">Preencha os detalhes</string>
+    <string name="valt_count_need_look">precisam de revisão</string>
+    <string name="detail_select_jacs">Selecionar código JACS</string>
+    <string name="detail_required_tag">OBRIGATÓRIO</string>
 </resources>

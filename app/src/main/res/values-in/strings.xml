@@ -571,4 +571,11 @@
     <string name="premise_perm_body">Properti ini hanya mengizinkan kolektor menambah dan mengedit aset di lokasi. Sclera Go membandingkan lokasi Anda dengan batas properti di ponsel ini. Lokasi tidak disimpan atau dikirim.</string>
     <string name="lock_banner_off_premise">Di luar properti</string>
     <string name="lock_banner_off_premise_body">Properti ini menggunakan geofencing. Kolektor dapat melihat aset ini tetapi tidak dapat mengubahnya saat jauh dari lokasi atau saat lokasi ponsel tidak diketahui.</string>
+    <string name="property_fab_import_title">Impor dari spreadsheet</string>
+    <string name="property_fab_import_sub">Banyak properti dari file .xlsx</string>
+    <string name="property_fab_new_title">Properti baru</string>
+    <string name="property_fab_new_sub">Isi detailnya</string>
+    <string name="valt_count_need_look">perlu dicek</string>
+    <string name="detail_select_jacs">Pilih kode JACS</string>
+    <string name="detail_required_tag">WAJIB</string>
 </resources>

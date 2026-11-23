@@ -571,4 +571,11 @@
     <string name="premise_perm_body">이 부동산은 수집 담당자가 현장에서만 자산을 추가하고 편집하도록 허용합니다. Sclera Go는 이 휴대전화에서 현재 위치를 부동산 경계와 비교합니다. 위치는 저장되거나 전송되지 않습니다.</string>
     <string name="lock_banner_off_premise">부동산 밖</string>
     <string name="lock_banner_off_premise_body">이 부동산은 지오펜싱을 사용합니다. 수집 담당자는 현장에서 떨어져 있거나 휴대전화 위치를 알 수 없는 동안에는 이 자산을 보기만 할 수 있고 변경할 수 없습니다.</string>
+    <string name="property_fab_import_title">스프레드시트에서 가져오기</string>
+    <string name="property_fab_import_sub">.xlsx 파일에서 여러 부동산</string>
+    <string name="property_fab_new_title">새 부동산</string>
+    <string name="property_fab_new_sub">세부 정보 입력</string>
+    <string name="valt_count_need_look">확인 필요</string>
+    <string name="detail_select_jacs">JACS 코드 선택</string>
+    <string name="detail_required_tag">필수</string>
 </resources>

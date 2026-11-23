@@ -64,6 +64,7 @@ import androidx.compose.runtime.setValue
 import com.sclera.sclerago.presentation.components.FabAction
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.FabMenu
+import com.sclera.sclerago.presentation.components.noRippleClick
 import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SearchFab
@@ -237,6 +238,8 @@ internal fun PropertyListContent(
                 }
             }
         }
+        // The page dims behind the open menu; a tap on it closes the menu.
+        if (menuOpen) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)).noRippleClick { menuOpen = false })
         Column(
             Modifier.align(Alignment.BottomEnd).navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
             horizontalAlignment = Alignment.End,
@@ -246,12 +249,14 @@ internal fun PropertyListContent(
                 menuOpen, { menuOpen = it },
                 listOf(
                     FabAction(
-                        stringResource(R.string.property_fab_import), Icons.Table, PropertyTags.IMPORT, onImport,
+                        stringResource(R.string.property_fab_import_title), Icons.Table, PropertyTags.IMPORT, onImport,
                         onBlocked = if (state.online) null else ({ onOffline(OnlineOnly.IMPORT_PROPERTIES) }),
+                        subtitle = stringResource(R.string.property_fab_import_sub), iconColor = C.Green,
                     ),
                     FabAction(
-                        stringResource(R.string.action_add), Icons.Pencil, PropertyTags.ADD, onAdd,
+                        stringResource(R.string.property_fab_new_title), Icons.Building, PropertyTags.ADD, onAdd,
                         onBlocked = if (state.online) null else ({ onOffline(OnlineOnly.NEW_PROPERTY) }),
+                        subtitle = stringResource(R.string.property_fab_new_sub), iconColor = C.Text,
                     ),
                 ),
                 stringResource(R.string.property_add_fab), stringResource(R.string.action_close),
@@ -279,6 +284,12 @@ private fun Header(state: PropertyListState) {
             Icons.Download, C.Green, if (state.loading) "–" else state.syncedTotal.toString(),
             stringResource(R.string.property_synced),
             Modifier.weight(1f).testTag(PropertyTags.SYNCED), valueSize = 20, labelSize = 12, prominent = true,
+            iconContent = {
+                // The design's Synced badge: a green disc with a dark down arrow.
+                Box(Modifier.size(24.dp).clip(CircleShape).background(C.Green), contentAlignment = Alignment.Center) {
+                    LineIcon(Icons.ArrowDownShort, 24.dp, SyncedArrow, 2.4f)
+                }
+            },
         )
     }
 }
@@ -345,25 +356,25 @@ private fun PropertyCard(
                     .testTag(PropertyTags.info(id)).clickable(role = Role.Button, onClick = onInfo),
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.Info, 18.dp, C.Muted, 2f) }
-            // Every state keeps the 48dp of the download button, so the card doesn't change size as a download runs.
-            Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+            // Every state keeps the height of the icon circle (the design's 64dp row, 48dp wide for the tap), so the card doesn't change size as a download runs.
+            Box(Modifier.heightIn(min = RowControl), contentAlignment = Alignment.Center) {
                 when {
                     running != null -> DownloadProgress(name, running, Modifier.testTag(PropertyTags.progress(id)))
                     unpacking -> {
                         val label = stringResource(R.string.property_unpacking, name)
                         Box(
-                            Modifier.size(48.dp).semantics { contentDescription = label }.testTag(PropertyTags.unpacking(id)),
+                            Modifier.size(48.dp, RowControl).semantics { contentDescription = label }.testTag(PropertyTags.unpacking(id)),
                             contentAlignment = Alignment.Center,
                         ) { CircularProgressIndicator(Modifier.size(22.dp), color = C.Yellow, strokeWidth = 2.5.dp) }
                     }
                     download is PropertyDownload.Finished -> {
                         val done = stringResource(R.string.property_downloaded)
                         Box(
-                            Modifier.size(48.dp).semantics { contentDescription = done }.testTag(PropertyTags.done(id)),
+                            Modifier.size(48.dp, RowControl).semantics { contentDescription = done }.testTag(PropertyTags.done(id)),
                             contentAlignment = Alignment.Center,
                         ) { LineIcon(Icons.Check, 22.dp, C.Green, 2.8f) }
                     }
-                    downloaded -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    downloaded -> Box(Modifier.size(48.dp, RowControl), contentAlignment = Alignment.Center) {
                         LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
                     }
                     else -> {
@@ -371,7 +382,7 @@ private fun PropertyCard(
                         val label = stringResource(R.string.property_download, name)
                         OfflineGate(faint, onOffline) {
                             Box(
-                                Modifier.size(48.dp).clip(CircleShape).semantics { contentDescription = label }
+                                Modifier.size(48.dp, RowControl).clip(CircleShape).semantics { contentDescription = label }
                                     .testTag(PropertyTags.download(id)).clickable(role = Role.Button, onClick = onDownload),
                                 contentAlignment = Alignment.Center,
                             ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
@@ -411,3 +422,9 @@ private fun DownloadProgress(name: String, d: PropertyDownload.Running, modifier
 
 /** How faded a property that can't be used offline looks (as in the design). */
 private const val FaintAlpha = 0.26f
+
+/** Height of the download / progress / tick area: the icon circle's, so the row stays the design's 64dp. */
+private val RowControl = 42.dp
+
+/** The dark arrow inside the Synced tile's green disc (the design's #22332D). */
+private val SyncedArrow = Color(0xFF22332D)

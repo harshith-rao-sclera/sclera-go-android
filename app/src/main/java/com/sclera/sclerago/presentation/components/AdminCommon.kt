@@ -88,6 +88,8 @@ internal fun StatCard(
     valueSize: Int = 20,
     labelSize: Int = 12,
     prominent: Boolean = false,
+    /** Replaces the plain [icon] inside the tile (e.g. a filled badge); [icon] is then unused. */
+    iconContent: (@Composable () -> Unit)? = null,
 ) {
     val shape = r(if (prominent) 16 else 12)
     val look = if (prominent) {
@@ -105,7 +107,7 @@ internal fun StatCard(
             Modifier.size(if (prominent) 40.dp else 36.dp).clip(r(if (prominent) 12 else 10)).background(tint.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
         ) {
-            LineIcon(icon, if (prominent) 22.dp else 16.dp, tint, if (prominent) 2f else 1.9f)
+            if (iconContent != null) iconContent() else LineIcon(icon, if (prominent) 22.dp else 16.dp, tint, if (prominent) 2f else 1.9f)
         }
         Column(verticalArrangement = Arrangement.spacedBy(if (prominent) 2.dp else 1.dp)) {
             Txt(value, valueSize, 700)

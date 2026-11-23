@@ -38,7 +38,6 @@ import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
 import com.sclera.sclerago.presentation.components.Capsule
-import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.asColor
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Icons
@@ -87,8 +86,7 @@ private fun CardRow(
 }
 
 /**
- * A person: their name (the email when there is none) with "Invited" while they haven't signed in yet (or when they
- * were last seen), their email, then their group's pill and the properties they can open. Tap to edit.
+ * A person: their name (the email when there is none) with "Invited" while they haven't signed in yet, their email, then their group's pill and the properties they can open. Tap to edit.
  */
 @Composable
 internal fun PersonCard(row: PersonRow, properties: List<Property>, nowMillis: Long, onEdit: () -> Unit) {
@@ -98,10 +96,7 @@ internal fun PersonCard(row: PersonRow, properties: List<Property>, nowMillis: L
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Txt(p.name, 15, 600, modifier = Modifier.weight(1f), maxLines = 1)
-                when {
-                    p.signedIn -> agoText(p.lastSeenAt, nowMillis).takeIf { it.isNotEmpty() }?.let { Txt(it, 11, 400, C.Muted, maxLines = 1) }
-                    p.hasAccess -> Tag(stringResource(R.string.access_invited), C.Orange, bordered = false)
-                }
+                if (!p.signedIn && p.hasAccess) Tag(stringResource(R.string.access_invited), C.Orange, bordered = false)
             }
             // The email goes under the name only when there is a name (otherwise it is the name).
             if (p.name != p.email) Txt(p.email, 12, 400, C.Muted, maxLines = 1)

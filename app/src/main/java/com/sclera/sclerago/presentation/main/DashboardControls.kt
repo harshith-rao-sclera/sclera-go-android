@@ -110,7 +110,7 @@ private fun FilterFab(count: Int, onClick: () -> Unit) {
     Box {
         CircleFab(
             Icons.Filter, description, onClick, Modifier.testTag(DashTags.FILTER),
-            bg = if (count > 0) C.YTintBg else C.Btn, fg = if (count > 0) C.Yellow else C.Text, iconSize = 20.dp, stroke = 2.4f,
+            bg = if (count > 0) C.YTintBg else C.Btn, fg = if (count > 0) C.Yellow else C.Text, iconSize = 22.dp, stroke = 2.2f,
         )
         if (count > 0) {
             Box(

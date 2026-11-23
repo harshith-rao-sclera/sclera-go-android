@@ -620,4 +620,11 @@
     <string name="premise_perm_body">يسمح هذا العقار لجامعي البيانات بإضافة الأصول وتعديلها في الموقع فقط. يقارن Sclera Go موقعك بحدود العقار على هذا الهاتف. لا يتم حفظه أو إرساله.</string>
     <string name="lock_banner_off_premise">خارج العقار</string>
     <string name="lock_banner_off_premise_body">يستخدم هذا العقار السياج الجغرافي. يمكن لجامعي البيانات عرض هذا الأصل ولكن لا يمكنهم تغييره أثناء وجودهم بعيدًا عن الموقع أو عندما يكون موقع الهاتف غير معروف.</string>
+    <string name="property_fab_import_title">استيراد من جدول بيانات</string>
+    <string name="property_fab_import_sub">عدة عقارات من ملف .xlsx</string>
+    <string name="property_fab_new_title">عقار جديد</string>
+    <string name="property_fab_new_sub">املأ تفاصيله</string>
+    <string name="valt_count_need_look">تحتاج إلى مراجعة</string>
+    <string name="detail_select_jacs">اختر رمز JACS</string>
+    <string name="detail_required_tag">مطلوب</string>
 </resources>

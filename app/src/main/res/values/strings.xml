@@ -801,4 +801,11 @@
     <string name="premise_perm_body">This property only lets collectors add and edit assets on site. Sclera Go compares your location with the property boundary on this phone. It is not saved or sent.</string>
     <string name="lock_banner_off_premise">Outside the property</string>
     <string name="lock_banner_off_premise_body">This property uses geofencing. Collectors can view this asset but not change it while away from the site or while the phone\'s location is unknown.</string>
+    <string name="property_fab_import_title">Import from spreadsheet</string>
+    <string name="property_fab_import_sub">Many properties from an .xlsx file</string>
+    <string name="property_fab_new_title">New property</string>
+    <string name="property_fab_new_sub">Fill in its details</string>
+    <string name="valt_count_need_look">need a look</string>
+    <string name="detail_select_jacs">Select JACS code</string>
+    <string name="detail_required_tag">REQUIRED</string>
 </resources>

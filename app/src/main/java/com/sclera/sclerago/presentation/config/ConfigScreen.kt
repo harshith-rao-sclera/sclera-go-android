@@ -1146,6 +1146,9 @@ private fun PhotoKind.hintRes() = when (this) {
 private val TYPE_W = 84.dp
 private val MUST_W = 66.dp
 private val CHECKS_W = 86.dp
+
+/** Built-in identification fields the design marks with a lock (name, manufacturer, model, serial number). */
+private val SYSTEM_FIELDS = setOf("name", "make", "model", "serial")
 private val STEPPER_W = 88.dp
 
 /** A bordered table card of the Asset fields tab: a header row, then rows split by lines. */
@@ -1209,16 +1212,16 @@ private fun FieldCfgRow(
     onChecks: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().topBorder(C.Border).clickable(onClick = onEdit).heightIn(min = 48.dp).padding(start = 10.dp),
+        Modifier.fillMaxWidth().topBorder(C.Border).clickable(onClick = onEdit).heightIn(min = 44.dp).padding(start = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Name (a lock on built-in fields), and how many options a dropdown has.
         Column(Modifier.weight(1f).padding(start = 0.dp, top = 10.dp, end = 6.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Txt(f.label, 14, 600, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
-                if (f.locked) LineIcon(Icons.Lock, 12.dp, C.Dim, 2.4f)
+                if (f.key in SYSTEM_FIELDS) LineIcon(Icons.Lock, 9.dp, C.Dim, 2.4f)
             }
-            if (f.kind == FieldKind.DROPDOWN) Txt(pluralStringResource(R.plurals.cfg_field_options, options, options), 11, 400, C.Muted, maxLines = 1)
+            if (f.kind in OPTION_KINDS) Txt(pluralStringResource(R.plurals.cfg_field_options, options, options), 11, 400, C.Muted, maxLines = 1)
         }
         // Type: its icon in yellow and its name.
         Row(Modifier.width(TYPE_W), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1227,11 +1230,11 @@ private fun FieldCfgRow(
         }
         // Mandatory: the tick.
         Box(
-            Modifier.size(MUST_W, 48.dp).clip(r(8)).clickable(enabled = !f.locked, onClick = onToggleRequired),
+            Modifier.size(MUST_W, 44.dp).clip(r(8)).clickable(enabled = !f.locked, onClick = onToggleRequired),
             contentAlignment = Alignment.Center,
         ) { Box(Modifier.alpha(if (f.locked) 0.5f else 1f)) { CheckBox(f.required) } }
         // Checks: what validation looks for beyond the kind; a yellow-tinted pill when set, an outlined Add when not.
-        Box(Modifier.width(CHECKS_W).heightIn(min = 48.dp).clickable(onClick = onChecks), contentAlignment = Alignment.Center) {
+        Box(Modifier.width(CHECKS_W).heightIn(min = 44.dp).clickable(onClick = onChecks), contentAlignment = Alignment.Center) {
             val tag = when {
                 f.hasFormat -> R.string.cfg_checks_format
                 f.flagEmpty && !f.required -> R.string.cfg_checks_empty

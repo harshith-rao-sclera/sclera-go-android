@@ -304,7 +304,7 @@ private fun AiFillButton(busy: Boolean, notice: UiText?, onClick: () -> Unit, of
                     .border(if (busy) 2.dp else 1.dp, if (busy) C.Cyan.copy(alpha = 0.4f + 0.6f * blink) else C.Border2, CircleShape)
                     .semantics { contentDescription = description }.clickable(onClick = onClick),
                 contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.alpha(blink) else Modifier) }
+            ) { LineIcon(Icons.Sparkles, 21.dp, C.Cyan, 2.3f, if (busy) Modifier.alpha(blink) else Modifier) }
         }
     }
 }
@@ -348,7 +348,7 @@ private fun MicButton(
                         .semantics { contentDescription = description }.clickable(enabled = !reading, onClick = onClick),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (listening) LineIcon(Icons.Stop, 24.dp, C.White, 2.2f) else LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f)
+                    if (listening) LineIcon(Icons.Stop, 21.dp, C.White, 2.3f) else LineIcon(Icons.Mic, 21.dp, C.OnYellow, 2.3f)
                 }
             }
         }
