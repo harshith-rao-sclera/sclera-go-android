@@ -613,4 +613,5 @@
     <string name="property_type_or_select_state">Typ of selecteer staat</string>
     <string name="property_type_or_select_city">Typ of selecteer stad</string>
     <string name="property_choose_country_first">Kies eerst een land</string>
+    <string name="rev_back">Terug</string>
 </resources>

@@ -641,4 +641,5 @@
     <string name="property_type_or_select_state">اكتب أو اختر الولاية</string>
     <string name="property_type_or_select_city">اكتب أو اختر المدينة</string>
     <string name="property_choose_country_first">اختر الدولة أولاً</string>
+    <string name="rev_back">رجوع</string>
 </resources>

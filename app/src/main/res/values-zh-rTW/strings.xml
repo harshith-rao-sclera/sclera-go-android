@@ -592,4 +592,5 @@
     <string name="property_type_or_select_state">輸入或選擇州/省</string>
     <string name="property_type_or_select_city">輸入或選擇城市</string>
     <string name="property_choose_country_first">請先選擇國家</string>
+    <string name="rev_back">返回</string>
 </resources>

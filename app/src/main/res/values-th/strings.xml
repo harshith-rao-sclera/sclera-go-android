@@ -592,4 +592,5 @@
     <string name="property_type_or_select_state">พิมพ์หรือเลือกรัฐ</string>
     <string name="property_type_or_select_city">พิมพ์หรือเลือกเมือง</string>
     <string name="property_choose_country_first">เลือกประเทศก่อน</string>
+    <string name="rev_back">กลับ</string>
 </resources>

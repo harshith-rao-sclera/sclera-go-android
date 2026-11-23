@@ -617,4 +617,5 @@
     <string name="property_type_or_select_state">Digite ou selecione o estado</string>
     <string name="property_type_or_select_city">Digite ou selecione a cidade</string>
     <string name="property_choose_country_first">Escolha um país primeiro</string>
+    <string name="rev_back">Voltar</string>
 </resources>

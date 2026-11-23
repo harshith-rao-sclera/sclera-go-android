@@ -624,4 +624,5 @@
     <string name="property_type_or_select_state">הקלד או בחר מדינה פדרלית</string>
     <string name="property_type_or_select_city">הקלד או בחר עיר</string>
     <string name="property_choose_country_first">בחר מדינה תחילה</string>
+    <string name="rev_back">חזרה</string>
 </resources>

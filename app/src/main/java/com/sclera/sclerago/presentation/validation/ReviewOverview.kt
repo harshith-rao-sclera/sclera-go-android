@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -32,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
@@ -64,12 +67,13 @@ internal fun ReviewCard(
     title: String? = null,
     sub: String? = null,
     count: Int? = null,
+    gap: Dp = 12.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        Modifier.padding(horizontal = 14.dp, vertical = 6.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
+        Modifier.padding(horizontal = 14.dp, vertical = 8.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
             .border(1.dp, C.Border, r(14)).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(gap),
     ) {
         if (title != null) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -84,8 +88,8 @@ internal fun ReviewCard(
 
 /** The run's name and state, and what it covered: "All 12 assets · 2 steps · Started 1 min ago · Took 3s". */
 @Composable
-internal fun ReviewHead(j: ValRun) {
-    Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+internal fun ReviewHead(j: ValRun, confident: Int, canCheck: Boolean, busy: Boolean, onApplyConfident: () -> Unit, onExport: () -> Unit, onRunAgain: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Txt(j.name, 22, 700, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
             StatusChip(j.status)
@@ -103,56 +107,9 @@ internal fun ReviewHead(j: ValRun) {
             ).joinToString(" · "),
             12, 400, C.Muted, maxLines = Int.MAX_VALUE,
         )
-    }
-}
-
-/** How far the run got, its data quality, and how many assets failed, need a look or passed; then what can be done. */
-@Composable
-internal fun ReviewSummary(j: ValRun, confident: Int, canCheck: Boolean, busy: Boolean, onApplyConfident: () -> Unit, onExport: () -> Unit, onRunAgain: () -> Unit) {
-    // Nothing checked yet: only the progress shows (no failed / look / passed counts to read).
-    val starting = j.status.active && j.processed == 0
-    ReviewCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            j.score?.let { score ->
-                val c = scoreColor(score)
-                Row(
-                    Modifier.height(24.dp).clip(r(6)).background(c.copy(alpha = 0.15f)).padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Txt(stringResource(R.string.rev_quality), 11, 600, c)
-                    Txt(score.roundToInt().toString(), 13, 700, c)
-                    Txt(stringResource(R.string.rev_quality_of), 10, 600, c.copy(alpha = 0.7f))
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                LineIcon(Icons.Menu, 13.dp, C.Yellow, 2.4f)
-                Txt(pluralStringResource(R.plurals.rev_steps, j.steps.size, j.steps.size), 12, 600, C.Yellow)
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                Txt(j.processed.toString(), 24, 700)
-                Txt(stringResource(R.string.rev_of_assets_checked, j.total), 14, 600, modifier = Modifier.padding(bottom = 3.dp))
-            }
-            val percent = if (j.total > 0) (j.processed * 100f / j.total).roundToInt() else 0
-            Txt(
-                when {
-                    j.status.active -> listOf(j.phase?.takeIf { it.isNotBlank() } ?: stringResource(R.string.rev_status_starting), timeNote(j)).filter { it.isNotBlank() }.joinToString(" · ")
-                    j.status == RunStatus.FAILED -> stringResource(R.string.rev_status_stopped, percent)
-                    else -> stringResource(R.string.rev_status_finished)
-                },
-                12, 400, C.Muted, maxLines = Int.MAX_VALUE,
-            )
-        }
-        if (j.status.active) JobProgress(j, barHeight = 8.dp) else ResultBar(j.failedCount, j.warningCount, j.passedCount, barHeight = 8.dp)
-        if (!starting) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatTile(j.failedCount, stringResource(R.string.rev_stat_failed), dot = C.Red)
-            StatTile(j.warningCount, stringResource(R.string.rev_stat_look), dot = C.Orange)
-            StatTile(j.passedCount, stringResource(R.string.rev_stat_passed), dot = C.Green)
-        }
-        j.statusDetail?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, if (j.status == RunStatus.FAILED) C.Red else C.Muted, maxLines = Int.MAX_VALUE) }
-        if (j.status.finished || j.processed > 0) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (j.status.finished || j.processed > 0) Row(
+            Modifier.padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             if (j.status.finished && confident > 0 && canCheck) {
                 Pill(
                     pluralStringResource(R.plurals.rev_apply_confident, confident, confident), { if (!busy) onApplyConfident() },
@@ -165,21 +122,69 @@ internal fun ReviewSummary(j: ValRun, confident: Int, canCheck: Boolean, busy: B
     }
 }
 
+/** How far the run got, its data quality, and how many assets failed, need a look or passed; then what can be done. */
+@Composable
+internal fun ReviewSummary(j: ValRun) {
+    // Nothing checked yet: only the progress shows (no failed / look / passed counts to read).
+    val starting = j.status.active && j.processed == 0
+    ReviewCard(gap = 14.dp) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                j.score?.let { score ->
+                    val c = scoreColor(score)
+                    Row(
+                        Modifier.height(24.dp).clip(r(6)).background(c.copy(alpha = 0.15f)).padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Txt(stringResource(R.string.rev_quality), 11, 600, c)
+                        Txt(score.roundToInt().toString(), 13, 700, c)
+                        Txt(stringResource(R.string.rev_quality_of), 10, 600, c.copy(alpha = 0.7f))
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Txt(j.processed.toString(), 24, 700, modifier = Modifier.alignByBaseline())
+                    Txt(stringResource(R.string.rev_of_assets_checked, j.total), 14, 600, modifier = Modifier.alignByBaseline())
+                }
+                val percent = if (j.total > 0) (j.processed * 100f / j.total).roundToInt() else 0
+                Txt(
+                    when {
+                        j.status.active -> listOf(j.phase?.takeIf { it.isNotBlank() } ?: stringResource(R.string.rev_status_starting), timeNote(j)).filter { it.isNotBlank() }.joinToString(" · ")
+                        j.status == RunStatus.FAILED -> stringResource(R.string.rev_status_stopped, percent)
+                        else -> stringResource(R.string.rev_status_finished)
+                    },
+                    12, 400, C.Muted, maxLines = Int.MAX_VALUE,
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                LineIcon(Icons.Menu, 13.dp, C.Yellow, 2.4f)
+                Txt(pluralStringResource(R.plurals.rev_steps, j.steps.size, j.steps.size), 12, 600, C.Yellow)
+            }
+        }
+        if (j.status.active) JobProgress(j, barHeight = 8.dp) else ResultBar(j.failedCount, j.warningCount, j.passedCount, barHeight = 8.dp)
+        if (!starting) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile(j.failedCount, stringResource(R.string.rev_stat_failed), dot = C.Red, labelLines = 2)
+            StatTile(j.warningCount, stringResource(R.string.rev_stat_look), dot = C.Orange, labelLines = 2)
+            StatTile(j.passedCount, stringResource(R.string.rev_stat_passed), dot = C.Green, labelLines = 2)
+        }
+        j.statusDetail?.takeIf { it.isNotBlank() }?.let { Txt(it, 11, 400, if (j.status == RunStatus.FAILED) C.Red else C.Muted, maxLines = Int.MAX_VALUE) }
+    }
+}
+
 /**
  * A number in a tile, with its label under it: a coloured dot before the label ([dot]), or a short bar above the
  * number when it is the one to act on ([mark]).
  */
 @Composable
-private fun RowScope.StatTile(n: Int, label: String, dot: Color? = null, mark: Color? = null, numberColor: Color = if (n > 0) C.Text else C.Dim) {
+private fun RowScope.StatTile(n: Int, label: String, dot: Color? = null, mark: Color? = null, labelLines: Int = 1, numberColor: Color = if (n > 0) C.Text else C.Dim) {
     Column(
-        Modifier.weight(1f).clip(r(10)).background(C.Raised.copy(alpha = 0.6f)).padding(12.dp),
+        Modifier.weight(1f).fillMaxHeight().clip(r(10)).background(C.Raised.copy(alpha = 0.6f)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (mark != null) Box(Modifier.fillMaxWidth().height(2.dp).clip(Capsule).background(mark))
         Txt(n.toString(), 22, 700, numberColor)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             dot?.let { Dot(it, 7.dp) }
-            Txt(label, 12, 500, C.Muted, maxLines = 1)
+            Txt(label, 12, 500, C.Muted, maxLines = labelLines)
         }
     }
 }
@@ -221,16 +226,16 @@ internal fun FieldsToFix(ins: RunInsights) {
 /** What has been done about the issues, and decided about the assets. */
 @Composable
 internal fun ReviewProgress(ins: RunInsights) {
-    ReviewCard(stringResource(R.string.rev_progress_title), stringResource(R.string.rev_progress_sub)) {
+    ReviewCard(stringResource(R.string.rev_progress_title), stringResource(R.string.rev_progress_sub), gap = 14.dp) {
         SmallHeading(stringResource(R.string.rev_issues_label))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatTile(ins.open, stringResource(R.string.rev_still_open), mark = C.Orange.takeIf { ins.open > 0 }, numberColor = if (ins.open > 0) C.Orange else C.Text)
             StatTile(ins.applied, stringResource(R.string.rev_fixed))
             StatTile(ins.kept, stringResource(R.string.rev_kept))
         }
         if (ins.aiSuggested > 0) Txt(stringResource(R.string.rev_ai_applied, ins.aiApplied, ins.aiSuggested), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         SmallHeading(stringResource(R.string.rev_assets_label))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatTile(ins.validated, stringResource(R.string.rev_decision_validated))
             StatTile(ins.recollect, stringResource(R.string.rev_sent_back))
             StatTile(ins.pending, stringResource(R.string.rev_to_decide), mark = C.Yellow.takeIf { ins.pending > 0 }, numberColor = if (ins.pending > 0) C.Yellow else C.Text)

@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -25,11 +26,23 @@ import com.sclera.sclerago.presentation.theme.Txt
 // Small controls shared across screens: page bar, empty note, checkbox, inputs, cards, FAB.
 
 @Composable
-internal fun PageBar(title: String, sub: String?, onBack: () -> Unit, property: Boolean = false) {
-    Box(Modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding().height(60.dp).padding(horizontal = 10.dp)) {
-        RoundButton(42.dp, C.Btn, onBack, Modifier.align(Alignment.CenterStart)) { LineIcon(Icons.ChevronLeft, 22.dp, C.Yellow, 2.6f) }
+internal fun PageBar(title: String, sub: String?, onBack: () -> Unit, property: Boolean = false, backLabel: String? = null) {
+    val textBack = backLabel != null
+    Box(
+        Modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).statusBarsPadding().height(if (textBack) 64.dp else 60.dp)
+            .padding(horizontal = if (textBack) 12.dp else 10.dp),
+    ) {
+        if (backLabel != null) {
+            Row(
+                Modifier.align(Alignment.CenterStart).height(44.dp).clip(r(8)).clickable(role = Role.Button, onClick = onBack),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                LineIcon(Icons.ChevronLeft, 20.dp, C.Yellow, 2.4f)
+                Txt(backLabel, 17, 400, C.Yellow)
+            }
+        } else RoundButton(42.dp, C.Btn, onBack, Modifier.align(Alignment.CenterStart)) { LineIcon(Icons.ChevronLeft, 22.dp, C.Yellow, 2.6f) }
         Column(Modifier.align(Alignment.Center).padding(horizontal = 56.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Txt(title, 16, 700)
+            if (textBack) Txt(title, 17, 600) else Txt(title, 16, 700)
             sub?.let {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     if (property) LineIcon(Icons.Building, 13.dp, C.Muted, 2f)

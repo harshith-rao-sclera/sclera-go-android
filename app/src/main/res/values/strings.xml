@@ -822,4 +822,5 @@
     <string name="property_type_or_select_state">Type or select state</string>
     <string name="property_type_or_select_city">Type or select city</string>
     <string name="property_choose_country_first">Choose a country first</string>
+    <string name="rev_back">Back</string>
 </resources>

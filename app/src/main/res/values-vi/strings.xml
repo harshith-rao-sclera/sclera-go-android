@@ -592,4 +592,5 @@
     <string name="property_type_or_select_state">Nhập hoặc chọn tiểu bang</string>
     <string name="property_type_or_select_city">Nhập hoặc chọn thành phố</string>
     <string name="property_choose_country_first">Hãy chọn quốc gia trước</string>
+    <string name="rev_back">Quay lại</string>
 </resources>

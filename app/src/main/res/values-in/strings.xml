@@ -592,4 +592,5 @@
     <string name="property_type_or_select_state">Ketik atau pilih negara bagian</string>
     <string name="property_type_or_select_city">Ketik atau pilih kota</string>
     <string name="property_choose_country_first">Pilih negara terlebih dahulu</string>
+    <string name="rev_back">Kembali</string>
 </resources>

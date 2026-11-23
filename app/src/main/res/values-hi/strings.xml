@@ -613,4 +613,5 @@
     <string name="property_type_or_select_state">राज्य लिखें या चुनें</string>
     <string name="property_type_or_select_city">शहर लिखें या चुनें</string>
     <string name="property_choose_country_first">पहले देश चुनें</string>
+    <string name="rev_back">वापस</string>
 </resources>
