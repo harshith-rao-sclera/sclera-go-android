@@ -13,7 +13,9 @@ import com.sclera.sclerago.domain.repository.QrDirectionSource
 import com.sclera.sclerago.domain.repository.TagHistory
 import com.sclera.sclerago.domain.repository.TagServerInfo
 import com.sclera.sclerago.domain.repository.TaggingRepository
+import com.sclera.sclerago.services.tagging.AndroidQrDirectionMeterFactory
 import com.sclera.sclerago.services.tagging.PlaceholderQrDirectionSource
+import com.sclera.sclerago.services.tagging.QrDirectionMeterFactory
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -34,8 +36,10 @@ abstract class TaggingModule {
 
     @Binds abstract fun server(impl: TagServerInfoImpl): TagServerInfo
 
-    /** Swap this binding for the AR engine's source when it exists on Android. */
+    /** The direction for a QR code scanned on a device that cannot measure one (no rotation-vector sensor); others carry their measured direction. */
     @Binds abstract fun qrDirection(impl: PlaceholderQrDirectionSource): QrDirectionSource
+
+    @Binds abstract fun directionMeters(impl: AndroidQrDirectionMeterFactory): QrDirectionMeterFactory
 
     companion object {
         @Provides
