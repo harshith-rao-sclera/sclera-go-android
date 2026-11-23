@@ -1,7 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
 import com.sclera.sclerago.presentation.components.pressScale
-import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.components.SkeletonBlock
 import com.sclera.sclerago.presentation.components.SkeletonList
@@ -374,20 +373,15 @@ fun AssetRow(
                 }
                 // The web card's "Cloned" badge: a copy made with Clone.
                 if (a.clonedFrom != null) LineIcon(Icons.Clone, 14.dp, C.Soft, 2.1f, Modifier.semantics { contentDescription = clonedLabel })
-                // The web card's validation icon, when a step failed or needs a look (not for one in Managed Assets). Pressed,
-                // it opens the asset on its Validation tab: 48dp wide, and as tall as the row's content (the row keeps its height).
+                // The web card's validation icon, when a step failed or needs a look (not for one in Managed Assets). A plain
+                // icon like the others beside it; pressed, it opens the asset on its Validation tab.
                 a.validationMark?.takeIf { !a.managed }?.let { mark ->
                     val described = pluralStringResource(mark.problemsRes, a.validationProblems, a.validationProblems)
-                    if (onOpenValidation == null) {
-                        ValidationMarkIcon(mark, a.validationProblems, Modifier.semantics { contentDescription = described })
-                    } else {
-                        Box(
-                            Modifier.widthIn(min = 48.dp).heightIn(min = 38.dp)
-                                .pressClickable(shape = r(10), onClickLabel = openValidationLabel, role = Role.Button, onClick = onOpenValidation)
-                                .semantics { contentDescription = described }.testTag(AssetListTags.validationMark(a.id)),
-                            contentAlignment = Alignment.Center,
-                        ) { ValidationMarkIcon(mark, a.validationProblems) }
-                    }
+                    val open = onOpenValidation?.let { go ->
+                        Modifier.clickable(null, null, onClickLabel = openValidationLabel, role = Role.Button, onClick = go)
+                            .testTag(AssetListTags.validationMark(a.id))
+                    } ?: Modifier
+                    ValidationMarkIcon(mark, a.validationProblems, open.semantics { contentDescription = described })
                 }
                 LineIcon(a.src.icon, 15.dp, a.src.color, 2f)
                 Box(Modifier.width(17.dp), contentAlignment = Alignment.Center) {
