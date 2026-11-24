@@ -1,9 +1,16 @@
 package com.sclera.sclerago.presentation.assets
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
-import com.sclera.sclerago.presentation.components.SkeletonLine
 import com.sclera.sclerago.presentation.components.SkeletonList
+import androidx.compose.material3.CircularProgressIndicator
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -29,20 +36,15 @@ import androidx.compose.foundation.shape.CircleShape
 import com.sclera.sclerago.presentation.components.SkeletonBlock
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -51,38 +53,26 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.sclera.sclerago.R
-import com.sclera.sclerago.domain.model.ActivityKind
-import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.DocumentFileStatus
 import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.ManualKind
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.PhotoKind
+import com.sclera.sclerago.domain.model.FittedPhotos
+import com.sclera.sclerago.domain.model.MAX_PHOTOS_PER_ASSET
+import com.sclera.sclerago.domain.model.PhotoRefusal
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.formatDuration
 import com.sclera.sclerago.presentation.common.UiText
-import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.formatDate
-import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
-import com.sclera.sclerago.presentation.common.is24Hour
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.IconMenu
-import com.sclera.sclerago.presentation.components.initialsOf
-import com.sclera.sclerago.presentation.components.LocalReadOnly
-import com.sclera.sclerago.presentation.components.MenuAct
-import com.sclera.sclerago.presentation.components.Pill
-import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
@@ -91,13 +81,13 @@ import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
-import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
 
 /** The tabs an asset's details can show, in the web app's order (Info, Validation, Documents, Media, Comments, History). */
 enum class DetailTabKind(@StringRes val label: Int, val icon: Ico, val tag: String) {
     INFO(R.string.detail_tab_info, Icons.Info, DetailTags.TAB_INFO),
-    VALIDATION(R.string.detail_tab_validation, Icons.ShieldCheck, DetailTags.TAB_VALIDATION),
+    // The same icon as the side menu's Validation page.
+    VALIDATION(R.string.detail_tab_validation, Icons.ValidationChecks, DetailTags.TAB_VALIDATION),
     DOCUMENTS(R.string.detail_tab_documents, Icons.FileDoc, "detail-tab-documents"),
     MEDIA(R.string.detail_tab_media, Icons.Gallery, "detail-tab-media"),
     COMMENTS(R.string.detail_tab_comments, Icons.TextLines, "detail-tab-comments"),
@@ -171,31 +161,52 @@ private fun fileKindRes(kind: String?) = when (kind) {
 }
 
 /**
- * The Documents tab: a card per document — the file the asset was read from (or uploaded here), the web pages its applied
- * AI suggestions came from, and its model's manuals from the manufacturer's site. Each card shows its type, its name, a
- * tag (the file's kind, or the document's category) and its details: who uploaded the file, when, its size and type; or
- * what a page was used for (a manual's model), its site and whether the PDF is kept. The eye opens it; the bin deletes it
- * when the user may. Upload document is the floating + ([UploadDocumentFab]).
+ * The Documents tab: a card per document — the ones added to the asset (kept on the device and synced like its photos),
+ * then from the server the web pages its applied AI suggestions came from and its model's manuals from the manufacturer's site.
+ * Each card shows its type, its name, a tag (the file's kind, or the document's category) and its details: when a file
+ * was added, its size and type; or what a page was used for (a manual's model), its site and whether the PDF is kept. The
+ * eye fetches the file and opens it ([onOpen]); the bin deletes it when the user may. Upload document is the floating +
+ * ([UploadDocumentFab]). Documents are the server's only (not synced): offline none show, and none can be changed.
  */
 @Composable
-fun DocumentsTab(documents: List<AssetDocument>, locked: Boolean, onRemove: (AssetDocument) -> Unit, searching: Boolean = false) {
-    if (documents.isEmpty() && !searching) {
-        EmptyTab(stringResource(R.string.doc_none))
+fun DocumentsTab(
+    documents: List<AssetDocument>,
+    ui: DocumentsUi,
+    /** Nobody removes one now (a signed-off asset). */
+    signedOff: Boolean,
+    onOpen: (AssetDocument) -> Unit,
+    onRemove: (AssetDocument) -> Unit,
+    searching: Boolean = false,
+    /** Why the signed-in user may not change the asset ([lockReason]) or remove its documents ([collectReason]); null: they may. */
+    lockReason: UiText? = null,
+    collectReason: UiText? = null,
+) {
+    val waiting = searching || ui.loading || ui.uploading
+    if (documents.isEmpty() && !waiting) {
+        EmptyTab(stringResource(if (ui.failed) R.string.doc_load_failed else R.string.doc_none))
         return
     }
-    documents.forEach { d -> DocumentCard(d, canRemove = d.removable && !locked, onRemove = { onRemove(d) }) }
-    // The AI lookup or the manual search is still finding pages and manuals: placeholder cards where they will go.
-    if (searching) SkeletonList(stringResource(R.string.doc_searching), count = 2, lines = 3)
+    documents.forEach { d ->
+        // The file the asset was read from and a model's manual (every asset of that model has it) have no bin; any
+        // other the user may not remove keeps its bin, greyed out, saying why.
+        val why = lockReason ?: collectReason.takeUnless { d.removable }
+        val fixed = d.source == DocumentSource.MANUAL || d.source == DocumentSource.SOURCE_FILE
+        val removable = !fixed && !signedOff && !ui.offline && (d.removable || why != null)
+        DocumentCard(d, canRemove = removable, opening = ui.opening == d.id, onOpen = onOpen, onRemove = { onRemove(d) }, removeBlocked = why)
+    }
+    // Being fetched or added, or the AI lookup or the manual search is still finding pages and manuals: placeholder cards.
+    if (waiting) SkeletonList(stringResource(if (searching) R.string.doc_searching else R.string.doc_loading), count = if (documents.isEmpty()) 2 else 1, lines = 3)
 }
 
-/** Opens document [d]: its kept file in an app that reads it, else its page in the browser; null when it has neither. */
+/**
+ * Opens document [d]: its file fetched from the server ([onOpenFile]) when one is kept, else its page in the browser;
+ * null when it has neither. Without [onOpenFile] only the page opens.
+ */
 @Composable
-internal fun documentOpener(d: AssetDocument): (() -> Unit)? {
-    val context = LocalContext.current
+internal fun documentOpener(d: AssetDocument, onOpenFile: ((AssetDocument) -> Unit)? = null): (() -> Unit)? {
     val uriHandler = LocalUriHandler.current
-    val chooser = stringResource(R.string.doc_open_with)
     return when {
-        d.fileUri != null -> ({ openFile(context, d.fileUri, d.contentType, chooser) })
+        onOpenFile != null && d.hasFile -> ({ onOpenFile(d) })
         !d.url.isNullOrBlank() -> ({ runCatching { uriHandler.openUri(d.url) }; Unit })
         else -> null
     }
@@ -208,9 +219,16 @@ internal fun documentOpener(d: AssetDocument): (() -> Unit)? {
  * at the bottom end.
  */
 @Composable
-private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> Unit) {
+private fun DocumentCard(
+    d: AssetDocument,
+    canRemove: Boolean,
+    opening: Boolean,
+    onOpen: (AssetDocument) -> Unit,
+    onRemove: () -> Unit,
+    removeBlocked: UiText? = null,
+) {
     val locale = LocalConfiguration.current.locales[0]
-    val open = documentOpener(d)
+    val open = documentOpener(d, onOpen)
     val web = d.source == DocumentSource.WEB_PAGE || d.source == DocumentSource.MANUAL
     val tag = when (d.source) {
         DocumentSource.SOURCE_FILE -> stringResource(fileKindRes(d.fileKind))
@@ -267,35 +285,23 @@ private fun DocumentCard(d: AssetDocument, canRemove: Boolean, onRemove: () -> U
         Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween, horizontalAlignment = Alignment.CenterHorizontally) {
             if (open != null) {
                 val label = stringResource(R.string.doc_open_cd, d.title)
-                RoundButton(36.dp, C.Raised, open, Modifier.semantics { contentDescription = label }) {
-                    LineIcon(if (d.fileUri != null) Icons.Eye else Icons.ArrowUpRight, 16.dp, C.Yellow, 2.2f)
+                RoundButton(36.dp, C.Raised, if (opening) ({}) else open, Modifier.semantics { contentDescription = label }) {
+                    if (opening) CircularProgressIndicator(Modifier.size(16.dp), color = C.Yellow, strokeWidth = 2.dp)
+                    else LineIcon(if (d.hasFile) Icons.Eye else Icons.ArrowUpRight, 16.dp, C.Yellow, 2.2f)
                 }
             } else {
                 Spacer(Modifier.size(36.dp))
             }
             if (canRemove) {
                 val label = stringResource(R.string.doc_remove_cd, d.title)
-                Box(
-                    Modifier.size(40.dp).pressClickable(shape = CircleShape, role = Role.Button, onClick = onRemove).semantics { contentDescription = label },
-                    contentAlignment = Alignment.Center,
-                ) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
+                AccessGate(removeBlocked) {
+                    Box(
+                        Modifier.size(40.dp).pressClickable(shape = CircleShape, role = Role.Button, onClick = onRemove).semantics { contentDescription = label },
+                        contentAlignment = Alignment.Center,
+                    ) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
+                }
             }
         }
-    }
-}
-
-/** A comment row in placeholders (who, what they wrote, when), read out as "Posting comment…". */
-@Composable
-private fun CommentSkeleton(modifier: Modifier = Modifier) {
-    val label = stringResource(R.string.scrt_comment_posting)
-    Column(
-        modifier.fillMaxWidth().background(C.Surface).bottomBorder(C.Border).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp)
-            .semantics(mergeDescendants = true) { contentDescription = label },
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        SkeletonLine(0.35f, 10.dp)
-        SkeletonLine(0.85f, 11.dp)
-        SkeletonLine(0.22f, 8.dp)
     }
 }
 
@@ -316,8 +322,8 @@ private fun SortingNote(modifier: Modifier = Modifier) {
 /** How many placeholder tiles show while photos are sorted. */
 private const val SORTING_TILES = 3
 
-/** Opens the kept file at [uri] in another app the user picks (a PDF or spreadsheet viewer), allowed to read it only. */
-private fun openFile(context: Context, uri: String, type: String?, chooser: String) {
+/** Opens the file at [uri] in another app the user picks (a PDF or spreadsheet viewer), allowed to read it only. */
+internal fun openFile(context: Context, uri: String, type: String?, chooser: String) {
     val view = Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(uri), type ?: context.contentResolver.getType(Uri.parse(uri)))
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     runCatching { context.startActivity(Intent.createChooser(view, chooser)) }
@@ -344,6 +350,24 @@ internal fun PhotoKind.nameRes() = when (this) {
     PhotoKind.LABEL_ID -> R.string.media_kind_label
 }
 
+/**
+ * What to say about photos [fitted] turned away, a line per kind: how many weren't added, and that the kind already has
+ * the most photos the property allows, or that the property doesn't collect that kind at all.
+ */
+internal fun photoLimitNotices(fitted: FittedPhotos): List<UiText> = fitted.refusedByKind.map { (kind, n) ->
+    val max = fitted.limits[kind] ?: 0
+    if (max == 0) UiText.Plural(R.plurals.photos_kind_not_collected, n, listOf(n, UiText.Res(kind.nameRes())))
+    else UiText.Plural(R.plurals.photos_over_limit, n, listOf(n, UiText.Res(kind.nameRes()), max))
+}
+
+/** What the camera says when a shot is refused ([PhotoRefusal]): its kind is full or not collected, or the asset is full. */
+internal fun PhotoRefusal.notice(): UiText = when (this) {
+    PhotoRefusal.AssetFull -> UiText.Res(R.string.camera_asset_full, listOf(MAX_PHOTOS_PER_ASSET))
+    is PhotoRefusal.KindFull ->
+        if (max == 0) UiText.Res(R.string.camera_kind_not_collected, listOf(UiText.Res(kind.nameRes())))
+        else UiText.Res(R.string.camera_kind_full, listOf(UiText.Res(kind.nameRes()), max))
+}
+
 private fun PhotoKind.hintRes() = when (this) {
     PhotoKind.NAMEPLATE -> R.string.media_hint_nameplate
     PhotoKind.ASSET -> R.string.media_hint_asset
@@ -368,12 +392,22 @@ fun MediaTab(
     rules: List<PhotoRule>,
     onOpen: (Int) -> Unit,
     sorting: Boolean = false,
-    /** The file the asset was read from: it shows in a section of its own under Videos. */
-    sourceFile: AssetDocument? = null,
-    canRemoveSource: Boolean = false,
-    onRemoveSource: (AssetDocument) -> Unit = {},
+    /**
+     * The files the asset was read from (from the server), whatever their type (photos, PDFs, spreadsheets…): one Source
+     * file section of their own, under Videos.
+     */
+    sourceFiles: List<AssetDocument> = emptyList(),
+    /** The document being fetched to be opened, if any. */
+    openingId: String? = null,
+    /** Fetches a source file from the server and opens it ([openingId] while it is fetched). */
+    onOpenSource: (AssetDocument) -> Unit = {},
     /** A new asset's photo moved to another kind's card (null: Other photos); null when photos can't be moved. */
     onMove: ((Media, PhotoKind?) -> Unit)? = null,
+    /** What holding a photo or file offers besides opening it: saving a copy, and removing it (null: nobody may). */
+    onDownload: ((Media) -> Unit)? = null,
+    onRemove: ((Media) -> Unit)? = null,
+    /** The signed-in user may not change the asset: Remove is greyed out and a tap says why. */
+    removeBlocked: UiText? = null,
 ) {
     // Photos just added are read on the device and sorted into their kinds before they show.
     if (sorting) SortingNote(Modifier.padding(horizontal = 12.dp))
@@ -410,6 +444,7 @@ fun MediaTab(
             title = stringResource(r.kind.nameRes()), hint = stringResource(r.kind.hintRes()), chip = chip, chipWarn = count < r.min,
             items = mine, onOpen = onOpen, modifier = Modifier.testTag("media-card-${r.kind.db}"),
             drag = drag, key = r.kind.db, look = lookOf(r.kind.db), moveTo = cardNames.filter { it.first != r.kind.db && !full(it.first) },
+            onMove = onMove, onDownload = onDownload, onRemove = onRemove, removeBlocked = removeBlocked,
         )
     }
     PhotoCard(
@@ -417,10 +452,20 @@ fun MediaTab(
         items = photos.filter { it.value.category == null && it.value.fieldId == null },
         onOpen = onOpen, modifier = Modifier.testTag("media-card-other"),
         drag = drag, key = OTHER_PHOTOS_KEY, look = lookOf(OTHER_PHOTOS_KEY), moveTo = cardNames.filter { it.first != OTHER_PHOTOS_KEY && !full(it.first) },
+        onMove = onMove, onDownload = onDownload, onRemove = onRemove, removeBlocked = removeBlocked,
     )
-    FileList(stringResource(R.string.media_videos), indexed.filter { (_, m) -> m.video }, onOpen)
-    SourceDocumentSection(sourceFile, canRemove = sourceFile?.removable == true && canRemoveSource, onRemove = onRemoveSource)
-    FileList(stringResource(R.string.media_memos_files), indexed.filter { (_, m) -> !m.video && (m.isDoc || m.audio) }, onOpen)
+    FileList(stringResource(R.string.media_videos), indexed.filter { (_, m) -> m.video }, onOpen, onDownload, onRemove, removeBlocked)
+    // The files the asset was read from, whatever their type: opened from here, never removed.
+    SourceFileSection(sourceFiles, openingId, onOpenSource)
+    FileList(stringResource(R.string.media_memos_files), indexed.filter { (_, m) -> !m.video && (m.isDoc || m.audio) }, onOpen, onDownload, onRemove, removeBlocked)
+}
+
+/** A source photo's preview (base64) as an image to show, or null when there is none or it can't be read. */
+private fun previewBitmap(preview: String?): ImageBitmap? = preview?.let {
+    runCatching {
+        val bytes = Base64.decode(it, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+    }.getOrNull()
 }
 
 /**
@@ -428,7 +473,14 @@ fun MediaTab(
  * length; tapping one opens it.
  */
 @Composable
-private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
+private fun FileList(
+    title: String,
+    files: List<IndexedValue<Media>>,
+    onOpen: (Int) -> Unit,
+    onDownload: ((Media) -> Unit)?,
+    onRemove: ((Media) -> Unit)?,
+    removeBlocked: UiText?,
+) {
     Column(
         // A card inset 12dp from the sides.
         Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(16.dp),
@@ -436,57 +488,66 @@ private fun FileList(title: String, files: List<IndexedValue<Media>>, onOpen: (I
     ) {
         Txt(title, 14, 600, maxLines = 2)
         if (files.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
-        else Column(Modifier.fillMaxWidth()) { FileRows(files, onOpen) }
+        else Column(Modifier.fillMaxWidth()) { FileRows(files, onOpen, onDownload, onRemove, removeBlocked) }
     }
 }
 
 /**
- * The file the asset was read from, as a section like Videos and the other files: its type, name, size and when it was
- * added, opening on a tap; the bin takes it off (where allowed). "None yet." without one.
+ * Source file, as the web's: every file the asset was read from, whatever its type (a photo shows its thumbnail, from the
+ * preview the server sends; anything else its type). Tapping one fetches it and opens it; none can be removed. "None"
+ * when the asset wasn't read from a file.
  */
 @Composable
-private fun SourceDocumentSection(doc: AssetDocument?, canRemove: Boolean, onRemove: (AssetDocument) -> Unit) {
+private fun SourceFileSection(docs: List<AssetDocument>, openingId: String?, onOpen: (AssetDocument) -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     Column(
         Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Txt(stringResource(R.string.media_source_document), 14, 600, maxLines = 2)
-        if (doc == null) {
-            Txt(stringResource(R.string.media_none), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
-            return@Column
-        }
-        val open = documentOpener(doc)
-        Row(
-            Modifier.fillMaxWidth().testTag("media-source-${doc.id}").then(if (open != null) Modifier.pressClickable(onClick = open) else Modifier)
-                .heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Txt(doc.typeTag(), 10, 700, C.Soft, Modifier.background(C.Btn, Capsule).padding(horizontal = 8.dp, vertical = 3.dp))
-            Column(Modifier.weight(1f)) {
-                Txt(doc.title, 13, 700, maxLines = 1)
-                val meta = listOfNotNull(doc.sizeBytes?.let { sizeText(it) }, doc.uploadedAt?.let { formatDate(it, locale) }).joinToString(" · ")
-                if (meta.isNotEmpty()) Txt(meta, 11, 400, C.Muted)
-            }
-            if (open != null) LineIcon(Icons.Eye, 15.dp, C.Yellow, 2.2f)
-            if (canRemove) {
-                val label = stringResource(R.string.doc_remove_cd, doc.title)
-                Box(
-                    Modifier.size(40.dp).pressClickable(shape = CircleShape, role = Role.Button) { onRemove(doc) }.semantics { contentDescription = label },
-                    contentAlignment = Alignment.Center,
-                ) { LineIcon(Icons.Trash, 16.dp, C.Red, 2.2f) }
+        if (docs.isEmpty()) Txt(stringResource(R.string.media_none), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        docs.forEach { doc ->
+            val opening = openingId == doc.id
+            val open = documentOpener(doc, onOpen)?.takeUnless { opening }
+            Row(
+                Modifier.fillMaxWidth().testTag("media-source-${doc.id}").then(if (open != null) Modifier.pressClickable(onClick = open) else Modifier)
+                    .heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                val thumb = remember(doc.id, doc.preview) { previewBitmap(doc.preview) }
+                if (thumb != null) {
+                    Image(thumb, null, Modifier.size(44.dp).clip(r(8)), contentScale = ContentScale.Crop)
+                } else {
+                    Txt(doc.typeTag(), 10, 700, C.Soft, Modifier.background(C.Btn, Capsule).padding(horizontal = 8.dp, vertical = 3.dp))
+                }
+                Column(Modifier.weight(1f)) {
+                    Txt(doc.title, 13, 700, maxLines = 1)
+                    val meta = listOfNotNull(doc.sizeBytes?.let { sizeText(it) }, doc.uploadedAt?.let { formatDate(it, locale) }).joinToString(" · ")
+                    if (meta.isNotEmpty()) Txt(meta, 11, 400, C.Muted)
+                }
+                if (opening) CircularProgressIndicator(Modifier.size(15.dp), color = C.Yellow, strokeWidth = 2.dp)
+                else if (open != null) LineIcon(Icons.Eye, 15.dp, C.Yellow, 2.2f)
             }
         }
     }
 }
 
-/** The rows of a [FileList], split by lines. */
+/** The rows of a [FileList], split by lines; tapping one opens it, holding it lists what can be done with it. */
 @Composable
-private fun FileRows(files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
+private fun FileRows(
+    files: List<IndexedValue<Media>>,
+    onOpen: (Int) -> Unit,
+    onDownload: ((Media) -> Unit)?,
+    onRemove: ((Media) -> Unit)?,
+    removeBlocked: UiText?,
+) {
+        val actionsLabel = stringResource(R.string.media_actions)
         files.forEachIndexed { n, (i, m) ->
+            var menuOpen by remember(m.id) { mutableStateOf(false) }
             Row(
-                Modifier.pressClickable(pressed = PRESSED_CARD) { onOpen(i) }.fillMaxWidth().testTag(PhotoTags.tile(i)).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
+                Modifier.pressClickable(pressed = PRESSED_CARD, onLongClick = { menuOpen = true }, onLongClickLabel = actionsLabel) { onOpen(i) }
+                    .fillMaxWidth().testTag(PhotoTags.tile(i)).then(if (n > 0) Modifier.topBorder(C.Border) else Modifier)
                     .heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -504,6 +565,7 @@ private fun FileRows(files: List<IndexedValue<Media>>, onOpen: (Int) -> Unit) {
                     if (meta.isNotEmpty()) Txt(meta, 11, 400, C.Muted)
                 }
                 LineIcon(if (m.video || m.audio) Icons.Play else Icons.Download, 15.dp, C.Yellow, 2.2f)
+                IconMenu(menuOpen, { menuOpen = false }, mediaMenu(m, { onOpen(i) }, onDownload, onRemove, removeBlocked = removeBlocked))
             }
         }
 }
@@ -527,6 +589,10 @@ private fun PhotoCard(
     key: String = "",
     look: DropLook = DropLook.NONE,
     moveTo: List<Pair<String, String>> = emptyList(),
+    onMove: ((Media, PhotoKind?) -> Unit)? = null,
+    onDownload: ((Media) -> Unit)? = null,
+    onRemove: ((Media) -> Unit)? = null,
+    removeBlocked: UiText? = null,
 ) {
     val (bg, edge) = dropColors(look)
     val moveLabel = stringResource(R.string.media_move_to)
@@ -534,7 +600,8 @@ private fun PhotoCard(
         // Full width, like the Info sections; above the other cards while one of its photos is being dragged.
         modifier.zIndex(if (drag != null && drag.from == key) 1f else 0f)
             .then(if (drag != null) Modifier.photoDropTarget(drag, key) else Modifier)
-            .padding(horizontal = 12.dp).fillMaxWidth().clip(r(14)).background(bg.value).border(1.dp, C.Border, r(14)).border(2.dp, edge.value, r(14))
+            // Rounded without clipping, so a photo dragged out of the card stays on top of the others, not cut off at its edge.
+            .padding(horizontal = 12.dp).fillMaxWidth().background(bg.value, r(14)).border(1.dp, C.Border, r(14)).border(2.dp, edge.value, r(14))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -556,183 +623,15 @@ private fun PhotoCard(
         else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items.forEach { (i, m) ->
                 val movable = if (drag != null) {
-                    Modifier.draggablePhoto(drag, m, key).semantics {
+                    Modifier.semantics {
                         customActions = moveTo.map { (to, name) -> CustomAccessibilityAction(moveLabel.format(name)) { drag.accept(m, to) } }
                     }
                 } else Modifier
-                MediaTile(m, { onOpen(i) }, Modifier.size(76.dp).then(movable).testTag(PhotoTags.tile(i)))
-            }
-        }
-    }
-}
-
-/**
- * The Comments tab's list: one full-width row per comment, newest first, with its text, who wrote it and when
- * ("· edited" once changed), and a ⋮ menu in the top end corner with Edit (its author) and Delete (its author, or a
- * validator), as the web allows. Edit turns the row into a box with Save and Cancel; Delete asks first ([onDelete] shows
- * the question). [readOnly] (a signed-off asset, as the web's validated list) leaves the menu out.
- */
-@Composable
-fun CommentList(
-    activity: List<AssetActivity>,
-    readOnly: Boolean,
-    onSave: (comment: AssetActivity, text: String, onSaved: () -> Unit) -> Unit,
-    onDelete: (AssetActivity) -> Unit,
-    /** A comment just sent is being kept: a placeholder row shows at the top, where it will appear (newest first). */
-    posting: Boolean = false,
-) {
-    val locale = LocalConfiguration.current.locales[0]
-    val comments = activity.filter { it.kind == ActivityKind.COMMENT }
-    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
-    var editText by rememberSaveable { mutableStateOf("") }
-    val someone = stringResource(R.string.detail_comment_someone)
-    // None yet: "No comments yet" in the middle of the tab, as the web's (or the placeholder of the one being sent).
-    if (comments.isEmpty() && posting) {
-        CommentSkeleton(Modifier.topBorder(C.Border))
-        return
-    }
-    if (comments.isEmpty()) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 120.dp).testTag(DetailTags.TAB_EMPTY), contentAlignment = Alignment.Center) {
-            Txt(stringResource(R.string.detail_no_comments), 13, 700, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
-        }
-        return
-    }
-    val editLabel = stringResource(R.string.detail_comment_edit)
-    val deleteLabel = stringResource(R.string.detail_comment_delete)
-    // Edge to edge: one row per comment, divided by a line, with no gap or side margin.
-    Column(Modifier.fillMaxWidth().topBorder(C.Border)) {
-        if (posting) CommentSkeleton()
-        comments.forEach { e ->
-            val menu = buildList {
-                if (!readOnly && e.canEdit) add(MenuAct(Icons.Pencil, editLabel) { editText = e.text; editingId = e.id })
-                if (!readOnly && e.canDelete) add(MenuAct(Icons.Trash, deleteLabel, danger = true) { onDelete(e) })
-            }
-            Row(
-                Modifier.fillMaxWidth().testTag("detail-activity-${e.id}").clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14))
-                    .padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(Modifier.weight(1f).padding(top = 4.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    if (editingId == e.id) {
-                        CompositionLocalProvider(LocalReadOnly provides false) {
-                            PlainField(
-                                editText, { editText = it }, stringResource(R.string.detail_comment_hint),
-                                Modifier.fillMaxWidth().testTag("detail-comment-edit-${e.id}").clip(r(10)).background(C.Bg)
-                                    .border(1.dp, C.Border2, r(10)).padding(10.dp),
-                                size = 14, singleLine = false, minLines = 2,
-                            )
-                        }
-                    } else {
-                        Txt(e.text, 14, 400, maxLines = Int.MAX_VALUE)
-                    }
-                    val author = e.authorName ?: someone
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(Modifier.size(30.dp).background(C.YTintBg, CircleShape), contentAlignment = Alignment.Center) { Txt(initialsOf(author).take(1), 12, 700, C.Yellow) }
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Txt(author, 13, 700, maxLines = 1)
-                            e.createdAt?.let {
-                                    val time = formatDateTimeSeconds(it, locale, use24Hour = is24Hour())
-                                    Txt(if (e.edited) stringResource(R.string.scrt_comment_time_edited, time) else time, 11, 400, C.Muted)
-                            }
-                        }
-                    }
-                }
-                when {
-                    // While editing: Save and Cancel where the ⋮ was.
-                    editingId == e.id -> {
-                        CommentIconButton(Icons.Check, stringResource(R.string.detail_comment_save), C.Yellow, "detail-comment-save-${e.id}") {
-                            if (editText.isNotBlank()) onSave(e, editText) { editingId = null }
-                        }
-                        CommentIconButton(Icons.Close, stringResource(R.string.action_cancel), C.Muted, "detail-comment-cancel-${e.id}") { editingId = null }
-                    }
-                    // Edit and Delete sit in a ⋮ menu in the top end corner, only when the user may do one of them.
-                    menu.isNotEmpty() -> Box {
-                        var open by remember { mutableStateOf(false) }
-                        CommentIconButton(Icons.Dots, stringResource(R.string.detail_comment_options), C.Muted, "detail-comment-menu-${e.id}") { open = true }
-                        IconMenu(open, { open = false }, menu)
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** An icon-only button on a comment (48dp to touch, [description] read out). */
-@Composable
-private fun CommentIconButton(icon: Ico, description: String, tint: Color, tag: String, onClick: () -> Unit) {
-    RoundButton(48.dp, Color.Transparent, onClick, Modifier.testTag(tag).semantics { contentDescription = description }) {
-        LineIcon(icon, 18.dp, tint, 2.2f)
-    }
-}
-
-/**
- * The History tab, as the web's timeline: a dot and a line down the start side, each entry's sentence ("Asset updated")
- * with the fields it changed (old → new), then who and when; "No history available" when there is none.
- */
-@Composable
-fun HistoryList(activity: List<AssetActivity>) {
-    val entries = activity.filter { it.kind == ActivityKind.HISTORY }
-    if (entries.isEmpty()) {
-        EmptyTab(stringResource(R.string.detail_no_history))
-        return
-    }
-    val locale = LocalConfiguration.current.locales[0]
-    val empty = stringResource(R.string.detail_change_empty)
-    Column(Modifier.fillMaxWidth().padding(start = 6.dp)) {
-        entries.forEachIndexed { i, e ->
-            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("detail-activity-${e.id}")) {
-                Box(Modifier.width(14.dp).fillMaxHeight()) {
-                    if (i < entries.lastIndex) Box(Modifier.align(Alignment.TopCenter).padding(top = 6.dp).width(1.dp).fillMaxHeight().background(C.Border))
-                    Box(Modifier.align(Alignment.TopCenter).padding(top = 5.dp).size(9.dp).background(C.Yellow, CircleShape).border(2.dp, C.YTintBg, CircleShape))
-                }
-                Column(Modifier.weight(1f).padding(start = 10.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // History lines are written by the server and the app; their sentence is kept as recorded.
-                    Txt(e.text.ifEmpty { e.action.orEmpty() }, 14, 400, maxLines = Int.MAX_VALUE)
-                    // As the web: "Building: empty → Harbour Point Tower", the old value struck through.
-                    e.fieldChanges.forEach { c ->
-                        Text(
-                            buildAnnotatedString {
-                                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = C.Text)) { append(stringResource(R.string.scrt_history_field_label, c.field)) }
-                                withStyle(SpanStyle(color = C.Muted, textDecoration = TextDecoration.LineThrough)) { append(c.from ?: empty) }
-                                append(" → ")
-                                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = C.Text)) { append(c.to ?: empty) }
-                            },
-                            color = C.Soft, fontSize = 12.sp, fontFamily = ScleraFonts.Inter, maxLines = Int.MAX_VALUE,
-                        )
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Who made the change, by email.
-                        Txt(e.authorName.orEmpty(), 11, 400, C.Muted, Modifier.weight(1f), maxLines = 1)
-                        e.createdAt?.let { Txt(formatDateTimeSeconds(it, locale, use24Hour = is24Hour()), 11, 400, C.Muted) }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * The box in the Add comment sheet where a comment is written: the text, what is wrong with it ([error]), and Post (off while it is
- * blank or [posting]). It stays usable on a submitted asset: the server takes comments on any asset.
- */
-@Composable
-fun CommentBox(draft: String, error: UiText?, posting: Boolean, onChange: (String) -> Unit, onPost: () -> Unit, modifier: Modifier = Modifier) {
-    val canPost = draft.isNotBlank() && !posting
-    CompositionLocalProvider(LocalReadOnly provides false) {
-        // As the web: the box, then a small dark Add on the end side under it (dimmed until something is written).
-        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            PlainField(
-                draft, onChange, stringResource(R.string.detail_comment_hint),
-                Modifier.fillMaxWidth().testTag(DetailTags.COMMENT_FIELD).clip(r(10)).background(C.Bg)
-                    .border(1.dp, if (error != null) C.Orange else C.Border2, r(10)).padding(10.dp),
-                size = 14, singleLine = false, minLines = 3, readOnly = posting,
-            )
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(Modifier.weight(1f)) { error?.let { Txt(it.asString(), 12, 600, C.Orange, maxLines = Int.MAX_VALUE) } }
-                Pill(
-                    stringResource(R.string.action_add), { if (canPost) onPost() },
-                    Modifier.testTag(DetailTags.COMMENT_POST).alpha(if (canPost) 1f else 0.45f),
-                    bg = C.Btn, fg = C.Text, height = 36.dp, hPad = 16.dp, size = 12, weight = 700,
+                // Holding it lists View, Download, Move to (a new asset's photo: the other cards with room) and Remove.
+                val moves = if (onMove != null) moveTo.map { (to, name) -> name to { onMove(m, PhotoKind.of(to)) } } else emptyList()
+                MediaTile(
+                    m, { onOpen(i) }, Modifier.size(76.dp).then(movable).testTag(PhotoTags.tile(i)),
+                    menu = mediaMenu(m, { onOpen(i) }, onDownload, onRemove, moves, removeBlocked), drag = drag, card = key,
                 )
             }
         }
@@ -741,7 +640,7 @@ fun CommentBox(draft: String, error: UiText?, posting: Boolean, onChange: (Strin
 
 /** A tab with nothing to list yet. */
 @Composable
-private fun EmptyTab(text: String) {
+internal fun EmptyTab(text: String) {
     Box(
         Modifier.fillMaxWidth().testTag(DetailTags.TAB_EMPTY).clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))
             .padding(horizontal = 12.dp, vertical = 18.dp),

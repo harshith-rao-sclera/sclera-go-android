@@ -6,6 +6,12 @@ package com.sclera.sclerago.domain.model
  */
 const val MAX_DOCUMENT_UPLOAD_MB = 200
 
+/**
+ * The kinds of file the File tab uploads to scan for assets ([documentKind]): Excel and CSV (spreadsheet), PDFs, photos,
+ * videos, Word and text.
+ */
+val IMPORTABLE_KINDS = setOf("spreadsheet", "pdf", "image", "video", "word", "text")
+
 /** A value read from a file that the AI is less sure of than this needs checking (the web highlights it). */
 const val UNSURE_BELOW = 0.7
 

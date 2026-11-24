@@ -44,6 +44,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.JacsSuggestion
 import com.sclera.sclerago.domain.model.LookupType
 import com.sclera.sclerago.domain.model.PhotoNote
 import com.sclera.sclerago.domain.model.SURE_ENOUGH
@@ -79,6 +80,8 @@ class AiDialogActions(
     val onToggleType: () -> Unit = {},
     val onEdit: (key: String, value: String) -> Unit = { _, _ -> },
     val onApply: () -> Unit = {},
+    /** Ticks or unticks the JACS code suggested for the asset's own type. */
+    val onToggleJacs: () -> Unit = {},
 )
 
 /** Test tags of the AI suggestions sheet. */
@@ -86,6 +89,7 @@ object AiTags {
     const val DIALOG = "ai-dialog"
     const val APPLY = "ai-apply"
     const val TYPE = "ai-type"
+    const val JACS = "ai-jacs"
     const val NOTHING = "ai-nothing"
     const val AI_OFF = "ai-off"
     fun row(key: String) = "ai-row-$key"
@@ -133,9 +137,12 @@ fun AiSuggestDialog(d: AiDialogState, state: AssetDetailState, actions: AiDialog
     }
 }
 
-/** A look-up that came back with nothing to tick or save (the web's "nothing"): no fields, no type, nothing typed. */
+/**
+ * A look-up that came back with nothing to tick or save (the web's "nothing"): no fields, no type, no JACS code,
+ * nothing typed.
+ */
 private fun AiDialogState.nothingToApply(typedCount: Int): Boolean =
-    phase == AiPhase.RESULTS && picks.values.none { it.value.isNotBlank() } && lookup?.suggestedType == null && typedCount == 0
+    phase == AiPhase.RESULTS && picks.values.none { it.value.isNotBlank() } && lookup?.suggestedType == null && jacsOn == null && typedCount == 0
 
 /** Said once, plainly: the server's message (or "No suggestions") and the model it looked up. */
 @Composable
@@ -269,6 +276,8 @@ private fun Results(d: AiDialogState, state: AssetDetailState, actions: AiDialog
         Txt(stringResource(R.string.ai_also_saves, typed.map { (f, v) -> stringResource(R.string.scrt_ai_typed_value, f, v) }.joinToString(", ")), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
     }
     if (type != null) TypeCard(type, d.typeOn == true, actions.onToggleType)
+    // A JACS code for the type the asset has, offered only while it has none and no other type is suggested.
+    lookup?.suggestedJacsCode?.takeIf { d.jacsOn != null }?.let { JacsCard(it, d.jacsOn == true, actions.onToggleJacs) }
     if (rows.isNotEmpty()) FieldsCard(d, rows, state, actions)
     lookup?.extra?.takeIf { it.isNotEmpty() }?.let { AlsoOnPhotos(it) }
     // The manuals the look-up pulled (the server's list for the model, else those synced here); while the server still
@@ -358,6 +367,27 @@ private fun TypeCard(t: LookupType, on: Boolean, onToggle: () -> Unit) {
             t.jacsCode?.let { Txt(stringResource(R.string.ai_type_jacs, it), 12, 500, C.Soft, maxLines = 1) }
             if (t.reason.isNotBlank()) Txt(t.reason, 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
             SureText(t.confidence)
+        }
+    }
+}
+
+/**
+ * The JACS code suggested for the asset's own type, in a card like the type's, ticked to go into the form: "JACS code",
+ * the code and its title, why, and how sure.
+ */
+@Composable
+private fun JacsCard(c: JacsSuggestion, on: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().testTag(AiTags.JACS).clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12))
+            .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        AiTick(on, onToggle)
+        Column(Modifier.weight(1f).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Txt(stringResource(R.string.jacs_title), 13, 700)
+            Txt(c.title?.let { stringResource(R.string.jacs_code_title, c.code, it) } ?: c.code, 14, 700, C.Yellow, maxLines = Int.MAX_VALUE)
+            c.reason?.let { Txt(it, 12, 400, C.Soft, maxLines = Int.MAX_VALUE) }
+            SureText(c.confidence)
         }
     }
 }
@@ -524,7 +554,7 @@ private fun Footer(d: AiDialogState, typedCount: Int, nothing: Boolean, actions:
             } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val dropped = if (d.typeOn == false) d.lookup?.suggestedType?.values?.keys.orEmpty() else emptySet()
                 val n = d.picks.count { (k, p) -> p.on && p.value.isNotBlank() && k !in dropped } + typedCount
-                val ready = d.typeOn == true || n > 0
+                val ready = d.typeOn == true || d.jacsOn == true || n > 0
                 Pill(stringResource(R.string.ai_change_model), actions.onChangeModel, height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
                 Pill(stringResource(R.string.ai_look_again), lookUp, Modifier.alpha(lookUpAlpha), height = 40.dp, hPad = 12.dp, size = 12, weight = 700)
                 Pill(

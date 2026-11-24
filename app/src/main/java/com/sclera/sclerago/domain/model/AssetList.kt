@@ -59,6 +59,12 @@ data class AssetListData(
      * hides it (none, and it isn't chosen). While it is [ToggleChip.selected], [items] are those assets, read-only.
      */
     val managed: ToggleChip? = null,
+    /**
+     * The Bluetooth and Wi-Fi chips of the Assets tab (the web's optional status tabs): how many of its assets were
+     * onboarded each way. Both always show (0 when there are none); while one is [ToggleChip.selected], [items] are those
+     * assets.
+     */
+    val onboarded: Map<Source, ToggleChip> = emptyMap(),
 )
 
 /** A chip that narrows the list to some assets: [count] of them; [selected] when the list shows only them. */
@@ -85,4 +91,9 @@ data class AssetListQuery(
      * Change requests and validation chips off). Those are never in the list otherwise.
      */
     val managed: Boolean = false,
+    /**
+     * Narrows the Assets tab to the assets onboarded this way, [Source.BT] or [Source.WIFI] (the web's Bluetooth and Wi-Fi
+     * tabs, each one of its tabs: it turns the status, Change requests and validation chips off).
+     */
+    val onboarded: Source? = null,
 )

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase.config
 
+import com.sclera.sclerago.domain.model.Currency
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldChecks
 import com.sclera.sclerago.domain.model.FieldKind
@@ -14,6 +15,7 @@ import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.fieldNameKey
 import com.sclera.sclerago.domain.model.optionColorOrNull
 import com.sclera.sclerago.domain.repository.ConfigFieldsRepository
+import com.sclera.sclerago.domain.repository.CurrencyRepository
 import com.sclera.sclerago.domain.repository.FileRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import javax.inject.Inject
@@ -22,8 +24,8 @@ import javax.inject.Inject
 // connection and throws OnlineException; changes need the Configure permission. Photo rules, the geofence and AI in
 // validation are in PropertyConfigUseCases.
 
-/** Why a field set up in the field sheet can't be kept. */
-enum class FieldProblem { NO_NAME, NO_OPTIONS, DUPLICATE }
+/** Why a field set up in the field sheet can't be kept. [NO_CURRENCY]: a currency field needs its currency. */
+enum class FieldProblem { NO_NAME, NO_OPTIONS, NO_CURRENCY, DUPLICATE }
 
 /** True when [name] is already used by a field in [fields] other than [key] (names compare without case or spaces). */
 fun nameTaken(fields: List<FieldCfg>, name: String, key: String): Boolean {
@@ -52,14 +54,19 @@ fun FieldCfg.cleaned(): FieldCfg {
     val colors = optionColors.mapKeys { it.key.trim() }.filterKeys { it in opts }.mapNotNull { (k, v) -> optionColorOrNull(v)?.let { k to it } }.toMap()
     return copy(
         label = label.trim(), defaultValue = default, tooltip = tooltip.trim().take(MAX_TOOLTIP_LENGTH), options = opts, optionColors = colors,
+        unit = unit.trim(),
     ).withChecks(cleanChecks(kind, checks, required))
         .let { if (it.locked) it.copy(required = true, visible = true) else it.copy(visible = it.visible || it.required) }
 }
 
-/** Why [f] can't be kept next to [others] (the other fields), or null. Custom dropdowns and multiple checkboxes need an option. */
+/**
+ * Why [f] can't be kept next to [others] (the other fields), or null. Custom dropdowns and multiple checkboxes need an
+ * option, and a currency field its currency (as the web's "Select a currency").
+ */
 fun fieldSetupProblem(f: FieldCfg, others: List<FieldCfg>): FieldProblem? = when {
     f.label.isBlank() -> FieldProblem.NO_NAME
     f.custom && f.kind in OPTION_KINDS && f.options.none { it.isNotBlank() } -> FieldProblem.NO_OPTIONS
+    f.kind == FieldKind.CURRENCY && f.unit.isBlank() -> FieldProblem.NO_CURRENCY
     nameTaken(others, f.label, f.key) -> FieldProblem.DUPLICATE
     else -> null
 }
@@ -168,6 +175,11 @@ class SaveFieldsSampleUseCase @Inject constructor(private val repo: ConfigFields
     suspend operator fun invoke(propertyId: String, destination: String): Boolean = files.writeFile(destination, repo.importSample(propertyId))
 }
 
+/** The currencies a currency field can be in (its unit), by name, for picking one. Throws OnlineException. */
+class GetCurrenciesUseCase @Inject constructor(private val repo: CurrencyRepository) {
+    suspend operator fun invoke(): List<Currency> = repo.currencies()
+}
+
 /** The Asset fields use cases, for injecting as one. */
 class FieldsConfigUseCases @Inject constructor(
     val load: LoadConfigFieldsUseCase,
@@ -178,4 +190,5 @@ class FieldsConfigUseCases @Inject constructor(
     val setChecks: SetFieldChecksUseCase,
     val importFields: ImportFieldsUseCase,
     val saveImportSample: SaveFieldsSampleUseCase,
+    val currencies: GetCurrenciesUseCase,
 )

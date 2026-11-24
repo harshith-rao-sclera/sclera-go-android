@@ -61,6 +61,8 @@ data class PropertyListState(
     val loading: Boolean = false,
     /** A pull to refresh is reading the properties from the server again. */
     val refreshing: Boolean = false,
+    /** The property tapped while not downloaded, now downloaded: the screen opens it ([PropertyViewModel.openedAfterDownload]). */
+    val openNow: String? = null,
 )
 
 /** Property list screen: search, add, import and download. Opening a property is the caller's (navigation) job. */
@@ -95,6 +97,8 @@ class PropertyViewModel @Inject constructor(
         val notice: UiText? = null,
         val refreshing: Boolean = true,
         val pulled: Boolean = false,
+        /** The property tapped while it wasn't downloaded: it opens once its download finishes. */
+        val openWhenDownloaded: String? = null,
     )
     private var adding = false
 
@@ -123,6 +127,7 @@ class PropertyViewModel @Inject constructor(
                 // Saved properties show straight away; only an empty list waits for the server.
                 loading = f.refreshing && all.isEmpty(),
                 refreshing = f.pulled,
+                openNow = f.openWhenDownloaded?.takeIf { it in d.downloadedIds },
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, PropertyListState())
 
@@ -134,6 +139,8 @@ class PropertyViewModel @Inject constructor(
         viewModelScope.launch {
             downloads.observe().collect { d ->
                 val failed = d.active.filterValues { it is PropertyDownload.Failed }.keys
+                // A property waiting to open whose download failed doesn't open later (it is downloaded again by a tap).
+                flags.update { f -> if (f.openWhenDownloaded in failed) f.copy(openWhenDownloaded = null) else f }
                 announcedFailures.retainAll(failed)
                 (failed - announcedFailures).firstOrNull()?.let { id ->
                     announcedFailures += id
@@ -212,10 +219,22 @@ class PropertyViewModel @Inject constructor(
 
     /** Download button: fetches [propertyId]'s data for working offline. Offline it can't, and says so. */
     fun download(propertyId: String) {
-        if (!downloads.start(propertyId)) {
-            online.value = false
-            explainOffline(OnlineOnly.DOWNLOAD_PROPERTY)
-        }
+        startDownload(propertyId)
+    }
+
+    /** A tap on a property that isn't downloaded: downloads it, then opens it once it is ([PropertyListState.openNow]). */
+    fun downloadAndOpen(propertyId: String) {
+        if (startDownload(propertyId)) flags.update { it.copy(openWhenDownloaded = propertyId) }
+    }
+
+    /** The property waiting for its download has been opened. */
+    fun openedAfterDownload() = flags.update { it.copy(openWhenDownloaded = null) }
+
+    private fun startDownload(propertyId: String): Boolean {
+        if (downloads.start(propertyId)) return true
+        online.value = false
+        explainOffline(OnlineOnly.DOWNLOAD_PROPERTY)
+        return false
     }
 
     /**

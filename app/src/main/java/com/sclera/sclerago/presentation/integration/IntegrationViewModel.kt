@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.VdmsChoice
@@ -33,8 +34,11 @@ data class IntegrationUiState(
     val propertyId: String = "",
     val loading: Boolean = true,
     val link: VdmsLink? = null,
-    /** "+ Integration" can be used (not for the plain "user" role, as on the web). */
-    val canAdd: Boolean = false,
+    /**
+     * Why "+ Integration" can't be used by the signed-in user (it needs Configure), null when it can: it stays greyed out
+     * and says why. Nothing is allowed until the access is known.
+     */
+    val access: AccessBlock? = AccessBlock.CHECKING,
     /** The organisation's name as the card and the sheets show it (the Sclera company name, else the organisation id). */
     val organisation: String = "",
     val adding: AddLinkState? = null,
@@ -53,6 +57,10 @@ class IntegrationViewModel @Inject constructor(
     private var searchJob: Job? = null
     private var messageJob: Job? = null
 
+    init {
+        viewModelScope.launch { useCases.configureBlock().collect { block -> set { copy(access = block) } } }
+    }
+
     private fun set(f: IntegrationUiState.() -> IntegrationUiState) {
         state = state.f()
     }
@@ -60,7 +68,7 @@ class IntegrationViewModel @Inject constructor(
     fun bind(propertyId: String) {
         state = IntegrationUiState(
             propertyId = propertyId,
-            canAdd = useCases.canAdd(),
+            access = state.access,
             organisation = (auth().value as? AuthState.SignedIn)?.session?.organisation.orEmpty(),
         )
         if (propertyId.isNotEmpty()) load()
@@ -98,7 +106,7 @@ class IntegrationViewModel @Inject constructor(
     // ---------------------------------------------------------------- Add
 
     fun startAdding() {
-        if (state.link != null || !state.canAdd) return
+        if (state.link != null || state.access != null) return
         set { copy(adding = AddLinkState()) }
         search("", debounce = false)
     }

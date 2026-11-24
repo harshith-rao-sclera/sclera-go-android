@@ -75,5 +75,5 @@ private fun DetailSubmittedPreview() = ScleraTheme { AssetDetailScreen(sampleDet
 @Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
 @Composable
 private fun ReviewPreview() = ScleraTheme {
-    ReviewScreen("3 items · each becomes a draft asset", "Add more", {}, SampleReviewItems, {}, {}, {}) { }
+    ReviewScreen("3 items · each becomes a draft asset", "Add more", {}, SampleReviewItems, {}, {}, {}) { _, _ -> }
 }

@@ -6,15 +6,15 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
-import com.sclera.sclerago.domain.model.AccessState
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.MovePreview
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.VdmsAssignee
-import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.integration.ManagedAssetsUseCases
 import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.model.reason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -41,6 +41,12 @@ enum class MoveBlock { NOT_LINKED, API_MISSING, CHECK_FAILED }
 
 data class MoveUiState(
     val propertyId: String = "",
+    /**
+     * Why the signed-in user can't move assets to Managed Assets (it needs Configure), null when they can. The action still
+     * shows on validated assets, greyed out, and says why ([MoveToManagedViewModel.blockedReason]). Nothing is allowed
+     * until the access is known.
+     */
+    val access: AccessBlock? = AccessBlock.CHECKING,
     /** Why the property's assets can't be moved (null: linked to a VDMS). Not linked until the check says otherwise, as on the web. */
     val block: MoveBlock? = MoveBlock.NOT_LINKED,
     /** The linked VDMS's network names, fetched once it is known to be linked (as the web does). */
@@ -54,13 +60,9 @@ data class MoveUiState(
 @HiltViewModel
 class MoveToManagedViewModel @Inject constructor(
     private val useCases: ManagedAssetsUseCases,
-    accessChanges: ObserveAccessChangesUseCase,
 ) : ViewModel() {
     var state by mutableStateOf(MoveUiState())
         private set
-
-    /** The signed-in user's access as last seen; [offered] reads it, so a screen showing the action follows a change to it. */
-    private var access by mutableStateOf<AccessState?>(null)
 
     private val message = MutableSharedFlow<UiText>(extraBufferCapacity = 8)
 
@@ -72,7 +74,7 @@ class MoveToManagedViewModel @Inject constructor(
     private var previewJob: Job? = null
 
     init {
-        viewModelScope.launch { accessChanges().collect { access = it } }
+        viewModelScope.launch { useCases.configureBlock().collect { block -> set { copy(access = block) } } }
     }
 
     private fun set(f: MoveUiState.() -> MoveUiState) {
@@ -83,7 +85,7 @@ class MoveToManagedViewModel @Inject constructor(
     fun bind(propertyId: String) {
         bindJob?.cancel()
         searchJob?.cancel()
-        state = MoveUiState(propertyId = propertyId)
+        state = MoveUiState(propertyId = propertyId, access = state.access)
         if (propertyId.isEmpty()) return
         bindJob = viewModelScope.launch {
             val block = try {
@@ -106,11 +108,17 @@ class MoveToManagedViewModel @Inject constructor(
         }
     }
 
-    /** Whether the action shows for the selected [assets]: one of them is validated (it may still be greyed out, see [blockedReason]). */
-    fun offered(assets: Collection<Asset>): Boolean = access.let { useCases.offered(assets) }
+    /**
+     * Whether the action shows for the selected [assets]: one of them is validated. It shows for everyone, greyed out with
+     * the reason for someone without Configure (see [blockedReason]).
+     */
+    fun offered(assets: Collection<Asset>): Boolean = useCases.offered(assets)
 
-    /** Why the action can't be used right now, or null when it can: the link first, then the Validated filter (the web's Validated tab). */
-    fun blockedReason(onValidatedFilter: Boolean): UiText? = when (state.block) {
+    /**
+     * Why the action can't be used right now, or null when it can: the access first (Configure, which linking a VDMS won't
+     * give), then the link, then the Validated filter (the web's Validated tab).
+     */
+    fun blockedReason(onValidatedFilter: Boolean): UiText? = state.access.reason() ?: when (state.block) {
         MoveBlock.API_MISSING -> UiText.Res(R.string.mv_api_missing)
         MoveBlock.CHECK_FAILED -> UiText.Res(R.string.mv_check_failed)
         MoveBlock.NOT_LINKED -> UiText.Res(R.string.mv_link_first)
@@ -124,7 +132,7 @@ class MoveToManagedViewModel @Inject constructor(
     }
 
     private fun open(ids: Set<String>) {
-        if (state.block != null || ids.isEmpty()) return
+        if (state.access != null || state.block != null || ids.isEmpty()) return
         set { copy(sheet = MoveSheetState(ids)) }
         search("", debounce = false)
         preview(ids)

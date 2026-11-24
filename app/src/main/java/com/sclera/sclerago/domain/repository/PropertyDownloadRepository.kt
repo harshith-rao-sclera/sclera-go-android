@@ -24,4 +24,10 @@ interface PropertyDownloadRepository {
 
     /** Restarts the sync of every downloaded property and reopens the current one (after sign-in or an app start). */
     fun resume()
+
+    /**
+     * Deletes [propertyIds]' offline data from the device and stops their sync (properties the user lost access to);
+     * the current property stops being current when it is one of them. The others carry on.
+     */
+    suspend fun remove(propertyIds: Set<String>) {}
 }

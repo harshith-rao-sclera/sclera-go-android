@@ -61,7 +61,6 @@
 
     <!-- Asset sheet -->
     <string name="rev_mark_validated">Mark as validated</string>
-    <string name="rev_exclude">Exclude</string>
     <!-- A run on drafts and exceptions is a check: only submitted assets can be marked as validated (the web's "check only"). -->
     <string name="rev_submit_first">Submit first: only submitted assets can be marked as validated</string>
     <string name="rev_check_only_draft">Draft · check only</string>

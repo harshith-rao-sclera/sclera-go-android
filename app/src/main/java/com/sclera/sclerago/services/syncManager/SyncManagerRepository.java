@@ -72,6 +72,10 @@ public class SyncManagerRepository {
                         Runnable syncTask = () -> {
                             try {
                                 syncManager.startConnection();
+                                // Closed while it started (its property removed, say): nothing more starts for it.
+                                if (syncManager.isClosed()) {
+                                    return;
+                                }
                                 // On every app start too: sends the tags saved without a connection (once per engine).
                                 CloudSyncService.ensureRunning(syncManager);
 

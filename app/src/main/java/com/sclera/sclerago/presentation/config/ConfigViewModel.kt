@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.DEFAULT_PHOTO_RULES
 import com.sclera.sclerago.domain.model.Fence
 import com.sclera.sclerago.domain.model.Geofence
@@ -75,6 +76,13 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
     var geofence by mutableStateOf(GeofenceUi())
         private set
 
+    /**
+     * Why the signed-in user can't change anything on Configuration (the Configure permission), or null when they can:
+     * every change control stays where it is, greyed out, and says this when tapped. Nothing is allowed until it is known.
+     */
+    var configureBlock by mutableStateOf<AccessBlock?>(AccessBlock.CHECKING)
+        private set
+
     private val _messages = Channel<UiText>(Channel.BUFFERED)
 
     /** Toasts for the screen to show once each. */
@@ -89,8 +97,19 @@ class ConfigViewModel @Inject constructor(private val useCases: PropertyConfigUs
     var geoUnsaved by mutableStateOf(false)
         private set
 
+    init {
+        // Without Configure the map is read-only, so nothing on it counts as unsaved.
+        viewModelScope.launch {
+            useCases.configureBlock().collect {
+                configureBlock = it
+                if (it != null) geoUnsaved = false
+            }
+        }
+    }
+
+    /** Ignored without Configure: the map is read-only then ([configureBlock]), so there is nothing to keep. */
     fun markGeoUnsaved(unsaved: Boolean) {
-        geoUnsaved = unsaved
+        geoUnsaved = unsaved && configureBlock == null
     }
 
     fun open(property: String) {

@@ -62,6 +62,7 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.components.AccessFailedBanner
 import com.sclera.sclerago.presentation.components.CapturePreview
 import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.presentation.components.coverPageBehind
 import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalUnsavedForms
 import com.sclera.sclerago.presentation.components.LocationPicker
@@ -85,6 +86,7 @@ import com.sclera.sclerago.presentation.integration.MoveToManagedViewModel
 import com.sclera.sclerago.presentation.launch.Entrance
 import com.sclera.sclerago.presentation.launch.launchEntrance
 import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.model.reason
 import com.sclera.sclerago.presentation.property.PropertyListScreen
 import com.sclera.sclerago.presentation.property.PropertySheet
 import com.sclera.sclerago.presentation.scan.BluetoothPage
@@ -97,8 +99,8 @@ import com.sclera.sclerago.presentation.validation.ValidationViewModel
 private val TrackEasing = CubicBezierEasing(0.22f, 0.8f, 0.24f, 1f)
 
 /**
- * What the File tab can upload, the files the server reads (its `readers.kind_of`): spreadsheets (xlsx, xlsm, xls,
- * csv, tsv), PDFs, photos, videos, Word (docx) and text (txt, md, json, xml). Each pick is checked again by name.
+ * What the File tab can upload to scan for assets: spreadsheets (xlsx, xlsm, xls, csv, tsv), PDFs, photos, videos, Word
+ * (docx) and text (txt, md, json, xml), each at most 200 MB. Each pick is checked again by name ([IMPORTABLE_KINDS]).
  */
 private val IMPORT_MIME_TYPES = arrayOf(
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -122,6 +124,8 @@ fun ScleraApp(
     summary: ManagedSummaryViewModel = hiltViewModel(),
     validation: ValidationViewModel = hiltViewModel(),
     files: FileImportViewModel = hiltViewModel(),
+    /** The Camera's Many assets: its own import, apart from the File tab's. */
+    shots: FileImportViewModel = hiltViewModel(key = CAMERA_IMPORT),
     bulk: BulkEditViewModel = hiltViewModel(),
     connectivity: ConnectivityViewModel = hiltViewModel(),
     premise: PremiseViewModel = hiltViewModel(),
@@ -161,10 +165,12 @@ fun ScleraApp(
             if (i >= 0 && pager.currentPage != i) pager.animateScrollToPage(i, animationSpec = tween(380, easing = TrackEasing))
         }
         // Whenever scrolling stops (finished swipe, or a programmatic slide the user interrupted
-        // with a touch), the page the pager rests on becomes the selected tab.
+        // with a touch), the page the pager rests on becomes the selected tab. The page is read against this pager's own
+        // tabs: when the tabs change (Bluetooth / Network hidden once the property's settings arrive) a page number means
+        // another tab in the new list (page 2, Assets of five, is File of three), which opened the file picker on start.
         LaunchedEffect(pager) {
             snapshotFlow { pager.isScrollInProgress }.collect { scrolling ->
-                if (!scrolling) vm.onPageSettled(pager.currentPage)
+                if (!scrolling) tabs.getOrNull(pager.currentPage)?.let(vm::onPageSettled)
             }
         }
 
@@ -213,7 +219,7 @@ fun ScleraApp(
         val detail = vm.detailAsset
         // Each side-menu page shows only while its permission allows it (as the web's route guards).
         val validationShown = vm.validationShown
-        val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || validationShown || vm.configShown || vm.integrationShown || s.adminPage != null || move.state.sheet != null || summary.shown != null || assign.sheet != null || bulk.sheet != null || files.state.edit != null
+        val overlay = detail != null || s.sheet != Sheet.NONE || s.pv != null || s.menuOpen || validationShown || vm.configShown || vm.integrationShown || s.adminPage != null || move.state.sheet != null || summary.shown != null || assign.sheet != null || bulk.sheet != null || files.state.edit != null || shots.state.edit != null
         val detailView: @Composable (Asset) -> Unit = { d ->
             AssetDetailRoute(
                 asset = d,
@@ -236,9 +242,13 @@ fun ScleraApp(
                     assign.mayTake() -> ({ assign.take(listOf(d)) })
                     else -> null
                 },
+                // Neither assign nor take: Assign still shows, greyed out, saying why (no Collect, or the access isn't known).
+                assignReason = if (d.managed || assign.mayAssign() || assign.mayTake()) null else vm.blocks.assign.reason(),
                 assignToMe = assign.mayTake(),
-                // A validated asset goes to Managed assets from its own bar too (an admin, once the property is linked).
+                // A validated asset goes to Managed assets from its own bar too (Configure, once the property is linked); without
+                // them it shows greyed out, saying why.
                 onMove = if (!d.managed && move.offered(listOf(d))) ({ move.tap(setOf(d.id), onValidatedFilter = true) }) else null,
+                moveReason = if (!d.managed && move.offered(listOf(d))) move.blockedReason(onValidatedFilter = true) else null,
                 onValidate = { quickIds = listOf(d.id) },
                 onOpenResult = vm::openValidationResult,
                 prefill = vm.newPrefill,
@@ -290,12 +300,13 @@ fun ScleraApp(
                             Tab.BT -> BluetoothPage(vm)
                             Tab.NET -> NetworkPage(vm)
                             Tab.ASSETS -> AssetsPage(vm)
-                            Tab.CAMERA -> CameraPage(vm)
+                            Tab.CAMERA -> CameraPage(vm, shots, online)
                             Tab.FILE -> FilePage(vm, files, online)
                         }
                     }
 
-                    if (detail != null && !validationShown) detailView(detail)
+                    // Asset details cover the list: a tap on a bare part of them stays on them.
+                    if (detail != null && !validationShown) FullPage { detailView(detail) }
 
                     // The + and search buttons and the selection docks never show together: selecting hides the buttons.
                     // They belong to the asset lists: a scan list (Bluetooth, Wi-Fi, access points) doesn't show them.
@@ -306,8 +317,9 @@ fun ScleraApp(
                                 onSearchOpenChange = { if (it) list.openSearch() else list.closeSearch() },
                                 query = lists.query,
                                 onQueryChange = list::setQuery,
-                                // Adding needs Collect: the web hides Add from anyone else.
-                                onAdd = if (vm.mayCollect()) vm::openNew else null,
+                                // Adding needs Collect: without it the + stays, greyed out, and a tap says why.
+                                onAdd = vm::openNew,
+                                addBlock = vm.collectBlock.reason(),
                                 modifier = Modifier.align(Alignment.BottomEnd),
                                 onFilter = { list.openFilter(s.tab) },
                                 filterCount = lists.filter.count,
@@ -327,28 +339,33 @@ fun ScleraApp(
                             allPicked = visibleItems.isNotEmpty() && visibleItems.all { it.id in lists.picked },
                             onClear = list::clearSelection,
                             onSelectAll = { list.selectAll(s.tab) },
-                            onValidate = if (validation.mayCheck()) ({ quickIds = lists.picked.toList() }) else null,
-                            // As the web's selection bar: no Assign, Submit or Delete on the Validated filter; Submit only for
-                            // drafts; Delete not for submitted or signed-off assets unless an admin.
+                            // Every action the user's group can't use stays on the bar greyed out, and a tap says why
+                            // (lists.dockAccess(): Validate needs Check, Edit / Submit / Delete Collect, Assign Collect, Move
+                            // Configure; Delete also not for submitted or signed-off assets unless a reviewer).
+                            onValidate = { quickIds = lists.picked.toList() },
+                            // As the web's selection bar: no Assign, Submit or Delete on the Validated filter; Submit only for drafts.
                             onAssign = when {
                                 onValidatedFilter -> null
                                 assign.mayAssign() -> ({ assign.open(lists.picked, lists.pickedAssets.singleOrNull()?.assignedTo) })
                                 // The web's "Assign to me": greyed out (a tap says why) when one is assigned or submitted.
                                 assign.mayTake() -> ({ assign.take(lists.pickedAssets, onDone = list::clearSelection) })
-                                else -> null
+                                // Neither: greyed out by its access gate, which takes the tap.
+                                else -> ({})
                             },
                             assignToMe = assign.mayTake(),
                             assignDimmed = assign.mayTake() && assign.takeBlocked(lists.pickedAssets),
-                            onEdit = if (onValidatedFilter || !list.mayCollect()) null else ({ bulk.open(lists.picked) }),
+                            onEdit = if (onValidatedFilter) null else ({ bulk.open(lists.picked) }),
                             // As the web: Submit stays on the bar, greyed out when a ticked asset is already submitted.
                             onSubmit = if (!onValidatedFilter && lists.submitOffered(s.tab)) list::submitSelected else null,
                             submitDimmed = lists.submitBlocked,
-                            onDelete = if (!onValidatedFilter && list.mayDelete(lists.pickedAssets)) list::askDelete else null,
-                            onMove = if (move.offered(lists.pickedAssets)) ({ move.tap(lists.picked, onValidatedFilter) }) else null,
+                            onDelete = if (!onValidatedFilter) list::askDelete else null,
+                            // Move is on the bar while a ticked asset is validated.
+                            onMove = if (lists.anyValidated) ({ move.tap(lists.picked, onValidatedFilter) }) else null,
                             moveDimmed = move.blockedReason(onValidatedFilter) != null,
                             offline = !online,
                             onOffline = explainOffline,
-                            onChange = if (lists.changeOptions.isNotEmpty()) list::openChangeMenu else null,
+                            onChange = if (lists.changeOffered) list::openChangeMenu else null,
+                            access = lists.dockAccess(),
                         )
                     }
                     // Scanned devices ticked on the Bluetooth / Network list: add them all as assets.
@@ -364,31 +381,35 @@ fun ScleraApp(
                 if (!keyboardUp) DashboardNav(tabs, pager.currentPage + pager.currentPageOffsetFraction, vm::goTab, Modifier.launchEntrance(Entrance.DashNav))
             }
 
+            // The side-menu pages cover the dashboard: each sits in a FullPage, so a tap on a bare part of it (its bar, a
+            // gap) stays on it rather than reaching the location tabs or a list underneath.
             // Validation page (side menu) covers the whole app; an asset opened from its results sits on top.
             if (validationShown) {
-                ValidationScreen(
-                    vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation, onMenu = vm::openMenu,
-                    openJobId = s.valJobId, openAssetId = s.valAssetId, onJobOpened = vm::validationRunShown,
-                )
-                if (detail != null) {
-                    Box(Modifier.fillMaxSize().background(C.Bg).statusBarsPadding().navigationBarsPadding()) { detailView(detail) }
+                FullPage {
+                    ValidationScreen(
+                        vm.currentProp, vm.propName, vm.assets, vm::openAsset, vm::closeValidation, onMenu = vm::openMenu,
+                        openJobId = s.valJobId, openAssetId = s.valAssetId, onJobOpened = vm::validationRunShown,
+                    )
+                    if (detail != null) {
+                        Box(Modifier.fillMaxSize().coverPageBehind().background(C.Bg).statusBarsPadding().navigationBarsPadding()) { detailView(detail) }
+                    }
                 }
             }
 
             // Configuration page (side menu): building info, asset fields, geofencing.
-            if (vm.configShown) ConfigScreen(vm)
+            if (vm.configShown) FullPage { ConfigScreen(vm) }
 
             // Integration page (side menu): the property's link to a VDMS.
-            if (vm.integrationShown) IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration, onMenu = vm::openMenu)
+            if (vm.integrationShown) FullPage { IntegrationScreen(vm.currentProp, vm.propName, vm::closeIntegration, onMenu = vm::openMenu) }
 
             // The header's property dropdown: pick another property without leaving the dashboard.
             if (propertySheet) PropertySheet(vm, onClose = { propertySheet = false })
 
             // Property list / People and access (side menu).
             when (s.adminPage) {
-                AdminPage.PROPERTIES -> PropertyListScreen(vm)
+                AdminPage.PROPERTIES -> FullPage { PropertyListScreen(vm) }
                 // Only for someone who may manage people and access.
-                AdminPage.PEOPLE -> if (vm.peopleShown) PeopleScreen(vm)
+                AdminPage.PEOPLE -> if (vm.peopleShown) FullPage { PeopleScreen(vm) }
                 null -> {}
             }
 
@@ -397,12 +418,13 @@ fun ScleraApp(
                 AssetFilterSheet(
                     it, list::closeFilter, list::toggleFilterPerson, list::toggleFilter,
                     onReset = list::resetFilter,
-                    onShow = { list.applyFilter(); list.clearSelection() },
                 )
             }
 
             // Bulk Edit sits under the location sheet it opens.
-            bulk.sheet?.let { BulkEditSheet(it, bulk, onPickPlace = vm::editSelLocation, onUpdated = list::clearSelection) }
+            bulk.sheet?.let {
+                BulkEditSheet(it, bulk, onPickPlace = vm::editSelLocation, onUpdated = list::clearSelection, updateBlock = lists.blocks.collect.reason())
+            }
 
             when (s.sheet) {
                 Sheet.LOC -> LocationPicker(
@@ -426,6 +448,7 @@ fun ScleraApp(
             }, networksLoading = move.state.networksLoading) }
             assign.sheet?.let { sheet -> AssignSheet(sheet, assign, onSubmitted = list::clearSelection) }
             if (files.state.edit != null) DraftEditSheet(files)
+            if (shots.state.edit != null) DraftEditSheet(shots)
             quickIds?.let { ids ->
                 QuickValidate(
                     vm.currentProp, vm.assets, ids, vm::flash, onClose = { quickIds = null },
@@ -478,6 +501,12 @@ fun ScleraApp(
     }
 }
 
+/** A page drawn over the dashboard, filling it; touches on it never reach the dashboard underneath. */
+@Composable
+private fun FullPage(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize().coverPageBehind()) { content() }
+}
+
 @Composable
 private fun AssetsPage(vm: AppViewModel) {
     val list = rememberAssetListBinding(vm, Tab.ASSETS)
@@ -485,3 +514,6 @@ private fun AssetsPage(vm: AppViewModel) {
         LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) { assetList(list) }
     }
 }
+
+/** The key of the Camera's own file import (Many assets), apart from the File tab's. */
+private const val CAMERA_IMPORT = "camera-import"

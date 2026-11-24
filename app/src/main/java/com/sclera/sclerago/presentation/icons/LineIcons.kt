@@ -106,10 +106,11 @@ object Icons {
     val ChevronLeft = Ico(s("M15 6l-6 6 6 6"))
     val ChevronRight = Ico(s("M9 6l6 6-6 6"))
     val ChevronUpDown = Ico(s("M8 9l4-4 4 4M8 15l4 4 4-4"))
-    val Bluetooth = Ico(s("M7 7l10 10-5 5V2l5 5L7 17"))
+    /** Bluetooth: the rune, as the web's status icon. */
+    val Bluetooth = Ico(s("M7 8l10 8-5 4V4l5 4-10 8"))
+    /** Wi-Fi: a dot under three arcs, as the web's status icon. */
     val Wifi = Ico(
-        s("M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"),
-        sf(circle(12f, 19.5f, 1.2f)),
+        s("M12 18h.01"), s("M9.17 15.17a4 4 0 0 1 5.66 0"), s("M6.34 12.34a8 8 0 0 1 11.32 0"), s("M3.52 9.52a12 12 0 0 1 16.96 0"),
     )
     /** No connection: the Wi-Fi arcs struck through (online-only buttons and pages while offline). */
     val NoWifi = Ico(
@@ -149,6 +150,10 @@ object Icons {
     val FileDoc = Ico(
         s("M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"), s("M14 3v5h5M9 13h6M9 17h6"),
     )
+    /** Read in from a file: a page with a down arrow, as the web's status icon (FileDoc stays the plain document). */
+    val Imported = Ico(
+        s("M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"), s("M14 3v5h5"), s("M12 11v6"), s("m9.5 14.5 2.5 2.5 2.5-2.5"),
+    )
     val Keyboard = Ico(s(rect(2f, 6f, 20f, 12f, 2f)), s("M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"))
     val Play = Ico(f("M8 5v14l11-7z"))
     val PlusSmall = Ico(s("M12 6v12M6 12h12"))
@@ -159,17 +164,25 @@ object Icons {
     val CheckCircle = Ico(s(circle(12f, 12f, 9f)), s("M8 12l3 3 5-6"))
     val ShieldCheck = Ico(s("M12 3L5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"), s("M9 12l2 2 4-4"))
     /** The side menu's Validation: a checked item and a plain item, each with its line. */
-    val ValidationChecks = Ico(
-        s("M6.5 4a3 3 0 100 6 3 3 0 000-6z"), s("M5.2 7.1l1 1 1.8-2"), s("M6.5 14a3 3 0 100 6 3 3 0 000-6z"), s("M10.5 7H21M10.5 17H21"),
+    /** Configuration (the side menu): a box with a gear, as the web's sidebar icon, drawn in lines. */
+    val Configuration = Ico(
+        s(rect(3f, 3f, 18f, 18f, 2.5f)), s(circle(12f, 12f, 3.6f)), s(circle(12f, 12f, 1.4f)),
+        s("M12 6.6v1.2M12 16.2v1.2M6.6 12h1.2M16.2 12h1.2M8.2 8.2l.85.85M14.95 14.95l.85.85M8.2 15.8l.85-.85M14.95 9.05l.85-.85"),
     )
+    /** Integration (the side menu): a clipboard with code brackets, as the web's sidebar icon, drawn in lines. */
+    val Integration = Ico(
+        s(rect(3.5f, 4.5f, 17f, 17f, 2f)), s("M9.5 4.5a2.5 2.5 0 0 1 5 0"),
+        s("M10 10.5 7.5 13l2.5 2.5"), s("M14 10.5l2.5 2.5-2.5 2.5"),
+    )
+    /** Validation (the side menu): a board with three lines and a tick, as the web's sidebar icon, drawn in lines. */
+    val ValidationChecks = Ico(s(rect(2.5f, 3.5f, 19f, 17f, 2f)), s("M6 8h3.5M6 12h3.5M6 16h3.5"), s("m12.5 11.7 2.2 2.2 4.3-4.4"))
     val ShieldX = Ico(s("M12 3L5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"), s("M9.5 9.5l5 5M14.5 9.5l-5 5"))
-    val Send = Ico(s("M21 3L3 10.5l7 2.5 2.5 7z"), s("M21 3L10 13"))
     val Pencil = Ico(s("M4 20h4L19 9l-4-4L4 16z"), s("M13.5 6.5l4 4"))
     val Alert = Ico(s(circle(12f, 12f, 9f)), s("M12 7v6M12 16.5v.5"))
-    /** Validation failed: a stop sign with "!". */
-    val AlertOctagon = Ico(s("M7.9 2.5h8.2l5.4 5.4v8.2l-5.4 5.4H7.9l-5.4-5.4V7.9z"), s("M12 7.5v5.5M12 16.5v.5"))
-    /** Validation needs a look: a magnifier with "!". */
-    val SearchAlert = Ico(s(circle(11f, 11f, 7f)), s("M20 20l-3.5-3.5"), s("M11 7.5v4M11 14.2v.4"))
+    /** Validation failed: a circle with a cross, as the web's status icon. */
+    val ValidationFailed = Ico(s(circle(12f, 12f, 9f)), s("m9 9 6 6M15 9l-6 6"))
+    /** Validation needs a look: a circle with "!", as the web's status icon. */
+    val ValidationLook = Ico(s(circle(12f, 12f, 9f)), s("M12 7.5V13"), s("M12 16.5h.01"))
     val OctagonX = Ico(s("M8.2 3h7.6L21 8.2v7.6L15.8 21H8.2L3 15.8V8.2z"), s("M9 9l6 6M15 9l-6 6"))
     /** AI: three solid four-point sparkles (large, medium, small). */
     val Sparkles = Ico(
@@ -192,7 +205,7 @@ object Icons {
     val Crosshair = Ico(s(circle(12f, 12f, 3f)), s(circle(12f, 12f, 7.5f)), s("M12 2v3M12 19v3M2 12h3M19 12h3"))
     /** Two buildings side by side: property list / current property in the side menu. */
     val Buildings = Ico(
-        s("M3 21V6a1 1 0 011-1h7a1 1 0 011 1v15M2 21h20M12 21V10a1 1 0 011-1h6a1 1 0 011 1v11"),
+        s("M3 21V6a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M2 21h20M12 21V10a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v11"),
         s("M6.5 9h2M6.5 12.5h2M6.5 16h2M15.5 13h1.5M15.5 16.5h1.5"),
     )
     /** Every building in the app uses the side menu's two-building icon. */
@@ -245,10 +258,8 @@ object Icons {
     val Copy = Ico(s(rect(8f, 8f, 12.5f, 12.5f, 2f)), s("M16 8V5.5A2 2 0 0 0 14 3.5H5.5a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2H8"))
 
     /** Clone an asset: [Copy] with a plus in the front sheet. */
-    val Clone = Ico(
-        s(rect(8f, 8f, 12.5f, 12.5f, 2f)), s("M16 8V5.5A2 2 0 0 0 14 3.5H5.5a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2H8"),
-        s("M14.25 11.5v5.5M11.5 14.25h5.5"),
-    )
+    /** Cloned / Clone: two overlapping cards, as the web's status icon. */
+    val Clone = Ico(s(rect(8f, 8f, 12f, 12f, 2f)), s("M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"))
     val ScanAi = Ico(
         s("M3.5 8V5.5a2 2 0 0 1 2-2H8M16 3.5h2.5a2 2 0 0 1 2 2V8M20.5 16v2.5a2 2 0 0 1-2 2H16M8 20.5H5.5a2 2 0 0 1-2-2V16"),
         f("M12,7Q12.45,11.55 17,12Q12.45,12.45 12,17Q11.55,12.45 7,12Q11.55,11.55 12,7Z"),
@@ -258,7 +269,6 @@ object Icons {
     val Filter = Ico(s("M3.5 5h17l-6.5 8v5.5l-4 2V13z"))
 
     // Side menu
-    val Sliders =Ico(s("M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"), s(circle(15f, 6f, 2f)), s(circle(9f, 12f, 2f)), s(circle(17f, 18f, 2f)))
     val Clipboard = Ico(s(rect(5f, 4f, 14f, 17f, 2f)), s(rect(9f, 2.5f, 6f, 3f, 1f)), s("M9 11h6M9 15h4"))
     val Link = Ico(s("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"), s("M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"))
     /** A tray with an arrow into it: import. */
@@ -285,6 +295,8 @@ object Icons {
     val Toggles = Ico(s(rect(3f, 4f, 18f, 7f, 3.5f)), f(circle(16.5f, 7.5f, 2f)), s(rect(3f, 13f, 18f, 7f, 3.5f)), f(circle(7.5f, 16.5f, 2f)))
     val Refresh = Ico(s("M20 12a8 8 0 1 1-2.3-5.7"), s("M20 4v5h-5"))
     val Hash = Ico(s("M5 9h15M4 15h15M10 3L8 21M16 3l-2 18"))
+    /** A banknote: an amount of money (currency fields). */
+    val Banknote = Ico(s(rect(2.5f, 6f, 19f, 12f, 2f)), s(circle(12f, 12f, 2.5f)), s("M6 12h.01M18 12h.01"))
     val Calendar = Ico(s(rect(3.5f, 5f, 17f, 15.5f, 2f)), s("M3.5 10h17M8 3v4M16 3v4"))
     val TextLines = Ico(s("M4 6h16M4 10h16M4 14h16M4 18h10"))
     val TextAa = Ico(s("M3 18l4.5-12L12 18M4.7 14h5.6"), s("M17.5 18v-1.2m0 1.2a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0-6V9.5a2 2 0 0 0-3.5-1.2"))

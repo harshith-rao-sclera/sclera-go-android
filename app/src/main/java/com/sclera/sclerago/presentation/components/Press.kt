@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -51,9 +52,19 @@ fun Modifier.pressClickable(
     enabled: Boolean = true,
     onClickLabel: String? = null,
     role: Role? = null,
+    /** Tap and hold; [onLongClickLabel] is read out for it. Null: holding does nothing more than a tap. */
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     onClick: () -> Unit,
 ): Modifier {
     val press = remember { MutableInteractionSource() }
-    return pressScale(press, pressed).then(if (shape != null) Modifier.clip(shape) else Modifier)
-        .clickable(press, LocalIndication.current, enabled = enabled, onClickLabel = onClickLabel, role = role, onClick = onClick)
+    val shaped = pressScale(press, pressed).then(if (shape != null) Modifier.clip(shape) else Modifier)
+    return if (onLongClick == null) {
+        shaped.clickable(press, LocalIndication.current, enabled = enabled, onClickLabel = onClickLabel, role = role, onClick = onClick)
+    } else {
+        shaped.combinedClickable(
+            interactionSource = press, indication = LocalIndication.current, enabled = enabled, onClickLabel = onClickLabel,
+            role = role, onLongClickLabel = onLongClickLabel, onLongClick = onLongClick, onClick = onClick,
+        )
+    }
 }

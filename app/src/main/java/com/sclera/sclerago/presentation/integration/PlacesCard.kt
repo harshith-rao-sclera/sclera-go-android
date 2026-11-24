@@ -23,7 +23,9 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.PlacesDirection
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
@@ -48,14 +50,14 @@ internal fun PlacesCard(s: PlacesUiState, online: Boolean, vm: PlacesImportViewM
             Txt(stringResource(R.string.pi_section_title), 15, 700, modifier = Modifier.weight(1f), maxLines = 2)
             HistoryButton(online, vm)
         }
-        val ready = s.canImport && !s.loading && s.places != null
+        val ready = !s.loading && s.places != null
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CardButton(
-                stringResource(R.string.pi_send), ready && !s.pushActive, online, vm::explainOffline,
+                stringResource(R.string.pi_send), ready && !s.pushActive, s.access, online, vm::explainOffline,
                 Modifier.weight(1f).testTag("places_send"),
             ) { vm.open(PlacesDirection.TO_VDMS) }
             CardButton(
-                stringResource(R.string.pi_import), ready, online, vm::explainOffline,
+                stringResource(R.string.pi_import), ready, s.access, online, vm::explainOffline,
                 Modifier.weight(1f).testTag("places_import"),
             ) { vm.open(PlacesDirection.FROM_VDMS) }
         }
@@ -85,14 +87,21 @@ private fun HistoryButton(online: Boolean, vm: PlacesImportViewModel) {
     }
 }
 
+/**
+ * Send to VDMS / Import from VDMS: they need Configure ([access] says why not, greyed out), then the server (greyed out
+ * offline); [enabled] false while the places aren't there yet.
+ */
 @Composable
-private fun CardButton(text: String, enabled: Boolean, online: Boolean, onOffline: () -> Unit, modifier: Modifier, onClick: () -> Unit) {
-    OfflineGate(!online && enabled, onOffline, modifier) {
-        Pill(
-            text, { if (enabled) onClick() },
-            Modifier.fillMaxWidth().alpha(if (enabled) 1f else 0.4f).semantics { role = Role.Button },
-            bg = C.Btn, height = 48.dp, weight = 700,
-        )
+private fun CardButton(text: String, enabled: Boolean, access: AccessBlock?, online: Boolean, onOffline: () -> Unit, modifier: Modifier, onClick: () -> Unit) {
+    AccessGate(access, modifier) {
+        OfflineGate(!online && enabled && access == null, onOffline) {
+            Pill(
+                text, { if (enabled) onClick() },
+                // The access gate dims it already; not twice.
+                Modifier.fillMaxWidth().alpha(if (enabled || access != null) 1f else 0.4f).semantics { role = Role.Button },
+                bg = C.Btn, height = 48.dp, weight = 700,
+            )
+        }
     }
 }
 

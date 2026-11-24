@@ -3,6 +3,9 @@ package com.sclera.sclerago.domain.model
 /** The `documents.kind` of a photo. */
 const val IMAGE_KIND = "image"
 
+/** The `documents.kind` of a video. */
+const val VIDEO_KIND = "video"
+
 /** The server's document kinds by file extension (its `readers._BY_EXTENSION`). */
 private val KIND_BY_EXTENSION = mapOf(
     "xlsx" to "spreadsheet", "xlsm" to "spreadsheet", "xls" to "spreadsheet", "csv" to "spreadsheet", "tsv" to "spreadsheet",

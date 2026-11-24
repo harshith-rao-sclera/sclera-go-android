@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.remote.adc
 
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -10,6 +11,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import okio.BufferedSink
 import java.io.IOException
 import java.io.InputStream
@@ -17,7 +19,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The collect-from-files calls as typed results. Every call can throw
+ * The collect-from-files calls and an asset's Documents tab, as typed results. Every call can throw
  * [com.sclera.sclerago.domain.model.OnlineException]; see [OnlineCall].
  */
 @Singleton
@@ -25,7 +27,8 @@ class AdcDocumentsApi @Inject constructor(private val service: AdcDocumentsServi
 
     /**
      * Uploads a file as the `file` part, streamed from [open] (a file can be up to the server's limit, so it is never
-     * held in memory whole); [onProgress] gets 0..100 when [size] is known.
+     * held in memory whole); [onProgress] gets 0..100 when [size] is known. [source] (`camera`) says where the assets
+     * read from it come from; null for a file.
      */
     suspend fun upload(
         property: String,
@@ -34,10 +37,12 @@ class AdcDocumentsApi @Inject constructor(private val service: AdcDocumentsServi
         size: Long,
         open: () -> InputStream,
         onProgress: (Int) -> Unit,
+        source: String? = null,
     ): DocumentDto {
         val body = StreamingFileBody((contentType ?: OCTET_STREAM).toMediaTypeOrNull(), size, open, onProgress)
         val part = MultipartBody.Part.createFormData("file", filename, body)
-        return call.json({ service.upload(property, part) }) { documentOf(it) }
+        val from = source?.toRequestBody(TEXT)
+        return call.json({ service.upload(property, part, from) }) { documentOf(it) }
     }
 
     suspend fun document(property: String, document: String): DocumentDto =
@@ -46,9 +51,6 @@ class AdcDocumentsApi @Inject constructor(private val service: AdcDocumentsServi
     /** The drafts of [document] still waiting for review. */
     suspend fun pendingDrafts(property: String, document: String): List<DraftDto> =
         call.json({ service.drafts(property, document, PENDING) }) { AdcJson.decodeFromString(DraftPageDto.serializer(), it).data }
-
-    /** The sample spreadsheet's bytes. */
-    suspend fun sample(property: String): ByteArray = call.bytes { service.sample(property) }
 
     /** Sends [values] (field id → text, null to clear) into draft [draft]; returns the draft. */
     suspend fun updateDraft(property: String, draft: String, values: Map<String, String?>): DraftDto {
@@ -66,6 +68,46 @@ class AdcDocumentsApi @Inject constructor(private val service: AdcDocumentsServi
         return call.json({ service.discard(property, body.asBody()) }) { AdcJson.decodeFromString(DiscardResultDto.serializer(), it) }
     }
 
+    /** The file [asset] was read from, if any. */
+    suspend fun assetFiles(property: String, asset: String): List<AssetFileDto> =
+        call.json({ service.assetFiles(property, asset) }) { AdcJson.decodeFromString(ListSerializer(AssetFileDto.serializer()), it) }
+
+    /** The web pages [asset]'s applied AI suggestions came from. */
+    suspend fun webDocuments(property: String, asset: String): List<WebDocumentDto> =
+        call.json({ service.webDocuments(property, asset) }) { AdcJson.decodeFromString(ListSerializer(WebDocumentDto.serializer()), it) }
+
+    suspend fun removeWebDocument(property: String, asset: String, document: String) =
+        call.unit { service.removeWebDocument(property, asset, document) }
+
+    /** The uploaded file [document], handed to [read] as it downloads. */
+    suspend fun <T> documentContent(property: String, document: String, read: (ResponseBody) -> T): T =
+        call.stream({ service.documentContent(property, document) }, read)
+
+    /** Web page [document]'s kept PDF, handed to [read] as it downloads. */
+    suspend fun <T> webDocumentContent(property: String, asset: String, document: String, read: (ResponseBody) -> T): T =
+        call.stream({ service.webDocumentContent(property, asset, document) }, read)
+
+    /** Manual [manual]'s PDF, handed to [read] as it downloads. */
+    suspend fun <T> manualContent(property: String, manual: String, read: (ResponseBody) -> T): T =
+        call.stream({ service.manualContent(property, manual) }, read)
+
+    /** [asset]'s media, in order. */
+    suspend fun assetMedia(property: String, asset: String): List<MediaDto> =
+        call.json({ service.assetMedia(property, asset) }) { AdcJson.decodeFromString(ListSerializer(MediaDto.serializer()), it) }
+
+    /** Adds a file to [asset]'s media, streamed from [open] as [upload] streams one. */
+    suspend fun uploadMedia(property: String, asset: String, filename: String, contentType: String?, size: Long, open: () -> InputStream): MediaDto {
+        val body = StreamingFileBody((contentType ?: OCTET_STREAM).toMediaTypeOrNull(), size, open) {}
+        val part = MultipartBody.Part.createFormData("file", filename, body)
+        return call.json({ service.uploadMedia(property, asset, part) }) { AdcJson.decodeFromString(MediaDto.serializer(), it) }
+    }
+
+    suspend fun removeMedia(property: String, asset: String, media: String) = call.unit { service.removeMedia(property, asset, media) }
+
+    /** Media file [media] of [asset], handed to [read] as it downloads. */
+    suspend fun <T> mediaContent(property: String, asset: String, media: String, read: (ResponseBody) -> T): T =
+        call.stream({ service.mediaContent(property, asset, media) }, read)
+
     private fun documentOf(text: String) = AdcJson.decodeFromString(DocumentDto.serializer(), text)
 
     private fun List<String>.asJson() = JsonArray(map(::JsonPrimitive))
@@ -74,6 +116,7 @@ class AdcDocumentsApi @Inject constructor(private val service: AdcDocumentsServi
 
     private companion object {
         val JSON = "application/json".toMediaType()
+        val TEXT = "text/plain".toMediaType()
         const val OCTET_STREAM = "application/octet-stream"
         const val PENDING = "pending"
     }

@@ -80,6 +80,8 @@ class VoiceFillRepositoryImpl @Inject constructor(
             if (options.isNotEmpty()) {
                 put("options", JsonArray(options.map { JsonObject(mapOf("value" to JsonPrimitive(it), "label" to JsonPrimitive(it))) }))
             }
+            // A currency field's currency (the web's voiceForm sends it; the server converts no money).
+            if (unit.isNotBlank()) put("unit", JsonPrimitive(unit.take(MAX_UNIT)))
         },
     )
 
@@ -94,7 +96,7 @@ class VoiceFillRepositoryImpl @Inject constructor(
             FieldKind.MULTI -> JsonArray(v.split(",").map { it.trim() }.filter { it.isNotEmpty() }.map(::JsonPrimitive))
             FieldKind.CHECKBOX -> JsonPrimitive(v == CHECKED)
             FieldKind.YESNO -> JsonPrimitive(v.equals(ANSWER_YES, ignoreCase = true))
-            FieldKind.NUMBER -> v.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(v)
+            FieldKind.NUMBER, FieldKind.CURRENCY -> v.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(v)
             else -> JsonPrimitive(v)
         }
     }
@@ -135,3 +137,6 @@ class VoiceFillRepositoryImpl @Inject constructor(
         is JsonObject -> null
     }
 }
+
+/** The longest unit the server takes with a form field. */
+private const val MAX_UNIT = 50

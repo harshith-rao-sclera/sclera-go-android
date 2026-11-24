@@ -16,7 +16,7 @@ enum class PremiseStatus {
     /** Geofencing is on, but the location permission is not granted, so the location is unknown. */
     LOCATION_PERMISSION_NEEDED,
 
-    /** Geofencing is on, but there is no location fix or no fence could be loaded (not even a copy from before). */
+    /** Geofencing is on, but there is no location fix or the property has no fence drawn. */
     UNKNOWN,
     ;
 

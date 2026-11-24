@@ -4,11 +4,20 @@ import com.sclera.sclerago.domain.model.AssetConfig
 import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.Property
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 
 /** The properties the user can work on, from the server (kept for offline use). Failures throw [com.sclera.sclerago.domain.model.OnlineException]. */
 interface PropertyRepository {
     val properties: StateFlow<List<Property>>
+
+    /**
+     * The ids of the properties the server lists for the user, each time a fresh list comes from it (at start, on return
+     * to the app, on a re-check); never the copy kept on the device. A property the user lost access to (or that was
+     * deleted) is missing from it.
+     */
+    val listed: Flow<Set<String>> get() = emptyFlow()
 
     /** Loads the properties again; the list shown before stays when it fails. */
     suspend fun refresh()

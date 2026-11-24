@@ -1,10 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Taking several photos at once, within the property's photo limits. English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- The camera's Done button, read out: adds the ticked shots (1: how many). -->
+    <plurals name="camera_use_shots">
+        <item quantity="one">Use %1$d shot</item>
+        <item quantity="other">Use %1$d shots</item>
+    </plurals>
+    <!-- The camera's switch: all shots make one asset (Single), or each shot is read by the server as its own asset (Multiple). -->
+    <string name="camera_single">Single</string>
+    <string name="camera_multiple">Multiple</string>
+    <string name="camera_mode_shots_first">Use or remove the shots in the strip first.</string>
+    <string name="camera_take_more">Take more</string>
     <string name="camera_asset_full">One asset takes up to %1$d photos. Untick one to tick another.</string>
+    <!-- A shot refused in the camera as its kind (1: Nameplate, Asset or Label ID) already has the most (2) allowed. -->
+    <string name="camera_kind_full">%1$s already has %2$d photos, the most this property allows. Untick one to tick another.</string>
+    <!-- A shot refused in the camera as the property doesn't collect its kind (1: Nameplate, Asset or Label ID). -->
+    <string name="camera_kind_not_collected">This property doesn’t collect %1$s photos.</string>
     <string name="camera_room_full">No more photos fit here: %1$d left for this kind. Untick one to tick another.</string>
-    <plurals name="photos_to_other">
-        <item quantity="one">%1$d photo went to Other photos: its kind already has the most photos this property allows.</item>
-        <item quantity="other">%1$d photos went to Other photos: their kind already has the most photos this property allows.</item>
+    <!-- Photos refused as their kind (2: Nameplate, Asset or Label ID) already has the most (3) the property allows. -->
+    <plurals name="photos_over_limit">
+        <item quantity="one">%1$d photo wasn’t added: %2$s already has %3$d photos, the most this property allows.</item>
+        <item quantity="other">%1$d photos weren’t added: %2$s already has %3$d photos, the most this property allows.</item>
+    </plurals>
+    <!-- Photos refused as the property doesn't collect their kind (2: Nameplate, Asset or Label ID) at all. -->
+    <plurals name="photos_kind_not_collected">
+        <item quantity="one">%1$d photo wasn’t added: this property doesn’t collect %2$s photos.</item>
+        <item quantity="other">%1$d photos weren’t added: this property doesn’t collect %2$s photos.</item>
     </plurals>
 </resources>

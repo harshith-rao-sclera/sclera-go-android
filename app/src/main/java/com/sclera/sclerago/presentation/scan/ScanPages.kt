@@ -35,6 +35,8 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Device
 import com.sclera.sclerago.presentation.assets.assetList
 import com.sclera.sclerago.presentation.components.BlockedCard
+import com.sclera.sclerago.domain.model.AccessBlock
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.PullRefresh
@@ -84,7 +86,8 @@ fun BluetoothPage(vm: AppViewModel) {
                     mono = false,
                     onOpen = vm::openDevice,
                     // Adding needs Collect: without it there is no + and no ticking (a tap says the group can only view).
-                    onAdd = if (vm.mayCollect()) vm::addDevice else null,
+                    onAdd = vm::addDevice,
+                    addBlock = vm.collectBlock,
                     picks = devicePicks(vm),
                     blocked = ScanService.Target.BLUETOOTH.takeIf { vm.scanBlocked(it) },
                     onRetry = { vm.retryScan(ScanService.Target.BLUETOOTH) },
@@ -124,7 +127,8 @@ fun NetworkPage(vm: AppViewModel) {
                     devices = vm.netDevices,
                     mono = true,
                     onOpen = vm::openDevice,
-                    onAdd = if (vm.mayCollect()) vm::addDevice else null,
+                    onAdd = vm::addDevice,
+                    addBlock = vm.collectBlock,
                     picks = devicePicks(vm),
                     blocked = vm.netTarget.takeIf { vm.scanBlocked(it) },
                     onRetry = { vm.retryScan(vm.netTarget) },
@@ -194,8 +198,13 @@ private fun LazyListScope.scanSection(
     devices: List<Device>,
     mono: Boolean,
     onOpen: (Device) -> Unit,
-    /** Adds a device straight away (its + button); null: the user may not add assets, so no +, ticking or Select all. */
-    onAdd: ((Device) -> Unit)?,
+    /** Adds a device straight away (its + button). */
+    onAdd: (Device) -> Unit,
+    /**
+     * Why the user may not add assets (Collect): each + stays, greyed out, and a tap says why. Ticking and Select all still
+     * work (they change nothing); the add dock says why too.
+     */
+    addBlock: AccessBlock? = null,
     picks: DevicePicks,
     blocked: ScanService.Target? = null,
     onRetry: () -> Unit = {},
@@ -228,14 +237,14 @@ private fun LazyListScope.scanSection(
         }
     }
     // Without Collect nothing can be added from the list: say so where Select all would be.
-    if (onAdd == null && devices.isNotEmpty()) item(key = "viewonly") {
+    if (addBlock != null && devices.isNotEmpty()) item(key = "viewonly") {
         Txt(
             stringResource(R.string.view_only_no_add), 12, 500, C.Orange,
             Modifier.readableWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), maxLines = Int.MAX_VALUE,
         )
     }
     // How many can still be added, and Select all, while any device is left to add.
-    if (onAdd != null && picks.addable > 0) item(key = "selectall") {
+    if (picks.addable > 0) item(key = "selectall") {
         Row(
             Modifier.readableWidth().padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -266,7 +275,7 @@ private fun LazyListScope.scanSection(
         val tap = {
             if (picks.selecting && !added) picks.toggle(d.id) else onOpen(d)
         }
-        val longPress = { if (!added && onAdd != null) picks.toggle(d.id) }
+        val longPress = { if (!added) picks.toggle(d.id) }
         // The same card spacing as the asset rows (AssetRow): 8dp at the sides, 3dp between cards.
         Row(
             Modifier.readableWidth().padding(horizontal = 8.dp, vertical = 1.5.dp).heightIn(min = 54.dp).clip(r(14))
@@ -292,11 +301,12 @@ private fun LazyListScope.scanSection(
                     Modifier.size(38.dp).pressClickable(shape = r(10)) { picks.toggle(d.id) },
                     contentAlignment = Alignment.Center,
                 ) { CheckBox(picked) }
-                onAdd != null -> Box(
-                    Modifier.size(38.dp).pressClickable(shape = r(10)) { onAdd(d) }.background(C.YTintBg).border(1.dp, C.YTintBd, r(10))
-                        ,
-                    contentAlignment = Alignment.Center,
-                ) { LineIcon(Icons.PlusSmall, 18.dp, C.Yellow, 2.6f) }
+                else -> AccessGate(addBlock) {
+                    Box(
+                        Modifier.size(38.dp).pressClickable(shape = r(10)) { onAdd(d) }.background(C.YTintBg).border(1.dp, C.YTintBd, r(10)),
+                        contentAlignment = Alignment.Center,
+                    ) { LineIcon(Icons.PlusSmall, 18.dp, C.Yellow, 2.6f) }
+                }
             }
         }
     }

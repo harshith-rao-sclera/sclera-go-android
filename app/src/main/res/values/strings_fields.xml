@@ -4,4 +4,10 @@
     <string name="cfg_option_color_title">Option colour</string>
     <string name="cfg_option_color_cd">Colour of %1$s</string>
     <string name="cfg_checks_no_format">Nothing is typed into this field, so there is no format to check.</string>
+    <!-- Currency fields: the amount's currency, picked from the server's list (code and name, e.g. "USD - US Dollar"). -->
+    <string name="cfg_field_currency">Currency</string>
+    <string name="cfg_field_currency_select">Select currency</string>
+    <string name="cfg_currency_option">%1$s - %2$s</string>
+    <string name="cfg_field_needs_currency">Select a currency</string>
+    <string name="cfg_currencies_failed">Unable to get currencies</string>
 </resources>

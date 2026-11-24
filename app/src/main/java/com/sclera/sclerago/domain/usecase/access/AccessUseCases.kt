@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase.access
 
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.DirectoryPage
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.OnlineException
@@ -7,6 +8,7 @@ import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.PermissionInfo
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.repository.AccessRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
@@ -115,6 +117,15 @@ class DeleteGroupUseCase @Inject constructor(private val repo: AccessRepository,
     }
 }
 
+/**
+ * Why the user can't change people or groups now (Manage access, which needs all properties), or null when they can;
+ * kept up to date. Every change control of the page stays where it is, greyed out, and says this when tapped (the page
+ * can still be reached without it, by a link); the server checks every change too.
+ */
+class ObserveManageAccessBlockUseCase @Inject constructor(private val guard: PermissionGuard) {
+    operator fun invoke(): Flow<AccessBlock?> = guard.observeBlock(Permission.MANAGE_ACCESS)
+}
+
 /** The people-and-access use cases, for injecting as one. */
 class AccessUseCases @Inject constructor(
     val observeGroups: ObserveGroupsUseCase,
@@ -127,6 +138,7 @@ class AccessUseCases @Inject constructor(
     val savePerson: SavePersonUseCase,
     val saveGroup: SaveGroupUseCase,
     val deleteGroup: DeleteGroupUseCase,
+    val manageAccessBlock: ObserveManageAccessBlockUseCase,
 )
 
 /**

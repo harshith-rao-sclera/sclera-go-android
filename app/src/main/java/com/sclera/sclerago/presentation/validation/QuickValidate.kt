@@ -66,7 +66,8 @@ fun QuickValidate(
             vm.bannerShown()
             vm.quickShown()
         }
-        if (opened && sheet == null) onClose()
+        // The sheet as it is now: when it has just been opened in this same frame, the composition's `sheet` is still null.
+        if (opened && vm.state.runSheet?.quick != true) onClose()
     }
     Box(Modifier.fillMaxSize()) {
         sheet?.let { RunSheetView(vm, s, it, assets) }

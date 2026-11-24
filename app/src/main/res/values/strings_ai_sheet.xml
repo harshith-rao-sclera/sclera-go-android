@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The AI suggestions sheet, as the iOS app's. English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-    <string name="ai_sheet_subtitle">Suggests %1$s’s type and field values from the model’s published specifications; you choose what to keep. Nothing is saved until you apply and save.</string>
+    <string name="ai_sheet_subtitle">Suggests %1$s’s type, JACS code and field values from the model’s published specifications; you choose what to keep. Nothing is saved until you apply and save.</string>
     <string name="ai_step_photos">Reading the photos</string>
     <string name="ai_photo_differs">The photo shows something else than the form has: %1$s</string>
     <string name="ai_from_photo">From the photo</string>

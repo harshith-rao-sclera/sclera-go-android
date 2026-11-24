@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asset list, Assets tab: the chips for how assets were onboarded (the web's optional Bluetooth and Wi-Fi tabs). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="dash_chip_bluetooth">Bluetooth</string>
+    <string name="dash_chip_wifi">Wi-Fi</string>
+</resources>

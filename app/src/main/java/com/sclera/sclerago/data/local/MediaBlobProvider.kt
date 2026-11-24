@@ -20,8 +20,9 @@ import java.io.FileOutputStream
 import java.io.OutputStream
 
 /**
- * Serves asset media and documents from the offline database (`content://<app>.media/<table>/<rowId>`, see
- * [MediaBlobs]): the only copy of each file is the database's. Not exported; another app (a PDF viewer) can read one
+ * Serves asset media from the offline database (`content://<app>.media/<table>/<rowId>`, see [MediaBlobs]): the only
+ * copy of each file is the database's. Also serves the documents fetched from the server to be opened
+ * (`content://<app>.media/downloads/<id>`, see [DocumentDownloads]). Not exported; another app (a PDF viewer) can read one
  * only through a single-use grant on the intent that opens it. Read-only.
  *
  * Photos are streamed straight from the database. Players and viewers need to jump around in a video, a voice memo or a
@@ -42,16 +43,24 @@ class MediaBlobProvider : ContentProvider() {
 
     override fun onCreate(): Boolean {
         // Short-lived copies from before don't outlive the app.
-        context?.let { viewDir(it).deleteRecursively() }
+        context?.let {
+            viewDir(it).deleteRecursively()
+            DocumentDownloads.dir(it).deleteRecursively()
+        }
         return true
     }
 
-    override fun getType(uri: Uri): String? = target(uri)?.let { (table, id) -> blobs.info(table, id)?.contentType }
+    override fun getType(uri: Uri): String? {
+        download(uri)?.let { return typeOf(it) }
+        return target(uri)?.let { (table, id) -> blobs.info(table, id)?.contentType }
+    }
 
     /** Name and size, for the app that opens the file. */
     override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? {
-        val (table, id) = target(uri) ?: return null
-        val info = blobs.info(table, id) ?: return null
+        val info = download(uri)?.let { MediaBlobs.Info(typeOf(it), it.name, it.length()) }
+            ?: target(uri)?.let { (table, id) -> blobs.info(table, id) }
+            ?: return null
+        val id = uri.lastPathSegment.orEmpty()
         val columns = projection?.filter { it == OpenableColumns.DISPLAY_NAME || it == OpenableColumns.SIZE }?.toTypedArray()
             ?: arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE)
         return MatrixCursor(columns, 1).apply {
@@ -61,6 +70,7 @@ class MediaBlobProvider : ContentProvider() {
 
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
         if (mode != "r") throw SecurityException("Media can only be read")
+        download(uri)?.let { return ParcelFileDescriptor.open(it, ParcelFileDescriptor.MODE_READ_ONLY) }
         val (table, id) = target(uri) ?: throw FileNotFoundException()
         val info = blobs.info(table, id) ?: throw FileNotFoundException()
         // A photo is read front to back: stream it from the database, no copy.
@@ -100,6 +110,16 @@ class MediaBlobProvider : ContentProvider() {
             ?.drop(KEPT - 1)
             ?.forEach { it.delete() }
     }
+
+    /** The fetched document a `downloads/<id>` URI names, when it is on the device; null for anything else. */
+    private fun download(uri: Uri): File? {
+        val segments = uri.pathSegments
+        if (segments.size != 2 || segments[0] != DocumentDownloads.SEGMENT) return null
+        return DocumentDownloads.file(requireNotNull(context), segments[1])
+    }
+
+    /** A fetched document's type, by its name's extension. */
+    private fun typeOf(file: File): String? = MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension.lowercase())
 
     /** The table and row a URI names; null for anything else (an unknown table, or an id that isn't plain). */
     private fun target(uri: Uri): Pair<String, String>? {

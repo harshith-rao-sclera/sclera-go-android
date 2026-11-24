@@ -101,6 +101,17 @@ public class SyncManager {
 
     // DB downloading informations
     public int isSynced = 0;
+
+    /**
+     * Set by {@link #closeConnection()}: this engine is finished (its property was closed, removed or started over), so
+     * work still under way on its threads (start-up, configuration retries, tag sync) stops instead of using, or
+     * reopening, its database. An engine is never started again once closed; a new one is made instead.
+     */
+    private volatile boolean closed = false;
+
+    public boolean isClosed() {
+        return closed;
+    }
     public int progress = 0;
     public double totalFileSizeMB;
     public double totalMBDownloaded;
@@ -367,7 +378,7 @@ public class SyncManager {
     }
 
     public void startConnection() {
-        if (progress != 0) {
+        if (progress != 0 || closed) {
             return;
         }
 
@@ -393,6 +404,10 @@ public class SyncManager {
             dbFile = firstEntry.getValue();
 
             assert dbFile != null;
+            // Closed while the database downloaded: it isn't opened again (that would make a removed one anew).
+            if (closed) {
+                return;
+            }
             if (dbConnection == null || !dbConnection.isOpen()) {
                 String path = dbFile.getAbsolutePath();
                 dbConnection = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.CREATE_IF_NECESSARY);
@@ -441,7 +456,7 @@ public class SyncManager {
 
             int retries = 0;
             int maxRetries = 5;
-            while (retries < maxRetries) {
+            while (retries < maxRetries && !closed) {
                 if (pullDataConfiguration(Long.parseLong(syncTimestamp))) {
                     break;
                 }
@@ -455,21 +470,19 @@ public class SyncManager {
                 }
             }
 
-            pullImageConfiguration();
+            if (!closed) {
+                pullImageConfiguration();
+            }
         } catch (Exception e) {
             Log.e(TAG, "Exception: " + e.getMessage());
         }
     }
 
     public void closeConnection() {
+        // Every loop and thread of this engine is told to stop before its database is closed, so none of them writes
+        // to a closed connection.
+        closed = true;
         isSynced = 0;
-
-        if (dbConnection != null && dbConnection.isOpen()) {
-            dbConnection.close();
-            Log.d(TAG, "Database connection for " + vdmsID + " closed successfully.");
-        } else {
-            Log.d(TAG, "Database connection is already closed for " + vdmsID + " or was null.");
-        }
 
         setContinueDataSync(false);
         setContinueImageSync(false);
@@ -502,6 +515,13 @@ public class SyncManager {
             if (largeDataSyncService.getLargeDataSyncThread() != null && largeDataSyncService.getLargeDataSyncThread().isAlive()) {
                 largeDataSyncService.getLargeDataSyncThread().interrupt();
             }
+        }
+
+        if (dbConnection != null && dbConnection.isOpen()) {
+            dbConnection.close();
+            Log.d(TAG, "Database connection for " + vdmsID + " closed successfully.");
+        } else {
+            Log.d(TAG, "Database connection is already closed for " + vdmsID + " or was null.");
         }
 
         if (feature.equals(OfflineFeatures.ADMIN)) {

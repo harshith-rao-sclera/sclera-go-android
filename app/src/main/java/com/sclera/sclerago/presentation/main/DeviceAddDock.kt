@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.fabShadow
@@ -54,9 +55,12 @@ internal fun DeviceAddDock(vm: AppViewModel) {
                 textDecoration = TextDecoration.Underline, maxLines = 1,
             )
         }
-        Pill(
-            pluralStringResource(R.plurals.scrt_add_n_as_assets, n, n), vm::addPickedDevices,
-            bg = C.Yellow, fg = C.OnYellow, height = 42.dp, hPad = 16.dp, size = 14, weight = 700,
-        )
+        // Adding needs Collect: without it (or away from a geofenced site) Add is greyed out and a tap says why.
+        AccessGate(vm.collectBlock) {
+            Pill(
+                pluralStringResource(R.plurals.scrt_add_n_as_assets, n, n), vm::addPickedDevices,
+                bg = C.Yellow, fg = C.OnYellow, height = 42.dp, hPad = 16.dp, size = 14, weight = 700,
+            )
+        }
     }
 }

@@ -16,6 +16,7 @@ import androidx.exifinterface.media.ExifInterface
 import com.sclera.sclerago.data.remote.AuthConfig
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.Media
+import android.webkit.MimeTypeMap
 import java.io.File
 import java.util.concurrent.TimeUnit
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -53,7 +54,10 @@ suspend fun describeFiles(context: Context, uris: List<Uri>): List<ImportedFile>
                 }
             }
         }
-        ImportedFile(uri.toString(), uri.toString(), name, size, cr.getType(uri))
+        // A shot from the in-app camera is a file of the app's own: its size and type come from the file itself.
+        if (size < 0 && uri.scheme == "file") size = uri.path?.let { File(it).length() } ?: -1L
+        val type = cr.getType(uri) ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
+        ImportedFile(uri.toString(), uri.toString(), name, size, type)
     }
 }
 
@@ -223,7 +227,7 @@ suspend fun describeAttachments(context: Context, uris: List<Uri>): List<Media> 
         if (mime.startsWith("image/") || mime.startsWith("video/")) {
             describeVisualMedia(context, listOf(Uri.parse(f.uri))).first().copy(id = "file-$stamp-$i")
         } else {
-            Media("file-$stamp-$i", f.uri, video = false, fileName = f.name)
+            Media("file-$stamp-$i", f.uri, video = false, fileName = f.name, sizeBytes = f.size.takeIf { it >= 0 })
         }
     }
 }

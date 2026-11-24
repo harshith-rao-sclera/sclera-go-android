@@ -2,6 +2,7 @@ package com.sclera.sclerago.data.mapper
 
 import com.sclera.sclerago.domain.model.FieldChecks
 import com.sclera.sclerago.domain.model.FieldKind
+import com.sclera.sclerago.domain.model.NUMBER_KINDS
 import com.sclera.sclerago.domain.model.TEXT_KINDS
 import com.sclera.sclerago.domain.model.ValueRule
 import kotlinx.serialization.json.JsonElement
@@ -50,7 +51,7 @@ internal fun readChecks(checks: String?, kind: FieldKind): FieldChecks {
                 max = format.pick("max_length", "maxLength").number(),
             )
         }
-        FieldKind.NUMBER -> FieldChecks(
+        in NUMBER_KINDS -> FieldChecks(
             flagEmpty = flagEmpty,
             min = format["min"].number(),
             max = format["max"].number(),
@@ -81,7 +82,7 @@ fun checksApiJson(kind: FieldKind, checks: FieldChecks): JsonObject {
                 checks.min.trim().toIntOrNull()?.let { put("minLength", it) }
                 checks.max.trim().toIntOrNull()?.let { put("maxLength", it) }
             }
-            FieldKind.NUMBER -> {
+            in NUMBER_KINDS -> {
                 checks.min.trim().toDoubleOrNull()?.let { putNumber("min", it) }
                 checks.max.trim().toDoubleOrNull()?.let { putNumber("max", it) }
                 if (checks.wholeNumber) put("wholeNumber", true)

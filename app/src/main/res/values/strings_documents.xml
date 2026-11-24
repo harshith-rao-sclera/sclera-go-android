@@ -11,7 +11,18 @@
     <string name="doc_open_cd">Open %1$s</string>
     <string name="doc_open_with">Open with</string>
     <string name="doc_attachment">Document</string>
-    <string name="media_source_document">Source document</string>
+    <string name="media_source_document">Source file</string>
     <!-- Read out over the placeholder cards while the AI lookup or manual search is still finding documents. -->
     <string name="doc_searching">Looking for documents…</string>
+    <!-- Documents are read from the server every time (they are not synced). -->
+    <string name="doc_loading">Loading documents…</string>
+    <string name="doc_load_failed">Couldn’t load the documents. Pull down to try again.</string>
+    <string name="doc_uploaded">Document added</string>
+    <!-- Holding an item on the Review screen: leave it out of onboarding, correct an asset found, view its file. -->
+    <string name="review_leave_out">Leave out of onboarding</string>
+    <string name="file_import_edit_details">Edit details</string>
+    <string name="file_import_view_file">View file</string>
+    <!-- Adding a document to an asset that has not reached the server yet (documents are kept on the server only). -->
+    <string name="doc_not_on_server">Documents can be added once this asset has synced to the server.</string>
+    <string name="doc_open_failed">Couldn’t open the document.</string>
 </resources>

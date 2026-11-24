@@ -17,6 +17,8 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.PhotoRule
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.FabAction
 import com.sclera.sclerago.presentation.components.FabMenu
@@ -37,6 +39,8 @@ fun MediaFabs(
     onAddFile: () -> Unit,
     onRecordMemo: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The signed-in user may not change the asset: both buttons are greyed out and a tap says why. */
+    blocked: UiText? = null,
 ) {
     var open by remember { mutableStateOf(false) }
     val photos = media.filter { !it.video && !it.isDoc && !it.audio }
@@ -59,16 +63,20 @@ fun MediaFabs(
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        FabMenu(open, { open = it }, actions, stringResource(R.string.media_add_fab), stringResource(R.string.action_close), Modifier.testTag("media-add"))
-        CircleFab(
-            Icons.Mic, stringResource(R.string.media_record_memo), onRecordMemo, Modifier.testTag("media-record-memo"),
-            bg = C.Btn, fg = C.Text, iconSize = 22.dp, stroke = 2.4f,
-        )
+        AccessGate(blocked) {
+            FabMenu(open, { open = it }, actions, stringResource(R.string.media_add_fab), stringResource(R.string.action_close), Modifier.testTag("media-add"))
+        }
+        AccessGate(blocked) {
+            CircleFab(
+                Icons.Mic, stringResource(R.string.media_record_memo), onRecordMemo, Modifier.testTag("media-record-memo"),
+                bg = C.Btn, fg = C.Text, iconSize = 22.dp, stroke = 2.4f,
+            )
+        }
     }
 }
 
 /** Upload document: the Documents tab's floating +. */
 @Composable
-fun UploadDocumentFab(onUpload: () -> Unit, modifier: Modifier = Modifier) {
-    CircleFab(Icons.Plus, stringResource(R.string.doc_upload), onUpload, modifier.padding(end = 16.dp, bottom = 16.dp).testTag("doc-upload"))
+fun UploadDocumentFab(onUpload: () -> Unit, modifier: Modifier = Modifier, busy: Boolean = false) {
+    CircleFab(Icons.Plus, stringResource(R.string.doc_upload), onUpload, modifier.padding(end = 16.dp, bottom = 16.dp).testTag("doc-upload"), busy = busy)
 }

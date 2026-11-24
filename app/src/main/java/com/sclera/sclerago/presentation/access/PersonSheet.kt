@@ -35,9 +35,12 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.SkeletonLead
 import com.sclera.sclerago.presentation.components.SkeletonList
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.FormSheet
+import com.sclera.sclerago.presentation.components.LocalToaster
+import com.sclera.sclerago.presentation.components.ToastKind
 import com.sclera.sclerago.presentation.components.RadioDot
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.r
@@ -54,7 +57,8 @@ private const val PropertySearchFrom = 8
  * [suggestionHint] says why there are none), the group ("No access" too, for someone already here), then which
  * properties: all of them, or only the ones selected. Someone picked from the directory on the Users list comes
  * in with their email and name filled in ([Person.inviteName]), and their photo goes with the invitation. Stateless
- * towards the app: [problem] says what is still missing, [onSave] returns what stopped the save.
+ * towards the app: [problem] says what is still missing, [onSave] returns what stopped the save. Without Manage access
+ * ([blocked]) every field and Save stay, greyed out, and a tap says why (the User Access Guide).
  */
 @Composable
 internal fun PersonSheet(
@@ -70,6 +74,8 @@ internal fun PersonSheet(
     onSuggestionPicked: () -> Unit = {},
     /** The directory is being asked: placeholder people instead of the last search's. */
     suggestionsLoading: Boolean = false,
+    /** Why people can't be added or changed (no Manage access), or null when they can. */
+    blocked: UiText? = null,
 ) {
     val isNew = initial.id.isEmpty()
     var email by remember { mutableStateOf(initial.email) }
@@ -97,6 +103,7 @@ internal fun PersonSheet(
         imageUrl = if (isNew) pickedNow?.imageUrl else initial.imageUrl,
     )
     val noAccess = stringResource(R.string.access_no_access)
+    val toaster = LocalToaster.current
 
     Box(Modifier.fillMaxSize().testTag(AccessTags.PERSON_SHEET)) {
         FormSheet(
@@ -104,8 +111,9 @@ internal fun PersonSheet(
             // The email goes under the name only when there is a name (as the web shows it).
             if (isNew) stringResource(R.string.access_person_add_sub_short) else initial.email.takeIf { it != initial.name },
             stringResource(if (isNew) R.string.access_action_add else R.string.access_action_save),
-            problem(draft) == null, error?.asString(), onClose,
-            onPrimary = { error = onSave(draft)?.toUiText() },
+            // Without Manage access Save is greyed out too, and a tap says why instead of saving.
+            blocked == null && problem(draft) == null, error?.asString(), onClose,
+            onPrimary = { if (blocked != null) toaster.show(blocked, ToastKind.INFO) else error = onSave(draft)?.toUiText() },
             bodyPadding = PaddingValues(16.dp), bodySpacing = 18.dp,
             primaryModifier = Modifier.testTag(AccessTags.SHEET_PRIMARY),
             dirty = email.trim() != initial.email.trim() || groupId != initial.groupId ||
@@ -120,7 +128,7 @@ internal fun PersonSheet(
                             if (it.isFocused && !emailFocused) onEmailTyped(email)
                             emailFocused = it.isFocused
                         },
-                        keyboard = KeyboardType.Email,
+                        keyboard = KeyboardType.Email, reason = blocked,
                     )
                     // The organisation's people are still being read: placeholders, then the hint or the matches.
                     if (emailFocused && suggestionsLoading && picked?.email != email.trim()) {
@@ -132,7 +140,7 @@ internal fun PersonSheet(
                     if (emailFocused && !suggestionsLoading && picked?.email != email.trim() && suggestions.isNotEmpty()) {
                         RowsCard {
                             suggestions.forEach { person ->
-                                Suggestion(person) {
+                                Suggestion(person, blocked) {
                                     email = person.email
                                     picked = person
                                     error = null
@@ -144,7 +152,7 @@ internal fun PersonSheet(
                 }
             }
             StackedField(stringResource(R.string.access_field_group)) {
-                BoxedSelect(group?.name ?: if (isNew) "" else noAccess, stringResource(R.string.access_choose_group)) { choosingGroup = true }
+                BoxedSelect(group?.name ?: if (isNew) "" else noAccess, stringResource(R.string.access_choose_group), blocked) { choosingGroup = true }
                 groupHint(group, isNew)?.let { Txt(it, 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
             }
             if (group != null) {
@@ -153,24 +161,27 @@ internal fun PersonSheet(
                         ChoiceCard(
                             everyProperty, Role.RadioButton, { RadioDot(everyProperty) },
                             stringResource(R.string.access_all_properties), stringResource(R.string.access_scope_all_desc_short),
+                            reason = blocked,
                         ) {
                             all = true
                             error = null
                         }
-                        // A group that manages properties or access needs all of them: Chosen can't be picked then.
+                        // A group that manages properties or access needs all of them: Chosen is greyed out then, and
+                        // a tap says why.
+                        val needsAll = organisationWideHint(group, organisationWide)
                         ChoiceCard(
                             !everyProperty, Role.RadioButton, { RadioDot(!everyProperty) },
                             stringResource(R.string.access_scope_chosen), stringResource(R.string.access_scope_chosen_desc_short),
                             chip = if (everyProperty) null else stringResource(R.string.access_n_chosen, chosen.size),
-                            enabled = organisationWide.isEmpty(), faded = organisationWide.isNotEmpty(),
+                            reason = blocked ?: needsAll,
                         ) {
                             all = false
                             error = null
                         }
-                        organisationWideHint(group, organisationWide)?.let { Txt(it, 12, 400, C.Orange, maxLines = Int.MAX_VALUE) }
+                        needsAll?.let { Txt(it.asString(), 12, 400, C.Orange, maxLines = Int.MAX_VALUE) }
                     }
                 }
-                if (!everyProperty) PropertyPicker(properties, chosen) { id -> chosen = if (id in chosen) chosen - id else chosen + id }
+                if (!everyProperty) PropertyPicker(properties, chosen, blocked) { id -> chosen = if (id in chosen) chosen - id else chosen + id }
             }
         }
         if (choosingGroup) {
@@ -194,7 +205,7 @@ internal fun PersonSheet(
 private fun groupHint(group: Group?, isNew: Boolean): String? = when {
     group == null -> if (isNew) null else stringResource(R.string.access_no_access_hint)
     group.description.isNotBlank() -> group.description
-    group.effectivePermissions.isEmpty() -> stringResource(R.string.access_view_only_hint)
+    group.effectivePermissions.isEmpty() -> stringResource(R.string.access_no_permissions_hint)
     else -> null
 }
 
@@ -204,15 +215,15 @@ private fun organisationWide(group: Group): List<Permission> = orderedPermission
 
 /** "Admins can manage properties and manage access, so they get all properties." (null when nothing needs it). */
 @Composable
-private fun organisationWideHint(group: Group, permissions: List<Permission>): String? {
+private fun organisationWideHint(group: Group, permissions: List<Permission>): UiText? {
     val names = permissions.map { it.title().lowercase() }
     if (names.isEmpty()) return null
-    return stringResource(R.string.access_needs_all_hint, group.name, names.joinToString(stringResource(R.string.access_and)))
+    return UiText.Res(R.string.access_needs_all_hint, listOf(group.name, names.joinToString(stringResource(R.string.access_and))))
 }
 
-/** The properties to tick, in a card, with a search field when there are many. */
+/** The properties to tick, in a card, with a search field when there are many; greyed out, saying [reason], when they can't be. */
 @Composable
-private fun PropertyPicker(properties: List<Property>, chosen: Set<String>, onToggle: (String) -> Unit) {
+private fun PropertyPicker(properties: List<Property>, chosen: Set<String>, reason: UiText?, onToggle: (String) -> Unit) {
     var q by remember { mutableStateOf("") }
     if (properties.size > PropertySearchFrom) SearchField(q, { q = it }, stringResource(R.string.access_search_properties))
     val typed = q.trim().lowercase()
@@ -226,6 +237,7 @@ private fun PropertyPicker(properties: List<Property>, chosen: Set<String>, onTo
         listed.forEachIndexed { i, p ->
             CardOptionRow(
                 Modifier.then(if (i > 0) Modifier.topBorder(C.Border) else Modifier).semantics { selected = p.id in chosen },
+                reason = reason,
                 onClick = { onToggle(p.id) },
             ) {
                 CheckBox(p.id in chosen, shape = r(5), offColor = C.Soft, checkSize = 12.dp, size = 20.dp)
@@ -235,16 +247,18 @@ private fun PropertyPicker(properties: List<Property>, chosen: Set<String>, onTo
     }
 }
 
-/** Someone from the directory to add: their name (or email) over their email. */
+/** Someone from the directory to add: their name (or email) over their email; greyed out, saying [reason], when they can't be. */
 @Composable
-private fun Suggestion(person: DirectoryPerson, onPick: () -> Unit) {
+private fun Suggestion(person: DirectoryPerson, reason: UiText?, onPick: () -> Unit) {
     val name = person.name?.takeIf { it.isNotBlank() }
-    Column(
-        Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button, onClick = onPick).fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).testTag(AccessTags.suggestion(person.email))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Txt(name ?: person.email, 13, 600)
-        if (name != null) Txt(person.email, 11, 400, C.Muted)
+    AccessGate(reason, Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button, onClick = onPick).fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).testTag(AccessTags.suggestion(person.email))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Txt(name ?: person.email, 13, 600)
+            if (name != null) Txt(person.email, 11, 400, C.Muted)
+        }
     }
 }

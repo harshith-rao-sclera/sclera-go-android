@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Users and access: why a greyed-out control can't be used (the User Access Guide's rules), shown when it's tapped. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Delete on the Admins group (1: the group's name). -->
+    <string name="access_page_group_fixed_delete">%1$s is a fixed group. It can\'t be deleted.</string>
+    <!-- A permission on the Admins group (1: the group's name). -->
+    <string name="access_page_group_fixed_permissions">%1$s is a fixed group. It always keeps every permission.</string>
+    <!-- Add on someone from the directory while there are no groups yet. -->
+    <string name="access_page_add_needs_group">There\'s no group to put them in yet. Add a group first.</string>
+</resources>

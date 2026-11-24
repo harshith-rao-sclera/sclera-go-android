@@ -64,9 +64,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.UserSession
 import com.sclera.sclerago.presentation.components.AccessFailedBanner
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.endBorder
 import com.sclera.sclerago.presentation.components.noRippleClick
@@ -127,11 +129,7 @@ fun SideMenu(
         session = (auth as? AuthState.SignedIn)?.session,
         propertyName = vm.propName.takeIf { vm.hasProperty },
         assetCount = vm.assets.size,
-        showAssets = vm.seesAssets,
-        showValidation = vm.canCheck,
-        showConfiguration = vm.canConfigure,
-        showIntegration = vm.canConfigure,
-        showUsers = vm.canManageAccess,
+        blocks = MenuItem.entries.associateWith(vm::menuBlock),
         accessFailed = vm.accessFailed,
         onRetryAccess = vm::retryAccess,
         active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen, s.intOpen),
@@ -153,17 +151,13 @@ internal fun SideMenuPanel(
     assetCount: Int,
     active: MenuItem,
     onClose: () -> Unit,
-    /** The Assets section shows except to a group that only configures (the web's seesDataCollection). */
-    showAssets: Boolean = true,
-    /** The Validation section shows only to someone who may run checks (the server's check permission). */
-    showValidation: Boolean = true,
-    /** The Configuration section shows only to someone who may configure the property (the server's configure permission), as on the web. */
-    showConfiguration: Boolean = true,
-    /** The Integration section shows only to someone who may configure the property (the server's configure permission). */
-    showIntegration: Boolean = true,
-    /** Users shows only to someone who may manage people and access (the server lists users only to them). */
-    showUsers: Boolean = true,
-    /** The user's access couldn't be loaded: a note under the profile says why sections are missing, with Retry. */
+    /**
+     * Why each entry is greyed out for the signed-in user's group (the User Access Guide), by entry; one left out opens.
+     * Every entry shows to everyone: Assets needs View, Validation Check, Configuration and Integration Configure, and
+     * Users (the access page) Manage access; a greyed-out one says why when tapped.
+     */
+    blocks: Map<MenuItem, AccessBlock?> = emptyMap(),
+    /** The user's access couldn't be loaded: a note under the profile says why entries are greyed out, with Retry. */
     accessFailed: Boolean = false,
     onRetryAccess: () -> Unit = {},
     onPick: (MenuItem) -> Unit,
@@ -248,7 +242,7 @@ internal fun SideMenuPanel(
 
                 // Top-level destinations
                 TopRow(MenuItem.PROPERTY, stringResource(R.string.property_list_title), Icons.Buildings, active, onPick)
-                if (showUsers) TopRow(MenuItem.USERS, stringResource(R.string.menu_users), Icons.Users, active, onPick)
+                TopRow(MenuItem.USERS, stringResource(R.string.menu_users), Icons.Users, active, onPick, blocks[MenuItem.USERS])
 
                 // Current property and its sections (none until a property is downloaded)
                 if (propertyName != null) Column(Modifier.fillMaxWidth().clip(r(14)).background(C.CardWash).border(1.dp, C.Border, r(14))) {
@@ -285,13 +279,22 @@ internal fun SideMenuPanel(
                     }
                     AnimatedVisibility(sectionsOpen, enter = expandVertically(), exit = shrinkVertically()) {
                         Column(Modifier.topBorder(C.Border).padding(start = 12.dp, end = 8.dp)) {
-                            if (showAssets) SectionRow(MenuItem.ASSETS, stringResource(R.string.label_assets), Icons.Box, Trailing.Count(assetCount), active, onPick, first = true)
-                            if (showValidation) SectionRow(
-                                MenuItem.VALIDATION, stringResource(R.string.menu_validation), Icons.ValidationChecks,
-                                Trailing.Open, active, onPick,
+                            SectionRow(
+                                MenuItem.ASSETS, stringResource(R.string.label_assets), Icons.Box, Trailing.Count(assetCount), active, onPick,
+                                blocks[MenuItem.ASSETS], first = true,
                             )
-                            if (showConfiguration) SectionRow(MenuItem.CONFIGURATION, stringResource(R.string.menu_configuration), Icons.Sliders, Trailing.Open, active, onPick)
-                            if (showIntegration) SectionRow(MenuItem.INTEGRATION, stringResource(R.string.menu_integration), Icons.Link, Trailing.Open, active, onPick)
+                            SectionRow(
+                                MenuItem.VALIDATION, stringResource(R.string.menu_validation), Icons.ValidationChecks,
+                                Trailing.Open, active, onPick, blocks[MenuItem.VALIDATION],
+                            )
+                            SectionRow(
+                                MenuItem.CONFIGURATION, stringResource(R.string.menu_configuration), Icons.Configuration, Trailing.Open, active, onPick,
+                                blocks[MenuItem.CONFIGURATION],
+                            )
+                            SectionRow(
+                                MenuItem.INTEGRATION, stringResource(R.string.menu_integration), Icons.Integration, Trailing.Open, active, onPick,
+                                blocks[MenuItem.INTEGRATION],
+                            )
                         }
                     }
                 }
@@ -350,10 +353,10 @@ private fun IconBox(icon: Ico) {
     }
 }
 
-/** Property list / Users: a card of its own. */
+/** Property list / Users: a card of its own; greyed out while [block] says why the user's group can't open it. */
 @Composable
-private fun TopRow(item: MenuItem, label: String, icon: Ico, active: MenuItem, onPick: (MenuItem) -> Unit) {
-    Row(
+private fun TopRow(item: MenuItem, label: String, icon: Ico, active: MenuItem, onPick: (MenuItem) -> Unit, block: AccessBlock? = null) =
+    AccessGate(block, Modifier.fillMaxWidth()) { Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).pressClickable(shape = r(14), pressed = PRESSED_CARD, role = Role.Button) { onPick(item) }.background(C.CardWash).border(1.dp, C.Border, r(14))
             .semantics { selected = item == active }.testTag(MenuTags.item(item))
             .padding(horizontal = 12.dp, vertical = 7.dp),
@@ -363,10 +366,12 @@ private fun TopRow(item: MenuItem, label: String, icon: Ico, active: MenuItem, o
         IconBox(icon)
         Txt(label, 14, 600, modifier = Modifier.weight(1f))
         LineIcon(Icons.ChevronRight, 11.dp, C.Dim, 3f)
-    }
-}
+    } }
 
-/** A section of the current property; rows after the first are separated by a line right of the icon. */
+/**
+ * A section of the current property; rows after the first are separated by a line right of the icon. Greyed out while
+ * [block] says why the user's group can't open it.
+ */
 @Composable
 private fun SectionRow(
     item: MenuItem,
@@ -375,8 +380,9 @@ private fun SectionRow(
     trailing: Trailing,
     active: MenuItem,
     onPick: (MenuItem) -> Unit,
+    block: AccessBlock?,
     first: Boolean = false,
-) {
+) = AccessGate(block, Modifier.fillMaxWidth()) {
     Row(
         Modifier.pressClickable(pressed = PRESSED_CARD, role = Role.Button) { onPick(item) }.fillMaxWidth().heightIn(min = 48.dp).semantics { selected = item == active }.testTag(MenuTags.item(item))
             ,

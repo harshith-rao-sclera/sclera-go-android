@@ -144,6 +144,8 @@ public class GlobalConfigDatabaseHelper {
     public static final String PROPERTIES_COLUMN_STATUS_DETAIL = "status_detail";
     public static final String PROPERTIES_COLUMN_SETTINGS = "settings";
     public static final String PROPERTIES_COLUMN_GEOFENCE_ENFORCED = "geofence_enforced";
+    /** The property's fences (GeoJSON MultiPolygon), encrypted by the app's PropertyTable. */
+    public static final String PROPERTIES_COLUMN_GEOFENCE = "geofence";
     public static final String PROPERTIES_COLUMN_CREATED_AT = "created_at";
     public static final String PROPERTIES_COLUMN_UPDATED_AT = "updated_at";
     public static final String PROPERTIES_COLUMN_IS_SYNCED = "is_synced";
@@ -174,6 +176,7 @@ public class GlobalConfigDatabaseHelper {
                     PROPERTIES_COLUMN_STATUS_DETAIL + " TEXT, " +
                     PROPERTIES_COLUMN_SETTINGS + " TEXT, " +
                     PROPERTIES_COLUMN_GEOFENCE_ENFORCED + " INTEGER DEFAULT 0, " +
+                    PROPERTIES_COLUMN_GEOFENCE + " TEXT, " +
                     PROPERTIES_COLUMN_CREATED_AT + " TEXT, " +
                     PROPERTIES_COLUMN_UPDATED_AT + " TEXT, " +
                     PROPERTIES_COLUMN_IS_SYNCED + " INTEGER NOT NULL DEFAULT 0 CHECK (" + PROPERTIES_COLUMN_IS_SYNCED + " IN (0, 1)));";

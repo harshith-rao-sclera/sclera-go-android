@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.usecase.validation.ValidationUseCases
@@ -131,8 +132,13 @@ data class ValidationUiState(
     val myId: String? = null,
     /** AI is on in the property: off, AI checks are skipped and only-AI templates and validations can't run. */
     val aiOn: Boolean = true,
-    val canCheck: Boolean = false,
-    val canValidate: Boolean = false,
+    /**
+     * Why the user can't run validations ([AccessBlock.NEEDS_CHECK]…), null when they can: run buttons are greyed out and
+     * say why (the User Access Guide). Nothing is allowed until the access is known.
+     */
+    val checkBlock: AccessBlock? = AccessBlock.CHECKING,
+    /** Why the user can't create, edit or delete saved validations or discard a ready run (Validate); null when they can. */
+    val validateBlock: AccessBlock? = AccessBlock.CHECKING,
     val runSheet: RunSheetState? = null,
     val templateDetails: String? = null,
     val orderSheet: OrderSheetState? = null,
@@ -151,6 +157,9 @@ data class ValidationUiState(
     val banner: JobBanner? = null,
 ) {
     val stepsByKey: Map<String, ValStep> get() = steps.associateBy { it.key }
+
+    val canCheck: Boolean get() = checkBlock == null
+    val canValidate: Boolean get() = validateBlock == null
 
     /** The choices Recent jobs' filters offer, from the runs listed. */
     val jobOptions by lazy { jobFilterOptions(runs, myId) }
@@ -201,16 +210,16 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     init {
         // The buttons follow the access as it is fetched or changes, not only when the page opens (as the web).
         viewModelScope.launch {
-            combine(useCases.access.observeCheck(), useCases.access.observeValidate(), ::Pair).collect { (check, validate) ->
+            combine(useCases.access.observeCheckBlock(), useCases.access.observeValidateBlock(), ::Pair).collect { (check, validate) ->
                 set {
                     copy(
-                        canCheck = check,
-                        canValidate = validate,
+                        checkBlock = check,
+                        validateBlock = validate,
                         myId = useCases.access.userId(),
                         // What the user may no longer do closes: running needs Check, keeping saved validations Validate.
-                        runSheet = runSheet?.takeIf { check },
-                        editor = editor?.takeIf { validate },
-                        confirmDelete = confirmDelete?.takeIf { validate },
+                        runSheet = runSheet?.takeIf { check == null },
+                        editor = editor?.takeIf { validate == null },
+                        confirmDelete = confirmDelete?.takeIf { validate == null },
                     )
                 }
             }
@@ -228,7 +237,7 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
         if (propertyId.isEmpty() || propertyId == state.propertyId) return
         poll?.cancel()
         state = ValidationUiState(
-            propertyId = propertyId, canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate(),
+            propertyId = propertyId, checkBlock = useCases.access.checkBlock(), validateBlock = useCases.access.validateBlock(),
             myId = useCases.access.userId(), aiOn = state.aiOn,
         )
         loadCatalog()
@@ -238,14 +247,14 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     fun bind(propertyId: String) {
         if (propertyId.isNotEmpty() && propertyId == state.propertyId) {
             // Templates an earlier read couldn't get (offline then) are asked for again now, not reported as unavailable.
-            set { copy(canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate(), catalogFailed = false) }
+            set { copy(checkBlock = useCases.access.checkBlock(), validateBlock = useCases.access.validateBlock(), catalogFailed = false) }
             if (!state.catalogLoaded) loadCatalog()
             reload()
             return
         }
         poll?.cancel()
         state = ValidationUiState(
-            propertyId = propertyId, canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate(),
+            propertyId = propertyId, checkBlock = useCases.access.checkBlock(), validateBlock = useCases.access.validateBlock(),
             myId = useCases.access.userId(), aiOn = state.aiOn,
         )
         if (propertyId.isEmpty()) return
@@ -289,16 +298,15 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
     /** Opens Filter jobs on the filters in force (those still offered). */
     fun openJobFilter() = set { copy(jobDraft = filters) }
 
-    /** A choice in Filter jobs (it takes effect with Show). */
-    fun editJobDraft(change: JobFilters.() -> JobFilters) = set { copy(jobDraft = jobDraft?.change()) }
+    /** A choice in Filter jobs: in force at once (the list behind follows it, again from its first rows). */
+    fun editJobDraft(change: JobFilters.() -> JobFilters) = set {
+        jobDraft?.change()?.let { f -> copy(jobDraft = f, jobFilters = f, jobsShown = JOBS_SHOWN) } ?: this
+    }
 
-    /** Reset in Filter jobs: nothing chosen (it takes effect with Show). */
-    fun resetJobDraft() = set { copy(jobDraft = jobDraft?.let { JobFilters() }) }
+    /** Reset in Filter jobs: nothing chosen, every job listed again at once. */
+    fun resetJobDraft() = editJobDraft { JobFilters() }
 
-    /** Show N jobs: the sheet's choices are put in force; the list starts again from its first rows. */
-    fun applyJobDraft() = set { jobDraft?.let { copy(jobFilters = it, jobDraft = null, jobsShown = JOBS_SHOWN) } ?: this }
-
-    /** Closes Filter jobs; the choices made in it are dropped. */
+    /** Closes Filter jobs; its choices stay in force (each took effect as it was made). */
     fun closeJobFilter() = set { copy(jobDraft = null) }
 
     /** "Show more" under Recent jobs. */
@@ -387,7 +395,7 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
         }
     }
 
-    /** Whether this user may run checks (Validate in Data Collection shows only then). */
+    /** Whether this user may run checks (Validate in Data Collection works only then; [ValidationUiState.checkBlock] says why not). */
     fun mayCheck(): Boolean = state.canCheck
 
     /** The note of a run started from Data Collection has been shown there. */

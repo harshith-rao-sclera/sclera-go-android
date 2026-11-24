@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.Group
@@ -22,6 +23,7 @@ import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.observedIn
 import com.sclera.sclerago.presentation.common.toUiText
+import com.sclera.sclerago.presentation.model.reason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -68,6 +70,11 @@ data class AccessListState(
     val unavailable: UiText? = null,
     /** Whether the add button works: adding a person needs a group to put them in; a new group needs the lists. */
     val canAdd: Boolean = false,
+    /**
+     * Why people and groups can't be changed (the User Access Guide: Manage access, with all properties), or null when
+     * they can: every change control stays, greyed out, and a tap says this.
+     */
+    val changeReason: UiText? = null,
     /** Everyone else the organisation's directory lists (not added here yet), under the users, a page at a time. */
     val others: List<DirectoryPerson> = emptyList(),
     /** Another page of [others] can be asked for ("Show more users"). */
@@ -107,11 +114,19 @@ class AccessViewModel @Inject constructor(
     /** Why the last read failed (null once one works). */
     private var loadError by mutableStateOf<UiText?>(null)
 
+    /** Why the user can't change people or groups now, null when they can (nothing can be changed until it's known). */
+    private var manageBlock by mutableStateOf<AccessBlock?>(AccessBlock.CHECKING)
+
+    /** [manageBlock] as what a tap on a greyed-out change control says, null when it works. */
+    val changeReason: UiText? get() = manageBlock.reason()
+
     init {
         // When the session ends, close every form and clear the search.
         viewModelScope.launch {
             observeAuthState().collect { if (it is AuthState.SignedOut) state = AccessState() }
         }
+        // Follows the user's access as it changes (fetched, an admin changed their group), so the controls do too.
+        viewModelScope.launch { useCases.manageAccessBlock().collect { manageBlock = it } }
         // People and groups are read from the server whenever the page opens; offline the saved copy stays.
         load()
     }
@@ -293,6 +308,7 @@ class AccessViewModel @Inject constructor(
             refreshing = pulled,
             unavailable = unavailable,
             canAdd = if (state.tab == AccessTab.PEOPLE) groups.isNotEmpty() else unavailable == null,
+            changeReason = changeReason,
             others = others.people,
             othersHasMore = others.hasMore,
             othersLoading = others.loading,
@@ -367,18 +383,27 @@ class AccessViewModel @Inject constructor(
     fun askDeleteGroup(g: Group?) = set { copy(confirmDelete = g) }
 
     /**
-     * "Go to users" on "can't be deleted yet" (a group that still has people in it, as the web): the question and the
-     * group's form close and the Users tab shows, to move them to another group.
+     * Why [g]'s Delete is greyed out, or null when it can be deleted (the User Access Guide): the Admins group is fixed,
+     * deleting needs Manage access, and a group with users can't be deleted until they are moved to another group.
      */
-    fun goToUsers() {
-        set { copy(confirmDelete = null, groupForm = null) }
-        setTab(AccessTab.PEOPLE)
+    fun deleteReason(g: Group): UiText? {
+        val members = peopleIn(g.id)
+        return when {
+            g.locked -> UiText.Res(R.string.access_page_group_fixed_delete, listOf(g.name))
+            manageBlock != null -> changeReason
+            members > 0 -> UiText.Plural(R.plurals.access_delete_not_yet_body, members)
+            else -> null
+        }
     }
 
-    /** Deletes [g]; a group that still has people in it isn't sent (the server refuses it; the page says so first). */
+    /** Why the permissions of [g] can't be ticked or unticked, or null when they can: the Admins group always keeps every one. */
+    fun permissionsReason(g: Group): UiText? =
+        if (g.locked) UiText.Res(R.string.access_page_group_fixed_permissions, listOf(g.name)) else changeReason
+
+    /** Deletes [g]; one that can't be deleted ([deleteReason]: Admins, people still in it, no Manage access) isn't sent. */
     fun deleteGroup(g: Group) {
         val members = peopleIn(g.id)
-        if (members > 0) return set { copy(confirmDelete = null) }
+        if (deleteReason(g) != null) return set { copy(confirmDelete = null) }
         viewModelScope.launch {
             var deleted = false
             online { deleted = useCases.deleteGroup(g, members) }

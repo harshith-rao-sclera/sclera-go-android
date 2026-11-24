@@ -1,5 +1,6 @@
 package com.sclera.sclerago.di
 
+import com.sclera.sclerago.data.local.DocumentDownloads
 import com.sclera.sclerago.data.local.EncryptedCache
 import com.sclera.sclerago.data.local.EncryptedFileCache
 import com.sclera.sclerago.data.online.AccessStore
@@ -17,12 +18,14 @@ import com.sclera.sclerago.data.remote.adc.AdcValidationService
 import com.sclera.sclerago.data.remote.adc.AdcIntegrationService
 import com.sclera.sclerago.data.remote.adc.forAdc
 import com.sclera.sclerago.data.repository.AccessRepositoryImpl
+import com.sclera.sclerago.data.repository.AssetDocumentsRepositoryImpl
 import com.sclera.sclerago.data.repository.AddressLookupRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertyImportRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetAssignmentRepositoryImpl
 import com.sclera.sclerago.data.repository.AuthRepositoryImpl
 import com.sclera.sclerago.data.repository.ConfigFieldsRepositoryImpl
 import com.sclera.sclerago.data.repository.ConfigPlacesRepositoryImpl
+import com.sclera.sclerago.data.repository.CurrencyRepositoryImpl
 import com.sclera.sclerago.data.repository.FileImportRepositoryImpl
 import com.sclera.sclerago.data.repository.GeofenceRepositoryImpl
 import com.sclera.sclerago.data.repository.PremiseRepositoryImpl
@@ -36,12 +39,16 @@ import com.sclera.sclerago.data.repository.ManagedAssetsRepositoryImpl
 import com.sclera.sclerago.data.repository.PlacesHistoryRepositoryImpl
 import com.sclera.sclerago.data.repository.VdmsPlacesRepositoryImpl
 import com.sclera.sclerago.domain.repository.AccessRepository
+import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
 import com.sclera.sclerago.domain.repository.AddressLookupRepository
 import com.sclera.sclerago.domain.repository.PropertyImportRepository
 import com.sclera.sclerago.domain.repository.AssetAssignmentRepository
 import com.sclera.sclerago.domain.repository.ConfigFieldsRepository
 import com.sclera.sclerago.domain.repository.ConfigPlacesRepository
+import com.sclera.sclerago.domain.repository.CurrencyRepository
 import com.sclera.sclerago.domain.repository.CurrentAccessRepository
+import com.sclera.sclerago.domain.repository.AccessRefusals
+import com.sclera.sclerago.data.remote.adc.AccessRefusalsImpl
 import com.sclera.sclerago.domain.repository.FileImportRepository
 import com.sclera.sclerago.domain.repository.GeofenceRepository
 import com.sclera.sclerago.domain.repository.PremiseRepository
@@ -81,9 +88,11 @@ abstract class OnlineModule {
     @Binds abstract fun onboarding(impl: OnboardingRepositoryImpl): OnboardingRepository
     @Binds abstract fun access(impl: AccessRepositoryImpl): AccessRepository
     @Binds abstract fun assetAssignment(impl: AssetAssignmentRepositoryImpl): AssetAssignmentRepository
+    @Binds abstract fun assetDocuments(impl: AssetDocumentsRepositoryImpl): AssetDocumentsRepository
     @Binds abstract fun addressLookup(impl: AddressLookupRepositoryImpl): AddressLookupRepository
     @Binds abstract fun propertyImport(impl: PropertyImportRepositoryImpl): PropertyImportRepository
     @Binds abstract fun currentAccess(impl: CurrentAccessRepositoryImpl): CurrentAccessRepository
+    @Binds abstract fun accessRefusals(impl: AccessRefusalsImpl): AccessRefusals
     @Binds abstract fun cache(impl: EncryptedFileCache): EncryptedCache
     @Binds abstract fun validationCatalog(impl: ValidationRunRepositoryImpl): ValidationCatalogRepository
     @Binds abstract fun savedValidations(impl: ValidationRunRepositoryImpl): SavedValidationRepository
@@ -98,9 +107,11 @@ abstract class OnlineModule {
     @Binds abstract fun premise(impl: PremiseRepositoryImpl): PremiseRepository
     @Binds abstract fun configFields(impl: ConfigFieldsRepositoryImpl): ConfigFieldsRepository
     @Binds abstract fun configPlaces(impl: ConfigPlacesRepositoryImpl): ConfigPlacesRepository
+    @Binds abstract fun currencies(impl: CurrencyRepositoryImpl): CurrencyRepository
     @Binds abstract fun fileImport(impl: FileImportRepositoryImpl): FileImportRepository
 
     @Binds @IntoSet abstract fun clearCache(impl: EncryptedFileCache): UserDataCleaner
+    @Binds @IntoSet abstract fun clearDocumentDownloads(impl: DocumentDownloads): UserDataCleaner
     @Binds @IntoSet abstract fun clearProperties(impl: PropertyStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearAccess(impl: AccessStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearAssignees(impl: AssetAssignmentRepositoryImpl): UserDataCleaner

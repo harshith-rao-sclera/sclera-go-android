@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- JACS code suggestions by AI: on the asset's JACS code row, and in the AI suggestions sheet. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- The AI button beside an empty JACS code (content description), and while it asks. -->
+    <string name="jacs_suggest_cd">Suggest a JACS code with AI</string>
+    <string name="jacs_suggesting_cd">Suggesting a JACS code</string>
+    <string name="jacs_suggest_none">No JACS code to suggest for this asset</string>
+    <string name="jacs_suggest_failed">Couldn’t suggest a JACS code.</string>
+    <string name="offline_suggest_jacs">You’re offline. JACS code suggestions come from the server, but you can still pick the code yourself. Try again when you’re connected.</string>
+    <!-- A suggested JACS code: its code and its catalogue title. -->
+    <string name="jacs_code_title">%1$s · %2$s</string>
+    <!-- After Apply in the AI suggestions sheet: "Filled the type, the JACS code and 3 fields · review and save". -->
+    <string name="ai_applied_what">Filled %1$s · review and save</string>
+</resources>

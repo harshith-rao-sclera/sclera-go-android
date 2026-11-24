@@ -43,9 +43,6 @@ internal const val ASSET_CLOSE_CHANGE_REQUEST = """UPDATE assets SET change_requ
 /** Who an asset is assigned to. */
 internal const val ASSET_ASSIGNEE = "SELECT assigned_to FROM assets WHERE id = ?"
 
-/** The asset a web page (manual, datasheet) is attached to. */
-internal const val WEB_DOCUMENT_ASSET = "SELECT asset_id FROM web_documents WHERE id = ?"
-
 /** Who asked for a change to an asset (null when nobody has). */
 internal const val ASSET_CHANGE_REQUESTER = "SELECT change_requested_by FROM assets WHERE id = ?"
 
@@ -105,7 +102,8 @@ internal const val PLACE_NAME_LOCATION = "SELECT name FROM locations WHERE id = 
 
 internal const val MEDIA_NEXT_POSITION = "SELECT COALESCE(MAX(position), -1) + 1 AS p FROM asset_media WHERE asset_id = ? AND %LIVE%"
 
-internal const val MEDIA_OF_ASSET = "SELECT id, object_path FROM asset_media WHERE asset_id = ? AND %LIVE%"
+/** The ids of an asset's media (removing the asset removes them; the table has no object_path any more). */
+internal const val MEDIA_OF_ASSET = "SELECT id FROM asset_media WHERE asset_id = ? AND %LIVE%"
 
 /** One of an asset's media, with the field it answers (if any). */
 internal const val MEDIA_ROW = "SELECT * FROM asset_media WHERE id = ? AND asset_id = ? AND %LIVE%"
@@ -128,26 +126,8 @@ internal const val PHOTO_COUNTS = """SELECT category, COUNT(*) AS n FROM asset_m
 internal const val MULTIMEDIA_INSERT = """INSERT OR REPLACE INTO multimedia (id, multimedia_content, table_name, column_name, row_id, content_type, "order")
     VALUES (?, ?, ?, ?, ?, ?, ?)"""
 
-// ---- documents
-
-/**
- * A file uploaded for an asset, as the server's `documents` keeps it: already read (`ready`), with no drafts made from it.
- * The file itself is found by the row's id.
- */
-internal const val DOCUMENT_INSERT = """INSERT INTO documents (id, filename, content_type, size_bytes, kind, status, draft_count, created_by,
-    version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'ready', 0, ?, 1, ?, ?)"""
-
-/** The file an asset was read from (the server's `assets.source_document_id`). */
-internal const val ASSET_SET_SOURCE_DOCUMENT = """UPDATE assets SET source_document_id = ?, version = version + 1, updated_at = ? WHERE id = ?"""
-
 /** Drops a removed media's file (the media removed, or its asset deleted) but keeps its `multimedia` row (the sync engine's record of it). */
 internal const val MULTIMEDIA_CLEAR = "UPDATE multimedia SET multimedia_content = NULL WHERE table_name = 'asset_media' AND row_id = ?"
-
-/** Drops a removed uploaded file's content, keeping its `multimedia` row as [MULTIMEDIA_CLEAR] does. */
-internal const val MULTIMEDIA_CLEAR_DOCUMENT = "UPDATE multimedia SET multimedia_content = NULL WHERE table_name = 'documents' AND row_id = ?"
-
-/** The uploaded file [id], if it is still there. */
-internal const val DOCUMENT_ROW = "SELECT id FROM documents WHERE id = ? AND %LIVE%"
 
 internal const val IMAGE_CONFIG = "SELECT image_config FROM global_timestamp WHERE id = '1'"
 

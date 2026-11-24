@@ -4,6 +4,7 @@ import com.sclera.sclerago.domain.model.FieldChecks
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.MAX_CHECK_LENGTH
 import com.sclera.sclerago.domain.model.MAX_PATTERN_LENGTH
+import com.sclera.sclerago.domain.model.NUMBER_KINDS
 import com.sclera.sclerago.domain.model.TEXT_KINDS
 import com.sclera.sclerago.domain.model.ValueRule
 
@@ -54,7 +55,7 @@ fun checksProblem(kind: FieldKind, checks: FieldChecks): ChecksProblem? {
                 else -> null
             }
         }
-        FieldKind.NUMBER -> {
+        in NUMBER_KINDS -> {
             val lo = min.toDoubleOrNull()
             val hi = max.toDoubleOrNull()
             when {
@@ -85,7 +86,7 @@ fun cleanChecks(kind: FieldKind, checks: FieldChecks, required: Boolean): FieldC
                 max = checks.max.trim(),
             )
         }
-        FieldKind.NUMBER -> FieldChecks(flagEmpty = flag, min = checks.min.trim(), max = checks.max.trim(), wholeNumber = checks.wholeNumber)
+        in NUMBER_KINDS -> FieldChecks(flagEmpty = flag, min = checks.min.trim(), max = checks.max.trim(), wholeNumber = checks.wholeNumber)
         FieldKind.DATE -> FieldChecks(flagEmpty = flag, rule = checks.rule.takeIf { kind in it.kinds } ?: ValueRule.NONE)
         else -> FieldChecks(flagEmpty = flag)
     }

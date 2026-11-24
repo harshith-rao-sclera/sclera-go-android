@@ -43,7 +43,7 @@ fun PropertyDto.toRecord(): PropertyRecord {
     val property = Property(
         id = id,
         name = name,
-        gps = false, // geofencing has no API; it stays on the device
+        gps = geofenceEnforced,
         type = type?.trim().orEmpty(),
         address = Address(
             line1 = addressLine1.orEmpty(), line2 = addressLine2.orEmpty(), country = country.orEmpty(),
@@ -52,6 +52,7 @@ fun PropertyDto.toRecord(): PropertyRecord {
         contact = Contact(contactName.orEmpty(), contactEmail.orEmpty(), contactPhone.orEmpty()),
         notes = notes.orEmpty(),
         availability = Availability(availableFrom.shortTime(defaults.start), availableUntil.shortTime(defaults.end), accessCode.orEmpty()),
+        fences = geofence.toFences(),
     )
     return PropertyRecord(property, settings.channelsOff())
 }
@@ -135,7 +136,7 @@ fun AssignResultDto.toAssignResult() = AssignResult(
     unchanged = unchanged.coerceAtLeast(0), notFound = notFound.coerceAtLeast(0),
 )
 
-fun PermissionDto.toPermissionInfo() = PermissionInfo(key, name, description, needsAllProperties)
+fun PermissionDto.toPermissionInfo() = PermissionInfo(key, name, description, needsAllProperties, includes)
 
 fun DirectoryPersonDto.toDirectoryPerson() = DirectoryPerson(email, name, userId, imageUrl)
 

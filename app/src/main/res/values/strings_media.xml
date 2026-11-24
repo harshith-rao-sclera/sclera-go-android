@@ -23,5 +23,11 @@
     <!-- A photo dropped into a kind that already has its most photos (1: the kind, 2: how many). -->
     <string name="media_kind_full">%1$s already has %2$d photos, the most this property allows.</string>
     <!-- Accessibility action on a new asset's photo: move it to another section (1: its name). -->
+    <!-- Holding a photo, video, voice memo or file: read out for the hold, and the menu's first item (open it). -->
+    <string name="media_actions">Show actions</string>
+    <string name="media_view">View</string>
     <string name="media_move_to">Move to %1$s</string>
+    <!-- Media → Add file: what it refuses (10 MB is passed as %1$d). -->
+    <string name="media_file_type_refused">Only Excel, CSV, PDF, Word and text files can be added here.</string>
+    <string name="media_file_too_big">Files over %1$d MB can\'t be added.</string>
 </resources>

@@ -19,7 +19,8 @@ import javax.inject.Inject
 
 /**
  * Who assets can be assigned to, matching [query]: the organisation's people as Sclera lists them (what Add user picks
- * from), [LIMIT] at a time; when Sclera can't be asked, the users already here. Throws [OnlineException].
+ * from), [LIMIT] at a time; when Sclera can't be asked, the users already here. The server lets reviewers (Validate)
+ * look people up for this, not only those who manage access. Throws [OnlineException].
  */
 class FindAssigneesUseCase @Inject constructor(private val access: AccessRepository) {
     suspend operator fun invoke(query: String): List<DirectoryPerson> {
@@ -39,17 +40,17 @@ class FindAssigneesUseCase @Inject constructor(private val access: AccessReposit
 
 /**
  * Gives [assetIds] of [propertyId] to [email]; no email takes them off whoever has them. Someone not here yet is
- * added as a Collector on the property by the server. The server lets only admins do it ("Only an admin can assign
- * assets to someone."), so it is offered to admins only. Throws [OnlineException].
+ * added as a Collector on the property by the server. The server lets only reviewers (Validate) do it ("Only a reviewer
+ * can assign assets to someone."), so it is offered to them only. Throws [OnlineException].
  */
 class AssignAssetsUseCase @Inject constructor(private val repo: AssetAssignmentRepository, private val guard: PermissionGuard) {
-    /** Whether the signed-in user may assign assets (so the action shows): an admin who can collect, as the server checks. */
-    fun allowed(): Boolean = guard.allows(Permission.COLLECT) && guard.isAdmin()
+    /** Whether the signed-in user may assign assets (so the action shows): a reviewer who can collect, as the server checks. */
+    fun allowed(): Boolean = guard.allows(Permission.COLLECT) && guard.isReviewer()
 
-    /** Throws [OnlineException] Forbidden unless the user is an admin who can collect (the server's "Only an admin can assign"). */
+    /** Throws [OnlineException] Forbidden unless the user is a reviewer who can collect (the server's "Only a reviewer can assign"). */
     suspend operator fun invoke(propertyId: String, assetIds: Collection<String>, email: String?): AssignResult {
         guard.requireOnline(Permission.COLLECT)
-        if (!guard.isAdmin()) throw OnlineException(OnlineError.Forbidden)
+        if (!guard.isReviewer()) throw OnlineException(OnlineError.Forbidden)
         val ids = assetIds.filter { it.isNotBlank() }.distinct()
         if (ids.isEmpty()) return AssignResult(0, null, null, added = false, givenAccess = false)
         return repo.assign(propertyId, ids, email?.trim()?.takeIf { it.isNotEmpty() })
@@ -57,18 +58,18 @@ class AssignAssetsUseCase @Inject constructor(private val repo: AssetAssignmentR
 }
 
 /**
- * "Assign to me", as the web's: someone who collects but isn't an admin takes assets assigned to nobody for themselves,
- * while they can still change them (the server's rule: anyone may take an unassigned asset; anything else is an admin's).
+ * "Assign to me", as the web's: someone who collects but isn't a reviewer takes assets assigned to nobody for themselves,
+ * while they can still change them (the server's rule: anyone may take an unassigned asset; anything else is a reviewer's).
  * Throws [OnlineException].
  */
 class TakeAssetsUseCase @Inject constructor(private val repo: AssetAssignmentRepository, private val guard: PermissionGuard) {
-    /** Whether "Assign to me" shows: the user may collect, isn't an admin (who gets Assign) and is known to the server. */
-    fun allowed(): Boolean = guard.allows(Permission.COLLECT) && !guard.isAdmin() && guard.userId() != null
+    /** Whether "Assign to me" shows: the user may collect, isn't a reviewer (who gets Assign) and is known to the server. */
+    fun allowed(): Boolean = guard.allows(Permission.COLLECT) && !guard.isReviewer() && guard.userId() != null
 
     /** Why [assets] can't be taken (null when they can): one already has an assignee, or one is submitted or signed off. */
     fun refusal(assets: Collection<Asset>): TakeRefusal? = when {
         assets.any { !it.assignedTo.isNullOrBlank() } -> TakeRefusal.ALREADY_ASSIGNED
-        assets.any { isLockedFor(it.st, isAdmin = false) } -> TakeRefusal.SUBMITTED
+        assets.any { isLockedFor(it.st, reviewer = false) } -> TakeRefusal.SUBMITTED
         else -> null
     }
 

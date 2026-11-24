@@ -1,6 +1,7 @@
 package com.sclera.sclerago.data.repository
 
 import com.sclera.sclerago.data.local.EncryptedCache
+import com.sclera.sclerago.data.local.PropertyLocalData
 import com.sclera.sclerago.di.IoDispatcher
 import com.sclera.sclerago.domain.model.PropertyDownload
 import com.sclera.sclerago.domain.model.PropertyDownloads
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,7 +42,9 @@ import javax.inject.Singleton
 class SyncManagerPropertyDownloads @Inject constructor(
     private val sync: OfflineSync,
     private val cache: EncryptedCache,
-    @IoDispatcher io: CoroutineDispatcher,
+    @IoDispatcher private val io: CoroutineDispatcher,
+    /** What else the device keeps per property (assignees, type icons), forgotten with a removed property. */
+    private val localData: Set<@JvmSuppressWildcards PropertyLocalData> = emptySet(),
 ) : PropertyDownloadRepository, UserDataCleaner {
     private val scope = CoroutineScope(SupervisorJob() + io)
     private val state = MutableStateFlow(PropertyDownloads())
@@ -92,6 +96,31 @@ class SyncManagerPropertyDownloads @Inject constructor(
             // Every downloaded property's engine starts at once; reopen() then follows each one (and starts the rest).
             sync.reopenAll()
             reopen(s.downloadedIds + setOfNotNull(s.currentId))
+        }
+    }
+
+    override suspend fun remove(propertyIds: Set<String>) {
+        if (propertyIds.isEmpty()) return
+        synchronized(this) { propertyIds.forEach { follows.remove(it)?.cancel() } }
+        // The app stops reading the property first (nothing is current, the screens move off it), and only then is its
+        // database closed and deleted, so no screen reads a connection that is being closed.
+        val wasCurrent = state.value.currentId in propertyIds
+        state.update { s ->
+            s.copy(
+                downloadedIds = s.downloadedIds - propertyIds,
+                active = s.active - propertyIds,
+                currentId = s.currentId.takeUnless { it in propertyIds },
+            )
+        }
+        if (wasCurrent) {
+            sync.select(null)
+            // Not opened again next time.
+            toSave.value = null
+            runCatching { cache.write(RECENT, "") }
+        }
+        propertyIds.forEach { sync.remove(it) }
+        withContext(io) {
+            propertyIds.forEach { id -> localData.forEach { runCatching { it.forget(id) } } }
         }
     }
 

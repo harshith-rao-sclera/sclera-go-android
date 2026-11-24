@@ -45,6 +45,8 @@ data class StepIssue(
     val target: IssueTarget,
     /** The field it is about (the server's fieldName: "JACS code" for the code), null when about no field. */
     val fieldName: String?,
+    /** The field's type ("date", "text"…), as the run's issue has it; null when about no field. */
+    val fieldType: String? = null,
     val rule: String,
     val severity: IssueSeverity,
     /** A short fragment that doesn't repeat the field name: the field is shown as [label]. */

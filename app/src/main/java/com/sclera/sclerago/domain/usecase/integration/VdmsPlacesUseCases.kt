@@ -9,18 +9,11 @@ import com.sclera.sclerago.domain.model.PlacesPush
 import com.sclera.sclerago.domain.model.VdmsPlaces
 import com.sclera.sclerago.domain.repository.VdmsPlacesRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import com.sclera.sclerago.domain.usecase.config.ObserveConfigureBlockUseCase
 import javax.inject.Inject
 
 // Buildings, floors and locations on the Integration page: they don't sync with the linked VDMS, so they are sent there
 // or imported from there by hand, as on the web. Sending, importing and refreshing need the configure permission.
-
-/**
- * "Send to VDMS" and "Import from VDMS" are offered only to someone who may configure the property, as the server needs
- * (the web tests the plain "user" role, which gives the same answer on its Configure-only page).
- */
-class CanImportPlacesUseCase @Inject constructor(private val guard: PermissionGuard) {
-    operator fun invoke(): Boolean = guard.allows(Permission.CONFIGURE)
-}
 
 /** Both sides' buildings, floors and locations, and the latest send to VDMS. */
 class GetVdmsPlacesUseCase @Inject constructor(private val repo: VdmsPlacesRepository) {
@@ -53,9 +46,12 @@ class ImportPlacesFromVdmsUseCase @Inject constructor(private val repo: VdmsPlac
     }
 }
 
-/** The places import use cases, for injecting as one. */
+/**
+ * The places import use cases, for injecting as one. "Send to VDMS" and "Import from VDMS" need Configure, as the server
+ * needs: [configureBlock] says why they are greyed out for anyone else.
+ */
 class VdmsPlacesUseCases @Inject constructor(
-    val canImport: CanImportPlacesUseCase,
+    val configureBlock: ObserveConfigureBlockUseCase,
     val get: GetVdmsPlacesUseCase,
     val refresh: RefreshVdmsPlacesUseCase,
     val send: SendPlacesToVdmsUseCase,

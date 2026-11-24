@@ -44,6 +44,8 @@ fun DbRow.toFieldCfg(): FieldCfg? {
         options = DbJson.stringList(string("options")),
         defaultValue = string("default_value").orEmpty(),
         tooltip = string("help_text").orEmpty(),
+        // A currency field's currency; blank where the property's data has no unit column.
+        unit = string("unit")?.trim().orEmpty(),
     ).withChecks(readChecks(string("checks"), kind))
 }
 

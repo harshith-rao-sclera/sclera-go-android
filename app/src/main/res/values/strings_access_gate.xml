@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Why a greyed-out button can't be used (the User Access Guide's rules), shown when it's tapped. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="access_block_checking">Still checking what your group can do. Try again in a moment.</string>
+    <string name="access_block_no_group">You\'re not in a group yet, so you can\'t do this. Ask an admin to add you to one.</string>
+    <string name="access_block_view">Your group can\'t open properties. Ask an admin for the View permission.</string>
+    <string name="access_block_collect">View only. Your group can\'t change assets.</string>
+    <string name="access_block_check">Your group can\'t run validations. Ask an admin for the Check permission.</string>
+    <string name="access_block_validate">Only a reviewer can do this. Your group needs the Validate permission.</string>
+    <string name="access_block_configure">Only someone who configures the property can do this. Your group needs the Configure permission.</string>
+    <string name="access_block_manage_properties">Only someone who manages properties can do this. Your group needs the Manage properties permission.</string>
+    <string name="access_block_manage_access">Only someone who manages access can do this. Your group needs the Manage access permission.</string>
+    <string name="access_block_all_properties">This needs access to all properties. You can open only chosen properties.</string>
+    <string name="access_block_off_premise">This property uses geofencing. You can\'t change anything while you\'re away from the site or your location is unknown.</string>
+    <!-- Asset-level reasons (the asset's own lock). -->
+    <string name="access_block_submitted">Submitted. Only a reviewer can change it.</string>
+</resources>

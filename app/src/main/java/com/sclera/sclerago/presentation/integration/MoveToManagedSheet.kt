@@ -21,6 +21,7 @@ import com.sclera.sclerago.domain.model.MovePreview
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.SkeletonLead
 import com.sclera.sclerago.presentation.components.SkeletonList
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.GuardedClose
@@ -76,10 +77,13 @@ fun MoveToManagedSheet(
             Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 MovePlacesNote(s.preview)
                 val ok = s.network != null
-                Pill(
-                    stringResource(R.string.mv_submit), { if (vm.submit()) onSubmitted() },
-                    Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
-                )
+                // Moving needs Configure: should the access change while the sheet is open, Submit is greyed out with why.
+                AccessGate(vm.state.access, Modifier.fillMaxWidth()) {
+                    Pill(
+                        stringResource(R.string.mv_submit), { if (vm.submit()) onSubmitted() },
+                        Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
+                    )
+                }
             }
         }
     }

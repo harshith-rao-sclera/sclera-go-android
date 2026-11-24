@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.components
 
+import com.sclera.sclerago.presentation.model.color
+import com.sclera.sclerago.domain.model.Status
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -9,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -98,6 +101,12 @@ fun Modifier.outline(color: Color, width: Dp = 1.5.dp, offset: Dp = 2.dp) = draw
  * swipe on it doesn't change the page behind. Lists inside still scroll sideways; they get the drag first.
  */
 fun Modifier.blockSwipe() = pointerInput(Unit) { detectHorizontalDragGestures { change, _ -> change.consume() } }
+
+/**
+ * For a page drawn over another one (a side-menu page over the dashboard): every touch on it stays on it, so a tap on
+ * a bare part (a bar, a gap between cards) can't reach a button of the page underneath.
+ */
+fun Modifier.coverPageBehind() = pointerInput(Unit) { detectTapGestures() }
 
 fun Modifier.noRippleClick(onClick: () -> Unit) = composed {
     clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick)
@@ -409,6 +418,8 @@ fun ActionDock(
     assignToMe: Boolean = false,
     /** Greys Assign out ("Assign to me" can't take these); it still answers a tap, to say why. */
     assignDimmed: Boolean = false,
+    /** Why each action is greyed out for the signed-in user (the User Access Guide); a tap says why. */
+    access: DockAccess = DockAccess(),
     leading: @Composable RowScope.() -> Unit,
 ) {
     // Floating: the selection dock, flush with the screen edges: a tinted summary strip over the action row; otherwise one row with a top border.
@@ -417,26 +428,41 @@ fun ActionDock(
         val actions = listOfNotNull(onValidate, onEdit, onAssign, onSubmit, onChange, onMove, onDelete).size
         val narrow = actions >= 5
         val item = if (floating) Modifier.weight(1f) else Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
+        // An action the user's group can't use is greyed out by its access gate alone (no offline badge or dimming on top).
         onValidate?.let {
-            OfflineGate(offline, { onOffline(OnlineOnly.VALIDATE) }, item) {
-                DockAction(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, it, Modifier.fillMaxWidth())
+            DockGate(access.validate, item) { m ->
+                OfflineGate(offline && access.validate == null, { onOffline(OnlineOnly.VALIDATE) }, m) {
+                    DockAction(stringResource(R.string.action_validate), Icons.StatusValidated, Status.VALIDATED.color, it, Modifier.fillMaxWidth())
+                }
             }
         }
-        onEdit?.let { DockAction(stringResource(R.string.action_edit), Icons.Pencil, C.Orange, it, item) }
+        onEdit?.let { DockGate(access.edit, item) { m -> DockAction(stringResource(R.string.action_edit), Icons.Pencil, C.Orange, it, m) } }
         onAssign?.let {
-            OfflineGate(offline, { onOffline(OnlineOnly.ASSIGN) }, item) {
-                val label = stringResource(if (assignToMe) R.string.action_assign_to_me else R.string.action_assign)
-                DockAction(label, Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth().alpha(if (assignDimmed && !offline) 0.35f else 1f))
+            DockGate(access.assign, item) { m ->
+                OfflineGate(offline && access.assign == null, { onOffline(OnlineOnly.ASSIGN) }, m) {
+                    val label = stringResource(if (assignToMe) R.string.action_assign_to_me else R.string.action_assign)
+                    val dim = assignDimmed && !offline && access.assign == null
+                    DockAction(label, Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f))
+                }
             }
         }
-        onSubmit?.let { DockAction(stringResource(R.string.action_submit), Icons.Upload, C.Blue, it, item.alpha(if (submitDimmed) 0.35f else 1f)) }
-        onChange?.let { DockAction(stringResource(R.string.action_change), Icons.Alert, C.Orange, it, item) }
+        onSubmit?.let {
+            DockGate(access.submit, item) { m ->
+                DockAction(stringResource(R.string.action_submit), Icons.StatusSubmitted, Status.SUBMITTED.color, it, m.alpha(if (submitDimmed && access.submit == null) 0.35f else 1f))
+            }
+        }
+        onChange?.let { DockGate(access.change, item) { m -> DockAction(stringResource(R.string.action_change), Icons.ChangeRequest, C.Orange, it, m) } }
         onMove?.let {
-            OfflineGate(offline, { onOffline(OnlineOnly.MOVE_TO_MANAGED) }, item) {
-                DockAction(stringResource(R.string.mv_action), Icons.Send, C.Green, it, Modifier.fillMaxWidth().alpha(if (moveDimmed && !offline) 0.35f else 1f))
+            DockGate(access.move, item) { m ->
+                OfflineGate(offline && access.move == null, { onOffline(OnlineOnly.MOVE_TO_MANAGED) }, m) {
+                    val dim = moveDimmed && !offline && access.move == null
+                    DockAction(stringResource(R.string.mv_action), Icons.Managed, C.Yellow, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f))
+                }
             }
         }
-        onDelete?.let { DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, it, if (narrow || floating) item else deleteModifier) }
+        onDelete?.let {
+            DockGate(access.delete, if (narrow || floating) item else deleteModifier) { m -> DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, it, m) }
+        }
     }
     if (floating) {
         Column(Modifier.fillMaxWidth().background(C.Surface)) {
@@ -466,12 +492,14 @@ class DockItem(
     val onClick: () -> Unit,
     val online: OnlineOnly? = null,
     val tag: String? = null,
+    /** Why the signed-in user can't use it ([AccessGate]): greyed out, and a tap says this; null when they can. */
+    val blocked: com.sclera.sclerago.presentation.common.UiText? = null,
 )
 
 /**
  * The asset's actions as a rounded card inside a form (asset details), as the web's asset bar: those that apply, in
  * order, spread evenly (at most five apply to one asset). An action that needs the server is dimmed offline with a
- * badge, and a tap says why ([onOffline]).
+ * badge, and a tap says why ([onOffline]); one the user may not use ([DockItem.blocked]) is greyed out and says why.
  */
 @Composable
 fun ActionCard(
@@ -493,12 +521,16 @@ fun ActionCard(
         items.forEach { a ->
             val tagged = a.tag?.let { Modifier.testTag(it) } ?: Modifier
             val online = a.online
-            if (online != null) {
-                OfflineGate(offline, { onOffline(online) }, item.fillMaxHeight()) {
+            val blocked = a.blocked
+            when {
+                // Not this user's to use: greyed out, and a tap says why (going online wouldn't change that).
+                blocked != null -> AccessGate(blocked, item.fillMaxHeight()) {
+                    DockAction(a.label, a.icon, a.color, a.onClick, Modifier.fillMaxWidth().then(tagged), lines = 2, labelSize = 11, labelWeight = 700)
+                }
+                online != null -> OfflineGate(offline, { onOffline(online) }, item.fillMaxHeight()) {
                     DockAction(a.label, a.icon, a.color, a.onClick, gated.then(tagged), lines = 2, labelSize = 11, labelWeight = 700)
                 }
-            } else {
-                DockAction(a.label, a.icon, a.color, a.onClick, item.then(tagged), lines = 2, labelSize = 11, labelWeight = 700)
+                else -> DockAction(a.label, a.icon, a.color, a.onClick, item.then(tagged), lines = 2, labelSize = 11, labelWeight = 700)
             }
         }
     }

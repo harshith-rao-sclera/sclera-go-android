@@ -1,5 +1,6 @@
 package com.sclera.sclerago.testutil
 
+import com.sclera.sclerago.domain.usecase.access.ObserveManageAccessBlockUseCase
 import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.repository.AccessRepository
@@ -72,5 +73,5 @@ class InMemoryAccessRepository(groups: List<Group> = emptyList(), people: List<P
 fun accessUseCases(repo: AccessRepository, guard: PermissionGuard = allowAllGuard()): AccessUseCases = AccessUseCases(
     ObserveGroupsUseCase(repo), ObservePeopleUseCase(repo), ObservePermissionsUseCase(repo), BrowseDirectoryUseCase(repo),
     RefreshAccessUseCase(repo), ValidatePersonUseCase(), ValidateGroupUseCase(), SavePersonUseCase(repo, guard),
-    SaveGroupUseCase(repo, guard), DeleteGroupUseCase(repo, guard),
+    SaveGroupUseCase(repo, guard), DeleteGroupUseCase(repo, guard), ObserveManageAccessBlockUseCase(guard),
 )

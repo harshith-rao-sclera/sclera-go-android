@@ -6,10 +6,12 @@ import com.sclera.sclerago.domain.model.DraftField
 import com.sclera.sclerago.domain.model.NAME_FIELD_KEY
 import com.sclera.sclerago.domain.model.DraftsAccepted
 import com.sclera.sclerago.domain.model.ImportedFile
+import com.sclera.sclerago.domain.model.IMPORTABLE_KINDS
 import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.UploadProblem
 import com.sclera.sclerago.domain.model.UploadedDocument
 import com.sclera.sclerago.domain.model.documentKind
@@ -19,12 +21,13 @@ import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 /**
- * Why the server would refuse [file] (`POST /documents`): a kind it can't read, an empty file or one over the limit;
- * null when it can go. A size the file manager didn't give (-1) is left to the server.
+ * Why [file] can't be uploaded to scan for assets (`POST /documents`): not one of the kinds the File tab takes
+ * ([IMPORTABLE_KINDS]), an empty file or one over the limit; null when it can go. A size the file manager didn't
+ * give (-1) is left to the server.
  */
 class CheckUploadUseCase @Inject constructor() {
     operator fun invoke(file: ImportedFile): UploadProblem? = when {
-        documentKind(file.name, file.mime) == null -> UploadProblem.UNREADABLE
+        documentKind(file.name, file.mime) !in IMPORTABLE_KINDS -> UploadProblem.UNREADABLE
         file.size == 0L -> UploadProblem.EMPTY
         file.size > MAX_DOCUMENT_UPLOAD_MB * 1024L * 1024L -> UploadProblem.TOO_LARGE
         else -> null
@@ -54,9 +57,11 @@ class ReadFileUseCase @Inject constructor(private val files: FileImportRepositor
         file: ImportedFile,
         onProgress: (Int) -> Unit,
         onUploaded: () -> Unit,
+        /** Where the assets read from it come from: a file, or the Camera's Many assets. */
+        source: Source = Source.FILE,
     ): UploadedDocument {
         access.require()
-        var document = files.upload(property, file, onProgress)
+        var document = files.upload(property, file, onProgress, source)
         onUploaded()
         repeat(MAX_POLLS) {
             if (document.status != DocumentStatus.PROCESSING) return document
@@ -96,11 +101,6 @@ class UpdateDraftUseCase @Inject constructor(private val files: FileImportReposi
     }
 }
 
-/** Saves the sample spreadsheet (a column per field) to [destination]; filled in, it uploads as any file does. */
-class SaveSampleUseCase @Inject constructor(private val files: FileImportRepository) {
-    suspend operator fun invoke(property: String, destination: String) = files.saveSample(property, destination)
-}
-
 /** Adds the drafts [ids] as assets (they reach the device with the next sync). Needs [Permission.COLLECT]. */
 class AcceptDraftsUseCase @Inject constructor(private val files: FileImportRepository, private val access: FileImportAccessUseCase) {
     suspend operator fun invoke(property: String, ids: List<String>, createFields: Boolean): DraftsAccepted {
@@ -126,7 +126,6 @@ class FileImportUseCases @Inject constructor(
     val drafts: ListDraftsUseCase,
     val fields: ListDraftFieldsUseCase,
     val updateDraft: UpdateDraftUseCase,
-    val saveSample: SaveSampleUseCase,
     val accept: AcceptDraftsUseCase,
     val discard: DiscardDraftsUseCase,
 )

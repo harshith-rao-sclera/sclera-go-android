@@ -38,7 +38,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.domain.validation.RunAssetResult
 import com.sclera.sclerago.domain.validation.RunInsights
 import com.sclera.sclerago.domain.model.Status
@@ -112,27 +114,30 @@ internal fun ReviewHead(j: ValRun) {
 }
 
 /**
- * Apply the confident fixes, above the run's first card, once it has finished and has some. (Export CSV and Run again
- * float in the corner: [ReviewFabs].)
+ * Apply the confident fixes, above the run's first card, once it has finished and has some; greyed out, saying why, while
+ * [checkBlock] holds the user back. (Export CSV and Run again float in the corner: [ReviewFabs].)
  */
 @Composable
-internal fun ReviewActions(j: ValRun, confident: Int, canCheck: Boolean, busy: Boolean, onApplyConfident: () -> Unit) {
-    if (!(j.status.finished && confident > 0 && canCheck)) return
+internal fun ReviewActions(j: ValRun, confident: Int, checkBlock: AccessBlock?, busy: Boolean, onApplyConfident: () -> Unit) {
+    if (!(j.status.finished && confident > 0)) return
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
-        Pill(
-            pluralStringResource(R.plurals.rev_apply_confident, confident, confident), { if (!busy) onApplyConfident() },
-            bg = C.Yellow, fg = C.OnYellow, height = 34.dp, hPad = 14.dp, size = 12, weight = 700,
-        )
+        AccessGate(checkBlock) {
+            Pill(
+                pluralStringResource(R.plurals.rev_apply_confident, confident, confident), { if (!busy) onApplyConfident() },
+                bg = C.Yellow, fg = C.OnYellow, height = 34.dp, hPad = 14.dp, size = 12, weight = 700,
+            )
+        }
     }
 }
 
 /**
- * The run's floating buttons, stacked in the corner: Run again (yellow, at the bottom, once it has finished and the user
- * may run checks) and Export CSV above it (once it has checked something; it spins while [busy]).
+ * The run's floating buttons, stacked in the corner: Run again (yellow, at the bottom, once it has finished; greyed out,
+ * saying why, while [checkBlock] holds the user back) and Export CSV above it (once it has checked something; it spins
+ * while [busy]).
  */
 @Composable
-internal fun ReviewFabs(j: ValRun, canCheck: Boolean, busy: Boolean, onExport: () -> Unit, onRunAgain: () -> Unit, modifier: Modifier = Modifier) {
-    val runAgain = j.status.finished && canCheck
+internal fun ReviewFabs(j: ValRun, checkBlock: AccessBlock?, busy: Boolean, onExport: () -> Unit, onRunAgain: () -> Unit, modifier: Modifier = Modifier) {
+    val runAgain = j.status.finished
     val export = j.processed > 0
     if (!runAgain && !export) return
     Column(
@@ -146,7 +151,7 @@ internal fun ReviewFabs(j: ValRun, canCheck: Boolean, busy: Boolean, onExport: (
                 bg = C.Btn, fg = C.Text, iconSize = 20.dp, stroke = 2.4f, busy = busy,
             )
         }
-        if (runAgain) {
+        if (runAgain) AccessGate(checkBlock) {
             CircleFab(Icons.Refresh, stringResource(R.string.rev_run_again), onRunAgain, Modifier.testTag("review_run_again"), iconSize = 22.dp, stroke = 2.4f)
         }
     }
@@ -352,7 +357,8 @@ private fun OutcomeChip(label: String, n: Int, on: Boolean, dot: Color?, onClick
 
 /**
  * One asset of the run: its type's icon, name and outcome, its score, a square per step (how it went there) and how
- * many of its issues are still open. Long-press ticks it (reviewers) to decide on several together.
+ * many of its issues are still open. Long-press ticks it (reviewers) to decide on several together; for anyone else it
+ * says why it can't.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

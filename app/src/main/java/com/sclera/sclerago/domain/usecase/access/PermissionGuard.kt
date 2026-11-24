@@ -1,6 +1,8 @@
 package com.sclera.sclerago.domain.usecase.access
 
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.AccessState
+import com.sclera.sclerago.domain.model.CurrentAccess
 import com.sclera.sclerago.domain.model.DataError
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.OnlineError
@@ -35,6 +37,35 @@ class PermissionGuard @Inject constructor(
     /** [allows], kept up to date as the access or the premise status changes (for showing or hiding a button). */
     fun observe(permission: Permission): Flow<Boolean> =
         combine(access.state, premise.status) { state, status -> allows(state, status, permission) }.distinctUntilChanged()
+
+    /**
+     * Why the user can't do [permission] now, or null when they can (exactly when [allows] is true). For greying a button
+     * out and saying why when it's tapped.
+     */
+    fun block(permission: Permission): AccessBlock? = block(access.state.value, premise.status.value, permission)
+
+    /** [block], kept up to date as the access or the premise status changes. */
+    fun observeBlock(permission: Permission): Flow<AccessBlock?> =
+        combine(access.state, premise.status) { state, status -> block(state, status, permission) }.distinctUntilChanged()
+
+    private fun block(state: AccessState, status: PremiseStatus, permission: Permission): AccessBlock? = when (state) {
+        AccessState.Loading, is AccessState.Failed -> AccessBlock.CHECKING
+        is AccessState.NoGroup -> AccessBlock.NO_GROUP
+        is AccessState.Loaded -> when {
+            permission in state.access.permissions ->
+                if (permission == Permission.COLLECT && heldByLocation(state, status)) AccessBlock.OFF_PREMISE else null
+            permission.needsAllProperties && limitedManager(state.access) -> AccessBlock.NEEDS_ALL_PROPERTIES
+            else -> AccessBlock.missing(permission)
+        }
+    }
+
+    /**
+     * `/me` leaves out Manage properties and Manage access for someone with a chosen list of properties, so whether their
+     * group has them isn't known. One that has everything those include (Configure and Validate), or the Admins group,
+     * is taken to have them, held back only by the chosen list.
+     */
+    private fun limitedManager(access: CurrentAccess): Boolean = !access.allProperties &&
+        (access.isAdmin || (Permission.CONFIGURE in access.permissions && Permission.VALIDATE in access.permissions))
 
     /** What the group grants, whatever the phone's location (for choosing which pages a group is offered). */
     fun holds(permission: Permission): Boolean = holds(access.state.value, permission)
@@ -83,13 +114,22 @@ class PermissionGuard @Inject constructor(
     /** The signed-in user's id, as the server knows them; null until the access has been fetched. */
     fun userId(): String? = (access.state.value as? AccessState.Loaded)?.access?.userId
 
-    /** The user is known to be in the Admins group (false until the access has been fetched). */
+    /**
+     * The user is known to be in the Admins group (false until the access has been fetched). Only for what the server
+     * still words by it (a sign-off's history line); what an admin may do comes from their permissions.
+     */
     fun isAdmin(): Boolean = (access.state.value as? AccessState.Loaded)?.access?.isAdmin == true
+
+    /**
+     * A reviewer, as the server's is_reviewer: the group has Validate. Reviewers assign assets to anyone and change any
+     * asset: one assigned to someone else, and one already submitted or signed off. False until the access is known.
+     */
+    fun isReviewer(): Boolean = holds(Permission.VALIDATE)
 
     /**
      * An asset assigned to [assignedTo] (a user id) is someone else's, as the server's assigned_elsewhere: it has an
      * assignee who isn't the signed-in user. One assigned to nobody is anyone's to work on. False while the access isn't
-     * known yet, so nothing is locked on a guess (the server still decides). Admins are checked separately.
+     * known yet, so nothing is locked on a guess (the server still decides). Reviewers are checked separately.
      */
     fun isAssignedElsewhere(assignedTo: String?): Boolean {
         val me = (access.state.value as? AccessState.Loaded)?.access?.userId ?: return false
@@ -98,11 +138,11 @@ class PermissionGuard @Inject constructor(
 
     /**
      * The user is a plain "user", as the web works it out from the permissions (`legacyRole`): someone who can only
-     * collect and check (or only look); anyone who can validate, configure or manage is not. The `role` text from
-     * `/me` isn't used, as on the web. False until the access has been fetched.
+     * look, collect and check; anyone who can validate, configure or manage is not. The `role` text from `/me` isn't
+     * used, as on the web. False until the access has been fetched.
      */
     fun isPlainUser(): Boolean = when (val s = access.state.value) {
-        is AccessState.Loaded -> s.access.permissions.all { it == Permission.COLLECT || it == Permission.CHECK }
+        is AccessState.Loaded -> s.access.permissions.all { it == Permission.VIEW || it == Permission.COLLECT || it == Permission.CHECK }
         is AccessState.NoGroup -> true
         AccessState.Loading, is AccessState.Failed -> false
     }

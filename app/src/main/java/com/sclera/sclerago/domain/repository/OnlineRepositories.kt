@@ -1,7 +1,16 @@
 package com.sclera.sclerago.domain.repository
 
 import com.sclera.sclerago.domain.model.AccessState
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+
+/**
+ * Every call the server refused (403): the user's group, permissions or properties may have changed since the app last
+ * read them, so they are read again (see the access use cases).
+ */
+interface AccessRefusals {
+    val refused: Flow<Unit>
+}
 
 /** What the signed-in user may do (the server's `GET /me`). */
 interface CurrentAccessRepository {

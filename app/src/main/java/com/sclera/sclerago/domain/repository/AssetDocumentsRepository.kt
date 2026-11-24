@@ -1,19 +1,30 @@
 package com.sclera.sclerago.domain.repository
 
 import com.sclera.sclerago.domain.model.AssetDocument
-import kotlinx.coroutines.flow.Flow
+import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.domain.model.OpenableFile
 
 /**
- * An asset's documents (its Documents tab): the file it was read from, the web pages its values came from and its
- * model's manuals. Writes throw [com.sclera.sclerago.domain.model.DataException].
+ * An asset's documents (its Documents tab), the server's only: documents are not synced, so every one is listed, opened,
+ * added and taken off through the API each time. Every call throws [com.sclera.sclerago.domain.model.OnlineException]
+ * (Offline without a connection).
  */
 interface AssetDocumentsRepository {
-    /** The asset's documents in the server's order (source file, pages, manuals), again whenever they change. */
-    fun observe(assetId: String): Flow<List<AssetDocument>>
+    /**
+     * The asset's documents: the ones added to it (its media of kind document), the file it was read from, the web pages
+     * its values came from and its model's manuals.
+     */
+    suspend fun list(assetId: String): List<AssetDocument>
 
-    /** Takes the web page [documentId] off its asset. */
-    suspend fun removeWebPage(documentId: String)
+    /** [document]'s file, fetched from the server to be opened. */
+    suspend fun download(assetId: String, document: AssetDocument): OpenableFile
 
-    /** Deletes the uploaded file [documentId] (the file the asset was read from, or one uploaded on its Documents tab). */
-    suspend fun removeSourceFile(documentId: String)
+    /** Adds the picked file [doc] to the asset's documents. */
+    suspend fun upload(assetId: String, doc: Media)
+
+    /** Takes the document [documentId] added to the asset off it. */
+    suspend fun removeAttachment(assetId: String, documentId: String)
+
+    /** Takes the web page [documentId] off the asset. */
+    suspend fun removeWebPage(assetId: String, documentId: String)
 }

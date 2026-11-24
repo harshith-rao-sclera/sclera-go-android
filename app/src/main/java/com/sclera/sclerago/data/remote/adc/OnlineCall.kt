@@ -31,6 +31,7 @@ class AdcSessionException(cause: Throwable? = null) : IOException("session ended
 class OnlineCall @Inject constructor(
     private val network: NetworkMonitor,
     @IoDispatcher private val io: CoroutineDispatcher,
+    private val refusals: AccessRefusalsImpl = AccessRefusalsImpl(),
 ) {
     /** The parsed JSON body of [request]. */
     suspend fun <T> json(request: suspend () -> Response<ResponseBody>, parse: (String) -> T): T = withContext(io) {
@@ -52,6 +53,13 @@ class OnlineCall @Inject constructor(
     /** The raw bytes of [request]'s answer (a file, such as the property import sample). */
     suspend fun bytes(request: suspend () -> Response<ResponseBody>): ByteArray = withContext(io) { send(request) { it.bytes() } ?: ByteArray(0) }
 
+    /**
+     * Reads [request]'s answer as it arrives with [read] (a file written to the device as it downloads, never held whole
+     * in memory). A connection lost on the way is [OnlineError.Offline]; an answer with no body is [OnlineError.Server].
+     */
+    suspend fun <T> stream(request: suspend () -> Response<ResponseBody>, read: (ResponseBody) -> T): T =
+        withContext(io) { send(request, read) ?: throw OnlineException(OnlineError.Server) }
+
     private suspend fun send(request: suspend () -> Response<ResponseBody>): String = send(request) { it.string() }.orEmpty()
 
     private suspend fun <T> send(request: suspend () -> Response<ResponseBody>, read: (ResponseBody) -> T): T? {
@@ -63,6 +71,8 @@ class OnlineCall @Inject constructor(
         } catch (e: IOException) {
             throw OnlineException(OnlineError.Offline, e)
         }
+        // Refused: the user's access may have changed since it was read, so it is read again (AccessRefusals).
+        if (response.code() == 403) refusals.report()
         return try {
             if (response.isSuccessful) response.body()?.use(read)
             else throw OnlineException(errorFor(response.code(), response.headers()["Retry-After"], response.errorBody()?.use { it.string() }))

@@ -44,7 +44,7 @@ class ReviewScreenTest {
                     sub = plural(R.plurals.review_items_sub, 3), addLabel = str(R.string.review_add_more), onAdd = { added++ },
                     items = items.value,
                     onToggle = { id -> toggled += id; items.value = items.value.map { if (it.id == id) it.copy(on = !it.on) else it } },
-                    onDiscard = { discarded++ }, onGo = { onboarded++ }, thumb = {},
+                    onDiscard = { discarded++ }, onGo = { onboarded++ }, thumb = { _, _ -> },
                 )
             }
         }
@@ -77,7 +77,7 @@ class ReviewScreenTest {
     fun nothingSelected_footerAsksToSelectItems() {
         compose.setContent {
             ScleraTheme {
-                ReviewScreen("", "Add", {}, SampleReviewItems.map { it.copy(on = false) }, {}, {}, {}) { }
+                ReviewScreen("", "Add", {}, SampleReviewItems.map { it.copy(on = false) }, {}, {}, {}) { _, _ -> }
             }
         }
         compose.onNodeWithTag(ReviewTags.GO).assertTextContains(str(R.string.review_select_items))

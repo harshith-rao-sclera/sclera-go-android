@@ -28,10 +28,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -71,7 +71,6 @@ import com.sclera.sclerago.presentation.theme.Txt
 object FilterTags {
     const val SHEET = "filter_sheet"
     const val RESET = "filter_reset"
-    const val SHOW = "filter_show"
     fun person(userId: String) = "filter_person_$userId"
     fun category(c: FilterCategory) = "filter_category_${c.name.lowercase()}"
     fun choice(key: String) = "filter_choice_$key"
@@ -80,8 +79,8 @@ object FilterTags {
 /**
  * The asset list's filter: who the assets are assigned to (a row of people, the signed-in user first as "You"), then the
  * type levels in a side rail (System type, Asset type, Sub type, Other: no type yet, Cloned and Mandatory fields missing)
- * with the chosen level's choices beside it. Choices
- * only take effect with "Show N assets"; Reset clears them in the sheet; closing drops them.
+ * with the chosen level's choices beside it. Each choice takes effect at once (the list behind follows it); Reset, at
+ * the top start, clears them all; closing keeps them.
  */
 @Composable
 fun AssetFilterSheet(
@@ -90,12 +89,11 @@ fun AssetFilterSheet(
     onPerson: (String) -> Unit,
     onToggle: (FilterCategory, String) -> Unit,
     onReset: () -> Unit,
-    onShow: () -> Unit,
 ) {
     var category by rememberSaveable { mutableStateOf(FilterCategory.SYSTEM) }
     BottomSheet(onClose) {
         Column(Modifier.testTag(FilterTags.SHEET)) {
-            FilterHeader(onClose)
+            FilterHeader(onClose, onReset, resettable = s.draft.count > 0)
             if (s.options.people.isNotEmpty() || s.options.unassigned != null) PeopleRow(s.options.people, s.options.unassigned, onPerson)
             else if (s.peopleLoading) PeopleSkeleton()
         }
@@ -103,29 +101,23 @@ fun AssetFilterSheet(
             CategoryRail(category, s.draft, Modifier.width(if (isTablet()) 170.dp else 116.dp)) { category = it }
             ChoiceList(category, s.options, Modifier.weight(1f)) { onToggle(category, it) }
         }
-        Row(
-            Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Pill(stringResource(R.string.filter_reset), onReset, Modifier.testTag(FilterTags.RESET), height = 40.dp, hPad = 18.dp, size = 13, weight = 700)
-            Pill(
-                pluralStringResource(R.plurals.filter_show, s.matching, s.matching), onShow,
-                Modifier.weight(1f).testTag(FilterTags.SHOW), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
-            )
-        }
     }
 }
 
-/** The close button (a yellow ×) at the start and "Filter" in the middle. */
+/** Reset at the start (dimmed with nothing chosen), "Filter" in the middle and the close button (a yellow ×) at the end. */
 @Composable
-private fun FilterHeader(onClose: () -> Unit) {
+private fun FilterHeader(onClose: () -> Unit, onReset: () -> Unit, resettable: Boolean) {
     val close = stringResource(R.string.action_close)
     Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp), contentAlignment = Alignment.Center) {
-        RoundButton(36.dp, C.Btn, onClose, Modifier.align(Alignment.CenterStart).semantics { contentDescription = close }) {
+        RoundButton(36.dp, C.Btn, onClose, Modifier.align(Alignment.CenterEnd).semantics { contentDescription = close }) {
             LineIcon(Icons.Close, 15.dp, C.Yellow, 2.6f)
         }
         Txt(stringResource(R.string.filter_title), 15, 700)
+        Pill(
+            stringResource(R.string.filter_reset), onReset,
+            Modifier.align(Alignment.CenterStart).alpha(if (resettable) 1f else 0.4f).testTag(FilterTags.RESET),
+            height = 36.dp, hPad = 14.dp, size = 13, weight = 700,
+        )
     }
 }
 

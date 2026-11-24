@@ -3,6 +3,7 @@ package com.sclera.sclerago.domain.usecase.asset
 import com.sclera.sclerago.domain.model.ClassificationResult
 import com.sclera.sclerago.domain.model.ClassifyDetails
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.domain.model.MAX_CLASSIFY_PHOTOS
 import com.sclera.sclerago.domain.model.Media
@@ -12,6 +13,7 @@ import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.readablePhotos
 import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.domain.model.TypeField
+import com.sclera.sclerago.domain.model.currencyInName
 import com.sclera.sclerago.domain.model.fieldKindOf
 import com.sclera.sclerago.domain.model.typeFieldKey
 import com.sclera.sclerago.domain.repository.ClassificationRepository
@@ -61,6 +63,8 @@ class GetTypeFieldsUseCase @Inject constructor(private val repo: ClassificationR
         return FieldCfg(
             key = typeFieldKey(name), label = name, kind = kind, section = FieldSection.MORE, required = false, custom = true,
             options = options, tooltip = helpText.orEmpty(),
+            // A type's currency field is in the currency its name ends with ("Purchase cost (USD)"), as at the server.
+            unit = if (kind == FieldKind.CURRENCY) currencyInName(name).orEmpty() else "",
         )
     }
 }

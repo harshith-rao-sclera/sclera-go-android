@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
@@ -242,12 +243,14 @@ internal fun FormSheet(
     /** Something was entered or changed: closing (back, outside, ×, Cancel) asks before discarding it. */
     dirty: Boolean = false,
     footerLeading: (@Composable RowScope.() -> Unit)? = null,
+    /** Why the signed-in user's group can't use the primary button (the User Access Guide): greyed out, a tap says why. */
+    primaryBlock: UiText? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) = Box(Modifier.fillMaxSize()) {
     GuardedClose(dirty, onClose) { close ->
         FormSheetBody(
             title, sub, primary, primaryEnabled, error, close, onPrimary, leadingIcon, progress,
-            bodyBackground, bodyPadding, bodySpacing, primaryModifier, footerLeading, content,
+            bodyBackground, bodyPadding, bodySpacing, primaryModifier, footerLeading, primaryBlock, content,
         )
     }
 }
@@ -268,6 +271,7 @@ private fun FormSheetBody(
     bodySpacing: Dp,
     primaryModifier: Modifier,
     footerLeading: (@Composable RowScope.() -> Unit)?,
+    primaryBlock: UiText?,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onClose)
@@ -323,11 +327,13 @@ private fun FormSheetBody(
                 // Editing something that can be deleted: Delete takes Cancel's place (two buttons, Delete and Save).
                 if (footerLeading != null) footerLeading.invoke(this)
                 else Pill(stringResource(R.string.action_cancel), onClose, Modifier.weight(1f), bg = C.Btn, height = 50.dp, size = 14, weight = 600)
-                Pill(
-                    primary, onPrimary, Modifier.weight(1f).then(primaryModifier),
-                    bg = if (primaryEnabled) C.Yellow else C.PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else C.PrimaryOffFg,
-                    height = 50.dp, size = 14, weight = 700,
-                )
+                AccessGate(primaryBlock, Modifier.weight(1f)) {
+                    Pill(
+                        primary, onPrimary, Modifier.fillMaxWidth().then(primaryModifier),
+                        bg = if (primaryEnabled) C.Yellow else C.PrimaryOffBg, fg = if (primaryEnabled) C.OnYellow else C.PrimaryOffFg,
+                        height = 50.dp, size = 14, weight = 700,
+                    )
+                }
             }
         }
     }

@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -185,6 +186,8 @@ class FabAction(
     /** With a subtitle the action is the design's two-line card: right-aligned title and subtitle, then a round [iconColor] icon. */
     val subtitle: String? = null,
     val iconColor: Color = C.Yellow,
+    /** Why the signed-in user's group can't use the action (the User Access Guide): greyed out, a tap says why. */
+    val accessBlock: UiText? = null,
 ) {
     /** An action that works offline; [onClick] last, so it can be passed as a trailing lambda. */
     constructor(label: String, icon: Ico, tag: String, onClick: () -> Unit) : this(label, icon, tag, onClick, null)
@@ -209,8 +212,9 @@ fun FabMenu(
         AnimatedVisibility(open, enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut()) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 actions.forEach { a ->
-                    // Offline, an online-only action stays in the menu (and the menu open) and a tap says why.
-                    OfflineGate(a.onBlocked != null, { a.onBlocked?.invoke() }) {
+                    // Offline, an online-only action stays in the menu (and the menu open) and a tap says why; one the
+                    // user's group can't use is greyed out by its access gate alone, which says why instead.
+                    AccessGate(a.accessBlock) { OfflineGate(a.onBlocked != null && a.accessBlock == null, { a.onBlocked?.invoke() }) {
                         val click = {
                             onOpenChange(false)
                             a.onClick()
@@ -227,7 +231,7 @@ fun FabMenu(
                             a.note?.let { Txt(it, 11, 600, C.Muted) }
                             LineIcon(a.icon, 17.dp, C.Yellow, 2.2f)
                         }
-                    }
+                    } }
                 }
             }
         }

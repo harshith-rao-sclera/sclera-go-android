@@ -8,7 +8,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The files of asset media and documents, kept only in the offline database's `multimedia` table (the sync engine
+ * The files of asset media, kept only in the offline database's `multimedia` table (the sync engine
  * uploads them from there, and downloads the server's there). Screens open them through [uri], which the app's private
  * media provider serves from the database; nothing else keeps a copy.
  */
@@ -51,7 +51,7 @@ class MediaBlobs @Inject constructor(private val db: AdcDatabase, @ApplicationCo
 
     companion object {
         /** The tables whose rows have files here. */
-        val TABLES = setOf("asset_media", "documents")
+        val TABLES = setOf("asset_media")
 
         /** The media provider's authority for this app. */
         fun authority(context: Context): String = context.packageName + ".media"

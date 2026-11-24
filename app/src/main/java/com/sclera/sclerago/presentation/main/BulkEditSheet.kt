@@ -28,12 +28,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.domain.model.ANSWER_NO
 import com.sclera.sclerago.domain.model.ANSWER_YES
 import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.UNCHECKED
+import com.sclera.sclerago.domain.model.labelWithCurrency
 import com.sclera.sclerago.presentation.assets.FieldLabel
 import com.sclera.sclerago.presentation.assets.FieldRow
 import com.sclera.sclerago.presentation.assets.MultiCheckRow
@@ -56,7 +59,14 @@ import com.sclera.sclerago.presentation.theme.Txt
  * field, with the asset form's own rows. Only what is filled in changes; [onUpdated] once it is written.
  */
 @Composable
-fun BulkEditSheet(s: BulkEditState, vm: BulkEditViewModel, onPickPlace: () -> Unit, onUpdated: () -> Unit) {
+fun BulkEditSheet(
+    s: BulkEditState,
+    vm: BulkEditViewModel,
+    onPickPlace: () -> Unit,
+    onUpdated: () -> Unit,
+    /** Why Update is greyed out (the user can't change assets now, the User Access Guide); a tap says why. */
+    updateBlock: UiText? = null,
+) {
     val fields by vm.fields.collectAsStateWithLifecycle()
     GuardedClose(s.hasChanges, vm::close) { close ->
         BottomSheet(close) {
@@ -75,11 +85,13 @@ fun BulkEditSheet(s: BulkEditState, vm: BulkEditViewModel, onPickPlace: () -> Un
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Pill(stringResource(R.string.bulk_cancel), close, height = 44.dp, hPad = 18.dp)
-                Pill(
-                    stringResource(R.string.bulk_update), { vm.update(onUpdated) },
-                    Modifier.weight(1f).alpha(if (s.hasChanges && !s.saving) 1f else 0.45f),
-                    bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
-                )
+                AccessGate(updateBlock, Modifier.weight(1f)) {
+                    Pill(
+                        stringResource(R.string.bulk_update), { vm.update(onUpdated) },
+                        Modifier.fillMaxWidth().alpha(if (s.hasChanges && !s.saving && updateBlock == null) 1f else 0.45f),
+                        bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
+                    )
+                }
             }
         }
     }
@@ -163,6 +175,7 @@ private fun BulkFieldRow(f: FieldCfg, value: String, onChange: (String) -> Unit)
     if (choices.isNotEmpty()) {
         SelectRow(k, f.label, value, listOf("" to stringResource(R.string.bulk_leave)) + choices, edited, onChange)
     } else {
-        FieldRow(k, f.label, value, onChange, edited, multiLine = f.kind == FieldKind.TEXTAREA)
+        // A currency field's amount: its name says the currency ("Purchase cost (USD)").
+        FieldRow(k, f.labelWithCurrency, value, onChange, edited, multiLine = f.kind == FieldKind.TEXTAREA)
     }
 }

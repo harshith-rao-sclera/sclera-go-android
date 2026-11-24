@@ -46,6 +46,10 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
     private var sheetWatchJob: Job? = null
     private var messageJob: Job? = null
 
+    init {
+        viewModelScope.launch { useCases.configureBlock().collect { block -> set { copy(access = block) } } }
+    }
+
     private fun set(f: PlacesUiState.() -> PlacesUiState) {
         state = state.f()
     }
@@ -58,7 +62,7 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
     /** Loads [propertyId]'s places (only called once the property is known to be linked to a VDMS). */
     fun bind(propertyId: String) {
         listOf(loadJob, refreshJob, pageWatchJob, sheetWatchJob).forEach { it?.cancel() }
-        state = PlacesUiState(propertyId = propertyId, canImport = useCases.canImport())
+        state = PlacesUiState(propertyId = propertyId, access = state.access)
         if (propertyId.isNotEmpty()) load()
     }
 
@@ -109,7 +113,7 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
 
     /**
      * Asks VDMS to send its list again, then checks every 2 seconds for up to 30 until it has; when it hasn't, says so.
-     * The stored list shows meanwhile.
+     * The stored list shows meanwhile, except while an open sheet waits for its first answer ([PlacesSheetState.firstLoad]).
      */
     fun refresh() {
         if (state.refreshing) return
@@ -120,7 +124,7 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
             val asked = try {
                 useCases.refresh(state.propertyId)
             } catch (_: OnlineException) {
-                set { copy(refreshing = false) }
+                refreshed()
                 flash(UiText.Res(R.string.pi_refresh_failed))
                 return@launch
             }
@@ -129,14 +133,17 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
                 val at = fetch()?.snapshotAt
                 // Newer than when VDMS was asked (by the server's clock), or just newer when the server didn't say.
                 if (at != null && (if (asked != null) at >= asked else at != before)) {
-                    set { copy(refreshing = false) }
+                    refreshed()
                     return@launch
                 }
             }
-            set { copy(refreshing = false) }
+            refreshed()
             flash(UiText.Res(R.string.pi_refresh_late))
         }
     }
+
+    /** VDMS answered, or the ask gave up: the open sheet shows what there is. */
+    private fun refreshed() = set { copy(refreshing = false, sheet = sheet?.copy(firstLoad = false)) }
 
     /** An online-only button was tapped offline: says why it needs the server. */
     fun explainOffline() = flash(UiText.Res(OnlineOnly.INTEGRATION.message))
@@ -164,7 +171,7 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
      */
     fun open(direction: PlacesDirection) {
         val s = state
-        if (!s.canImport || s.places == null || s.loading || s.sheet != null) return
+        if (s.access != null || s.places == null || s.loading || s.sheet != null) return
         if (direction == PlacesDirection.TO_VDMS && s.pushActive) return
         pageWatchJob?.cancel()
         set { copy(sheet = PlacesSheetState(direction).withView(places)) }

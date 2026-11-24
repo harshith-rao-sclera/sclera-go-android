@@ -5,6 +5,9 @@ enum class FieldKind(val label: String) {
     TEXT("Text"), CHECKBOX("Check Box"), MULTI("Multiple Check Boxes"), YESNO("Yes/No"), DATE("Date"), TIME("Time"),
     NUMBER("Number"), URL("URL"), DROPDOWN("Dropdown"), TEXTAREA("Textarea"),
 
+    /** An amount of money: a number whose currency is the field's [FieldCfg.unit] (USD), as the server's `currency` type. */
+    CURRENCY("Currency"),
+
     // Kinds the phone's asset form has no input for: only Configuration shows them (mandatory, visible, checks, edit,
     // delete), as the web's field list does.
     IMAGE("Image"), VIDEO("Video"), VOICE_MEMO("Voice memo"), KEY_VALUE("Key value"),
@@ -25,6 +28,7 @@ private val TYPE_OF_KIND = mapOf(
     FieldKind.DATE to "date", FieldKind.TIME to "time", FieldKind.DROPDOWN to "dropdown",
     FieldKind.MULTI to "multiple_checkbox", FieldKind.CHECKBOX to "checkbox", FieldKind.YESNO to "yesno",
     FieldKind.IMAGE to "image", FieldKind.VIDEO to "video", FieldKind.VOICE_MEMO to "voice_memo", FieldKind.KEY_VALUE to "key_value",
+    FieldKind.CURRENCY to "currency",
 )
 private val KIND_OF_TYPE = TYPE_OF_KIND.entries.associate { (kind, type) -> type to kind }
 
@@ -46,8 +50,14 @@ enum class FieldSection(val title: String) { IDENT("Identification"), CLASS("Cla
 /** Field kinds whose values are free text (their checks are a text format and lengths). */
 val TEXT_KINDS = setOf(FieldKind.TEXT, FieldKind.TEXTAREA)
 
-/** Field kinds that can have a format in their checks (text, number and date fields), as on the server. */
-val FORMAT_KINDS = TEXT_KINDS + FieldKind.NUMBER + FieldKind.DATE
+/**
+ * Field kinds whose answer is a number: number fields and a currency field's amount (the server's `is_number`). Their
+ * checks are a range and whole numbers only, and their answers are kept as numbers.
+ */
+val NUMBER_KINDS = setOf(FieldKind.NUMBER, FieldKind.CURRENCY)
+
+/** Field kinds that can have a format in their checks (text, number, currency and date fields), as on the server. */
+val FORMAT_KINDS = TEXT_KINDS + NUMBER_KINDS + FieldKind.DATE
 
 /**
  * What a field's values must be, beyond its kind (Configuration → Asset fields → Checks), as the server's
@@ -131,13 +141,18 @@ data class FieldCfg(
     /** Validation flags the field when it's left empty (mandatory fields always are). */
     val flagEmpty: Boolean = false,
     val rule: ValueRule = ValueRule.NONE,
-    /** Text: min / max length; number: min / max value. Blank = no limit. */
+    /** Text: min / max length; number and currency: min / max value. Blank = no limit. */
     val min: String = "",
     val max: String = "",
     /** Text fields with [ValueRule.PATTERN]: the regular expression the whole value must match. */
     val pattern: String = "",
-    /** Number fields: only whole numbers pass. */
+    /** Number and currency fields: only whole numbers pass. */
     val wholeNumber: Boolean = false,
+    /**
+     * The unit its answer is in, as the server keeps it (`asset_fields.unit`; blank for none). A currency field's is its
+     * currency, one of the server's currency codes (USD), and it always has one.
+     */
+    val unit: String = "",
     /** The field's id at the server (Configuration reads and writes fields there); blank for a field not made yet. */
     val id: String = "",
     /** The field belongs to one asset alone (added to it, or brought by its type), not to every asset. */

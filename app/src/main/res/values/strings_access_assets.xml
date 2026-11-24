@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Why an asset's greyed-out button can't be used (the User Access Guide's rules), shown when it's tapped. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="access_withdraw_not_yours">Only the person who asked for this change can withdraw it.</string>
+    <string name="access_comment_edit_not_yours">Only the person who wrote this comment can edit it.</string>
+</resources>

@@ -178,7 +178,7 @@ enum class RunMode { ALL, CHOSEN, CHANGED }
 /** A run to start now ([start]) or to save as ready. */
 data class RunRequest(val source: RunSource, val mode: RunMode, val assetIds: List<String>, val start: Boolean)
 
-/** A reviewer's decision on an asset in a run. */
+/** A reviewer's decision on an asset in a run. [EXCLUDED] is no longer offered: it only comes back from older runs (Undo clears it). */
 enum class Decision(val wire: String) {
     VALIDATED("validated"), RECOLLECT("recollect"), EXCLUDED("excluded"), CLEAR("clear");
 

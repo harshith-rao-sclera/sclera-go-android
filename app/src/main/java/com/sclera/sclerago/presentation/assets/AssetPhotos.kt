@@ -27,6 +27,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Media
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.MediaFull
@@ -43,6 +45,11 @@ import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 import androidx.compose.runtime.getValue
+import com.sclera.sclerago.presentation.components.MenuAct
+import com.sclera.sclerago.presentation.components.IconMenu
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.platform.LocalContext
 import com.sclera.sclerago.domain.model.formatDuration
@@ -82,11 +89,46 @@ internal fun lengthMs(m: Media): Long {
 /**
  * One attachment as a square tile ([modifier] sets its size): the picture (or a document's type), a video's length, and an
  * expand mark. [label] is a chip along the bottom (the Info strip's photo kind, e.g. "NAMEPLATE"), with a smaller mark.
+ * Tapping it opens it; holding it lists what can be done with it ([menu]). With [drag] (a new asset's photo cards) holding
+ * and dragging moves it to another card ([card] is its own), and holding without dragging lists the same [menu].
  */
 @Composable
-internal fun MediaTile(m: Media, onOpen: () -> Unit, modifier: Modifier = Modifier, label: String? = null) {
+internal fun MediaTile(
+    m: Media,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    menu: List<MenuAct> = emptyList(),
+    drag: PhotoDrag? = null,
+    card: String = "",
+) {
     val title = m.title()
-    Box(modifier.pressClickable(shape = r(12), onClick = onOpen).background(C.Raised).semantics { contentDescription = title }) {
+    var menuOpen by remember(m.id) { mutableStateOf(false) }
+    val hold = if (menu.isEmpty()) null else ({ menuOpen = true })
+    // A draggable photo's hold is the drag's: picked up and let go without moving, its menu opens. The finger lifting
+    // then also counts as a tap, which must not open the photo, so the tap right after a pick-up is ignored.
+    var pickedUp by remember(m.id) { mutableStateOf(false) }
+    val held = if (drag != null) {
+        Modifier.draggablePhoto(
+            drag, m, card,
+            onPickUp = { pickedUp = true },
+            onHold = { pickedUp = false; hold?.invoke() },
+            onMoved = { pickedUp = false },
+        )
+    } else Modifier
+    val tap: () -> Unit = {
+        if (pickedUp) {
+            pickedUp = false
+        } else {
+            onOpen()
+        }
+    }
+    val actionsLabel = stringResource(R.string.media_actions)
+    Box(
+        modifier.then(held).pressClickable(shape = r(12), onLongClick = if (drag == null) hold else null, onLongClickLabel = actionsLabel, onClick = tap)
+            .background(C.Raised).semantics { contentDescription = title },
+    ) {
+        IconMenu(menuOpen, { menuOpen = false }, menu)
         if (m.isDoc) Txt(m.ext, 11, 800, C.Yellow, Modifier.align(Alignment.Center))
         else MediaImage(m, Modifier.fillMaxSize(), maxPx = 240)
         if (m.video) Txt(
@@ -112,11 +154,20 @@ private val StripTile = 76.dp
 
 /**
  * The Info tab's photo strip: the asset's photos and videos as square tiles (a photo with a kind shows its name along the
- * bottom), then a dashed + that opens the camera ([onAdd]; null while the asset is read-only, when it is left out); a
- * tile opens full screen ([onOpen] takes its place in [media]). Nothing shows for a read-only asset with none.
+ * bottom), then a dashed + that opens the camera ([onAdd]; null where nobody may add one, e.g. a signed-off asset); a
+ * tile opens full screen ([onOpen] takes its place in [media]). Nothing shows for such an asset with none. [blocked]: the
+ * signed-in user may not change the asset, so the + and Remove are greyed out and a tap says why.
  */
 @Composable
-internal fun InfoPhotoStrip(media: List<Media>, onAdd: (() -> Unit)?, onOpen: (Int) -> Unit) {
+internal fun InfoPhotoStrip(
+    media: List<Media>,
+    onAdd: (() -> Unit)?,
+    onOpen: (Int) -> Unit,
+    /** What holding a tile offers besides opening it: saving a copy, and removing it (null: nobody may). */
+    onDownload: ((Media) -> Unit)? = null,
+    onRemove: ((Media) -> Unit)? = null,
+    blocked: UiText? = null,
+) {
     val shown = media.withIndex().filter { (_, m) -> !m.isDoc && !m.audio }
     if (onAdd == null && shown.isEmpty()) return
     val addLabel = stringResource(R.string.detail_menu_camera)
@@ -130,14 +181,17 @@ internal fun InfoPhotoStrip(media: List<Media>, onAdd: (() -> Unit)?, onOpen: (I
             MediaTile(
                 m, { onOpen(i) }, Modifier.size(StripTile).testTag(PhotoTags.tile(i)),
                 label = if (m.video) null else m.category?.let { stringResource(it.nameRes()).uppercase(Locale.getDefault()) },
+                menu = mediaMenu(m, { onOpen(i) }, onDownload, onRemove, removeBlocked = blocked),
             )
         }
         onAdd?.let { add ->
-            Box(
-                Modifier.size(StripTile).testTag(PhotoTags.ADD).pressClickable(shape = r(12), onClick = add).dashedBorder(C.Border2, 1.dp, 12.dp)
-                    .semantics { contentDescription = addLabel },
-                contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Plus, 24.dp, C.Yellow, 2.6f) }
+            AccessGate(blocked) {
+                Box(
+                    Modifier.size(StripTile).testTag(PhotoTags.ADD).pressClickable(shape = r(12), onClick = add).dashedBorder(C.Border2, 1.dp, 12.dp)
+                        .semantics { contentDescription = addLabel },
+                    contentAlignment = Alignment.Center,
+                ) { LineIcon(Icons.Plus, 24.dp, C.Yellow, 2.6f) }
+            }
         }
     }
 }
@@ -152,14 +206,17 @@ internal fun removeMediaTitle(m: Media): String = when {
 
 /**
  * Full-screen view of the one attachment [m] that was tapped (no swiping to the others), as the web's media viewer:
- * Download saves a copy, and Remove (null: the asset is read-only) asks to delete it from the asset.
+ * Download saves a copy, and Remove (null: nobody may) asks to delete it from the asset; [removeBlocked]: the signed-in
+ * user may not change the asset, so Remove is greyed out and a tap says why.
  */
 @Composable
 fun PhotoViewer(
     m: Media,
     onClose: () -> Unit,
-    onDownload: (Media) -> Unit,
+    /** Saves a copy; null hides Download (a file picked from the phone is already there). */
+    onDownload: ((Media) -> Unit)?,
     onRemove: ((Media) -> Unit)?,
+    removeBlocked: UiText? = null,
 ) {
     Column(Modifier.fillMaxSize().testTag(PhotoTags.VIEWER).background(C.shade(0.96f)).noRippleClick { }) {
         Row(
@@ -171,9 +228,13 @@ fun PhotoViewer(
                 Txt(m.title(), 15, 700)
                 m.credit?.let { Txt(it, 10, 400, C.Muted, maxLines = Int.MAX_VALUE) }
             }
-            HeaderButton(Icons.Download, stringResource(R.string.media_download), C.Text, Modifier.testTag(PhotoTags.DOWNLOAD)) { onDownload(m) }
+            onDownload?.let { download ->
+                HeaderButton(Icons.Download, stringResource(R.string.media_download), C.Text, Modifier.testTag(PhotoTags.DOWNLOAD)) { download(m) }
+            }
             onRemove?.let { remove ->
-                HeaderButton(Icons.Trash, stringResource(R.string.media_remove), C.Red, Modifier.testTag(PhotoTags.REMOVE)) { remove(m) }
+                AccessGate(removeBlocked) {
+                    HeaderButton(Icons.Trash, stringResource(R.string.media_remove), C.Red, Modifier.testTag(PhotoTags.REMOVE)) { remove(m) }
+                }
             }
             CloseButton(onClose)
         }

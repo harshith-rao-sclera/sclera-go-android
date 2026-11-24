@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
+import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Status
@@ -29,6 +31,7 @@ import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
+import com.sclera.sclerago.presentation.model.message
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -91,8 +94,13 @@ data class RunReviewUiState(
     val selected: Set<String> = emptySet(),
     val openIssues: List<RunIssue> = emptyList(),
     val insights: RunInsights? = null,
-    val canCheck: Boolean = false,
-    val canValidate: Boolean = false,
+    /** Why the user can't fix values or run checks (Check), null when they can: those buttons are greyed out and say why. */
+    val checkBlock: AccessBlock? = AccessBlock.CHECKING,
+    /**
+     * Why the user can't tick assets, sign them off, send them back, merge duplicates or undo fixes (Validate), null when
+     * they can: those buttons are greyed out and say why (the User Access Guide).
+     */
+    val validateBlock: AccessBlock? = AccessBlock.CHECKING,
     /** Asking for a recollection note for these assets. */
     val recollectFor: List<String>? = null,
     val recollectNote: String = "",
@@ -106,6 +114,8 @@ data class RunReviewUiState(
     val rechecking: String? = null,
     val message: UiText? = null,
 ) {
+    val canCheck: Boolean get() = checkBlock == null
+    val canValidate: Boolean get() = validateBlock == null
     val confidentCount: Int get() = openIssues.confidentFixes().size
     val panelResult: RunAssetResult? get() = panel?.let { p -> results.firstOrNull { it.assetId == p.assetId } }
 }
@@ -137,15 +147,15 @@ class RunReviewViewModel @Inject constructor(
     init {
         // The buttons follow the access as it is fetched or changes, not only when the run opens (as the web).
         viewModelScope.launch {
-            combine(useCases.access.observeCheck(), useCases.access.observeValidate(), ::Pair).collect { (check, validate) ->
+            combine(useCases.access.observeCheckBlock(), useCases.access.observeValidateBlock(), ::Pair).collect { (check, validate) ->
                 set {
                     copy(
-                        canCheck = check,
-                        canValidate = validate,
+                        checkBlock = check,
+                        validateBlock = validate,
                         // Ticking rows, merging and recollection notes are the reviewer's (Validate) only.
-                        selected = if (validate) selected else emptySet(),
-                        merge = merge?.takeIf { validate },
-                        recollectFor = recollectFor?.takeIf { validate },
+                        selected = if (validate == null) selected else emptySet(),
+                        merge = merge?.takeIf { validate == null },
+                        recollectFor = recollectFor?.takeIf { validate == null },
                     )
                 }
             }
@@ -161,7 +171,10 @@ class RunReviewViewModel @Inject constructor(
             return
         }
         poll?.cancel()
-        state = RunReviewUiState(propertyId = propertyId, jobId = jobId, canCheck = useCases.access.canCheck(), canValidate = useCases.access.canValidate())
+        state = RunReviewUiState(
+            propertyId = propertyId, jobId = jobId, checkBlock = useCases.access.checkBlock(),
+            validateBlock = useCases.access.validateBlock(),
+        )
         viewModelScope.launch {
             loadRun()
             loadResults(reset = true)
@@ -285,6 +298,15 @@ class RunReviewViewModel @Inject constructor(
 
     fun toggleSelected(id: String) = set { copy(selected = if (id in selected) selected - id else selected + id) }
 
+    /**
+     * Long-press on an asset: ticks it to decide on several together (Validate). Someone who can't sign off gets the
+     * reason instead of a tick (the web gives them no tick boxes).
+     */
+    fun select(id: String) = state.validateBlock?.let { flash(UiText.Res(it.message)) } ?: toggleSelected(id)
+
+    /** Why a fix to the asset ([status], its assignee [assignedTo], in Managed Assets when [managed]) would be refused; null when it wouldn't. */
+    fun lockOf(status: Status?, assignedTo: String?, managed: Boolean): AssetLock? = useCases.access.lockOf(status, assignedTo, managed)
+
     /** The header tick: every row shown, or none. */
     fun selectAllShown(on: Boolean) = set { copy(selected = if (on) results.map { it.assetId }.toSet() else emptySet()) }
 
@@ -357,7 +379,7 @@ class RunReviewViewModel @Inject constructor(
 
     // ---------------------------------------------------------------- Decisions
 
-    /** Mark as validated / Exclude / Undo; Recollect asks for a note first ([askRecollect]). */
+    /** Mark as validated / Undo; Recollect asks for a note first ([askRecollect]). */
     fun decide(ids: List<String>, decision: Decision, note: String? = null) {
         if (ids.isEmpty() || state.busy) return
         set { copy(busy = true, recollectFor = null, recollectNote = "") }
@@ -380,7 +402,6 @@ class RunReviewViewModel @Inject constructor(
                             else r.copy(
                                 decision = if (decision == Decision.CLEAR) null else decision,
                                 decisionNote = if (decision == Decision.RECOLLECT) note?.trim()?.takeIf { it.isNotEmpty() } else null,
-                                openCount = if (decision == Decision.EXCLUDED) 0 else r.openCount,
                                 assetStatus = status ?: r.assetStatus,
                             )
                         },
@@ -390,8 +411,8 @@ class RunReviewViewModel @Inject constructor(
                 val msg = when (decision) {
                     Decision.VALIDATED -> R.plurals.rev_decided_validated
                     Decision.RECOLLECT -> R.plurals.rev_decided_recollect
-                    Decision.EXCLUDED -> R.plurals.rev_decided_excluded
-                    Decision.CLEAR -> R.plurals.rev_decided_cleared
+                    // Excluded is no longer sent: it only comes back as an older run's decision.
+                    Decision.EXCLUDED, Decision.CLEAR -> R.plurals.rev_decided_cleared
                 }
                 // One message at a time: what wasn't signed off matters more than the count that was.
                 flash(

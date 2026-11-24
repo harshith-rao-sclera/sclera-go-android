@@ -5,6 +5,11 @@ import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.AccessFailedBanner
+import com.sclera.sclerago.presentation.components.AccessGate
+import com.sclera.sclerago.presentation.components.LocalToaster
+import com.sclera.sclerago.presentation.components.ToastKind
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.model.reason
 import com.sclera.sclerago.presentation.components.OfflineGate
 import java.util.Locale
 import java.text.NumberFormat
@@ -106,7 +111,8 @@ fun PropertyListScreen(
     importer: PropertyImportViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
-    val canManage by vm.canManage.collectAsStateWithLifecycle()
+    // Why Add, Import, Save and Delete are greyed out (no Manage properties, or only chosen properties); null: usable.
+    val manageBlock = app.blocks.manageProperties.reason()
     val suggestions by vm.suggestions.collectAsStateWithLifecycle()
     // Until a property is downloaded this is the app's first page, so Back leaves the app.
     BackHandler(enabled = app.hasProperty, onBack = app::closeAdmin)
@@ -115,6 +121,13 @@ fun PropertyListScreen(
     LaunchedEffect(importer) { importer.notices.collect { app.flash(it) } }
     // Import opens empty each time, as the web's.
     LaunchedEffect(state.importOpen) { if (state.importOpen) importer.reset() }
+    // A property tapped before it was downloaded opens as soon as its download finishes.
+    LaunchedEffect(state.openNow) {
+        state.openNow?.let { id ->
+            vm.openedAfterDownload()
+            app.openPropertyFromList(id)
+        }
+    }
     val notice = state.notice?.asString()
     LaunchedEffect(notice) {
         if (notice != null) {
@@ -127,11 +140,13 @@ fun PropertyListScreen(
             state, app.currentProp,
             currentName = app.propName.takeIf { it.isNotBlank() },
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
-            onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onRefresh = vm::refresh,
-            canManage = canManage, onInfo = vm::openEdit, onOffline = vm::explainOffline,
+            onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onDownloadAndOpen = vm::downloadAndOpen,
+            onRefresh = vm::refresh,
+            manageBlock = manageBlock, onInfo = vm::openEdit, onOffline = vm::explainOffline,
             accessFailed = app.accessFailed, onRetryAccess = app::retryAccess,
+            openBlock = app.openPropertyBlock.reason(),
         )
-        if (state.importOpen) ImportSheet(importer, vm::closeImport, onImported = vm::closeImport)
+        if (state.importOpen) ImportSheet(importer, vm::closeImport, onImported = vm::closeImport, importReason = manageBlock)
         if (state.addOpen) {
             AddPropertySheet(
                 vm::closeAdd, vm::addProperty, state.addError,
@@ -147,10 +162,11 @@ fun PropertyListScreen(
                 AddPropertySheet(
                     vm::closeEdit, vm::saveEdit, state.editError,
                     suggestions, vm::suggestAddress, vm::clearSuggestions, initial = p,
-                    onDelete = if (canManage) vm::askDelete else null,
+                    onDelete = vm::askDelete,
                     // Offline it shows the copy saved on the device, to look at only.
-                    readOnly = !state.online || !canManage,
-                    readOnlyReason = if (canManage) R.string.property_offline_edit else R.string.property_view_only,
+                    readOnly = !state.online || manageBlock != null,
+                    readOnlyReason = if (manageBlock == null) R.string.property_offline_edit else R.string.property_view_only,
+                    accessBlock = manageBlock,
                 )
             }
         }
@@ -179,9 +195,11 @@ internal fun PropertyListContent(
     onAdd: () -> Unit,
     onImport: () -> Unit,
     onDownload: (String) -> Unit = {},
+    /** A tap on a property that isn't downloaded: downloads it, then opens it. */
+    onDownloadAndOpen: (String) -> Unit = onDownload,
     onRefresh: () -> Unit = {},
-    /** Add and Import are offered only with Manage properties (as the web's "+ Property" and Import buttons). */
-    canManage: Boolean = true,
+    /** Why Add and Import are greyed out (the web's "+ Property" and Import need Manage properties); null: usable. */
+    manageBlock: UiText? = null,
     /** The info button on a property: opens it in the edit form. */
     onInfo: (Property) -> Unit = {},
     /** An online-only button was tapped offline (download, New property, Import): say why it needs the server. */
@@ -189,6 +207,8 @@ internal fun PropertyListContent(
     /** The user's access couldn't be loaded: a banner says so, with Retry (properties needing a permission stay hidden). */
     accessFailed: Boolean = false,
     onRetryAccess: () -> Unit = {},
+    /** Why a property can't be opened or downloaded (a group that can't look inside one); null: it can. */
+    openBlock: UiText? = null,
 ) {
     val gutter = pageGutter()
     var menuOpen by rememberSaveable { mutableStateOf(false) }
@@ -211,16 +231,17 @@ internal fun PropertyListContent(
                         PropertyCard(
                             id, row.property.name, current = id == currentId,
                             download = download, downloaded = downloaded, online = state.online,
-                            // A downloaded property opens (offline too); another one is downloaded first.
+                            // A downloaded property opens (offline too); another one is downloaded first, then opens.
                             onClick = {
                                 when {
                                     downloaded -> onOpen(id)
-                                    !download.inProgress -> onDownload(id)
+                                    !download.inProgress -> onDownloadAndOpen(id)
                                 }
                             },
                             onDownload = { onDownload(id) },
                             onInfo = { onInfo(row.property) },
                             onOffline = { onOffline(OnlineOnly.DOWNLOAD_PROPERTY) },
+                            openBlock = openBlock,
                         )
                     }
                     when {
@@ -248,18 +269,18 @@ internal fun PropertyListContent(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (canManage) FabMenu(
+            FabMenu(
                 menuOpen, { menuOpen = it },
                 listOf(
                     FabAction(
                         stringResource(R.string.property_fab_import_title), Icons.Table, PropertyTags.IMPORT, onImport,
                         onBlocked = if (state.online) null else ({ onOffline(OnlineOnly.IMPORT_PROPERTIES) }),
-                        subtitle = stringResource(R.string.property_fab_import_sub), iconColor = C.Green,
+                        subtitle = stringResource(R.string.property_fab_import_sub), iconColor = C.Green, accessBlock = manageBlock,
                     ),
                     FabAction(
                         stringResource(R.string.property_fab_new_title), Icons.Building, PropertyTags.ADD, onAdd,
                         onBlocked = if (state.online) null else ({ onOffline(OnlineOnly.NEW_PROPERTY) }),
-                        subtitle = stringResource(R.string.property_fab_new_sub), iconColor = C.Text,
+                        subtitle = stringResource(R.string.property_fab_new_sub), iconColor = C.Text, accessBlock = manageBlock,
                     ),
                 ),
                 stringResource(R.string.property_add_fab), stringResource(R.string.action_close),
@@ -311,7 +332,10 @@ private fun PropertyCard(
     onDownload: () -> Unit,
     onInfo: () -> Unit = {},
     onOffline: () -> Unit = {},
+    /** Why the property can't be opened or downloaded (the user's group can't look inside one): dimmed, a tap says why. */
+    openBlock: UiText? = null,
 ) {
+    val toaster = LocalToaster.current
     val running = download as? PropertyDownload.Running
     val unpacking = download is PropertyDownload.Unpacking
     val faint = !online && !downloaded && !download.inProgress
@@ -325,9 +349,16 @@ private fun PropertyCard(
         faint -> Modifier.background(C.Surface.copy(alpha = FaintAlpha))
         else -> Modifier.background(C.Surface)
     }
-    val fade = Modifier.alpha(if (faint) FaintAlpha else 1f)
+    val fade = Modifier.alpha(if (faint) FaintAlpha else if (openBlock != null) BlockedAlpha else 1f)
     Box(
-        Modifier.fillMaxWidth().pressClickable(shape = r(12), pressed = PRESSED_CARD, role = Role.Button, onClick = if (faint) onOffline else onClick).then(surface)
+        Modifier.fillMaxWidth().pressClickable(
+            shape = r(12), pressed = PRESSED_CARD, role = Role.Button,
+            onClick = when {
+                openBlock != null -> ({ toaster.show(openBlock, ToastKind.INFO) })
+                faint -> onOffline
+                else -> onClick
+            },
+        ).then(surface)
             .border(1.dp, if (faint) Color.Transparent else if (current) C.Yellow.copy(alpha = 0.3f) else C.Border, r(12))
             .semantics {
                 selected = current
@@ -377,12 +408,14 @@ private fun PropertyCard(
                     else -> {
                         // Offline the download button stays, with the offline badge (the card is faded already).
                         val label = stringResource(R.string.property_download, name)
-                        OfflineGate(faint, onOffline) {
-                            Box(
-                                Modifier.size(48.dp).pressClickable(shape = CircleShape, role = Role.Button, onClick = onDownload).semantics { contentDescription = label }
-                                    .testTag(PropertyTags.download(id)),
-                                contentAlignment = Alignment.Center,
-                            ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
+                        AccessGate(openBlock) {
+                            OfflineGate(faint && openBlock == null, onOffline) {
+                                Box(
+                                    Modifier.size(48.dp).pressClickable(shape = CircleShape, role = Role.Button, onClick = onDownload).semantics { contentDescription = label }
+                                        .testTag(PropertyTags.download(id)),
+                                    contentAlignment = Alignment.Center,
+                                ) { LineIcon(Icons.Download, 22.dp, C.Yellow, 2.2f) }
+                            }
                         }
                     }
                 }
@@ -419,6 +452,9 @@ private fun DownloadProgress(name: String, d: PropertyDownload.Running, modifier
 
 /** How faded a property that can't be used offline looks (as in the design). */
 private const val FaintAlpha = 0.26f
+
+/** How faded the name and icon of a property the user's group can't open are (as a greyed-out button). */
+private const val BlockedAlpha = 0.45f
 
 /** Height of the download / progress / tick area: the icon circle's, so the row stays the design's 64dp. */
 private val RowControl = 42.dp

@@ -3,9 +3,9 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="change_request_action">Request change</string>
     <string name="change_request_title">Ask to reopen this asset</string>
-    <string name="change_request_body">Say what needs changing. An admin can move it back to draft so it can be edited.</string>
+    <string name="change_request_body">Say what needs changing. A reviewer can move it back to draft so it can be edited.</string>
     <string name="change_request_note_label">What needs changing</string>
-    <string name="change_request_note_hint">Optional note for the admin</string>
+    <string name="change_request_note_hint">Optional note for the reviewer</string>
     <string name="change_request_send">Send request</string>
     <!-- The web's request line: "Requested by <name> on <date and time>". -->
     <string name="change_request_by_on">Requested by %1$s on %2$s</string>
@@ -94,8 +94,8 @@
     <string name="sign_off_action">Mark as validated</string>
     <string name="sign_off_block_not_submitted">Only submitted assets can be marked as validated</string>
     <plurals name="sign_off_body">
-        <item quantity="one">The asset moves to Validated without a validation run. An admin can then move it to Managed assets.</item>
-        <item quantity="other">The assets move to Validated without a validation run. An admin can then move them to Managed assets.</item>
+        <item quantity="one">The asset moves to Validated without a validation run. Someone with Configure can then move it to Managed assets.</item>
+        <item quantity="other">The assets move to Validated without a validation run. Someone with Configure can then move them to Managed assets.</item>
     </plurals>
     <plurals name="sign_off_done">
         <item quantity="one">%1$d asset marked as validated</item>

@@ -1,5 +1,8 @@
 package com.sclera.sclerago.testutil
 
+import com.sclera.sclerago.domain.usecase.access.SeesAssetsUseCase
+import com.sclera.sclerago.domain.usecase.access.ReviewerOnlyActionsUseCase
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessBlocksUseCase
 import com.sclera.sclerago.domain.model.AccessState
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.CurrentAccess
@@ -283,6 +286,8 @@ fun assetListViewModel(repo: AssetRepository): AssetListViewModel =
         allowAllGuard().let { ObserveSelectionAccessUseCase(ObserveAccessChangesUseCase(it), it) },
         // No property open: AI counts as on, and the settings are never read.
         ObserveAiSwitchUseCase(NoSettings, IdleDownloads()),
+        allowAllGuard().let { ObserveAccessBlocksUseCase(it, SeesAssetsUseCase(it)) },
+        ReviewerOnlyActionsUseCase(allowAllGuard()),
     )
 
 /** Property settings that are never read (no property is open where they are wired). */

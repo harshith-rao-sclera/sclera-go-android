@@ -133,7 +133,7 @@
     <string name="valt_send_recollect">Send for recollection</string>
     <!-- Asset details → Validation, under the steps when Revalidate resumes past step 1: %1$s is the step it resumes at. -->
     <string name="valt_resumes_at">Resumes at %1$s; earlier steps keep their pass.</string>
-    <!-- Validation → Recent jobs: the Filter jobs sheet and its floating button. -->
+    <!-- Validation → Recent jobs: the Filter jobs sheet and its button in the section's head ("Filter · 2" while filters are on). -->
     <string name="valt_jobs_filter_title">Filter jobs</string>
     <plurals name="valt_jobs_filter_active">
         <item quantity="one">Filter jobs, %1$d filter on</item>
@@ -142,10 +142,6 @@
     <string name="valt_jobs_started_by">Started by</string>
     <!-- The avatar of "Anyone" in Started by. -->
     <string name="valt_jobs_all">All</string>
-    <plurals name="valt_jobs_show">
-        <item quantity="one">Show %1$d job</item>
-        <item quantity="other">Show %1$d jobs</item>
-    </plurals>
     <!-- Run sheet button: what it will run, and on how many assets (%2$s: the validation's name). -->
     <string name="valt_tick_first">Tick some assets first</string>
     <string name="valt_no_assets_to_check">No assets to check</string>
@@ -155,4 +151,6 @@
         <item quantity="one">Run %2$s on %1$d asset</item>
         <item quantity="other">Run %2$s on %1$d assets</item>
     </plurals>
+    <!-- A date field's problem with the field's day in local time: "In the future: 3 Dec 2026." (%1$s is the server's message without its full stop). -->
+    <string name="val_issue_date_message">%1$s: %2$s.</string>
 </resources>

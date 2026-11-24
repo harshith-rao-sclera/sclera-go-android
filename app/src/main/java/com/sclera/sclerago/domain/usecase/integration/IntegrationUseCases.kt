@@ -7,6 +7,7 @@ import com.sclera.sclerago.domain.model.VdmsChoice
 import com.sclera.sclerago.domain.model.VdmsLink
 import com.sclera.sclerago.domain.repository.IntegrationRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import com.sclera.sclerago.domain.usecase.config.ObserveConfigureBlockUseCase
 import javax.inject.Inject
 
 // The Integration page (side menu → Integration): the property's link to a VDMS (Managed Assets).
@@ -38,16 +39,11 @@ class LinkVdmsUseCase @Inject constructor(private val repo: IntegrationRepositor
 }
 
 /**
- * "+ Integration" is offered only to someone who may configure the property, as the server needs for searching and
- * linking (the web tests the plain "user" role, which gives the same answer on its Configure-only page).
+ * The Integration use cases, for injecting as one. "+ Integration" needs Configure, as the server needs for searching and
+ * linking: [configureBlock] says why it is greyed out for anyone else.
  */
-class CanAddIntegrationUseCase @Inject constructor(private val guard: PermissionGuard) {
-    operator fun invoke(): Boolean = guard.allows(Permission.CONFIGURE)
-}
-
-/** The Integration use cases, for injecting as one. */
 class IntegrationUseCases @Inject constructor(
-    val canAdd: CanAddIntegrationUseCase,
+    val configureBlock: ObserveConfigureBlockUseCase,
     val get: GetIntegrationUseCase,
     val search: SearchVdmsUseCase,
     val link: LinkVdmsUseCase,

@@ -25,10 +25,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -60,7 +60,6 @@ import com.sclera.sclerago.presentation.theme.Txt
 object JobFilterTags {
     const val SHEET = "job_filter_sheet"
     const val RESET = "job_filter_reset"
-    const val SHOW = "job_filter_show"
     fun person(id: String?) = "job_filter_person_${id ?: "all"}"
     fun choice(key: String) = "job_filter_choice_$key"
 }
@@ -74,7 +73,8 @@ private class JobChoice(val key: String, val label: String, val count: Int, val 
 /**
  * Filter jobs, as the asset list's filter: who started the run (a row of people: All, Me, then the others, each with
  * how many runs), then Status and Check in a side rail with the open one's choices beside it (one each, with how many
- * runs it would show). Choices take effect with "Show N jobs"; Reset clears them in the sheet; closing drops them.
+ * runs it would show). Each choice takes effect at once (the list behind follows it); Reset, at the top start, clears
+ * them all; closing keeps them.
  */
 @Composable
 internal fun JobFilterSheet(
@@ -83,13 +83,12 @@ internal fun JobFilterSheet(
     count: (JobFilters) -> Int,
     onChange: (JobFilters.() -> JobFilters) -> Unit,
     onReset: () -> Unit,
-    onShow: () -> Unit,
     onClose: () -> Unit,
 ) {
     var group by rememberSaveable { mutableStateOf(JobFilterGroup.STATUS) }
     BottomSheet(onClose) {
         Column(Modifier.testTag(JobFilterTags.SHEET)) {
-            Header(onClose)
+            Header(onClose, onReset, resettable = draft != JobFilters())
             Txt(stringResource(R.string.valt_jobs_started_by), 12, 600, C.Muted, Modifier.padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 6.dp))
             StartedByRow(draft, options, count, onChange)
         }
@@ -97,30 +96,26 @@ internal fun JobFilterSheet(
             Rail(group, draft, Modifier.width(if (isTablet()) 170.dp else 116.dp)) { group = it }
             Choices(group, draft, options, count, onChange, Modifier.weight(1f))
         }
-        val matching = count(draft)
-        Row(
-            Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Pill(stringResource(R.string.filter_reset), onReset, Modifier.testTag(JobFilterTags.RESET), height = 44.dp, hPad = 18.dp, size = 13, weight = 700)
-            Pill(
-                pluralStringResource(R.plurals.valt_jobs_show, matching, matching), onShow,
-                Modifier.weight(1f).testTag(JobFilterTags.SHOW), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, size = 13, weight = 700,
-            )
-        }
     }
 }
 
-/** The close button (a yellow ×) at the start and "Filter jobs" in the middle. */
+/**
+ * As the asset list's filter: Reset at the start (dimmed with nothing chosen), "Filter jobs" in the middle and the close
+ * button (a yellow ×) at the end.
+ */
 @Composable
-private fun Header(onClose: () -> Unit) {
+private fun Header(onClose: () -> Unit, onReset: () -> Unit, resettable: Boolean) {
     val close = stringResource(R.string.action_close)
     Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp), contentAlignment = Alignment.Center) {
-        RoundButton(36.dp, C.Btn, onClose, Modifier.align(Alignment.CenterStart).semantics { contentDescription = close }) {
+        Pill(
+            stringResource(R.string.filter_reset), onReset,
+            Modifier.align(Alignment.CenterStart).alpha(if (resettable) 1f else 0.4f).testTag(JobFilterTags.RESET),
+            height = 36.dp, hPad = 14.dp, size = 13, weight = 700,
+        )
+        Txt(stringResource(R.string.valt_jobs_filter_title), 15, 700)
+        RoundButton(36.dp, C.Btn, onClose, Modifier.align(Alignment.CenterEnd).semantics { contentDescription = close }) {
             LineIcon(Icons.Close, 15.dp, C.Yellow, 2.6f)
         }
-        Txt(stringResource(R.string.valt_jobs_filter_title), 15, 700)
     }
 }
 

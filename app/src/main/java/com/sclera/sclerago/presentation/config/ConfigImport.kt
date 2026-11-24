@@ -18,6 +18,7 @@ import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
 import com.sclera.sclerago.presentation.components.GuardedClose
+import com.sclera.sclerago.presentation.model.reason
 import com.sclera.sclerago.presentation.property.IMPORT_PICK_TYPES
 import com.sclera.sclerago.presentation.property.ImportSheetContent
 import com.sclera.sclerago.presentation.property.PickedSheet
@@ -144,14 +145,18 @@ internal fun ConfigImportSheet(
     val sampleSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(XLSX_MIME)) { uri ->
         if (uri != null) onSample(uri.toString())
     }
+    // The sheet only opens from a button greyed out without Configure; should the access change while it is open, Import
+    // is greyed out with the reason.
+    val block = LocalConfigBlock.current
     GuardedClose(state.file != null && !state.loading, onClose) { close ->
         ImportSheetContent(
             state.file?.name, state.file?.size ?: -1, state.error, close,
             onChoose = { chooser.launch(IMPORT_PICK_TYPES) },
             onSample = { sampleSaver.launch(SAMPLE_NAME) },
-            onProceed = onImport,
+            onProceed = { if (block == null) onImport() },
             loading = state.loading,
             actionLabel = stringResource(R.string.import_action),
+            importReason = block.reason(),
         )
     }
 }

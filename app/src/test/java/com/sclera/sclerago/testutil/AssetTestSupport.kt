@@ -46,6 +46,7 @@ import com.sclera.sclerago.domain.usecase.asset.ToggleSelectionUseCase
 import com.sclera.sclerago.domain.usecase.asset.UpdateCommentUseCase
 import com.sclera.sclerago.domain.usecase.media.DownloadMediaUseCase
 import com.sclera.sclerago.domain.usecase.media.SortPhotosUseCase
+import com.sclera.sclerago.domain.usecase.media.SortShotUseCase
 import com.sclera.sclerago.presentation.preview.SAMPLE_ASSETS
 import com.sclera.sclerago.presentation.preview.SAMPLE_DETAILS
 import kotlinx.coroutines.flow.Flow
@@ -161,7 +162,7 @@ fun assetUseCases(
         ObserveAssetsUseCase(repo), GetAssetDetailsUseCase(repo), SetAssetStatusUseCase(repo, guard, photoRules),
         SaveAssetDetailsUseCase(repo, guard, photoRules), DeleteAssetsUseCase(repo, guard), AssignLocationUseCase(repo, guard),
         AttachMediaUseCase(repo, guard, photoRules), RemoveMediaUseCase(repo, guard), DownloadMediaUseCase(FakeFileRepository()), sort,
-        AddAssetsUseCase(repo, ids, guard), CreateAssetUseCase(repo, ids, guard, photoRules, sort),
+        SortShotUseCase(sort, photoRules), AddAssetsUseCase(repo, ids, guard), CreateAssetUseCase(repo, ids, guard, photoRules, sort),
         BuildCheckInputUseCase(repo, config, photoRules), BuildAssetListUseCase(), ToggleSelectionUseCase(), SelectAllUseCase(),
         CanWorkOnAssetUseCase(repo, guard), EvaluateAssetChecksUseCase(), AutofillAssetUseCase(autofill, guard), BuildFormValuesUseCase(time),
         ObserveAssetActivityUseCase(activity, InMemoryAccessRepository(), FakeAuthRepository(), guard), AddCommentUseCase(activity, guard),

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.offline
 
+import android.util.Log
 import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.domain.model.DataError
@@ -19,9 +20,14 @@ internal suspend fun <T> AdcDatabase.write(io: CoroutineDispatcher, block: AdcDa
     } catch (e: DataException) {
         throw e
     } catch (e: Exception) {
+        // Which statement failed and why (SQLite's message: table, column or constraint names, never the values, which
+        // are bound). Debug only: Log.w is stripped from release builds.
+        Log.w(TAG, "Offline write failed: ${e.javaClass.simpleName}: ${e.message}")
         throw DataException(DataError.FAILED, e)
     }
 }
+
+private const val TAG = "OfflineWrite"
 
 /**
  * Marks the rows of [table] that match [where] removed, as the server does: `is_removed = 1`, `version + 1` and

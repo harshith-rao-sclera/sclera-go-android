@@ -71,6 +71,7 @@ internal fun orderedPermissions(): List<Permission> {
 
 @StringRes
 private fun Permission.titleRes(): Int = when (this) {
+    Permission.VIEW -> R.string.access_perm_view
     Permission.COLLECT -> R.string.access_perm_collect
     Permission.CHECK -> R.string.access_perm_check
     Permission.VALIDATE -> R.string.access_perm_validate
@@ -81,6 +82,7 @@ private fun Permission.titleRes(): Int = when (this) {
 
 @StringRes
 private fun Permission.descriptionRes(): Int = when (this) {
+    Permission.VIEW -> R.string.access_perm_view_desc
     Permission.COLLECT -> R.string.access_perm_collect_desc
     Permission.CHECK -> R.string.access_perm_check_desc
     Permission.VALIDATE -> R.string.access_perm_validate_desc

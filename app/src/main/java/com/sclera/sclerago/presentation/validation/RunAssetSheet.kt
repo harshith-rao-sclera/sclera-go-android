@@ -8,6 +8,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
+import com.sclera.sclerago.presentation.common.issueMessage
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
@@ -48,7 +49,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
-import com.sclera.sclerago.domain.model.isLockedFor
+import com.sclera.sclerago.domain.model.AssetLock
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
+import com.sclera.sclerago.presentation.model.reason
 import com.sclera.sclerago.domain.validation.Decision
 import com.sclera.sclerago.domain.validation.IssueSeverity
 import com.sclera.sclerago.domain.validation.IssueStatus
@@ -77,8 +81,8 @@ import com.sclera.sclerago.presentation.theme.Txt
 import kotlin.math.roundToInt
 
 /**
- * One asset of the run, as the iOS app's: its outcome and first problem, the decision (Mark as validated, Recollect,
- * Exclude), where it is and how complete, then two tabs. Checks: each step with the issues found there (apply a
+ * One asset of the run, as the iOS app's: its outcome and first problem, the decision (Mark as validated or Recollect;
+ * Excluded only shows for an older run's decision), where it is and how complete, then two tabs. Checks: each step with the issues found there (apply a
  * suggested or typed value, merge duplicates, or keep it as it is; missing data is filled in on the asset; handled ones
  * can be undone). Asset info: its fields. As the web's: View asset opens it on top, and Revalidate checks it again inside
  * the run.
@@ -98,9 +102,10 @@ internal fun RunAssetSheet(
     val leave = { vm.openAsset(null) }
     val local = assets.firstOrNull { it.id == p.assetId }
     // As the web: the server's status of the asset first (the phone's copy may be stale, or the asset not on the phone),
-    // so a Check-only user isn't offered a fix the server refuses on a submitted or signed-off asset.
+    // so a Check-only user isn't offered a fix the server refuses on a submitted or signed-off asset. One assigned to
+    // someone else, or in Managed Assets, is locked too: its fixes are greyed out and say why.
     val status = res?.assetStatus ?: local?.st
-    val locked = status != null && isLockedFor(status, isAdmin = s.canValidate)
+    val lock = vm.lockOf(status, local?.assignedTo, local?.managed == true)
     var tab by rememberSaveable(p.assetId) { mutableIntStateOf(0) }
     GuardedClose(p.typed.values.any { it.isNotBlank() }, leave) { close ->
         // The whole screen, closed only with × (and Back): a swipe or a tap beside it would lose the place in a long list.
@@ -132,7 +137,7 @@ internal fun RunAssetSheet(
                         )
                     }
                     val open = if (p.loading) res.openCount else p.issues.count { it.status == IssueStatus.OPEN }
-                    DecisionRow(res.decision, res.decisionNote, open, s, p, vm, checkOnly = res.checkOnly)
+                    DecisionRow(res.decision, res.decisionNote, open, s, p, vm, lock, checkOnly = res.checkOnly)
                 }
                 ReviewAssetStrip(name, local, propName, p.info)
                 // Checks and Asset info are two pages side by side: swipe between them, or tap the switch. The switch follows a
@@ -153,10 +158,10 @@ internal fun RunAssetSheet(
                             val fillIn = local?.let { a -> { onOpenAsset(a.id) } }
                             run.steps.forEachIndexed { i, key ->
                                 val issues = p.issues.filter { it.step == key }
-                                StepBlock(i, key, steps, res?.outcomeOf(key) ?: StepOutcome.SKIPPED, issues, p, s, vm, locked, fillIn, loading = p.loading, last = i == run.steps.lastIndex)
+                                StepBlock(i, key, steps, res?.outcomeOf(key) ?: StepOutcome.SKIPPED, issues, p, s, vm, lock, fillIn, loading = p.loading, last = i == run.steps.lastIndex)
                             }
                             // Issues of a step the run no longer lists (e.g. a renamed check) still show.
-                            p.issues.filter { it.step !in run.steps }.forEach { IssueRow(it, p, s, vm, locked, fillIn) }
+                            p.issues.filter { it.step !in run.steps }.forEach { IssueRow(it, p, s, vm, lock, fillIn) }
                         }
                     }
                 }
@@ -166,27 +171,29 @@ internal fun RunAssetSheet(
 }
 
 /**
- * Revalidate, beside the sheet's ×: checks the asset again with this run's steps (the rest of the run isn't run), for
- * whoever may run checks once the run has finished. It spins with "Checking…" while it runs, and waits while another
- * asset is being checked.
+ * Revalidate, beside the sheet's ×: checks the asset again with this run's steps (the rest of the run isn't run), once
+ * the run has finished; greyed out, saying why, for someone whose group can't run checks. It spins with "Checking…"
+ * while it runs, and waits while another asset is being checked.
  */
 @Composable
 private fun RevalidateButton(run: ValRun, assetId: String, s: RunReviewUiState, vm: RunReviewViewModel) {
-    if (!(s.canCheck && run.status == RunStatus.COMPLETED)) return
+    if (run.status != RunStatus.COMPLETED) return
     val mine = s.rechecking == assetId
     val enabled = s.rechecking == null && !s.busy
     val hint = stringResource(R.string.rev_revalidate_hint)
-    Row(
-        Modifier.height(36.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule)
-            .pressClickable(shape = Capsule, enabled = enabled, role = Role.Button, onClick = vm::recheck)
-            .semantics { stateDescription = hint }.testTag("review_revalidate").padding(horizontal = 12.dp)
-            .alpha(if (enabled || mine) 1f else 0.5f),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        if (mine) CircularProgressIndicator(Modifier.size(14.dp), color = C.Yellow, strokeWidth = 2.dp)
-        else LineIcon(Icons.Refresh, 14.dp, C.Yellow, 2.4f)
-        Txt(stringResource(if (mine) R.string.rev_rechecking else R.string.rev_revalidate), 12, 700, C.Yellow)
+    AccessGate(s.checkBlock) {
+        Row(
+            Modifier.height(36.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule)
+                .pressClickable(shape = Capsule, enabled = enabled, role = Role.Button, onClick = vm::recheck)
+                .semantics { stateDescription = hint }.testTag("review_revalidate").padding(horizontal = 12.dp)
+                .alpha(if (enabled || mine) 1f else 0.5f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (mine) CircularProgressIndicator(Modifier.size(14.dp), color = C.Yellow, strokeWidth = 2.dp)
+            else LineIcon(Icons.Refresh, 14.dp, C.Yellow, 2.4f)
+            Txt(stringResource(if (mine) R.string.rev_rechecking else R.string.rev_revalidate), 12, 700, C.Yellow)
+        }
     }
 }
 
@@ -211,7 +218,11 @@ private fun ResultTabs(labels: List<String>, selected: Int, onSelect: (Int) -> U
     }
 }
 
-/** Mark as validated, Recollect or Exclude (reviewers), with how many issues are still open; or the decision made. */
+/**
+ * Mark as validated or Recollect, with how many issues are still open; or the decision made (undoable). They need
+ * Validate (and not an asset in Managed Assets, [lock]): for anyone else they are greyed out and say why (the web gives
+ * them no sign-off buttons).
+ */
 @Composable
 private fun DecisionRow(
     decision: Decision?,
@@ -220,31 +231,38 @@ private fun DecisionRow(
     s: RunReviewUiState,
     p: AssetPanelState,
     vm: RunReviewViewModel,
+    lock: AssetLock?,
     /** A draft or exception: the run is a check, so Mark as validated is off until it is submitted (as the web). */
     checkOnly: Boolean = false,
 ) {
+    val signOff = s.validateBlock.reason() ?: lock.reason()
     when {
         decision != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SmallChip(decisionLabel(decision), decisionColor(decision), decisionColor(decision).copy(alpha = 0.16f))
             Txt(note?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.valt_quoted, it) }.orEmpty(), 12, 400, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
-            if (s.canValidate) {
+            AccessGate(signOff) {
                 TextAction(stringResource(R.string.rev_undo_decision), { vm.decide(listOf(p.assetId), Decision.CLEAR) }, color = C.Soft, enabled = !s.busy, icon = Icons.Refresh)
             }
         }
-        !s.canValidate -> Txt(stringResource(R.string.rev_reviewer_signs_off), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             // Marking as validated is off (grey) while the asset is only a draft (the run is a check).
             val blocked = checkOnly
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill(
-                    stringResource(R.string.rev_mark_validated), { if (!s.busy && !checkOnly) vm.decide(listOf(p.assetId), Decision.VALIDATED) },
-                    bg = if (blocked) C.Raised else C.Yellow, fg = if (blocked) C.Muted else C.OnYellow, height = 40.dp, hPad = 14.dp, size = 13, weight = 700,
-                )
-                Pill(stringResource(R.string.rev_decision_recollect), { if (!s.busy) vm.askRecollect(listOf(p.assetId)) }, height = 38.dp, hPad = 14.dp, size = 12)
-                Pill(stringResource(R.string.rev_exclude), { if (!s.busy) vm.decide(listOf(p.assetId), Decision.EXCLUDED) }, height = 38.dp, hPad = 14.dp, size = 12)
+                AccessGate(signOff) {
+                    Pill(
+                        stringResource(R.string.rev_mark_validated), { if (!s.busy && !checkOnly) vm.decide(listOf(p.assetId), Decision.VALIDATED) },
+                        bg = if (blocked) C.Raised else C.Yellow, fg = if (blocked) C.Muted else C.OnYellow, height = 40.dp, hPad = 14.dp, size = 13, weight = 700,
+                    )
+                }
+                AccessGate(signOff) {
+                    Pill(stringResource(R.string.rev_decision_recollect), { if (!s.busy) vm.askRecollect(listOf(p.assetId)) }, height = 38.dp, hPad = 14.dp, size = 12)
+                }
             }
-            if (checkOnly) Txt(stringResource(R.string.rev_check_only_hint), 11, 400, C.Dim, maxLines = Int.MAX_VALUE)
-            else if (open > 0) Txt(pluralStringResource(R.plurals.rev_fix_to_validate, open, open), 11, 400, C.Dim, maxLines = Int.MAX_VALUE)
+            when {
+                !s.canValidate -> Txt(stringResource(R.string.rev_reviewer_signs_off), 11, 400, C.Dim, maxLines = Int.MAX_VALUE)
+                checkOnly -> Txt(stringResource(R.string.rev_check_only_hint), 11, 400, C.Dim, maxLines = Int.MAX_VALUE)
+                open > 0 -> Txt(pluralStringResource(R.plurals.rev_fix_to_validate, open, open), 11, 400, C.Dim, maxLines = Int.MAX_VALUE)
+            }
         }
     }
 }
@@ -260,7 +278,7 @@ private fun StepBlock(
     p: AssetPanelState,
     s: RunReviewUiState,
     vm: RunReviewViewModel,
-    locked: Boolean,
+    lock: AssetLock?,
     fillIn: (() -> Unit)?,
     loading: Boolean = false,
     /** The last step has no gap under it. */
@@ -297,7 +315,7 @@ private fun StepBlock(
         }
         // Its issues set in a little from the mark's edge (so they read as the step's), not as far as the name.
         Column(Modifier.fillMaxWidth().padding(start = ISSUE_INSET), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            issues.forEach { IssueRow(it, p, s, vm, locked, fillIn) }
+            issues.forEach { IssueRow(it, p, s, vm, lock, fillIn) }
             // The asset's issues are still being read: a step that failed or needs a look shows a placeholder issue.
             if (loading && issues.isEmpty() && outcome.problem) {
                 SkeletonList(stringResource(R.string.val_loading), count = 1, lead = SkeletonLead.NONE, lines = 3)
@@ -308,7 +326,7 @@ private fun StepBlock(
 
 /** An issue: a bar in its severity's colour, what it is about and what is wrong, then what can be done (or was). */
 @Composable
-private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, vm: RunReviewViewModel, locked: Boolean, fillIn: (() -> Unit)?) {
+private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, vm: RunReviewViewModel, lock: AssetLock?, fillIn: (() -> Unit)?) {
     val busy = issue.id in p.busy
     val open = issue.status == IssueStatus.OPEN
     val sevColor = when (issue.severity) {
@@ -330,8 +348,8 @@ private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, v
                     if (fromWeb) SmallChip(stringResource(R.string.rev_from_web), C.Blue, C.Blue.copy(alpha = 0.14f))
                 }
             }
-            Txt(issue.message, 13, 700, C.Text, maxLines = Int.MAX_VALUE)
-            if (open) OpenIssue(issue, p, s, vm, busy, locked, fillIn) else ClosedIssue(issue, s, vm, busy)
+            Txt(issueMessage(issue.message, issue.fieldType, issue.currentValue?.text), 13, 700, C.Text, maxLines = Int.MAX_VALUE)
+            if (open) OpenIssue(issue, p, s, vm, busy, lock, fillIn) else ClosedIssue(issue, s, vm, busy, lock)
         }
     }
 }
@@ -343,57 +361,64 @@ private fun OpenIssue(
     s: RunReviewUiState,
     vm: RunReviewViewModel,
     busy: Boolean,
-    locked: Boolean,
+    /** Why the asset can't be changed (submitted, someone else's, in Managed Assets); null when it can. */
+    lock: AssetLock?,
     /** Opens the asset to fill in missing data; null when it isn't on this phone. */
     fillIn: (() -> Unit)?,
 ) {
-    if (!s.canCheck) return
+    // Fixing needs Check, and the asset's own lock on top (a submitted one needs Validate). Blocked, every fix stays in
+    // place, greyed out, and says why.
+    val fix = s.checkBlock.reason() ?: lock.reason()
     if (issue.canApply) {
-        // A locked asset still shows what is suggested, without Apply (as the web).
         issue.suggestions.forEachIndexed { i, sug ->
-            SuggestionRow(sug, best = i == 0, enabled = !busy, onApply = if (locked) null else ({ vm.applySuggestion(issue, sug.value) }))
+            SuggestionRow(sug, best = i == 0, enabled = !busy, reason = fix) { vm.applySuggestion(issue, sug.value) }
         }
     }
-    if (locked) {
-        Txt(stringResource(R.string.rev_locked_note), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
-        return
-    }
+    // A submitted asset is changed through a change request (said up front, as the web).
+    if (lock == AssetLock.SUBMITTED) Txt(stringResource(R.string.rev_locked_note), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     if (issue.canType) {
         val typed = p.typed[issue.id].orEmpty()
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PlainField(
-                typed, { vm.setTyped(issue.id, it) },
-                stringResource(if (issue.suggestions.isEmpty()) R.string.rev_type_value else R.string.rev_or_type),
-                Modifier.weight(1f).heightIn(min = 44.dp).clip(r(10)).background(C.Surface).border(1.dp, C.Border2, r(10))
-                    .padding(horizontal = 12.dp, vertical = 11.dp),
-                size = 13,
-            )
-            Pill(stringResource(R.string.val_save), { if (!busy && typed.isNotBlank()) vm.applyTyped(issue) }, Modifier.alpha(if (typed.isNotBlank()) 1f else 0.4f), height = 44.dp)
+        AccessGate(fix, Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PlainField(
+                    typed, { vm.setTyped(issue.id, it) },
+                    stringResource(if (issue.suggestions.isEmpty()) R.string.rev_type_value else R.string.rev_or_type),
+                    Modifier.weight(1f).heightIn(min = 44.dp).clip(r(10)).background(C.Surface).border(1.dp, C.Border2, r(10))
+                        .padding(horizontal = 12.dp, vertical = 11.dp),
+                    size = 13,
+                )
+                Pill(stringResource(R.string.val_save), { if (!busy && typed.isNotBlank()) vm.applyTyped(issue) }, Modifier.alpha(if (typed.isNotBlank()) 1f else 0.4f), height = 44.dp)
+            }
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (issue.related.isNotEmpty() && s.canValidate) {
+        // Merging deletes the other assets: the reviewer's (Validate).
+        if (issue.related.isNotEmpty()) AccessGate(s.validateBlock.reason() ?: lock.reason()) {
             Pill(stringResource(R.string.rev_merge), { if (!busy) vm.openMerge(issue) }, height = 32.dp, hPad = 14.dp, size = 12)
         }
-        // Missing data (the Complete step) can't be kept as it is: the next check would find it again. It is filled in.
+        // Missing data (the Complete step) can't be kept as it is: the next check would find it again. It is filled in on
+        // the asset, which its own lock holds back.
         if (!issue.canDismiss) {
-            fillIn?.let { Pill(stringResource(R.string.rev_fill_in), it, height = 34.dp, hPad = 14.dp, size = 12, weight = 700) }
-        } else Pill(
-            stringResource(
-                when {
-                    issue.related.isNotEmpty() -> R.string.rev_not_duplicate
-                    issue.likeField -> R.string.rev_keep_value
-                    issue.target == IssueTarget.CLASSIFICATION -> R.string.rev_keep_as_is
-                    else -> R.string.rev_dismiss
-                },
-            ),
-            { if (!busy) vm.dismiss(issue) }, height = 32.dp, hPad = 14.dp, size = 12,
-        )
+            fillIn?.let { AccessGate(lock) { Pill(stringResource(R.string.rev_fill_in), it, height = 34.dp, hPad = 14.dp, size = 12, weight = 700) } }
+        } else AccessGate(fix) {
+            Pill(
+                stringResource(
+                    when {
+                        issue.related.isNotEmpty() -> R.string.rev_not_duplicate
+                        issue.likeField -> R.string.rev_keep_value
+                        issue.target == IssueTarget.CLASSIFICATION -> R.string.rev_keep_as_is
+                        else -> R.string.rev_dismiss
+                    },
+                ),
+                { if (!busy) vm.dismiss(issue) }, height = 32.dp, hPad = 14.dp, size = 12,
+            )
+        }
     }
 }
 
+/** A suggested value, with Apply (greyed out, saying why, while [reason] holds the user back). */
 @Composable
-private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean, onApply: (() -> Unit)?) {
+private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean, reason: UiText?, onApply: () -> Unit) {
     val uri = LocalUriHandler.current
     Row(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -421,12 +446,13 @@ private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean,
                 )
             }
         }
-        onApply?.let { apply -> Pill(stringResource(R.string.rev_apply), { if (enabled) apply() }, bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700) }
+        AccessGate(reason) { Pill(stringResource(R.string.rev_apply), { if (enabled) onApply() }, bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700) }
     }
 }
 
+/** What was done about an issue, and its Undo / Reopen: the reviewer's (Validate), greyed out, saying why, for anyone else. */
 @Composable
-private fun ClosedIssue(issue: RunIssue, s: RunReviewUiState, vm: RunReviewViewModel, busy: Boolean) {
+private fun ClosedIssue(issue: RunIssue, s: RunReviewUiState, vm: RunReviewViewModel, busy: Boolean, lock: AssetLock?) {
     val shown = issue.resolvedValue?.text?.takeIf { it.isNotBlank() }
         ?: issue.suggestions.firstOrNull { it.value.json == issue.resolvedValue?.json }?.label
     Txt(
@@ -437,7 +463,7 @@ private fun ClosedIssue(issue: RunIssue, s: RunReviewUiState, vm: RunReviewViewM
         },
         12, 600, if (issue.status == IssueStatus.DISMISSED) C.Muted else C.Green, maxLines = Int.MAX_VALUE,
     )
-    if (s.canValidate && (issue.status == IssueStatus.ACCEPTED || issue.status == IssueStatus.DISMISSED)) {
+    if (issue.status == IssueStatus.ACCEPTED || issue.status == IssueStatus.DISMISSED) {
         val label = when {
             issue.status == IssueStatus.DISMISSED -> stringResource(R.string.rev_reopen)
             issue.target == IssueTarget.CLASSIFICATION ->
@@ -445,7 +471,7 @@ private fun ClosedIssue(issue: RunIssue, s: RunReviewUiState, vm: RunReviewViewM
             issue.currentValue?.text.isNullOrBlank() -> stringResource(R.string.rev_undo_empty)
             else -> stringResource(R.string.rev_undo_value, issue.currentValue?.text.orEmpty())
         }
-        TextAction(label, { vm.revert(issue) }, color = C.Soft, enabled = !busy, icon = Icons.Refresh)
+        AccessGate(s.validateBlock.reason() ?: lock.reason()) { TextAction(label, { vm.revert(issue) }, color = C.Soft, enabled = !busy, icon = Icons.Refresh) }
     }
 }
 

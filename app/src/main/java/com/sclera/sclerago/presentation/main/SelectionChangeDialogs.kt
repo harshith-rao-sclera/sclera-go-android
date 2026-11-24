@@ -27,10 +27,12 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.usecase.access.ReviewerOnlyAction
 import com.sclera.sclerago.domain.usecase.asset.ChangeAction
 import com.sclera.sclerago.domain.usecase.asset.ChangeActionOption
 import com.sclera.sclerago.presentation.assets.ChangeRequestDialog
 import com.sclera.sclerago.presentation.assets.ChangeRequestLine
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.blockSwipe
@@ -54,9 +56,9 @@ object SelectionChangeTags {
 @Composable
 internal fun SelectionChangeDialogs(state: AssetListState, list: AssetListViewModel) {
     val count = state.pickedAssets.size
-    if (state.changeMenu && state.changeOptions.isNotEmpty()) {
+    if (state.changeMenu && state.changeOffered) {
         BackHandler(onBack = list::closeChange)
-        ChangeMenu(state.changeOptions, count, onPick = list::pickChange, onCancel = list::closeChange)
+        ChangeMenu(state.changeOptions, state.reviewerOnly, count, onPick = list::pickChange, onCancel = list::closeChange)
     }
     when (val action = state.changeAction) {
         null -> Unit
@@ -149,9 +151,18 @@ private fun ChangeConfirm(
     }
 }
 
-/** The actions offered for the selection, one per row; a blocked one is dimmed and says why when tapped. */
+/**
+ * The actions offered for the selection, one per row; a blocked one is dimmed and says why when tapped. The reviewer-only
+ * ones the user's group can't use ([reviewerOnly]) follow, greyed out by their access gate.
+ */
 @Composable
-private fun ChangeMenu(options: List<ChangeActionOption>, count: Int, onPick: (ChangeActionOption) -> Unit, onCancel: () -> Unit) {
+private fun ChangeMenu(
+    options: List<ChangeActionOption>,
+    reviewerOnly: List<ReviewerOnlyAction>,
+    count: Int,
+    onPick: (ChangeActionOption) -> Unit,
+    onCancel: () -> Unit,
+) {
     val shown = rememberAppear()
     Box(Modifier.fillMaxSize().scrim(shown).noRippleClick(onCancel).blockSwipe().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
@@ -167,6 +178,14 @@ private fun ChangeMenu(options: List<ChangeActionOption>, count: Int, onPick: (C
                     Modifier.fillMaxWidth().alpha(if (option.blocked != null) 0.4f else 1f).testTag(SelectionChangeTags.option(option.action)),
                     height = 48.dp, size = 14,
                 )
+            }
+            reviewerOnly.forEach { locked ->
+                AccessGate(locked.block, Modifier.fillMaxWidth()) {
+                    Pill(
+                        changeActionLabel(locked.action, count), {},
+                        Modifier.fillMaxWidth().testTag(SelectionChangeTags.option(locked.action)), height = 48.dp, size = 14,
+                    )
+                }
             }
             Pill(stringResource(R.string.action_cancel), onCancel, Modifier.fillMaxWidth(), bg = C.Surface, height = 48.dp, size = 14)
         }

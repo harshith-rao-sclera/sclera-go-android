@@ -42,7 +42,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.ChangeRequest
+import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.formatDateAndTime
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.Pill
@@ -72,6 +74,7 @@ object ChangeRequestTags {
     const val BANNER = "change-request-banner"
     const val ASK = "change-request-ask"
     const val CLOSE = "change-request-close"
+    const val DECLINE = "change-request-decline"
     const val REOPEN = "change-request-reopen"
     const val NOTE = "change-request-note"
     const val SEND = "change-request-send"
@@ -116,16 +119,19 @@ internal fun ChangeRequestLine(
 
 /**
  * A change request on a submitted (or signed-off) asset, as one slim line under the top bar on every tab: "Change
- * requested · <who>". Tapping it opens the rest: who asked and when, the note, and what can be done. An admin, who can
- * change the asset ([admin]), declines it (withdraws, when it is their own) or moves the asset back to draft for whoever
- * asked; someone else withdraws their own request; anyone else just reads it.
+ * requested · <who>". Tapping it opens the rest: who asked and when, the note, and what can be done: a reviewer declines it
+ * (withdraws, when it is their own) or approves it (back to draft for whoever asked); whoever asked withdraws it. Each of
+ * these the signed-in user may not use stays, greyed out, and a tap says why ([declineBlocked], [approveBlocked],
+ * [withdrawBlocked]); Withdraw is left out for a reviewer answering someone else's request (Decline does that).
  */
 @Composable
 internal fun ChangeRequestBanner(
     request: ChangeRequest,
     mine: Boolean,
     requester: String?,
-    admin: Boolean,
+    declineBlocked: UiText?,
+    approveBlocked: UiText?,
+    withdrawBlocked: UiText?,
     onClose: () -> Unit,
     onReopen: () -> Unit,
     modifier: Modifier = Modifier,
@@ -153,20 +159,31 @@ internal fun ChangeRequestBanner(
             ) {
                 ChangeRequestLine(request, mine, requester, icon = false)
                 // Small labelled pills at the end (32dp tall; each still answers a 48dp touch).
-                if (admin || mine) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)) {
-                        Pill(
-                            stringResource(if (mine) R.string.change_request_withdraw else R.string.change_request_decline), onClose,
-                            Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.CLOSE),
-                            height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
-                        )
-                        if (admin) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)) {
+                    if (mine || declineBlocked != null) {
+                        AccessGate(withdrawBlocked) {
                             Pill(
-                                stringResource(R.string.change_request_reopen), onReopen,
-                                Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.REOPEN),
-                                bg = C.Yellow, fg = C.OnYellow, height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
+                                stringResource(R.string.change_request_withdraw), onClose,
+                                Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.CLOSE),
+                                height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
                             )
                         }
+                    }
+                    if (!mine) {
+                        AccessGate(declineBlocked) {
+                            Pill(
+                                stringResource(R.string.change_request_decline), onClose,
+                                Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.DECLINE),
+                                height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
+                            )
+                        }
+                    }
+                    AccessGate(approveBlocked) {
+                        Pill(
+                            stringResource(R.string.change_request_reopen), onReopen,
+                            Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.REOPEN),
+                            bg = C.Yellow, fg = C.OnYellow, height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
+                        )
                     }
                 }
             }
@@ -174,7 +191,7 @@ internal fun ChangeRequestBanner(
     }
 }
 
-/** Asking an admin to reopen a submitted asset: what needs changing (optional), then Send request or Cancel. */
+/** Asking a reviewer to reopen a submitted asset: what needs changing (optional), then Send request or Cancel. */
 @Composable
 internal fun ChangeRequestDialog(
     note: String,

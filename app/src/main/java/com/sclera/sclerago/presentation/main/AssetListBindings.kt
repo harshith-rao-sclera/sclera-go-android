@@ -32,6 +32,7 @@ fun rememberAssetListBinding(
         onChangeRequests = { list.selectChangeRequests(tab) },
         onValidation = { list.selectValidation(tab, it) },
         onManaged = { list.selectManaged(tab) },
+        onOnboarded = { list.selectOnboarded(tab, it) },
         onToggle = list::toggle,
         onOpen = { id -> if (s.selecting) list.toggle(id) else app.openAsset(id) },
         // A row's validation mark opens the asset on its Validation tab (the web's badge); while selecting it picks, as the row.

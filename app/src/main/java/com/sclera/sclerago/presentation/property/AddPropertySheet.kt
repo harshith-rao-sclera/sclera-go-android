@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -49,6 +50,7 @@ import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.SkeletonBlock
 import com.sclera.sclerago.presentation.components.SkeletonLine
 import com.sclera.sclerago.presentation.components.ChoiceSheet
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.FooterDeleteButton
 import com.sclera.sclerago.presentation.components.FormGroup
 import com.sclera.sclerago.presentation.components.FormSheet
@@ -90,7 +92,8 @@ private const val SuggestionsShown = 8
  * With [initial] it edits that property instead (the info button on a property): the form starts from it, is titled
  * "Property Info", and its footer has Delete and Save (Delete takes Cancel's place; [onDelete] asks first). While
  * [readOnly] (offline: the copy saved on the device; or a group without Manage properties) it only shows the property:
- * nothing can be changed, Save is off, Delete is hidden and a line says why ([readOnlyReason]).
+ * nothing can be changed, Save is off, Delete is hidden and a line says why ([readOnlyReason]). With [accessBlock] (the
+ * group can't manage properties) Save and Delete stay, greyed out, and a tap on either says why.
  */
 @Composable
 internal fun AddPropertySheet(
@@ -104,6 +107,7 @@ internal fun AddPropertySheet(
     onDelete: (() -> Unit)? = null,
     readOnly: Boolean = false,
     readOnlyReason: Int = R.string.property_offline_edit,
+    accessBlock: UiText? = null,
 ) {
     val editable = !readOnly
     val context = LocalContext.current
@@ -198,8 +202,14 @@ internal fun AddPropertySheet(
     }
 
     val deleteName = from.name
-    val deleteButton: (@Composable RowScope.() -> Unit)? = onDelete?.takeIf { editable }?.let { delete ->
-        { FooterDeleteButton(stringResource(R.string.property_delete_label, deleteName), Modifier.testTag(AddPropertyTags.DELETE), delete) }
+    val deleteButton: (@Composable RowScope.() -> Unit)? = onDelete?.takeIf { editable || accessBlock != null }?.let { delete ->
+        {
+            AccessGate(accessBlock, Modifier.weight(1f)) {
+                Row(Modifier.fillMaxWidth()) {
+                    FooterDeleteButton(stringResource(R.string.property_delete_label, deleteName), Modifier.testTag(AddPropertyTags.DELETE), delete)
+                }
+            }
+        }
     }
     val typeLabel = if (type.isBlank()) "" else labelOf(type, PROPERTY_TYPES)
     val regionLabel = if (region.isBlank()) "" else labelOf(region, PROPERTY_REGIONS)
@@ -223,6 +233,7 @@ internal fun AddPropertySheet(
             // How many of the two required fields (name, type) are filled in.
             progress = if (initial == null) ((if (name.isNotBlank()) 1 else 0) + (if (type.isNotBlank()) 1 else 0)) / 2f else null,
             footerLeading = deleteButton,
+            primaryBlock = accessBlock,
             bodyBackground = C.Bg, bodyPadding = PaddingValues(vertical = 12.dp), bodySpacing = 12.dp,
             // Something was typed or changed: closing asks before discarding it.
             dirty = listOf(

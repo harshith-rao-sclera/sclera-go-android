@@ -44,6 +44,11 @@ data class SpecLookup(
     val fromPhoto: Set<String> = emptySet(),
     /** The type the AI thinks the asset is, when it isn't the one it has; null when none is suggested. */
     val suggestedType: LookupType? = null,
+    /**
+     * A JACS code for the type the asset has, when it has no code (the server's `suggestedJacsCode`; a suggested type
+     * brings its own instead); null when none is suggested.
+     */
+    val suggestedJacsCode: JacsSuggestion? = null,
     /** What the photos say that none of the asset's fields takes (shown, never saved). */
     val extra: List<PhotoNote> = emptyList(),
     /** It started a search for the model's manuals on the manufacturer's site (they show with the asset's documents). */

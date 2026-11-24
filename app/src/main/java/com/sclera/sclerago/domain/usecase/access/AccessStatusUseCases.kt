@@ -1,7 +1,10 @@
 package com.sclera.sclerago.domain.usecase.access
 
 import com.sclera.sclerago.domain.model.AccessState
+import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.repository.AccessRefusals
 import com.sclera.sclerago.domain.repository.CurrentAccessRepository
+import com.sclera.sclerago.domain.repository.PropertyRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -21,6 +24,30 @@ class ObserveAccessFailedUseCase @Inject constructor(private val repo: CurrentAc
  */
 class RefreshAccessOnForegroundUseCase @Inject constructor(private val repo: CurrentAccessRepository) {
     operator fun invoke() = repo.refresh()
+}
+
+/**
+ * Reads the signed-in user's access and the property list again, so a group, permission or property an admin changed
+ * applies while the app stays open: after a refused call, and every few minutes while it is on screen. Offline or
+ * refused, what is known stays.
+ */
+class RecheckAccessUseCase @Inject constructor(
+    private val access: CurrentAccessRepository,
+    private val properties: PropertyRepository,
+) {
+    suspend operator fun invoke() {
+        access.refresh()
+        try {
+            properties.refresh()
+        } catch (_: OnlineException) {
+            // The list shown stays.
+        }
+    }
+}
+
+/** Every call the server refused (403), so the access is read again ([RecheckAccessUseCase]). */
+class ObserveAccessRefusalsUseCase @Inject constructor(private val refusals: AccessRefusals) {
+    operator fun invoke(): Flow<Unit> = refusals.refused
 }
 
 /** Fetches the signed-in user's access again after it failed. */

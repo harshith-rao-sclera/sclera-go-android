@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.Currency
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldChecks
 import com.sclera.sclerago.domain.model.OnlineException
@@ -53,6 +54,11 @@ class FieldsConfigViewModel @Inject constructor(
 
     var fields by mutableStateOf<List<FieldCfg>>(emptyList())
         private set
+
+    /** The currencies a currency field can be in, by name; empty until [loadCurrencies] has read them. */
+    var currencies by mutableStateOf<List<Currency>>(emptyList())
+        private set
+    private var currenciesJob: Job? = null
 
     private val _messages = Channel<UiText>(Channel.BUFFERED)
     val messages: Flow<UiText> = _messages.receiveAsFlow()
@@ -119,6 +125,18 @@ class FieldsConfigViewModel @Inject constructor(
         fields = fields.map { if (it.id == f.id) f else it }
     }
 
+
+    /** Reads the currencies once, when a currency field's sheet opens (as the web's field dialog); a failure is told. */
+    fun loadCurrencies() {
+        if (currencies.isNotEmpty() || currenciesJob?.isActive == true) return
+        currenciesJob = viewModelScope.launch {
+            try {
+                currencies = useCases.currencies()
+            } catch (e: OnlineException) {
+                say(UiText.Res(R.string.cfg_currencies_failed))
+            }
+        }
+    }
 
     fun toggleRequired(f: FieldCfg) = send { replace(useCases.toggleRequired(propertyId, f)) }
 
@@ -228,6 +246,7 @@ class FieldsConfigViewModel @Inject constructor(
 private fun FieldProblem.messageRes(): Int = when (this) {
     FieldProblem.NO_NAME -> R.string.cfg_field_name_required
     FieldProblem.NO_OPTIONS -> R.string.cfg_field_needs_option
+    FieldProblem.NO_CURRENCY -> R.string.cfg_field_needs_currency
     FieldProblem.DUPLICATE -> R.string.cfg_field_exists
 }
 

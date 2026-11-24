@@ -17,7 +17,7 @@ class StoredIcon(val svg: String, val updatedAt: Long)
  * anyone's data; they are kept so the lists show them offline. Blocking: call off the main thread.
  */
 @Singleton
-class AssetIconStore @Inject constructor(@ApplicationContext private val context: Context) {
+class AssetIconStore @Inject constructor(@ApplicationContext private val context: Context) : PropertyLocalData {
     private val db: SQLiteDatabase by lazy {
         GlobalConfigDatabaseHelper.initializeInstance(context).globalDB.also {
             it.execSQL(CREATE_ICONS)
@@ -78,6 +78,11 @@ class AssetIconStore @Inject constructor(@ApplicationContext private val context
         } finally {
             db.endTransaction()
         }
+    }
+
+    /** Forgets [propertyId]'s type icons (the user lost access to it); the shared icons stay. */
+    override fun forget(propertyId: String) {
+        db.delete(TYPE_ICONS, "property_id = ?", arrayOf(propertyId))
     }
 
     /** Forgets every icon and type icon kept (sign-out: the next user starts as on a fresh install). */

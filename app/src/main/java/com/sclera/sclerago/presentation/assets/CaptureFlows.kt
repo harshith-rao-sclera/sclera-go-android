@@ -43,7 +43,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -59,6 +62,7 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.formatDuration
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.MediaImage
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.RoundButton
@@ -66,6 +70,7 @@ import com.sclera.sclerago.presentation.components.SegHeader
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.fileimport.FileImportReview
+import com.sclera.sclerago.presentation.fileimport.FileStep
 import com.sclera.sclerago.presentation.fileimport.FileImportViewModel
 import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
@@ -86,10 +91,22 @@ private val Glass = Color(0xB3141518) // rgba(20,21,24,0.7)
 // ---------------------------------------------------------------- Camera
 
 @Composable
-fun CameraPage(vm: AppViewModel) {
+fun CameraPage(vm: AppViewModel, shots: FileImportViewModel, online: Boolean) {
     val s = vm.state
+    // Many assets: the shots handed over are read by the server, as files are on the File tab.
+    LaunchedEffect(s.camToSend) {
+        s.camToSend?.let { sent ->
+            shots.readShots(sent.map { it.uri })
+            vm.shotsSent()
+        }
+    }
     when {
-        s.camOpen -> CameraView(vm)
+        s.camReview -> FileImportReview(
+            shots, onAddFiles = vm::backToCamera, onClose = vm::closeCamReview, flash = vm::flash, online = online,
+            addMore = stringResource(R.string.camera_take_more),
+        )
+        // Shots still waiting in the review (before they are read) can be gone back to from the camera.
+        s.camOpen -> CameraView(vm, waiting = if (s.camMany && shots.state.step == FileStep.PICK) shots.state.files.size else 0)
         else -> SubList(vm, Tab.CAMERA, stringResource(R.string.nav_camera), vm::openCam)
     }
 }
@@ -98,7 +115,7 @@ private fun hasCameraPermission(context: Context) =
     ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
 @Composable
-private fun CameraView(vm: AppViewModel) {
+private fun CameraView(vm: AppViewModel, waiting: Int) {
     val s = vm.state
     BackHandler(enabled = vm.cameraHasShots) { vm.cancelCam() }
     CameraCapture(
@@ -107,7 +124,8 @@ private fun CameraView(vm: AppViewModel) {
         captures = s.captures, selected = s.camSel,
         videoMode = s.videoMode, onVideoMode = vm::setVideoMode,
         onCapture = vm::addCapture, onToggle = vm::toggleStrip, onGalleryPicked = vm::addPicked,
-        onClose = vm::cancelCam, onDone = vm::doneCapturing,
+        onClose = vm::cancelCam, onDone = { vm.doneCapturing(reviewWaiting = waiting > 0) },
+        many = s.camMany, onMany = vm::setCamMany, waiting = waiting,
     )
 }
 
@@ -135,6 +153,11 @@ fun CameraCapture(
      * The gallery then shows photos only and lets that many be picked. Null: photos and videos, up to [GALLERY_MAX].
      */
     galleryLimit: Int? = null,
+    /** The Camera tab's One asset (false) / Many assets (true) switch; null (an asset's Add photo): no switch. */
+    many: Boolean? = null,
+    onMany: (Boolean) -> Unit = {},
+    /** Multiple: shots already waiting in the review ("Take more"); the tick then shows and goes back to it. */
+    waiting: Int = 0,
 ) {
     val context = LocalContext.current
     val toaster = LocalToaster.current
@@ -293,6 +316,12 @@ fun CameraCapture(
                         Box(Modifier.size(8.dp).background(C.Red, CircleShape))
                         Txt(formatDuration(recNanos / 1_000_000) + " / " + formatDuration(MAX_CLIP_MS), 12, 700, C.Red)
                     }
+                } else if (many != null) {
+                    // Single / Multiple asset(s), between close and flash.
+                    Row(Modifier.clip(Capsule).background(Glass).padding(3.dp)) {
+                        ModeChip(stringResource(R.string.camera_single), on = !many) { onMany(false) }
+                        ModeChip(stringResource(R.string.camera_multiple), on = many) { onMany(true) }
+                    }
                 }
             }
             RoundButton(48.dp, Glass, { flashOn = !flashOn }) {
@@ -300,14 +329,25 @@ fun CameraCapture(
             }
         }
 
-        if (chosen > 0 && !isRecording) {
+        // Multiple after "Take more": the shots already in the review count too, and the tick goes back to it.
+        val total = chosen + waiting
+        if (total > 0 && !isRecording) {
+            // Done: a yellow tick, with how many shots are ticked in a badge on its top corner (read out as one button).
+            // Single opens the new asset; Multiple opens the review, where shots can be removed before they are sent.
+            val done = pluralStringResource(R.plurals.camera_use_shots, total, total)
             Box(
-                Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 228.dp).size(60.dp).fabShadow()
-                    .pressClickable(shape = CircleShape, onClick = onDone).background(C.Yellow),
-                contentAlignment = Alignment.Center,
+                Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 228.dp)
+                    .semantics(mergeDescendants = true) { contentDescription = done },
             ) {
-                LineIcon(Icons.Check, 26.dp, C.OnYellow, 3f)
-                Txt(chosen.toString(), 11, 800, C.OnYellow, Modifier.align(Alignment.BottomEnd).padding(end = 9.dp, bottom = 6.dp))
+                Box(
+                    Modifier.size(60.dp).fabShadow().pressClickable(shape = CircleShape, onClick = onDone).background(C.Yellow),
+                    contentAlignment = Alignment.Center,
+                ) { LineIcon(Icons.Check, 26.dp, C.OnYellow, 3f) }
+                Box(
+                    Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp).defaultMinSize(minWidth = 24.dp).height(24.dp)
+                        .clip(Capsule).background(C.Bg).border(2.dp, C.Yellow, Capsule).padding(horizontal = 6.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Txt(total.toString(), 12, 800, C.Yellow, maxLines = 1) }
             }
         }
 
@@ -411,6 +451,16 @@ private fun PermissionPrompt(blocked: Boolean, onAllow: () -> Unit, modifier: Mo
     }
 }
 
+/** One side of the camera's One asset / Many assets switch. */
+@Composable
+private fun ModeChip(label: String, on: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(Capsule).pressClickable(shape = Capsule, onClick = onClick).background(if (on) C.Yellow else Color.Transparent)
+            .heightIn(min = 32.dp).padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) { Txt(label, 12, if (on) 800 else 600, if (on) C.OnYellow else C.Soft, maxLines = 1) }
+}
+
 @Composable
 private fun ModePill(label: String, on: Boolean, onClick: () -> Unit) {
     Pill(label, onClick, bg = if (on) C.Yellow else Color.Transparent, fg = if (on) C.OnYellow else C.Muted, hPad = 18.dp, size = 14, weight = 700)
@@ -439,11 +489,9 @@ private fun FileWaiting(vm: AppViewModel) {
         LineIcon(Icons.FileUpload, 40.dp, C.Yellow, 1.6f)
         Txt(stringResource(R.string.file_choose_title), 16, 700)
         Txt(stringResource(R.string.file_import_hint, MAX_DOCUMENT_UPLOAD_MB), 12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
-        // Adding assets needs Collect: a view-only group is told so instead (the web hides its Add).
-        if (vm.mayCollect()) {
+        // Adding assets needs Collect: for a group without it Browse stays, greyed out, and a tap says why.
+        AccessGate(vm.collectBlock) {
             Pill(stringResource(R.string.file_browse_files), vm::openFile, bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700)
-        } else {
-            Txt(stringResource(R.string.view_only_no_add), 12, 500, C.Orange, maxLines = 3, align = TextAlign.Center)
         }
         Pill(stringResource(R.string.action_cancel), vm::cancelFile, bg = Color.Transparent, fg = C.Muted, height = 40.dp)
     }

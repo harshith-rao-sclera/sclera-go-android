@@ -65,9 +65,9 @@
     <string name="pi_from_hide">Hide items already in this property</string>
     <string name="pi_from_nothing">This property already has every building, floor and location VDMS has.</string>
     <string name="pi_from_empty">VDMS has no buildings.</string>
-    <string name="pi_list_from">VDMS\'s list is from %1$s. Refresh</string>
+    <string name="pi_list_from">Last updated from VDMS %1$s. Tap to refresh.</string>
     <string name="pi_no_snapshot">VDMS hasn\'t sent its buildings, floors and locations yet.</string>
-    <string name="pi_ask_vdms">Ask VDMS for them</string>
+    <string name="pi_ask_vdms">Ask VDMS again</string>
     <string name="pi_show_them">Show them</string>
     <string name="pi_search">Search buildings, floors, locations</string>
     <string name="pi_selection">%1$d selected · %2$d of %3$d not there yet</string>
@@ -162,16 +162,18 @@
     <string name="pi_kind_floor">floor</string>
     <string name="pi_kind_location">location</string>
     <string name="pi_kind_place">place</string>
-    <string name="pi_waiting">VDMS is adding them</string>
+    <string name="pi_waiting">Exporting the selected buildings, floors and locations to VDMS…</string>
     <string name="pi_timed_out">VDMS hasn\'t finished yet. It will finish this when it\'s connected; the result shows here next time.</string>
     <string name="pi_send_busy">VDMS is still working on the last export. Try again when it\'s done.</string>
     <string name="pi_import_failed">Couldn\'t start the import</string>
 
     <!-- Places import: refresh, parents ticked along, history -->
     <string name="pi_history">History</string>
-    <string name="pi_ask_list">Ask VDMS for its list</string>
-    <string name="pi_refreshing_list">Getting VDMS\'s latest list…</string>
-    <string name="pi_getting_list">Getting VDMS\'s buildings, floors and locations…</string>
+    <string name="pi_ask_list">Get the latest list from VDMS</string>
+    <string name="pi_refreshing_list">Refreshing the list from VDMS…</string>
+    <!-- The sheet's loader while VDMS sends a fresh list on opening (Export, Import). -->
+    <string name="pi_loading_to">Checking which buildings, floors and locations VDMS already has…</string>
+    <string name="pi_loading_from">Loading buildings, floors and locations from VDMS…</string>
     <!-- %1$s is the name of a place, %2$s its kind (building, floor or location). -->
     <string name="pi_place_named">%1$s (%2$s)</string>
     <!-- The last two items of a list: "Ground (floor), Annex (building) and Lobby (location)". -->

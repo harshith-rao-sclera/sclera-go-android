@@ -43,6 +43,7 @@ internal fun FieldKind.icon(): Ico = when (this) {
     FieldKind.TEXT -> Icons.TextAa
     FieldKind.DROPDOWN -> Icons.ChevronCircle
     FieldKind.NUMBER -> Icons.Hash
+    FieldKind.CURRENCY -> Icons.Banknote
     FieldKind.DATE -> Icons.Calendar
     FieldKind.TEXTAREA -> Icons.TextLines
     FieldKind.CHECKBOX -> Icons.CheckSquare
@@ -75,7 +76,7 @@ internal fun KindChip(kind: FieldKind) {
 internal fun Modifier.listCard() =
     padding(horizontal = 4.dp, vertical = 1.5.dp).fillMaxWidth().clip(r(8)).background(C.Surface).border(1.dp, C.Border, r(8))
 
-/** Cancel + a yellow main button along the bottom of a sheet. */
+/** Cancel + a yellow main button along the bottom of a sheet; the main button changes the set-up, so it needs Configure. */
 @Composable
 internal fun SheetButtons(yes: String, enabled: Boolean, onNo: () -> Unit, no: String = stringResource(R.string.cfg_cancel), onYes: () -> Unit) {
     Row(
@@ -83,10 +84,12 @@ internal fun SheetButtons(yes: String, enabled: Boolean, onNo: () -> Unit, no: S
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Pill(no, onNo, height = 40.dp, hPad = 18.dp, size = 14)
-        Pill(
-            yes, { if (enabled) onYes() }, Modifier.weight(1f).alpha(if (enabled) 1f else 0.4f),
-            bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
-        )
+        ConfigGate(Modifier.weight(1f)) {
+            Pill(
+                yes, { if (enabled) onYes() }, Modifier.fillMaxWidth().alpha(if (enabled) 1f else 0.4f),
+                bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
+            )
+        }
     }
 }
 
@@ -183,8 +186,9 @@ private fun SettingsHeader(title: String, sub: String?) {
     }
 }
 
+/** A setting's switch row; changing it needs Configure (greyed out, with why, without it). */
 @Composable
-private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, busy: Boolean = false, onChange: (Boolean) -> Unit) {
+private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, busy: Boolean = false, onChange: (Boolean) -> Unit) = ConfigGate(Modifier.fillMaxWidth()) {
     // While its save is on its way the row is dimmed and takes no taps, as the web's switch.
     Row(
         Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !busy) { onChange(!on) }.fillMaxWidth().topBorder(C.Border).alpha(if (busy) 0.6f else 1f)

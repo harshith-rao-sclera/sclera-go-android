@@ -31,11 +31,15 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.Property
-import com.sclera.sclerago.domain.model.VIEW_ONLY_COLOR
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
+import com.sclera.sclerago.presentation.components.LocalToaster
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import com.sclera.sclerago.presentation.components.ToastKind
 import com.sclera.sclerago.presentation.components.asColor
 import com.sclera.sclerago.presentation.components.pressClickable
+import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -81,7 +85,8 @@ private fun CardRow(modifier: Modifier, onClick: () -> Unit, content: @Composabl
 }
 
 /**
- * A person: their name (the email when there is none) with "Invited" while they haven't signed in yet, their email, then their group's pill and the properties they can open. Tap to edit.
+ * A person: their name (the email when there is none) with, at its end, when they were last seen (or "Invited" while they
+ * haven't signed in yet), their email, then their group's pill and the properties they can open. Tap to edit.
  */
 @Composable
 internal fun PersonCard(row: PersonRow, properties: List<Property>, nowMillis: Long, onEdit: () -> Unit) {
@@ -91,7 +96,13 @@ internal fun PersonCard(row: PersonRow, properties: List<Property>, nowMillis: L
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Txt(p.name, 14, 600, modifier = Modifier.weight(1f), maxLines = 1)
-                if (!p.signedIn && p.hasAccess) Tag(stringResource(R.string.access_invited), C.Orange, bordered = false)
+                // At the end of the name's line: when they were last active ("just now", "3 min ago", a date), or "Invited"
+                // while they haven't signed in yet.
+                when {
+                    // Signed in but never seen since (no time from the server): "Signed in".
+                    p.signedIn -> Txt(agoText(p.lastSeenAt, nowMillis).ifEmpty { stringResource(R.string.access_signed_in) }, 11, 400, C.Muted, maxLines = 1)
+                    p.hasAccess -> Tag(stringResource(R.string.access_invited), C.Orange, bordered = false)
+                }
             }
             // The email goes under the name only when there is a name (otherwise it is the name).
             if (p.name != p.email) Txt(p.email, 12, 400, C.Muted, maxLines = 1)
@@ -120,23 +131,27 @@ internal fun PersonCard(row: PersonRow, properties: List<Property>, nowMillis: L
 
 /**
  * Someone else the organisation's directory lists, not added here yet (as the web lists them under the users): their
- * name and email, "Not added", and Add. Tapping the card or Add opens Add user with them filled in; Add only works once
- * there is a group to put them in ([canAdd]).
+ * name and email, "Not added", and Add. Tapping the card or Add opens Add user with them filled in. When they can't be
+ * added ([addReason]: no Manage access, or no group to put them in yet) Add is greyed out and a tap on it or the card
+ * says why instead.
  */
 @Composable
-internal fun DirectoryCard(person: DirectoryPerson, canAdd: Boolean, onAdd: () -> Unit) {
+internal fun DirectoryCard(person: DirectoryPerson, addReason: UiText?, onAdd: () -> Unit) {
     val name = person.name?.trim()?.takeIf { it.isNotEmpty() }
-    CardRow(Modifier.testTag(AccessTags.directory(person.email)), onAdd) {
+    val toaster = LocalToaster.current
+    CardRow(Modifier.testTag(AccessTags.directory(person.email)), { addReason?.let { toaster.show(it, ToastKind.INFO) } ?: onAdd() }) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Txt(name ?: person.email, 14, 600, maxLines = 1)
             if (name != null) Txt(person.email, 12, 400, C.Muted, maxLines = 1)
             Txt(stringResource(R.string.access_not_added), 12, 600, C.Orange)
         }
-        Box(
-            Modifier.minimumInteractiveComponentSize().pressClickable(shape = r(8), enabled = canAdd, role = Role.Button, onClick = onAdd)
-                .padding(horizontal = 6.dp),
-            contentAlignment = Alignment.Center,
-        ) { Txt(stringResource(R.string.access_action_add), 13, 600, if (canAdd) C.Yellow else C.Dim) }
+        AccessGate(addReason) {
+            Box(
+                Modifier.minimumInteractiveComponentSize().pressClickable(shape = r(8), role = Role.Button, onClick = onAdd)
+                    .padding(horizontal = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) { Txt(stringResource(R.string.access_action_add), 13, 600, C.Yellow) }
+        }
     }
 }
 
@@ -186,7 +201,8 @@ internal fun GroupCard(row: GroupRow, onEdit: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     val perms = orderedPermissions().filter(g::can)
-                    if (perms.isEmpty()) Tag(stringResource(R.string.access_view_only), VIEW_ONLY_COLOR.asColor())
+                    // Nothing ticked: the group can't open a property (the web's warning tag).
+                    if (perms.isEmpty()) Tag(stringResource(R.string.access_no_permissions), C.Orange)
                     else {
                         perms.take(MAX_TAGS).forEach { Tag(it.title(), it.color.asColor()) }
                         if (perms.size > MAX_TAGS) {

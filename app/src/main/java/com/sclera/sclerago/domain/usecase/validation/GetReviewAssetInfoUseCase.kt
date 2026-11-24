@@ -9,6 +9,7 @@ import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.NO_INPUT_KINDS
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
+import com.sclera.sclerago.domain.model.amountText
 import com.sclera.sclerago.domain.usecase.asset.GetAssetDetailsUseCase
 import com.sclera.sclerago.domain.usecase.asset.ObserveAssetFieldsUseCase
 import com.sclera.sclerago.domain.validation.AssetInfoRow
@@ -44,7 +45,8 @@ class GetReviewAssetInfoUseCase @Inject constructor(
             // On the phone's 12/24-hour clock.
             f.kind == FieldKind.TIME && at != null -> at.format(DateTimeFormatter.ofPattern(if (clock.is24Hour()) "HH:mm" else "h:mm a", Locale.getDefault()))
             f.kind == FieldKind.CHECKBOX -> if (v.equals(CHECKED, ignoreCase = true)) ANSWER_YES else ANSWER_NO
-            else -> v
+            // A currency field's amount with its currency ("1200 USD"), as the web reads it.
+            else -> f.amountText(v)
         }
     }
 

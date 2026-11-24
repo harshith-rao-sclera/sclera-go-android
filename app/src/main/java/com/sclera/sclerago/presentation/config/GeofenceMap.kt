@@ -148,7 +148,7 @@ else {
     var p = L.polygon(rings, STYLE).addTo(map);
     p.on('click', function (e) {
       L.DomEvent.stopPropagation(e);
-      if (mode === 'view') select(p);
+      if (mode === 'view' && !locked) select(p);
     });
     fences.push(p);
     return p;
@@ -166,7 +166,13 @@ else {
     if (mode === 'draw') { draft.push(e.latlng); drawDraft(); report(); }
     else if (selected) { clearHandles(); report(); }
   });
-  window.adcStartDraw = function () { clearHandles(); mode = 'draw'; draft = []; drawDraft(); report(); };
+  // Read-only (the user can't configure): the map still pans and zooms, but no fence can be picked, drawn or changed.
+  var locked = false;
+  window.adcSetLocked = function (on) {
+    locked = on;
+    if (on) { clearHandles(); mode = 'view'; draft = []; drawDraft(); report(); }
+  };
+  window.adcStartDraw = function () { if (locked) return; clearHandles(); mode = 'draw'; draft = []; drawDraft(); report(); };
   window.adcUndo = function () { draft.pop(); drawDraft(); report(); };
   window.adcCancelDraw = function () { mode = 'view'; draft = []; drawDraft(); report(); };
   window.adcFinishDraw = function () {
@@ -176,13 +182,13 @@ else {
   // A fence picked from the list: zoomed to, and its corners made draggable.
   window.adcSelectFence = function (i) {
     var p = fences[i];
-    if (!p || mode !== 'view') return;
+    if (!p || mode !== 'view' || locked) return;
     map.fitBounds(p.getBounds(), {padding: [24, 24]});
     select(p);
   };
   window.adcDeleteFence = function (i) {
     var p = fences[i];
-    if (!p) return;
+    if (!p || locked) return;
     if (p === selected) clearHandles();
     p.remove();
     fences = fences.filter(function (f) { return f !== p; });

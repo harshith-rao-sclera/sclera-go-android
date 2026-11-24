@@ -47,6 +47,7 @@ import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ChoiceSheet
 import com.sclera.sclerago.presentation.components.GuardedClose
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.TintChip
@@ -73,10 +74,11 @@ object ImportTags {
 /**
  * Import, as the web's on the new API: choose an .xlsx (at most 100MB; Sample Format downloads the server's sample),
  * Proceed (the server reads it and proposes the column each detail is read from), then "Mapping Data": check or change
- * each detail's column (the name needs one) and Import. [onImported] closes it once the rows are in.
+ * each detail's column (the name needs one) and Import. [onImported] closes it once the rows are in. [importReason]
+ * greys Proceed and Import out (the user's group can't manage properties); a tap says why.
  */
 @Composable
-internal fun ImportSheet(vm: PropertyImportViewModel, onClose: () -> Unit, onImported: () -> Unit) {
+internal fun ImportSheet(vm: PropertyImportViewModel, onClose: () -> Unit, onImported: () -> Unit, importReason: UiText? = null) {
     val context = LocalContext.current
     val s = vm.state
     val chooser = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -94,9 +96,10 @@ internal fun ImportSheet(vm: PropertyImportViewModel, onClose: () -> Unit, onImp
                 onSample = { sampleSaver.launch(SAMPLE_NAME) },
                 onProceed = vm::proceed,
                 loading = s.loading,
+                importReason = importReason,
             )
         } else {
-            MappingSheet(plan, s.mapping, s.incomplete, s.loading, close, vm::map) { vm.import(onImported) }
+            MappingSheet(plan, s.mapping, s.incomplete, s.loading, close, vm::map, importReason) { vm.import(onImported) }
         }
     }
 }
@@ -116,7 +119,8 @@ internal fun pickedSheet(context: Context, uri: Uri): PickedSheet = runCatching 
 
 /**
  * The first step (design "Import"): drop zone, limits, sample card and the action ([actionLabel]: Proceed, or Import
- * when there is no mapping step); a loader while the server reads the file.
+ * when there is no mapping step); a loader while the server reads the file. [importReason] greys the action out (the
+ * user's group can't import here, the User Access Guide); a tap says why.
  */
 @Composable
 internal fun ImportSheetContent(
@@ -129,6 +133,7 @@ internal fun ImportSheetContent(
     onProceed: () -> Unit,
     loading: Boolean = false,
     actionLabel: String = stringResource(R.string.import_proceed),
+    importReason: UiText? = null,
 ) {
     val downloadLabel = stringResource(R.string.import_sample_download)
     BottomSheet(onClose, maxHeightFraction = 0.6f, background = C.SheetBg) {
@@ -181,11 +186,13 @@ internal fun ImportSheetContent(
                     LineIcon(Icons.Download, 14.dp, C.Text, 2.2f)
                 }
             }
-            Pill(
-                actionLabel, { if (fileName != null) onProceed() }, Modifier.fillMaxWidth().testTag(ImportTags.PROCEED),
-                bg = if (fileName != null) C.Yellow else C.Raised, fg = if (fileName != null) C.OnYellow else C.Muted,
-                height = 46.dp, size = 14, weight = 700,
-            )
+            AccessGate(importReason, Modifier.fillMaxWidth()) {
+                Pill(
+                    actionLabel, { if (fileName != null) onProceed() }, Modifier.fillMaxWidth().testTag(ImportTags.PROCEED),
+                    bg = if (fileName != null) C.Yellow else C.Raised, fg = if (fileName != null) C.OnYellow else C.Muted,
+                    height = 46.dp, size = 14, weight = 700,
+                )
+            }
         }
     }
 }
@@ -203,6 +210,7 @@ private fun MappingSheet(
     loading: Boolean,
     onClose: () -> Unit,
     onMap: (target: String, heading: String?) -> Unit,
+    importReason: UiText?,
     onImport: () -> Unit,
 ) {
     var choosingFor by remember { mutableStateOf<ImportTarget?>(null) }
@@ -231,10 +239,12 @@ private fun MappingSheet(
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
             val ready = mapping.isNotEmpty()
-            Pill(
-                stringResource(R.string.import_action), { if (ready) onImport() }, Modifier.fillMaxWidth().testTag(ImportTags.IMPORT),
-                bg = if (ready) C.Yellow else C.Raised, fg = if (ready) C.OnYellow else C.Muted, height = 46.dp, size = 14, weight = 700,
-            )
+            AccessGate(importReason, Modifier.fillMaxWidth()) {
+                Pill(
+                    stringResource(R.string.import_action), { if (ready) onImport() }, Modifier.fillMaxWidth().testTag(ImportTags.IMPORT),
+                    bg = if (ready) C.Yellow else C.Raised, fg = if (ready) C.OnYellow else C.Muted, height = 46.dp, size = 14, weight = 700,
+                )
+            }
         }
     }
     choosingFor?.let { target ->

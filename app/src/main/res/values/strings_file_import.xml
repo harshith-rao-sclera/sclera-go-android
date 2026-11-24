@@ -3,7 +3,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="file_import_hint">Excel, CSV, PDF, photos, videos, Word or text files · max %1$d MB each. You review the assets found before adding.</string>
     <string name="file_import_ready">Ready to upload</string>
-    <string name="file_import_unreadable">Can\'t be read. Use a spreadsheet, PDF, photo, video, Word or text file.</string>
+    <string name="file_import_unreadable">Can\'t be used here. Use an Excel, CSV, PDF, photo, video, Word or text file.</string>
     <string name="file_import_empty">This file is empty.</string>
     <string name="file_import_too_large">Over %1$d MB, the most one file can be.</string>
     <string name="file_import_uploading">Uploading %1$d%%</string>
@@ -23,9 +23,6 @@
     <string name="file_import_unsure">AI unsure</string>
     <string name="file_import_saving">Saving…</string>
     <string name="file_import_tap_to_correct">Tap to check and correct.</string>
-    <string name="file_import_sample">Download sample</string>
-    <string name="file_import_sample_hint">Blank spreadsheet with this property\'s fields</string>
-    <string name="file_import_sample_saved">Sample saved.</string>
     <plurals name="file_import_files_sub">
         <item quantity="one">%1$d file selected · the assets found in it are shown for review</item>
         <item quantity="other">%1$d files selected · the assets found in them are shown for review</item>

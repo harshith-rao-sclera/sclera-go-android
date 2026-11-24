@@ -27,7 +27,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -40,9 +39,11 @@ import com.sclera.sclerago.domain.model.Group
 import com.sclera.sclerago.domain.model.Person
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.SkeletonLead
 import com.sclera.sclerago.presentation.components.SkeletonList
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.OfflineBanner
@@ -89,7 +90,7 @@ fun PeopleScreen(
                 onAdd = { if (s.tab == AccessTab.PEOPLE) access.newPerson() else access.newGroup() },
                 onEditPerson = access::editPerson, onEditGroup = access::editGroup,
                 onRefresh = access::refresh, onInvite = access::newPerson, onMoreOthers = access::moreOthers,
-                offline = !online, propertyName = vm.propName.takeIf { it.isNotBlank() },
+                offline = !online,
             )
             s.personForm?.let { form ->
                 PersonSheet(
@@ -97,37 +98,28 @@ fun PeopleScreen(
                     problem = access::personProblem, onSave = access::savePerson, onClose = access::closePersonForm,
                     suggestions = access.suggestions, suggestionHint = access.suggestionHint,
                     onEmailTyped = access::suggest, onSuggestionPicked = access::clearSuggestions,
-                    suggestionsLoading = access.suggestionsLoading,
+                    suggestionsLoading = access.suggestionsLoading, blocked = access.changeReason,
                 )
             }
             s.groupForm?.let { form ->
                 GroupSheet(
                     initial = form, problem = access::groupProblem, onSave = access::saveGroup, onClose = access::closeGroupForm,
-                    // As on the web, any group but Admins offers Delete (one with people in it then says to move them first).
-                    canDelete = form.id.isNotEmpty() && !form.locked, onDelete = access::askDeleteGroup,
+                    // Every saved group has Delete; greyed out with why for Admins (fixed), one with people in it, or
+                    // someone who can't manage access.
+                    canDelete = form.id.isNotEmpty(), onDelete = access::askDeleteGroup,
+                    blocked = access.changeReason, deleteReason = access.deleteReason(form),
+                    permissionsReason = access.permissionsReason(form),
                 )
             }
+            // Only a group that can be deleted gets here: Delete is greyed out with why for the others.
             s.confirmDelete?.let { g ->
                 BackHandler { access.askDeleteGroup(null) }
-                val members = access.peopleIn(g.id)
-                if (members > 0) {
-                    // As the web: a group that still has people in it isn't sent to the server (which refuses it); their
-                    // users are moved to another group first.
-                    ConfirmDialog(
-                        Icons.Users, C.YTintBg, C.Yellow,
-                        stringResource(R.string.access_delete_not_yet_title, g.name),
-                        pluralStringResource(R.plurals.access_delete_not_yet_body, members, members),
-                        stringResource(R.string.action_cancel), stringResource(R.string.access_go_to_users),
-                        { access.askDeleteGroup(null) }, access::goToUsers, yesBg = C.Yellow,
-                    )
-                } else {
-                    ConfirmDialog(
-                        Icons.Trash, C.DangerBg, C.Red,
-                        stringResource(R.string.access_delete_title, g.name), stringResource(R.string.access_delete_cant_undo),
-                        stringResource(R.string.action_cancel), stringResource(R.string.access_action_delete),
-                        { access.askDeleteGroup(null) }, { access.deleteGroup(g) },
-                    )
-                }
+                ConfirmDialog(
+                    Icons.Trash, C.DangerBg, C.Red,
+                    stringResource(R.string.access_delete_title, g.name), stringResource(R.string.access_delete_cant_undo),
+                    stringResource(R.string.action_cancel), stringResource(R.string.access_action_delete),
+                    { access.askDeleteGroup(null) }, { access.deleteGroup(g) },
+                )
             }
         }
     }
@@ -149,8 +141,6 @@ internal fun PeopleContent(
     onMoreOthers: () -> Unit = {},
     /** Offline: people and groups are managed on the server, so a banner at the top says so. */
     offline: Boolean = false,
-    /** The property being worked on, under the title. */
-    propertyName: String? = null,
 ) {
     val gutter = pageGutter()
     val onPeople = list.tab == AccessTab.PEOPLE
@@ -177,7 +167,8 @@ internal fun PeopleContent(
     }
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            SubPageBar(stringResource(R.string.access_title), property = propertyName, onMenu = onBack)
+            // Users and groups belong to the organisation, not one property, so no property under the title.
+            SubPageBar(stringResource(R.string.access_title), property = null, onMenu = onBack)
             if (offline) OfflineBanner(OnlineOnly.USERS, Modifier.padding(horizontal = gutter + 10.dp).padding(top = 10.dp))
             // The counts and the switch stay put; the switch follows a swipe as it goes (to the page it is heading for).
             val shownPage = if (pager.isScrollInProgress) pager.targetPage else pager.currentPage
@@ -206,8 +197,11 @@ internal fun PeopleContent(
                                     PersonCard(row, properties, list.nowMillis) { onEditPerson(row.person) }
                                 }
                                 // Everyone else in the organisation, as Sclera lists them: no access here until added.
+                                // Add is greyed out with why when they can't be added (no Manage access, or no group yet).
+                                val addReason = list.changeReason
+                                    ?: if (list.canAdd) null else UiText.Res(R.string.access_page_add_needs_group)
                                 items(list.others, key = { "directory-${it.email}" }) { person ->
-                                    DirectoryCard(person, canAdd = list.canAdd) { onInvite(person) }
+                                    DirectoryCard(person, addReason) { onInvite(person) }
                                 }
                                 if (list.othersLoading || list.othersReason != null) item { OthersFooter(list) }
                                 if (list.people.isEmpty() && list.others.isEmpty()) item {
@@ -227,18 +221,21 @@ internal fun PeopleContent(
                 }
             }
         }
-        // Add person / New group (only when it can be used, as the web's button); the web searches people only.
+        // Add person / New group (when there is something to add to, as the web's button); without Manage access it stays,
+        // greyed out, and a tap says why. The web searches people only.
         Column(
             Modifier.align(Alignment.BottomEnd).navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (list.canAdd) {
-                CircleFab(
-                    Icons.Plus,
-                    stringResource(if (onPeople) R.string.access_add_person else R.string.access_new_group),
-                    onAdd, Modifier.testTag(AccessTags.FAB_ADD),
-                )
+            if (list.canAdd || list.changeReason != null) {
+                AccessGate(list.changeReason) {
+                    CircleFab(
+                        Icons.Plus,
+                        stringResource(if (onPeople) R.string.access_add_person else R.string.access_new_group),
+                        onAdd, Modifier.testTag(AccessTags.FAB_ADD),
+                    )
+                }
             }
             if (onPeople) {
                 SearchFab(
@@ -258,16 +255,17 @@ internal fun PeopleContent(
 private fun Header(list: AccessListState, shown: AccessTab, onTab: (AccessTab) -> Unit, modifier: Modifier = Modifier) {
     val onPeople = shown == AccessTab.PEOPLE
     Column(modifier.padding(bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // The same cards as the property list's (size and look), so the two pages match.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(
                 Icons.Users, C.Yellow, list.peopleTotal.toString(), stringResource(R.string.access_stat_people),
                 Modifier.weight(1f).pressClickable(shape = r(12), role = Role.Button) { onTab(AccessTab.PEOPLE) }.testTag(AccessTags.STAT_PEOPLE),
-                valueSize = 18, labelSize = 12,
+                valueSize = 24, labelSize = 12, prominent = true, loading = list.loading,
             )
             StatCard(
                 Icons.Key, C.Purple, list.groupsTotal.toString(), stringResource(R.string.access_stat_groups),
                 Modifier.weight(1f).pressClickable(shape = r(12), role = Role.Button) { onTab(AccessTab.GROUPS) }.testTag(AccessTags.STAT_GROUPS),
-                valueSize = 18, labelSize = 12,
+                valueSize = 24, labelSize = 12, prominent = true, loading = list.loading,
             )
         }
         TabSwitch(

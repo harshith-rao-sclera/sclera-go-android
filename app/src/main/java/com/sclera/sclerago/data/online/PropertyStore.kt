@@ -8,6 +8,7 @@ import com.sclera.sclerago.data.mapper.toBody
 import com.sclera.sclerago.data.mapper.toRecord
 import com.sclera.sclerago.data.offline.PropertyOfflineSource
 import com.sclera.sclerago.data.remote.adc.AdcApi
+import com.sclera.sclerago.data.remote.adc.GeofenceDto
 import com.sclera.sclerago.data.remote.adc.PhotoRulesDto
 import com.sclera.sclerago.data.remote.adc.PropertyDto
 import com.sclera.sclerago.data.remote.adc.SettingsDto
@@ -25,7 +26,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -62,6 +67,11 @@ class PropertyStore @Inject constructor(
     private var settingsOff = emptyMap<String, Set<OnboardingChannel>>()
 
     val properties: StateFlow<List<Property>> = _properties
+
+    private val _listed = MutableSharedFlow<Set<String>>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /** The ids in each property list fresh from the server (not the kept copy), latest first to a new collector. */
+    val listed: SharedFlow<Set<String>> = _listed.asSharedFlow()
 
     /** Property id → ways of adding assets switched off there. */
     val disabled: StateFlow<Map<String, Set<OnboardingChannel>>> = _disabled
@@ -117,6 +127,7 @@ class PropertyStore @Inject constructor(
         val loaded = api.properties(session.organisation())
         if (session.user.value != user) return // signed out (or in as someone else) meanwhile: drop it
         setDtos(loaded)
+        _listed.tryEmit(loaded.mapTo(HashSet()) { it.id })
     }
 
     /** Creates a property on the server. Throws [OnlineException]. */
@@ -166,6 +177,15 @@ class PropertyStore @Inject constructor(
     }
 
     /**
+     * Keeps [geofence] as [propertyId]'s geofence just saved in Configuration, so the geofence check uses it at once
+     * (and offline) without waiting for the next property list. Nothing changes when the kept list doesn't hold it.
+     */
+    suspend fun applyGeofence(propertyId: String, geofence: GeofenceDto) {
+        if (dtos.none { it.id == propertyId }) return
+        setDtos(dtos.map { if (it.id == propertyId) it.copy(geofenceEnforced = geofence.enforced, geofence = geofence.fences) else it })
+    }
+
+    /**
      * Reads the property list from the server only for its settings (onboarding switches and photo rules), while the
      * offline list stays on show. Nothing is said when it can't: the last known settings stay.
      */
@@ -177,6 +197,7 @@ class PropertyStore @Inject constructor(
             return
         }
         if (session.user.value != user) return
+        _listed.tryEmit(loaded.mapTo(HashSet()) { it.id })
         rememberSettings(loaded)
         _disabled.value = _disabled.value.mapValues { (id, off) -> settingsOff[id] ?: off }
         dtos = loaded
@@ -190,6 +211,7 @@ class PropertyStore @Inject constructor(
 
     override fun clear() {
         offlineJob?.cancel()
+        _listed.resetReplayCache()
         scope.launch(io) { runCatching { table.clear() } }
         settingsOff = emptyMap()
         dtos = emptyList()

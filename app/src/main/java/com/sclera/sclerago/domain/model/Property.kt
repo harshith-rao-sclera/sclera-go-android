@@ -26,6 +26,11 @@ data class Property(
     val availability: Availability = Availability(),
     /** Its data is downloaded on this device for working offline (several properties can be). */
     val downloaded: Boolean = false,
+    /**
+     * The fences round it, as the server lists them with the property and kept on the device so the geofence check
+     * ([gps]) works offline; empty when it has none or the server didn't send them.
+     */
+    val fences: List<Fence> = emptyList(),
 )
 
 /** A choice in the Add property form: what is shown ([label]) and what is sent to the server ([value]). */

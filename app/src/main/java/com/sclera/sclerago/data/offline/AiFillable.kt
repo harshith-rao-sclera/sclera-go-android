@@ -12,7 +12,7 @@ import kotlinx.serialization.json.JsonPrimitive
 // fields (its services/assets.py refresh_ai_suggestion, with extraction/lookup.py can_look_up and IDENTITY_KEYS).
 
 /** The asset's own fields: standard ones and those of this asset (not the types' field rows, which have no asset). */
-private const val AI_FIELDS = """SELECT key, name, type, is_active FROM asset_fields
+private const val AI_FIELDS = """SELECT key, name, type, is_active, is_builtin FROM asset_fields
     WHERE (is_standard = 1 OR asset_id = ?) AND %LIVE%"""
 
 private const val AI_CORE = "SELECT name, manufacturer, model, serial_number FROM assets WHERE id = ?"
@@ -20,8 +20,14 @@ private const val AI_CORE = "SELECT name, manufacturer, model, serial_number FRO
 /** Searched for by these, so they can't be filled from specs. */
 private val IDENTITY_KEYS = setOf("manufacturer", "model", "name")
 
-/** A datasheet can't fill these: media, site observations, free-form specs and multi-selects. */
-private val NOT_FROM_DATASHEETS = setOf("image", "video", "voice_memo", "key_value", "checkbox", "yesno", "multiple_checkbox")
+/** A datasheet can't fill these: media, site observations, free-form specs, multi-selects and what this asset cost. */
+private val NOT_FROM_DATASHEETS = setOf("image", "video", "voice_memo", "key_value", "checkbox", "yesno", "multiple_checkbox", "currency")
+
+/**
+ * The built-in Type field (key "type", or "type_2"… where the server's migration found "type" taken): what the
+ * collector calls the asset, not a spec, so it is never looked up (the server's can_look_up).
+ */
+private fun isBuiltInType(key: String, builtIn: Boolean) = builtIn && key.substringBefore('_') == "type"
 
 /** Words of a field's key or name that describe one physical unit or its site, not the model. */
 private val UNIT_WORDS = listOf(
@@ -43,6 +49,7 @@ internal fun AdcDatabase.aiFillable(assetId: String): Boolean {
         val key = f.string("key").orEmpty()
         val name = f.string("name").orEmpty()
         val lookable = f.bool("is_active") && f.string("type") !in NOT_FROM_DATASHEETS && key !in IDENTITY_KEYS &&
+            !isBuiltInType(key, f.bool("is_builtin")) &&
             WORD_SPLIT.split("$key $name".lowercase()).filter { it.isNotEmpty() }.none { w -> UNIT_WORDS.any { w.startsWith(it) } }
         val empty = if (key in CORE_COLUMNS) core?.string(key).isNullOrBlank() else isEmpty(answers[key])
         lookable && empty

@@ -168,4 +168,5 @@ class PropertyConfigUseCases @Inject constructor(
     val loadGeofence: LoadGeofenceUseCase,
     val saveGeofence: SaveGeofenceUseCase,
     val setGeofenceEnforced: SetGeofenceEnforcedUseCase,
+    val configureBlock: ObserveConfigureBlockUseCase,
 )

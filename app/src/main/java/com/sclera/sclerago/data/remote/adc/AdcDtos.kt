@@ -58,6 +58,10 @@ data class PropertyDto(
     val accessCode: String? = null,
     val status: String = "ready",
     val settings: SettingsDto = SettingsDto(),
+    /** Collectors must be inside one of its fences to collect there (Configuration → Geofencing). */
+    val geofenceEnforced: Boolean = false,
+    /** The fences round the property (null: none, or a server from before it sent them with the property). */
+    val geofence: FencesDto? = null,
 )
 
 @Serializable
@@ -166,7 +170,14 @@ data class AssignResultDto(
 )
 
 @Serializable
-data class PermissionDto(val key: String, val name: String = "", val description: String = "", val needsAllProperties: Boolean = false)
+data class PermissionDto(
+    val key: String,
+    val name: String = "",
+    val description: String = "",
+    val needsAllProperties: Boolean = false,
+    /** The permissions it brings with it (a group given this one has these too). */
+    val includes: List<String> = emptyList(),
+)
 
 @Serializable
 data class MeDto(

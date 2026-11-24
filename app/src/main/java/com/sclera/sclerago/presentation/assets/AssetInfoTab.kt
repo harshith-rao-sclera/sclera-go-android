@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.model.color
 import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -12,6 +13,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -46,6 +48,7 @@ import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
+import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
 import com.sclera.sclerago.domain.model.assetTypes
 import com.sclera.sclerago.domain.model.subtypes
 import com.sclera.sclerago.domain.model.systemTypes
@@ -55,6 +58,8 @@ import com.sclera.sclerago.domain.usecase.asset.ChangeAction
 import com.sclera.sclerago.domain.validation.isServerId
 import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
 import com.sclera.sclerago.presentation.common.is24Hour
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.ActionCard
 import com.sclera.sclerago.presentation.components.DockItem
 import com.sclera.sclerago.presentation.components.Pill
@@ -91,6 +96,10 @@ class AssetDetailActions(
     val onMarkValidated: () -> Unit = {},
     /** Move the validated asset to Managed assets; null when it isn't offered (not validated, or not an admin). */
     val onMove: (() -> Unit)? = null,
+    /** Why Move to Managed assets can't be used now (no Configure, not linked…): greyed out, a tap says this; null: it can. */
+    val moveReason: UiText? = null,
+    /** Why Assign (or Assign to me) can't be used now: greyed out, a tap says this; null: it can. */
+    val assignReason: UiText? = null,
     /** Create the new asset, as a draft or (true) submitted. */
     val onCreate: (submit: Boolean) -> Unit = {},
     val onValidate: () -> Unit = {},
@@ -114,8 +123,10 @@ class AssetDetailActions(
     val onTakePhoto: () -> Unit = {},
     val onPickGallery: () -> Unit = {},
     val onPickFiles: () -> Unit = {},
-    /** The Documents tab's Upload: one file, kept as the asset's source document. */
+    /** The Documents tab's Upload: one file, sent to the server as one of the asset's documents. */
     val onUploadDocument: () -> Unit = {},
+    /** The greyed-out Upload (offline, or the server doesn't have the asset yet): says why documents can't be added. */
+    val onDocumentsBlocked: () -> Unit = {},
     /** The Media tab's Record memo: records a voice memo for the asset. */
     val onRecordMemo: () -> Unit = {},
     /** The comment being typed changed / post it (Comments tab). */
@@ -130,6 +141,10 @@ class AssetDetailActions(
     val onAddPhoto: (kind: PhotoKind?) -> Unit = {},
     /** Take a web page or the uploaded file off the asset (Documents tab, after the confirmation). */
     val onRemoveDocument: (AssetDocument) -> Unit = {},
+    /** Fetches a document's file from the server and opens it. */
+    val onOpenDocument: (AssetDocument) -> Unit = {},
+    /** A photo or video source file: fetched and shown in the app's viewer. */
+    val onPreviewSource: (AssetDocument) -> Unit = {},
     /** Save a copy of a photo, video, voice memo or file (the media viewer's Download). */
     val onDownloadMedia: (Media) -> Unit = {},
     /** Remove a photo, video, voice memo or file from the asset (the media viewer's Remove, after the confirmation). */
@@ -154,8 +169,8 @@ class AssetDetailActions(
     val tags: TagsActions = TagsActions(),
 )
 
-/** Opening the JACS code picker, and what it does. */
-class JacsActions(val onOpen: () -> Unit = {}, val picker: JacsPickerActions = JacsPickerActions())
+/** Opening the JACS code picker, and what it does; [onSuggest] asks the AI for codes (the AI button beside an empty code). */
+class JacsActions(val onOpen: () -> Unit = {}, val picker: JacsPickerActions = JacsPickerActions(), val onSuggest: () -> Unit = {})
 
 /** The form's own view state: which sections are closed and where a Fix button should scroll to. */
 @Stable
@@ -262,12 +277,25 @@ fun AssetInfoTab(
                 // Picked from the JACS catalog (or typed there), which sets the type too.
                 // A mandatory code still missing is highlighted and tagged REQUIRED, as the design canvas.
                 val jacsMissing = missing(k)
+                // No code yet on a saved asset: the AI suggests some for its type (as the web's button beside the JACS
+                // dropdown; the server needs the asset and Collect). Greyed out, saying why, for whoever may not change it.
+                val suggest = !isNew && isServerId(asset.id) && v(k).isEmpty()
                 PickRow(
                     k, labels.getValue(k), v(k),
                     stringResource(if (jacsMissing) R.string.detail_select_jacs else R.string.jacs_none), state.dirty(k), actions.jacs.onOpen,
                     rowBg = if (jacsMissing) C.WarnRow else Color.Transparent,
                     mono = true, badge = state.badgeFor(k), requester = ui.requester(k),
                     tag = if (jacsMissing) stringResource(R.string.detail_required_tag) else null,
+                    trailing = if (suggest) {
+                        {
+                            AccessGate(state.buttons.change) {
+                                JacsSuggestButton(
+                                    busy = state.jacsSuggesting, aiOff = !state.aiOn, offline = !state.online,
+                                    onSuggest = actions.jacs.onSuggest, onOffline = { actions.onOffline(OnlineOnly.SUGGEST_JACS) },
+                                )
+                            }
+                        }
+                    } else null,
                 )
             } else {
                 val choices = when (k) {
@@ -283,8 +311,9 @@ fun AssetInfoTab(
             }
         }
         // The server suggests the type and JACS code from the photos and what is typed (the asset need not be synced);
-        // its suggestions show here, and a pick goes straight into the rows above.
-        if (!locked) {
+        // its suggestions show here, and a pick goes straight into the rows above. Greyed out, saying why, for whoever may
+        // not change the asset.
+        AccessGate(state.buttons.change, Modifier.fillMaxWidth()) {
             ClassifyPanel(
                 state.classify, actions.onSuggestType, actions.classify, Modifier.padding(horizontal = 12.dp).padding(top = 8.dp),
                 offline = !state.online,
@@ -310,9 +339,12 @@ fun AssetInfoTab(
             key(asset.id, row) {
                 when (row) {
                     is FormEntry.Input -> spec.cfg(row.key)?.takeIf { it.key !in NOT_IN_FIELDS && tagKindOfField(it.label) == null }?.let { f ->
-                        // A field of this asset alone can be removed (by whoever may add one), as the server allows.
-                        if (f.ownField && state.canAddField && state.canEdit) {
-                            OwnFieldRow(f.label, onRemove = { onRemoveField(f) }) { AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) } }
+                        // A field of this asset alone can be removed by whoever may change the asset, as the server allows;
+                        // for anyone else its button is greyed out and says why.
+                        if (f.ownField && !isNew) {
+                            OwnFieldRow(f.label, onRemove = { onRemoveField(f) }, blocked = state.buttons.change) {
+                                AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) }
+                            }
                         } else {
                             AssetFieldRow(f, state, spec, select, ui) { actions.onEdit(f.key, it) }
                         }
@@ -329,48 +361,50 @@ fun AssetInfoTab(
                 }
             }
         }
-        // As the web's: a field for this asset alone, added after its other fields (a saved asset the user can edit).
-        if (state.canAddField && state.canEdit) AddFieldRow(actions.addField.onOpen)
+        // As the web's: a field for this asset alone, added after its other fields (a saved asset; greyed out, saying why,
+        // for whoever may not change it).
+        if (!isNew) AddFieldRow(actions.addField.onOpen, blocked = state.buttons.change)
     }
 
     if (!isNew) {
         StatusLine(asset, Modifier.padding(horizontal = 12.dp).padding(top = 2.dp))
         // As the server: an asset with an empty mandatory field or too few photos is submitted as an exception, so ask about that first.
         val submitModal = if (state.complete) DetailModal.SUBMIT else DetailModal.SUBMIT_EXCEPTION
-        // Submitting is for drafts that can be changed here (a submitted or exception asset already was).
-        val canSubmit = !locked && (asset.st == Status.DRAFT || asset.st == Status.INPUT || asset.st == Status.AI)
-        if (locked) {
-            // Read-only: why is in the banner under the top bar (someone else's, submitted) or the Managed Assets note at
-            // the top of Info; Validate and Request change stay in the asset bar.
-        } else {
-            // Save (makes it drafted with the AI flag on; asks first while a mandatory field is empty, as the web) and Submit,
-            // with the other actions under it.
-            val dirty = state.dirtyCount
-            val saveAlpha by animateFloatAsState(if (dirty > 0) 1f else 0.45f, tween(120), label = "save")
-            SaveCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp)) {
-                AnimatedContent(
-                    dirty > 0, Modifier.weight(1f),
-                    transitionSpec = { fadeIn(tween(120)).togetherWith(fadeOut(tween(90))).using(SizeTransform(clip = false)) },
-                    label = "unsaved",
-                ) { unsaved -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (unsaved) {
-                        Txt(pluralStringResource(R.plurals.detail_unsaved, dirty, dirty), 14, 700)
-                        Txt(
-                            stringResource(R.string.action_discard), 12, 700, C.Yellow,
-                            Modifier.heightIn(min = 48.dp).pressClickable(shape = r(6), onClick = actions.onDiscardEdits).padding(vertical = 2.dp),
-                        )
-                    } else {
-                        Txt(stringResource(R.string.detail_no_unsaved), 14, 700)
-                        Txt(stringResource(R.string.detail_status, stringResource(asset.st.labelRes)), 12, 400, C.Muted)
-                    }
-                } }
+        // Submitting is for drafts (a submitted or exception asset already was); greyed out for whoever may not change it.
+        val canSubmit = asset.st == Status.DRAFT || asset.st == Status.INPUT || asset.st == Status.AI
+        val blocked = state.buttons.change
+        // Save (makes it drafted with the AI flag on; asks first while a mandatory field is empty, as the web) and Submit,
+        // with the other actions under it. Read-only for this user: both stay, greyed out, and a tap says why (the
+        // banner under the top bar says it too).
+        val dirty = state.dirtyCount
+        val saveAlpha by animateFloatAsState(if (dirty > 0) 1f else 0.45f, tween(120), label = "save")
+        SaveCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp)) {
+            AnimatedContent(
+                dirty > 0, Modifier.weight(1f),
+                transitionSpec = { fadeIn(tween(120)).togetherWith(fadeOut(tween(90))).using(SizeTransform(clip = false)) },
+                label = "unsaved",
+            ) { unsaved -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (unsaved) {
+                    Txt(pluralStringResource(R.plurals.detail_unsaved, dirty, dirty), 14, 700)
+                    Txt(
+                        stringResource(R.string.action_discard), 12, 700, C.Yellow,
+                        Modifier.heightIn(min = 48.dp).pressClickable(shape = r(6), onClick = actions.onDiscardEdits).padding(vertical = 2.dp),
+                    )
+                } else {
+                    Txt(stringResource(R.string.detail_no_unsaved), 14, 700)
+                    Txt(stringResource(R.string.detail_status, stringResource(asset.st.labelRes)), 12, 400, C.Muted)
+                }
+            } }
+            AccessGate(blocked) {
                 Pill(
                     stringResource(R.string.action_save),
                     { if (dirty > 0 && state.missingRequired.isNotEmpty()) onModal(DetailModal.SAVE_MISSING) else actions.onSave() },
                     Modifier.testTag(DetailTags.SAVE).alpha(saveAlpha),
                     height = 48.dp, hPad = 18.dp, size = 14, weight = 700,
                 )
-                if (canSubmit) {
+            }
+            if (canSubmit) {
+                AccessGate(blocked) {
                     Pill(
                         stringResource(R.string.action_submit), { onModal(submitModal) }, Modifier.testTag(DetailTags.SUBMIT),
                         bg = C.Yellow, fg = C.OnYellow, height = 48.dp, hPad = 22.dp, size = 14, weight = 700,
@@ -379,7 +413,7 @@ fun AssetInfoTab(
             }
         }
         ActionCard(
-            assetBarItems(state, asset, locked, canSubmit, actions, onModal = { onModal(it) }, submitModal = submitModal),
+            assetBarItems(state, asset, canSubmit, actions, onModal = { onModal(it) }, submitModal = submitModal),
             Modifier.padding(horizontal = 12.dp).padding(top = 4.dp),
             offline = !state.online,
             onOffline = actions.onOffline,
@@ -388,69 +422,84 @@ fun AssetInfoTab(
         // New asset: save it as a draft, or submit it (then it can not be edited). As the server, one with an empty mandatory
         // field or too few photos is submitted as an exception, so ask about that first.
         val submitModal = if (state.complete) DetailModal.SUBMIT else DetailModal.SUBMIT_EXCEPTION
+        // Adding an asset needs Collect: without it both are greyed out and a tap says why.
         SaveCard(Modifier.padding(horizontal = 12.dp).padding(top = 4.dp)) {
-            Pill(
-                stringResource(R.string.action_save), { actions.onCreate(false) }, Modifier.weight(1f).testTag(DetailTags.SAVE),
-                height = 48.dp, size = 14, weight = 700,
-            )
-            Pill(
-                stringResource(R.string.action_submit), { onModal(submitModal) }, Modifier.weight(1f).testTag(DetailTags.SUBMIT),
-                bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700,
-            )
+            AccessGate(state.buttons.change, Modifier.weight(1f)) {
+                Pill(
+                    stringResource(R.string.action_save), { actions.onCreate(false) }, Modifier.fillMaxWidth().testTag(DetailTags.SAVE),
+                    height = 48.dp, size = 14, weight = 700,
+                )
+            }
+            AccessGate(state.buttons.change, Modifier.weight(1f)) {
+                Pill(
+                    stringResource(R.string.action_submit), { onModal(submitModal) }, Modifier.fillMaxWidth().testTag(DetailTags.SUBMIT),
+                    bg = C.Yellow, fg = C.OnYellow, height = 48.dp, size = 14, weight = 700,
+                )
+            }
         }
     }
 }
 
 /**
- * The asset bar's actions for this user, as the web's asset bar (AssetsInfoContainer's assetActions), in its order:
- * - Validate: anyone who may run checks, once the server has the asset.
- * - Mark as validated: an admin, on a submitted asset (signs it off without a validation run).
- * - Assign: anyone who may assign, except on a signed-off asset.
- * - Submit: a draft that can be changed here.
- * - Move to Managed assets: an admin, on a validated asset.
- * - The change-request actions (ChangeRequestActionsUseCase, as the web's changeRequestActions): an admin moves a
- *   submitted asset back to draft when nobody asked; anyone else requests a change (or updates their request); an
- *   exception can be moved back to draft by whoever works on it. Approving, declining or withdrawing a request is in
- *   the change request banner, not here.
- * - Delete: an asset that can be changed here and isn't signed off.
+ * The asset bar's actions, as the web's asset bar (AssetsInfoContainer's assetActions), in its order. Which show depends on
+ * the asset's status only; one the signed-in user may not use stays, greyed out, and a tap says why ([AssetButtons]):
+ * - Validate: once the server has the asset (Check).
+ * - Mark as validated: a submitted asset (Validate).
+ * - Assign (Assign to me for anyone but a reviewer): except on a signed-off asset.
+ * - Submit: a draft (whoever may change it).
+ * - Move to Managed assets: a validated asset not there yet (Configure, and the property linked).
+ * - Move to draft: an exception (whoever may work on it), or a submitted or signed-off asset nobody asked to change (a
+ *   reviewer); with a request, Approve is in the change request banner, with Decline and Withdraw.
+ * - Request change (or update it): a submitted or signed-off asset, for anyone but a reviewer (who changes it instead).
+ * - Delete: except on a signed-off asset (whoever may change it).
  */
 @Composable
 private fun assetBarItems(
     state: AssetDetailState,
     asset: com.sclera.sclerago.domain.model.Asset,
-    locked: Boolean,
     canSubmit: Boolean,
     actions: AssetDetailActions,
     onModal: (DetailModal) -> Unit,
     submitModal: DetailModal,
 ): List<DockItem> {
     val signedOff = asset.st == Status.VALIDATED
-    val change = state.changeActions
+    val submitted = isSubmittedOrSignedOff(asset.st)
+    val b = state.buttons
     return buildList {
-        if (state.canCheck && isServerId(asset.id)) {
-            add(DockItem(stringResource(R.string.action_validate), Icons.ShieldCheck, C.Purple, actions.onValidate, OnlineOnly.VALIDATE))
+        if (isServerId(asset.id)) {
+            add(DockItem(stringResource(R.string.action_validate), Icons.StatusValidated, Status.VALIDATED.color, actions.onValidate, OnlineOnly.VALIDATE, blocked = b.validate))
         }
-        if (ChangeAction.MARK_VALIDATED in change) {
-            add(DockItem(stringResource(R.string.sign_off_action), Icons.CheckCircle, C.Green, { onModal(DetailModal.MARK_VALIDATED) }, tag = DetailTags.MARK_VALIDATED))
+        if (asset.st == Status.SUBMITTED) {
+            add(
+                DockItem(
+                    stringResource(R.string.sign_off_action), Icons.StatusValidated, Status.VALIDATED.color, { onModal(DetailModal.MARK_VALIDATED) },
+                    tag = DetailTags.MARK_VALIDATED, blocked = b.signOff,
+                ),
+            )
         }
-        if (!signedOff) actions.onAssign?.let {
+        val assignWhy = b.assign ?: actions.assignReason
+        if (!signedOff && (actions.onAssign != null || assignWhy != null)) {
             val label = stringResource(if (actions.assignToMe) R.string.action_assign_to_me else R.string.action_assign)
-            add(DockItem(label, Icons.UserPlus, C.Cyan, it, OnlineOnly.ASSIGN))
+            add(DockItem(label, Icons.UserPlus, C.Cyan, actions.onAssign ?: {}, OnlineOnly.ASSIGN, blocked = assignWhy))
         }
-        if (canSubmit) add(DockItem(stringResource(R.string.action_submit), Icons.Upload, C.Blue, { onModal(submitModal) }))
-        actions.onMove?.let { add(DockItem(stringResource(R.string.mv_action), Icons.Send, C.Green, it, OnlineOnly.MOVE_TO_MANAGED)) }
-        change.filter { it != ChangeAction.MARK_VALIDATED }.forEach { a ->
-            val label = changeActionLabel(a, 1)
-            when (a) {
-                ChangeAction.MOVE_TO_DRAFT -> add(DockItem(label, Icons.Refresh, C.Orange, { onModal(DetailModal.MOVE_TO_DRAFT) }, tag = DetailTags.MOVE_TO_DRAFT))
-                // Approving (moving it back to draft for whoever asked), declining and withdrawing a request are the change
-                // request banner's, with the request they answer, not the bar's.
-                ChangeAction.APPROVE, ChangeAction.DECLINE, ChangeAction.WITHDRAW -> Unit
-                ChangeAction.REQUEST, ChangeAction.UPDATE_REQUEST -> add(DockItem(label, Icons.Pencil, C.Orange, actions.changeRequest.onOpen, tag = ChangeRequestTags.ASK))
-                ChangeAction.MARK_VALIDATED -> Unit
-            }
+        if (canSubmit) add(DockItem(stringResource(R.string.action_submit), Icons.StatusSubmitted, Status.SUBMITTED.color, { onModal(submitModal) }, blocked = b.change))
+        val moveWhy = b.moveToManaged ?: actions.moveReason
+        if (signedOff && !asset.managed && (actions.onMove != null || moveWhy != null)) {
+            add(DockItem(stringResource(R.string.mv_action), Icons.Managed, C.Yellow, actions.onMove ?: {}, OnlineOnly.MOVE_TO_MANAGED, blocked = moveWhy))
         }
-        if (!locked && !signedOff) add(DockItem(stringResource(R.string.action_delete), Icons.Trash, C.Red, { onModal(DetailModal.DELETE) }))
+        if (asset.st == Status.EXCEPTION || (submitted && asset.changeRequest == null)) {
+            add(
+                DockItem(
+                    changeActionLabel(ChangeAction.MOVE_TO_DRAFT, 1), Icons.StatusDraft, Status.DRAFT.color, { onModal(DetailModal.MOVE_TO_DRAFT) },
+                    tag = DetailTags.MOVE_TO_DRAFT, blocked = b.moveToDraft,
+                ),
+            )
+        }
+        if (submitted && !state.reviewer) {
+            val ask = if (asset.changeRequest != null) ChangeAction.UPDATE_REQUEST else ChangeAction.REQUEST
+            add(DockItem(changeActionLabel(ask, 1), Icons.ChangeRequest, C.Orange, actions.changeRequest.onOpen, tag = ChangeRequestTags.ASK, blocked = b.requestChange))
+        }
+        if (!signedOff) add(DockItem(stringResource(R.string.action_delete), Icons.Trash, C.Red, { onModal(DetailModal.DELETE) }, blocked = b.change))
     }
 }
 

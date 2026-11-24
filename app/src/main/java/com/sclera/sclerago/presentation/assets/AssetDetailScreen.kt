@@ -44,7 +44,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -60,12 +59,13 @@ import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.Status
 
 import com.sclera.sclerago.domain.validation.isServerId
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.PullRefresh
-import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.OfflineBanner
+import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.ReportUnsaved
 import com.sclera.sclerago.presentation.components.RoundButton
@@ -75,7 +75,6 @@ import com.sclera.sclerago.presentation.components.readableWidth
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.model.OnlineOnly
-import com.sclera.sclerago.presentation.model.chipBg
 import com.sclera.sclerago.presentation.tagging.TagUiState
 import com.sclera.sclerago.presentation.tagging.TagsBar
 import com.sclera.sclerago.presentation.theme.C
@@ -106,8 +105,10 @@ fun AssetDetailScreen(
     }
     val isNew = state.isNew
     val locked = state.locked
-    // Photos, videos and documents: read-only like the rest, and on a signed-off asset for an admin too (the web's).
-    val mediaLocked = locked || (!isNew && asset.st == Status.VALIDATED)
+    // Photos, videos and documents: nobody adds or removes them on a signed-off asset (the web's); otherwise whoever may not
+    // change the asset sees their buttons greyed out, saying why.
+    val mediaClosed = !isNew && asset.st == Status.VALIDATED
+    val b = state.buttons
     val tabs = detailTabs(state)
     // Going from one asset to the next keeps the tab that's open (Media stays Media), as on the web; a newly opened details screen starts on Info.
     var chosen by rememberSaveable { mutableStateOf(DetailTabKind.INFO) }
@@ -180,8 +181,8 @@ fun AssetDetailScreen(
             request?.let {
                 ChangeRequestBanner(
                     it, state.changeRequestMine, state.changeRequester,
-                    // An admin can change a submitted asset (it isn't locked for them): theirs to decline or reopen.
-                    admin = !locked,
+                    // A reviewer declines or approves it; whoever asked withdraws it; anyone else sees why they can't.
+                    declineBlocked = b.decline, approveBlocked = b.approve, withdrawBlocked = b.withdraw,
                     onClose = actions.changeRequest.onClose,
                     onReopen = { modal = DetailModal.APPROVE_REQUEST },
                 )
@@ -189,7 +190,7 @@ fun AssetDetailScreen(
             // Read-only for this user (someone else's, or submitted): the same kind of line says why, unless a change
             // request already shows. One in Managed Assets says so the same way, on every tab.
             if (state.managed && !isNew) ManagedBanner()
-            else state.lock?.takeIf { locked && !isNew && request == null && it != AssetLock.MANAGED }?.let { LockBanner(it, reviewer = state.reviewer) }
+            else state.lock?.takeIf { locked && !isNew && request == null && it != AssetLock.MANAGED }?.let { LockBanner(it) }
             // The bar follows the pages live: while they move it shows the page they are heading to (past halfway on a drag,
             // straight away for a tapped tab), not the one picked when they stop.
             val barTab = if (pager.isScrollInProgress) kinds.getOrNull(pager.targetPage) ?: tab else tab
@@ -224,10 +225,14 @@ fun AssetDetailScreen(
                                     // The Tags bar first (a new asset has its id already, so it can be tagged too), then the photos,
                                     // with a + that opens the camera (as the Media tab's Camera, into Other photos).
                                     // Tagging changes the asset (its tag flags), so only for whoever may change it (collect,
-                                    // theirs or nobody's unless an admin, not in Managed Assets): a submitted or signed-off
-                                    // asset only by an admin.
-                                    TagsBar(tags, actions.tags, enabled = state.canEdit)
-                                    InfoPhotoStrip(state.media, onAdd = if (mediaLocked) null else ({ actions.onAddPhoto(null) }), onOpen = open)
+                                    // theirs or nobody's unless a reviewer, not in Managed Assets): a submitted or signed-off
+                                    // asset only by a reviewer. Anyone else sees the icons greyed out, saying why.
+                                    TagsBar(tags, actions.tags, blocked = b.change)
+                                    InfoPhotoStrip(
+                                        state.media, onAdd = if (mediaClosed) null else ({ actions.onAddPhoto(null) }), onOpen = open,
+                                        onDownload = actions.onDownloadMedia, onRemove = if (mediaClosed) null else ({ removeMedia = it }),
+                                        blocked = b.change,
+                                    )
                                     // A step that failed or needs a look shows first; tapping it opens the Validation tab. (Not
                                     // for one in Managed Assets: its checks went with the move, and the line at the top says so.)
                                     if (!state.managed) ValidationBanner(state.validation) { chosen = DetailTabKind.VALIDATION }
@@ -237,40 +242,52 @@ fun AssetDetailScreen(
                                     // Validating again is done by the server: offline the last synced results show under a banner.
                                     if (!state.online) OfflineBanner(OnlineOnly.REVALIDATE)
                                     // The link to the run opens the Validation page, so only for who may check (that page
-                                    // needs it), and not for one in Managed Assets (the web's mayCheck).
+                                    // needs it), and not for one in Managed Assets (the web's mayCheck): greyed out, saying why.
                                     ValidationTab(
-                                    state.validation,
-                                    onOpenResult = actions.onOpenResult.takeIf { state.canCheck && !state.managed },
-                                    validating = state.validating,
-                                )
+                                        state.validation, onOpenResult = actions.onOpenResult, validating = state.validating,
+                                        openBlocked = b.validate,
+                                    )
                                 }
-                                // The documents added to the asset and its web documents; its source file shows in Media, under Videos.
-                                DetailTabKind.DOCUMENTS -> DocumentsTab(
-                                state.documents.filter { it.source != DocumentSource.SOURCE_FILE }, mediaLocked, { removeDoc = it },
-                                searching = state.aiBusy || state.manualsSearching,
-                            )
+                                // Every document, from the server (not synced: offline a banner says why none show), as the
+                                // web's tab: the file the asset was read from first (it shows in Media too, as on the web),
+                                // then the ones added to it, its web pages and manuals.
+                                DetailTabKind.DOCUMENTS -> {
+                                    if (state.documentsUi.offline) OfflineBanner(OnlineOnly.DOCUMENTS)
+                                    DocumentsTab(
+                                        state.documents.filterNot { it.isSourcePhoto }, state.documentsUi,
+                                        mediaClosed, { if (it.previewable) actions.onPreviewSource(it) else actions.onOpenDocument(it) },
+                                        { removeDoc = it },
+                                        searching = state.aiBusy || state.manualsSearching, lockReason = b.change, collectReason = b.collect,
+                                    )
+                                }
                                 DetailTabKind.MEDIA -> MediaTab(
                                     state.media, state.photoRules, open, sorting = state.sortingPhotos,
-                                    sourceFile = state.documents.firstOrNull { it.source == DocumentSource.SOURCE_FILE },
-                                    // The uploaded file isn't the asset's: who may delete it is the server's rule for files
-                                    // (its `removable`), whether or not the asset can be changed; not from Managed Assets.
-                                    canRemoveSource = !state.managed, onRemoveSource = { removeDoc = it },
+                                    // Every file the asset was read from, whatever its type, under Source file.
+                                    sourceFiles = state.documents.filter { it.source == DocumentSource.SOURCE_FILE },
+                                    // A photo or video previews in the app; any other file opens in another app.
+                                    onOpenSource = { if (it.previewable) actions.onPreviewSource(it) else actions.onOpenDocument(it) },
+                                    openingId = state.documentsUi.opening,
                                     // Only while adding an asset: its photos can be dragged between the kinds.
                                     onMove = if (isNew && !locked) actions.onMovePhoto else null,
+                                    // Holding a photo or file: Download, and Remove (greyed out, saying why, when the asset is
+                                    // read-only for this user; none on a signed-off asset).
+                                    onDownload = actions.onDownloadMedia, onRemove = if (mediaClosed) null else ({ removeMedia = it }),
+                                    removeBlocked = b.change,
                                 )
                                 DetailTabKind.COMMENTS -> {
-                                    // The list runs edge to edge; the box keeps the other tabs' margin. None for one in Managed
-                                    // Assets: its comments are read-only (the web's).
-                                    if (state.mayComment) {
+                                    // The list runs edge to edge; the box keeps the other tabs' margin. None on a signed-off
+                                    // asset or one in Managed Assets: its comments are read-only (the web's). Greyed out,
+                                    // saying why, for a group that can't comment.
+                                    if (!state.managed && asset.st != Status.VALIDATED) {
                                         CommentBox(
                                             state.commentDraft, state.commentError, state.commentPosting, actions.onCommentChange, actions.onPostComment,
-                                            Modifier.padding(horizontal = maxOf(pageGutter(), PhoneSide)),
+                                            Modifier.padding(horizontal = maxOf(pageGutter(), PhoneSide)), blocked = b.comment,
                                         )
                                     }
                                     // As the web: a signed-off asset's comments can't be changed or removed.
                                     CommentList(
                                         state.activity, readOnly = asset.st == Status.VALIDATED || state.managed, onSave = actions.onUpdateComment,
-                                        onDelete = { removeComment = it }, posting = state.commentPosting,
+                                        onDelete = { removeComment = it }, posting = state.commentPosting, deleteBlocked = b.removeOthersComment,
                                     )
                                 }
                                 DetailTabKind.HISTORY -> HistoryList(state.activity)
@@ -282,37 +299,45 @@ fun AssetDetailScreen(
             }
         }
 
-        FabSwap(onInfo && !locked) {
+        // Greyed out, saying why, for whoever may not change the asset.
+        FabSwap(onInfo) {
             Box(Modifier.fillMaxWidth()) {
                 FormFloatingButtons(
                     aiBusy = state.aiBusy, aiNotice = null, listening = mic.listening, heard = mic.heard,
                     onAi = actions.onAutofill, onMic = actions.onMic, onType = actions.onType,
                     modifier = Modifier.align(Alignment.BottomEnd), reading = state.voiceReading, offline = !state.online,
                     // The property's AI switch off: both stay, dimmed (AI suggestions still opens a look-up's results).
-                    aiOff = !state.aiUsable, voiceOff = !state.aiOn,
+                    aiOff = !state.aiUsable, voiceOff = !state.aiOn, blocked = b.change,
                 )
             }
         }
-        // Validation: a floating ▶ that validates the asset, for anyone who may run checks once the server has it (as Info's Validate).
-        FabSwap(tab == DetailTabKind.VALIDATION && state.canCheck && isServerId(asset.id)) {
+        // Validation: a floating ▶ that validates the asset once the server has it (as Info's Validate); greyed out, saying
+        // why, for whoever may not run checks.
+        FabSwap(tab == DetailTabKind.VALIDATION && isServerId(asset.id)) {
             Box(Modifier.fillMaxWidth()) {
                 ValidateFab(
                     state.validation, state.validating, offline = !state.online, onValidate = actions.onRevalidate,
-                    onOffline = { actions.onOffline(OnlineOnly.VALIDATE) }, modifier = Modifier.align(Alignment.BottomEnd),
+                    onOffline = { actions.onOffline(OnlineOnly.VALIDATE) }, modifier = Modifier.align(Alignment.BottomEnd), blocked = b.validate,
                 )
             }
         }
-        // Documents and Media add with floating buttons, like the other pages.
-        FabSwap(!mediaLocked && tab == DetailTabKind.DOCUMENTS) {
+        // Documents and Media add with floating buttons, like the other pages. Documents are kept on the server only (not
+        // synced), so Upload is greyed out offline and until the server has the asset; a tap says why. Whoever may not change
+        // the asset sees both greyed out, saying that instead.
+        FabSwap(!mediaClosed && tab == DetailTabKind.DOCUMENTS) {
             Box(Modifier.fillMaxWidth()) {
-                UploadDocumentFab(actions.onUploadDocument, Modifier.align(Alignment.BottomEnd))
+                AccessGate(b.change, Modifier.align(Alignment.BottomEnd)) {
+                    OfflineGate(state.documentsBlocked, actions.onDocumentsBlocked) {
+                        UploadDocumentFab(actions.onUploadDocument, busy = state.documentsUi.uploading)
+                    }
+                }
             }
         }
-        FabSwap(!mediaLocked && tab == DetailTabKind.MEDIA) {
+        FabSwap(!mediaClosed && tab == DetailTabKind.MEDIA) {
             Box(Modifier.fillMaxWidth()) {
                 MediaFabs(
                     state.media, state.photoRules, actions.onAddPhoto, actions.onPickFiles, actions.onRecordMemo,
-                    Modifier.align(Alignment.BottomEnd),
+                    Modifier.align(Alignment.BottomEnd), blocked = b.change,
                 )
             }
         }
@@ -356,8 +381,9 @@ fun AssetDetailScreen(
             state.media.getOrNull(i)?.let { m -> PhotoViewer(
                 m, onClose = { preview = null },
                 onDownload = actions.onDownloadMedia,
-                // As the web: media can be removed unless the asset is read-only (a new asset's too, before it is saved).
-                onRemove = if (mediaLocked) null else ({ removeMedia = it }),
+                // As the web: media can be removed unless the asset is signed off (a new asset's too, before it is saved);
+                // greyed out, saying why, for whoever may not change it.
+                onRemove = if (mediaClosed) null else ({ removeMedia = it }), removeBlocked = b.change,
             ) }
         }
         removeMedia?.let { m ->
@@ -395,116 +421,7 @@ fun AssetDetailScreen(
             )
         }
 
-        when (modal) {
-            DetailModal.SUBMIT -> ConfirmDialog(
-                icon = Icons.CheckCircle, iconBg = Status.SUBMITTED.chipBg, iconFg = C.Green,
-                title = stringResource(R.string.detail_submit_title),
-                body = stringResource(R.string.detail_submit_body),
-                no = stringResource(R.string.action_keep_editing), yes = stringResource(R.string.action_submit), yesBg = C.Yellow,
-                onNo = { modal = DetailModal.NONE },
-                onYes = {
-                    modal = DetailModal.NONE
-                    if (isNew) actions.onCreate(true) else actions.onSubmit()
-                },
-            )
-            // Incomplete: the server submits it as an exception, so say so (as the web's "missing mandatory fields" check).
-            DetailModal.SUBMIT_EXCEPTION -> ConfirmDialog(
-                icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
-                title = stringResource(R.string.detail_submit_exception_title),
-                body = stringResource(R.string.detail_submit_exception_body),
-                no = stringResource(R.string.action_keep_editing), yes = stringResource(R.string.action_submit_exception), yesBg = C.Yellow,
-                onNo = { modal = DetailModal.NONE },
-                onYes = {
-                    modal = DetailModal.NONE
-                    if (isNew) actions.onCreate(true) else actions.onSubmit()
-                },
-            )
-            // Back to draft (the web's dialog).
-            DetailModal.MOVE_TO_DRAFT -> ConfirmDialog(
-                icon = Icons.Refresh, iconBg = C.WarnRow, iconFg = C.Orange,
-                title = stringResource(R.string.change_action_move_to_draft),
-                body = stringResource(R.string.move_draft_body),
-                no = stringResource(R.string.action_cancel), yes = stringResource(R.string.change_action_move_to_draft), yesBg = C.Yellow,
-                onNo = { modal = DetailModal.NONE },
-                onYes = {
-                    modal = DetailModal.NONE
-                    actions.onMoveToDraft()
-                },
-            )
-            // An admin's sign-off without a validation run: say what happens first (the web's dialog).
-            DetailModal.MARK_VALIDATED -> ConfirmDialog(
-                icon = Icons.ShieldCheck, iconBg = Status.VALIDATED.chipBg, iconFg = C.Purple,
-                title = stringResource(R.string.sign_off_action),
-                body = pluralStringResource(R.plurals.sign_off_body, 1),
-                no = stringResource(R.string.action_cancel), yes = stringResource(R.string.sign_off_action), yesBg = C.Yellow,
-                onNo = { modal = DetailModal.NONE },
-                onYes = {
-                    modal = DetailModal.NONE
-                    actions.onMarkValidated()
-                },
-            )
-            // Approving a change request: back to Draft, with whoever asked (the web's dialog).
-            DetailModal.APPROVE_REQUEST -> ConfirmDialog(
-                icon = Icons.CheckCircle, iconBg = C.WarnRow, iconFg = C.Orange,
-                title = stringResource(R.string.change_bulk_approve_title),
-                body = pluralStringResource(
-                    R.plurals.change_bulk_approve_body, 1, 1, state.changeRequester ?: stringResource(R.string.change_whoever_asked),
-                ),
-                no = stringResource(R.string.action_cancel), yes = stringResource(R.string.change_request_reopen), yesBg = C.Yellow,
-                onNo = { modal = DetailModal.NONE },
-                onYes = {
-                    modal = DetailModal.NONE
-                    actions.changeRequest.onReopen()
-                },
-            )
-            DetailModal.SAVE_MISSING -> ConfirmDialog(
-                icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
-                title = stringResource(R.string.detail_save_missing_title),
-                body = stringResource(R.string.detail_save_missing_body),
-                no = stringResource(R.string.action_keep_editing), yes = stringResource(R.string.action_save), yesBg = C.Yellow,
-                onNo = { modal = DetailModal.NONE },
-                onYes = {
-                    modal = DetailModal.NONE
-                    actions.onSave()
-                },
-            )
-            DetailModal.DELETE -> ConfirmDialog(
-                icon = Icons.Trash, iconBg = C.DangerBg, iconFg = C.Red,
-                title = stringResource(R.string.detail_delete_title),
-                body = state.value("name").ifEmpty { null }?.let { stringResource(R.string.detail_delete_body, it) }
-                    ?: stringResource(R.string.detail_delete_body_unnamed),
-                no = stringResource(R.string.action_cancel), yes = stringResource(R.string.action_delete),
-                onNo = { modal = DetailModal.NONE },
-                onYes = {
-                    modal = DetailModal.NONE
-                    actions.onDelete()
-                },
-            )
-            DetailModal.DISCARD -> if (isNew) {
-                ConfirmDialog(
-                    icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
-                    title = stringResource(R.string.detail_discard_title),
-                    // With photos or videos taken for it, say they go too.
-                    body = stringResource(if (state.media.isNotEmpty()) R.string.detail_discard_photos_body else R.string.detail_discard_body),
-                    no = stringResource(R.string.action_keep_editing), yes = stringResource(R.string.action_discard),
-                    onNo = { modal = DetailModal.NONE },
-                    onYes = {
-                        modal = DetailModal.NONE
-                        actions.onBack()
-                    },
-                )
-            } else {
-                DiscardChangesDialog(
-                    onKeep = { modal = DetailModal.NONE },
-                    onDiscard = {
-                        modal = DetailModal.NONE
-                        actions.onDiscardEdits()
-                        actions.onBack()
-                    },
-                )
-            }
-            DetailModal.NONE -> {}
-        }
+        DetailModalDialog(modal, state, actions) { modal = DetailModal.NONE }
     }
 }
 
@@ -550,23 +467,25 @@ private fun TopBar(state: AssetDetailState, onBack: () -> Unit, onName: (String)
         )
         // Clone (the web's header button): copies of this asset as saved; with unsaved changes it is dimmed and says why.
         // A yellow outlined text pill (the design canvas's); the tap area is the full 48dp high.
-        // Also for one in Managed Assets (the copies are new drafts; the original doesn't change), as the web's; not for a
-        // group that can't collect (the copies would be refused).
-        if (state.canClone) {
+        // Also for one in Managed Assets (the copies are new drafts; the original doesn't change), as the web's; greyed out,
+        // saying why, for a group that can't collect (the copies would be refused).
+        if (!state.isNew) {
             val cloneAlpha by animateFloatAsState(if (state.dirtyCount == 0) 1f else 0.4f, tween(120), label = "clone")
-            Box(
-                Modifier.heightIn(min = 48.dp).pressClickable(shape = Capsule, role = Role.Button, onClick = onClone)
-                    .alpha(cloneAlpha).testTag(DetailTags.CLONE),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    Modifier.height(28.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule)
-                        .padding(start = 8.dp, end = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+            AccessGate(state.buttons.collect) {
+                Box(
+                    Modifier.heightIn(min = 48.dp).pressClickable(shape = Capsule, role = Role.Button, onClick = onClone)
+                        .alpha(cloneAlpha).testTag(DetailTags.CLONE),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    LineIcon(Icons.Clone, 13.dp, C.Yellow, 2.2f)
-                    Txt(stringResource(R.string.clone_action), 12, 700, C.Yellow)
+                    Row(
+                        Modifier.height(28.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule)
+                            .padding(start = 8.dp, end = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        LineIcon(Icons.Clone, 13.dp, C.Yellow, 2.2f)
+                        Txt(stringResource(R.string.clone_action), 12, 700, C.Yellow)
+                    }
                 }
             }
         }

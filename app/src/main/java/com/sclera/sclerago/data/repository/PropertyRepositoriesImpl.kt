@@ -5,6 +5,7 @@ import com.sclera.sclerago.domain.model.OnboardingChannel
 import com.sclera.sclerago.domain.model.Property
 import com.sclera.sclerago.domain.repository.OnboardingRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,6 +14,8 @@ import javax.inject.Singleton
 @Singleton
 class PropertyRepositoryImpl @Inject constructor(private val store: PropertyStore) : PropertyRepository {
     override val properties: StateFlow<List<Property>> = store.properties
+
+    override val listed: Flow<Set<String>> = store.listed
 
     override suspend fun refresh() = store.refresh()
 

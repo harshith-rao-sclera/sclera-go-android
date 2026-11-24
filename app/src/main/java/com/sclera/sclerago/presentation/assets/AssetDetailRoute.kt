@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.ATTACHABLE_FILE_TYPES
 import com.sclera.sclerago.domain.model.TagKind
 import com.sclera.sclerago.services.tagging.NfcTagReader
 import com.sclera.sclerago.presentation.components.LocalToaster
@@ -23,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
@@ -40,6 +42,8 @@ import com.sclera.sclerago.services.media.describeAttachments
 import com.sclera.sclerago.services.media.describeDocument
 import com.sclera.sclerago.services.media.describeVisualMedia
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Hooks [AssetDetailScreen] up: the view model for the form, the camera, the gallery and file pickers for
@@ -73,6 +77,10 @@ fun AssetDetailRoute(
     assignToMe: Boolean = false,
     /** Move the validated asset to Managed assets; null when it isn't offered. */
     onMove: (() -> Unit)? = null,
+    /** Why Move to Managed assets can't be used now (no Configure, property not linked…): greyed out, a tap says this. */
+    moveReason: UiText? = null,
+    /** Why Assign (or Assign to me) can't be used now: greyed out, a tap says this. */
+    assignReason: UiText? = null,
     /** Validate: run checks on this asset (the web's asset bar opens Run validation on it). */
     onValidate: () -> Unit = {},
     /** "Open in Validation": the Validation page on the run [jobId] with the asset's result open. */
@@ -93,6 +101,12 @@ fun AssetDetailRoute(
     LaunchedEffect(asset.id, isNew, if (isNew) asset.locationId else null) { vm.open(asset, isNew, prefill, scan) }
     DisposableEffect(vm) { onDispose { vm.close() } }
     LaunchedEffect(vm) { vm.notices.collect(onNotice) }
+    // Shots left out over the photo limits are taken off the new asset's shots (and their files deleted).
+    LaunchedEffect(vm) { vm.droppedCaptures.collect(onDropCapture) }
+    // A document fetched from the server opens in an app the user picks.
+    val viewer = LocalContext.current
+    val openWith = stringResource(R.string.doc_open_with)
+    LaunchedEffect(vm) { vm.openedDocuments.collect { openFile(viewer, it.uri, it.contentType, openWith) } }
     // Saved, or its status changed: back to the list, which shows it where it now belongs.
     LaunchedEffect(vm) {
         vm.finished.collect {
@@ -127,12 +141,14 @@ fun AssetDetailRoute(
     var camCaps by remember(asset.id) { mutableStateOf(listOf<Media>()) }
     var camSel by remember(asset.id) { mutableStateOf(setOf<String>()) }
     var camVideo by remember(asset.id) { mutableStateOf(false) }
+    // One shot is sorted and checked at a time, so two quick shots can't both take the last room of a kind.
+    val shotLock = remember(asset.id) { Mutex() }
     // Gallery and file picks come straight back to these details, attached.
     val galleryPick = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_PICKS)) { uris ->
         if (uris.isNotEmpty()) scope.launch { attach(describeVisualMedia(context, uris)) }
     }
     val filePick = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        if (uris.isNotEmpty()) scope.launch { attach(describeAttachments(context, uris)) }
+        if (uris.isNotEmpty()) scope.launch { vm.attachFiles(describeAttachments(context, uris)) }
     }
     // The Documents tab's Add: one file, added to the asset's documents.
     val documentPick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -162,6 +178,8 @@ fun AssetDetailRoute(
         onMoveToDraft = vm::moveToDraft,
         onMarkValidated = vm::markValidated,
         onMove = onMove,
+        moveReason = moveReason,
+        assignReason = assignReason,
         onCreate = { submit ->
             val serial = state.value("serial")
             onCreate(
@@ -181,6 +199,7 @@ fun AssetDetailRoute(
         ai = AiDialogActions(
             onClose = vm::closeAi, onIdentity = vm::editAiIdentity, onLookUp = vm::lookUp, onChangeModel = vm::changeAiModel,
             onToggle = vm::toggleAiPick, onToggleType = vm::toggleAiType, onEdit = vm::editAiPick, onApply = vm::applyAi,
+            onToggleJacs = vm::toggleAiJacs,
         ),
         onMic = voice::toggle,
         onType = { vm.openTyping() },
@@ -196,14 +215,18 @@ fun AssetDetailRoute(
         onTakePhoto = { camOpen = true },
         onRecordMemo = { memoOpen = true },
         onPickGallery = { galleryPick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
-        onPickFiles = { filePick.launch(arrayOf("*/*")) },
+        // Excel, CSV, PDF, Word and text only (checked again, with the 10 MB limit, once picked).
+        onPickFiles = { filePick.launch(ATTACHABLE_FILE_TYPES.toTypedArray()) },
         onUploadDocument = { documentPick.launch(arrayOf("*/*")) },
+        onDocumentsBlocked = vm::documentsBlocked,
         onCommentChange = vm::editComment,
         onPostComment = vm::postComment,
         onUpdateComment = vm::updateComment,
         onRemoveComment = vm::removeComment,
         onRevalidate = vm::revalidate,
         onRemoveDocument = vm::removeDocument,
+        onOpenDocument = vm::openDocument,
+        onPreviewSource = vm::previewSource,
         onDownloadMedia = { m ->
             downloading = m
             mediaSave.launch(m)
@@ -219,6 +242,7 @@ fun AssetDetailRoute(
         jacs = JacsActions(
             onOpen = vm::openJacs,
             picker = JacsPickerActions(onQuery = vm::searchJacs, onMore = vm::moreJacs, onPick = vm::pickJacs, onClose = vm::closeJacs),
+            onSuggest = vm::suggestJacs,
         ),
         classify = ClassifyActions(
             onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,
@@ -226,8 +250,9 @@ fun AssetDetailRoute(
         // NFC is checked first: switched off (or missing), the message shows without the NFC dialog flashing up.
         tags = TagsActions(onStart = { kind -> tagVm.start(kind, if (kind == TagKind.NFC) NfcTagReader.problem(context) else null) }),
         onAddPhoto = { kind ->
-            // What the camera takes goes to [kind]'s card (Other photos for none); photo, video and gallery are in the camera.
-            vm.choosePhotoKind(kind)
+            // What the camera takes goes to [kind]'s card; Camera (no kind) puts it in Other photos as it is, unsorted.
+            // Photo, video and gallery are in the camera.
+            if (kind != null) vm.choosePhotoKind(kind) else vm.chooseOtherPhotos()
             camVideo = false
             camOpen = true
         },
@@ -242,6 +267,14 @@ fun AssetDetailRoute(
         ),
     )
 
+    // A photo or video the asset was read from, in the viewer the asset's own media use (no Download or Remove: it isn't
+    // one of the asset's media, and source files aren't removed here).
+    val sourcePreview by vm.sourcePreview.collectAsStateWithLifecycle()
+    sourcePreview?.let { m ->
+        BackHandler(onBack = vm::closeSourcePreview)
+        PhotoViewer(m, onClose = vm::closeSourcePreview, onDownload = null, onRemove = null)
+    }
+
     if (memoOpen) {
         VoiceMemoSheet(onSaved = { memo -> attach(listOf(memo)) }, onClose = { memoOpen = false }, onFailed = onNotice)
     }
@@ -254,20 +287,28 @@ fun AssetDetailRoute(
                 active = true,
                 captures = camCaps, selected = camSel,
                 videoMode = camVideo, onVideoMode = { camVideo = it },
-                // Each shot joins the strip, ticked while the kind (or asset) has room; Done adds the ticked ones.
+                // Each shot joins the strip and is read on the device as it is taken (nameplate, label ID or asset, or the
+                // card's kind): it is ticked while its kind and the asset have room, else the camera says why. Done adds the
+                // ticked ones.
                 onCapture = { m ->
                     camCaps = camCaps + m
-                    if (m.video || selectedPhotos(camCaps, camSel) < vm.cameraRoom()) camSel = camSel + m.id
-                    else toaster.show(UiText.Res(R.string.camera_room_full, listOf(vm.cameraRoom())), ToastKind.PROBLEM)
+                    scope.launch {
+                        shotLock.withLock {
+                            val sorted = vm.sortShot(m, camCaps.filter { it.id in camSel && it.id != m.id })
+                            if (camCaps.none { it.id == m.id }) return@withLock
+                            camCaps = camCaps.map { if (it.id == m.id) sorted.shot else it }
+                            if (sorted.refusal == null) camSel = camSel + m.id
+                            else toaster.show(sorted.refusal.notice(), ToastKind.PROBLEM)
+                        }
+                    }
                 },
                 onToggle = { id ->
                     val m = camCaps.firstOrNull { it.id == id }
-                    camSel = when {
-                        id in camSel -> camSel - id
-                        m == null || m.video || selectedPhotos(camCaps, camSel) < vm.cameraRoom() -> camSel + id
-                        else -> {
-                            toaster.show(UiText.Res(R.string.camera_room_full, listOf(vm.cameraRoom())), ToastKind.PROBLEM)
-                            camSel
+                    if (id in camSel || m == null) camSel = camSel - id
+                    else scope.launch {
+                        shotLock.withLock {
+                            val refusal = vm.shotRefusal(m, camCaps.filter { it.id in camSel })
+                            if (refusal == null) camSel = camSel + id else toaster.show(refusal.notice(), ToastKind.PROBLEM)
                         }
                     }
                 },
@@ -293,4 +334,3 @@ fun AssetDetailRoute(
 private const val MAX_PICKS = 20
 
 /** How many photos (not videos) of [caps] are ticked in [selected]. */
-private fun selectedPhotos(caps: List<Media>, selected: Set<String>): Int = caps.count { it.id in selected && !it.video }

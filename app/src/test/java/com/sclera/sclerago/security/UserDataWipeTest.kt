@@ -2,6 +2,9 @@ package com.sclera.sclerago.security
 
 import com.sclera.sclerago.domain.repository.NetworkMonitor
 import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.repository.AccessRefusals
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessRefusalsUseCase
+import com.sclera.sclerago.domain.usecase.access.RecheckAccessUseCase
 import com.sclera.sclerago.domain.usecase.access.RefreshAccessOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.CheckSessionOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.ClearUserDataUseCase
@@ -11,10 +14,12 @@ import com.sclera.sclerago.domain.usecase.telemetry.TrackSessionChangeUseCase
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.testutil.AllowAllAccess
 import com.sclera.sclerago.testutil.CountingCleaner
+import com.sclera.sclerago.testutil.FakePropertyRepository
 import com.sclera.sclerago.testutil.FakeAuthRepository
 import com.sclera.sclerago.testutil.NoopAnalytics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -56,6 +61,8 @@ class UserDataWipeTest {
     private fun viewModel(repo: FakeAuthRepository, cleaner: CountingCleaner) = SessionViewModel(
         ObserveAuthStateUseCase(repo), CheckSessionOnForegroundUseCase(repo), LogoutUseCase(repo, object : NetworkMonitor { override fun isOnline() = true }), ClearUserDataUseCase(setOf(cleaner)), TrackSessionChangeUseCase(NoopAnalytics),
         RefreshAccessOnForegroundUseCase(AllowAllAccess()),
+        RecheckAccessUseCase(AllowAllAccess(), FakePropertyRepository()),
+        ObserveAccessRefusalsUseCase(object : AccessRefusals { override val refused = emptyFlow<Unit>() }),
     )
 
     @Test

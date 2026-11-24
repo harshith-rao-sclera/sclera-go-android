@@ -76,6 +76,7 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetListData
 import com.sclera.sclerago.domain.model.EmptyReason
+import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
 import com.sclera.sclerago.domain.model.ValidationMark
@@ -105,6 +106,7 @@ object AssetListTags {
     fun row(id: String) = "asset-row-$id"
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
     fun validation(mark: ValidationMark) = "asset-chip-validation-${mark.name}"
+    fun onboarded(source: Source) = "asset-chip-onboarded-${source.name}"
 
     /** A row's validation mark, when it opens the asset's Validation tab. */
     fun validationMark(id: String) = "asset-row-validation-$id"
@@ -192,6 +194,16 @@ private fun ChipRow(data: AssetListData, list: AssetListBinding) {
                     CountChip(stringResource(R.string.managed_chip), m.count, m.selected, AssetListTags.MANAGED, list.onManaged, Modifier.animateItem(ItemFade, ItemMove, ItemFade)) {
                         LineIcon(Icons.Managed, 12.dp, C.Yellow, 2.4f)
                     }
+                }
+            }
+            // How they were onboarded (the web's optional Bluetooth and Wi-Fi tabs), on the Assets tab.
+            data.onboarded.forEach { (source, chip) ->
+                item(key = "ONBOARDED_${source.name}") {
+                    CountChip(
+                        stringResource(if (source == Source.BT) R.string.dash_chip_bluetooth else R.string.dash_chip_wifi),
+                        chip.count, chip.selected, AssetListTags.onboarded(source), { list.onOnboarded(source) },
+                        Modifier.animateItem(ItemFade, ItemMove, ItemFade),
+                    ) { LineIcon(source.icon, 12.dp, source.color, 2.4f) }
                 }
             }
             // The web card's validation icon, as filters: a step failed, or one needs a look.
@@ -450,6 +462,8 @@ class AssetListBinding(
     val onValidation: (ValidationMark) -> Unit = {},
     /** The Managed assets chip: lists only the assets in Managed Assets, read-only (it stays on when tapped again). */
     val onManaged: () -> Unit = {},
+    /** The Bluetooth / Wi-Fi chip (Assets tab): lists only the assets onboarded that way (it stays on when tapped again). */
+    val onOnboarded: (Source) -> Unit = {},
     /**
      * A row's validation mark (failed or needs a look), pressed: opens that asset on its Validation tab, as the web's
      * badge. Null leaves the mark part of the row (a tap opens the asset as usual).

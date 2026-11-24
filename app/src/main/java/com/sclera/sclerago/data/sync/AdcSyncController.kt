@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -73,6 +74,19 @@ class AdcSyncController @Inject constructor(
     }
 
     override fun downloadedProperties(): Set<String> = bridge.downloadedProperties()
+
+    override suspend fun remove(propertyId: String) {
+        synchronized(this) {
+            runJobs.remove(propertyId)?.cancel()
+            _states.update { it - propertyId }
+        }
+        // Off the screens before its connection closes (the screens then read nothing, not a closing database).
+        if (bridge.isSelected(propertyId)) select(null)
+        withContext(io) {
+            if (bridge.usesTestDatabase()) return@withContext
+            runCatching { bridge.remove(propertyId) }
+        }
+    }
 
     @Synchronized
     override fun stop() {

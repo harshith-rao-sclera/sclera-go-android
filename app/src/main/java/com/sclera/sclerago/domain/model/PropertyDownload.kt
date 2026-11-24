@@ -15,6 +15,12 @@ sealed interface PropertyDownload {
     data object Failed : PropertyDownload
 }
 
+/**
+ * Downloaded properties the server no longer lists for the user (access removed, or the property deleted), whose data
+ * was deleted from the device: [ids], and whether the property being worked on was one of them ([wasCurrent]).
+ */
+data class LostProperties(val ids: Set<String>, val wasCurrent: Boolean)
+
 /** Still under way: downloading or unpacking. */
 val PropertyDownload?.inProgress: Boolean get() = this is PropertyDownload.Running || this is PropertyDownload.Unpacking
 

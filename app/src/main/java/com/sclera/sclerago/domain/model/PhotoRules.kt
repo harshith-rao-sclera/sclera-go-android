@@ -44,26 +44,50 @@ fun photoRoom(rules: List<PhotoRule>, have: List<Media>, kind: PhotoKind?): Int 
     return left.coerceAtLeast(0)
 }
 
+/** Why one more photo can't join an asset: its kind already has the most the property allows, or the asset has. */
+sealed interface PhotoRefusal {
+    /** [kind] already has [max] photos, the most the property allows (0: the property doesn't collect that kind). */
+    data class KindFull(val kind: PhotoKind, val max: Int) : PhotoRefusal
+
+    /** The asset already has [MAX_PHOTOS_PER_ASSET] photos. */
+    data object AssetFull : PhotoRefusal
+}
+
 /**
- * [adding] kept within the photo rules beside [have], in order: a photo whose kind (from its card, or sorted off the
- * photo) already has the most the rules allow goes to no kind (Other photos), which the server takes without a limit,
- * rather than refusing the lot. Returns the photos, and how many were moved.
+ * Why one more photo of [kind] (null: no kind, Other photos) can't join an asset holding [have], as the server's
+ * _check_room refuses it; null when it fits.
  */
-fun fitPhotoRules(rules: List<PhotoRule>, have: List<Media>, adding: List<Media>): Pair<List<Media>, Int> {
+fun photoRefusal(rules: List<PhotoRule>, have: List<Media>, kind: PhotoKind?): PhotoRefusal? = when {
+    photoRoom(rules, have, null) <= 0 -> PhotoRefusal.AssetFull
+    kind != null && photoRoom(rules, have, kind) <= 0 ->
+        PhotoRefusal.KindFull(kind, rules.firstOrNull { it.kind == kind }?.max ?: MAX_PHOTOS_PER_ASSET)
+    else -> null
+}
+
+/**
+ * What [fitPhotoRules] let in ([kept], in order) and turned away ([refused]), with the most photos the property allows
+ * of each kind it turned photos away from ([limits]; 0: it doesn't collect that kind).
+ */
+data class FittedPhotos(val kept: List<Media>, val refused: List<Media>, val limits: Map<PhotoKind, Int> = emptyMap()) {
+    /** How many photos of each kind were turned away. */
+    val refusedByKind: Map<PhotoKind, Int> get() = refused.mapNotNull { it.category }.groupingBy { it }.eachCount()
+}
+
+/**
+ * [adding] kept within the photo rules beside [have], in order, as the server's _check_room refuses one more photo of a
+ * kind than the property allows: a photo whose kind (from its card, or sorted off the photo) already has the most the
+ * rules allow, or that the property doesn't collect, is refused (say a sixth nameplate photo when five are allowed). The
+ * other photos, videos, voice memos and files all go in.
+ */
+fun fitPhotoRules(rules: List<PhotoRule>, have: List<Media>, adding: List<Media>): FittedPhotos {
     val counts = PhotoKind.entries.associateWith { k -> have.count { it.isAssetPhoto() && it.category == k } }.toMutableMap()
-    var moved = 0
-    val fitted = adding.map { m ->
-        val kind = m.category?.takeIf { m.isAssetPhoto() } ?: return@map m
-        val max = rules.firstOrNull { it.kind == kind }?.max ?: return@map m
-        if (counts.getValue(kind) < max) {
-            counts[kind] = counts.getValue(kind) + 1
-            m
-        } else {
-            moved++
-            m.copy(category = null)
-        }
+    val (kept, refused) = adding.partition { m ->
+        val kind = m.category?.takeIf { m.isAssetPhoto() } ?: return@partition true
+        val max = rules.firstOrNull { it.kind == kind }?.max ?: return@partition true
+        (counts.getValue(kind) < max).also { fits -> if (fits) counts[kind] = counts.getValue(kind) + 1 }
     }
-    return fitted to moved
+    val limits = refused.mapNotNull { it.category }.distinct().associateWith { k -> rules.firstOrNull { it.kind == k }?.max ?: 0 }
+    return FittedPhotos(kept, refused, limits)
 }
 
 /** How many photos of [kind] each asset needs ([min]) and may have ([max]), as the property's settings say. */

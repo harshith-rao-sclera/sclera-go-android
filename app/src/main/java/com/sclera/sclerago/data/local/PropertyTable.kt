@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import com.sclera.sclerago.data.remote.adc.AdcJson
+import com.sclera.sclerago.data.remote.adc.FencesDto
 import com.sclera.sclerago.data.remote.adc.PropertyDto
 import com.sclera.sclerago.data.remote.adc.SettingsDto
 import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper
@@ -11,6 +12,8 @@ import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper.PROPE
 import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper.PROPERTIES_COLUMN_CONTACT_EMAIL
 import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper.PROPERTIES_COLUMN_CONTACT_NAME
 import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper.PROPERTIES_COLUMN_CONTACT_PHONE
+import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper.PROPERTIES_COLUMN_GEOFENCE
+import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper.PROPERTIES_COLUMN_GEOFENCE_ENFORCED
 import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper.PROPERTIES_COLUMN_IS_SYNCED
 import com.sclera.sclerago.services.syncManager.GlobalConfigDatabaseHelper.TABLE_NAME_PROPERTIES
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,9 +24,9 @@ import javax.inject.Singleton
 /**
  * The organisation's property list in `global_config.db`'s `properties` table (the sync engine makes the table), as
  * the server lists it, with `is_synced` = 1 for a property downloaded to this device (its offline data synced here)
- * and 0 for one that isn't. The access code and the contact's name, email and phone are stored encrypted with the
- * Keystore [SecretCipher] (AES-GCM, the key never leaves the device); the rows are deleted on sign-out. Blocking:
- * call off the main thread.
+ * and 0 for one that isn't. The access code, the contact's name, email and phone, and the geofence's fences (location
+ * data) are stored encrypted with the Keystore [SecretCipher]
+ * (AES-GCM, the key never leaves the device); the rows are deleted on sign-out. Blocking: call off the main thread.
  */
 @Singleton
 class PropertyTable @Inject constructor(
@@ -89,6 +92,8 @@ class PropertyTable @Inject constructor(
         put(PROPERTIES_COLUMN_ACCESS_CODE, accessCode?.let(cipher::encrypt))
         put("status", status)
         put("settings", AdcJson.encodeToString(SettingsDto.serializer(), settings))
+        put(PROPERTIES_COLUMN_GEOFENCE_ENFORCED, if (geofenceEnforced) 1 else 0)
+        put(PROPERTIES_COLUMN_GEOFENCE, geofence?.let { cipher.encrypt(AdcJson.encodeToString(FencesDto.serializer(), it)) })
         put(PROPERTIES_COLUMN_IS_SYNCED, if (synced) 1 else 0)
     }
 
@@ -115,6 +120,8 @@ class PropertyTable @Inject constructor(
             accessCode = secret(PROPERTIES_COLUMN_ACCESS_CODE),
             status = text("status") ?: "ready",
             settings = text("settings")?.let { runCatching { AdcJson.decodeFromString(SettingsDto.serializer(), it) }.getOrNull() } ?: SettingsDto(),
+            geofenceEnforced = getColumnIndex(PROPERTIES_COLUMN_GEOFENCE_ENFORCED).let { it >= 0 && !isNull(it) && getInt(it) == 1 },
+            geofence = secret(PROPERTIES_COLUMN_GEOFENCE)?.let { runCatching { AdcJson.decodeFromString(FencesDto.serializer(), it) }.getOrNull() },
         )
     }
 }

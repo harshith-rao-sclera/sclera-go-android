@@ -38,8 +38,8 @@ enum class ManualKind {
 }
 
 /**
- * One document of an asset, from the property's data: the file it was read from (`documents`), a page its values came
- * from or a manual of its model (`web_documents`).
+ * One document of an asset, as the server lists it (documents are not synced): one added to it, the file it was read
+ * from, a page its values came from or a manual of its model.
  */
 data class AssetDocument(
     val id: String,
@@ -68,17 +68,26 @@ data class AssetDocument(
     /** The uploaded file's size and type ("application/pdf"). */
     val sizeBytes: Long? = null,
     val contentType: String? = null,
-    /** Where the kept file is opened on this device (the app's media provider); null when only a link is kept. */
-    val fileUri: String? = null,
     /**
      * It can be taken off: a web page by anyone who can collect; the uploaded file by whoever uploaded it, or anyone who
      * can configure the property (the server's rule). A model's manual belongs to every asset of that model.
      */
     val removable: Boolean = false,
-)
+    /** A photo the asset was read from: a resized copy of it (base64 JPEG or PNG) to show as a thumbnail. */
+    val preview: String? = null,
+) {
+    /** A photo the asset was read from: Media shows it under "From the source file" (not a document to list). */
+    val isSourcePhoto: Boolean get() = source == DocumentSource.SOURCE_FILE && fileKind == IMAGE_KIND
+
+    /** A photo or video the asset was read from: it is previewed in the app's viewer rather than opened in another app. */
+    val previewable: Boolean get() = source == DocumentSource.SOURCE_FILE && (fileKind == IMAGE_KIND || fileKind == VIDEO_KIND)
+}
 
 /** How the server matches a manufacturer or model to its manuals: lowercase letters and digits only. */
 fun modelKey(text: String?): String = (text ?: "").lowercase().filter { it in 'a'..'z' || it in '0'..'9' }
 
 /** The manuals of an asset's model as the server has them now, and whether a search for more is still running. */
 data class ModelManuals(val manuals: List<AssetDocument>, val searching: Boolean)
+
+/** A document's file fetched to the device: where it is opened ([uri]) and its type, when the server said. */
+data class OpenableFile(val uri: String, val contentType: String?)

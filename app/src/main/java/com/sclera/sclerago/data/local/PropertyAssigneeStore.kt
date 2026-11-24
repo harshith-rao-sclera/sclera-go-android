@@ -17,7 +17,7 @@ import javax.inject.Singleton
  * known gap in CLAUDE.md). Blocking: call off the main thread.
  */
 @Singleton
-class PropertyAssigneeStore @Inject constructor(@ApplicationContext private val context: Context) {
+class PropertyAssigneeStore @Inject constructor(@ApplicationContext private val context: Context) : PropertyLocalData {
     private val db: SQLiteDatabase by lazy {
         GlobalConfigDatabaseHelper.initializeInstance(context).globalDB.also {
             it.execSQL(CREATE)
@@ -76,6 +76,11 @@ class PropertyAssigneeStore @Inject constructor(@ApplicationContext private val 
         } finally {
             db.endTransaction()
         }
+    }
+
+    /** Forgets [propertyId]'s assignees (the user lost access to it). */
+    override fun forget(propertyId: String) {
+        db.delete(TABLE, "property_id = ?", arrayOf(propertyId))
     }
 
     /** Forgets every property's assignees (sign-out). */

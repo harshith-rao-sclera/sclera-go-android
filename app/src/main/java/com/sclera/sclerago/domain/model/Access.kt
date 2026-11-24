@@ -6,6 +6,10 @@ package com.sclera.sclerago.domain.model
  * What a group's people can do ([key] is its name in the API). [needsAllProperties] ones only make sense with access to every
  * property. [color] / [iconPath] (24×24 SVG path) are the permission's chip colour and icon.
  * Their user-facing names and descriptions live in string resources (presentation).
+ *
+ * Each builds on the one before, and the server lists the ones a permission includes ([PermissionInfo.includes]) with it:
+ * Collect includes View; Check includes Collect; Validate includes Check; Configure includes Collect; Manage properties
+ * includes all five; Manage access includes Manage properties.
  */
 enum class Permission(
     val key: String,
@@ -13,6 +17,11 @@ enum class Permission(
     val iconPath: String,
     val needsAllProperties: Boolean = false,
 ) {
+    /** Open a property and look at its assets, files and validation results. A group without it can't open a property. */
+    VIEW(
+        "view",
+        0xFF8B8F97, "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 100 6 3 3 0 000-6z",
+    ),
     COLLECT(
         "collect",
         0xFF6FA8E6, "M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z",
@@ -23,10 +32,15 @@ enum class Permission(
         "check",
         0xFF4DB6C4, "M9 12l2 2 4-4M12 3a9 9 0 100 18 9 9 0 000-18z",
     ),
+    /**
+     * A reviewer: signs assets off or moves them back to draft, assigns assets to anyone, and edits and submits any asset
+     * (submitted, or assigned to someone else, too).
+     */
     VALIDATE(
         "validate",
         0xFF5DBE8C, "M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3zM9 12l2 2 4-4",
     ),
+    /** Sets a property up (buildings, floors, locations, fields and types) and moves assets to Managed Assets. */
     CONFIGURE(
         "configure",
         0xFFEE9A4D, "M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M8 15v4",
@@ -43,7 +57,7 @@ enum class Permission(
     ),
 }
 
-/** Colour of the "View only" tag of a group with no permissions. */
+/** Colour of the "No permissions" tag of a group with none (it can't open a property). */
 const val VIEW_ONLY_COLOR = 0xFF8B8F97
 
 /** A group says what its people can do. [locked] groups (Admins) always have every permission and can't be deleted. */
@@ -60,17 +74,40 @@ data class Group(
     /** Everything the group's people can do, in [Permission] order. */
     val effectivePermissions: List<Permission> get() = Permission.entries.filter(::can)
 
-    /** The strongest permission, which sets the group's icon and colour (null = view only). */
+    /** The strongest permission, which sets the group's icon and colour (null = no permissions). */
     val topPermission: Permission?
-        get() = listOf(Permission.MANAGE_ACCESS, Permission.MANAGE_PROPERTIES, Permission.CONFIGURE, Permission.VALIDATE, Permission.CHECK, Permission.COLLECT)
-            .firstOrNull(::can)
+        get() = listOf(
+            Permission.MANAGE_ACCESS, Permission.MANAGE_PROPERTIES, Permission.CONFIGURE, Permission.VALIDATE, Permission.CHECK,
+            Permission.COLLECT, Permission.VIEW,
+        ).firstOrNull(::can)
 }
 
 /**
  * A permission as the server describes it (`GET organisations/{org}/access/permissions`): its [key], the [name] and
- * [description] to show, and whether it only works with access to every property.
+ * [description] to show, whether it only works with access to every property, and the keys of the permissions it
+ * [includes] (a group given it has those too).
  */
-data class PermissionInfo(val key: String, val name: String, val description: String, val needsAllProperties: Boolean)
+data class PermissionInfo(
+    val key: String,
+    val name: String,
+    val description: String,
+    val needsAllProperties: Boolean,
+    val includes: List<String> = emptyList(),
+)
+
+/**
+ * A group's ticked permissions after [p] is ticked or unticked on the group form, as the web's togglePermission: ticking
+ * one ticks the ones it includes ([infos], the server's list); unticking one unticks every permission that includes it.
+ * So what's ticked is always what the group can do, which is how the server saves a group too.
+ */
+fun Set<Permission>.toggled(p: Permission, infos: Collection<PermissionInfo>): Set<Permission> {
+    val includes = infos.associate { info -> info.key to info.includes.mapNotNull(::permissionOf).toSet() }
+    return if (p in this) {
+        this - p - includes.filterValues { p in it }.keys.mapNotNull(::permissionOf).toSet()
+    } else {
+        this + p + includes[p.key].orEmpty()
+    }
+}
 
 /**
  * Someone the organisation's directory lists, to pick when adding a person; [userId] is set when they are already here.

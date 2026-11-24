@@ -107,6 +107,10 @@ public class SyncManagerService {
                     SyncManager finalCurrentInstance = currentInstance;
                     executorService.execute(() -> {
                         finalCurrentInstance.startConnection();
+                        // Closed while it started (its property removed or started over): nothing more starts for it.
+                        if (finalCurrentInstance.isClosed()) {
+                            return;
+                        }
                         // Sends the QR, barcode and NFC tags saved without a connection (once per engine).
                         CloudSyncService.ensureRunning(finalCurrentInstance);
 

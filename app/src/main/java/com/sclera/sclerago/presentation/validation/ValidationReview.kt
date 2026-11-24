@@ -26,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -54,7 +53,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 /**
  * One job's results (Review), as the iOS app's: its head and summary, the fields to fix, how the review is going, the
  * steps every asset goes through (select one to list the assets that didn't pass it), and every asset by outcome. Tap an asset to fix its issues; long-press to tick assets and decide on
- * them together (Validated / Recollect / Exclude).
+ * them together (Validated / Recollect; the server no longer leaves assets out of a review).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -94,7 +93,7 @@ internal fun JobReview(
             } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 150.dp)) {
                 item(key = "head") { ReviewHead(j) }
                 // Apply fixes, above the first card (Export CSV and Run again float in the corner).
-                item(key = "actions") { ReviewActions(j, s.confidentCount, s.canCheck, s.busy, vm::applyConfident) }
+                item(key = "actions") { ReviewActions(j, s.confidentCount, s.checkBlock, s.busy, vm::applyConfident) }
                 item(key = "summary") { ReviewSummary(j) }
                 s.insights?.takeIf { j.status.finished }?.let { ins ->
                     if (ins.hasContent) item(key = "fields") { FieldsToFix(ins) }
@@ -121,7 +120,8 @@ internal fun JobReview(
                     ReviewAssetCard(
                         j, res, localById[res.assetId], selected = res.assetId in s.selected, fresh = res.assetId in s.fresh,
                         onOpen = { if (s.selected.isNotEmpty()) vm.toggleSelected(res.assetId) else vm.openAsset(res.assetId) },
-                        onSelect = if (s.canValidate) ({ vm.toggleSelected(res.assetId) }) else null,
+                        // Ticking is the reviewer's: anyone else's long-press says why instead.
+                        onSelect = { vm.select(res.assetId) },
                     )
                 }
                 // Load more: placeholder rows where the next page will go, under the ones shown.
@@ -143,7 +143,7 @@ internal fun JobReview(
         }
         // Export CSV and Run again, floating in the corner (not while assets are ticked: the selection bar is there).
         if (j != null && s.selected.isEmpty()) {
-            ReviewFabs(j, s.canCheck, s.busy, vm::export, { onRunAgain(j) }, Modifier.align(Alignment.BottomEnd).navigationBarsPadding())
+            ReviewFabs(j, s.checkBlock, s.busy, vm::export, { onRunAgain(j) }, Modifier.align(Alignment.BottomEnd).navigationBarsPadding())
         }
 
         j?.let { run -> s.panel?.let { p -> RunAssetSheet(run, p, steps, assets, propName, s, vm, onOpenAsset) } }
@@ -185,7 +185,7 @@ private fun SelectionBar(s: RunReviewUiState, vm: RunReviewViewModel) {
         val checkOnly = s.results.any { it.assetId in s.selected && it.checkOnly }
         DecisionButtons(
             s.busy, onValidate = { vm.decide(ids, Decision.VALIDATED) }, onRecollect = { vm.askRecollect(ids) },
-            onExclude = { vm.decide(ids, Decision.EXCLUDED) }, validateBlocked = checkOnly,
+            validateBlocked = checkOnly,
         )
         if (checkOnly) Txt(stringResource(R.string.rev_submit_first), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     }
@@ -196,7 +196,6 @@ internal fun DecisionButtons(
     busy: Boolean,
     onValidate: () -> Unit,
     onRecollect: () -> Unit,
-    onExclude: () -> Unit,
     /** Some of the assets aren't submitted: marking as validated is off (submit first). */
     validateBlocked: Boolean = false,
 ) {
@@ -206,7 +205,6 @@ internal fun DecisionButtons(
             Modifier.weight(1f).alpha(if (validateBlocked) 0.4f else 1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700,
         )
         Pill(stringResource(R.string.rev_decision_recollect), { if (!busy) onRecollect() }, Modifier.weight(1f), height = 40.dp)
-        Pill(stringResource(R.string.rev_exclude), { if (!busy) onExclude() }, Modifier.weight(1f), bg = Color(0xFF2A1919), fg = C.Red, height = 40.dp, weight = 700)
     }
 }
 

@@ -15,6 +15,7 @@ import com.sclera.sclerago.data.remote.adc.LookupJobDto
 import com.sclera.sclerago.data.remote.adc.SpecSuggestionsDto
 import com.sclera.sclerago.data.remote.adc.TypeSuggestionDto
 import com.sclera.sclerago.di.IoDispatcher
+import com.sclera.sclerago.domain.model.JacsSuggestion
 import com.sclera.sclerago.domain.model.LookupStatus
 import com.sclera.sclerago.domain.model.LookupType
 import com.sclera.sclerago.domain.model.MAX_AI_PHOTO_BYTES
@@ -128,6 +129,9 @@ class SpecLookupRepositoryImpl @Inject constructor(
         seen = seenAt != null,
         createdAt = parseDbTime(createdAt),
         manualsSearch = manualJobId != null,
+        suggestedJacsCode = suggestedJacsCode?.takeIf { it.code.isNotBlank() }?.let { c ->
+            JacsSuggestion(c.code.trim(), c.title?.trim()?.takeIf { it.isNotEmpty() }, c.confidence.coerceIn(0.0, 1.0), c.reason?.trim()?.takeIf { it.isNotEmpty() })
+        },
     )
 
     /** The phone's look-up as a finished [SpecLookup] (not a job: nothing to mark as seen at the server). */

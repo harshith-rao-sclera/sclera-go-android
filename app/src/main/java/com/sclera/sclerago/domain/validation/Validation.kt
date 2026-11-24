@@ -203,7 +203,8 @@ fun fieldProblem(f: FieldCfg, x: String): String? {
                 else -> null
             }
         }
-        FieldKind.NUMBER -> {
+        // A currency field's answer is the amount alone, checked as a number (the server's is_number).
+        FieldKind.NUMBER, FieldKind.CURRENCY -> {
             val n = Regex("^-?[0-9]+(?:\\.[0-9]+)?").find(x.trim())?.value?.toDoubleOrNull() ?: return "isn’t a number"
             when {
                 f.wholeNumber && n % 1.0 != 0.0 -> "should be a whole number"

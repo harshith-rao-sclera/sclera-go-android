@@ -30,10 +30,16 @@ data class CfgFieldDto(
     val isActive: Boolean = true,
     val isBuiltIn: Boolean = false,
     val position: Int = 0,
+    /** The unit its answer is in (ft, kPa), if any; a currency field's is its currency (USD). */
+    val unit: String? = null,
     val helpText: String? = null,
     val defaultValue: String? = null,
     val checks: kotlinx.serialization.json.JsonObject? = null,
 )
+
+/** A currency a currency field can be in (`GET /currencies`): [code] is what the field's unit is set to. */
+@Serializable
+data class CurrencyDto(val code: String = "", val name: String = "")
 
 // `/properties/{id}/buildings|floors|locations`.
 

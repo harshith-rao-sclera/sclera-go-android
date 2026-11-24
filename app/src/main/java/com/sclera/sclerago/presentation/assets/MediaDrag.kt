@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -28,6 +29,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.sclera.sclerago.domain.model.Media
@@ -136,11 +138,25 @@ internal fun dropColors(look: DropLook): Pair<State<Color>, State<Color>> {
 
 /**
  * A photo tile that can be picked up (tap and hold) and dragged to another card of [drag]: it lifts with a shadow and
- * follows the finger, and pops into place when dropped into another card. A plain tap still opens it.
+ * follows the finger, and pops into place when dropped into another card. A plain tap still opens it. [onPickUp] when it
+ * is picked up; then either [onHold] (let go without moving: it was only held) or [onMoved] (it was dragged).
  */
 @Composable
-internal fun Modifier.draggablePhoto(drag: PhotoDrag, m: Media, card: String): Modifier {
+internal fun Modifier.draggablePhoto(
+    drag: PhotoDrag,
+    m: Media,
+    card: String,
+    onPickUp: () -> Unit = {},
+    onHold: () -> Unit = {},
+    onMoved: () -> Unit = {},
+): Modifier {
+    val pickedUp by rememberUpdatedState(onPickUp)
+    val held by rememberUpdatedState(onHold)
+    val moved by rememberUpdatedState(onMoved)
     val haptics = LocalHapticFeedback.current
+    val slop = LocalViewConfiguration.current.touchSlop
+    // How far the finger has gone since the photo was picked up: let go without moving, it was only held ([onHold]).
+    var travelled by remember { mutableStateOf(0f) }
     var origin by remember { mutableStateOf(Offset.Zero) }
     val lifted = drag.media?.id == m.id
     val lift by animateFloatAsState(if (lifted) 1.12f else 1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMedium), label = "lift")
@@ -172,14 +188,30 @@ internal fun Modifier.draggablePhoto(drag: PhotoDrag, m: Media, card: String): M
             detectDragGesturesAfterLongPress(
                 onDragStart = { at ->
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    travelled = 0f
+                    pickedUp()
                     drag.pickUp(m, card, origin + at)
                 },
                 onDrag = { change, by ->
                     change.consume()
+                    travelled += by.getDistance()
                     drag.moveBy(by)
                 },
-                onDragEnd = { drag.drop() },
-                onDragCancel = { drag.cancel() },
+                onDragEnd = {
+                    if (travelled < slop) {
+                        drag.cancel()
+                        held()
+                    } else {
+                        moved()
+                        drag.drop()
+                    }
+                },
+                // Let go without moving, the tile's tap takes the finger's release, which ends the drag as cancelled:
+                // held still, it was a hold.
+                onDragCancel = {
+                    drag.cancel()
+                    if (travelled < slop) held() else moved()
+                },
             )
         }
 }

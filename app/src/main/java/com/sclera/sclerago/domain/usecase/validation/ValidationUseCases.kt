@@ -1,8 +1,12 @@
 package com.sclera.sclerago.domain.usecase.validation
 
+import com.sclera.sclerago.domain.model.AccessBlock
+import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.assetLock
 import com.sclera.sclerago.domain.repository.SavedValidationRepository
 import com.sclera.sclerago.domain.repository.ValidationCatalogRepository
 import com.sclera.sclerago.domain.repository.ValidationRunRepository
@@ -31,20 +35,34 @@ const val VALIDATION_DESCRIPTION_MAX = 500
 const val RECENT_RUNS = 100
 
 /**
- * Whether the signed-in user may run validations and fix values ([Permission.CHECK]) and sign off, send back, exclude,
- * undo fixes and keep saved validations ([Permission.VALIDATE]). Screens collect [observeCheck] / [observeValidate] so
- * their buttons follow the access as it is fetched or changes (as the web re-renders from its store); nothing is
- * allowed while the access isn't known (see [PermissionGuard]).
+ * Whether the signed-in user may run validations and fix values ([Permission.CHECK]) and sign off, send back, merge, undo
+ * fixes and keep saved validations ([Permission.VALIDATE]), and why not (the User Access Guide's rules, for greying a
+ * button out and saying why). Screens collect [observeCheckBlock] / [observeValidateBlock] so their buttons follow the
+ * access as it is fetched or changes (as the web re-renders from its store); nothing is allowed while the access isn't
+ * known (see [PermissionGuard]).
  */
 class ValidationAccessUseCase @Inject constructor(private val guard: PermissionGuard) {
     fun canCheck(): Boolean = guard.allows(Permission.CHECK)
-    fun canValidate(): Boolean = guard.allows(Permission.VALIDATE)
 
-    /** [canCheck], kept up to date. */
-    fun observeCheck(): Flow<Boolean> = guard.observe(Permission.CHECK)
+    /** Why the user can't run validations or fix values now; null when they can. */
+    fun checkBlock(): AccessBlock? = guard.block(Permission.CHECK)
 
-    /** [canValidate], kept up to date. */
-    fun observeValidate(): Flow<Boolean> = guard.observe(Permission.VALIDATE)
+    /** Why the user can't sign off, send back, merge, undo fixes or keep saved validations now; null when they can. */
+    fun validateBlock(): AccessBlock? = guard.block(Permission.VALIDATE)
+
+    /** [checkBlock], kept up to date. */
+    fun observeCheckBlock(): Flow<AccessBlock?> = guard.observeBlock(Permission.CHECK)
+
+    /** [validateBlock], kept up to date. */
+    fun observeValidateBlock(): Flow<AccessBlock?> = guard.observeBlock(Permission.VALIDATE)
+
+    /**
+     * Why a fix to an asset of a run would be refused (the server's check_editable), null when it wouldn't: one in Managed
+     * Assets ([managed]) for everyone; for someone who isn't a reviewer, one assigned to someone else ([assignedTo], a user
+     * id) or submitted or signed off. An unknown [status] (the asset deleted, or not read yet) doesn't lock it.
+     */
+    fun lockOf(status: Status?, assignedTo: String?, managed: Boolean): AssetLock? =
+        assetLock(status ?: Status.DRAFT, guard.isReviewer(), guard.isAssignedElsewhere(assignedTo), managed)
 
     /** The signed-in user's id (Recent jobs' "Me"); null until the access has been fetched. */
     fun userId(): String? = guard.userId()

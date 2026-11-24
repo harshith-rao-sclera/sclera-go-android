@@ -88,7 +88,7 @@ public class CloudSyncService {
      * its own ({@code continueQRDataSync} turns false).
      */
     public static synchronized void ensureRunning(SyncManager syncManager) {
-        if (syncManager == null || syncManager.propertyId == null) {
+        if (syncManager == null || syncManager.propertyId == null || syncManager.isClosed()) {
             return;
         }
         CloudSyncService current = RUNNING.get(syncManager.propertyId);

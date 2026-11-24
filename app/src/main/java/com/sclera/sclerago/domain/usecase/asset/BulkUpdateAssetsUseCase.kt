@@ -21,10 +21,10 @@ class BulkUpdateAssetsUseCase @Inject constructor(private val repo: AssetReposit
         guard.requireOffline(Permission.COLLECT)
         val given = values.filterValues { it.isNotBlank() }
         if (given.isEmpty() && place == null) return Result(0, 0)
-        val admin = guard.isAdmin()
+        val reviewer = guard.isReviewer()
         val byId = repo.catalog.value.assets.associateBy { it.id }
-        // As the server's check_editable: someone who isn't an admin changes only unlocked assets assigned to them or to nobody.
-        val editable = ids.filter { id -> byId[id]?.let { assetLock(it.st, admin, guard.isAssignedElsewhere(it.assignedTo)) == null } == true }
+        // As the server's check_editable: someone who isn't a reviewer changes only unlocked assets assigned to them or to nobody.
+        val editable = ids.filter { id -> byId[id]?.let { assetLock(it.st, reviewer, guard.isAssignedElsewhere(it.assignedTo)) == null } == true }
         // Values and place together, so each asset gets one history line for the edit, as the server's PATCH.
         editable.forEach { repo.saveDetails(it, given, place = place) }
         return Result(editable.size, ids.size - editable.size)

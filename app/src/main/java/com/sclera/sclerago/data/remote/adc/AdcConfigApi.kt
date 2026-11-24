@@ -3,6 +3,7 @@ package com.sclera.sclerago.data.remote.adc
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.SheetRejectedException
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -43,6 +44,10 @@ class AdcConfigApi @Inject constructor(private val service: AdcConfigService, pr
     /** Reads the .xlsx [file] one field per row (nothing is made); a wrong sheet throws [SheetRejectedException]. */
     suspend fun readFieldImport(property: String, fileName: String, file: ByteArray): FieldImportReadDto =
         sheetCall({ service.readFieldImport(property, sheetPart(fileName, file)) }) { AdcJson.decodeFromString(FieldImportReadDto.serializer(), it) }
+
+    /** The currencies a currency field can be in, by name (a plain list, not paged). */
+    suspend fun currencies(): List<CurrencyDto> =
+        call.json({ service.currencies() }) { AdcJson.decodeFromString(ListSerializer(CurrencyDto.serializer()), it) }
 
     // ---- Buildings, floors, locations
 

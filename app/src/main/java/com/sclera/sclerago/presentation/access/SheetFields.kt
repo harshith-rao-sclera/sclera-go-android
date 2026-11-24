@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -23,6 +22,8 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.TintChip
 import com.sclera.sclerago.presentation.components.r
@@ -31,7 +32,8 @@ import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
-// The stacked fields and option cards of the Add person and Group forms (design "AddPerson", "EditGroup").
+// The stacked fields and option cards of the Add person and Group forms (design "AddPerson", "EditGroup"). Each control
+// takes a `reason`: when it is set the control stays, greyed out, and a tap says why instead (the User Access Guide).
 
 /** A label (13/600, muted) over its control. */
 @Composable
@@ -61,16 +63,21 @@ internal fun BoxedInput(
     placeholder: String,
     modifier: Modifier = Modifier,
     keyboard: KeyboardType = KeyboardType.Text,
+    reason: UiText? = null,
 ) {
-    FieldBox { PlainField(value, onChange, placeholder, modifier.fillMaxWidth(), keyboard = keyboard) }
+    AccessGate(reason, Modifier.fillMaxWidth()) {
+        FieldBox { PlainField(value, onChange, placeholder, modifier.fillMaxWidth(), keyboard = keyboard) }
+    }
 }
 
 /** A select in a [FieldBox]: its value (the placeholder, dim, while empty) and a chevron. */
 @Composable
-internal fun BoxedSelect(value: String, placeholder: String, onClick: () -> Unit) {
-    FieldBox(onClick = onClick) {
-        Txt(value.ifEmpty { placeholder }, 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
-        LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 3f)
+internal fun BoxedSelect(value: String, placeholder: String, reason: UiText? = null, onClick: () -> Unit) {
+    AccessGate(reason, Modifier.fillMaxWidth()) {
+        FieldBox(onClick = onClick) {
+            Txt(value.ifEmpty { placeholder }, 15, 400, if (value.isEmpty()) C.Dim else C.Text, Modifier.weight(1f))
+            LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 3f)
+        }
     }
 }
 
@@ -87,23 +94,24 @@ internal fun ChoiceCard(
     description: String,
     modifier: Modifier = Modifier,
     chip: String? = null,
-    enabled: Boolean = true,
-    faded: Boolean = false,
+    reason: UiText? = null,
     onClick: () -> Unit,
 ) {
-    Row(
-        modifier.fillMaxWidth().alpha(if (faded) 0.7f else 1f).clip(r(14)).background(if (on) C.YTintBg else Color.Transparent)
-            .border(1.5.dp, if (on) C.Yellow else C.Border, r(14)).semantics { selected = on }
-            .clickable(enabled = enabled, role = role, onClick = onClick).padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        marker()
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Txt(title, 14, 600, maxLines = 2, modifier = Modifier.weight(1f, fill = false))
-                chip?.let { TintChip(it, bg = C.Raised, fg = C.Soft) }
+    AccessGate(reason, modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().clip(r(14)).background(if (on) C.YTintBg else Color.Transparent)
+                .border(1.5.dp, if (on) C.Yellow else C.Border, r(14)).semantics { selected = on }
+                .clickable(role = role, onClick = onClick).padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            marker()
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Txt(title, 14, 600, maxLines = 2, modifier = Modifier.weight(1f, fill = false))
+                    chip?.let { TintChip(it, bg = C.Raised, fg = C.Soft) }
+                }
+                Txt(description, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
             }
-            Txt(description, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         }
     }
 }
@@ -116,10 +124,17 @@ internal fun RowsCard(content: @Composable ColumnScope.() -> Unit) {
 
 /** One 44dp row of a [RowsCard]. */
 @Composable
-internal fun CardOptionRow(modifier: Modifier = Modifier, onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
-    Row(
-        modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Checkbox, onClick = onClick).padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) { content() }
+internal fun CardOptionRow(
+    modifier: Modifier = Modifier,
+    reason: UiText? = null,
+    onClick: () -> Unit,
+    content: @Composable RowScope.() -> Unit,
+) {
+    AccessGate(reason, modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Checkbox, onClick = onClick).padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) { content() }
+    }
 }

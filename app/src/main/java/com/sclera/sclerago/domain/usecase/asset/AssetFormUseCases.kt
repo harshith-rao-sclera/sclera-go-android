@@ -1,11 +1,6 @@
 package com.sclera.sclerago.domain.usecase.asset
 
 import com.sclera.sclerago.domain.model.ModelManuals
-import com.sclera.sclerago.domain.model.AssetDocument
-import com.sclera.sclerago.domain.model.AuthState
-import com.sclera.sclerago.domain.model.DataError
-import com.sclera.sclerago.domain.model.DataException
-import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.LocNode
@@ -19,21 +14,16 @@ import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.MAX_CLASSIFY_PHOTOS
 import com.sclera.sclerago.domain.model.readablePhotos
-import com.sclera.sclerago.domain.repository.AccessRepository
-import com.sclera.sclerago.domain.repository.AssetDocumentsRepository
-import com.sclera.sclerago.domain.repository.AuthRepository
 import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.repository.AssetValidationRepository
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
-import com.sclera.sclerago.domain.repository.AssetRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.usecase.location.ObserveLocationTreeUseCase
 import com.sclera.sclerago.domain.validation.AssetValidation
 import com.sclera.sclerago.domain.validation.combineValidation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -130,72 +120,6 @@ class SpecLookupUseCase @Inject constructor(private val repo: SpecLookupReposito
     }
 }
 
-/**
- * The asset's documents for its Documents tab (source file, the pages its values came from, its model's manuals). The
- * uploaded file carries who uploaded it as far as this device knows (the signed-in user's own name, else the people
- * list) and whether the signed-in user may delete it ([canRemoveSourceFile]).
- */
-class ObserveAssetDocumentsUseCase @Inject constructor(
-    private val repo: AssetDocumentsRepository,
-    private val access: AccessRepository,
-    private val auth: AuthRepository,
-    private val guard: PermissionGuard,
-) {
-    operator fun invoke(assetId: String): Flow<List<AssetDocument>> {
-        val rights = combine(guard.observe(Permission.COLLECT), guard.observe(Permission.CONFIGURE)) { collect, configure -> collect to configure }
-        return combine(repo.observe(assetId), access.people, auth.state, rights) { docs, people, session, (collect, configure) ->
-            val me = guard.userId()
-            val myName = (session as? AuthState.SignedIn)?.session?.displayName?.takeIf { it.isNotBlank() }
-            val names = people.associate { it.id to it.name }
-            docs.map { d ->
-                if (d.source != DocumentSource.SOURCE_FILE) return@map d
-                val mine = me != null && d.uploadedBy == me
-                d.copy(
-                    uploaderName = (if (mine) myName else null) ?: d.uploadedBy?.let(names::get),
-                    removable = canRemoveSourceFile(mine, collect, configure),
-                )
-            }
-        }
-    }
-}
-
-/** The server's rule for deleting an uploaded file: its uploader with collect, anyone else with configure. */
-internal fun canRemoveSourceFile(mine: Boolean, collect: Boolean, configure: Boolean): Boolean = if (mine) collect else configure
-
-/**
- * Deletes the asset's uploaded file [document], as the server allows ([canRemoveSourceFile]; else FORBIDDEN). The file
- * isn't the asset's (other assets may have been read from it), so the server doesn't ask whether the asset may be changed
- * (submitted, someone else's) and neither does this; one in Managed Assets stays read-only here (MANAGED).
- */
-class RemoveSourceFileUseCase @Inject constructor(
-    private val repo: AssetDocumentsRepository,
-    private val assets: AssetRepository,
-    private val guard: PermissionGuard,
-) {
-    suspend operator fun invoke(assetId: String, document: AssetDocument) {
-        val mine = guard.userId()?.let { it == document.uploadedBy } == true
-        if (!canRemoveSourceFile(mine, guard.allows(Permission.COLLECT), guard.allows(Permission.CONFIGURE))) {
-            throw DataException(DataError.FORBIDDEN)
-        }
-        requireNotManaged(assets, listOf(assetId))
-        repo.removeSourceFile(document.id)
-    }
-}
-
-/** Takes a web page off an asset, as anyone who can collect may (the web's remove on a source page). */
-class RemoveWebPageUseCase @Inject constructor(
-    private val repo: AssetDocumentsRepository,
-    private val assets: AssetRepository,
-    private val guard: PermissionGuard,
-) {
-    /** Takes web page [documentId] off asset [assetId] (a submitted asset only by an admin, as the server's). */
-    suspend operator fun invoke(assetId: String, documentId: String) {
-        guard.requireOffline(Permission.COLLECT)
-        requireUnlocked(assets, guard, listOf(assetId))
-        repo.removeWebPage(documentId)
-    }
-}
-
 /** What the asset details screen reads from the property's data besides the asset itself, bundled for injection. */
 class AssetFormUseCases @Inject constructor(
     val fields: ObserveAssetFieldsUseCase,
@@ -208,8 +132,5 @@ class AssetFormUseCases @Inject constructor(
     val revalidate: RevalidateAssetUseCase,
     val photoRules: ObservePhotoRulesUseCase,
     val lookups: SpecLookupUseCase,
-    val documents: ObserveAssetDocumentsUseCase,
-    val removeWebPage: RemoveWebPageUseCase,
-    val removeSourceFile: RemoveSourceFileUseCase,
     val voiceFill: FillByVoiceUseCase,
 )

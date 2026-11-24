@@ -13,7 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -52,11 +53,12 @@ object TagTags {
 
 /**
  * The Tags bar at the top of an asset's Info tab (the design's): "Tags" and how many of the three kinds the asset has, then one icon
- * per kind: green once tagged, yellow while not. Tapping an icon starts that kind; with [enabled] false (an asset the user may not
- * change, or a submitted or signed-off one) the icons are dimmed and do nothing.
+ * per kind: green once tagged, yellow while not. Tapping an icon starts that kind; with [blocked] (an asset the user may not
+ * change: someone else's, a submitted or signed-off one for anyone but a reviewer, or a view-only group) the icons are greyed
+ * out and a tap says why.
  */
 @Composable
-fun TagsBar(state: TagUiState, actions: TagsActions, modifier: Modifier = Modifier, enabled: Boolean = true) {
+fun TagsBar(state: TagUiState, actions: TagsActions, modifier: Modifier = Modifier, blocked: UiText? = null) {
     Row(
         modifier.fillMaxWidth().background(C.Surface).topBorder(C.Border).bottomBorder(C.Border).height(48.dp).padding(start = 12.dp, end = 6.dp)
             .testTag(TagTags.BAR),
@@ -69,19 +71,19 @@ fun TagsBar(state: TagUiState, actions: TagsActions, modifier: Modifier = Modifi
         TagKind.entries.forEach { kind ->
             val tagged = kind in state.tagged
             val description = stringResource(if (tagged) taggedText(kind) else tagKindName(kind))
-            Box(
-                Modifier.pressClickable(enabled = enabled) { actions.onStart(kind) }.size(width = 44.dp, height = 48.dp).alpha(if (enabled) 1f else DISABLED_ALPHA)
-                    .semantics { contentDescription = description }
-                    .testTag(TagTags.icon(kind)),
-                contentAlignment = Alignment.Center,
-            ) {
-                LineIcon(iconOf(kind), 22.dp, if (tagged) C.Green else C.Yellow, 1.6f)
+            AccessGate(blocked) {
+                Box(
+                    Modifier.pressClickable { actions.onStart(kind) }.size(width = 44.dp, height = 48.dp)
+                        .semantics { contentDescription = description }
+                        .testTag(TagTags.icon(kind)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LineIcon(iconOf(kind), 22.dp, if (tagged) C.Green else C.Yellow, 1.6f)
+                }
             }
         }
     }
 }
-
-private const val DISABLED_ALPHA = 0.4f
 
 private fun iconOf(kind: TagKind): Ico = when (kind) {
     TagKind.QR -> Icons.Qr

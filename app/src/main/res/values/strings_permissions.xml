@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- People and access, and properties the user lost access to. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- The View permission and the permissions that include one another (People and access). -->
+    <string name="access_perm_view">View</string>
+    <string name="access_perm_view_desc">Open a property and look at its assets, files and validation results, without changing anything.</string>
+    <string name="access_no_permissions">No permissions</string>
+    <string name="access_no_permissions_hint">No permissions: can\'t open any property.</string>
+    <string name="access_group_sub_includes">Selecting a permission also selects the ones it includes.</string>
+    <!-- Opening a property from the list, for a group without View (nothing ticked). -->
+    <string name="property_no_view">Your group can\'t open properties. Ask an admin for the View permission.</string>
+    <!-- The app found that the property open on this phone is no longer the user's (access removed, or deleted). -->
+    <string name="property_access_removed">Your access to this property has been removed. Its data was deleted from this device.</string>
+    <!-- Other downloaded properties the user lost access to, deleted from the device. -->
+    <plurals name="property_access_removed_others">
+        <item quantity="one">You no longer have access to %1$d downloaded property. Its data was deleted from this device.</item>
+        <item quantity="other">You no longer have access to %1$d downloaded properties. Their data was deleted from this device.</item>
+    </plurals>
+</resources>

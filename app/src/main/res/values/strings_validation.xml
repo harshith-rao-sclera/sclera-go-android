@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The Validation page (side menu → Validation) and a run's review. English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- An asset's Validation tab before anything has run on it (the web's empty state). -->
+    <string name="val_none_title">Not validated yet</string>
+    <string name="val_none_text">Run the Quick check on this asset.</string>
     <!-- Landing page -->
     <string name="val_loading">Loading…</string>
     <string name="val_load_failed">Couldn\'t load validation.</string>
@@ -119,10 +122,6 @@
     <plurals name="rev_decided_recollect">
         <item quantity="one">Sent for recollection: %1$d asset</item>
         <item quantity="other">Sent for recollection: %1$d assets</item>
-    </plurals>
-    <plurals name="rev_decided_excluded">
-        <item quantity="one">Excluded: %1$d asset</item>
-        <item quantity="other">Excluded: %1$d assets</item>
     </plurals>
     <plurals name="rev_decided_cleared">
         <item quantity="one">Decision undone: %1$d asset</item>

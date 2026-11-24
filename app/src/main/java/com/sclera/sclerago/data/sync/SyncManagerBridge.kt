@@ -158,6 +158,25 @@ class SyncManagerBridge @Inject constructor(
     }
 
     /**
+     * Stops [propertyId]'s engine and deletes its database, download and engine settings, and its rows in the engine's
+     * `global_config.db` tables: its saved engine config (so it isn't reopened) and its QR, NFC and barcode tag records,
+     * unsent offline tags included. The other properties carry on. Blocking but short.
+     */
+    fun remove(propertyId: String) = synchronized(lock) {
+        reopened.remove(propertyId)
+        if (selected == propertyId) selected = null
+        SyncManagerService.closeAssetDataSync(propertyId)
+        SyncUtils.deleteAssetDataCollectionData(context, downloadedProperties() + SyncUtils.adcInstances.keys - propertyId)
+        val global = globalDatabase() ?: return@synchronized
+        val id = arrayOf(propertyId)
+        runCatching {
+            global.delete(GlobalConfigDatabaseHelper.TABLE_NAME_ASSET_CONFIG, "${GlobalConfigDatabaseHelper.ASSET_CONFIG_TABLE_COLUMN_PROPERTY_ID} = ?", id)
+        }
+        // Each tag record names the property it belongs to as its vdms_id.
+        TAG_TABLES.forEach { table -> runCatching { global.delete(table, "vdms_id = ?", id) } }
+    }
+
+    /**
      * Deletes what no engine is working on and can't be opened: unfinished downloads of properties that aren't
      * syncing, and the legacy single database. Downloaded properties and running engines are kept.
      */
@@ -217,6 +236,15 @@ class SyncManagerBridge @Inject constructor(
 
     private companion object {
         const val GLOBAL_DB = "global_config.db"
+
+        /** The engine's tag tables in `global_config.db`, each row keyed to its property by `vdms_id`. */
+        val TAG_TABLES = listOf(
+            GlobalConfigDatabaseHelper.TABLE_NAME_QR_CODE,
+            GlobalConfigDatabaseHelper.TABLE_NAME_CLIENT_QR_CODE,
+            GlobalConfigDatabaseHelper.TABLE_NAME_NFC_RECORDS,
+            GlobalConfigDatabaseHelper.TABLE_NAME_CLIENT_NFC_RECORDS,
+            GlobalConfigDatabaseHelper.TABLE_NAME_CLIENT_BAR_CODE_RECORDS,
+        )
 
         /** Accounts endpoint the engine POSTs (with the session cookie) to get a new access token after a 401. */
         const val SESSION_URL = AuthConfig.SCLERA_API + "/token"

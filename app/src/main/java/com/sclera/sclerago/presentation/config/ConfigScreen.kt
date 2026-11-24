@@ -61,6 +61,7 @@ import com.sclera.sclerago.domain.model.BUILDING_TYPES
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.model.COUNTRIES
+import com.sclera.sclerago.domain.model.Currency
 import com.sclera.sclerago.domain.model.DEFAULT_DATE_PICKER
 import com.sclera.sclerago.domain.model.DEFAULT_NOW
 import com.sclera.sclerago.domain.model.DEFAULT_OPTION_COLOR
@@ -77,6 +78,7 @@ import com.sclera.sclerago.domain.model.MAX_PLACE_CODE
 import com.sclera.sclerago.domain.model.MAX_PLACE_NAME
 import com.sclera.sclerago.domain.model.MAX_PLACE_TYPE
 import com.sclera.sclerago.domain.model.MAX_TOOLTIP_LENGTH
+import com.sclera.sclerago.domain.model.NUMBER_KINDS
 import com.sclera.sclerago.domain.model.NewLocation
 import com.sclera.sclerago.domain.model.OPTION_COLORS
 import com.sclera.sclerago.domain.model.OPTION_KINDS
@@ -86,6 +88,7 @@ import com.sclera.sclerago.domain.model.REGIONS
 import com.sclera.sclerago.domain.model.TEXT_KINDS
 import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.domain.model.ValueRule
+import com.sclera.sclerago.domain.model.currency
 import com.sclera.sclerago.domain.model.findNode
 import com.sclera.sclerago.domain.model.optionProblem
 import com.sclera.sclerago.domain.usecase.config.ChecksProblem
@@ -136,7 +139,6 @@ import com.sclera.sclerago.presentation.main.AppViewModel
 import com.sclera.sclerago.presentation.main.CfgPage
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.components.LocalToaster
-import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.model.OnlineOnly
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
@@ -148,7 +150,6 @@ private class CfgTabSpec(val page: CfgPage, @StringRes val label: Int, val icon:
 private val CFG_TABS = listOf(
     CfgTabSpec(CfgPage.BUILDING, R.string.cfgt_tab_building_info, Icons.Building),
     CfgTabSpec(CfgPage.FIELDS, R.string.cfgt_tab_asset_fields, Icons.Box),
-    CfgTabSpec(CfgPage.TYPES, R.string.cfgt_tab_asset_types, Icons.Table),
     CfgTabSpec(CfgPage.GEO, R.string.cfgt_tab_geofencing, Icons.Pin),
     CfgTabSpec(CfgPage.SETTINGS, R.string.cfgt_tab_property_settings, Icons.Toggles),
 )
@@ -201,54 +202,55 @@ fun ConfigScreen(
     // Fences not saved count as unsaved changes: a side-menu page asks before leaving them.
     ReportUnsaved(cfg.geoUnsaved)
     SecureWindow() // building access codes and contacts are shown here
-    Box(Modifier.fillMaxSize().background(C.Bg)) {
-        Column(Modifier.fillMaxSize()) {
-            SubPageBar(stringResource(R.string.menu_configuration), vm.propName, vm::openMenu)
-            // Every tab stays composed (as the web keeps them mounted), so unsaved work on one, such as fences being
-            // drawn on the map, survives switching to another.
-            HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = CFG_TABS.size - 1, key = { it }) { i ->
-                val page = CFG_TABS[i].page
-                Column(Modifier.fillMaxSize()) {
-                    // Asset fields, geofences and property settings are kept on the server; Building info works offline.
-                    if (!online) page.onlineOnly()?.let { OfflineBanner(it, Modifier.padding(horizontal = pageGutter() + 12.dp).padding(top = 10.dp)) }
-                    // Pull down to read the tab again, as on the other pages; not on the map (its drags move the map).
-                    // Building info reads the downloaded copy offline, so it can be pulled then too; the rest need the server.
-                    val (refreshing, refresh) = when (page) {
-                        CfgPage.BUILDING -> places.refreshing to places::refresh
-                        CfgPage.FIELDS -> fields.refreshing to fields::refresh
-                        CfgPage.SETTINGS -> cfg.refreshing to cfg::refreshSettings
-                        // Asset types follows the property's data as it changes, so there is nothing to pull again.
-                        CfgPage.TYPES, CfgPage.GEO -> false to null
-                    }
-                    PullRefresh(refreshing, { refresh?.invoke() }, Modifier.weight(1f).fillMaxWidth(), enabled = refresh != null && (online || page == CfgPage.BUILDING)) {
-                        when (page) {
-                            CfgPage.BUILDING -> BuildingInfo(places, vm.propName, online)
-                            CfgPage.FIELDS -> AssetFields(fields, cfg, vm.propName, addingField) { addingField = it }
-                            CfgPage.TYPES -> AssetTypesTab(vm.propName, fields.fields)
-                            CfgPage.GEO -> Geofencing(cfg)
-                            CfgPage.SETTINGS -> PropertySettingsPage(vm, cfg)
+    // Every change control on the tabs and their sheets is greyed out, with why, without the Configure permission.
+    CompositionLocalProvider(LocalConfigBlock provides cfg.configureBlock) {
+        Box(Modifier.fillMaxSize().background(C.Bg)) {
+            Column(Modifier.fillMaxSize()) {
+                SubPageBar(stringResource(R.string.menu_configuration), vm.propName, vm::openMenu)
+                // Every tab stays composed (as the web keeps them mounted), so unsaved work on one, such as fences being
+                // drawn on the map, survives switching to another.
+                HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = CFG_TABS.size - 1, key = { it }) { i ->
+                    val page = CFG_TABS[i].page
+                    Column(Modifier.fillMaxSize()) {
+                        // Asset fields, geofences and property settings are kept on the server; Building info works offline.
+                        if (!online) page.onlineOnly()?.let { OfflineBanner(it, Modifier.padding(horizontal = pageGutter() + 12.dp).padding(top = 10.dp)) }
+                        // Pull down to read the tab again, as on the other pages; not on the map (its drags move the map).
+                        // Building info reads the downloaded copy offline, so it can be pulled then too; the rest need the server.
+                        val (refreshing, refresh) = when (page) {
+                            CfgPage.BUILDING -> places.refreshing to places::refresh
+                            CfgPage.FIELDS -> fields.refreshing to fields::refresh
+                            CfgPage.SETTINGS -> cfg.refreshing to cfg::refreshSettings
+                            CfgPage.GEO -> false to null
+                        }
+                        PullRefresh(refreshing, { refresh?.invoke() }, Modifier.weight(1f).fillMaxWidth(), enabled = refresh != null && (online || page == CfgPage.BUILDING)) {
+                            when (page) {
+                                CfgPage.BUILDING -> BuildingInfo(places, vm.propName, online)
+                                CfgPage.FIELDS -> AssetFields(fields, cfg, vm.propName, addingField) { addingField = it }
+                                CfgPage.GEO -> Geofencing(cfg)
+                                CfgPage.SETTINGS -> PropertySettingsPage(vm, cfg)
+                            }
                         }
                     }
                 }
-            }
-            // The highlight follows the pager's live position, so it slides with your finger.
-            val pos = pager.currentPage + pager.currentPageOffsetFraction
-            BottomTabBar {
-                CFG_TABS.forEachIndexed { i, t ->
-                    val on = (1f - kotlin.math.abs(pos - i)).coerceIn(0f, 1f)
-                    NavItem(stringResource(t.label), t.icon, 21.dp, on, first = i == 0, last = i == CFG_TABS.size - 1) { vm.cfgGo(t.page) }
+                // The highlight follows the pager's live position, so it slides with your finger.
+                val pos = pager.currentPage + pager.currentPageOffsetFraction
+                BottomTabBar {
+                    CFG_TABS.forEachIndexed { i, t ->
+                        val on = (1f - kotlin.math.abs(pos - i)).coerceIn(0f, 1f)
+                        NavItem(stringResource(t.label), t.icon, 21.dp, on, first = i == 0, last = i == CFG_TABS.size - 1) { vm.cfgGo(t.page) }
+                    }
                 }
             }
-        }
-        if (askLeave) {
-            DiscardChangesDialog(
-                onKeep = { askLeave = false },
-                onDiscard = {
-                    askLeave = false
-                    cfg.markGeoUnsaved(false)
-                    vm.closeConfig()
-                },
-            )
+            if (askLeave) {
+                DiscardChangesDialog(
+                    onKeep = { askLeave = false },
+                    onDiscard = {
+                        askLeave = false
+                        cfg.markGeoUnsaved(false)
+                        vm.closeConfig()
+                    },
+                )
+            }
         }
     }
 }
@@ -259,7 +261,6 @@ fun ConfigScreen(
 private fun CfgPage.onlineOnly(): OnlineOnly? = when (this) {
     CfgPage.BUILDING -> null
     CfgPage.FIELDS -> OnlineOnly.ASSET_FIELDS
-    CfgPage.TYPES -> null
     CfgPage.GEO -> OnlineOnly.GEOFENCING
     CfgPage.SETTINGS -> OnlineOnly.PROPERTY_SETTINGS
 }
@@ -411,7 +412,7 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String, online
             ) {
                 Txt(pluralStringResource(R.plurals.cfgt_locations_selected, sel.size, sel.size), 11, 700, modifier = Modifier.weight(1f))
                 Pill(stringResource(R.string.assign_clear), { sel = emptySet() }, height = 40.dp, hPad = 14.dp)
-                OfflineGate(offline, offlineNote) {
+                ConfigGate(offline = offline, onOffline = offlineNote) {
                     Pill(stringResource(R.string.action_delete), {
                         val ids = sel
                         deleteAsk = DeleteAsk(
@@ -591,7 +592,7 @@ private fun FloorRail(
                 Txt(f.kids.orEmpty().size.toString(), 9, 600, if (on) C.OnYellow.copy(alpha = 0.75f) else C.Muted)
             }
         }
-        OfflineGate(offline, onBlocked, Modifier.fillMaxWidth()) {
+        ConfigGate(Modifier.fillMaxWidth(), offline, onBlocked) {
             Box(
                 Modifier.fillMaxWidth().height(46.dp).pressClickable(shape = r(14), pressed = PRESSED_CARD, onClick = onAdd).dashedBorder(C.Border2, 1.dp, 14.dp),
                 contentAlignment = Alignment.Center,
@@ -633,7 +634,7 @@ private fun LocationRow(
                 Txt(l.name, 13, 600, maxLines = 2)
                 Txt(listOf(l.type, l.code).filter { it.isNotBlank() }.joinToString(" · ").ifEmpty { stringResource(R.string.cfgt_no_type) }, 11, 400, C.Muted)
             }
-            OfflineGate(offline, onBlocked) { Box(Modifier.pressClickable(shape = r(8), onClick = onTick).padding(10.dp)) { CheckBox(picked) } }
+            ConfigGate(offline = offline, onOffline = onBlocked) { Box(Modifier.pressClickable(shape = r(8), onClick = onTick).padding(10.dp)) { CheckBox(picked) } }
         }
     }
 }
@@ -753,7 +754,7 @@ private fun BuildingFabs(
         }
 
         if (!editDial) {
-            OfflineGate(offline, onBlocked, Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = fabBottom + if (searching) lift else 0.dp)) {
+            ConfigGate(Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = fabBottom + if (searching) lift else 0.dp), offline, onBlocked) {
                 Box(
                     Modifier.size(54.dp).fabShadow().pressClickable(shape = CircleShape, onClick = onToggleDial).background(C.Yellow),
                     contentAlignment = Alignment.Center,
@@ -764,7 +765,7 @@ private fun BuildingFabs(
         // The pencil: hidden while + is open or the search bar shows.
         if (!dial && !searching) {
             val editLabel = stringResource(R.string.cfgt_edit_buildings)
-            OfflineGate(offline, onBlocked, Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = editBottom)) {
+            ConfigGate(Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = editBottom), offline, onBlocked) {
                 Box(
                     Modifier.size(54.dp).fabShadow().pressClickable(shape = CircleShape, onClick = onToggleEditDial).background(C.Btn)
                         .semantics { contentDescription = editLabel },
@@ -979,16 +980,18 @@ private fun AddPlacesSheet(kind: PlaceSheetKind, onClose: () -> Unit, onAdd: (Li
         }
         Row(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 10.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Pill(stringResource(R.string.cfg_cancel), onClose, height = 40.dp, hPad = 16.dp)
-            Pill(
-                when {
-                    ready.size > 1 -> pluralStringResource(if (floor) R.plurals.cfg_add_floors_n else R.plurals.cfg_add_locations_n, ready.size, ready.size)
-                    floor -> stringResource(R.string.cfg_add_floor_title)
-                    else -> stringResource(R.string.cfg_add_location_title)
-                },
-                { if (ready.isNotEmpty()) onAdd(ready) },
-                Modifier.weight(1f).alpha(if (ready.isNotEmpty()) 1f else 0.4f).testTag("place-add"),
-                bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
-            )
+            ConfigGate(Modifier.weight(1f)) {
+                Pill(
+                    when {
+                        ready.size > 1 -> pluralStringResource(if (floor) R.plurals.cfg_add_floors_n else R.plurals.cfg_add_locations_n, ready.size, ready.size)
+                        floor -> stringResource(R.string.cfg_add_floor_title)
+                        else -> stringResource(R.string.cfg_add_location_title)
+                    },
+                    { if (ready.isNotEmpty()) onAdd(ready) },
+                    Modifier.fillMaxWidth().alpha(if (ready.isNotEmpty()) 1f else 0.4f).testTag("place-add"),
+                    bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
+                )
+            }
         }
     }
     }
@@ -1017,11 +1020,13 @@ private fun NameDialogBody(a: NameAsk, v: String, setV: (String) -> Unit, close:
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill(stringResource(R.string.cfg_cancel), close, Modifier.weight(1f), height = 40.dp)
-                Pill(
-                    stringResource(R.string.cfg_save), { if (v.isNotBlank()) { a.onSave(v.trim()); onSaved() } },
-                    Modifier.weight(1f).alpha(if (v.isNotBlank()) 1f else 0.4f),
-                    bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
-                )
+                ConfigGate(Modifier.weight(1f)) {
+                    Pill(
+                        stringResource(R.string.cfg_save), { if (v.isNotBlank()) { a.onSave(v.trim()); onSaved() } },
+                        Modifier.fillMaxWidth().alpha(if (v.isNotBlank()) 1f else 0.4f),
+                        bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
+                    )
+                }
             }
         }
     }
@@ -1081,16 +1086,21 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
                         // The rules are still being read: placeholders, not the built-in numbers they would show.
                         repeat(2) { SkeletonBlock(Modifier.width(STEPPER_W).height(32.dp), Capsule) }
                     } else {
-                        Stepper(
-                            p.min, Modifier.width(STEPPER_W), photosReady,
-                            downBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = false) != null,
-                            upBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = true) != null,
-                        ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MIN, up) }
-                        Stepper(
-                            p.max, Modifier.width(STEPPER_W), photosReady,
-                            downBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = false) != null,
-                            upBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = true) != null,
-                        ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MAX, up) }
+                        // The photo rules change the set-up: greyed out, with why, without Configure.
+                        ConfigGate(Modifier.width(STEPPER_W)) {
+                            Stepper(
+                                p.min, Modifier.width(STEPPER_W), photosReady,
+                                downBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = false) != null,
+                                upBlocked = cfg.photoBlock(p.kind, PhotoBound.MIN, up = true) != null,
+                            ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MIN, up) }
+                        }
+                        ConfigGate(Modifier.width(STEPPER_W)) {
+                            Stepper(
+                                p.max, Modifier.width(STEPPER_W), photosReady,
+                                downBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = false) != null,
+                                upBlocked = cfg.photoBlock(p.kind, PhotoBound.MAX, up = true) != null,
+                            ) { up -> cfg.stepPhoto(p.kind, PhotoBound.MAX, up) }
+                        }
                     }
                 }
             }
@@ -1132,12 +1142,15 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
             onClose = fv::closeImport,
         )
     }
-    if (adding) AddFieldsSheet(fv.fields, drafts, onClose = { setAdding(false); drafts = emptyList() }) { list ->
+    if (adding) AddFieldsSheet(
+        fv.fields, drafts, fv.currencies, fv::loadCurrencies, onClose = { setAdding(false); drafts = emptyList() },
+    ) { list ->
         fv.add(list) { setAdding(false); drafts = emptyList() }
     }
     editFor?.let { k -> fv.fields.firstOrNull { it.key == k } }?.let { f ->
         FieldSheet(
             f, draft = false, options = f.options.size, editableOptions = f.key !in FIXED_OPTIONS, taken = fv.fields,
+            currencies = fv.currencies, onNeedCurrencies = fv::loadCurrencies,
             onClose = { editFor = null },
             onSubmit = { edited -> fv.save(f, edited) { editFor = null } },
             onDelete = if (f.custom) ({ fv.delete(f) { editFor = null } }) else null,
@@ -1218,9 +1231,9 @@ private fun checksSummary(f: FieldCfg): String {
     val parts = mutableListOf<String>()
     if (f.required || f.flagEmpty) parts += stringResource(R.string.cfgt_flagged_when_empty)
     if (f.rule != ValueRule.NONE) parts += stringResource(f.rule.labelRes(f.kind))
-    if (f.kind == FieldKind.NUMBER && f.wholeNumber) parts += stringResource(R.string.cfg_checks_whole)
-    // Numbers are a range of values; anything else is a range of lengths, in characters.
-    val number = f.kind == FieldKind.NUMBER
+    if (f.kind in NUMBER_KINDS && f.wholeNumber) parts += stringResource(R.string.cfg_checks_whole)
+    // Numbers (and amounts) are a range of values; anything else is a range of lengths, in characters.
+    val number = f.kind in NUMBER_KINDS
     val lo = f.min.takeIf { it.isNotBlank() }
     val hi = f.max.takeIf { it.isNotBlank() }
     when {
@@ -1264,17 +1277,21 @@ private fun FieldCfgRow(
                 if (f.key in SYSTEM_FIELDS) LineIcon(Icons.Lock, 9.dp, C.Dim, 2.4f)
             }
             if (f.kind in OPTION_KINDS) Txt(pluralStringResource(R.plurals.cfg_field_options, options, options), 11, 400, C.Muted, maxLines = 1)
+            // A currency field's currency (the web shows it with the type).
+            f.currency?.let { Txt(it, 11, 400, C.Muted, maxLines = 1) }
         }
         // Type: its icon in yellow and its name.
         Row(Modifier.width(TYPE_W), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             LineIcon(f.kind.icon(), 13.dp, C.Yellow, 2.4f)
             Txt(f.kind.shown, 11, 600, C.Soft, maxLines = 1)
         }
-        // Mandatory: the tick.
-        Box(
-            Modifier.size(MUST_W, 44.dp).pressClickable(shape = r(8), enabled = !f.locked, onClick = onToggleRequired),
-            contentAlignment = Alignment.Center,
-        ) { Box(Modifier.alpha(if (f.locked) 0.4f else 1f)) { CheckBox(f.required) } }
+        // Mandatory: the tick (it changes the set-up, so it needs Configure).
+        ConfigGate(Modifier.size(MUST_W, 44.dp)) {
+            Box(
+                Modifier.size(MUST_W, 44.dp).pressClickable(shape = r(8), enabled = !f.locked, onClick = onToggleRequired),
+                contentAlignment = Alignment.Center,
+            ) { Box(Modifier.alpha(if (f.locked) 0.4f else 1f)) { CheckBox(f.required) } }
+        }
         // Checks: what validation looks for beyond the kind; a yellow pill when set, an outlined Add when not.
         Box(Modifier.pressClickable(onClick = onChecks).width(CHECKS_W).heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
             val tag = when {
@@ -1308,10 +1325,12 @@ private fun AddDial(open: Boolean, onToggle: () -> Unit, onExcel: () -> Unit, on
                 DialOption(stringResource(R.string.cfgt_new_field), stringResource(R.string.cfgt_new_field_hint), Icons.FileDoc, C.Text, onNew)
             }
         }
-        Box(
-            Modifier.size(54.dp).fabShadow().pressClickable(shape = CircleShape, onClick = onToggle).background(C.Yellow),
-            contentAlignment = Alignment.Center,
-        ) { LineIcon(Icons.Plus, 24.dp, C.OnYellow, 2.8f, Modifier.rotate(turn)) }
+        ConfigGate {
+            Box(
+                Modifier.size(54.dp).fabShadow().pressClickable(shape = CircleShape, onClick = onToggle).background(C.Yellow),
+                contentAlignment = Alignment.Center,
+            ) { LineIcon(Icons.Plus, 24.dp, C.OnYellow, 2.8f, Modifier.rotate(turn)) }
+        }
     }
 }
 
@@ -1348,12 +1367,22 @@ private fun TightSheetHeader(title: String, sub: String?, onClose: () -> Unit) {
 /** The kinds the Add field sheet offers, in its grid order. */
 private val ADD_KINDS = listOf(
     FieldKind.TEXT, FieldKind.CHECKBOX, FieldKind.MULTI, FieldKind.YESNO, FieldKind.DATE,
-    FieldKind.TIME, FieldKind.NUMBER, FieldKind.URL, FieldKind.DROPDOWN,
+    FieldKind.TIME, FieldKind.NUMBER, FieldKind.CURRENCY, FieldKind.URL, FieldKind.DROPDOWN,
 )
 
-/** Pick types to add; each opens its setup sheet, and Save adds every field set up here. */
+/**
+ * Pick types to add; each opens its setup sheet, and Save adds every field set up here. [currencies] are offered to a
+ * currency field ([onNeedCurrencies] reads them).
+ */
 @Composable
-private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, onClose: () -> Unit, onSave: (List<FieldCfg>) -> Unit) {
+private fun AddFieldsSheet(
+    existing: List<FieldCfg>,
+    initial: List<FieldCfg>,
+    currencies: List<Currency>,
+    onNeedCurrencies: () -> Unit,
+    onClose: () -> Unit,
+    onSave: (List<FieldCfg>) -> Unit,
+) {
     var drafts by remember { mutableStateOf(initial) }
     var editing by remember { mutableStateOf<FieldCfg?>(null) }
     fun nameFor(k: FieldKind): String {
@@ -1403,11 +1432,13 @@ private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, on
             }
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp).topBorder(C.Border).padding(horizontal = 10.dp, vertical = 10.dp)) {
-            Pill(
-                if (drafts.isEmpty()) stringResource(R.string.cfg_save) else pluralStringResource(R.plurals.cfgt_save_fields, drafts.size, drafts.size), { if (drafts.isNotEmpty()) onSave(drafts) },
-                Modifier.fillMaxWidth().alpha(if (drafts.isNotEmpty()) 1f else 0.4f),
-                bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
-            )
+            ConfigGate(Modifier.fillMaxWidth()) {
+                Pill(
+                    if (drafts.isEmpty()) stringResource(R.string.cfg_save) else pluralStringResource(R.plurals.cfgt_save_fields, drafts.size, drafts.size), { if (drafts.isNotEmpty()) onSave(drafts) },
+                    Modifier.fillMaxWidth().alpha(if (drafts.isNotEmpty()) 1f else 0.4f),
+                    bg = C.Yellow, fg = C.OnYellow, height = 40.dp, size = 13, weight = 700,
+                )
+            }
         }
     }
     }
@@ -1415,6 +1446,7 @@ private fun AddFieldsSheet(existing: List<FieldCfg>, initial: List<FieldCfg>, on
         val isNew = drafts.none { it.key == d.key }
         FieldSheet(
             d, draft = true, options = d.options.size, editableOptions = true, taken = existing + drafts,
+            currencies = currencies, onNeedCurrencies = onNeedCurrencies,
             onClose = { editing = null },
             onSubmit = { f -> drafts = if (isNew) drafts + f else drafts.map { if (it.key == f.key) f else it }; editing = null },
             onDelete = { drafts = drafts.filter { it.key != d.key }; editing = null },
@@ -1451,7 +1483,11 @@ private fun FieldSheet(
     onDelete: (() -> Unit)?,
     /** Fields whose names this one can't reuse (compared without case or spaces, as the web does). */
     taken: List<FieldCfg> = emptyList(),
+    /** The currencies a currency field can pick; [onNeedCurrencies] reads them when the sheet of one opens. */
+    currencies: List<Currency> = emptyList(),
+    onNeedCurrencies: () -> Unit = {},
 ) {
+    if (f.kind == FieldKind.CURRENCY) LaunchedEffect(f.key) { onNeedCurrencies() }
     var cur by remember(f.key) { mutableStateOf(f) }
     var opt by remember(f.key) { mutableStateOf("") }
     var optProblem by remember(f.key) { mutableStateOf<OptionProblem?>(null) }
@@ -1461,7 +1497,8 @@ private fun FieldSheet(
     var colorFor by remember(f.key) { mutableStateOf<String?>(null) }
     val ownOptions = f.kind in OPTION_KINDS && editableOptions
     val duplicate = nameTaken(taken, cur.label, f.key)
-    val ok = cur.label.isNotBlank() && !duplicate && (!ownOptions || cur.options.isNotEmpty())
+    val ok = cur.label.isNotBlank() && !duplicate && (!ownOptions || cur.options.isNotEmpty()) &&
+        (cur.kind != FieldKind.CURRENCY || cur.unit.isNotBlank())
     fun addOption() {
         // Option names are trimmed, can't be blank or hold / , { }, and can't repeat (the web's rules).
         optProblem = optionProblem(opt, cur.options)
@@ -1532,6 +1569,7 @@ private fun FieldSheet(
                     Txt(stringResource(if (it == OptionProblem.DUPLICATE) R.string.cfg_option_duplicate else R.string.cfg_option_invalid), 11, 500, C.Red, maxLines = Int.MAX_VALUE)
                 }
             }
+            if (f.kind == FieldKind.CURRENCY) CurrencyPicker(cur.unit, currencies) { cur = cur.copy(unit = it) }
             DefaultValueInput(cur, if (ownOptions) cur.options else f.options) { cur = cur.copy(defaultValue = it) }
             LabeledInput(stringResource(R.string.cfgt_tooltip), cur.tooltip, { cur = cur.copy(tooltip = it.take(MAX_TOOLTIP_LENGTH)) }, stringResource(R.string.cfgt_tooltip_hint), singleLine = false, minLines = 1, sheet = true)
             Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface)) {
@@ -1542,14 +1580,16 @@ private fun FieldSheet(
             Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface)) {
                 LinkRow(Icons.ShieldCheck, stringResource(R.string.cfg_col_checks), checksSummary(cur), { checks = true })
             }
-            if (onDelete != null) Row(
-                Modifier.fillMaxWidth().height(42.dp).pressClickable(shape = r(14), pressed = PRESSED_CARD) { confirmDelete = !draft; if (draft) onDelete() }.border(1.dp, C.Red.copy(alpha = 0.7f), r(14))
-                    ,
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-            ) {
-                LineIcon(Icons.Trash, 15.dp, C.Red, 2f)
-                Txt(stringResource(R.string.cfgt_delete_field), 12, 600, C.Red)
+            if (onDelete != null) ConfigGate(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth().height(42.dp).pressClickable(shape = r(14), pressed = PRESSED_CARD) { confirmDelete = !draft; if (draft) onDelete() }
+                        .border(1.dp, C.Red.copy(alpha = 0.7f), r(14)),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                ) {
+                    LineIcon(Icons.Trash, 15.dp, C.Red, 2f)
+                    Txt(stringResource(R.string.cfgt_delete_field), 12, 600, C.Red)
+                }
             }
         }
         SheetButtons(stringResource(if (draft) R.string.action_submit else R.string.cfg_save), ok, onClose) { onSubmit(cur) }
@@ -1604,6 +1644,19 @@ private fun hexColor(hex: String): Color = runCatching { Color(android.graphics.
     .getOrDefault(Color(android.graphics.Color.parseColor(DEFAULT_OPTION_COLOR)))
 
 /**
+ * A currency field's currency (its unit), picked from [currencies] as "USD - US Dollar" (the web's list); a code the
+ * list doesn't have yet (still being read) shows as it is.
+ */
+@Composable
+private fun CurrencyPicker(code: String, currencies: List<Currency>, onPick: (String) -> Unit) {
+    val names = currencies.map { it.code to stringResource(R.string.cfg_currency_option, it.code, it.name) }
+    val shown = names.firstOrNull { it.first.equals(code, ignoreCase = true) }?.second ?: code
+    PickField(stringResource(R.string.cfg_field_currency), shown, stringResource(R.string.cfg_field_currency_select), names.map { it.second }) { name ->
+        names.firstOrNull { it.second == name }?.let { onPick(it.first) }
+    }
+}
+
+/**
  * The default value input for [f]'s kind; [choices] are its options when it has some. Values are stored as the web
  * stores them: checkbox true / false, date datepicker / today, time timepicker / now, links none.
  */
@@ -1643,7 +1696,9 @@ private fun DefaultValueInput(f: FieldCfg, choices: List<String>, onChange: (Str
             ) {
                 onChange(if (it == none) "" else it)
             }
-        FieldKind.NUMBER -> LabeledInput(label, v, { s -> onChange(s.filter { it.isDigit() || it == '.' || it == '-' }) }, stringResource(R.string.cfgt_prefilled_number), sheet = true)
+        // A currency field's default is an amount, a number like a number field's.
+        FieldKind.NUMBER, FieldKind.CURRENCY ->
+            LabeledInput(label, v, { s -> onChange(s.filter { it.isDigit() || it == '.' || it == '-' }) }, stringResource(R.string.cfgt_prefilled_number), sheet = true)
         FieldKind.URL -> Unit // the web keeps no default for links
         // Image, video, voice memo and key value: nothing is typed in, so no default.
         FieldKind.IMAGE, FieldKind.VIDEO, FieldKind.VOICE_MEMO, FieldKind.KEY_VALUE -> Unit
@@ -1792,29 +1847,31 @@ private fun FieldChecksSheet(f: FieldCfg, options: Int, onClose: () -> Unit, onR
                 // Dates have no limits at the server: past or future only.
                 if (f.kind != FieldKind.DATE) {
                     val (loLabel, hiLabel, loHint, hiHint) = when (f.kind) {
-                        FieldKind.NUMBER -> listOf(R.string.cfgt_min_value, R.string.cfgt_max_value, R.string.cfgt_min_value_hint, R.string.cfgt_max_value_hint)
+                        in NUMBER_KINDS -> listOf(R.string.cfgt_min_value, R.string.cfgt_max_value, R.string.cfgt_min_value_hint, R.string.cfgt_max_value_hint)
                         else -> listOf(R.string.cfgt_min_length, R.string.cfgt_max_length, R.string.cfgt_min_length_hint, R.string.cfgt_max_length_hint)
                     }.map { stringResource(it) }
-                    val filter = if (f.kind == FieldKind.NUMBER) numeric else digits
+                    val filter = if (f.kind in NUMBER_KINDS) numeric else digits
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.weight(1f)) { LabeledInput(loLabel, lo, { lo = filter(it) }, loHint, sheet = true) }
                         Box(Modifier.weight(1f)) { LabeledInput(hiLabel, hi, { hi = filter(it) }, hiHint, sheet = true) }
                     }
                 }
-                if (f.kind == FieldKind.NUMBER) {
+                if (f.kind in NUMBER_KINDS) {
                     Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Surface)) {
                         ToggleRow(stringResource(R.string.cfg_checks_whole), stringResource(R.string.cfg_checks_whole_hint), whole, enabled = true) { whole = it }
                     }
                 }
                 shown?.let { Txt(stringResource(it.messageRes()), 11, 500, C.Red, maxLines = Int.MAX_VALUE) }
             }
-            if (onRemove != null && f.checks.isSet) Row(
-                Modifier.fillMaxWidth().height(42.dp).pressClickable(shape = r(14), pressed = PRESSED_CARD, onClick = onRemove).border(1.dp, C.Red.copy(alpha = 0.7f), r(14)),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            ) {
-                LineIcon(Icons.Trash, 17.dp, C.Red, 2.2f)
-                Txt(stringResource(R.string.cfg_checks_remove), 12, 700, C.Red)
+            if (onRemove != null && f.checks.isSet) ConfigGate(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth().height(42.dp).pressClickable(shape = r(14), pressed = PRESSED_CARD, onClick = onRemove).border(1.dp, C.Red.copy(alpha = 0.7f), r(14)),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                ) {
+                    LineIcon(Icons.Trash, 17.dp, C.Red, 2.2f)
+                    Txt(stringResource(R.string.cfg_checks_remove), 12, 700, C.Red)
+                }
             }
         }
         SheetButtons(stringResource(R.string.cfg_save), shown == null, onClose) {
@@ -1868,6 +1925,13 @@ private fun Geofencing(cfg: ConfigViewModel) {
         if (pageReady && ready) web?.evaluateJavascript("adcSetFences(${fencesToJs(g.saved.fences)})", null)
     }
     LaunchedEffect(pageReady, satellite) { if (pageReady) web?.evaluateJavascript("adcSetSatellite($satellite)", null) }
+    // Without Configure the map is read-only (it still pans and zooms) and shows the saved fences, so nothing changes on it.
+    val locked = LocalConfigBlock.current != null
+    LaunchedEffect(pageReady, locked) {
+        if (!pageReady) return@LaunchedEffect
+        web?.evaluateJavascript("adcSetLocked($locked)", null)
+        if (locked && ready) web?.evaluateJavascript("adcSetFences(${fencesToJs(g.saved.fences)})", null)
+    }
     // Fences changed, or a fence being drawn, that aren't saved: Configuration asks before closing.
     val unsaved = map.dirty || (map.drawing && map.points > 0)
     LaunchedEffect(unsaved) { cfg.markGeoUnsaved(unsaved) }
@@ -1989,62 +2053,73 @@ private fun Geofencing(cfg: ConfigViewModel) {
             }
         } else {
             Column(card.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Enforce location restriction.
-                Row(
-                    Modifier.pressClickable(pressed = PRESSED_CARD) { if (canEnforce) cfg.askEnforce(!enforced) else if (ready) cfg.explainEnforce() }.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Txt(stringResource(R.string.cfg_geo_enforce_title), 14, 700, maxLines = 2)
-                        when (g.load) {
-                            LoadState.LOADING -> SkeletonText(stringResource(R.string.cfg_geo_loading), Modifier.padding(top = 4.dp), lines = 1)
-                            LoadState.FAILED -> Txt(stringResource(R.string.cfg_geo_load_failed), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
-                            LoadState.READY -> Txt(stringResource(R.string.cfg_geo_enforce_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                // Enforce location restriction (needs Configure: greyed out, with why, without it).
+                ConfigGate(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier.pressClickable(pressed = PRESSED_CARD) { if (canEnforce) cfg.askEnforce(!enforced) else if (ready) cfg.explainEnforce() }.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Txt(stringResource(R.string.cfg_geo_enforce_title), 14, 700, maxLines = 2)
+                            when (g.load) {
+                                LoadState.LOADING -> SkeletonText(stringResource(R.string.cfg_geo_loading), Modifier.padding(top = 4.dp), lines = 1)
+                                LoadState.FAILED -> Txt(stringResource(R.string.cfg_geo_load_failed), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                                LoadState.READY -> Txt(stringResource(R.string.cfg_geo_enforce_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                            }
                         }
-                    }
-                    Box(Modifier.alpha(if (canEnforce) 1f else 0.5f).testTag("geo-enforce")) {
-                        OnOffSwitch(enforced) { if (canEnforce) cfg.askEnforce(it) else if (ready) cfg.explainEnforce() }
+                        Box(Modifier.alpha(if (canEnforce) 1f else 0.5f).testTag("geo-enforce")) {
+                            OnOffSwitch(enforced) { if (canEnforce) cfg.askEnforce(it) else if (ready) cfg.explainEnforce() }
+                        }
                     }
                 }
                 // The fences on the map now (saved or not): tap one to move its corners; the bin removes it.
                 map.corners.forEachIndexed { i, n ->
                     val picked = map.selected == i
-                    Row(
-                        Modifier.fillMaxWidth().pressClickable(shape = r(10), pressed = PRESSED_CARD) { if (on) js("adcSelectFence($i)") }.background(if (picked) C.YTintBg else Color.Transparent)
-                            .heightIn(min = 44.dp).padding(start = 4.dp).testTag("geo-fence-$i"),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        LineIcon(Icons.Fence, 20.dp, C.Orange, 2.2f)
-                        Txt(stringResource(R.string.cfg_geo_fence_name, i + 1), 14, 700)
-                        Txt(pluralStringResource(R.plurals.cfg_geo_corners, n, n), 12, 400, C.Muted, Modifier.weight(1f))
-                        val label = stringResource(R.string.cfg_geo_delete_fence_cd, i + 1)
-                        Box(
-                            Modifier.size(44.dp).pressClickable(shape = r(10)) { if (on) js("adcDeleteFence($i)") }.semantics { contentDescription = label },
-                            contentAlignment = Alignment.Center,
-                        ) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
+                    // Picking a fence moves its corners and the bin removes it: both need Configure.
+                    ConfigGate(Modifier.fillMaxWidth()) {
+                        Row(
+                            Modifier.fillMaxWidth().pressClickable(shape = r(10), pressed = PRESSED_CARD) { if (on) js("adcSelectFence($i)") }.background(if (picked) C.YTintBg else Color.Transparent)
+                                .heightIn(min = 44.dp).padding(start = 4.dp).testTag("geo-fence-$i"),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            LineIcon(Icons.Fence, 20.dp, C.Orange, 2.2f)
+                            Txt(stringResource(R.string.cfg_geo_fence_name, i + 1), 14, 700)
+                            Txt(pluralStringResource(R.plurals.cfg_geo_corners, n, n), 12, 400, C.Muted, Modifier.weight(1f))
+                            val label = stringResource(R.string.cfg_geo_delete_fence_cd, i + 1)
+                            Box(
+                                Modifier.size(44.dp).pressClickable(shape = r(10)) { if (on) js("adcDeleteFence($i)") }.semantics { contentDescription = label },
+                                contentAlignment = Alignment.Center,
+                            ) { LineIcon(Icons.Trash, 18.dp, C.Red, 2.2f) }
+                        }
                     }
                 }
                 // A picked fence: how to change its corners, and Remove corner for the tapped one (a fence keeps 3).
                 if (map.selected >= 0) Txt(stringResource(R.string.cfg_geo_corner_hint), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Pill(stringResource(R.string.cfg_geo_draw_fence), { if (on) js("adcStartDraw()") }, Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-draw"), height = 40.dp, hPad = 16.dp, size = 13)
+                    ConfigGate {
+                        Pill(stringResource(R.string.cfg_geo_draw_fence), { if (on) js("adcStartDraw()") }, Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-draw"), height = 40.dp, hPad = 16.dp, size = 13)
+                    }
                     if (map.corner >= 0) {
                         val canRemove = on && (map.corners.getOrNull(map.selected) ?: 0) > 3
-                        Pill(
-                            stringResource(R.string.cfg_geo_remove_corner), { if (canRemove) js("adcRemoveCorner()") },
-                            Modifier.alpha(if (canRemove) 1f else 0.4f).testTag("geo-remove-corner"), fg = C.Red, height = 40.dp, hPad = 14.dp, size = 13,
-                        )
+                        ConfigGate {
+                            Pill(
+                                stringResource(R.string.cfg_geo_remove_corner), { if (canRemove) js("adcRemoveCorner()") },
+                                Modifier.alpha(if (canRemove) 1f else 0.4f).testTag("geo-remove-corner"), fg = C.Red, height = 40.dp, hPad = 14.dp, size = 13,
+                            )
+                        }
                     }
                     Spacer(Modifier.weight(1f))
                     // Save appears once something changed on the map.
                     if (map.dirty) {
-                        Pill(
-                            stringResource(if (g.saving) R.string.cfg_saving else R.string.cfg_save),
-                            { if (on) web?.evaluateJavascript("adcGetFences()") { value -> cfg.saveFences(fencesFromJs(value)) } },
-                            Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-save"), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 22.dp, size = 13, weight = 700,
-                        )
+                        ConfigGate {
+                            Pill(
+                                stringResource(if (g.saving) R.string.cfg_saving else R.string.cfg_save),
+                                { if (on) web?.evaluateJavascript("adcGetFences()") { value -> cfg.saveFences(fencesFromJs(value)) } },
+                                Modifier.alpha(if (on) 1f else 0.4f).testTag("geo-save"), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 22.dp, size = 13, weight = 700,
+                            )
+                        }
                     }
                 }
             }

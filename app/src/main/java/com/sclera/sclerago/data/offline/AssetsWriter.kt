@@ -11,8 +11,6 @@ import com.sclera.sclerago.data.sync.AdcDatabase
 import com.sclera.sclerago.data.sync.SyncCredentialsProvider
 import com.sclera.sclerago.domain.model.DataError
 import com.sclera.sclerago.domain.model.DataException
-import com.sclera.sclerago.domain.model.IMAGE_KIND
-import com.sclera.sclerago.domain.model.documentKind
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
@@ -427,24 +425,6 @@ class AssetsWriter(
         removeRows("asset_activity", "id = ? AND asset_id = ? AND kind = 'comment'", listOf(commentId, assetId), now())
     }
 
-    /** Takes the web page [documentId] off its asset (marked removed for the sync, as the server's DELETE does). */
-    suspend fun removeWebDocument(documentId: String): Unit = db.write(io) {
-        val now = now()
-        val assetId = queryOne(WEB_DOCUMENT_ASSET, listOf(documentId))?.string("asset_id")?.takeIf { it.isNotBlank() }
-        removeRows("web_documents", "id = ? AND asset_id IS NOT NULL AND asset_id <> ''", listOf(documentId), now)
-        if (assetId != null) takeIfUnassigned(assetId, now)
-    }
-
-    /**
-     * Deletes the uploaded file [documentId] as the server's `DELETE /documents/{id}`: the `documents` row is marked removed
-     * and its content dropped (its `multimedia` row stays, as for media). The asset keeps its other documents.
-     */
-    suspend fun removeSourceDocument(documentId: String) = db.write(io) {
-        if (!hasTable("documents") || !exists(DOCUMENT_ROW.live("documents"), listOf(documentId))) throw DataException(DataError.FAILED)
-        if (hasTable("multimedia")) execute(MULTIMEDIA_CLEAR_DOCUMENT, listOf(documentId), setOf("multimedia"))
-        removeRows("documents", "id = ?", listOf(documentId), now())
-    }
-
     // ---- inside a transaction
 
     /**
@@ -515,13 +495,6 @@ class AssetsWriter(
         if (!hasTable("multimedia")) throw DataException(DataError.FAILED)
         val stored = files.read(media) ?: throw DataException(DataError.FAILED)
         val mediaId = ids.next()
-        // A file uploaded from the Documents tab is the asset's source document, when the server takes it as a document
-        // (a photo stays a photo, which the Media tab shows).
-        if (media.sourceDocument && hasTable("documents")) {
-            documentKind(stored.filename, stored.contentType)?.takeIf { it != IMAGE_KIND }?.let { docKind ->
-                return insertDocument(assetId, mediaId, stored, docKind, now)
-            }
-        }
         val kind = when {
             media.video -> "video"
             media.audio || stored.contentType?.startsWith("audio/") == true -> "audio"
@@ -539,17 +512,6 @@ class AssetsWriter(
         if (kind == "image" && media.fieldId == null && media.category != null && hasColumn("asset_media", "category")) row["category"] = media.category.db
         execute("INSERT INTO asset_media (${row.keys.joinToString()}) VALUES (${placeholders(row.size)})", row.values.toList(), setOf("asset_media"))
         queueUpload("asset_media", mediaId, stored, position)
-    }
-
-    /**
-     * Keeps [stored] as asset [assetId]'s source document, as the server links an asset to the file it was read from:
-     * a `documents` row [id], its file queued under the same id, and `assets.source_document_id` set to it (an asset
-     * has one, so a new upload takes the place of the last).
-     */
-    private fun AdcDatabase.insertDocument(assetId: String, id: String, stored: PickedContent, kind: String, now: String) {
-        execute(DOCUMENT_INSERT, listOf(id, stored.filename, stored.contentType, stored.sizeBytes, kind, user.userId(), now, now), setOf("documents"))
-        queueUpload("documents", id, stored, 0)
-        execute(ASSET_SET_SOURCE_DOCUMENT, listOf(id, now, assetId), setOf("assets"))
     }
 
     /**

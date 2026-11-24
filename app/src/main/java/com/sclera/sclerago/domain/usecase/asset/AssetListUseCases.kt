@@ -8,6 +8,7 @@ import com.sclera.sclerago.domain.model.EmptyReason
 import com.sclera.sclerago.domain.model.LocationFilter
 import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.Permission
+import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.StatusCount
 import com.sclera.sclerago.domain.model.ToggleChip
@@ -22,6 +23,9 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+
+/** The ways of onboarding the Assets tab has chips for, as the web's optional tabs: over Bluetooth, over a Wi-Fi network. */
+private val ONBOARDED_CHIPS = listOf(Source.BT, Source.WIFI)
 
 /** The status chips in the web's order (its status tabs): Draft, Submitted, Exception, Validated, then AI suggestions. */
 private val CHIP_ORDER = listOf(Status.DRAFT, Status.SUBMITTED, Status.EXCEPTION, Status.VALIDATED, Status.AI)
@@ -52,21 +56,24 @@ class BuildAssetListUseCase @Inject constructor() {
         // The same of the assets in Managed Assets: what the Managed assets chip counts.
         val inManaged = scope(managed, query).filter { query.filter.matches(it, formats) }
         val managedOn = query.managed
-        val changesOn = query.changeRequests && !managedOn
-        val chosen = query.status.takeUnless { changesOn || managedOn }
-        val markOn = query.validation?.takeIf { chosen == null && !changesOn && !managedOn }
-        val chips = listOf(StatusCount(null, tab.size, chosen == null && !changesOn && markOn == null && !managedOn)) +
+        // Bluetooth / Wi-Fi: on the Assets tab only (the other tabs already list one way of onboarding each).
+        val onboardedOn = query.onboarded?.takeIf { query.sources == null && !managedOn }
+        val tabOn = managedOn || onboardedOn != null
+        val changesOn = query.changeRequests && !tabOn
+        val chosen = query.status.takeUnless { changesOn || tabOn }
+        val markOn = query.validation?.takeIf { chosen == null && !changesOn && !tabOn }
+        val chips = listOf(StatusCount(null, tab.size, chosen == null && !changesOn && markOn == null && !tabOn)) +
             CHIP_ORDER.map { st -> StatusCount(st, tab.count { it.isIn(st) }, chosen == st) }
         val reason = when {
             text.isNotEmpty() -> EmptyReason.SEARCH
-            chosen != null || changesOn || markOn != null || managedOn -> EmptyReason.STATUS
+            chosen != null || changesOn || markOn != null || tabOn -> EmptyReason.STATUS
             !query.filter.isEmpty -> EmptyReason.FILTER
             query.sources == null -> EmptyReason.ASSETS_TAB
             else -> EmptyReason.SOURCE_TAB
         }
         val items = if (managedOn) searched(inManaged) else searched(tab).filter {
             (chosen == null || it.isIn(chosen)) && (!changesOn || it.changeRequest != null) &&
-                (markOn == null || it.validationMark == markOn)
+                (markOn == null || it.validationMark == markOn) && (onboardedOn == null || it.src == onboardedOn)
         }
         val changeCount = tab.count { it.changeRequest != null }
         val changeChip = ToggleChip(changeCount, changesOn).takeIf { query.showChangeRequests || changeCount > 0 || changesOn }
@@ -74,7 +81,10 @@ class BuildAssetListUseCase @Inject constructor() {
             .filterValues { it.count > 0 || it.selected }
         // As the web's optional Managed assets tab: shown while there are some, or while it is chosen.
         val managedChip = ToggleChip(inManaged.size, managedOn).takeIf { it.count > 0 || it.selected }
-        return AssetListData(items, chips, reason, changeChip, markChips, managedChip)
+        // The Bluetooth and Wi-Fi chips (the Assets tab only), always shown, with 0 when none were onboarded that way.
+        val onboardedChips = if (query.sources != null) emptyMap() else ONBOARDED_CHIPS
+            .associateWith { s -> ToggleChip(tab.count { it.src == s }, onboardedOn == s) }
+        return AssetListData(items, chips, reason, changeChip, markChips, managedChip, onboardedChips)
     }
 
     /** The tab's assets ([AssetListQuery.sources]) in the chosen location, before the filter, chips and search. */
@@ -111,14 +121,15 @@ class SelectAllUseCase @Inject constructor() {
 }
 
 /**
- * What the signed-in user's access says, for the asset lists' selection: which permissions they have, whether they are an
- * admin and who they are (whose assets count as assigned to someone else). All false (and no one) while it isn't known.
+ * What the signed-in user's access says, for the asset lists' selection: which permissions they have, whether they are a
+ * reviewer (Validate, as the group grants it) and who they are (whose assets count as assigned to someone else). All
+ * false (and no one) while it isn't known.
  */
 data class SelectionAccess(
     val collect: Boolean = false,
     val check: Boolean = false,
     val validate: Boolean = false,
-    val admin: Boolean = false,
+    val reviewer: Boolean = false,
     val userId: String? = null,
 )
 
@@ -137,7 +148,7 @@ class ObserveSelectionAccessUseCase @Inject constructor(
         collect = guard.allows(Permission.COLLECT),
         check = guard.allows(Permission.CHECK),
         validate = guard.allows(Permission.VALIDATE),
-        admin = guard.isAdmin(),
+        reviewer = guard.isReviewer(),
         userId = guard.userId(),
     )
 }

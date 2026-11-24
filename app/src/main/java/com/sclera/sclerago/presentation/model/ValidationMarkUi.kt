@@ -17,11 +17,11 @@ val ValidationMark.labelRes: Int
         ValidationMark.NEEDS_LOOK -> R.string.dash_chip_validation_look
     }
 
-/** Its icon: a stop sign for failed, a magnifier for needs a look. */
+/** Its icon, as the web's: a circle with a cross for failed, a circle with "!" for needs a look. */
 val ValidationMark.icon: Ico
     get() = when (this) {
-        ValidationMark.FAILED -> Icons.AlertOctagon
-        ValidationMark.NEEDS_LOOK -> Icons.SearchAlert
+        ValidationMark.FAILED -> Icons.ValidationFailed
+        ValidationMark.NEEDS_LOOK -> Icons.ValidationLook
     }
 
 /** Its colour, as the Validation tab colours the outcomes: red for failed, orange for needs a look. */

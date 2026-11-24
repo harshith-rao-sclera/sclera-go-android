@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.presentation.common.issueMessage
 import com.sclera.sclerago.presentation.components.RunFab
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
@@ -52,6 +53,7 @@ import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.StepResult
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.bottomBorder
@@ -166,6 +168,8 @@ fun ValidationTab(
     onOpenResult: ((jobId: String) -> Unit)? = null,
     /** The asset is being validated again at the server: its results are about to change, so placeholders show instead. */
     validating: Boolean = false,
+    /** The signed-in user may not open the Validation page: "Open in Validation" is greyed out and a tap says why. */
+    openBlocked: UiText? = null,
 ) {
     val v = validation
     if (validating) {
@@ -173,12 +177,15 @@ fun ValidationTab(
         return
     }
     if (v == null) {
-        // Nothing has been run on it: just say so, as the web does (runs are started from the Validation page).
-        Txt(
-            stringResource(R.string.val_none_message), 13, 500, C.Soft,
+        // Nothing has been run on it: as the web, say so and that Validate (the button below) runs the Quick check.
+        Column(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 32.dp).testTag(ValidationTags.NONE),
-            maxLines = Int.MAX_VALUE, align = TextAlign.Center,
-        )
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Txt(stringResource(R.string.val_none_title), 14, 700, C.Text, align = TextAlign.Center)
+            Txt(stringResource(R.string.val_none_text), 13, 500, C.Soft, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
+        }
         return
     }
     // Header: how many steps need attention and the data quality; "Open in Validation" is the card's last row.
@@ -212,14 +219,16 @@ fun ValidationTab(
             )
         }
         if (runToOpen != null && onOpenResult != null) {
-            Row(
-                Modifier.fillMaxWidth().topBorder(C.Border).pressClickable(role = Role.Button) { onOpenResult(runToOpen) }
-                    .heightIn(min = 44.dp).padding(horizontal = 12.dp).testTag(ValidationTags.OPEN_RESULT),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Txt(stringResource(R.string.val_open_in_validation), 13, 600, C.Yellow, Modifier.weight(1f))
-                LineIcon(Icons.Link, 14.dp, C.Yellow, 2.2f)
+            AccessGate(openBlocked, Modifier.fillMaxWidth().topBorder(C.Border)) {
+                Row(
+                    Modifier.fillMaxWidth().pressClickable(role = Role.Button) { onOpenResult(runToOpen) }
+                        .heightIn(min = 44.dp).padding(horizontal = 12.dp).testTag(ValidationTags.OPEN_RESULT),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Txt(stringResource(R.string.val_open_in_validation), 13, 600, C.Yellow, Modifier.weight(1f))
+                    LineIcon(Icons.Link, 14.dp, C.Yellow, 2.2f)
+                }
             }
         }
     }
@@ -292,6 +301,8 @@ fun ValidateFab(
     onValidate: (fromStart: Boolean) -> Unit,
     onOffline: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The signed-in user may not run checks on it: both are greyed out and a tap says why (going online won't help). */
+    blocked: UiText? = null,
 ) {
     val first = validation?.firstProblem
     val label = when {
@@ -307,15 +318,19 @@ fun ValidateFab(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (first != null && first > 1 && !validating) {
-            OfflineGate(offline, onOffline) {
-                Pill(
-                    stringResource(R.string.val_run_every), { onValidate(true) },
-                    Modifier.fabShadow(Capsule).testTag(ValidationTags.RUN_EVERY), bg = C.Surface, height = 44.dp, hPad = 16.dp, size = 13, weight = 700,
-                )
+            AccessGate(blocked) {
+                OfflineGate(offline, onOffline) {
+                    Pill(
+                        stringResource(R.string.val_run_every), { onValidate(true) },
+                        Modifier.fabShadow(Capsule).testTag(ValidationTags.RUN_EVERY), bg = C.Surface, height = 44.dp, hPad = 16.dp, size = 13, weight = 700,
+                    )
+                }
             }
         }
-        OfflineGate(offline && !validating, onOffline) {
-            RunFab(label, validating, { onValidate(false) }, Modifier.testTag(ValidationTags.FAB))
+        AccessGate(blocked) {
+            OfflineGate(offline && !validating, onOffline) {
+                RunFab(label, validating, { onValidate(false) }, Modifier.testTag(ValidationTags.FAB))
+            }
         }
     }
 }
@@ -375,7 +390,9 @@ private fun IssueRow(issue: StepIssue) {
     val label = issue.label?.let { issueLabelText(it) }
     val now = issue.now
     val next = issue.next
-    val details = listOfNotNull(issue.message.takeIf { label != null && next != null }, issue.suggestion?.reason?.takeIf { it.isNotBlank() })
+    // A date problem with the field's day in local time, as the web's issueMessage.
+    val message = issueMessage(issue.message, issue.fieldType, issue.currentValue?.text)
+    val details = listOfNotNull(message.takeIf { label != null && next != null }, issue.suggestion?.reason?.takeIf { it.isNotBlank() })
     var open by remember(issue.id) { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().alpha(if (issue.closed) 0.6f else 1f)
@@ -397,7 +414,7 @@ private fun IssueRow(issue: StepIssue) {
                     Txt(next, 12, 600, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f))
                 }
             } else {
-                Txt(issue.message, 12, 400, if (label != null) C.Muted else C.Text, maxLines = Int.MAX_VALUE)
+                Txt(message, 12, 400, if (label != null) C.Muted else C.Text, maxLines = Int.MAX_VALUE)
             }
             if (open) details.forEach { Txt(it, 11, 400, C.Muted, maxLines = Int.MAX_VALUE) }
         }

@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.UNSURE_BELOW
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.model.reason
 import com.sclera.sclerago.presentation.components.FieldLabel
 import com.sclera.sclerago.presentation.components.FormSheet
 import com.sclera.sclerago.presentation.components.SheetInput
@@ -43,6 +44,8 @@ fun DraftEditSheet(vm: FileImportViewModel) {
         onClose = vm::closeDraft,
         onPrimary = vm::saveDraft,
         dirty = dirty,
+        // Saving a correction needs Collect, as the server: greyed out without it, a tap says why.
+        primaryBlock = vm.collectBlock.reason(),
     ) {
         s.columns.forEach { f ->
             val confidence = draft.confidence[f.id]

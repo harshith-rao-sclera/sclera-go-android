@@ -67,6 +67,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.sclera.sclerago.domain.model.AccessBlock
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.AddFab
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.Capsule
@@ -189,7 +191,7 @@ fun ValidationScreen(
                             s.templates.forEach { t ->
                                 key(t.key) {
                                     TemplateCard(
-                                        t, ai = t.steps.any { s.stepsByKey[it]?.usesAi == true }, canRun = s.canCheck && !offline,
+                                        t, ai = t.steps.any { s.stepsByKey[it]?.usesAi == true }, online = !offline, runBlock = s.checkBlock,
                                         aiOn = s.aiOn, runs = !s.aiOnly(t.steps),
                                         onRun = { vm.runOnAll(RunSource.Template(t.key)) },
                                         onChoose = { vm.openRunSheet(RunSource.Template(t.key), pick = true) },
@@ -208,14 +210,15 @@ fun ValidationScreen(
                         else EmptyNote(stringResource(if (s.canValidate) R.string.val_saved_empty_reviewer else R.string.val_saved_empty_checker))
                     }
                     items(s.saved, key = { it.id }) { sv ->
-                        val keeps = s.canValidate && !offline
                         SavedCard(
                             sv, s.stepsByKey,
-                            onRun = if (s.canCheck && !offline) ({ vm.openRunSheet(RunSource.Saved(sv.id)) }) else null,
-                            // Only reviewers (validate) keep saved validations; anyone with check may run them. One that has
-                            // run can't change any more (the server answers 409): as the web, it offers Edit as new (a copy).
-                            onEdit = if (keeps) ({ if (sv.locked) vm.editAsNew(sv) else vm.editValidation(sv) }) else null,
-                            onDelete = if (keeps) ({ vm.askDelete(sv) }) else null,
+                            onRun = if (!offline) ({ vm.openRunSheet(RunSource.Saved(sv.id)) }) else null,
+                            // Only reviewers (validate) keep saved validations; anyone with check may run them (the others
+                            // see the buttons greyed out, saying why). One that has run can't change any more (the server
+                            // answers 409): as the web, it offers Edit as new (a copy).
+                            onEdit = if (!offline) ({ if (sv.locked) vm.editAsNew(sv) else vm.editValidation(sv) }) else null,
+                            onDelete = if (!offline) ({ vm.askDelete(sv) }) else null,
+                            runBlock = s.checkBlock, keepBlock = s.validateBlock,
                         )
                     }
                     // Recent jobs: the newest 100 runs, narrowed by who ran them, status and check (the web's filters).
@@ -240,8 +243,9 @@ fun ValidationScreen(
                                 key(j.id) {
                                     JobRow(
                                         j, busy = j.id in s.busyRuns, onReview = { vm.openReview(j.id) },
-                                        onStart = if (s.canCheck && !offline) ({ vm.startReady(j) }) else null,
-                                        onDiscard = if (s.canValidate && !offline) ({ vm.discard(j) }) else null,
+                                        onStart = if (!offline) ({ vm.startReady(j) }) else null,
+                                        onDiscard = if (!offline) ({ vm.discard(j) }) else null,
+                                        startBlock = s.checkBlock, discardBlock = s.validateBlock,
                                         modifier = if (i > 0) Modifier.topBorder(C.Border) else Modifier,
                                     )
                                 }
@@ -258,13 +262,9 @@ fun ValidationScreen(
                 }
             }
         }
-        // Filter jobs, above the others (it narrows the runs already listed, so offline too).
+        // Filter jobs, floating above the + and the run button (it narrows the runs already listed, so offline too).
         if (s.reviewJobId == null && s.runs.isNotEmpty()) {
-            // Above + when it shows, else in the corner.
-            val bottom = when {
-                !offline && s.canValidate -> 78.dp
-                else -> 14.dp
-            }
+            val bottom = if (offline) 14.dp else 146.dp
             val on = listOf(s.filters.by, s.filters.status, s.filters.check).count { it != null }
             val description = if (on > 0) pluralStringResource(R.plurals.valt_jobs_filter_active, on, on) else stringResource(R.string.valt_jobs_filter_title)
             FilterFab(
@@ -275,14 +275,18 @@ fun ValidationScreen(
         }
         // Create a validation (+), in the corner like the main screen's buttons. Runs start from a template or a saved
         // validation's Run.
+        // Either is greyed out, saying why, for someone whose group can't (+ needs Validate, the run button Check).
         if (s.reviewJobId == null && !offline) {
-            if (s.canValidate) AddFab(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 4.dp, bottom = 72.dp)) { vm.newValidation() }
-            // Run validation: the floating ▶ under the +, for whoever may run checks once the templates are read.
-            if (s.canCheck && s.catalogLoaded) Box(
-                Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp).size(54.dp).fabShadow()
-                    .pressClickable(shape = CircleShape) { vm.openRunSheet() }.background(C.Btn),
-                contentAlignment = Alignment.Center,
-            ) { LineIcon(Icons.Play, 20.dp, C.Text, 2.2f) }
+            AccessGate(s.validateBlock, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 4.dp, bottom = 72.dp)) {
+                AddFab { vm.newValidation() }
+            }
+            // Run validation: the floating ▶ under the +, once the templates are read.
+            if (s.catalogLoaded) AccessGate(s.checkBlock, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp)) {
+                Box(
+                    Modifier.size(54.dp).fabShadow().pressClickable(shape = CircleShape) { vm.openRunSheet() }.background(C.Btn),
+                    contentAlignment = Alignment.Center,
+                ) { LineIcon(Icons.Play, 20.dp, C.Text, 2.2f) }
+            }
         }
 
         // Layers on top of the page.
@@ -293,19 +297,19 @@ fun ValidationScreen(
             )
         }
         s.templateDetails?.let { key -> s.templates.firstOrNull { it.key == key } }?.let { t ->
-            val canRun = s.canCheck && !offline
             ChecksSheet(
                 t.name, t.steps.mapNotNull { s.stepsByKey[it] }, { vm.showTemplate(null) },
                 aiOn = s.aiOn, runs = !s.aiOnly(t.steps),
-                onCustomize = if (s.canValidate) ({ vm.newValidation(t) }) else null,
-                onRun = if (canRun) ({ vm.showTemplate(null); vm.runOnAll(RunSource.Template(t.key)) }) else null,
-                onChoose = if (canRun) ({ vm.showTemplate(null); vm.openRunSheet(RunSource.Template(t.key), pick = true) }) else null,
+                onCustomize = { vm.newValidation(t) },
+                onRun = if (!offline) ({ vm.showTemplate(null); vm.runOnAll(RunSource.Template(t.key)) }) else null,
+                onChoose = if (!offline) ({ vm.showTemplate(null); vm.openRunSheet(RunSource.Template(t.key), pick = true) }) else null,
+                runBlock = s.checkBlock, customizeBlock = s.validateBlock,
             )
         }
         // A run sheet opened from Data Collection shows there ([QuickValidate]), not here.
         s.runSheet?.takeIf { !it.quick }?.let { RunSheetView(vm, s, it, assets) }
         s.jobDraft?.let { draft ->
-            JobFilterSheet(draft, s.jobOptions, s::jobCount, vm::editJobDraft, vm::resetJobDraft, vm::applyJobDraft, vm::closeJobFilter)
+            JobFilterSheet(draft, s.jobOptions, s::jobCount, vm::editJobDraft, vm::resetJobDraft, vm::closeJobFilter)
         }
         s.runSheet?.takeIf { it.picking && !it.quick }?.let { AssetPicker(vm, it, assets) }
         s.orderSheet?.let { OrderSheet(vm, s, it) }
@@ -402,13 +406,15 @@ private fun AiOffNote(modifier: Modifier = Modifier) {
 
 /**
  * A template: its icon, name and AI badge ("AI off" when [aiOn] is false), its tagline, and Run on all assets / Choose
- * assets; with AI off a template of nothing but AI checks ([runs] false) can't run, and says why.
+ * assets ([online] only; greyed out, saying why, while [runBlock] holds the user back); with AI off a template of nothing
+ * but AI checks ([runs] false) can't run, and says why.
  */
 @Composable
 private fun TemplateCard(
     t: ValTemplate,
     ai: Boolean,
-    canRun: Boolean,
+    online: Boolean,
+    runBlock: AccessBlock?,
     onRun: () -> Unit,
     onChoose: () -> Unit,
     onChecks: () -> Unit,
@@ -430,19 +436,27 @@ private fun TemplateCard(
         Txt(templateTagline(t), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
         // Fills the room a taller card's text takes, so every card's buttons line up at the bottom.
         Spacer(Modifier.weight(1f))
-        if (canRun && !runs) AiOffNote()
-        if (canRun) YellowButton(stringResource(R.string.valt_run_on_all), onRun, Modifier.fillMaxWidth(), enabled = runs, height = 40)
+        if (online && runBlock == null && !runs) AiOffNote()
+        if (online) AccessGate(runBlock, Modifier.fillMaxWidth()) {
+            YellowButton(stringResource(R.string.valt_run_on_all), onRun, Modifier.fillMaxWidth(), enabled = runs, height = 40)
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (canRun) Txt(
-                stringResource(R.string.valt_choose_assets), 11, 600, if (runs) C.Soft else C.Dim,
-                Modifier.pressClickable(shape = r(6), enabled = runs, onClick = onChoose).padding(vertical = 4.dp),
-            )
+            if (online) AccessGate(runBlock) {
+                Txt(
+                    stringResource(R.string.valt_choose_assets), 11, 600, if (runs) C.Soft else C.Dim,
+                    Modifier.pressClickable(shape = r(6), enabled = runs, onClick = onChoose).padding(vertical = 4.dp),
+                )
+            }
             Spacer(Modifier.weight(1f))
             Txt(pluralStringResource(R.plurals.valt_see_steps, t.steps.size, t.steps.size), 11, 600, C.Yellow, Modifier.pressClickable(shape = r(6), onClick = onChecks).padding(vertical = 4.dp))
         }
     }
 }
 
+/**
+ * A saved validation: Run (greyed out, saying why, while [runBlock] holds the user back), and Edit (Edit as new once it
+ * has run) and Delete ([keepBlock]). A button whose action is null (offline) is left out.
+ */
 @Composable
 private fun SavedCard(
     sv: ValidationDef,
@@ -450,6 +464,8 @@ private fun SavedCard(
     onRun: (() -> Unit)?,
     onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    runBlock: AccessBlock?,
+    keepBlock: AccessBlock?,
 ) {
     Column(
         Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
@@ -487,20 +503,26 @@ private fun SavedCard(
         }
         Txt(sv.steps.joinToString(" · ") { stepName(steps, it) }, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            onRun?.let { YellowButton(stringResource(R.string.valt_run), it, height = 36) }
+            onRun?.let { AccessGate(runBlock) { YellowButton(stringResource(R.string.valt_run), it, height = 36) } }
             Spacer(Modifier.weight(1f))
             onEdit?.let {
                 // One that has run: Edit as new, with the copy icon (the web's), else Edit.
-                Row(
-                    Modifier.heightIn(min = 48.dp).pressClickable(shape = r(8), onClick = it).padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    if (sv.locked) LineIcon(Icons.Clone, 13.dp, C.Soft, 2.2f)
-                    Txt(stringResource(if (sv.locked) R.string.valt_edit_as_new else R.string.action_edit), 12, 700, C.Soft)
+                AccessGate(keepBlock) {
+                    Row(
+                        Modifier.heightIn(min = 48.dp).pressClickable(shape = r(8), onClick = it).padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        if (sv.locked) LineIcon(Icons.Clone, 13.dp, C.Soft, 2.2f)
+                        Txt(stringResource(if (sv.locked) R.string.valt_edit_as_new else R.string.action_edit), 12, 700, C.Soft)
+                    }
                 }
             }
-            onDelete?.let { Txt(stringResource(R.string.action_delete), 12, 700, C.Red, Modifier.pressClickable(shape = r(8), onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
+            onDelete?.let {
+                AccessGate(keepBlock) {
+                    Txt(stringResource(R.string.action_delete), 12, 700, C.Red, Modifier.pressClickable(shape = r(8), onClick = it).padding(horizontal = 8.dp, vertical = 8.dp))
+                }
+            }
         }
     }
 }
@@ -593,6 +615,9 @@ private fun JobRow(
     onReview: () -> Unit,
     onStart: (() -> Unit)?,
     onDiscard: (() -> Unit)?,
+    /** Why the user can't start a ready run (Check) or discard one (Validate): greyed out, saying why; null when they can. */
+    startBlock: AccessBlock?,
+    discardBlock: AccessBlock?,
     modifier: Modifier = Modifier,
 ) {
     val ready = j.status == RunStatus.READY
@@ -631,8 +656,12 @@ private fun JobRow(
                     stringResource(if (j.scope == RunScope.CHANGED) R.string.valt_ready_changed else R.string.valt_ready_not_started),
                     11, 400, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE,
                 )
-                onDiscard?.let { Txt(stringResource(R.string.action_discard), 12, 700, C.Red, Modifier.pressClickable(shape = r(8), enabled = !busy, onClick = it).padding(horizontal = 8.dp, vertical = 8.dp)) }
-                onStart?.let { YellowButton(stringResource(if (busy) R.string.valt_starting else R.string.valt_run), it, enabled = !busy, height = 36) }
+                onDiscard?.let {
+                    AccessGate(discardBlock) {
+                        Txt(stringResource(R.string.action_discard), 12, 700, C.Red, Modifier.pressClickable(shape = r(8), enabled = !busy, onClick = it).padding(horizontal = 8.dp, vertical = 8.dp))
+                    }
+                }
+                onStart?.let { AccessGate(startBlock) { YellowButton(stringResource(if (busy) R.string.valt_starting else R.string.valt_run), it, enabled = !busy, height = 36) } }
             }
             j.status.active -> JobProgress(j)
             j.status == RunStatus.FAILED && j.processed == 0 -> Txt(j.statusDetail ?: stringResource(R.string.rev_stat_failed), 11, 400, C.Red, maxLines = Int.MAX_VALUE)
@@ -787,8 +816,13 @@ internal fun RunSheetView(vm: ValidationViewModel, s: ValidationUiState, sh: Run
                     count < 0 -> stringResource(R.string.valt_run_on_changed, name)
                     else -> pluralStringResource(R.plurals.valt_run_on_n, count, count, name)
                 }
-                Pill(stringResource(R.string.valt_save_as_ready), { if (ok) vm.submitRunSheet(now = false) }, Modifier.alpha(if (ok) 1f else 0.5f), height = 44.dp, hPad = 14.dp, size = 13)
-                YellowButton(label, { vm.submitRunSheet(now = true) }, Modifier.weight(1f), enabled = ok, height = 44)
+                // Greyed out, saying why, for someone whose group can't run validations (Check).
+                AccessGate(s.checkBlock) {
+                    Pill(stringResource(R.string.valt_save_as_ready), { if (ok) vm.submitRunSheet(now = false) }, Modifier.alpha(if (ok) 1f else 0.5f), height = 44.dp, hPad = 14.dp, size = 13)
+                }
+                AccessGate(s.checkBlock, Modifier.weight(1f)) {
+                    YellowButton(label, { vm.submitRunSheet(now = true) }, Modifier.fillMaxWidth(), enabled = ok, height = 44)
+                }
             }
         }
     }
@@ -873,6 +907,9 @@ private fun ChecksSheet(
     aiOn: Boolean = true,
     /** It has something to run (with AI off, not when every step is an AI one). */
     runs: Boolean = true,
+    /** Why the user can't run it (Check) or customise it into a saved validation (Validate): greyed out, saying why. */
+    runBlock: AccessBlock? = null,
+    customizeBlock: AccessBlock? = null,
 ) {
     BottomSheet(onClose) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 14.dp), verticalAlignment = Alignment.Top) {
@@ -914,11 +951,15 @@ private fun ChecksSheet(
                 }
             }
             Txt(stringResource(R.string.val_steps_in_order), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
-            if (!runs && (onRun != null || onChoose != null)) AiOffNote()
-            onRun?.let { YellowButton(stringResource(R.string.valt_run_on_all), it, Modifier.fillMaxWidth(), enabled = runs, height = 44) }
+            if (!runs && runBlock == null && (onRun != null || onChoose != null)) AiOffNote()
+            onRun?.let { AccessGate(runBlock, Modifier.fillMaxWidth()) { YellowButton(stringResource(R.string.valt_run_on_all), it, Modifier.fillMaxWidth(), enabled = runs, height = 44) } }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                onChoose?.let { Pill(stringResource(R.string.valt_choose_assets), { if (runs) it() }, Modifier.weight(1f).alpha(if (runs) 1f else 0.4f), height = 40.dp, size = 13) }
-                onCustomize?.let { Pill(stringResource(R.string.valt_customize), it, Modifier.weight(1f), height = 40.dp, size = 13) }
+                onChoose?.let { choose ->
+                    AccessGate(runBlock, Modifier.weight(1f)) {
+                        Pill(stringResource(R.string.valt_choose_assets), { if (runs) choose() }, Modifier.fillMaxWidth().alpha(if (runs) 1f else 0.4f), height = 40.dp, size = 13)
+                    }
+                }
+                onCustomize?.let { AccessGate(customizeBlock, Modifier.weight(1f)) { Pill(stringResource(R.string.valt_customize), it, Modifier.fillMaxWidth(), height = 40.dp, size = 13) } }
             }
         }
     }
@@ -1007,15 +1048,20 @@ private fun EditorPageBody(vm: ValidationViewModel, s: ValidationUiState, e: Edi
                     )
                     Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Pill(stringResource(R.string.val_cancel), close, height = 42.dp, hPad = 14.dp, size = 13)
-                        Pill(
-                            stringResource(R.string.val_save), { if (ok) vm.saveEditor(andRun = false) }, Modifier.alpha(if (ok) 1f else 0.5f),
-                            height = 42.dp, hPad = 16.dp, size = 13,
-                        )
-                        if (s.canCheck) Pill(
-                            stringResource(R.string.val_editor_save_and_run), { if (ok) vm.saveEditor(andRun = true) },
-                            Modifier.weight(1f).alpha(if (ok) 1f else 0.5f),
-                            bg = if (ok) C.Yellow else C.Btn, fg = if (ok) C.OnYellow else C.Text, height = 42.dp, hPad = 18.dp, size = 13, weight = 700,
-                        )
+                        // Saving needs Validate, Save and run Check too: greyed out, saying why, for whoever lacks them.
+                        AccessGate(s.validateBlock) {
+                            Pill(
+                                stringResource(R.string.val_save), { if (ok) vm.saveEditor(andRun = false) }, Modifier.alpha(if (ok) 1f else 0.5f),
+                                height = 42.dp, hPad = 16.dp, size = 13,
+                            )
+                        }
+                        AccessGate(s.validateBlock ?: s.checkBlock, Modifier.weight(1f)) {
+                            Pill(
+                                stringResource(R.string.val_editor_save_and_run), { if (ok) vm.saveEditor(andRun = true) },
+                                Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.5f),
+                                bg = if (ok) C.Yellow else C.Btn, fg = if (ok) C.OnYellow else C.Text, height = 42.dp, hPad = 18.dp, size = 13, weight = 700,
+                            )
+                        }
                     }
                 }
             }

@@ -51,7 +51,8 @@ class ReadSpokenFieldsUseCase @Inject constructor() {
     private fun valueFor(field: FieldCfg, text: String): String? {
         if (text.isEmpty()) return null
         return when (field.kind) {
-            FieldKind.NUMBER -> number(text)
+            // A currency field takes the amount alone ("1200 dollars" -> 1200), as the server's voice fill.
+            FieldKind.NUMBER, FieldKind.CURRENCY -> number(text)
             FieldKind.DROPDOWN -> option(field.options, text)
             FieldKind.MULTI -> field.options.filter { o -> contains(words(text), words(o)) }.takeIf { it.isNotEmpty() }?.joinToString(",")
             FieldKind.YESNO -> yesNo(text)?.let { if (it) ANSWER_YES else ANSWER_NO }

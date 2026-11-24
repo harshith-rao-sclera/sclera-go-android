@@ -34,8 +34,6 @@ class MasterFormatsOfflineSource(private val db: AdcDatabase, private val io: Co
     /** The catalogue as a tree, each level counting the assets filed under it. */
     suspend fun classification(): List<ClassCount> = withContext(io) { loadClassification() }
 
-    fun classificationFlow(): Flow<List<ClassCount>> = db.watch(io, TABLE, "assets") { loadClassification() }
-
     /** [byId], again whenever the catalogue changes. */
     fun byIdFlow(): Flow<Map<String, MasterFormat>> = db.watch(io, TABLE) { byId() }
 

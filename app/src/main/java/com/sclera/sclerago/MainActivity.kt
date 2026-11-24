@@ -78,6 +78,12 @@ class MainActivity : ComponentActivity() {
         premise.onForeground()
     }
 
+    override fun onStop() {
+        super.onStop()
+        // Off screen: the access stops being re-checked every few minutes.
+        session.onBackground()
+    }
+
     /**
      * When the session ends (sign-out, expiry, blocked account), the app opens again from scratch, like a fresh install:
      * every screen's state (filters, chosen statuses, search, tabs, open sheets, AI results) goes with the old screen,

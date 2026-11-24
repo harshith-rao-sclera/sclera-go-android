@@ -47,6 +47,10 @@ interface AdcConfigService {
     @POST("properties/{p}/fields/import/read")
     suspend fun readFieldImport(@Path("p") property: String, @Part file: MultipartBody.Part): Response<ResponseBody>
 
+    /** The currencies a currency field can be in, by name (`[{code, name}]`; not per property). */
+    @GET("currencies")
+    suspend fun currencies(): Response<ResponseBody>
+
     // ---- Buildings, floors, locations
 
     @GET("properties/{p}/buildings")

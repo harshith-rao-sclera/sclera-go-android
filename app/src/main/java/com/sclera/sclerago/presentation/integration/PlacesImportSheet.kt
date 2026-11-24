@@ -45,6 +45,7 @@ import com.sclera.sclerago.domain.model.PlaceStatus
 import com.sclera.sclerago.domain.model.PlacesDirection
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.SkeletonList
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.GuardedClose
@@ -70,6 +71,8 @@ import com.sclera.sclerago.presentation.theme.Txt
 internal fun PlacesImportSheet(sh: PlacesSheetState, s: PlacesUiState, vm: PlacesImportViewModel) {
     val toVdms = sh.direction == PlacesDirection.TO_VDMS
     val noSnapshot = s.noSnapshot(sh.direction)
+    // Waiting for VDMS's fresh list: nothing is picked from an old one meanwhile.
+    val loading = sh.firstLoad || (noSnapshot && s.refreshing)
     val busy = sh.waiting && !sh.timedOut
     GuardedClose(sh.selected.isNotEmpty() && !sh.done && !sh.waiting, vm::close) { close ->
         BottomSheet(close) {
@@ -78,6 +81,10 @@ internal fun PlacesImportSheet(sh: PlacesSheetState, s: PlacesUiState, vm: Place
                 when {
                     sh.result != null -> ResultBody(sh)
                     sh.waiting || sh.timedOut -> WaitingBody(sh.timedOut)
+                    loading -> SkeletonList(
+                        stringResource(if (toVdms) R.string.pi_loading_to else R.string.pi_loading_from),
+                        Modifier.padding(top = 8.dp), count = 6, lines = 1, card = false, gap = 2.dp,
+                    )
                     else -> Picker(sh, s, noSnapshot, vm)
                 }
             }
@@ -88,13 +95,16 @@ internal fun PlacesImportSheet(sh: PlacesSheetState, s: PlacesUiState, vm: Place
                         Modifier.fillMaxWidth().testTag("places_done"), bg = C.Yellow, fg = C.OnYellow, height = 48.dp, weight = 700,
                     )
                 } else {
-                    val ok = sh.selected.isNotEmpty() && !noSnapshot && !sh.submitting && !busy
+                    val ok = sh.selected.isNotEmpty() && !noSnapshot && !loading && !sh.submitting && !busy
                     val label = if (sh.submitting || busy) stringResource(R.string.pi_working) else submitText(sh.direction, sh.view.split).asString()
-                    Pill(
-                        label, { if (ok) vm.submit() },
-                        Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f).testTag("places_submit"),
-                        bg = C.Yellow, fg = C.OnYellow, height = 48.dp, weight = 700,
-                    )
+                    // Sending and importing need Configure: should the access change while the sheet is open, greyed out with why.
+                    AccessGate(s.access, Modifier.fillMaxWidth()) {
+                        Pill(
+                            label, { if (ok) vm.submit() },
+                            Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f).testTag("places_submit"),
+                            bg = C.Yellow, fg = C.OnYellow, height = 48.dp, weight = 700,
+                        )
+                    }
                 }
             }
         }
@@ -110,11 +120,14 @@ private fun RefreshButton(s: PlacesUiState, vm: PlacesImportViewModel) {
         ago.isNotEmpty() -> stringResource(R.string.pi_list_from, ago)
         else -> stringResource(R.string.pi_ask_list)
     }
-    Box(
-        Modifier.size(48.dp).pressClickable(shape = r(10), enabled = !s.refreshing, role = Role.Button, onClick = vm::refresh)
-            .semantics { contentDescription = label }.testTag("places_refresh"),
-        contentAlignment = Alignment.Center,
-    ) { LineIcon(Icons.Refresh, 18.dp, if (s.refreshing) C.Muted else C.Yellow, 2.2f) }
+    // Asking VDMS needs Configure, as the server: greyed out with why without it.
+    AccessGate(s.access) {
+        Box(
+            Modifier.size(48.dp).pressClickable(shape = r(10), enabled = !s.refreshing, role = Role.Button, onClick = vm::refresh)
+                .semantics { contentDescription = label }.testTag("places_refresh"),
+            contentAlignment = Alignment.Center,
+        ) { LineIcon(Icons.Refresh, 18.dp, if (s.refreshing) C.Muted else C.Yellow, 2.2f) }
+    }
 }
 
 /** The toolbar and the tree, scrolling as one (so a short screen or large text still reaches the tree). */
@@ -125,13 +138,9 @@ private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapsho
     val v = sh.view
     LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("places_tree"), contentPadding = PaddingValues(bottom = 8.dp)) {
         when {
-            // VDMS is being asked for its list: the places in placeholders until it comes.
-            noSnapshot && s.refreshing -> item {
-                SkeletonList(stringResource(R.string.pi_getting_list), Modifier.padding(top = 8.dp), count = 6, lines = 1, card = false, gap = 2.dp)
-            }
             noSnapshot -> item {
                 EmptyBlock(stringResource(R.string.pi_no_snapshot)) {
-                    LinkText(stringResource(R.string.pi_ask_vdms), onClick = vm::refresh)
+                    AccessGate(s.access) { LinkText(stringResource(R.string.pi_ask_vdms), onClick = vm::refresh) }
                 }
             }
             v.tally.total == 0 -> item { EmptyBlock(stringResource(if (toVdms) R.string.pi_to_empty else R.string.pi_from_empty)) }

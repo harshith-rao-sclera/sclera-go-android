@@ -16,13 +16,17 @@ import com.sclera.sclerago.domain.model.DraftsAccepted
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.UploadProblem
+import com.sclera.sclerago.domain.model.AccessBlock
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessBlocksUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.domain.usecase.fileimport.FileImportUseCases
 import com.sclera.sclerago.domain.usecase.media.FileUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
+import com.sclera.sclerago.presentation.model.reason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -57,7 +61,6 @@ sealed interface FileOutcome {
     /** Nothing was waiting at the server (or the property changed): the review just closes. */
     data object Cleared : FileOutcome
     /** The sample spreadsheet was saved where the user chose. */
-    data object SampleSaved : FileOutcome
     data class Failed(val message: UiText) : FileOutcome
 
     /** The review is done with, so the File tab goes back to its list. */
@@ -117,8 +120,16 @@ class FileImportViewModel @Inject constructor(
     downloads: PropertyDownloadUseCases,
     private val useCases: FileImportUseCases,
     private val fileUseCases: FileUseCases,
+    accessBlocks: ObserveAccessBlocksUseCase,
 ) : ViewModel() {
     var state by mutableStateOf(FileImportState())
+        private set
+
+    /**
+     * Why reading files, adding what they held, correcting it and throwing it away are greyed out (the server's Collect:
+     * a group that only views, or a collector away from a geofenced site); null while the user may. Kept up to date.
+     */
+    var collectBlock by mutableStateOf<AccessBlock?>(accessBlocks.now().collect)
         private set
 
     private fun set(f: FileImportState.() -> FileImportState) {
@@ -127,9 +138,13 @@ class FileImportViewModel @Inject constructor(
 
     /** The property files go to: the current one. Drafts belong to the property they were read for. */
     private var property: String? = null
+
+    /** Where the assets read come from: files (the File tab), or the Camera's Many assets ([readShots]). */
+    private var source = Source.FILE
     private var readJob: Job? = null
 
     init {
+        viewModelScope.launch { accessBlocks().map { it.collect }.distinctUntilChanged().collect { collectBlock = it } }
         viewModelScope.launch {
             downloads.observe().map { it.currentId }.distinctUntilChanged().collect { id ->
                 if (property != null && id != property) reset(FileOutcome.Cleared)
@@ -149,10 +164,7 @@ class FileImportViewModel @Inject constructor(
     fun add(uris: List<Uri>) {
         if (uris.isEmpty() || !acceptsFiles) return
         // Adding from files needs Collect, as the web's Add: files picked by someone who can only view go nowhere.
-        if (!useCases.access.allowed()) {
-            set { copy(outcome = FileOutcome.Failed(UiText.Res(R.string.view_only_no_add))) }
-            return
-        }
+        if (refused()) return
         viewModelScope.launch {
             val picked = fileUseCases.describeFiles(uris.map { it.toString() })
             if (!acceptsFiles) return@launch
@@ -165,6 +177,36 @@ class FileImportViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The Camera's Many assets: the photos and videos at [uris] join the shots waiting to be sent, as files picked on the
+     * File tab do (no sorting, no photo rules), so they can be previewed or removed first; Read ([read]) then sends each
+     * to be read on its own, and the assets found come from the Camera. Shots taken again ("Take more") join those still
+     * waiting; after a reading that found nothing they start afresh. Ignored while shots are being read or reviewed.
+     */
+    fun readShots(uris: List<String>) {
+        if (uris.isEmpty() || !acceptsFiles) return
+        if (refused()) return
+        source = Source.CAMERA
+        viewModelScope.launch {
+            val shots = fileUseCases.describeFiles(uris)
+            if (!acceptsFiles) return@launch
+            set {
+                val base = if (step == FileStep.PICK) this else FileImportState()
+                val fresh = shots.filter { f -> base.files.none { it.uri == f.uri } }
+                val refused = fresh.mapNotNull { f -> useCases.check(f)?.let { f.id to it } }.toMap()
+                base.copy(files = base.files + fresh, problems = base.problems + refused, off = base.off + refused.keys)
+            }
+        }
+    }
+
+    /** Takes picked file [id] off the list before it is read; the review closes once no file is left. */
+    fun remove(id: String) {
+        if (state.step != FileStep.PICK || state.busy) return
+        val left = state.files.filterNot { it.id == id }
+        if (left.isEmpty()) return reset(FileOutcome.Cleared)
+        set { copy(files = left, problems = problems - id, off = off - id) }
+    }
+
     /** Ticks or unticks a file (one the server would refuse can't be ticked) or a draft. */
     fun toggle(id: String) = set {
         when {
@@ -175,13 +217,23 @@ class FileImportViewModel @Inject constructor(
         }
     }
 
-    fun setCreateFields(on: Boolean) = set { copy(createFields = on) }
+    fun setCreateFields(on: Boolean) {
+        if (refused()) return
+        set { copy(createFields = on) }
+    }
+
+    /** The user can't collect now: says why (the access reason) and returns true, so nothing is sent. */
+    private fun refused(): Boolean {
+        if (useCases.access.allowed()) return false
+        set { copy(outcome = FileOutcome.Failed(collectBlock.reason() ?: UiText.Res(R.string.view_only_no_add))) }
+        return true
+    }
 
     /** Uploads the ticked files together and waits while the server reads them; the drafts found are then shown. */
     fun read() {
         val files = state.toSend
         val prop = property
-        if (state.step != FileStep.PICK || files.isEmpty() || prop == null) return
+        if (state.step != FileStep.PICK || files.isEmpty() || prop == null || refused()) return
         set { copy(step = FileStep.READING, jobs = files.associate { it.id to FileJob.Uploading(0) }, off = emptySet()) }
         readJob = viewModelScope.launch {
             val found = coroutineScope { files.map { f -> async { readOne(prop, f) } }.awaitAll() }.flatten()
@@ -212,7 +264,7 @@ class FileImportViewModel @Inject constructor(
         val edit = state.edit ?: return
         val found = state.editing ?: return
         val prop = property ?: return
-        if (edit.saving) return
+        if (edit.saving || refused()) return
         set { copy(edit = edit.copy(saving = true, error = null)) }
         viewModelScope.launch {
             try {
@@ -224,22 +276,6 @@ class FileImportViewModel @Inject constructor(
         }
     }
 
-    // ---- Sample spreadsheet
-
-    /** Saves the sample spreadsheet of the property's fields to [destination] (null: the user cancelled). */
-    fun saveSample(destination: String?) {
-        val prop = property
-        if (destination == null || prop == null) return
-        viewModelScope.launch {
-            try {
-                useCases.saveSample(prop, destination)
-                set { copy(outcome = FileOutcome.SampleSaved) }
-            } catch (e: OnlineException) {
-                set { copy(outcome = FileOutcome.Failed(e.error.toUiText())) }
-            }
-        }
-    }
-
     private suspend fun readOne(prop: String, file: ImportedFile): List<FoundDraft> {
         fun job(j: FileJob) = set { copy(jobs = jobs + (file.id to j)) }
         return try {
@@ -247,6 +283,7 @@ class FileImportViewModel @Inject constructor(
                 prop, file,
                 onProgress = { p -> viewModelScope.launch { if (state.jobs[file.id] is FileJob.Uploading) job(FileJob.Uploading(p)) } },
                 onUploaded = { job(FileJob.Reading) },
+                source = source,
             )
             when (document.status) {
                 DocumentStatus.PROCESSING -> { job(FileJob.TimedOut); emptyList() }
@@ -267,7 +304,7 @@ class FileImportViewModel @Inject constructor(
     fun accept() {
         val ids = state.selectedDrafts.map { it.draft.id }
         val prop = property
-        if (state.step != FileStep.REVIEW || ids.isEmpty() || state.busy || prop == null) return
+        if (state.step != FileStep.REVIEW || ids.isEmpty() || state.busy || prop == null || refused()) return
         val createFields = state.createFields && state.extraNames.isNotEmpty()
         set { copy(busy = true) }
         viewModelScope.launch {
@@ -290,6 +327,8 @@ class FileImportViewModel @Inject constructor(
             reset(FileOutcome.Cleared)
             return
         }
+        // The drafts at the server go only with Collect, as the server's discard.
+        if (refused()) return
         set { copy(busy = true) }
         viewModelScope.launch {
             try {

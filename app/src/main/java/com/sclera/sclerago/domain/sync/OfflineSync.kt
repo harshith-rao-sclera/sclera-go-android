@@ -29,6 +29,12 @@ interface OfflineSync {
     /** The properties whose data is fully downloaded on the device. Blocking but short. */
     fun downloadedProperties(): Set<String>
 
+    /**
+     * Stops syncing [propertyId] and deletes its data from the device (its database and download), as for a property
+     * the user can no longer open. Unsent changes to it go too: the server would refuse them. The others carry on.
+     */
+    suspend fun remove(propertyId: String) {}
+
     /** Stops following every property; what was downloaded stays on the device until the user data is wiped. */
     fun stop()
 }

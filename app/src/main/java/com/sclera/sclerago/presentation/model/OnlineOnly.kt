@@ -14,7 +14,9 @@ enum class OnlineOnly(@param:StringRes val message: Int) {
     AI_SUGGESTIONS(R.string.offline_ai_suggestions),
     VOICE_FILL(R.string.offline_voice_fill),
     SUGGEST_TYPE(R.string.offline_suggest_type),
+    SUGGEST_JACS(R.string.offline_suggest_jacs),
     REVALIDATE(R.string.offline_revalidate),
+    DOCUMENTS(R.string.offline_documents),
 
     // Asset page and the asset list's selection bar
     VALIDATE(R.string.offline_validate),

@@ -97,13 +97,19 @@ class PropertySettingsRepositoryImpl @Inject constructor(
     }
 }
 
-/** A property's geofence at the server (`/properties/{id}/geofence`); nothing is kept on the device. */
+/**
+ * A property's geofence at the server (`/properties/{id}/geofence`). What is saved is also kept with the property list
+ * ([PropertyStore]), where the server lists it too, so the geofence check has it offline.
+ */
 @Singleton
-class GeofenceRepositoryImpl @Inject constructor(private val api: AdcApi) : GeofenceRepository {
+class GeofenceRepositoryImpl @Inject constructor(private val api: AdcApi, private val store: PropertyStore) : GeofenceRepository {
     override suspend fun load(propertyId: String): Geofence = api.geofence(propertyId).toGeofence()
 
-    override suspend fun save(propertyId: String, geofence: Geofence): Geofence =
-        api.putGeofence(propertyId, geofenceBody(geofence)).toGeofence()
+    override suspend fun save(propertyId: String, geofence: Geofence): Geofence {
+        val saved = api.putGeofence(propertyId, geofenceBody(geofence))
+        store.applyGeofence(propertyId, saved)
+        return saved.toGeofence()
+    }
 }
 
 /**

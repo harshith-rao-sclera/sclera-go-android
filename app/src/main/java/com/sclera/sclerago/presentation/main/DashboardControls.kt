@@ -19,7 +19,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.ActionDock
+import com.sclera.sclerago.presentation.components.DockAccess
 import com.sclera.sclerago.presentation.components.SelectionSummary
 import com.sclera.sclerago.presentation.components.BottomTabBar
 import com.sclera.sclerago.presentation.components.CircleFab
@@ -69,18 +72,20 @@ fun DashboardFabs(
     onSearchOpenChange: (Boolean) -> Unit,
     query: String,
     onQueryChange: (String) -> Unit,
-    /** The "+" (add an asset); null hides it (a group without Collect, as the web hides Add). */
+    /** The "+" (add an asset); null hides it. */
     onAdd: (() -> Unit)?,
     modifier: Modifier = Modifier,
     onFilter: (() -> Unit)? = null,
     filterCount: Int = 0,
+    /** Why the "+" is greyed out (a group without Collect, or away from a geofenced site); a tap says why. */
+    addBlock: UiText? = null,
 ) {
     Column(
         modifier.navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        onAdd?.let { CircleFab(Icons.Plus, stringResource(R.string.dash_add_asset), it, Modifier.testTag(DashTags.ADD)) }
+        onAdd?.let { AccessGate(addBlock) { CircleFab(Icons.Plus, stringResource(R.string.dash_add_asset), it, Modifier.testTag(DashTags.ADD)) } }
         onFilter?.let {
             val description = if (filterCount > 0) pluralStringResource(R.plurals.filter_open_active, filterCount, filterCount)
             else stringResource(R.string.filter_open)
@@ -101,9 +106,9 @@ fun SelectionDock(
     allPicked: Boolean,
     onClear: () -> Unit,
     onSelectAll: () -> Unit,
-    /** Sign the selected assets off; null hides it (only reviewers may). */
+    /** Run a validation on the selected assets; null hides it. */
     onValidate: (() -> Unit)?,
-    /** Assign, Submit and Delete; null hides each (someone who may not collect). */
+    /** Assign, Submit and Delete; null hides each (not offered for what is selected). */
     onAssign: (() -> Unit)?,
     onSubmit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
@@ -124,12 +129,14 @@ fun SelectionDock(
     /** Assign reads "Assign to me"; [assignDimmed] greys it out (a tap then says why). */
     assignToMe: Boolean = false,
     assignDimmed: Boolean = false,
+    /** Why each action is greyed out for the signed-in user's group (the User Access Guide); a tap says why. */
+    access: DockAccess = DockAccess(),
 ) {
     Column(modifier.testTag(DashTags.DOCK)) {
         ActionDock(
             onValidate = onValidate, onAssign = onAssign, onSubmit = onSubmit, onDelete = onDelete, floating = true,
             onMove = onMove, moveDimmed = moveDimmed, onEdit = onEdit, offline = offline, onOffline = onOffline, onChange = onChange,
-            submitDimmed = submitDimmed, assignToMe = assignToMe, assignDimmed = assignDimmed,
+            submitDimmed = submitDimmed, assignToMe = assignToMe, assignDimmed = assignDimmed, access = access,
         ) {
             SelectionSummary(count, visible, allPicked, onClear, onSelectAll, Modifier.testTag(DashTags.SELECT_ALL))
         }

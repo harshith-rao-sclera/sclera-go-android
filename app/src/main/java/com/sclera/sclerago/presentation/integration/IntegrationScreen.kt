@@ -38,8 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.VdmsChoice
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.CircleFab
@@ -106,18 +108,18 @@ fun IntegrationScreen(
             }
         }
         // Add Integration: the floating + as on the other pages. Always there, as the web's button; greyed out and inert
-        // once the property is linked, while loading, or for the "user" role.
-        val canAdd = s.link == null && !s.loading && s.canAdd
-        OfflineGate(
-            !online && canAdd, { vm.explainOffline(OnlineOnly.INTEGRATION) },
-            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp),
-        ) {
-            CircleFab(
-                Icons.Plus, stringResource(R.string.int_add_title), { if (canAdd) vm.startAdding() },
-                Modifier.alpha(if (canAdd) 1f else 0.4f).testTag("integration_add"),
-            )
+        // once the property is linked or while loading. Without Configure it is greyed out too, and a tap says why.
+        val canAdd = s.link == null && !s.loading
+        AccessGate(s.access, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp)) {
+            OfflineGate(!online && canAdd && s.access == null, { vm.explainOffline(OnlineOnly.INTEGRATION) }) {
+                CircleFab(
+                    Icons.Plus, stringResource(R.string.int_add_title), { if (canAdd) vm.startAdding() },
+                    // The access gate dims it already; not twice.
+                    Modifier.alpha(if (canAdd || s.access != null) 1f else 0.4f).testTag("integration_add"),
+                )
+            }
         }
-        s.adding?.let { a -> AddSheet(a, vm.nameOf(null), vm) }
+        s.adding?.let { a -> AddSheet(a, vm.nameOf(null), s.access, vm) }
         p.sheet?.let { sh -> PlacesImportSheet(sh, p, places) }
         if (p.historyOpen) PlacesHistorySheet(propertyId, places::closeHistory)
         ToastEffect(s.message)
@@ -161,7 +163,7 @@ private fun ReadOnly(label: String, value: String, inline: Boolean = false) {
 
 /** Add Integration, as the web's: the organisation (fixed), a VDMS picked from the ones not linked yet, then Done → confirm → Link. */
 @Composable
-private fun AddSheet(a: AddLinkState, organisation: String, vm: IntegrationViewModel) {
+private fun AddSheet(a: AddLinkState, organisation: String, access: AccessBlock?, vm: IntegrationViewModel) {
     GuardedClose(a.picked != null, vm::closeAdding) { close ->
         BottomSheet(close) {
             SheetHeader(stringResource(R.string.int_add_title), null, close)
@@ -188,10 +190,13 @@ private fun AddSheet(a: AddLinkState, organisation: String, vm: IntegrationViewM
                     Txt(stringResource(R.string.int_once_note), 12, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                 }
                 val ok = a.picked != null
-                Pill(
-                    stringResource(R.string.int_done), { if (ok) vm.askConfirm() },
-                    Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
-                )
+                // Linking needs Configure: should the access change while the sheet is open, Done is greyed out with why.
+                AccessGate(access, Modifier.fillMaxWidth()) {
+                    Pill(
+                        stringResource(R.string.int_done), { if (ok) vm.askConfirm() },
+                        Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, weight = 700,
+                    )
+                }
             }
         }
         if (a.confirm) a.picked?.let { p ->

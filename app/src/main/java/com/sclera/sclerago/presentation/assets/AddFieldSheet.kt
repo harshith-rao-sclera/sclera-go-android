@@ -33,6 +33,8 @@ import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.OWN_FIELD_KINDS
 import com.sclera.sclerago.domain.model.OWN_FIELD_NAME_MAX
 import com.sclera.sclerago.presentation.common.asString
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.FieldLabel
@@ -65,41 +67,46 @@ class AddFieldActions(
 
 /**
  * One of the asset's own fields with its remove button at the end (a 48dp target): [row] is the field's usual row.
- * The line above spans the button too, so the row reads as one.
+ * The line above spans the button too, so the row reads as one. [blocked]: the signed-in user may not change the asset,
+ * so the button is greyed out and a tap says why.
  */
 @Composable
-internal fun OwnFieldRow(label: String, onRemove: () -> Unit, row: @Composable () -> Unit) {
+internal fun OwnFieldRow(label: String, onRemove: () -> Unit, blocked: UiText? = null, row: @Composable () -> Unit) {
     val description = stringResource(R.string.own_field_remove_label, label)
     Row(Modifier.fillMaxWidth().topBorder(C.Border), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) { row() }
-        Box(
-            Modifier.pressClickable(role = Role.Button, onClick = onRemove).size(48.dp)
-                .semantics { contentDescription = description }.testTag(AddFieldTags.remove(label)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(Modifier.size(24.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
-                LineIcon(Icons.Close, 11.dp, C.Muted, 2.6f)
+        AccessGate(blocked) {
+            Box(
+                Modifier.pressClickable(role = Role.Button, onClick = onRemove).size(48.dp)
+                    .semantics { contentDescription = description }.testTag(AddFieldTags.remove(label)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(Modifier.size(24.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
+                    LineIcon(Icons.Close, 11.dp, C.Muted, 2.6f)
+                }
             }
         }
     }
 }
 
-/** The last row of the Info tab's fields, as the web's: "+ Add field", for this asset only. */
+/** The last row of the Info tab's fields, as the web's: "+ Add field", for this asset only ([blocked]: greyed out, saying why). */
 @Composable
-internal fun AddFieldRow(onClick: () -> Unit) {
+internal fun AddFieldRow(onClick: () -> Unit, blocked: UiText? = null) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).topBorder(C.Border).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.heightIn(min = 48.dp).pressClickable(shape = Capsule, role = Role.Button, onClick = onClick).testTag(AddFieldTags.OPEN), contentAlignment = Alignment.Center) {
-            Row(
-                Modifier.height(28.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule).padding(horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                LineIcon(Icons.Plus, 12.dp, C.Yellow, 2.4f)
-                Txt(stringResource(R.string.own_field_add), 12, 700, C.Yellow)
+        AccessGate(blocked) {
+            Box(Modifier.heightIn(min = 48.dp).pressClickable(shape = Capsule, role = Role.Button, onClick = onClick).testTag(AddFieldTags.OPEN), contentAlignment = Alignment.Center) {
+                Row(
+                    Modifier.height(28.dp).clip(Capsule).background(C.YTintBg).border(1.dp, C.YTintBd, Capsule).padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    LineIcon(Icons.Plus, 12.dp, C.Yellow, 2.4f)
+                    Txt(stringResource(R.string.own_field_add), 12, 700, C.Yellow)
+                }
             }
         }
         Txt(stringResource(R.string.own_field_hint), 11, 500, C.Muted, Modifier.weight(1f), maxLines = Int.MAX_VALUE)

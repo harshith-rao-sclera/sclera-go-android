@@ -249,6 +249,8 @@ Fixed on `feature/security-quality-hardening`: `AuthStore` is Keystore-encrypted
 migrate on first read; `allowBackup="false"`, `networkSecurityConfig` with pinning, cleartext off; `FLAG_SECURE`
 on access-code screens; the map WebView loads bundled Leaflet through `WebViewAssetLoader`; the SSO WebView only
 loads allow-listed hosts; sign-out clears every repository, files and web data; imports are size-limited.
+Each property's geofence (its fences, from the property list) is kept in `global_config.db`'s `properties` table in its
+`geofence` column, encrypted with `SecretCipher` like the access code and contacts, and wiped on sign-out.
 Still open:
 - The login WebView changes (host allow-list, third-party cookies off) and sign-out → sign-in wipe have not been
   verified end to end on a device; do this before release.

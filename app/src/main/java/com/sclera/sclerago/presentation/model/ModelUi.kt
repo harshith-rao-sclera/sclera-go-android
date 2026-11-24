@@ -13,11 +13,16 @@ import com.sclera.sclerago.presentation.theme.C
 
 private class StatusLook(val color: Color, val icon: Ico, val chipBg: Color, val chipBd: Color, val chipFg: Color = color)
 
+/** The web's status colours (its --status-* tones): Submitted blue, Validated green, AI purple. */
+private val SubmittedBlue = Color(0xFF5AA9FF)
+private val ValidatedGreen = Color(0xFF4CC38A)
+private val AiPurple = Color(0xFFA48BF5)
+
 private val Status.look: StatusLook
     get() = when (this) {
-        Status.AI -> StatusLook(C.Cyan, Icons.StatusAi, Color(0xFF132629), Color(0xFF1F4247))
-        Status.VALIDATED -> StatusLook(C.Purple, Icons.StatusValidated, Color(0xFF211E2E), Color(0xFF383150))
-        Status.SUBMITTED -> StatusLook(C.Green, Icons.StatusSubmitted, Color(0xFF17241D), Color(0xFF27402F))
+        Status.AI -> StatusLook(AiPurple, Icons.StatusAi, Color(0xFF211E2E), Color(0xFF383150))
+        Status.VALIDATED -> StatusLook(ValidatedGreen, Icons.StatusValidated, Color(0xFF17241D), Color(0xFF27402F))
+        Status.SUBMITTED -> StatusLook(SubmittedBlue, Icons.StatusSubmitted, Color(0xFF15202C), Color(0xFF24384F))
         Status.DRAFT -> StatusLook(C.Muted, Icons.StatusDraft, C.Raised, C.Border2, C.Soft)
         Status.INPUT -> StatusLook(C.Orange, Icons.Alert, C.WarnRow, Color(0xFF4A3420))
         Status.EXCEPTION -> StatusLook(C.Red, Icons.StatusException, Color(0xFF2A1919), Color(0xFF4A2827))
@@ -37,16 +42,20 @@ val Source.icon: Ico
         Source.BT -> Icons.Bluetooth
         Source.WIFI -> Icons.Wifi
         Source.AP -> Icons.AccessPoint
-        Source.FILE -> Icons.FileDoc
+        Source.FILE -> Icons.Imported
         Source.MANUAL -> Icons.Keyboard
     }
+
+/** The web's teal for Wi-Fi and file-imported assets (its "file" tone). */
+private val SourceTeal = Color(0xFF3CC8C0)
 
 val Source.color: Color
     get() = when (this) {
         Source.CAMERA -> Color(0xFFF28FB8)
         Source.BT -> Color(0xFF5E9DFF)
-        Source.WIFI, Source.AP -> Color(0xFF4CC487)
-        Source.FILE -> Color(0xFFFF9A45)
+        // Wi-Fi and access points are both network scans, so they share the web's Wi-Fi colour.
+        Source.WIFI, Source.AP -> SourceTeal
+        Source.FILE -> SourceTeal
         Source.MANUAL -> C.Soft
     }
 

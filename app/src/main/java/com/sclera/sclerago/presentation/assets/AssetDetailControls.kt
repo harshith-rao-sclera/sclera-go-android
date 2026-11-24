@@ -66,6 +66,7 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.formatDayAndTime
 import com.sclera.sclerago.presentation.common.is24Hour
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.bottomBorder
@@ -98,17 +99,15 @@ fun SaveCard(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
 /**
  * Why this user can't change the asset, as one line under the top bar like the change request banner: "No edit access ·
  * Assigned to someone else" (or "· Submitted"). A tap opens the full reason. Validate and Request change stay in the
- * asset bar. A submitted asset tells a [reviewer] (Validate) to move it to draft, as the web's lockedReason; anyone else
- * that only an admin can change it.
+ * asset bar. A submitted asset says only a reviewer can change it (a reviewer's is never locked), as the web's lockedReason.
  */
 @Composable
-internal fun LockBanner(lock: AssetLock, reviewer: Boolean, modifier: Modifier = Modifier) {
+internal fun LockBanner(lock: AssetLock, modifier: Modifier = Modifier) {
     val (short, body) = when (lock) {
         AssetLock.NOT_ASSIGNED -> R.string.lock_banner_not_assigned to R.string.asset_lock_not_assigned
         AssetLock.NO_PERMISSION -> R.string.lock_banner_no_permission to R.string.lock_banner_no_permission_body
         AssetLock.OFF_PREMISE -> R.string.lock_banner_off_premise to R.string.lock_banner_off_premise_body
-        else -> if (reviewer) R.string.lock_banner_submitted_reviewer to R.string.lock_banner_submitted_reviewer_body
-        else R.string.lock_banner_submitted to R.string.detail_submitted_body
+        else -> R.string.lock_banner_submitted to R.string.detail_submitted_body
     }
     FoldingBanner(Icons.Lock, C.Orange, C.WarnRow, R.string.lock_banner_title, short, body, modifier.testTag(DetailTags.LOCK_BANNER))
 }
@@ -256,6 +255,7 @@ fun DetailTab(
  * heard so far). Both need the server: [offline], each is dimmed with the offline badge, and a tap says why in its bubble.
  * Both ask the AI: with the property's AI switch off they stay, dimmed, and a tap says "AI off. An admin can turn it on."
  * ([aiOff]: the AI button, which stays usable while a look-up's results wait; [voiceOff]: the voice button).
+ * [blocked]: the signed-in user may not change the asset, so both are greyed out and a tap says why.
  */
 @Composable
 fun FormFloatingButtons(
@@ -273,6 +273,7 @@ fun FormFloatingButtons(
     offline: Boolean = false,
     aiOff: Boolean = false,
     voiceOff: Boolean = false,
+    blocked: UiText? = null,
 ) {
     // Which button's offline reason shows in its bubble, for a few seconds after a tap.
     var why by remember { mutableStateOf<OnlineOnly?>(null) }
@@ -303,7 +304,7 @@ fun FormFloatingButtons(
         }
         AiFillButton(
             aiBusy, aiWhy, onAi, aiOffline, onBlocked = { why = OnlineOnly.AI_SUGGESTIONS },
-            aiOff = aiOff && !aiBusy, onAiOff = { offTip = FloatingButton.AI },
+            aiOff = aiOff && !aiBusy, onAiOff = { offTip = FloatingButton.AI }, access = blocked,
         )
         MicButton(
             listening, reading, heard, onMic, offline && !listening && !reading, onType = onType,
@@ -313,7 +314,7 @@ fun FormFloatingButtons(
                 else -> null
             },
             onBlocked = { why = OnlineOnly.VOICE_FILL },
-            aiOff = voiceOff && !listening && !reading, onAiOff = { offTip = FloatingButton.MIC },
+            aiOff = voiceOff && !listening && !reading, onAiOff = { offTip = FloatingButton.MIC }, access = blocked,
         )
     }
 }
@@ -344,6 +345,7 @@ private fun AiFillButton(
     onBlocked: () -> Unit,
     aiOff: Boolean,
     onAiOff: () -> Unit,
+    access: UiText?,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         val tip = if (busy) stringResource(R.string.detail_ai_busy) else notice?.asString()
@@ -352,14 +354,16 @@ private fun AiFillButton(
         // Working (a look-up, or filling the form from new photos): the sparkle blinks inside a cyan ring.
         val blink by inf.animateFloat(1f, 0.25f, infiniteRepeatable(tween(550), RepeatMode.Reverse), label = "blink")
         val description = stringResource(R.string.detail_ai_fill)
-        OfflineGate(offline, onBlocked) {
-            AiOffGate(aiOff, onAiOff) {
-                Box(
-                    Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().pressClickable(shape = CircleShape, onClick = onClick).background(C.Surface)
-                        .border(if (busy) 2.dp else 1.dp, if (busy) C.Cyan.copy(alpha = 0.4f + 0.6f * blink) else C.Border2, CircleShape)
-                        .semantics { contentDescription = description },
-                    contentAlignment = Alignment.Center,
-                ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.alpha(blink) else Modifier) }
+        AccessGate(access) {
+            OfflineGate(offline, onBlocked) {
+                AiOffGate(aiOff, onAiOff) {
+                    Box(
+                        Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().pressClickable(shape = CircleShape, onClick = onClick).background(C.Surface)
+                            .border(if (busy) 2.dp else 1.dp, if (busy) C.Cyan.copy(alpha = 0.4f + 0.6f * blink) else C.Border2, CircleShape)
+                            .semantics { contentDescription = description },
+                        contentAlignment = Alignment.Center,
+                    ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.alpha(blink) else Modifier) }
+                }
             }
         }
     }
@@ -382,6 +386,7 @@ private fun MicButton(
     onBlocked: () -> Unit,
     aiOff: Boolean,
     onAiOff: () -> Unit,
+    access: UiText?,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         when {
@@ -391,31 +396,33 @@ private fun MicButton(
         }
         val description = stringResource(if (listening) R.string.voice_stop else R.string.detail_voice_fill)
         val typeLabel = stringResource(R.string.describe_type_instead)
-        OfflineGate(offline, onBlocked) {
-            AiOffGate(aiOff, onAiOff) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (listening) {
-                        val inf = rememberInfiniteTransition(label = "mic")
-                        val p by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "p")
-                        Canvas(Modifier.size(54.dp)) {
-                            listOf(p, (p + 0.5f) % 1f).forEach { t ->
-                                drawCircle(C.Red.copy(alpha = 0.8f * (1f - t)), (27f + 18f * t).dp.toPx(), style = Stroke(2.dp.toPx()))
+        AccessGate(access) {
+            OfflineGate(offline, onBlocked) {
+                AiOffGate(aiOff, onAiOff) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (listening) {
+                            val inf = rememberInfiniteTransition(label = "mic")
+                            val p by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "p")
+                            Canvas(Modifier.size(54.dp)) {
+                                listOf(p, (p + 0.5f) % 1f).forEach { t ->
+                                    drawCircle(C.Red.copy(alpha = 0.8f * (1f - t)), (27f + 18f * t).dp.toPx(), style = Stroke(2.dp.toPx()))
+                                }
                             }
                         }
-                    }
-                    Box(
-                        // Recording: a stop square to tap when done. Reading: dimmed and not tappable until the sheet shows.
-                        Modifier.size(54.dp).testTag(FloatingTags.MIC).alpha(if (reading) 0.5f else 1f).fabShadow().clip(CircleShape)
-                            .background(if (listening) C.Red else C.Yellow)
-                            .semantics { contentDescription = description }
-                            // A long press types the description instead (noisy sites, or when speaking won't do).
-                            .combinedClickable(
-                                enabled = !reading, onLongClickLabel = typeLabel,
-                                onLongClick = { if (!listening) onType() }, onClick = onClick,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (listening) LineIcon(Icons.Stop, 24.dp, C.White, 2.2f) else LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f)
+                        Box(
+                            // Recording: a stop square to tap when done. Reading: dimmed and not tappable until the sheet shows.
+                            Modifier.size(54.dp).testTag(FloatingTags.MIC).alpha(if (reading) 0.5f else 1f).fabShadow().clip(CircleShape)
+                                .background(if (listening) C.Red else C.Yellow)
+                                .semantics { contentDescription = description }
+                                // A long press types the description instead (noisy sites, or when speaking won't do).
+                                .combinedClickable(
+                                    enabled = !reading, onLongClickLabel = typeLabel,
+                                    onLongClick = { if (!listening) onType() }, onClick = onClick,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (listening) LineIcon(Icons.Stop, 24.dp, C.White, 2.2f) else LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f)
+                        }
                     }
                 }
             }

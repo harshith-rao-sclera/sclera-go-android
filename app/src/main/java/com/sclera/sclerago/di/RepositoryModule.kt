@@ -1,5 +1,8 @@
 package com.sclera.sclerago.di
 
+import com.sclera.sclerago.data.local.AssetIconStore
+import com.sclera.sclerago.data.local.PropertyAssigneeStore
+import com.sclera.sclerago.data.local.PropertyLocalData
 import com.sclera.sclerago.data.local.WebDataCleaner
 import com.sclera.sclerago.data.repository.FileRepositoryImpl
 import com.sclera.sclerago.data.repository.OnlineAutofillRepository
@@ -37,6 +40,8 @@ abstract class PropertyDownloadModule {
     @Binds abstract fun changeRequests(impl: ChangeRequestRepositoryImpl): ChangeRequestRepository
     @Binds abstract fun signOff(impl: AssetSignOffRepositoryImpl): AssetSignOffRepository
     @Binds @IntoSet abstract fun clearPropertyDownloads(impl: SyncManagerPropertyDownloads): UserDataCleaner
+    @Binds @IntoSet abstract fun assigneesPerProperty(impl: PropertyAssigneeStore): PropertyLocalData
+    @Binds @IntoSet abstract fun typeIconsPerProperty(impl: AssetIconStore): PropertyLocalData
 }
 
 /** Device files (photos, documents, spreadsheets). */

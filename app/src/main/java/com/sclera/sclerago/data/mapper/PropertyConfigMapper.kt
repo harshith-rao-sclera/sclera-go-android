@@ -14,6 +14,7 @@ import com.sclera.sclerago.data.remote.adc.UNITS_METRIC
 import com.sclera.sclerago.data.remote.adc.UNITS_US
 import com.sclera.sclerago.domain.model.Fence
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.NodeKind
@@ -79,14 +80,14 @@ fun unitSystemBody(metric: Boolean): JsonObject = buildJsonObject { put("unitSys
 
 // ---- Geofence (GeoJSON positions are [longitude, latitude])
 
-fun GeofenceDto.toGeofence() = Geofence(
-    enforced = enforced,
-    fences = fences?.coordinates.orEmpty().mapNotNull { polygon ->
-        val rings = polygon.map { ring -> ring.openRing().mapNotNull { p -> if (p.size >= 2) GeoPoint(lat = p[1], lng = p[0]) else null } }
-            .filter { it.isNotEmpty() }
-        if (rings.isEmpty()) null else Fence(rings)
-    },
-)
+fun GeofenceDto.toGeofence() = Geofence(enforced = enforced, fences = fences.toFences())
+
+/** The fences of a GeoJSON MultiPolygon (none for null). */
+fun FencesDto?.toFences(): List<Fence> = this?.coordinates.orEmpty().mapNotNull { polygon ->
+    val rings = polygon.map { ring -> ring.openRing().mapNotNull { p -> if (p.size >= 2) GeoPoint(lat = p[1], lng = p[0]) else null } }
+        .filter { it.isNotEmpty() }
+    if (rings.isEmpty()) null else Fence(rings)
+}
 
 /** A GeoJSON ring without its closing point (the app keeps rings open; the server closes them). */
 private fun List<List<Double>>.openRing(): List<List<Double>> = if (size > 1 && first() == last()) dropLast(1) else this
@@ -129,6 +130,7 @@ fun CfgFieldDto.toFieldCfg(): FieldCfg? {
         optionColors = options.orEmpty().mapNotNull { o -> optionColorOrNull(o.color)?.let { o.label to it } }.toMap(),
         defaultValue = defaultValue.orEmpty(),
         tooltip = helpText.orEmpty(),
+        unit = unit?.trim().orEmpty(),
         id = id,
     ).withChecks(readChecks(checks?.toString(), kind))
 }
@@ -152,6 +154,8 @@ fun fieldCreateJson(f: FieldCfg): JsonObject = buildJsonObject {
     put("name", f.label)
     put("type", f.kind.serverType)
     if (f.kind in OPTION_KINDS) put("options", optionsJson(f, null))
+    // A currency field's currency is its unit (USD); the server refuses one without it.
+    if (f.kind == FieldKind.CURRENCY) put("unit", f.unit.trim())
     put("isRequired", f.required)
     put("isActive", f.visible)
     f.tooltip.takeIf { it.isNotBlank() }?.let { put("helpText", it) }
@@ -168,6 +172,8 @@ fun fieldPatchJson(before: FieldCfg, after: FieldCfg, oldOptions: List<CfgOption
     if (after.kind in OPTION_KINDS && optionsChanged && after.options.isNotEmpty()) put("options", optionsJson(after, oldOptions))
     if (after.required != before.required) put("isRequired", after.required)
     if (after.visible != before.visible) put("isActive", after.visible)
+    // Another currency; a currency field never loses its own.
+    if (after.kind == FieldKind.CURRENCY && after.unit != before.unit && after.unit.isNotBlank()) put("unit", after.unit.trim())
     if (after.tooltip != before.tooltip) put("helpText", after.tooltip.takeIf { it.isNotBlank() }?.let { v -> JsonPrimitive(v) } ?: JsonNull)
     if (after.defaultValue != before.defaultValue) put("defaultValue", after.defaultValue.takeIf { it.isNotBlank() }?.let { v -> JsonPrimitive(v) } ?: JsonNull)
     if (after.checks != before.checks) put("checks", checksApiJson(after.kind, after.checks))

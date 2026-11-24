@@ -84,6 +84,7 @@ class ValidationOfflineSource(private val db: AdcDatabase, private val io: Corou
                 jobId = issue.jobId,
                 target = issue.target,
                 fieldName = issue.fieldName,
+                fieldType = issue.fieldType,
                 rule = issue.rule,
                 severity = issue.severity,
                 message = issue.message,

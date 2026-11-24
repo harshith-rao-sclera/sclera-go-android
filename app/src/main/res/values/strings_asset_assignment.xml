@@ -14,7 +14,7 @@
     <string name="assign_nobody">Nobody (unassigned)</string>
     <!-- %1$s: the signed-in user's email. -->
     <string name="assign_to_me">Assign to me (%1$s)</string>
-    <string name="assign_admin_only">Only an admin can assign assets to someone.</string>
+    <string name="assign_admin_only">Only a reviewer can assign assets to someone.</string>
     <plurals name="assign_done_nobody">
         <item quantity="one">%1$d asset unassigned</item>
         <item quantity="other">%1$d assets unassigned</item>
@@ -34,9 +34,9 @@
         <item quantity="other">%1$d assets assigned to you</item>
     </plurals>
     <string name="assign_take_failed">Couldn’t assign the assets to you.</string>
-    <string name="assign_take_refused">Only an admin can change who an asset is assigned to.</string>
-    <string name="assign_take_assigned">Already assigned. Only an admin can reassign it</string>
-    <string name="assign_take_some_assigned">Some are already assigned. Only an admin can reassign assets</string>
-    <string name="assign_take_submitted">Submitted. Only an admin can assign it</string>
-    <string name="assign_take_some_submitted">Some are submitted. Only an admin can assign them</string>
+    <string name="assign_take_refused">Only a reviewer can change who an asset is assigned to.</string>
+    <string name="assign_take_assigned">Already assigned. Only a reviewer can reassign it</string>
+    <string name="assign_take_some_assigned">Some are already assigned. Only a reviewer can reassign assets</string>
+    <string name="assign_take_submitted">Submitted. Only a reviewer can assign it</string>
+    <string name="assign_take_some_submitted">Some are submitted. Only a reviewer can assign them</string>
 </resources>

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
+import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.AssetFilter
 import com.sclera.sclerago.domain.model.AssetFilterOptions
 import com.sclera.sclerago.domain.model.FilterCategory
@@ -19,6 +20,10 @@ import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.model.ValidationMark
 import com.sclera.sclerago.domain.model.isLockedFor
+import com.sclera.sclerago.domain.usecase.access.AccessBlocks
+import com.sclera.sclerago.domain.usecase.access.ObserveAccessBlocksUseCase
+import com.sclera.sclerago.domain.usecase.access.ReviewerOnlyAction
+import com.sclera.sclerago.domain.usecase.access.ReviewerOnlyActionsUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetFilterUseCases
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
 import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
@@ -103,15 +108,28 @@ data class AssetListState(
     val access: SelectionAccess = SelectionAccess(),
     /** The tabs whose chip leaves Submit out, as the web's tabs: Submitted, Exception, Validated and Change requests. */
     val noSubmit: Set<Tab> = emptySet(),
+    /** Why each kind of button is greyed out for the signed-in user's group (null: it can be used); kept up to date. */
+    val blocks: AccessBlocks = AccessBlocks(),
+    /** The reviewer-only actions on the selection the user's group can't use: on the Change menu, greyed out. */
+    val reviewerOnly: List<ReviewerOnlyAction> = emptyList(),
 ) {
     val selecting: Boolean get() = picked.isNotEmpty()
 
     /**
-     * Submit is on the selection bar of [tab]: the user may collect, the tab's chip doesn't leave it out, and not every
-     * ticked asset is signed off already (the web's).
+     * Submit is on the selection bar of [tab]: the tab's chip doesn't leave it out, and not every ticked asset is signed
+     * off already (the web's). Without Collect it shows greyed out ([blocks]).
      */
     fun submitOffered(tab: Tab): Boolean =
-        access.collect && tab !in noSubmit && (pickedAssets.isEmpty() || pickedAssets.any { it.st != Status.VALIDATED })
+        tab !in noSubmit && (pickedAssets.isEmpty() || pickedAssets.any { it.st != Status.VALIDATED })
+
+    /** A ticked asset is signed off, so Move to Managed assets is on the bar (greyed out without Configure). */
+    val anyValidated: Boolean get() = pickedAssets.any { it.st == Status.VALIDATED }
+
+    /** Delete is refused for these assets ([AssetLock.SUBMITTED]): one is submitted or signed off and the user isn't a reviewer (lockedForMe). */
+    val deleteLock: AssetLock? get() = AssetLock.SUBMITTED.takeIf { pickedAssets.any { isLockedFor(it.st, access.reviewer) } }
+
+    /** The Change button has something to offer: change-request actions, or reviewer-only ones shown greyed out. */
+    val changeOffered: Boolean get() = changeOptions.isNotEmpty() || reviewerOnly.isNotEmpty()
 
     /**
      * Submit shows greyed out (a tap says why, the web's "Some are already submitted"): a ticked asset is submitted, an
@@ -120,11 +138,10 @@ data class AssetListState(
     val submitBlocked: Boolean get() = someAlreadySubmitted(pickedAssets)
 }
 
-/** The open filter sheet: the choices being made ([draft]), what it offers, and how many assets they would show. */
+/** The open filter sheet: the choices in force ([draft], each applied as it is made) and what it offers. */
 data class FilterSheetState(
     val draft: AssetFilter,
     val options: AssetFilterOptions,
-    val matching: Int,
     /** The property's assignees are still being read (none kept on the phone yet): the people row shows placeholders. */
     val peopleLoading: Boolean = false,
 )
@@ -141,6 +158,8 @@ class AssetListViewModel @Inject constructor(
     private val filters: AssetFilterUseCases,
     selectionAccess: ObserveSelectionAccessUseCase,
     aiSwitch: ObserveAiSwitchUseCase,
+    accessBlocks: ObserveAccessBlocksUseCase,
+    private val reviewerOnly: ReviewerOnlyActionsUseCase,
 ) : ViewModel() {
     private val scope = MutableStateFlow(AssetListScope())
     private val ui = MutableStateFlow(Ui())
@@ -161,6 +180,8 @@ class AssetListViewModel @Inject constructor(
         val validation: Map<Tab, ValidationMark> = emptyMap(),
         /** The tabs narrowed to the assets in Managed Assets (the Managed assets chip, on the Assets tab only). */
         val managed: Set<Tab> = emptySet(),
+        /** The tabs narrowed to the assets onboarded over Bluetooth or Wi-Fi (those chips, on the Assets tab only). */
+        val onboarded: Map<Tab, Source> = emptyMap(),
         val refreshing: Boolean = false,
         val changeMenu: Boolean = false,
         val changeAction: ChangeAction? = null,
@@ -190,6 +211,9 @@ class AssetListViewModel @Inject constructor(
     /** The signed-in user's access, again whenever it changes. */
     private val access = selectionAccess().stateIn(viewModelScope, SharingStarted.Eagerly, selectionAccess.now())
 
+    /** Why each kind of button is greyed out, again whenever the access or the premise status changes. */
+    private val blocks = accessBlocks().stateIn(viewModelScope, SharingStarted.Eagerly, accessBlocks.now())
+
     init {
         // A change of access (another group, or the access arriving) keeps ticked only the assets the user may still work on.
         viewModelScope.launch {
@@ -204,16 +228,17 @@ class AssetListViewModel @Inject constructor(
     private val aiOn = aiSwitch().stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     val state: StateFlow<AssetListState> = combine(
-        useCases.observe(), combine(formats, aiOn) { t, a -> t to a }, scope, ui, access,
-    ) { read, (types, ai), sc, u, rights ->
+        useCases.observe(), combine(formats, aiOn) { t, a -> t to a }, scope, ui, combine(access, blocks) { a, b -> a to b },
+    ) { read, (types, ai), sc, u, (rights, why) ->
         val catalog = read.withAiSwitch(ai)
         val assets = catalog.assets
-        // Admins and reviewers (Validate) act on change requests, so their chip always shows (the web's).
-        val actsOnRequests = rights.admin || rights.validate
+        // Reviewers (Validate) act on change requests, so their chip always shows (the web's).
+        val actsOnRequests = rights.reviewer
         fun query(tab: Tab, filter: AssetFilter) = AssetListQuery(
             tab.sources(sc.network), sc.location, u.query, u.statusFilter[tab], changeRequests = tab in u.changeRequests,
             showChangeRequests = actsOnRequests,
             validation = u.validation[tab], filter = filter, managed = tab == Tab.ASSETS && tab in u.managed,
+            onboarded = u.onboarded[tab]?.takeIf { tab == Tab.ASSETS },
         )
         // The assets in Managed Assets have their chip on the Assets tab only; no other list ever shows them.
         fun managedFor(tab: Tab) = if (tab == Tab.ASSETS) catalog.managed else emptyList()
@@ -226,7 +251,6 @@ class AssetListViewModel @Inject constructor(
                     useCases.buildList.scope(if (q.managed) managedFor(u.filterTab) else assets, q), types, draft, filters.me(), u.names, u.everyone,
                     u.photos,
                 ),
-                useCases.buildList(assets, q, types, managedFor(u.filterTab)).items.size,
                 peopleLoading = u.namesLoading,
             )
         }
@@ -241,6 +265,8 @@ class AssetListViewModel @Inject constructor(
             filter = u.filter, filterSheet = sheet,
             access = rights,
             noSubmit = Tab.entries.filterTo(HashSet()) { tab -> tab in u.changeRequests || u.statusFilter[tab]?.let { it in NO_SUBMIT_CHIPS } == true },
+            blocks = why,
+            reviewerOnly = reviewerOnly(pickedAssets),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState(loading = true))
 
@@ -277,18 +303,20 @@ class AssetListViewModel @Inject constructor(
         }
     }
 
-    /** Closes the sheet; the choices made in it are dropped. */
+    /** Closes the sheet; its choices stay in force (each took effect as it was made). */
     fun closeFilter() = ui.update { it.copy(draft = null) }
 
-    fun toggleFilterPerson(userId: String) = ui.update { u -> u.copy(draft = u.draft?.togglePerson(userId)) }
+    fun toggleFilterPerson(userId: String) = changeFilter { it.togglePerson(userId) }
 
-    fun toggleFilter(category: FilterCategory, key: String) = ui.update { u -> u.copy(draft = u.draft?.toggle(category, key, formats.value)) }
+    fun toggleFilter(category: FilterCategory, key: String) = changeFilter { it.toggle(category, key, formats.value) }
 
-    /** Reset: nothing chosen in the sheet (it takes effect with Show). */
-    fun resetFilter() = ui.update { u -> u.copy(draft = u.draft?.let { AssetFilter() }) }
+    /** Reset: nothing chosen; the list shows every asset again at once. */
+    fun resetFilter() = changeFilter { AssetFilter() }
 
-    /** Show N assets: the sheet's choices are put in force and it closes. */
-    fun applyFilter() = ui.update { u -> u.draft?.let { u.copy(filter = it, draft = null) } ?: u }
+    /** A choice in the open sheet: put in force at once, so the list behind it follows each tap. */
+    private fun changeFilter(change: (AssetFilter) -> AssetFilter) = ui.update { u ->
+        u.draft?.let { change(it) }?.let { f -> u.copy(draft = f, filter = f) } ?: u
+    }
 
     /** The Network tab's mode changed: its list shows the assets of that scan ([Source.WIFI] or [Source.AP]). */
     fun setNetworkSource(source: Source) = scope.update { it.copy(network = source) }
@@ -300,7 +328,7 @@ class AssetListViewModel @Inject constructor(
     fun setStatusFilter(tab: Tab, status: Status?) = ui.update {
         it.copy(
             statusFilter = it.statusFilter + (tab to status), changeRequests = it.changeRequests - tab,
-            validation = it.validation - tab, managed = it.managed - tab,
+            validation = it.validation - tab, managed = it.managed - tab, onboarded = it.onboarded - tab,
         )
     }
 
@@ -312,7 +340,7 @@ class AssetListViewModel @Inject constructor(
     fun selectChangeRequests(tab: Tab) = ui.update {
         it.copy(
             statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests + tab,
-            validation = it.validation - tab, managed = it.managed - tab,
+            validation = it.validation - tab, managed = it.managed - tab, onboarded = it.onboarded - tab,
         )
     }
 
@@ -323,7 +351,7 @@ class AssetListViewModel @Inject constructor(
     fun selectValidation(tab: Tab, mark: ValidationMark) = ui.update {
         it.copy(
             statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests - tab,
-            validation = it.validation + (tab to mark), managed = it.managed - tab,
+            validation = it.validation + (tab to mark), managed = it.managed - tab, onboarded = it.onboarded - tab,
         )
     }
 
@@ -335,7 +363,18 @@ class AssetListViewModel @Inject constructor(
     fun selectManaged(tab: Tab) = ui.update {
         it.copy(
             statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests - tab,
-            validation = it.validation - tab, managed = it.managed + tab, picked = emptySet(),
+            validation = it.validation - tab, managed = it.managed + tab, onboarded = it.onboarded - tab, picked = emptySet(),
+        )
+    }
+
+    /**
+     * The Bluetooth / Wi-Fi chip (the web's tabs of those names): shows only the assets onboarded over [source]. Like a
+     * status chip, tapping it again keeps it on; another chip turns it off.
+     */
+    fun selectOnboarded(tab: Tab, source: Source) = ui.update {
+        it.copy(
+            statusFilter = it.statusFilter + (tab to null), changeRequests = it.changeRequests - tab,
+            validation = it.validation - tab, managed = it.managed - tab, onboarded = it.onboarded + (tab to source),
         )
     }
 
@@ -365,20 +404,6 @@ class AssetListViewModel @Inject constructor(
         val selectable = useCases.canWorkOn(id)
         if (!selectable && id !in ui.value.picked) message.tryEmit(UiText.Res(notSelectableReason()))
         ui.update { it.copy(picked = useCases.toggleSelection(it.picked, id, selectable)) }
-    }
-    /** Whether the selection's Edit, Submit and Delete show: the signed-in user may collect (a viewer may not). */
-    fun mayCollect(): Boolean = state.value.access.collect
-
-    /**
-     * Submit usable right away: the user may collect and every ticked asset is still a draft. The web's selection bar
-     * instead shows it greyed out with the reason: see [AssetListState.submitOffered] and [AssetListState.submitBlocked].
-     */
-    fun maySubmit(assets: Collection<Asset>): Boolean = mayCollect() && assets.isNotEmpty() && !someAlreadySubmitted(assets)
-
-    /** Delete, as the web's: none of the ticked assets is submitted or signed off, unless the user is an admin (lockedForMe). */
-    fun mayDelete(assets: Collection<Asset>): Boolean {
-        val admin = state.value.access.admin
-        return mayCollect() && assets.none { isLockedFor(it.st, admin) }
     }
 
     /** Why an asset can't be picked: the group can only view, or it is assigned to someone else. */
@@ -508,7 +533,12 @@ class AssetListViewModel @Inject constructor(
             ChangeAction.WITHDRAW -> R.plurals.change_bulk_withdrawn
         }
 
-    fun askDelete() = ui.update { it.copy(confirmDelete = true) }
+    /** Delete on the bar: asks first, unless the user can't delete these (greyed out on the bar; refused here too). */
+    fun askDelete() {
+        val s = state.value
+        if (s.blocks.collect != null || s.deleteLock != null) return
+        ui.update { it.copy(confirmDelete = true) }
+    }
     fun cancelDelete() = ui.update { it.copy(confirmDelete = false) }
 
     fun deleteSelected() {

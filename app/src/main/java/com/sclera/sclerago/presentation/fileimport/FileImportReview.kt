@@ -2,33 +2,50 @@ package com.sclera.sclerago.presentation.fileimport
 
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
+import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.UploadProblem
 import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.model.reason
+import com.sclera.sclerago.presentation.assets.PhotoViewer
 import com.sclera.sclerago.presentation.assets.ReviewScreen
+import com.sclera.sclerago.presentation.assets.openFile
+import com.sclera.sclerago.presentation.components.AccessGate
+import com.sclera.sclerago.presentation.components.MediaImage
+import com.sclera.sclerago.presentation.components.MenuAct
+import com.sclera.sclerago.presentation.icons.Icons
+import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.OnOffSwitch
@@ -41,13 +58,7 @@ import com.sclera.sclerago.services.media.formatSize
 /** Test tags of the File tab's review. */
 object FileImportTags {
     const val CREATE_FIELDS = "file-import-create-fields"
-    const val SAMPLE = "file-import-sample"
 }
-
-private const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-/** The name the sample is offered under (the server's `Content-Disposition`). */
-private const val SAMPLE_NAME = "asset-sample.xlsx"
 
 /**
  * The File tab's Review and onboard screen through the server's steps: the files picked (each checked as the server
@@ -62,26 +73,48 @@ fun FileImportReview(
     flash: (UiText) -> Unit,
     /** The device is online. Offline, a banner says the files are read by the server, and Read / Add say why they wait. */
     online: Boolean = true,
+    /** What the button that adds more says ("Add files"; the Camera's "Take more"). */
+    addMore: String = stringResource(R.string.review_add_files),
 ) {
     val s = vm.state
+    val context = LocalContext.current
+    val openWith = stringResource(R.string.doc_open_with)
+    // A photo or video opens in the app's viewer; any other file in an app that reads it.
+    var preview by remember { mutableStateOf<ImportedFile?>(null) }
+    val open: (ImportedFile) -> Unit = { f ->
+        if (f.previewMedia() != null) {
+            preview = f
+        } else {
+            openFile(context, f.uri, f.mime, openWith)
+        }
+    }
+    val openPicked = { id: String -> s.files.firstOrNull { it.id == id }?.let(open); Unit }
+    val openSource = { id: String -> s.drafts.firstOrNull { it.draft.id == id }?.file?.let(open); Unit }
     val banner = OnlineOnly.FILES.takeUnless { online }
     val explain = { why: OnlineOnly -> flash(UiText.Res(why.message)) }
     OutcomeEffect(s.outcome, onClose, flash, vm::outcomeShown)
-    val sampleSaver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(XLSX_MIME)) { uri ->
-        vm.saveSample(uri?.toString())
-    }
+    Box(Modifier.fillMaxSize()) {
     when (s.step) {
         FileStep.PICK -> {
             val send = s.toSend.size
             ReviewScreen(
                 sub = pluralStringResource(R.plurals.file_import_files_sub, send, send),
-                addLabel = stringResource(R.string.review_add_files), onAdd = onAddFiles,
+                addLabel = addMore, onAdd = onAddFiles,
                 items = s.files.map { it.toItem(s) }, onToggle = vm::toggle,
                 onDiscard = vm::discard, onGo = vm::read,
                 goLabel = if (send > 0) pluralStringResource(R.plurals.file_import_read, send, send) else null,
-                footer = { SampleLink { sampleSaver.launch(SAMPLE_NAME) } },
+                onOpen = openPicked,
                 offlineBanner = banner, offlineGo = OnlineOnly.READ_FILE.takeUnless { online }, onOffline = explain,
-                thumb = { ExtBadge(it) },
+                goBlock = vm.collectBlock.reason(),
+                // Holding a file: View, Include / Leave out (unless the server would refuse it), Remove.
+                menu = { ri ->
+                    buildList {
+                        add(MenuAct(Icons.Eye, stringResource(R.string.media_view)) { openPicked(ri.id) })
+                        if (ri.id !in s.problems) add(includeAct(ri.on) { vm.toggle(ri.id) })
+                        add(MenuAct(Icons.Trash, stringResource(R.string.media_remove), danger = true) { vm.remove(ri.id) })
+                    }
+                },
+                thumb = { ri, hold -> FileThumb(ri, { openPicked(ri.id) }, hold) },
             )
         }
         FileStep.READING -> {
@@ -89,45 +122,100 @@ fun FileImportReview(
             ReviewScreen(
                 sub = if (s.reading) pluralStringResource(R.plurals.file_import_files_sub, sent.size, sent.size)
                 else stringResource(R.string.file_import_nothing_found),
-                addLabel = stringResource(R.string.review_add_files), onAdd = if (s.reading) null else onAddFiles,
+                addLabel = addMore, onAdd = if (s.reading) null else onAddFiles,
                 items = sent.map { it.toItem(s) }, onToggle = vm::toggle,
                 onDiscard = vm::discard, onGo = {},
                 goLabel = stringResource(if (s.reading) R.string.file_import_reading_files else R.string.file_import_none_found),
                 busy = true,
+                onOpen = openPicked,
                 offlineBanner = banner,
-                thumb = { ExtBadge(it) },
+                // While the files are read only viewing them is offered.
+                menu = { ri -> listOf(MenuAct(Icons.Eye, stringResource(R.string.media_view)) { openPicked(ri.id) }) },
+                thumb = { ri, hold -> FileThumb(ri, { openPicked(ri.id) }, hold) },
             )
         }
         FileStep.REVIEW -> {
             val extras = s.extraNames.size
             ReviewScreen(
                 sub = pluralStringResource(R.plurals.file_import_drafts_sub, s.drafts.size, s.drafts.size),
-                addLabel = stringResource(R.string.review_add_files), onAdd = null,
+                addLabel = addMore, onAdd = null,
                 items = s.drafts.map { it.toItem(s.off) }, onToggle = vm::toggle,
                 onDiscard = vm::discard, onGo = vm::accept,
+                goBlock = vm.collectBlock.reason(),
                 goLabel = if (s.busy) stringResource(R.string.file_import_adding) else null,
                 busy = s.busy,
                 footer = {
                     Txt(stringResource(R.string.file_import_tap_to_correct), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
-                    if (extras > 0) CreateFieldsToggle(extras, s.createFields) { vm.setCreateFields(!s.createFields) }
+                    if (extras > 0) {
+                        // Greyed out, as Add, while the user can't collect; a tap says why.
+                        AccessGate(vm.collectBlock, Modifier.fillMaxWidth()) {
+                            CreateFieldsToggle(extras, s.createFields) { vm.setCreateFields(!s.createFields) }
+                        }
+                    }
                 },
                 onOpen = vm::openDraft,
                 offlineBanner = banner, offlineGo = OnlineOnly.ADD_FILE_ASSETS.takeUnless { online }, onOffline = explain,
-                thumb = { ExtBadge(it) },
+                // Holding an asset found: correct its details, view the file it was read from, include it or leave it out.
+                menu = { ri ->
+                    listOf(
+                        MenuAct(Icons.Pencil, stringResource(R.string.file_import_edit_details)) { vm.openDraft(ri.id) },
+                        MenuAct(Icons.Eye, stringResource(R.string.file_import_view_file)) { openSource(ri.id) },
+                        includeAct(ri.on) { vm.toggle(ri.id) },
+                    )
+                },
+                // The thumbnail shows the file the asset was read from; tapping it opens that file.
+                thumb = { ri, hold -> FileThumb(ri, { openSource(ri.id) }, hold) },
             )
+        }
+    }
+    preview?.let { f ->
+        f.previewMedia()?.let { m ->
+            BackHandler { preview = null }
+            PhotoViewer(
+                m, onClose = { preview = null }, onDownload = null,
+                // Before it is read, a picked file can be taken off from its preview too.
+                onRemove = if (s.step == FileStep.PICK) ({ preview = null; vm.remove(f.id) }) else null,
+            )
+        }
+    }
+    }
+}
+
+/** Include (ticks it) or Leave out (unticks it), for an item that is [on] or not. */
+@Composable
+private fun includeAct(on: Boolean, toggle: () -> Unit): MenuAct =
+    if (on) MenuAct(Icons.Minus, stringResource(R.string.review_leave_out), go = toggle)
+    else MenuAct(Icons.CheckSquare, stringResource(R.string.review_include), go = toggle)
+
+/**
+ * A file's picture: a photo, or a video's first frame, else its extension in its colour (a spreadsheet, a PDF…).
+ * Tapping it opens the file; holding it lists what can be done with it ([onHold]).
+ */
+@Composable
+private fun FileThumb(ri: ReviewItem, onOpen: () -> Unit, onHold: () -> Unit) {
+    val label = stringResource(R.string.doc_open_cd, ri.file)
+    val actions = stringResource(R.string.media_actions)
+    Box(
+        Modifier.size(52.dp).clip(r(10)).pressClickable(shape = r(10), onLongClick = onHold, onLongClickLabel = actions, onClick = onOpen)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        val media = ri.media
+        if (media == null) ExtBadge(ri)
+        else {
+            MediaImage(media, Modifier.fillMaxSize(), maxPx = 160)
+            if (media.video) LineIcon(Icons.Video, 16.dp, C.White, 2.2f, Modifier.align(Alignment.BottomStart).padding(5.dp))
         }
     }
 }
 
-/** "Download sample": a blank spreadsheet with the property's fields as headings, to fill in and upload. */
-@Composable
-private fun SampleLink(onClick: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).pressClickable(shape = r(10), pressed = PRESSED_CARD, onClick = onClick).testTag(FileImportTags.SAMPLE),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Txt(stringResource(R.string.file_import_sample), 13, 700, C.Yellow)
-        Txt(stringResource(R.string.file_import_sample_hint), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+/** A photo or video file as [Media], to show its picture and play it here; null for any other file. */
+private fun ImportedFile.previewMedia(): Media? {
+    val type = mime.orEmpty()
+    return when {
+        type.startsWith("image/") -> Media(id, uri, video = false)
+        type.startsWith("video/") -> Media(id, uri, video = true)
+        else -> null
     }
 }
 
@@ -161,7 +249,6 @@ private fun FileOutcome.message(): String? = when (this) {
     }
     is FileOutcome.Discarded -> pluralStringResource(R.plurals.file_import_discarded, count, count)
     is FileOutcome.Failed -> message.asString()
-    FileOutcome.SampleSaved -> stringResource(R.string.file_import_sample_saved)
     FileOutcome.Cleared -> null
 }
 
@@ -201,7 +288,8 @@ private fun ImportedFile.toItem(s: FileImportState): ReviewItem {
     }
     return ReviewItem(
         id = id, name = baseName, sub = UiText.Res(R.string.review_file_sub, listOf(name, formatSize(size))), ready = false,
-        on = id !in s.off && id !in s.problems, ext = ext, extColor = extColor(), file = name, note = note, noteColor = color,
+        on = id !in s.off && id !in s.problems, ext = ext, extColor = extColor(), file = name, media = previewMedia(),
+        note = note, noteColor = color,
     )
 }
 
@@ -222,6 +310,7 @@ private fun FoundDraft.toItem(off: Set<String>): ReviewItem {
     return ReviewItem(
         id = draft.id, name = draft.name.ifBlank { source }, sub = UiText.Res(R.string.file_import_draft_sub, listOf(where, from)),
         ready = unsure == 0, on = draft.id !in off, ext = file.ext, extColor = file.extColor(), file = file.name,
+        media = file.previewMedia(),
         note = when (notes.size) {
             0 -> null
             1 -> notes.single()

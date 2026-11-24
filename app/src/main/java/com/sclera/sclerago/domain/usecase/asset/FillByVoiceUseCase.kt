@@ -9,6 +9,7 @@ import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.VoiceField
 import com.sclera.sclerago.domain.model.VoiceFillResult
+import com.sclera.sclerago.domain.model.currency
 import com.sclera.sclerago.domain.repository.VoiceFillRepository
 import com.sclera.sclerago.domain.system.TimeProvider
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
@@ -38,7 +39,7 @@ class FillByVoiceUseCase @Inject constructor(
             .filter { it.visible && !it.locked && it.section != FieldSection.CLASS && it.kind !in NO_INPUT_KINDS }
             .filter { it.kind !in OPTION_KINDS || it.options.isNotEmpty() }
             .take(MAX_FIELDS)
-            .map { VoiceField(it.key, it.label.removeSuffix(" *").trim(), it.kind, valueOf(it.key), it.options) }
+            .map { VoiceField(it.key, it.label.removeSuffix(" *").trim(), it.kind, valueOf(it.key), it.options, it.currency.orEmpty()) }
         if (text.isEmpty() || form.isEmpty()) return VoiceReading(VoiceFillResult(emptyMap()), byAi = false)
         guard.requireOnline(Permission.COLLECT)
         return try {

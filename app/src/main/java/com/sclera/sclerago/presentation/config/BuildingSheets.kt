@@ -46,7 +46,6 @@ import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.LabeledInput
-import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.SearchField
@@ -154,10 +153,10 @@ internal fun SelectBuildingSheet(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            OfflineGate(offline, onBlocked, Modifier.weight(1f)) {
+            ConfigGate(Modifier.weight(1f), offline, onBlocked) {
                 Pill(stringResource(R.string.import_action), onImport, Modifier.fillMaxWidth(), height = 44.dp, size = 13, weight = 700)
             }
-            OfflineGate(offline, onBlocked, Modifier.weight(1f)) {
+            ConfigGate(Modifier.weight(1f), offline, onBlocked) {
                 Pill(stringResource(R.string.cfgt_add_building), onAdd, Modifier.fillMaxWidth(), bg = C.Yellow, fg = C.OnYellow, height = 44.dp, size = 13, weight = 700)
             }
         }
@@ -230,13 +229,13 @@ internal fun EditPlacesSheet(
                         Txt(row.sub, 11, 400, C.Muted, maxLines = 2)
                     }
                     val editLabel = stringResource(R.string.access_edit_group, p.name)
-                    OfflineGate(offline, onBlocked) {
+                    ConfigGate(offline = offline, onOffline = onBlocked) {
                         RoundButton(32.dp, Color.Transparent, { onEdit(p) }, Modifier.semantics { contentDescription = editLabel }) {
                             LineIcon(Icons.Pencil, 16.dp, C.Yellow, 2.2f)
                         }
                     }
                     val deleteLabel = stringResource(R.string.property_delete_label, p.name)
-                    OfflineGate(offline, onBlocked) {
+                    ConfigGate(offline = offline, onOffline = onBlocked) {
                         RoundButton(32.dp, Color.Transparent, { onDelete(p) }, Modifier.semantics { contentDescription = deleteLabel }) {
                             LineIcon(Icons.Trash, 16.dp, C.Red, 2.2f)
                         }
@@ -263,7 +262,9 @@ internal fun LocationSheet(
     onDelete: () -> Unit,
     startEditing: Boolean = false,
 ) {
-    var editing by remember(l.id) { mutableStateOf(startEditing && !offline) }
+    // Opened to edit only when the location can be changed now (online, and with the Configure permission).
+    val canChange = !offline && LocalConfigBlock.current == null
+    var editing by remember(l.id) { mutableStateOf(startEditing && canChange) }
     var name by remember(l.id) { mutableStateOf(l.name) }
     var type by remember(l.id) { mutableStateOf(l.type) }
     var code by remember(l.id) { mutableStateOf(l.code) }
@@ -289,7 +290,7 @@ internal fun LocationSheet(
                 }
                 if (!editing) {
                     val editLabel = stringResource(R.string.access_edit_group, l.name)
-                    OfflineGate(offline, onBlocked) {
+                    ConfigGate(offline = offline, onOffline = onBlocked) {
                         RoundButton(36.dp, C.Btn, { editing = true }, Modifier.semantics { contentDescription = editLabel }) {
                             LineIcon(Icons.Pencil, 16.dp, C.Yellow, 2.2f)
                         }
@@ -318,14 +319,16 @@ internal fun LocationSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Pill(stringResource(R.string.cfg_cancel), { if (changed) askCancel = true else stopEditing() }, height = 44.dp, hPad = 18.dp)
-                    Pill(
-                        stringResource(R.string.cfg_save), { if (name.isNotBlank()) { onSave(name, type, code); editing = false } },
-                        Modifier.weight(1f).alpha(if (name.isNotBlank()) 1f else 0.4f),
-                        bg = C.Yellow, fg = C.OnYellow, height = 44.dp, size = 13, weight = 700,
-                    )
+                    ConfigGate(Modifier.weight(1f)) {
+                        Pill(
+                            stringResource(R.string.cfg_save), { if (name.isNotBlank()) { onSave(name, type, code); editing = false } },
+                            Modifier.fillMaxWidth().alpha(if (name.isNotBlank()) 1f else 0.4f),
+                            bg = C.Yellow, fg = C.OnYellow, height = 44.dp, size = 13, weight = 700,
+                        )
+                    }
                 }
             } else {
-                OfflineGate(offline, onBlocked, Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp)) {
+                ConfigGate(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), offline, onBlocked) {
                     Row(
                         Modifier.fillMaxWidth().height(44.dp).pressClickable(shape = Capsule, pressed = PRESSED_CARD, onClick = onDelete).background(DangerWash)
                             .border(1.dp, C.Red.copy(alpha = 0.55f), Capsule),

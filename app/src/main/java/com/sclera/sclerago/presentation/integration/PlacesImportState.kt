@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.integration
 
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.PlaceKey
 import com.sclera.sclerago.domain.model.PlaceNode
 import com.sclera.sclerago.domain.model.PlaceTally
@@ -46,6 +47,11 @@ data class PlacesPickerView(
 /** The Send to VDMS / Import from VDMS sheet. */
 data class PlacesSheetState(
     val direction: PlacesDirection,
+    /**
+     * VDMS is being asked for a fresh list on opening: a loader shows until it answers (or the ask gives up), so nothing
+     * is picked from an old list, as the web's.
+     */
+    val firstLoad: Boolean = true,
     val search: String = "",
     val hideExisting: Boolean = true,
     val selected: Set<PlaceKey> = emptySet(),
@@ -66,8 +72,11 @@ data class PlacesSheetState(
 
 data class PlacesUiState(
     val propertyId: String = "",
-    /** Sending and importing can be used (not for the plain "user" role, as on the web). */
-    val canImport: Boolean = false,
+    /**
+     * Why sending, importing and asking VDMS for its list can't be used by the signed-in user (they need Configure), null
+     * when they can: the buttons stay greyed out and say why. Nothing is allowed until the access is known.
+     */
+    val access: AccessBlock? = AccessBlock.CHECKING,
     val loading: Boolean = false,
     val failed: Boolean = false,
     val places: VdmsPlaces? = null,

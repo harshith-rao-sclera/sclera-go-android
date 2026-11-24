@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.PlaceNames
+import com.sclera.sclerago.domain.model.labelWithCurrency
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.bottomBorder
@@ -99,8 +100,12 @@ class FieldSpec(private val fields: List<FieldCfg>) {
     fun shown(key: String) = cfg(key)?.visible ?: true
     fun required(key: String) = cfg(key)?.let { it.required && it.visible } ?: false
 
-    /** The field's name, or [fallback] when the property has no such field; " *" marks a mandatory one. */
-    fun label(key: String, fallback: String = key) = (cfg(key)?.label?.takeIf { it.isNotBlank() } ?: fallback) + if (required(key)) " *" else ""
+    /**
+     * The field's name (a currency field's with its currency, "Purchase cost (USD)"), or [fallback] when the property
+     * has no such field; " *" marks a mandatory one.
+     */
+    fun label(key: String, fallback: String = key) =
+        (cfg(key)?.takeIf { it.label.isNotBlank() }?.labelWithCurrency ?: fallback) + if (required(key)) " *" else ""
 
     /** The fields that show, in their order, except [keys]. */
     fun visibleExcept(keys: Set<String>) = fields.filter { it.visible && it.key !in keys }
@@ -272,6 +277,8 @@ fun PickRow(
     requester: BringIntoViewRequester? = null,
     /** A short orange tag before the chevron (a mandatory value still missing: "REQUIRED"). */
     tag: String? = null,
+    /** A button of the row's own before the chevron (the JACS code's AI suggest); not on a read-only form. */
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val readOnly = LocalReadOnly.current
     Row(
@@ -288,6 +295,7 @@ fun PickRow(
         )
         BadgeText(key, badge)
         tag?.let { Txt(it, 10, 700, C.Orange) }
+        if (!readOnly) trailing?.invoke()
         if (!readOnly) LineIcon(Icons.ChevronDown, 13.dp, C.Muted, 3f)
     }
 }

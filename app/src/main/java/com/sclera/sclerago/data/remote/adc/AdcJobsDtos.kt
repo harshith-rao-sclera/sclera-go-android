@@ -27,6 +27,11 @@ data class LookupJobDto(
     val createdAt: String? = null,
     /** The type the AI thinks the asset is, when it isn't the one it has; values for its fields are in [values]. */
     val suggestedType: TypeSuggestionDto? = null,
+    /**
+     * A JACS code for the type the asset has, when it has no code (with [suggestedType] none: that type brings its own).
+     * Applied with the asset's update as its `jacsCodeId`.
+     */
+    val suggestedJacsCode: SuggestedCodeDto? = null,
     /** On start: the search for the model's manuals it started, if any. */
     val manualJobId: String? = null,
 )

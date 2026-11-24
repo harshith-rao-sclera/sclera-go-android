@@ -5,12 +5,14 @@ import com.sclera.sclerago.data.remote.adc.FieldImportRowDto
 import com.sclera.sclerago.data.remote.adc.PlaceImportResultDto
 import com.sclera.sclerago.data.remote.adc.SheetSkipDto
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.FieldSection
 import com.sclera.sclerago.domain.model.FieldsRead
 import com.sclera.sclerago.domain.model.PlacesImported
 import com.sclera.sclerago.domain.model.SheetSkip
 import com.sclera.sclerago.domain.model.SkipReason
 import com.sclera.sclerago.domain.model.configFieldKindOf
+import com.sclera.sclerago.domain.model.currencyInName
 import com.sclera.sclerago.domain.model.optionColorOrNull
 
 // Configuration's spreadsheet imports: what the server read or made (`/places/import`, `/fields/import/read`) as the
@@ -54,6 +56,8 @@ private fun FieldImportRowDto.toDraft(): FieldCfg? {
         optionColors = options.orEmpty().mapNotNull { o -> optionColorOrNull(o.color)?.let { o.label to it } }.toMap(),
         defaultValue = defaultValue.orEmpty(),
         tooltip = helpText.orEmpty(),
+        // A currency row's name ends with its currency ("Purchase cost (USD)"), as the server requires.
+        unit = if (kind == FieldKind.CURRENCY) currencyInName(label).orEmpty() else "",
     )
 }
 
