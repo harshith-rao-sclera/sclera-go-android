@@ -20,6 +20,11 @@
         <item quantity="one">%1$d submitted or validated asset was left as it is: only a reviewer can change it</item>
         <item quantity="other">%1$d submitted or validated assets were left as they are: only a reviewer can change them</item>
     </plurals>
+    <!-- Bulk edit changed some of the ticked assets and left the rest (%2$d, the plural's count): %1$s is bulk_updated, e.g. "3 assets updated". -->
+    <plurals name="bulk_updated_and_skipped">
+        <item quantity="one">%1$s. %2$d submitted or validated asset was left as it is: only a reviewer can change it</item>
+        <item quantity="other">%1$s. %2$d submitted or validated assets were left as they are: only a reviewer can change them</item>
+    </plurals>
     <!-- Submit on the selection bar, greyed out while a ticked asset is already submitted, an exception or signed off. -->
     <string name="submit_block_some_submitted">Some of the selected assets are already submitted</string>
 </resources>

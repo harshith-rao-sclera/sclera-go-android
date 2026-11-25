@@ -202,7 +202,6 @@
     <string name="asset_submitted_notice">Asset eingereicht · es kann nicht mehr bearbeitet werden</string>
     <string name="asset_changes_saved">Änderungen gespeichert</string>
     <string name="asset_exception_notice">Asset mit Ausnahme eingereicht</string>
-    <string name="action_submit_exception">Trotzdem einreichen</string>
     <string name="detail_submit_exception_title">Mit Ausnahme einreichen?</string>
     <string name="detail_submit_exception_body">Einige Pflichtfelder sind leer oder es fehlen Fotos, daher wird es als Ausnahme eingereicht.</string>
     <string name="detail_save_missing_title">Pflichtfelder sind leer</string>

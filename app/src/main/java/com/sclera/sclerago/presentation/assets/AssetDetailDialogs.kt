@@ -35,7 +35,7 @@ internal fun DetailModalDialog(modal: DetailModal, state: AssetDetailState, acti
             icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
             title = stringResource(R.string.detail_submit_exception_title),
             body = stringResource(R.string.detail_submit_exception_body),
-            no = stringResource(R.string.action_keep_editing), yes = stringResource(R.string.action_submit_exception), yesBg = C.Yellow,
+            no = stringResource(R.string.action_keep_editing), yes = stringResource(R.string.action_submit), yesBg = C.Yellow,
             onNo = { onDone() },
             onYes = {
                 onDone()

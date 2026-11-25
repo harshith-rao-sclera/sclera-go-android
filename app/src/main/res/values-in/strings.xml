@@ -198,7 +198,6 @@
     <string name="asset_submitted_notice">Aset terkirim · tidak dapat diedit lagi</string>
     <string name="asset_changes_saved">Perubahan disimpan</string>
     <string name="asset_exception_notice">Aset dikirim dengan pengecualian</string>
-    <string name="action_submit_exception">Tetap kirim</string>
     <string name="detail_submit_exception_title">Kirim dengan pengecualian?</string>
     <string name="detail_submit_exception_body">Beberapa kolom wajib kosong atau foto kurang, jadi aset akan dikirim sebagai pengecualian.</string>
     <string name="detail_save_missing_title">Kolom wajib kosong</string>

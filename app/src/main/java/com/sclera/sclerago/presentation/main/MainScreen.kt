@@ -332,37 +332,36 @@ fun ScleraApp(
                         enter = slideInVertically { it } + fadeIn(),
                         exit = slideOutVertically { it } + fadeOut(),
                     ) {
+                        val shown = lists.dockShown()
                         SelectionDock(
                             count = lists.picked.size,
                             visible = visibleItems.size,
                             allPicked = visibleItems.isNotEmpty() && visibleItems.all { it.id in lists.picked },
                             onClear = list::clearSelection,
                             onSelectAll = { list.selectAll(s.tab) },
-                            // Every action the user's group can't use stays on the bar greyed out, and a tap says why
-                            // (lists.dockAccess(): Validate needs Check, Edit / Submit / Delete Collect, Assign Collect, Move
-                            // Configure; Delete also not for submitted or signed-off assets unless a reviewer).
-                            onValidate = { quickIds = lists.picked.toList() },
+                            // An action the user's group doesn't allow is left off the bar (lists.dockShown()); one held back
+                            // by a passing state (access loading, off site) or the ticked assets stays, greyed out, and a tap
+                            // says why (lists.dockAccess()).
+                            onValidate = if (shown.validate) ({ quickIds = lists.picked.toList() }) else null,
                             // As the web's selection bar: no Assign, Submit or Delete on the Validated filter; Submit only for drafts.
-                            // Assign (a reviewer picks who has them) shows for everyone: for anyone else it is greyed out by its
-                            // access gate, which takes the tap and says only a reviewer assigns.
+                            // Assign (a reviewer picks who has them) is a reviewer's only; anyone else gets "Assign to me".
                             onAssign = when {
-                                onValidatedFilter -> null
+                                onValidatedFilter || !shown.assign -> null
                                 assign.mayAssign() -> ({ assign.open(lists.picked, lists.pickedAssets.singleOrNull()?.assignedTo) })
                                 else -> ({})
                             },
                             // The web's "Assign to me", beside Assign for anyone but a reviewer (whose Assign offers themselves),
-                            // as on the asset's own bar: greyed out (a tap says why) when one is assigned or submitted, or
-                            // when the user can't take assets at all.
-                            onTake = if (onValidatedFilter || lists.access.reviewer) null else ({ assign.take(lists.pickedAssets, onDone = list::clearSelection) }),
-                            takeDimmed = assign.mayTake() && assign.takeBlocked(lists.pickedAssets),
-                            takeAccess = lists.blocks.assign.reason() ?: UiText.Res(R.string.access_take_unavailable).takeUnless { assign.mayTake() },
-                            onEdit = if (onValidatedFilter) null else ({ bulk.open(lists.picked) }),
+                            // as on the asset's own bar: greyed out (a tap says why) when one is assigned or submitted.
+                            onTake = if (onValidatedFilter || lists.access.reviewer || !shown.take) null else ({ assign.take(lists.pickedAssets, onDone = list::clearSelection) }),
+                            takeAccess = lists.blocks.assign.reason()
+                                ?: (if (assign.mayTake()) assign.takeReason(lists.pickedAssets) else UiText.Res(R.string.access_take_unavailable)),
+                            onEdit = if (onValidatedFilter || !shown.edit) null else ({ bulk.open(lists.picked) }),
                             // As the web: Submit stays on the bar, greyed out when a ticked asset is already submitted.
-                            onSubmit = if (!onValidatedFilter && lists.submitOffered(s.tab)) list::submitSelected else null,
+                            onSubmit = if (!onValidatedFilter && shown.submit && lists.submitOffered(s.tab)) list::submitSelected else null,
                             submitDimmed = lists.submitBlocked,
-                            onDelete = if (!onValidatedFilter) list::askDelete else null,
+                            onDelete = if (!onValidatedFilter && shown.delete) list::askDelete else null,
                             // Move is on the bar while a ticked asset is validated.
-                            onMove = if (lists.anyValidated) ({ move.tap(lists.picked, onValidatedFilter) }) else null,
+                            onMove = if (lists.anyValidated && shown.move) ({ move.tap(lists.picked, onValidatedFilter) }) else null,
                             moveDimmed = move.blockedReason(onValidatedFilter) != null,
                             offline = !online,
                             onOffline = explainOffline,

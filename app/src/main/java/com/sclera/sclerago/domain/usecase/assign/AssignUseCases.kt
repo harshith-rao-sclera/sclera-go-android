@@ -66,11 +66,18 @@ class TakeAssetsUseCase @Inject constructor(private val repo: AssetAssignmentRep
     /** Whether "Assign to me" shows: the user may collect, isn't a reviewer (who gets Assign) and is known to the server. */
     fun allowed(): Boolean = guard.allows(Permission.COLLECT) && !guard.isReviewer() && guard.userId() != null
 
-    /** Why [assets] can't be taken (null when they can): one already has an assignee, or one is submitted or signed off. */
-    fun refusal(assets: Collection<Asset>): TakeRefusal? = when {
-        assets.any { !it.assignedTo.isNullOrBlank() } -> TakeRefusal.ALREADY_ASSIGNED
-        assets.any { isLockedFor(it.st, reviewer = false) } -> TakeRefusal.SUBMITTED
-        else -> null
+    /**
+     * Why [assets] can't be taken (null when they can): one is someone else's (or has an assignee while who the user is
+     * isn't known yet), one is the user's own already, or one is submitted or signed off.
+     */
+    fun refusal(assets: Collection<Asset>): TakeRefusal? {
+        val me = guard.userId()
+        return when {
+            assets.any { !it.assignedTo.isNullOrBlank() && it.assignedTo != me } -> TakeRefusal.ALREADY_ASSIGNED
+            assets.any { !it.assignedTo.isNullOrBlank() } -> TakeRefusal.ALREADY_YOURS
+            assets.any { isLockedFor(it.st, reviewer = false) } -> TakeRefusal.SUBMITTED
+            else -> null
+        }
     }
 
     /** Takes [assets] of [propertyId] for the signed-in user. Throws [OnlineException] Forbidden when the rule refuses it. */

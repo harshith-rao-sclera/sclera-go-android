@@ -206,7 +206,6 @@
     <string name="asset_submitted_notice">Actif soumis · il ne peut plus être modifié</string>
     <string name="asset_changes_saved">Modifications enregistrées</string>
     <string name="asset_exception_notice">Actif soumis avec exception</string>
-    <string name="action_submit_exception">Soumettre quand même</string>
     <string name="detail_submit_exception_title">Soumettre avec exception ?</string>
     <string name="detail_submit_exception_body">Des champs obligatoires sont vides ou des photos manquent : il sera donc soumis comme exception.</string>
     <string name="detail_save_missing_title">Des champs obligatoires sont vides</string>

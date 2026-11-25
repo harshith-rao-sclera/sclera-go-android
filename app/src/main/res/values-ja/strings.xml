@@ -198,7 +198,6 @@
     <string name="asset_submitted_notice">資産を送信しました · 編集できなくなりました</string>
     <string name="asset_changes_saved">変更を保存しました</string>
     <string name="asset_exception_notice">資産を例外として提出しました</string>
-    <string name="action_submit_exception">このまま提出</string>
     <string name="detail_submit_exception_title">例外として提出しますか？</string>
     <string name="detail_submit_exception_body">必須項目が空か写真が不足しているため、例外として提出されます。</string>
     <string name="detail_save_missing_title">必須項目が空です</string>

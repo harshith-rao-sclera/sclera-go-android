@@ -210,7 +210,6 @@
     <string name="asset_submitted_notice">Актив надіслано · його більше не можна редагувати</string>
     <string name="asset_changes_saved">Зміни збережено</string>
     <string name="asset_exception_notice">Актив надіслано з винятком</string>
-    <string name="action_submit_exception">Усе одно надіслати</string>
     <string name="detail_submit_exception_title">Надіслати з винятком?</string>
     <string name="detail_submit_exception_body">Деякі обовʼязкові поля порожні або бракує фото, тому актив буде надіслано як виняток.</string>
     <string name="detail_save_missing_title">Обовʼязкові поля порожні</string>

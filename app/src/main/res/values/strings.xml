@@ -303,7 +303,6 @@
     <string name="asset_submitted_notice">Asset submitted · it can’t be edited now</string>
     <string name="asset_changes_saved">Changes saved</string>
     <string name="asset_exception_notice">Asset submitted with exception</string>
-    <string name="action_submit_exception">Submit anyway</string>
     <string name="detail_submit_exception_title">Submit with exception?</string>
     <string name="detail_submit_exception_body">Some mandatory fields are empty or photos are missing, so it will be submitted as an exception.</string>
     <string name="detail_save_missing_title">Mandatory fields are empty</string>

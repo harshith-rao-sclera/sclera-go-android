@@ -406,12 +406,26 @@ private fun IssueRow(issue: StepIssue) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             if (label != null) Txt(label, 12, 600, maxLines = 2)
             if (label != null && next != null) {
-                // The fix on its own line: what it is now, an arrow, what it would become.
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
-                    if (now != null) Txt(issueNowText(now), 12, 400, C.Muted, maxLines = 2)
-                    val changeTo = stringResource(R.string.val_issue_change_to)
-                    Txt("→", 12, 400, C.Muted, modifier = Modifier.semantics { contentDescription = changeTo })
-                    Txt(next, 12, 600, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f))
+                val nowText = now?.let { issueNowText(it) }
+                val changeTo = stringResource(R.string.val_issue_change_to)
+                // What it would become, after an arrow, taking the rest of its line.
+                val becomes: @Composable () -> Unit = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+                        Txt("→", 12, 400, C.Muted, modifier = Modifier.semantics { contentDescription = changeTo })
+                        Txt(next, 12, 600, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f))
+                    }
+                }
+                if (nowText == null || nowText.length <= SHORT_NOW) {
+                    // A short value ("Empty", a code): the fix on one line, what it is now, an arrow, what it would become.
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+                        if (nowText != null) Txt(nowText, 12, 400, C.Muted, maxLines = 2)
+                        Box(Modifier.weight(1f)) { becomes() }
+                    }
+                } else {
+                    // A long value (a description): it would take the whole line and squeeze the new one to a letter a
+                    // line, so it goes above, and the arrow and what it would become below it.
+                    Txt(nowText, 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                    becomes()
                 }
             } else {
                 Txt(message, 12, 400, if (label != null) C.Muted else C.Text, maxLines = Int.MAX_VALUE)
@@ -421,6 +435,9 @@ private fun IssueRow(issue: StepIssue) {
         issueStatusText(issue.status)?.let { Txt(it, 10, 500, C.Muted) }
     }
 }
+
+/** The longest current value an issue's fix shows on the same line as the arrow and the new value. */
+private const val SHORT_NOW = 24
 
 @Composable
 private fun issueLabelText(label: IssueLabel): String = when (label) {

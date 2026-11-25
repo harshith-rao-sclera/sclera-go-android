@@ -210,7 +210,6 @@
     <string name="asset_submitted_notice">הנכס נשלח · אי אפשר לערוך אותו עכשיו</string>
     <string name="asset_changes_saved">השינויים נשמרו</string>
     <string name="asset_exception_notice">הנכס נשלח עם חריגה</string>
-    <string name="action_submit_exception">לשלוח בכל זאת</string>
     <string name="detail_submit_exception_title">לשלוח עם חריגה?</string>
     <string name="detail_submit_exception_body">חלק משדות החובה ריקים או שחסרות תמונות, ולכן הנכס יישלח כחריגה.</string>
     <string name="detail_save_missing_title">שדות חובה ריקים</string>

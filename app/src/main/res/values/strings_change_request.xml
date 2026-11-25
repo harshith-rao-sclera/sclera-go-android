@@ -46,7 +46,6 @@
         <item quantity="one">Request approved: the asset is back in Draft, with whoever asked</item>
         <item quantity="other">%1$d requests approved: the assets are back in Draft, with whoever asked</item>
     </plurals>
-    <string name="change_request_note_line">What needs changing: %1$s</string>
     <string name="change_request_note_none">No note added</string>
     <string name="change_requests_more">+%1$d more</string>
     <plurals name="change_bulk_request_title">

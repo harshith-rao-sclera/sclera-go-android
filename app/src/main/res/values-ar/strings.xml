@@ -218,7 +218,6 @@
     <string name="asset_submitted_notice">تم إرسال الأصل · لا يمكن تحريره الآن</string>
     <string name="asset_changes_saved">تم حفظ التغييرات</string>
     <string name="asset_exception_notice">تم إرسال الأصل مع استثناء</string>
-    <string name="action_submit_exception">إرسال على أي حال</string>
     <string name="detail_submit_exception_title">إرسال مع استثناء؟</string>
     <string name="detail_submit_exception_body">بعض الحقول الإلزامية فارغة أو هناك صور ناقصة، لذا سيُرسل كاستثناء.</string>
     <string name="detail_save_missing_title">حقول إلزامية فارغة</string>

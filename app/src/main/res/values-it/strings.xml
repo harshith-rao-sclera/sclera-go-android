@@ -206,7 +206,6 @@
     <string name="asset_submitted_notice">Asset inviato · non è più modificabile</string>
     <string name="asset_changes_saved">Modifiche salvate</string>
     <string name="asset_exception_notice">Asset inviato con eccezione</string>
-    <string name="action_submit_exception">Invia comunque</string>
     <string name="detail_submit_exception_title">Inviare con eccezione?</string>
     <string name="detail_submit_exception_body">Alcuni campi obbligatori sono vuoti o mancano delle foto, quindi verrà inviato come eccezione.</string>
     <string name="detail_save_missing_title">Campi obbligatori vuoti</string>

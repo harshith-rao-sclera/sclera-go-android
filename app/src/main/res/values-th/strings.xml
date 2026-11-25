@@ -198,7 +198,6 @@
     <string name="asset_submitted_notice">ส่งสินทรัพย์แล้ว · ไม่สามารถแก้ไขได้อีก</string>
     <string name="asset_changes_saved">บันทึกการเปลี่ยนแปลงแล้ว</string>
     <string name="asset_exception_notice">ส่งสินทรัพย์พร้อมข้อยกเว้นแล้ว</string>
-    <string name="action_submit_exception">ส่งต่อไป</string>
     <string name="detail_submit_exception_title">ส่งพร้อมข้อยกเว้นไหม</string>
     <string name="detail_submit_exception_body">ฟิลด์บังคับบางรายการว่างอยู่หรือรูปภาพไม่ครบ จึงจะส่งเป็นข้อยกเว้น</string>
     <string name="detail_save_missing_title">ฟิลด์บังคับว่างอยู่</string>

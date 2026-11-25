@@ -21,6 +21,9 @@ enum class TakeRefusal {
     /** One already has an assignee: only an admin reassigns it. */
     ALREADY_ASSIGNED,
 
+    /** Assigned to the signed-in user already (none to anyone else): there is nothing to take. */
+    ALREADY_YOURS,
+
     /** One is submitted or signed off: only an admin assigns it. */
     SUBMITTED,
 }

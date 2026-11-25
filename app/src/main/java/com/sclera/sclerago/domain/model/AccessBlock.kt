@@ -28,6 +28,13 @@ enum class AccessBlock {
     OFF_PREMISE,
     ;
 
+    /**
+     * The user's group doesn't allow it (no group, a missing permission, or only chosen properties), as opposed to a
+     * passing state: the access still being fetched, or being away from a geofenced site. Action bars (an asset's, the
+     * selection's) leave such an action out; everywhere else it stays greyed out and a tap says why.
+     */
+    val lacksPermission: Boolean get() = this != CHECKING && this != OFF_PREMISE
+
     companion object {
         /** The block for a group that lacks [permission]. */
         fun missing(permission: Permission): AccessBlock = when (permission) {

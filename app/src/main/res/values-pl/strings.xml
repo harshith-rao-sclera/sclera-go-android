@@ -210,7 +210,6 @@
     <string name="asset_submitted_notice">Zasób wysłany · nie można go już edytować</string>
     <string name="asset_changes_saved">Zmiany zapisane</string>
     <string name="asset_exception_notice">Zasób przesłany z wyjątkiem</string>
-    <string name="action_submit_exception">Prześlij mimo to</string>
     <string name="detail_submit_exception_title">Przesłać z wyjątkiem?</string>
     <string name="detail_submit_exception_body">Niektóre pola obowiązkowe są puste lub brakuje zdjęć, więc zostanie przesłany jako wyjątek.</string>
     <string name="detail_save_missing_title">Pola obowiązkowe są puste</string>

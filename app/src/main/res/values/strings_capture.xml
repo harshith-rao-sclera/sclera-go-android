@@ -2,6 +2,7 @@
 <!-- The Camera and File tabs' capture screens (CaptureFlows). English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="capture_start_hint">Take a photo or video to start a new asset</string>
+    <string name="capture_add_hint">Take a photo or video to add to this asset</string>
     <string name="camera_mode_video">Video</string>
     <string name="camera_mode_photo">Photo</string>
     <string name="camera_off_title">Camera access is off</string>

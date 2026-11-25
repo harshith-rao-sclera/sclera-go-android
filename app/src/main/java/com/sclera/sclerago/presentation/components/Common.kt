@@ -422,8 +422,6 @@ fun ActionDock(
     access: DockAccess = DockAccess(),
     /** "Assign to me", its own action after Assign (someone who isn't a reviewer takes the assets); null leaves it out. */
     onTake: (() -> Unit)? = null,
-    /** Greys "Assign to me" out (it can't take these); it still answers a tap, to say why. */
-    takeDimmed: Boolean = false,
     /** Why "Assign to me" is greyed out for the signed-in user ([AccessGate]); null when they may use it. */
     takeAccess: com.sclera.sclerago.presentation.common.UiText? = null,
     leading: @Composable RowScope.() -> Unit,
@@ -434,48 +432,55 @@ fun ActionDock(
         val actions = listOfNotNull(onValidate, onEdit, onAssign, onTake, onSubmit, onChange, onMove, onDelete).size
         val narrow = actions >= 5
         val item = if (floating) Modifier.weight(1f) else Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
+        // Narrow, a long label ("Assign to me") wraps onto a second, slightly smaller line rather than being cut off.
+        val lines = if (narrow) 2 else 1
+        val size = if (narrow) 11 else 12
         // An action the user's group can't use is greyed out by its access gate alone (no offline badge or dimming on top).
         onValidate?.let {
             DockGate(access.validate, item) { m ->
                 OfflineGate(offline && access.validate == null, { onOffline(OnlineOnly.VALIDATE) }, m) {
-                    DockAction(stringResource(R.string.action_validate), Icons.StatusValidated, Status.VALIDATED.color, it, Modifier.fillMaxWidth())
+                    DockAction(stringResource(R.string.action_validate), Icons.ValidationChecks, C.Yellow, it, Modifier.fillMaxWidth(), lines, size)
                 }
             }
         }
-        onEdit?.let { DockGate(access.edit, item) { m -> DockAction(stringResource(R.string.action_edit), Icons.Pencil, C.Orange, it, m) } }
+        onEdit?.let { DockGate(access.edit, item) { m -> DockAction(stringResource(R.string.action_edit), Icons.Pencil, C.Orange, it, m, lines, size) } }
         onAssign?.let {
             DockGate(access.assign, item) { m ->
                 OfflineGate(offline && access.assign == null, { onOffline(OnlineOnly.ASSIGN) }, m) {
                     val label = stringResource(if (assignToMe) R.string.action_assign_to_me else R.string.action_assign)
                     val dim = assignDimmed && !offline && access.assign == null
-                    DockAction(label, Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f))
+                    DockAction(label, Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f), lines, size)
                 }
             }
         }
         onTake?.let {
             DockGate(takeAccess, item) { m ->
                 OfflineGate(offline && takeAccess == null, { onOffline(OnlineOnly.ASSIGN) }, m) {
-                    val dim = takeDimmed && !offline && takeAccess == null
-                    DockAction(stringResource(R.string.action_assign_to_me), Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f))
+                    DockAction(stringResource(R.string.action_assign_to_me), Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth(), lines, size)
                 }
             }
         }
         onSubmit?.let {
             DockGate(access.submit, item) { m ->
-                DockAction(stringResource(R.string.action_submit), Icons.StatusSubmitted, Status.SUBMITTED.color, it, m.alpha(if (submitDimmed && access.submit == null) 0.35f else 1f))
+                DockAction(
+                    stringResource(R.string.action_submit), Icons.StatusSubmitted, Status.SUBMITTED.color, it,
+                    m.alpha(if (submitDimmed && access.submit == null) 0.35f else 1f), lines, size,
+                )
             }
         }
-        onChange?.let { DockGate(access.change, item) { m -> DockAction(stringResource(R.string.action_change), Icons.ChangeRequest, C.Orange, it, m) } }
+        onChange?.let { DockGate(access.change, item) { m -> DockAction(stringResource(R.string.action_change), Icons.ChangeRequest, C.Orange, it, m, lines, size) } }
         onMove?.let {
             DockGate(access.move, item) { m ->
                 OfflineGate(offline && access.move == null, { onOffline(OnlineOnly.MOVE_TO_MANAGED) }, m) {
                     val dim = moveDimmed && !offline && access.move == null
-                    DockAction(stringResource(R.string.mv_action), Icons.Managed, C.Yellow, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f))
+                    DockAction(stringResource(R.string.mv_action), Icons.Managed, C.Yellow, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f), lines, size)
                 }
             }
         }
         onDelete?.let {
-            DockGate(access.delete, if (narrow || floating) item else deleteModifier) { m -> DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, it, m) }
+            DockGate(access.delete, if (narrow || floating) item else deleteModifier) { m ->
+                DockAction(stringResource(R.string.action_delete), Icons.Trash, C.Red, it, m, lines, size)
+            }
         }
     }
     if (floating) {
@@ -485,7 +490,8 @@ fun ActionDock(
                 verticalAlignment = Alignment.CenterVertically,
                 content = { leading() },
             )
-            Row(Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, content = actionsRow)
+            // As tall as the asset bar's action card, so a label that wraps to two lines fits under its icon.
+            Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, content = actionsRow)
         }
     } else {
         Row(

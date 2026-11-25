@@ -37,6 +37,8 @@
     <string name="assign_take_refused">Only a reviewer can change who an asset is assigned to.</string>
     <string name="assign_take_assigned">Already assigned. Only a reviewer can reassign it</string>
     <string name="assign_take_some_assigned">Some are already assigned. Only a reviewer can reassign assets</string>
+    <string name="assign_take_yours">Already assigned to you</string>
+    <string name="assign_take_some_yours">Some are already assigned to you</string>
     <string name="assign_take_submitted">Submitted. Only a reviewer can assign it</string>
     <string name="assign_take_some_submitted">Some are submitted. Only a reviewer can assign them</string>
 </resources>

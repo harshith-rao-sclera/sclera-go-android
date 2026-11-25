@@ -198,7 +198,6 @@
     <string name="asset_submitted_notice">Đã gửi tài sản · không thể chỉnh sửa nữa</string>
     <string name="asset_changes_saved">Đã lưu thay đổi</string>
     <string name="asset_exception_notice">Đã gửi tài sản kèm ngoại lệ</string>
-    <string name="action_submit_exception">Vẫn gửi</string>
     <string name="detail_submit_exception_title">Gửi kèm ngoại lệ?</string>
     <string name="detail_submit_exception_body">Một số trường bắt buộc còn trống hoặc thiếu ảnh, nên tài sản sẽ được gửi dưới dạng ngoại lệ.</string>
     <string name="detail_save_missing_title">Trường bắt buộc còn trống</string>

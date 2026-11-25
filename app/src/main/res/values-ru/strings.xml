@@ -210,7 +210,6 @@
     <string name="asset_submitted_notice">Актив отправлен · его больше нельзя редактировать</string>
     <string name="asset_changes_saved">Изменения сохранены</string>
     <string name="asset_exception_notice">Актив отправлен с исключением</string>
-    <string name="action_submit_exception">Всё равно отправить</string>
     <string name="detail_submit_exception_title">Отправить с исключением?</string>
     <string name="detail_submit_exception_body">Некоторые обязательные поля пусты или не хватает фото, поэтому актив будет отправлен как исключение.</string>
     <string name="detail_save_missing_title">Обязательные поля пусты</string>

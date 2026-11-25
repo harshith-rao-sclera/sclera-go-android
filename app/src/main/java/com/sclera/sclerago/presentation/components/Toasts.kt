@@ -235,9 +235,25 @@ private val PROBLEM_WORDS = listOf(
     "save_first", "not_assigned", "too_large", "too_long", "too_short", "expired", "invalid", "refused",
 )
 
+/** Words in a message's resource name that say an attempt failed: a problem even when it is also an access reason. */
+private val FAILURE_WORDS = listOf("error", "fail", "couldn")
+
 /**
- * Whether [text] reports a problem, so it shows orange with a warning: its string's resource name (or, for text not
- * yet in resources, the text) says error, failed, offline, full and the like. Everything else shows as done.
+ * Resource-name prefixes of the messages that say why the user can't do something (their group, the asset's state:
+ * the User Access Guide's reasons, as a tap on a greyed-out control or a refused selection says them), or that some of
+ * what they asked for was left as it is for such a reason (a bulk edit's skipped assets). They are notes, not failures
+ * or successes, as the web shows them in a plain toast.
+ */
+private val ACCESS_REASONS = listOf(
+    "access_block_", "access_decline_own", "access_request_change_reviewer", "access_take_unavailable", "access_withdraw_not_yours",
+    "asset_lock_", "assign_admin_only", "assign_take_", "change_block_", "sign_off_block_", "managed_not_selectable", "view_only_",
+    "bulk_skipped", "bulk_updated_and_skipped",
+)
+
+/**
+ * How [text] shows, from its string's resource name (or, for text not yet in resources, the text): orange with a warning
+ * when it says something failed or went wrong (error, failed, offline, full and the like); yellow with an info mark when
+ * it says why the user can't do something ([ACCESS_REASONS]); otherwise as done.
  */
 fun toastKindOf(text: UiText, resources: Resources): ToastKind {
     val words = when (text) {
@@ -245,5 +261,10 @@ fun toastKindOf(text: UiText, resources: Resources): ToastKind {
         is UiText.Plural -> runCatching { resources.getResourceEntryName(text.id) }.getOrDefault("")
         is UiText.Raw -> text.text
     }.lowercase()
-    return if (PROBLEM_WORDS.any { it in words }) ToastKind.PROBLEM else ToastKind.SUCCESS
+    return when {
+        FAILURE_WORDS.any { it in words } -> ToastKind.PROBLEM
+        ACCESS_REASONS.any { words.startsWith(it) } -> ToastKind.INFO
+        PROBLEM_WORDS.any { it in words } -> ToastKind.PROBLEM
+        else -> ToastKind.SUCCESS
+    }
 }

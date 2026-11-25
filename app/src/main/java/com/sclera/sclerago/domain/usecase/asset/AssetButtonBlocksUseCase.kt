@@ -5,7 +5,9 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.TakeRefusal
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
+import com.sclera.sclerago.domain.usecase.assign.TakeAssetsUseCase
 import javax.inject.Inject
 
 /**
@@ -19,7 +21,21 @@ sealed interface ButtonBlock {
 
     /** Withdraw: only whoever asked takes their change request back. */
     data object NotYourRequest : ButtonBlock
+
+    /** Assign to me: the asset already has an assignee, or is submitted or signed off (the web's takeReason). */
+    data class TakeRefused(val refusal: TakeRefusal) : ButtonBlock
 }
+
+/**
+ * The user's group doesn't allow the action ([AccessBlock.lacksPermission]), rather than this asset's state (submitted,
+ * someone else's, in Managed Assets) or a passing one: the asset bar leaves such an action out instead of greying it out.
+ */
+val ButtonBlock?.lacksPermission: Boolean
+    get() = when (this) {
+        is ButtonBlock.Missing -> block.lacksPermission
+        is ButtonBlock.Locked -> lock == AssetLock.NO_PERMISSION
+        else -> false
+    }
 
 /**
  * Why each of one asset's buttons can't be used now (null: it can). Which buttons show at all is decided by the asset's
@@ -46,6 +62,8 @@ data class AssetButtonBlocks(
     val withdraw: ButtonBlock? = null,
     /** Assign (a reviewer) or Assign to me (anyone else who collects). */
     val assign: ButtonBlock? = null,
+    /** Assign to me: [assign], and greyed out on an asset that already has an assignee or is submitted or signed off. */
+    val take: ButtonBlock? = null,
     /** Move to Managed assets (Configure). */
     val moveToManaged: ButtonBlock? = null,
     /** Adding a comment (Collect or Validate). */
@@ -60,7 +78,11 @@ data class AssetButtonBlocks(
  * each other button needs its permission. A new asset isn't saved yet, so creating it needs Collect only. The use cases
  * behind the buttons check again, and the server decides.
  */
-class AssetButtonBlocksUseCase @Inject constructor(private val guard: PermissionGuard, private val canEdit: CanEditAssetUseCase) {
+class AssetButtonBlocksUseCase @Inject constructor(
+    private val guard: PermissionGuard,
+    private val canEdit: CanEditAssetUseCase,
+    private val takeAssets: TakeAssetsUseCase,
+) {
     operator fun invoke(asset: Asset, isNew: Boolean): AssetButtonBlocks {
         val collect = missing(Permission.COLLECT)
         if (isNew) return AssetButtonBlocks(change = collect, collect = collect)
@@ -83,6 +105,7 @@ class AssetButtonBlocksUseCase @Inject constructor(private val guard: Permission
             decline = managed ?: validate,
             withdraw = managed ?: ButtonBlock.NotYourRequest.takeUnless { mine(asset) },
             assign = managed ?: collect,
+            take = managed ?: collect ?: takeAssets.refusal(listOf(asset))?.let { ButtonBlock.TakeRefused(it) },
             moveToManaged = managed ?: missing(Permission.CONFIGURE),
             // Collect or Validate comments, as the server.
             comment = managed ?: collect?.takeIf { validate != null },

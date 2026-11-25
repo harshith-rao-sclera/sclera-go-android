@@ -206,7 +206,6 @@
     <string name="asset_submitted_notice">Ativo enviado · não pode mais ser editado</string>
     <string name="asset_changes_saved">Alterações salvas</string>
     <string name="asset_exception_notice">Ativo enviado com exceção</string>
-    <string name="action_submit_exception">Enviar mesmo assim</string>
     <string name="detail_submit_exception_title">Enviar com exceção?</string>
     <string name="detail_submit_exception_body">Alguns campos obrigatórios estão vazios ou faltam fotos, então ele será enviado como exceção.</string>
     <string name="detail_save_missing_title">Há campos obrigatórios vazios</string>

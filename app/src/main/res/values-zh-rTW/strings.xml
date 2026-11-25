@@ -198,7 +198,6 @@
     <string name="asset_submitted_notice">資產已提交 · 現在無法編輯</string>
     <string name="asset_changes_saved">變更已儲存</string>
     <string name="asset_exception_notice">資產已作為例外提交</string>
-    <string name="action_submit_exception">仍要提交</string>
     <string name="detail_submit_exception_title">作為例外提交？</string>
     <string name="detail_submit_exception_body">有必填欄位為空或缺少照片，因此它將作為例外提交。</string>
     <string name="detail_save_missing_title">必填欄位為空</string>

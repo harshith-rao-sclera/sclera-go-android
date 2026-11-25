@@ -11,7 +11,7 @@ import com.sclera.sclerago.domain.model.AssignResult
 import com.sclera.sclerago.domain.model.DirectoryPerson
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
-import com.sclera.sclerago.domain.model.TakeRefusal
+import com.sclera.sclerago.presentation.assets.message
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.assign.AssignUseCases
 import com.sclera.sclerago.presentation.common.UiText
@@ -101,8 +101,11 @@ class AssignViewModel @Inject constructor(
     /** Whether "Assign to me" shows in place of Assign: someone who collects but isn't an admin (the web's assignsToAnyone). */
     fun mayTake(): Boolean = !allowed && takeAllowed
 
-    /** "Assign to me" is greyed out for [assets] (a tap says why): one is already assigned or submitted, or a take is running. */
-    fun takeBlocked(assets: Collection<Asset>): Boolean = taking || useCases.take.refusal(assets) != null
+    /** Why "Assign to me" is greyed out for [assets] (what a tap says), null when they can be taken. */
+    fun takeReason(assets: Collection<Asset>): UiText? = when {
+        taking -> UiText.Res(R.string.assign_taking)
+        else -> useCases.take.refusal(assets)?.let { UiText.Res(it.message(assets.size > 1)) }
+    }
 
     /**
      * "Assign to me": takes [assets] for the signed-in user, then says how many, and calls [onDone] (to clear the
@@ -115,7 +118,7 @@ class AssignViewModel @Inject constructor(
             return
         }
         useCases.take.refusal(assets)?.let {
-            message.tryEmit(UiText.Res(refusalText(it, assets.size > 1)))
+            message.tryEmit(UiText.Res(it.message(assets.size > 1)))
             return
         }
         val property = propertyId
@@ -133,11 +136,6 @@ class AssignViewModel @Inject constructor(
                 onDone()
             }
         }
-    }
-
-    private fun refusalText(r: TakeRefusal, many: Boolean): Int = when (r) {
-        TakeRefusal.ALREADY_ASSIGNED -> if (many) R.string.assign_take_some_assigned else R.string.assign_take_assigned
-        TakeRefusal.SUBMITTED -> if (many) R.string.assign_take_some_submitted else R.string.assign_take_submitted
     }
 
     /**

@@ -115,9 +115,9 @@ internal fun ChangeRequestLine(
                     ?: stringResource(R.string.change_request_by, who),
                 12, if (banner) 400 else 700, C.Orange, maxLines = Int.MAX_VALUE,
             )
-            // As the web: what needs changing, or that nothing was said.
+            // What needs changing (the requester's note on its own, no label), or that nothing was said.
             val note = request.note?.takeIf { it.isNotBlank() }
-            if (note != null) Txt(stringResource(R.string.change_request_note_line, note), 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
+            if (note != null) Txt(note, 12, 400, C.Soft, maxLines = Int.MAX_VALUE)
             else Txt(stringResource(R.string.change_request_note_none), 12, 400, C.Muted, italic = true, maxLines = Int.MAX_VALUE)
         }
     }

@@ -441,8 +441,9 @@ fun AssetInfoTab(
 }
 
 /**
- * The asset bar's actions, as the web's asset bar (AssetsInfoContainer's assetActions), in its order. Which show depends on
- * the asset's status only; one the signed-in user may not use stays, greyed out, and a tap says why ([AssetButtons]):
+ * The asset bar's actions, as the web's asset bar (AssetsInfoContainer's assetActions), in its order. Which apply depends on
+ * the asset's status; of those, one the user's group doesn't allow is left out ([AssetButtons.hidden]), and one blocked by
+ * the asset's state or a passing one stays, greyed out, and a tap says why ([AssetButtons]):
  * - Validate: once the server has the asset (Check).
  * - Mark as validated: a submitted asset (Validate).
  * - Assign (a reviewer), and Assign to me (anyone but a reviewer): except on a signed-off asset.
@@ -450,7 +451,7 @@ fun AssetInfoTab(
  * - Move to Managed assets: a validated asset not there yet (Configure, and the property linked).
  * - Move to draft: an exception (whoever may work on it), or a submitted or signed-off asset nobody asked to change (a
  *   reviewer); with a request, Approve is in the change request banner, with Decline and Withdraw.
- * - Request change (or update it): a submitted or signed-off asset (greyed out for a reviewer, who changes it instead).
+ * - Request change (or update it): a submitted or signed-off asset (not for a reviewer, who changes it instead).
  * - Delete: except on a signed-off asset (whoever may change it).
  */
 @Composable
@@ -465,11 +466,12 @@ private fun assetBarItems(
     val signedOff = asset.st == Status.VALIDATED
     val submitted = isSubmittedOrSignedOff(asset.st)
     val b = state.buttons
+    fun shows(action: BarAction) = action !in b.hidden
     return buildList {
-        if (isServerId(asset.id)) {
-            add(DockItem(stringResource(R.string.action_validate), Icons.StatusValidated, Status.VALIDATED.color, actions.onValidate, OnlineOnly.VALIDATE, blocked = b.validate))
+        if (isServerId(asset.id) && shows(BarAction.VALIDATE)) {
+            add(DockItem(stringResource(R.string.action_validate), Icons.ValidationChecks, C.Yellow, actions.onValidate, OnlineOnly.VALIDATE, blocked = b.validate))
         }
-        if (asset.st == Status.SUBMITTED) {
+        if (asset.st == Status.SUBMITTED && shows(BarAction.SIGN_OFF)) {
             add(
                 DockItem(
                     stringResource(R.string.sign_off_action), Icons.StatusValidated, Status.VALIDATED.color, { onModal(DetailModal.MARK_VALIDATED) },
@@ -478,23 +480,27 @@ private fun assetBarItems(
             )
         }
         if (!signedOff) {
-            // Assign (a reviewer picks who has it) shows for everyone: greyed out, saying why, for anyone else.
-            val assign = if (actions.assignToMe) null else actions.onAssign
-            add(DockItem(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, assign ?: {}, OnlineOnly.ASSIGN, blocked = b.assign ?: actions.assignReason))
-            // Assign to me as well, for anyone but a reviewer (whose Assign offers themselves): greyed out, saying why, when
-            // they can't take it.
-            if (!state.reviewer) {
+            // Assign: a reviewer picks who has it (left out for anyone else).
+            if (shows(BarAction.ASSIGN)) {
+                val assign = if (actions.assignToMe) null else actions.onAssign
+                add(DockItem(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, assign ?: {}, OnlineOnly.ASSIGN, blocked = b.assign ?: actions.assignReason))
+            }
+            // Assign to me, for anyone but a reviewer (whose Assign offers themselves): greyed out, saying why, when they
+            // can't take this asset.
+            if (!state.reviewer && shows(BarAction.TAKE)) {
                 val take = if (actions.assignToMe) actions.onAssign else null
                 val takeWhy = b.take ?: actions.assignReason ?: UiText.Res(R.string.access_take_unavailable).takeIf { take == null }
                 add(DockItem(stringResource(R.string.action_assign_to_me), Icons.UserPlus, C.Cyan, take ?: {}, OnlineOnly.ASSIGN, blocked = takeWhy))
             }
         }
-        if (canSubmit) add(DockItem(stringResource(R.string.action_submit), Icons.StatusSubmitted, Status.SUBMITTED.color, { onModal(submitModal) }, blocked = b.change))
+        if (canSubmit && shows(BarAction.SUBMIT)) {
+            add(DockItem(stringResource(R.string.action_submit), Icons.StatusSubmitted, Status.SUBMITTED.color, { onModal(submitModal) }, blocked = b.change))
+        }
         val moveWhy = b.moveToManaged ?: actions.moveReason
-        if (signedOff && !asset.managed && (actions.onMove != null || moveWhy != null)) {
+        if (signedOff && !asset.managed && shows(BarAction.MOVE_TO_MANAGED) && (actions.onMove != null || moveWhy != null)) {
             add(DockItem(stringResource(R.string.mv_action), Icons.Managed, C.Yellow, actions.onMove ?: {}, OnlineOnly.MOVE_TO_MANAGED, blocked = moveWhy))
         }
-        if (asset.st == Status.EXCEPTION || (submitted && asset.changeRequest == null)) {
+        if ((asset.st == Status.EXCEPTION || (submitted && asset.changeRequest == null)) && shows(BarAction.MOVE_TO_DRAFT)) {
             add(
                 DockItem(
                     changeActionLabel(ChangeAction.MOVE_TO_DRAFT, 1), Icons.StatusDraft, Status.DRAFT.color, { onModal(DetailModal.MOVE_TO_DRAFT) },
@@ -502,12 +508,14 @@ private fun assetBarItems(
                 ),
             )
         }
-        // A reviewer changes the asset instead: it shows for them too, greyed out, saying so.
-        if (submitted) {
+        // Not for a reviewer, who changes the asset instead.
+        if (submitted && shows(BarAction.REQUEST_CHANGE)) {
             val ask = if (asset.changeRequest != null) ChangeAction.UPDATE_REQUEST else ChangeAction.REQUEST
             add(DockItem(changeActionLabel(ask, 1), Icons.ChangeRequest, C.Orange, actions.changeRequest.onOpen, tag = ChangeRequestTags.ASK, blocked = b.requestChange))
         }
-        if (!signedOff) add(DockItem(stringResource(R.string.action_delete), Icons.Trash, C.Red, { onModal(DetailModal.DELETE) }, blocked = b.change))
+        if (!signedOff && shows(BarAction.DELETE)) {
+            add(DockItem(stringResource(R.string.action_delete), Icons.Trash, C.Red, { onModal(DetailModal.DELETE) }, blocked = b.change))
+        }
     }
 }
 

@@ -202,7 +202,6 @@
     <string name="asset_submitted_notice">एसेट सबमिट हुआ · अब संपादित नहीं हो सकता</string>
     <string name="asset_changes_saved">बदलाव सहेजे गए</string>
     <string name="asset_exception_notice">एसेट अपवाद के साथ सबमिट किया गया</string>
-    <string name="action_submit_exception">फिर भी सबमिट करें</string>
     <string name="detail_submit_exception_title">अपवाद के साथ सबमिट करें?</string>
     <string name="detail_submit_exception_body">कुछ अनिवार्य फ़ील्ड खाली हैं या फ़ोटो कम हैं, इसलिए इसे अपवाद के रूप में सबमिट किया जाएगा।</string>
     <string name="detail_save_missing_title">अनिवार्य फ़ील्ड खाली हैं</string>

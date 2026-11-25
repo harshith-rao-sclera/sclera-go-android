@@ -297,6 +297,7 @@ fun AssetDetailRoute(
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             CameraCapture(
                 active = true,
+                addingToAsset = true,
                 captures = camCaps, selected = camSel,
                 videoMode = camVideo, onVideoMode = { camVideo = it },
                 // Each shot joins the strip and is read on the device as it is taken (nameplate, label ID or asset, or the

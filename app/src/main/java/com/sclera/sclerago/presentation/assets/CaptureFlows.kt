@@ -158,6 +158,8 @@ fun CameraCapture(
     onMany: (Boolean) -> Unit = {},
     /** Multiple: shots already waiting in the review ("Take more"); the tick then shows and goes back to it. */
     waiting: Int = 0,
+    /** Opened from an asset (its Add photo): the shots join that asset, so the hint says so instead of "start a new asset". */
+    addingToAsset: Boolean = false,
 ) {
     val context = LocalContext.current
     val toaster = LocalToaster.current
@@ -356,7 +358,10 @@ fun CameraCapture(
             Box(
                 Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).clip(Capsule).background(Glass)
                     .padding(horizontal = 12.dp, vertical = 7.dp),
-            ) { Txt(stringResource(R.string.capture_start_hint), 11, 600, C.Soft, maxLines = Int.MAX_VALUE) }
+            ) {
+                val hint = if (addingToAsset) R.string.capture_add_hint else R.string.capture_start_hint
+                Txt(stringResource(hint), 11, 600, C.Soft, maxLines = Int.MAX_VALUE)
+            }
         } else {
             LazyRow(
                 Modifier.align(Alignment.BottomStart).padding(bottom = 136.dp).fillMaxWidth().height(78.dp),

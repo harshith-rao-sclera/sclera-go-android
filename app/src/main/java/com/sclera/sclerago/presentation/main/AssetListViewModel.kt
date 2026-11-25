@@ -114,7 +114,7 @@ data class AssetListState(
     val noSubmit: Set<Tab> = emptySet(),
     /** Why each kind of button is greyed out for the signed-in user's group (null: it can be used); kept up to date. */
     val blocks: AccessBlocks = AccessBlocks(),
-    /** The reviewer-only actions on the selection the user's group can't use: on the Change menu, greyed out. */
+    /** The reviewer-only actions on the selection while the access is still being fetched: on the Change menu, greyed out. */
     val reviewerOnly: List<ReviewerOnlyAction> = emptyList(),
 ) {
     val selecting: Boolean get() = picked.isNotEmpty()
@@ -129,8 +129,19 @@ data class AssetListState(
     /** A ticked asset is signed off, so Move to Managed assets is on the bar (greyed out without Configure). */
     val anyValidated: Boolean get() = pickedAssets.any { it.st == Status.VALIDATED }
 
-    /** Delete is refused for these assets ([AssetLock.SUBMITTED]): one is submitted or signed off and the user isn't a reviewer (lockedForMe). */
+    /**
+     * Delete is refused for these assets ([AssetLock.SUBMITTED]): one is submitted or signed off and the user isn't a
+     * reviewer (lockedForMe; the web leaves Delete off then). Someone else's can't be ticked in the first place.
+     */
     val deleteLock: AssetLock? get() = AssetLock.SUBMITTED.takeIf { pickedAssets.any { isLockedFor(it.st, access.reviewer) } }
+
+    /**
+     * Edit has nothing to change ([AssetLock.SUBMITTED]): every ticked asset is submitted or signed off and the user isn't
+     * a reviewer. With some that can be changed, Edit goes ahead on those and leaves the rest as they are, saying how
+     * many (BulkUpdateAssetsUseCase, as the server's check_editable refuses each locked one).
+     */
+    val editLock: AssetLock? get() =
+        AssetLock.SUBMITTED.takeIf { pickedAssets.isNotEmpty() && pickedAssets.all { isLockedFor(it.st, access.reviewer) } }
 
     /** The Change button has something to offer: change-request actions, or reviewer-only ones shown greyed out. */
     val changeOffered: Boolean get() = changeOptions.isNotEmpty() || reviewerOnly.isNotEmpty()
@@ -260,14 +271,18 @@ class AssetListViewModel @Inject constructor(
             lists, pickedAssets.mapTo(HashSet()) { it.id }, u.query, u.searchOpen, u.confirmDelete,
             loading = !catalog.loaded, refreshing = u.refreshing, pickedAssets = pickedAssets, statusFilter = u.statusFilter,
             // The sign-off (reviewers and admins) comes first, then the change-request actions (the web's selection bar order).
-            changeOptions = changeRequests.signOff(pickedAssets) + changeRequests.actions(pickedAssets),
+            // As the asset bar: an action the group doesn't allow, and Request change for a reviewer (who changes the
+            // assets instead), are left off the menu; the rest stay, greyed out with why where they can't be used.
+            changeOptions = (changeRequests.signOff(pickedAssets) + changeRequests.actions(pickedAssets))
+                .filterNot { it.access?.lacksPermission == true || it.blocked == ChangeActionBlock.REVIEWER_CHANGES_IT },
             changeMenu = u.changeMenu, changeAction = u.changeAction, changeNote = u.changeNote,
             changeNoteChanged = u.changeNote != u.changeNoteStart,
             filter = u.filter, filterSheet = sheet,
             access = rights,
             noSubmit = Tab.entries.filterTo(HashSet()) { tab -> tab in u.changeRequests || u.statusFilter[tab]?.let { it in NO_SUBMIT_CHIPS } == true },
             blocks = why,
-            reviewerOnly = reviewerOnly(pickedAssets),
+            // Left off the Change menu when the group can't validate; greyed out only while the access is still loading.
+            reviewerOnly = reviewerOnly(pickedAssets).filterNot { it.block.lacksPermission },
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetListState(loading = true))
 

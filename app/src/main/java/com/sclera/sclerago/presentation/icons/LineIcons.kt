@@ -174,8 +174,14 @@ object Icons {
         s(rect(3.5f, 4.5f, 17f, 17f, 2f)), s("M9.5 4.5a2.5 2.5 0 0 1 5 0"),
         s("M10 10.5 7.5 13l2.5 2.5"), s("M14 10.5l2.5 2.5-2.5 2.5"),
     )
-    /** Validation (the side menu): a board with three lines and a tick, as the web's sidebar icon, drawn in lines. */
-    val ValidationChecks = Ico(s(rect(2.5f, 3.5f, 19f, 17f, 2f)), s("M6 8h3.5M6 12h3.5M6 16h3.5"), s("m12.5 11.7 2.2 2.2 4.3-4.4"))
+    /**
+     * Validation and Validate (the side menu, the asset's Validation tab, the Validate action): a checklist, a ticked
+     * circle and an open one, each beside a line. Mark as validated keeps [StatusValidated].
+     */
+    val ValidationChecks = Ico(
+        s(circle(6f, 7f, 2.75f)), s("M4.8 7.1l.9.9 1.6-1.8"), s("M11.5 7h9"),
+        s(circle(6f, 17f, 2.75f)), s("M11.5 17h9"),
+    )
     val ShieldX = Ico(s("M12 3L5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"), s("M9.5 9.5l5 5M14.5 9.5l-5 5"))
     val Pencil = Ico(s("M4 20h4L19 9l-4-4L4 16z"), s("M13.5 6.5l4 4"))
     val Alert = Ico(s(circle(12f, 12f, 9f)), s("M12 7v6M12 16.5v.5"))

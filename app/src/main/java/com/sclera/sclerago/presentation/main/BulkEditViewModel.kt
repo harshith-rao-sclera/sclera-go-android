@@ -95,8 +95,13 @@ class BulkEditViewModel @Inject constructor(
                 val r = bulkUpdate(s.ids, s.values, s.place)
                 sheet = null
                 onDone()
-                if (r.updated > 0) message.emit(UiText.Plural(R.plurals.bulk_updated, r.updated))
-                if (r.skipped > 0) message.emit(UiText.Plural(R.plurals.bulk_skipped, r.skipped))
+                // One toast for the outcome (a second would replace the first before it could be read).
+                val updated = UiText.Plural(R.plurals.bulk_updated, r.updated)
+                when {
+                    r.skipped == 0 -> if (r.updated > 0) message.emit(updated)
+                    r.updated == 0 -> message.emit(UiText.Plural(R.plurals.bulk_skipped, r.skipped))
+                    else -> message.emit(UiText.Plural(R.plurals.bulk_updated_and_skipped, r.skipped, listOf(updated, r.skipped)))
+                }
             } catch (e: DataException) {
                 sheet = sheet?.copy(saving = false)
                 message.emit(e.error.toUiText())
