@@ -132,6 +132,11 @@ data class UiState(
      * form and resumed keeps it.
      */
     val devAdded: Map<Source, Map<String, String>> = emptyMap(),
+    /**
+     * Devices (by list) whose asset is being written right now: shown as added at once, so a quick second tap on + (or Add
+     * on the selection) doesn't make another asset of the same device.
+     */
+    val devAdding: Map<Source, Set<String>> = emptyMap(),
     val pv: Preview? = null,
     val assetId: String? = null,
     /**
@@ -447,7 +452,8 @@ class AppViewModel @Inject constructor(
         return rows.map { d -> made[d.id]?.let(names::get)?.takeIf { it.isNotBlank() }?.let { d.copy(name = it) } ?: d }
     }
 
-    private fun addedIn(src: Source): Set<String> = state.devAdded[src].orEmpty().keys
+    /** Devices of [src]'s list added as assets in this scan, or being added right now. */
+    private fun addedIn(src: Source): Set<String> = state.devAdded[src].orEmpty().keys + state.devAdding[src].orEmpty()
 
     /** Devices on the scan list on screen that were added as assets in this scan. */
     val addedDevices: Set<String> get() = addedIn(scanSource)
@@ -742,6 +748,8 @@ class AppViewModel @Inject constructor(
      */
     fun openDevice(d: Device) {
         val src = scanSource
+        // Its asset is still being written (its + was just tapped): it opens once it exists.
+        if (d.id in state.devAdding[src].orEmpty()) return
         val made = state.devAdded[src]?.get(d.id)
         when {
             made != null && assets.any { it.id == made } -> openAsset(made)
@@ -757,21 +765,38 @@ class AppViewModel @Inject constructor(
     /** Adds a scanned device straight away as a draft asset (its + button), filled in from what the scan found. */
     fun addDevice(d: Device) = addDevices(listOf(d))
 
-    /** Adds [devices] as draft assets in the current place, filled in from each device (name, type, BLE tag / IP, a note). */
+    /**
+     * Adds [devices] as draft assets in the current place, filled in from each device (name, type, BLE tag / IP, a note).
+     * A device already added in this scan, or still being added (a second tap on + before the first is written), is
+     * skipped, so each device makes one asset however often it is tapped.
+     */
     private fun addDevices(devices: List<Device>) {
         if (!mayCollect()) return flashViewOnly()
         val src = scanSource
+        val busy = addedIn(src)
+        val fresh = devices.distinctBy { it.id }.filter { it.id !in busy }
+        if (fresh.isEmpty()) return
+        val ids = fresh.map { it.id }.toSet()
+        // Marked before anything is written (on the main thread, as the taps arrive): the rows show as added at once.
+        set { copy(devAdding = devAdding + (src to (devAdding[src].orEmpty() + ids))) }
         val place = AssetPlace(currentProp, tgtLoc, tgtWhere, tgtPlace)
         write {
-            devices.forEach { d ->
-                val created = assetUseCases.create(
-                    deviceName(d), "", emptyList(), prefillFor(d), false,
-                    place = place, captures = emptyList(), device = d, deviceSource = src,
-                )
-                markAdded(src, d.id, created.id)
+            try {
+                var made = 0
+                fresh.forEach { d ->
+                    val created = assetUseCases.create(
+                        deviceName(d), "", emptyList(), prefillFor(d), false,
+                        place = place, captures = emptyList(), device = d, deviceSource = src,
+                    )
+                    markAdded(src, d.id, created.id)
+                    made++
+                }
+                val added = UiText.Plural(R.plurals.scrt_assets_added_as_drafts, made)
+                flash(UiText.Res(R.string.notice_with_source, listOf(added, UiText.Res(src.viaRes))))
+            } finally {
+                // Added (now in devAdded) or failed (it can be tapped again): no longer in progress.
+                set { copy(devAdding = devAdding + (src to (devAdding[src].orEmpty() - ids))) }
             }
-            val added = UiText.Plural(R.plurals.scrt_assets_added_as_drafts, devices.size)
-            flash(UiText.Res(R.string.notice_with_source, listOf(added, UiText.Res(src.viaRes))))
         }
     }
 
@@ -1017,11 +1042,13 @@ class AppViewModel @Inject constructor(
 
     /**
      * The camera's One asset / Many assets. It changes only while the strip is empty, so shots taken one way aren't
-     * used the other (One asset sorts and counts them; Many assets sends each as it is).
+     * used the other (One asset sorts and counts them; Many assets sends each as it is). Back from the review with
+     * Take more ([reviewWaiting]: its shots wait to be read), it stays on Many assets until they are read or discarded.
      */
-    fun setCamMany(many: Boolean) {
+    fun setCamMany(many: Boolean, reviewWaiting: Boolean = false) {
         if (many == state.camMany) return
         if (state.captures.isNotEmpty()) return flash(UiText.Res(R.string.camera_mode_shots_first))
+        if (!many && reviewWaiting) return flash(UiText.Res(R.string.camera_mode_review_first))
         set { copy(camMany = many) }
     }
 

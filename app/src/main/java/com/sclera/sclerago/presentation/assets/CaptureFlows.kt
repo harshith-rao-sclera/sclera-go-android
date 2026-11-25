@@ -125,7 +125,7 @@ private fun CameraView(vm: AppViewModel, waiting: Int) {
         videoMode = s.videoMode, onVideoMode = vm::setVideoMode,
         onCapture = vm::addCapture, onToggle = vm::toggleStrip, onGalleryPicked = vm::addPicked,
         onClose = vm::cancelCam, onDone = { vm.doneCapturing(reviewWaiting = waiting > 0) },
-        many = s.camMany, onMany = vm::setCamMany, waiting = waiting,
+        many = s.camMany, onMany = { vm.setCamMany(it, reviewWaiting = waiting > 0) }, waiting = waiting,
     )
 }
 

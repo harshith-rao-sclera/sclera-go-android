@@ -248,6 +248,8 @@ private val ACCESS_REASONS = listOf(
     "access_block_", "access_decline_own", "access_request_change_reviewer", "access_take_unavailable", "access_withdraw_not_yours",
     "asset_lock_", "assign_admin_only", "assign_take_", "change_block_", "sign_off_block_", "managed_not_selectable", "view_only_",
     "bulk_skipped", "bulk_updated_and_skipped",
+    // The camera's Single / Multiple can't change yet (shots in the strip, or waiting in the review).
+    "camera_mode_",
 )
 
 /**
