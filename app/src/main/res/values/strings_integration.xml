@@ -5,6 +5,8 @@
     <string name="int_loading">Loading</string>
     <string name="int_none">No integration</string>
     <string name="int_load_failed">Unable to fetch VDMS integration</string>
+    <!-- Whether the property is linked couldn't be read: shown in place of "No integration". -->
+    <string name="int_load_failed_note">Couldn\'t check whether this property is linked to Managed Assets.</string>
     <string name="int_add_title">Add Integration</string>
     <string name="int_field_integration">Integration</string>
     <string name="int_field_vdms">VDMS</string>

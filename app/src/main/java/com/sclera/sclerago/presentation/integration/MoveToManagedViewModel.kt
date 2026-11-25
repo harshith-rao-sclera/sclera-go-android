@@ -53,6 +53,8 @@ data class MoveUiState(
     val networks: List<String> = emptyList(),
     /** The networks are being fetched (the property is linked; its network names aren't in yet). */
     val networksLoading: Boolean = false,
+    /** The networks couldn't be read: the sheet says so, with Try again, rather than that there are none. */
+    val networksFailed: Boolean = false,
     val sheet: MoveSheetState? = null,
 )
 
@@ -97,14 +99,27 @@ class MoveToManagedViewModel @Inject constructor(
             }
             set { copy(block = block, networksLoading = block == null) }
             if (block != null) return@launch
-            try {
-                val names = useCases.networks(propertyId)
-                set { copy(networks = names) }
-            } catch (_: OnlineException) {
-                message.emit(UiText.Res(R.string.mv_networks_failed))
-            } finally {
-                set { copy(networksLoading = false) }
-            }
+            loadNetworks(propertyId)
+        }
+    }
+
+    /** Try again after the networks couldn't be read (the sheet's network list). */
+    fun retryNetworks() {
+        val p = state.propertyId
+        if (p.isEmpty() || state.networksLoading || state.block != null) return
+        viewModelScope.launch { loadNetworks(p) }
+    }
+
+    private suspend fun loadNetworks(propertyId: String) {
+        set { copy(networksLoading = true, networksFailed = false) }
+        try {
+            val names = useCases.networks(propertyId)
+            set { copy(networks = names) }
+        } catch (_: OnlineException) {
+            message.emit(UiText.Res(R.string.mv_networks_failed))
+            set { copy(networksFailed = networks.isEmpty()) }
+        } finally {
+            set { copy(networksLoading = false) }
         }
     }
 

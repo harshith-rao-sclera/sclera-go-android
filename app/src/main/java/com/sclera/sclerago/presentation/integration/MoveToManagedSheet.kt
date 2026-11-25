@@ -25,6 +25,7 @@ import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.GuardedClose
+import com.sclera.sclerago.presentation.components.LoadFailedNote
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
@@ -47,6 +48,8 @@ fun MoveToManagedSheet(
     onSubmitted: () -> Unit,
     /** The networks are still being fetched: placeholder rows instead of "No options". */
     networksLoading: Boolean = false,
+    /** The networks couldn't be read: says so, with Try again, instead of "No options". */
+    networksFailed: Boolean = false,
 ) {
     GuardedClose(s.network != null || s.assignee != null, vm::close) { close ->
         BottomSheet(close) {
@@ -57,8 +60,11 @@ fun MoveToManagedSheet(
             ) {
                 Txt(stringResource(R.string.mv_network_label), 12, 600, C.Muted)
                 if (networks.isEmpty()) {
-                    if (networksLoading) SkeletonList(stringResource(R.string.int_loading), count = 2, lead = SkeletonLead.NONE, lines = 1, card = false, gap = 2.dp)
-                    else Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
+                    when {
+                        networksLoading -> SkeletonList(stringResource(R.string.int_loading), count = 2, lead = SkeletonLead.NONE, lines = 1, card = false, gap = 2.dp)
+                        networksFailed -> LoadFailedNote(stringResource(R.string.mv_networks_failed), vm::retryNetworks)
+                        else -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
+                    }
                 }
                 // The web shows each name capitalised and sends it as it is.
                 ChoiceList(networks, { n -> n.replaceFirstChar { it.uppercaseChar() } }, { it == s.network }, vm::pickNetwork)

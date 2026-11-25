@@ -305,6 +305,26 @@ class RemoveMediaUseCase @Inject constructor(private val repo: AssetRepository, 
     }
 }
 
+/**
+ * Makes a saved asset's photo a photo of another kind (null: of no kind), as the server's media PATCH: collectors only,
+ * not on a locked asset, only a photo that answers no field, and refused ([DataException] PHOTO_LIMIT) when the kind
+ * already has the most photos the property allows.
+ */
+class SetPhotoKindUseCase @Inject constructor(
+    private val repo: AssetRepository,
+    private val guard: PermissionGuard,
+    private val photoRules: PhotoRulesRepository,
+) {
+    suspend operator fun invoke(assetId: String, photo: Media, kind: PhotoKind?) {
+        if (photo.category == kind || photo.video || photo.audio || photo.isDoc || photo.fieldId != null) return
+        guard.requireOffline(Permission.COLLECT)
+        requireUnlocked(repo, guard, listOf(assetId))
+        val others = repo.catalog.value.assets.firstOrNull { it.id == assetId }?.media.orEmpty().filterNot { it.id == photo.id }
+        checkPhotoRoom(photoRules.rules().first(), others, listOf(photo.copy(category = kind)))
+        repo.setMediaCategory(assetId, photo.id, kind)
+    }
+}
+
 
 /** Pull to refresh on the asset lists: reads the property's assets on this device again (the sync keeps them up to date). */
 class ReloadAssetsUseCase @Inject constructor(private val reloader: LocalDataReloader) {
@@ -457,6 +477,7 @@ class AssetUseCases @Inject constructor(
     val assignLocation: AssignLocationUseCase,
     val attachMedia: AttachMediaUseCase,
     val removeMedia: RemoveMediaUseCase,
+    val setPhotoKind: SetPhotoKindUseCase,
     val downloadMedia: DownloadMediaUseCase,
     val sortPhotos: SortPhotosUseCase,
     val sortShot: SortShotUseCase,

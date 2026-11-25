@@ -322,6 +322,8 @@ object Icons {
     val TextAa = Ico(s("M3 18l4.5-12L12 18M4.7 14h5.6"), s("M17.5 18v-1.2m0 1.2a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0-6V9.5a2 2 0 0 0-3.5-1.2"))
     val ChevronCircle = Ico(s(circle(12f, 12f, 9f)), s("M8.5 10.5L12 14l3.5-3.5"))
     val ArrowUp = Ico(s("M12 19V5M6 11l6-6 6 6"))
+    /** Sort order: an arrow up beside an arrow down (the Validation page's Default order). */
+    val SortArrows = Ico(s("M8 20V4M4 8l4-4 4 4"), s("M16 4v16M12 16l4 4 4-4"))
     val ArrowDown = Ico(s("M12 5v14M6 13l6 6 6-6"))
     val ArrowUpRight = Ico(s("M7 17L17 7M9 7h8v8"))
 }

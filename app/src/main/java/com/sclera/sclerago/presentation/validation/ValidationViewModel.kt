@@ -222,6 +222,8 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
                         confirmDelete = confirmDelete?.takeIf { validate == null },
                     )
                 }
+                // A read refused while the access was changing (a group just changed) is tried again once it is known.
+                if (state.loadFailed) reload()
             }
         }
         // The property's AI switch, as it is read or changed (Configuration → Settings shows at once).
@@ -337,6 +339,8 @@ class ValidationViewModel @Inject constructor(private val useCases: ValidationUs
         val p = state.propertyId
         if (p.isEmpty()) return
         refreshAiSwitch()
+        // Read again after a failure (Try again): the skeleton while nothing is listed yet, not the failure note.
+        set { copy(loadFailed = false, loading = loading || (saved.isEmpty() && runs.isEmpty())) }
         viewModelScope.launch {
             try {
                 val saved = useCases.saved(p)

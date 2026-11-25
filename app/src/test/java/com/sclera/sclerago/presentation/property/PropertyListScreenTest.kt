@@ -64,10 +64,10 @@ class PropertyListScreenTest {
     private fun checkKeyStates() {
         showList()
         // Only the app bar names the page: no heading, no "N properties" line, no current property under the title.
-        compose.onAllNodesWithText(str(R.string.property_list_title)).assertCountEquals(1)
+        compose.onAllNodesWithText(str(R.string.label_properties)).assertCountEquals(2) // the app bar and the count tile
         compose.onAllNodesWithText(context.resources.getQuantityString(R.plurals.property_count, 4, 4)).assertCountEquals(0)
         compose.onNodeWithTag(PropertyTags.COUNT).onChildren().assertAny(hasText("4"))
-        compose.onNodeWithText(str(R.string.label_properties)).assertIsDisplayed()
+        compose.onAllNodesWithText(str(R.string.label_properties))[1].assertIsDisplayed()
         // No asset counts on this page: no Assets tile and no "N assets" on the cards.
         compose.onNodeWithText(str(R.string.label_assets)).assertDoesNotExist()
         compose.onNodeWithText(context.resources.getQuantityString(R.plurals.asset_count, 25, 25)).assertDoesNotExist()

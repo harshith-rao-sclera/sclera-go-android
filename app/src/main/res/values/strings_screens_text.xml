@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Text of various screens, moved out of the code. English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- A list that couldn't be read from the server (components/Controls.kt LoadFailedNote) -->
+    <string name="scrt_load_try_again">Try again</string>
     <!-- Scan permission sheet and blocked card (components/Permissions.kt) -->
     <string name="scrt_perm_bt_title">Find Bluetooth tags nearby</string>
     <string name="scrt_perm_bt_body">To see asset tags and sensors near you.</string>

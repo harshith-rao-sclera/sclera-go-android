@@ -7,6 +7,8 @@
     <!-- Landing page -->
     <string name="val_loading">Loading…</string>
     <string name="val_load_failed">Couldn\'t load validation.</string>
+    <!-- The Validation page's saved validations and recent jobs couldn't be read (shown in place of "nothing yet"). -->
+    <string name="val_load_failed_note">Couldn\'t load the saved validations and recent jobs.</string>
     <string name="val_scope_all">All assets (%1$d)</string>
     <string name="val_cancel">Cancel</string>
     <string name="val_deleted">Validation deleted</string>
@@ -167,7 +169,6 @@
     <string name="val_quick_ready">%1$s is ready to run under Validation → Recent jobs.</string>
     <string name="val_quick_unavailable">Couldn\'t load validation.</string>
     <!-- A saved validation that has already run (the web's chip and its Edit as new button). -->
-    <string name="valt_ran_chip">Already run</string>
     <!-- The Recent jobs filters (the web's): who ran it, its status and which check. -->
     <string name="valt_jobs_status">Status</string>
     <string name="valt_jobs_check">Check</string>

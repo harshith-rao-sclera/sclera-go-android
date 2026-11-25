@@ -44,7 +44,7 @@ internal const val OTHER_PHOTOS_KEY = "other"
 internal enum class DropLook { NONE, TAKES, FULL }
 
 /**
- * A photo being moved between the photo cards of a new asset's Media tab: tap and hold one to pick it up, drag it over
+ * A photo being moved between the photo cards of an asset's Media tab: tap and hold one to pick it up, drag it over
  * another card, let go to move it there. It lifts and follows the finger, the card under it lights up (red when that kind
  * already has its most photos), and it springs back when let go anywhere else.
  */

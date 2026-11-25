@@ -138,7 +138,6 @@ fun PropertyListScreen(
     Box(Modifier.fillMaxSize()) {
         PropertyListContent(
             state, app.currentProp,
-            currentName = app.propName.takeIf { it.isNotBlank() },
             onBack = app::openMenu, onQuery = vm::setQuery, onOpen = app::openPropertyFromList,
             onAdd = vm::openAdd, onImport = vm::openImport, onDownload = vm::download, onDownloadAndOpen = vm::downloadAndOpen,
             onRefresh = vm::refresh,
@@ -188,8 +187,6 @@ internal fun PropertyListContent(
     state: PropertyListState,
     currentId: String,
     onBack: () -> Unit,
-    /** The property being worked on, under the title (none until one has been opened). */
-    currentName: String? = null,
     onQuery: (String) -> Unit,
     onOpen: (String) -> Unit,
     onAdd: () -> Unit,
@@ -214,7 +211,8 @@ internal fun PropertyListContent(
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            SubPageBar(stringResource(R.string.property_list_title), property = currentName, onMenu = onBack)
+            // Just "Properties": the page lists every property, so no current property under the title.
+            SubPageBar(stringResource(R.string.label_properties), property = null, onMenu = onBack)
             if (accessFailed) AccessFailedBanner(onRetryAccess, Modifier.padding(horizontal = gutter + 10.dp).padding(top = 10.dp))
             // The first read shows its own loader, so a pull waits until it is done.
             PullRefresh(state.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !state.loading) {

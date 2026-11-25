@@ -383,6 +383,26 @@ class AssetsWriter(
         files.forget(listOf(mediaId))
     }
 
+    /**
+     * Makes asset [assetId]'s photo [mediaId] a photo of [category] (null: of no kind, Other photos), as the server's
+     * `PATCH …/media/{id}`: only a photo that answers no field has a kind. The room the kind has is checked by the caller.
+     * The sync pushes the change.
+     */
+    suspend fun setMediaCategory(assetId: String, mediaId: String, category: PhotoKind?) {
+        db.write(io) {
+            refuseIfManaged(assetId)
+            if (!hasColumn("asset_media", "category")) throw DataException(DataError.FAILED)
+            val row = queryOne(MEDIA_ROW.live("asset_media"), listOf(mediaId, assetId)) ?: throw DataException(DataError.FAILED)
+            if (row.string("kind") != "image" || row.id("field_id") != null) throw DataException(DataError.FAILED)
+            if (row.string("category") == category?.db) return@write
+            execute(
+                "UPDATE asset_media SET category = ?, version = version + 1, updated_at = ? WHERE id = ? AND asset_id = ?",
+                listOf(category?.db, now(), mediaId, assetId),
+                setOf("asset_media"),
+            )
+        }
+    }
+
     /** Adds a field named [name] of type [type] to asset [assetId] alone; its key, or null when the name is taken. */
     suspend fun addOwnField(assetId: String, name: String, type: String): String? = db.write(io) {
         refuseIfManaged(assetId)

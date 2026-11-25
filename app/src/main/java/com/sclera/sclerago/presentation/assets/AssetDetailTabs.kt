@@ -401,7 +401,7 @@ fun MediaTab(
     openingId: String? = null,
     /** Fetches a source file from the server and opens it ([openingId] while it is fetched). */
     onOpenSource: (AssetDocument) -> Unit = {},
-    /** A new asset's photo moved to another kind's card (null: Other photos); null when photos can't be moved. */
+    /** A photo moved to another kind's card (null: Other photos); null when photos can't be moved. */
     onMove: ((Media, PhotoKind?) -> Unit)? = null,
     /** What holding a photo or file offers besides opening it: saving a copy, and removing it (null: nobody may). */
     onDownload: ((Media) -> Unit)? = null,
@@ -414,7 +414,7 @@ fun MediaTab(
     val indexed = media.withIndex().toList()
     val photos = indexed.filter { (_, m) -> !m.video && !m.isDoc && !m.audio }
     val shown = rules.filter { r -> r.max > 0 || photos.any { it.value.category == r.kind } }
-    // A new asset's photos can be dragged between the cards (tap and hold one); a kind at its most takes no more.
+    // Photos can be dragged between the cards (tap and hold one); a kind at its most takes no more.
     val scope = rememberCoroutineScope()
     val drag = remember(onMove != null) { onMove?.let { PhotoDrag(scope) } }
     val full = { key: String -> shown.firstOrNull { it.kind.db == key }?.let { r -> photos.count { it.value.category == r.kind } >= r.max } == true }
@@ -571,7 +571,7 @@ private fun FileRows(
 }
 
 /**
- * One photo card: its name with a count chip, what it shows, and its photos (or "None yet."). With [drag] (a new asset)
+ * One photo card: its name with a count chip, what it shows, and its photos (or "None yet."). With [drag]
  * its photos can be picked up and dragged to another card ([moveTo]: the cards that can take one, by key and name), and it
  * lights up ([look]) while one is dragged over it.
  */
@@ -627,7 +627,7 @@ private fun PhotoCard(
                         customActions = moveTo.map { (to, name) -> CustomAccessibilityAction(moveLabel.format(name)) { drag.accept(m, to) } }
                     }
                 } else Modifier
-                // Holding it lists View, Download, Move to (a new asset's photo: the other cards with room) and Remove.
+                // Holding it lists View, Download, Move to (when photos can move: the other cards with room) and Remove.
                 val moves = if (onMove != null) moveTo.map { (to, name) -> name to { onMove(m, PhotoKind.of(to)) } } else emptyList()
                 MediaTile(
                     m, { onOpen(i) }, Modifier.size(76.dp).then(movable).testTag(PhotoTags.tile(i)),

@@ -34,6 +34,8 @@
         <item quantity="other">%1$d assets assigned to you</item>
     </plurals>
     <string name="assign_take_failed">Couldn’t assign the assets to you.</string>
+    <!-- Assign sheet: the organisation's people couldn't be read (shown in place of the list). -->
+    <string name="assign_load_failed">Couldn’t load the people you can assign to.</string>
     <string name="assign_take_refused">Only a reviewer can change who an asset is assigned to.</string>
     <string name="assign_take_assigned">Already assigned. Only a reviewer can reassign it</string>
     <string name="assign_take_some_assigned">Some are already assigned. Only a reviewer can reassign assets</string>

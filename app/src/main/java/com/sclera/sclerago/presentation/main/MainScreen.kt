@@ -278,7 +278,8 @@ fun ScleraApp(
                     selected = s.loc,
                     onMenu = vm::openMenu,
                     onPick = vm::tapLocTab,
-                    onChevron = { vm.openLocFilter() },
+                    // The property tab's arrow opens the Property list page; the location tab's opens the location picker.
+                    onChevron = { if (it == LocFilter.ALL) vm.openProp() else vm.openLocFilter() },
                     modifier = Modifier.launchEntrance(Entrance.DashHeader),
                 )
                 // The user's access couldn't be loaded: pages and changes that need a permission stay unavailable until it is.
@@ -446,7 +447,7 @@ fun ScleraApp(
                 list.clearSelection()
                 // Moved from its own page: back to the list.
                 if (detail?.id in sheet.ids) vm.closeDetail()
-            }, networksLoading = move.state.networksLoading) }
+            }, networksLoading = move.state.networksLoading, networksFailed = move.state.networksFailed) }
             assign.sheet?.let { sheet -> AssignSheet(sheet, assign, onSubmitted = list::clearSelection) }
             if (files.state.edit != null) DraftEditSheet(files)
             if (shots.state.edit != null) DraftEditSheet(shots)

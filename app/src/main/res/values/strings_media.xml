@@ -18,8 +18,10 @@
     <string name="media_removed">Removed from the asset</string>
     <!-- After a photo kind in the Media + menu: how many it has of the most the property allows. -->
     <string name="media_kind_count">%1$d of %2$d added</string>
-    <!-- New asset, Media tab: photos can be dragged between their kinds. -->
+    <!-- Media tab: photos can be dragged between their kinds (new and saved assets). -->
     <string name="media_drag_hint">Tap and hold a photo to move it to another section.</string>
+    <!-- A saved asset's photo dropped into another section, saved straight away (1: the section's name). -->
+    <string name="media_moved_to">Moved to %1$s</string>
     <!-- A photo dropped into a kind that already has its most photos (1: the kind, 2: how many). -->
     <string name="media_kind_full">%1$s already has %2$d photos, the most this property allows.</string>
     <!-- Accessibility action on a new asset's photo: move it to another section (1: its name). -->

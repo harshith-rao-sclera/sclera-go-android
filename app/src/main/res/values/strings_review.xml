@@ -55,6 +55,8 @@
     <string name="rev_filter_all">All</string>
     <string name="rev_search_assets">Search assets</string>
     <string name="rev_no_assets">No assets here.</string>
+    <!-- The run's assets couldn't be read: shown in place of "No assets here." -->
+    <string name="rev_results_failed">Couldn\'t load this run\'s assets.</string>
     <string name="rev_load_more">Load more</string>
     <string name="rev_open_of">%1$d open of %2$d</string>
     <string name="rev_handled_all">All %1$d handled</string>

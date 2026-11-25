@@ -18,6 +18,7 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.components.SkeletonLead
 import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.LoadFailedNote
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.Pill
@@ -70,6 +71,7 @@ fun AssignSheet(s: AssignSheetState, vm: AssignViewModel, onSubmitted: () -> Uni
                 )
                 when {
                     s.searching -> SkeletonList(stringResource(R.string.assign_loading), count = 4, lead = SkeletonLead.NONE, lines = 1, card = false, gap = 2.dp)
+                    s.searchFailed -> LoadFailedNote(stringResource(R.string.assign_load_failed), vm::retrySearch)
                     listed.isEmpty() && s.query.isNotBlank() -> Txt(stringResource(R.string.assign_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
                 }
             }

@@ -162,4 +162,7 @@
     <string name="rev_setup_all_fields">All fields</string>
     <string name="rev_setup_as_warning">Reported as warning</string>
     <string name="rev_setup_as_error">Reported as error</string>
+    <!-- A run's asset signed off before: "Validated" shows instead of Mark as validated (as the web). -->
+    <string name="rev_validated_before">Signed off in an earlier run</string>
+    <string name="rev_already_validated">Already validated: they were signed off before.</string>
 </resources>

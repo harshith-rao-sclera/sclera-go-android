@@ -83,6 +83,8 @@ data class RunReviewUiState(
     val results: List<RunAssetResult> = emptyList(),
     val nextCursor: String? = null,
     val loadingResults: Boolean = true,
+    /** The first page of results (for the filter in force) couldn't be read: the list says so, with Try again, not "No assets". */
+    val resultsFailed: Boolean = false,
     val loadingMore: Boolean = false,
     /** A new filter, step or search is being read: the rows shown are the old filter's, so placeholders show instead. */
     val filtering: Boolean = false,
@@ -152,10 +154,11 @@ class RunReviewViewModel @Inject constructor(
                     copy(
                         checkBlock = check,
                         validateBlock = validate,
-                        // Merging and recollection notes are the reviewer's (Validate) only; ticked rows stay ticked, and
-                        // the selection bar's sign-off buttons are greyed out instead.
+                        // Merging, recollection notes and ticking rows to decide on are the reviewer's (Validate) only:
+                        // without it they close (while the access is being fetched, ticked rows stay ticked).
                         merge = merge?.takeIf { validate == null },
                         recollectFor = recollectFor?.takeIf { validate == null },
+                        selected = if (validate?.lacksPermission == true) emptySet() else selected,
                     )
                 }
             }
@@ -242,7 +245,7 @@ class RunReviewViewModel @Inject constructor(
     private suspend fun loadResults(reset: Boolean, refresh: Boolean = false) {
         val filter = state.filter
         val cursor = if (reset) null else state.nextCursor
-        if (reset) set { copy(loadingResults = true) } else set { copy(loadingMore = true) }
+        if (reset) set { copy(loadingResults = true, resultsFailed = false) } else set { copy(loadingMore = true) }
         try {
             val page = useCases.results(p, j, filter, cursor)
             if (filter != state.filter) return
@@ -258,6 +261,11 @@ class RunReviewViewModel @Inject constructor(
             }
         } catch (e: OnlineException) {
             flash(e.error.toUiText())
+            // The first page failed: rows of another filter would be wrong, and none isn't "No assets". A refresh keeps
+            // the rows it already had and only says why (the toast).
+            if (reset && filter == state.filter) {
+                set { if (refresh && results.isNotEmpty()) this else copy(results = emptyList(), nextCursor = null, resultsFailed = true) }
+            }
         } finally {
             set { copy(loadingResults = false, loadingMore = false) }
         }
@@ -280,6 +288,13 @@ class RunReviewViewModel @Inject constructor(
     fun loadMore() {
         if (state.nextCursor == null || state.loadingMore) return
         viewModelScope.launch { loadResults(reset = false) }
+    }
+
+    /** Try again after the results couldn't be read: their first page, for the filter in force. */
+    fun retryResults() {
+        if (state.loadingResults) return
+        resultsJob?.cancel()
+        resultsJob = viewModelScope.launch { loadResults(reset = true) }
     }
 
     private fun refilter(f: ResultFilter, debounce: Boolean = false) {
@@ -307,10 +322,13 @@ class RunReviewViewModel @Inject constructor(
     fun toggleSelected(id: String) = set { copy(selected = if (id in selected) selected - id else selected + id) }
 
     /**
-     * Long-press on an asset: ticks it to decide on several together. Anyone may tick; for someone who can't sign off
-     * (Validate) the selection bar's decisions are greyed out and say why.
+     * Long-press on an asset: ticks it to decide on several together, which is the reviewer's (Validate): as the web's
+     * check boxes, nobody else ticks.
      */
-    fun select(id: String) = toggleSelected(id)
+    fun select(id: String) {
+        if (state.validateBlock?.lacksPermission == true) return
+        toggleSelected(id)
+    }
 
     /** Why a fix to the asset ([status], its assignee [assignedTo], in Managed Assets when [managed]) would be refused; null when it wouldn't. */
     fun lockOf(status: Status?, assignedTo: String?, managed: Boolean): AssetLock? = useCases.access.lockOf(status, assignedTo, managed)

@@ -22,16 +22,31 @@ fun issueMessage(message: String, fieldType: String?, value: String?): String {
     return stringResource(R.string.val_issue_date_message, message.removeSuffix("."), day)
 }
 
+/**
+ * A value an issue shows (what it is now, a suggested fix, what it was set to): a date field's stored value as its day in
+ * local time ("31 Dec 2026"), not the number it is kept as; any other value, or one that isn't a date, as it is.
+ */
+@Composable
+fun issueValueText(value: String, fieldType: String?): String {
+    if (fieldType != "date") return value
+    val at = dateMillis(value) ?: return value
+    return formatDate(at, LocalConfiguration.current.locales[0])
+}
+
 /** The date problems the server words without the date. */
 private val DATE_PROBLEMS = setOf("In the future.", "In the past.", "Too early.")
 
 /**
- * A date value as epoch millis, as the web's dateText reads it: a number is seconds since 1970 (how dates are stored);
- * otherwise an ISO date or date-time. Null when it is neither.
+ * A date value as epoch millis, as the web's dateText reads it: a number is seconds since 1970 (how dates are stored),
+ * or milliseconds when it has 13 digits or more (as the asset form reads them; some apps store those); otherwise an ISO
+ * date or date-time. Null when it is neither.
  */
 private fun dateMillis(value: String): Long? {
     val text = value.trim().ifEmpty { return null }
-    text.toDoubleOrNull()?.let { return (it * 1000).toLong() }
+    text.toDoubleOrNull()?.let { n ->
+        val digits = text.substringBefore('.').trimStart('-').length
+        return if (digits >= 13) n.toLong() else (n * 1000).toLong()
+    }
     return runCatching { Instant.parse(text).toEpochMilli() }
         .recoverCatching { OffsetDateTime.parse(text).toInstant().toEpochMilli() }
         .recoverCatching { LocalDate.parse(text).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() }

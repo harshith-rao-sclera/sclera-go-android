@@ -14,10 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
@@ -73,6 +76,28 @@ internal fun EmptyNote(text: String) {
         Modifier.padding(horizontal = 12.dp).fillMaxWidth().dashedBorder(C.Border2, 1.dp, 12.dp).padding(12.dp),
         maxLines = Int.MAX_VALUE,
     )
+}
+
+/**
+ * A list that couldn't be read from the server: says so ([text]) in place of the list, rather than its "nothing yet"
+ * note (a failed read isn't an empty one), with Try again ([onRetry]) to read it again.
+ */
+@Composable
+internal fun LoadFailedNote(text: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier.fillMaxWidth().testTag(LoadFailedTags.NOTE),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        EmptyNote(text)
+        Pill(stringResource(R.string.scrt_load_try_again), onRetry, Modifier.testTag(LoadFailedTags.RETRY), height = 40.dp, hPad = 16.dp)
+    }
+}
+
+/** Test tags of [LoadFailedNote]. */
+object LoadFailedTags {
+    const val NOTE = "load-failed"
+    const val RETRY = "load-failed-retry"
 }
 
 @Composable

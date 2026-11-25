@@ -35,6 +35,11 @@ data class IntegrationUiState(
     val loading: Boolean = true,
     val link: VdmsLink? = null,
     /**
+     * Whether the property is linked couldn't be read (and wasn't known before): the page says so, with Try again,
+     * instead of "No integration", and "+ Integration" stays off until it is known.
+     */
+    val loadFailed: Boolean = false,
+    /**
      * Why "+ Integration" can't be used by the signed-in user (it needs Configure), null when it can: it stays greyed out
      * and says why. Nothing is allowed until the access is known.
      */
@@ -75,13 +80,14 @@ class IntegrationViewModel @Inject constructor(
     }
 
     fun load() {
-        set { copy(loading = true) }
+        set { copy(loading = link == null, loadFailed = false) }
         viewModelScope.launch {
             try {
                 val link = useCases.get(state.propertyId)
-                set { copy(link = link, loading = false) }
+                set { copy(link = link, loading = false, loadFailed = false) }
             } catch (_: OnlineException) {
-                set { copy(link = null, loading = false) }
+                // A failed read isn't "not linked": the link already shown stays; without one the page says it couldn't tell.
+                set { copy(loading = false, loadFailed = link == null) }
                 flash(UiText.Res(R.string.int_load_failed))
             }
         }

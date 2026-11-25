@@ -47,6 +47,7 @@ import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.EmptyNote
+import com.sclera.sclerago.presentation.components.LoadFailedNote
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.components.OfflineGate
@@ -99,6 +100,7 @@ fun IntegrationScreen(
                 if (!online) OfflineBanner(OnlineOnly.INTEGRATION)
                 when {
                     s.loading -> SkeletonList(stringResource(R.string.int_loading), count = 2, lines = 3)
+                    s.loadFailed -> LoadFailedNote(stringResource(R.string.int_load_failed_note), vm::load)
                     s.link == null -> EmptyNote(stringResource(R.string.int_none))
                     else -> {
                         LinkCard(vm.nameOf(s.link), s.link.vdmsId)
@@ -108,8 +110,9 @@ fun IntegrationScreen(
             }
         }
         // Add Integration: the floating + as on the other pages. Always there, as the web's button; greyed out and inert
-        // once the property is linked or while loading. Without Configure it is greyed out too, and a tap says why.
-        val canAdd = s.link == null && !s.loading
+        // once the property is linked, while loading, or while whether it is linked is unknown (the read failed). Without
+        // Configure it is greyed out too, and a tap says why.
+        val canAdd = s.link == null && !s.loading && !s.loadFailed
         AccessGate(s.access, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp)) {
             OfflineGate(!online && canAdd && s.access == null, { vm.explainOffline(OnlineOnly.INTEGRATION) }) {
                 CircleFab(

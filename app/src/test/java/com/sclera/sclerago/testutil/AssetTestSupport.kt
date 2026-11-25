@@ -39,6 +39,7 @@ import com.sclera.sclerago.domain.usecase.asset.ObserveAssetActivityUseCase
 import com.sclera.sclerago.domain.usecase.asset.ObserveAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.RemoveCommentUseCase
 import com.sclera.sclerago.domain.usecase.asset.RemoveMediaUseCase
+import com.sclera.sclerago.domain.usecase.asset.SetPhotoKindUseCase
 import com.sclera.sclerago.domain.usecase.asset.SaveAssetDetailsUseCase
 import com.sclera.sclerago.domain.usecase.asset.SelectAllUseCase
 import com.sclera.sclerago.domain.usecase.asset.SetAssetStatusUseCase
@@ -97,6 +98,9 @@ class InMemoryAssetRepository(
 
     override suspend fun removeMedia(assetId: String, mediaId: String) =
         listOf(assetId).update { a -> a.copy(media = a.media.filterNot { it.id == mediaId }) }
+
+    override suspend fun setMediaCategory(assetId: String, mediaId: String, category: com.sclera.sclerago.domain.model.PhotoKind?) =
+        listOf(assetId).update { a -> a.copy(media = a.media.map { if (it.id == mediaId) it.copy(category = category) else it }) }
 
     override suspend fun details(id: String): AssetDetails? = details[id]
 
@@ -161,7 +165,7 @@ fun assetUseCases(
     return AssetUseCases(
         ObserveAssetsUseCase(repo), GetAssetDetailsUseCase(repo), SetAssetStatusUseCase(repo, guard, photoRules),
         SaveAssetDetailsUseCase(repo, guard, photoRules), DeleteAssetsUseCase(repo, guard), AssignLocationUseCase(repo, guard),
-        AttachMediaUseCase(repo, guard, photoRules), RemoveMediaUseCase(repo, guard), DownloadMediaUseCase(FakeFileRepository()), sort,
+        AttachMediaUseCase(repo, guard, photoRules), RemoveMediaUseCase(repo, guard), SetPhotoKindUseCase(repo, guard, photoRules), DownloadMediaUseCase(FakeFileRepository()), sort,
         SortShotUseCase(sort, photoRules), AddAssetsUseCase(repo, ids, guard), CreateAssetUseCase(repo, ids, guard, photoRules, sort),
         BuildCheckInputUseCase(repo, config, photoRules), BuildAssetListUseCase(), ToggleSelectionUseCase(), SelectAllUseCase(),
         CanWorkOnAssetUseCase(repo, guard), EvaluateAssetChecksUseCase(), AutofillAssetUseCase(autofill, guard), BuildFormValuesUseCase(time),

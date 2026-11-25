@@ -149,7 +149,7 @@ class AssetDetailActions(
     val onDownloadMedia: (Media) -> Unit = {},
     /** Remove a photo, video, voice memo or file from the asset (the media viewer's Remove, after the confirmation). */
     val onRemoveMedia: (Media) -> Unit = {},
-    /** A new asset's photo dragged to another kind's card (null: Other photos). */
+    /** A photo dragged to another kind's card (null: Other photos). */
     val onMovePhoto: (Media, PhotoKind?) -> Unit = { _, _ -> },
     /** Open the "Suggest type" sheet (System details). */
     val onSuggestType: () -> Unit = {},
@@ -503,7 +503,8 @@ private fun assetBarItems(
         if ((asset.st == Status.EXCEPTION || (submitted && asset.changeRequest == null)) && shows(BarAction.MOVE_TO_DRAFT)) {
             add(
                 DockItem(
-                    changeActionLabel(ChangeAction.MOVE_TO_DRAFT, 1), Icons.StatusDraft, Status.DRAFT.color, { onModal(DetailModal.MOVE_TO_DRAFT) },
+                    // The plain action colour, as the web's default tone: Draft's own status grey reads as greyed out.
+                    changeActionLabel(ChangeAction.MOVE_TO_DRAFT, 1), Icons.StatusDraft, C.Text, { onModal(DetailModal.MOVE_TO_DRAFT) },
                     tag = DetailTags.MOVE_TO_DRAFT, blocked = b.moveToDraft,
                 ),
             )

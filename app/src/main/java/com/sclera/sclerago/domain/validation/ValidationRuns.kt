@@ -230,9 +230,15 @@ data class RunAssetResult(
      * it first), as the server's decide refuses and the web's "check only".
      */
     val checkOnly: Boolean get() = assetStatus != null && assetStatus !in SIGNABLE_STATUSES
+
+    /**
+     * Signed off before (in an earlier run, or another): marking it again changes nothing, so it isn't offered (the web
+     * shows "Validated"); it can only be sent for recollection.
+     */
+    val alreadyValidated: Boolean get() = assetStatus == Status.VALIDATED
 }
 
-/** Only submitted assets (or ones already validated) can be marked as validated in a run. */
+/** Assets a run can sign off: submitted ones (one already validated is [RunAssetResult.alreadyValidated], not a check). */
 private val SIGNABLE_STATUSES = setOf(Status.SUBMITTED, Status.VALIDATED)
 
 /** What a run's decision did: how many assets it changed, and those left as they were because they aren't submitted. */

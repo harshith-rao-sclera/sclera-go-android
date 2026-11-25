@@ -56,6 +56,11 @@ data class PlacesSheetState(
     val hideExisting: Boolean = true,
     val selected: Set<PlaceKey> = emptySet(),
     val expanded: Set<PlaceKey> = emptySet(),
+    /**
+     * While searching every building and floor is open so the matches show; these are the ones closed again with their
+     * arrow (a new search opens everything again), as the web's.
+     */
+    val closedInSearch: Set<PlaceKey> = emptySet(),
     val submitting: Boolean = false,
     /** A send VDMS is working on: the sheet waits for it (a minute at most). */
     val waiting: Boolean = false,
@@ -100,7 +105,7 @@ internal fun PlacesSheetState.withView(places: VdmsPlaces?): PlacesSheetState {
     val rows = buildList {
         fun walk(nodes: List<PlaceNode>, depth: Int) {
             nodes.forEach { n ->
-                val open = n.children.isNotEmpty() && (searching || n.key in expanded)
+                val open = n.children.isNotEmpty() && (if (searching) n.key !in closedInSearch else n.key in expanded)
                 val under = n.keysUnder()
                 val on = if (n.isSelectable) n.key in selected else under.isNotEmpty() && under.all { it in selected }
                 val tick = when {

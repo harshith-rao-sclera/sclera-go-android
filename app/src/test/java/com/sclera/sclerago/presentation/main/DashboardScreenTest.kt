@@ -46,7 +46,7 @@ class DashboardScreenTest {
         compose.setContent { ScleraTheme { DashboardSample(sampleAssetList(), onOpen = { opened += it }) } }
         compose.onNodeWithTag(DashTags.location(LocFilter.ALL)).assertIsDisplayed().assertTextContains("Test 861")
         compose.onNodeWithTag(DashTags.location(LocFilter.NONE)).assertTextContains(str(R.string.dash_unmapped))
-        compose.onNodeWithTag(DashTags.chevron(LocFilter.ALL)).assertDoesNotExist()
+        compose.onNodeWithTag(DashTags.chevron(LocFilter.ALL)).assertIsDisplayed()
         compose.onNodeWithContentDescription(str(R.string.dash_menu)).assertIsDisplayed()
         // One card per row: the first rows are there, each with its own tag.
         assets.take(3).forEach { compose.onNodeWithTag(AssetListTags.row(it.id)).assertIsDisplayed() }

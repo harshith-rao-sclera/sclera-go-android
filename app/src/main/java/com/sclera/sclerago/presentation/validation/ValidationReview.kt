@@ -41,6 +41,7 @@ import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.model.reason
 import com.sclera.sclerago.presentation.components.EmptyNote
+import com.sclera.sclerago.presentation.components.LoadFailedNote
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.PageBar
@@ -124,18 +125,19 @@ internal fun JobReview(
                 if (s.filtering) item(key = "filtering") {
                     SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 4, trailing = true)
                 } else if (s.results.isEmpty()) item(key = "none") {
-                    if (s.loadingResults) {
-                        SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 4, trailing = true)
-                    } else {
-                        EmptyNote(stringResource(if (j.status.active && j.processed == 0) R.string.valt_checking_first else R.string.rev_no_assets))
+                    when {
+                        s.loadingResults -> SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 4, trailing = true)
+                        s.resultsFailed -> LoadFailedNote(stringResource(R.string.rev_results_failed), vm::retryResults)
+                        else -> EmptyNote(stringResource(if (j.status.active && j.processed == 0) R.string.valt_checking_first else R.string.rev_no_assets))
                     }
                 }
                 if (!s.filtering) items(s.results, key = { it.assetId }) { res ->
                     ReviewAssetCard(
                         j, res, localById[res.assetId], selected = res.assetId in s.selected, fresh = res.assetId in s.fresh,
                         onOpen = { if (s.selected.isNotEmpty()) vm.toggleSelected(res.assetId) else vm.openAsset(res.assetId) },
-                        // Anyone may tick; deciding on the ticked assets is the reviewer's (greyed out for anyone else).
-                        onSelect = { vm.select(res.assetId) },
+                        // Ticking is for deciding on several together, which is the reviewer's (Validate): as the web's
+                        // check boxes, there is none for anyone else.
+                        onSelect = if (s.validateBlock?.lacksPermission == true) null else ({ vm.select(res.assetId) }),
                     )
                 }
                 // Load more: placeholder rows where the next page will go, under the ones shown.
@@ -197,13 +199,19 @@ private fun SelectionBar(s: RunReviewUiState, vm: RunReviewViewModel) {
             if (!allShown) Pill(stringResource(R.string.val_select_shown, s.results.size), { vm.selectAllShown(true) }, height = 40.dp, hPad = 14.dp)
             Pill(stringResource(R.string.pi_clear), vm::clearSelection, height = 40.dp, hPad = 14.dp)
         }
-        val checkOnly = s.results.any { it.assetId in s.selected && it.checkOnly }
+        val picked = s.results.filter { it.assetId in s.selected }
+        val checkOnly = picked.any { it.checkOnly }
+        // Every one signed off in an earlier run: marking them again changes nothing (the web's "Already validated").
+        val allValidated = picked.isNotEmpty() && picked.all { it.alreadyValidated }
         DecisionButtons(
             s.busy, onValidate = { vm.decide(ids, Decision.VALIDATED) }, onRecollect = { vm.askRecollect(ids) },
-            validateBlocked = checkOnly,
+            validateBlocked = checkOnly || allValidated,
             access = s.validateBlock.reason(),
         )
-        if (checkOnly) Txt(stringResource(R.string.rev_submit_first), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        when {
+            checkOnly -> Txt(stringResource(R.string.rev_submit_first), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+            allValidated -> Txt(stringResource(R.string.rev_already_validated), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        }
     }
 }
 
@@ -212,7 +220,7 @@ internal fun DecisionButtons(
     busy: Boolean,
     onValidate: () -> Unit,
     onRecollect: () -> Unit,
-    /** Some of the assets aren't submitted: marking as validated is off (submit first). */
+    /** Some of the assets aren't submitted, or every one is already validated: marking as validated is off. */
     validateBlocked: Boolean = false,
     /** Why the user can't decide at all (no Validate): both stay, greyed out, and a tap says this ([AccessGate]). */
     access: UiText? = null,

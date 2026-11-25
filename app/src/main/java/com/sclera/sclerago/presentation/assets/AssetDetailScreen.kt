@@ -267,8 +267,10 @@ fun AssetDetailScreen(
                                     // A photo or video previews in the app; any other file opens in another app.
                                     onOpenSource = { if (it.previewable) actions.onPreviewSource(it) else actions.onOpenDocument(it) },
                                     openingId = state.documentsUi.opening,
-                                    // Only while adding an asset: its photos can be dragged between the kinds.
-                                    onMove = if (isNew && !locked) actions.onMovePhoto else null,
+                                    // Photos can be dragged between the kinds (as the web's photo kind): a new asset's are saved
+                                    // with it, a saved asset's straight away. Not on a read-only or signed-off asset, nor for
+                                    // whoever may not change it.
+                                    onMove = if (!locked && !mediaClosed && (isNew || b.change == null)) actions.onMovePhoto else null,
                                     // Holding a photo or file: Download, and Remove (greyed out, saying why, when the asset is
                                     // read-only for this user; none on a signed-off asset).
                                     onDownload = actions.onDownloadMedia, onRemove = if (mediaClosed) null else ({ removeMedia = it }),

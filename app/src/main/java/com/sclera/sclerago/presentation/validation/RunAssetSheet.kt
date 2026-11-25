@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import com.sclera.sclerago.presentation.common.issueMessage
+import com.sclera.sclerago.presentation.common.issueValueText
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
@@ -137,7 +138,7 @@ internal fun RunAssetSheet(
                         )
                     }
                     val open = if (p.loading) res.openCount else p.issues.count { it.status == IssueStatus.OPEN }
-                    DecisionRow(res.decision, res.decisionNote, open, s, p, vm, lock, checkOnly = res.checkOnly)
+                    DecisionRow(res.decision, res.decisionNote, open, s, p, vm, lock, checkOnly = res.checkOnly, alreadyValidated = res.alreadyValidated)
                 }
                 ReviewAssetStrip(name, local, propName, p.info)
                 // Checks and Asset info are two pages side by side: swipe between them, or tap the switch. The switch follows a
@@ -234,16 +235,29 @@ private fun DecisionRow(
     lock: AssetLock?,
     /** A draft or exception: the run is a check, so Mark as validated is off until it is submitted (as the web). */
     checkOnly: Boolean = false,
+    /** Signed off in an earlier run: "Validated" shows instead of Mark as validated; it can only be sent for recollection. */
+    alreadyValidated: Boolean = false,
 ) {
     val signOff = s.validateBlock.reason() ?: lock.reason()
+    // Not a reviewer (no Validate): as the web, no sign-off buttons at all, only the decision made (if any) or that a
+    // reviewer signs it off. While the access is still being fetched they stay, greyed out.
+    val reviewerOnly = s.validateBlock?.lacksPermission == true
     when {
         decision != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SmallChip(decisionLabel(decision), decisionColor(decision), decisionColor(decision).copy(alpha = 0.16f))
             Txt(note?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.valt_quoted, it) }.orEmpty(), 12, 400, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
-            AccessGate(signOff) {
+            if (!reviewerOnly) AccessGate(signOff) {
                 TextAction(stringResource(R.string.rev_undo_decision), { vm.decide(listOf(p.assetId), Decision.CLEAR) }, color = C.Soft, enabled = !s.busy, icon = Icons.Refresh)
             }
         }
+        alreadyValidated -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SmallChip(decisionLabel(Decision.VALIDATED), decisionColor(Decision.VALIDATED), decisionColor(Decision.VALIDATED).copy(alpha = 0.16f))
+            Txt(stringResource(R.string.rev_validated_before), 12, 400, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+            if (!reviewerOnly) AccessGate(signOff) {
+                Pill(stringResource(R.string.rev_decision_recollect), { if (!s.busy) vm.askRecollect(listOf(p.assetId)) }, height = 38.dp, hPad = 14.dp, size = 12)
+            }
+        }
+        reviewerOnly -> Txt(stringResource(R.string.rev_reviewer_signs_off), 11, 400, C.Dim, maxLines = Int.MAX_VALUE)
         else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             // Marking as validated is off (grey) while the asset is only a draft (the run is a check).
             val blocked = checkOnly
@@ -371,7 +385,7 @@ private fun OpenIssue(
     val fix = s.checkBlock.reason() ?: lock.reason()
     if (issue.canApply) {
         issue.suggestions.forEachIndexed { i, sug ->
-            SuggestionRow(sug, best = i == 0, enabled = !busy, reason = fix) { vm.applySuggestion(issue, sug.value) }
+            SuggestionRow(sug, issue.fieldType, best = i == 0, enabled = !busy, reason = fix) { vm.applySuggestion(issue, sug.value) }
         }
     }
     // A submitted asset is changed through a change request (said up front, as the web).
@@ -416,9 +430,12 @@ private fun OpenIssue(
     }
 }
 
-/** A suggested value, with Apply (greyed out, saying why, while [reason] holds the user back). */
+/**
+ * A suggested value (a date field's as its day, not its stored number), with Apply (greyed out, saying why, while
+ * [reason] holds the user back).
+ */
 @Composable
-private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean, reason: UiText?, onApply: () -> Unit) {
+private fun SuggestionRow(sug: IssueSuggestion, fieldType: String?, best: Boolean, enabled: Boolean, reason: UiText?, onApply: () -> Unit) {
     val uri = LocalUriHandler.current
     Row(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -426,7 +443,8 @@ private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Txt(sug.shown.ifBlank { "—" }, 13, 700, maxLines = Int.MAX_VALUE)
+            val shown = sug.label?.takeIf { it.isNotBlank() } ?: issueValueText(sug.value.text, fieldType)
+            Txt(shown.ifBlank { "—" }, 13, 700, maxLines = Int.MAX_VALUE)
             val pct = (sug.confidence * 100).roundToInt()
             val confColor = when {
                 sug.confidence >= 0.8 -> C.Green
@@ -453,7 +471,7 @@ private fun SuggestionRow(sug: IssueSuggestion, best: Boolean, enabled: Boolean,
 /** What was done about an issue, and its Undo / Reopen: the reviewer's (Validate), greyed out, saying why, for anyone else. */
 @Composable
 private fun ClosedIssue(issue: RunIssue, s: RunReviewUiState, vm: RunReviewViewModel, busy: Boolean, lock: AssetLock?) {
-    val shown = issue.resolvedValue?.text?.takeIf { it.isNotBlank() }
+    val shown = issue.resolvedValue?.text?.takeIf { it.isNotBlank() }?.let { issueValueText(it, issue.fieldType) }
         ?: issue.suggestions.firstOrNull { it.value.json == issue.resolvedValue?.json }?.label
     Txt(
         when (issue.status) {
@@ -469,7 +487,7 @@ private fun ClosedIssue(issue: RunIssue, s: RunReviewUiState, vm: RunReviewViewM
             issue.target == IssueTarget.CLASSIFICATION ->
                 stringResource(if (issue.currentValue?.json?.contains("null") != false) R.string.rev_undo_unclassified else R.string.rev_undo_type)
             issue.currentValue?.text.isNullOrBlank() -> stringResource(R.string.rev_undo_empty)
-            else -> stringResource(R.string.rev_undo_value, issue.currentValue?.text.orEmpty())
+            else -> stringResource(R.string.rev_undo_value, issueValueText(issue.currentValue?.text.orEmpty(), issue.fieldType))
         }
         AccessGate(s.validateBlock.reason() ?: lock.reason()) { TextAction(label, { vm.revert(issue) }, color = C.Soft, enabled = !busy, icon = Icons.Refresh) }
     }

@@ -189,11 +189,16 @@ class PlacesImportViewModel @Inject constructor(private val useCases: VdmsPlaces
         }
     }
 
-    fun setSearch(q: String) = setSheet { copy(search = q) }
+    /** A new search opens every building and floor again. */
+    fun setSearch(q: String) = setSheet { copy(search = q, closedInSearch = emptySet()) }
 
     fun setHideExisting(on: Boolean) = setSheet { copy(hideExisting = on) }
 
-    fun toggleOpen(n: PlaceNode) = setSheet { copy(expanded = if (n.key in expanded) expanded - n.key else expanded + n.key) }
+    /** A building's or floor's arrow: opens or closes it; while searching it closes (and reopens) one the search opened. */
+    fun toggleOpen(n: PlaceNode) = setSheet {
+        if (searching) copy(closedInSearch = if (n.key in closedInSearch) closedInSearch - n.key else closedInSearch + n.key)
+        else copy(expanded = if (n.key in expanded) expanded - n.key else expanded + n.key)
+    }
 
     /**
      * Ticks or unticks [n] (a row as shown) and what can be added under it; unticking takes off what is under it too.

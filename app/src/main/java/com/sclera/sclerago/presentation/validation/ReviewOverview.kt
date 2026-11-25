@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -96,11 +97,12 @@ internal fun ReviewHead(j: ValRun, onSetup: () -> Unit = {}) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Txt(j.name, 22, 800, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
             StatusChip(j.status)
-            // How it was set up (the web's Setup), when the server says.
-            if (j.setup != null) {
-                Spacer(Modifier.weight(1f))
-                TextAction(stringResource(R.string.rev_setup), onSetup, color = C.Soft, icon = Icons.Gear)
-            }
+        }
+        // How it was set up (the web's Setup), when the server says: on its own line under the name, so a phone shows
+        // the name in full.
+        // Its gear lines up with the name (the button's own padding sits outside it).
+        if (j.setup != null) Box(Modifier.offset(x = (-8).dp)) {
+            TextAction(stringResource(R.string.rev_setup), onSetup, color = C.Soft, icon = Icons.Gear)
         }
         val took = took(j)?.let { stringResource(R.string.rev_took, it) }
         Txt(

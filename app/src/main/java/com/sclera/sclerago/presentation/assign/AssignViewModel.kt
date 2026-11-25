@@ -40,6 +40,8 @@ data class AssignSheetState(
     val query: String = "",
     val people: List<DirectoryPerson> = emptyList(),
     val searching: Boolean = true,
+    /** The people couldn't be read: the sheet says so, with Try again, rather than showing an empty list. */
+    val searchFailed: Boolean = false,
     val me: String? = null,
     val initial: AssignChoice? = null,
     val picked: AssignChoice? = initial,
@@ -168,14 +170,21 @@ class AssignViewModel @Inject constructor(
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             if (debounce) delay(SEARCH_MS)
-            sheet = sheet?.copy(searching = true)
+            sheet = sheet?.copy(searching = true, searchFailed = false)
             val found = try {
                 useCases.findAssignees(q)
             } catch (_: OnlineException) {
-                emptyList() // As on the web, the list just comes back empty.
+                // Not "nobody matches": the sheet says the people couldn't be read (the web just shows an empty list).
+                null
             }
-            sheet = sheet?.copy(people = found, searching = false)
+            sheet = sheet?.copy(people = found.orEmpty(), searching = false, searchFailed = found == null)
         }
+    }
+
+    /** Try again after the people couldn't be read: the same search again. */
+    fun retrySearch() {
+        val s = sheet ?: return
+        if (!s.searching) search(s.query, debounce = false)
     }
 
     /** Apply: closes the sheet and assigns the assets, then says what happened. False while nothing is picked. */

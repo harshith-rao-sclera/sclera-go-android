@@ -363,6 +363,11 @@ class AssetDetailViewModel @Inject constructor(
         /** The describe sheet's text while it is open (null: closed). */
         val typing: String? = null,
         val newPicks: List<Media> = emptyList(),
+        /**
+         * A saved asset's photos just moved to another kind (photo id → kind, null: Other photos): shown there at once,
+         * until the asset read again from the database has them there too.
+         */
+        val movedKinds: Map<String, PhotoKind?> = emptyMap(),
         val commentDraft: String = "",
         val commentProblem: CommentProblem? = null,
         val commentPosting: Boolean = false,
@@ -489,7 +494,8 @@ class AssetDetailViewModel @Inject constructor(
                 documents = if (t.isNew) emptyList() else db.documents.documents,
                 documentsUi = db.documents,
                 saved = saved, edits = f.edits, fields = fields, details = details,
-                media = asset.media + f.newPicks, newPicks = f.newPicks,
+                media = asset.media.map { m -> if (m.id in f.movedKinds) m.copy(category = f.movedKinds[m.id]) else m } + f.newPicks,
+                newPicks = f.newPicks,
                 ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase.let { it == AiPhase.SEARCHING || it == AiPhase.LOADING }, voice = f.voice, voiceReading = f.voiceReading, typing = f.typing, sortingPhotos = f.sorting > 0,
                 activity = if (t.isNew) emptyList() else db.activity,
                 handling = if (t.isNew) null else handling(asset, db.activity),
@@ -974,18 +980,38 @@ class AssetDetailViewModel @Inject constructor(
     }
 
     /**
-     * Moves a new asset's photo [m] to the card of [kind] (null: Other photos), within that kind's most photos; a saved
-     * asset's photos keep their kind. It is saved with the asset in that kind.
+     * Moves photo [m] to the card of [kind] (null: Other photos), within that kind's most photos. A new asset's is saved
+     * with the asset in that kind; a saved asset's is saved straight away, as the web's photo kind (the sync pushes it).
      */
     fun movePhoto(m: Media, kind: PhotoKind?) {
         val s = state.value
-        if (!s.isNew || s.locked || m.category == kind || m.video || m.audio || m.isDoc || m.fieldId != null) return
+        val asset = s.asset ?: return
+        if (s.locked || m.category == kind || m.video || m.audio || m.isDoc || m.fieldId != null) return
         if (kind != null) {
             val max = s.photoRules.firstOrNull { it.kind == kind }?.max ?: 0
             if (s.media.count { it.category == kind && !it.video && !it.audio && !it.isDoc } >= max) {
                 message.tryEmit(UiText.Res(R.string.media_kind_full, listOf(UiText.Res(kind.nameRes()), max)))
                 return
             }
+        }
+        if (!s.isNew) {
+            // It shows in its new card at once; reading the asset again from the database takes a moment.
+            form.update { it.copy(movedKinds = it.movedKinds + (m.id to kind)) }
+            viewModelScope.launch {
+                try {
+                    useCases.setPhotoKind(asset.id, m, kind)
+                    message.emit(UiText.Res(R.string.media_moved_to, listOf(UiText.Res(kind?.nameRes() ?: R.string.media_other))))
+                    // Kept until the asset read again has it there (or a few seconds, whichever is first).
+                    withTimeoutOrNull(MOVE_SETTLE_MS) {
+                        useCases.observe().first { c -> c.assets.firstOrNull { it.id == asset.id }?.media?.firstOrNull { it.id == m.id }?.category == kind }
+                    }
+                } catch (e: DataException) {
+                    message.emit(e.error.toUiText())
+                } finally {
+                    form.update { f -> if (f.movedKinds[m.id] == kind) f.copy(movedKinds = f.movedKinds - m.id) else f }
+                }
+            }
+            return
         }
         val moved = { x: Media -> if (x.id == m.id) x.copy(category = kind) else x }
         if (form.value.newPicks.any { it.id == m.id }) {
@@ -1822,6 +1848,9 @@ class AssetDetailViewModel @Inject constructor(
 
         /** Room for the shots left out at once (more than an asset can hold). */
         const val DROPPED_BUFFER = 64
+
+        /** The longest a moved photo is shown in its new card before the asset read again from the database must agree. */
+        const val MOVE_SETTLE_MS = 5_000L
 
         /** How many [REFRESH_MS] to wait for a new validation to sync before saying it will show later. */
         const val SYNC_WAITS = 15L

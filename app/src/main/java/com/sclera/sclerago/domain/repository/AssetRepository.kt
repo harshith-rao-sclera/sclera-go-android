@@ -5,6 +5,7 @@ import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
+import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
@@ -47,6 +48,9 @@ interface AssetRepository {
 
     /** Removes the photo, video, voice memo or file [mediaId] from asset [assetId] (and from the field it answers). */
     suspend fun removeMedia(assetId: String, mediaId: String)
+
+    /** Makes asset [assetId]'s photo [mediaId] a photo of [category] (null: of no kind, Other photos). */
+    suspend fun setMediaCategory(assetId: String, mediaId: String, category: PhotoKind?)
 
     /** The code, fields, confidence and sources of the asset [id]; null when it is not there. */
     suspend fun details(id: String): AssetDetails?

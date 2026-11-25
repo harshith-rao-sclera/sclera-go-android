@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.assets
 
 import com.sclera.sclerago.presentation.common.issueMessage
+import com.sclera.sclerago.presentation.common.issueValueText
 import com.sclera.sclerago.presentation.components.RunFab
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
@@ -406,13 +407,14 @@ private fun IssueRow(issue: StepIssue) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             if (label != null) Txt(label, 12, 600, maxLines = 2)
             if (label != null && next != null) {
-                val nowText = now?.let { issueNowText(it) }
+                val nowText = now?.let { issueNowText(it, issue.fieldType) }
                 val changeTo = stringResource(R.string.val_issue_change_to)
                 // What it would become, after an arrow, taking the rest of its line.
                 val becomes: @Composable () -> Unit = {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
                         Txt("→", 12, 400, C.Muted, modifier = Modifier.semantics { contentDescription = changeTo })
-                        Txt(next, 12, 600, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f))
+                        val nextText = issue.suggestion?.label?.takeIf { it.isNotBlank() } ?: issueValueText(next, issue.fieldType)
+                        Txt(nextText, 12, 600, maxLines = Int.MAX_VALUE, modifier = Modifier.weight(1f))
                     }
                 }
                 if (nowText == null || nowText.length <= SHORT_NOW) {
@@ -449,8 +451,9 @@ private fun issueLabelText(label: IssueLabel): String = when (label) {
 }
 
 @Composable
-private fun issueNowText(now: IssueNow): String = when (now) {
-    is IssueNow.Text -> now.text
+private fun issueNowText(now: IssueNow, fieldType: String?): String = when (now) {
+    // A date field's value as its day, not its stored number.
+    is IssueNow.Text -> issueValueText(now.text, fieldType)
     IssueNow.Empty -> stringResource(R.string.val_issue_empty)
     IssueNow.NotSet -> stringResource(R.string.val_issue_not_set)
     IssueNow.Partial -> stringResource(R.string.val_issue_partial)

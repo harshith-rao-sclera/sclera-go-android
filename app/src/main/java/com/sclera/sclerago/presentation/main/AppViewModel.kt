@@ -1002,13 +1002,16 @@ class AppViewModel @Inject constructor(
         openNewWithMedia(picked)
     }
 
-    /** Gallery button in the camera: the picked photos/videos open one new asset's details. */
+    /**
+     * Gallery button in the camera: the picked photos/videos join the strip as if just taken ([addCapture]: Single sorts
+     * and ticks each while there is room, Multiple ticks them all) and the camera stays open; Done takes them with the
+     * shots. They aren't the app's files, so discarding the strip leaves them in the gallery.
+     */
     fun addPicked(uris: List<Uri>) {
         if (uris.isEmpty()) return
         if (!mayCollect()) return flashViewOnly()
         viewModelScope.launch {
-            val media = fileUseCases.describeMedia(uris.map { it.toString() })
-            if (state.camMany) sendShots(media) else openNewWithMedia(media)
+            fileUseCases.describeMedia(uris.map { it.toString() }).forEach(::addCapture)
         }
     }
 

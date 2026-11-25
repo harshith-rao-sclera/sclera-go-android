@@ -98,6 +98,20 @@ fun DashboardHeader(
                         .semantics { contentDescription = menuLabel },
                     shape = r(10),
                 ) { LineIcon(Icons.Menu, 24.dp, C.Text, 2.4f) }
+                // The open property's name in the middle, with the building icon (as the other pages show it), clear of
+                // the menu button and the logo.
+                if (propertyName.isNotBlank()) {
+                    Row(
+                        Modifier.align(Alignment.Center).padding(horizontal = 76.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        // The row takes the whole width between the paddings (its name can shrink): kept in the middle.
+                        horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
+                    ) {
+                        // The same icon, size and colour as the property line under the other pages' titles (SubPageBar).
+                        LineIcon(Icons.Building, 12.dp, C.Muted, 1.9f)
+                        Txt(propertyName, 11, 500, C.Muted, modifier = Modifier.weight(1f, fill = false), maxLines = 1)
+                    }
+                }
                 ScleraGoLogo(Modifier.align(Alignment.CenterEnd).padding(end = 28.dp))
             }
         }
@@ -116,8 +130,7 @@ private fun LocationTabs(
     val shown = path ?: listOf(stringResource(R.string.dash_choose_location))
     Row(Modifier.fillMaxWidth().height(TabRowHeight).topBorder(C.Border).background(C.Strip)) {
         LocCell(
-            // No dropdown: tapping the open property tab goes to the Property list.
-            LocFilter.ALL, selected, LocWeights.ALL, Icons.Property, divider = true, onPick, null,
+            LocFilter.ALL, selected, LocWeights.ALL, Icons.Property, divider = true, onPick, onChevron,
         ) { color, weight -> Txt(propertyName, 14, weight, color, maxLines = 1) }
         LocCell(
             LocFilter.SPEC, selected, LocWeights.SPEC, Icons.Pin, divider = true, onPick, onChevron,

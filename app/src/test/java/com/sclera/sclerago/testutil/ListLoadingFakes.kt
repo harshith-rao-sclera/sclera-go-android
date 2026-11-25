@@ -176,6 +176,7 @@ class FakeCatalogRepository(initial: AssetCatalog = AssetCatalog()) : AssetRepos
     override suspend fun assignLocation(ids: Collection<String>, location: LocValue) = Unit
     override suspend fun attachMedia(id: String, media: List<Media>) = Unit
     override suspend fun removeMedia(assetId: String, mediaId: String) = Unit
+    override suspend fun setMediaCategory(assetId: String, mediaId: String, category: com.sclera.sclerago.domain.model.PhotoKind?) = Unit
     override suspend fun details(id: String): AssetDetails? = null
     override suspend fun detailsFor(ids: Collection<String>): Map<String, AssetDetails> = emptyMap()
 }

@@ -8,6 +8,7 @@ import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.NewAsset
+import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
@@ -57,6 +58,9 @@ class AssetRepositoryImpl @Inject constructor(
     override suspend fun attachMedia(id: String, media: List<Media>) = writer.attachMedia(id, media)
 
     override suspend fun removeMedia(assetId: String, mediaId: String) = writer.removeMedia(assetId, mediaId)
+
+    override suspend fun setMediaCategory(assetId: String, mediaId: String, category: PhotoKind?) =
+        writer.setMediaCategory(assetId, mediaId, category)
 
     override suspend fun details(id: String): AssetDetails? = source.asset(id)?.details
 

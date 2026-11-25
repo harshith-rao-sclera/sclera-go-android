@@ -78,6 +78,7 @@ import com.sclera.sclerago.presentation.components.CloseButton
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.EmptyNote
+import com.sclera.sclerago.presentation.components.LoadFailedNote
 import com.sclera.sclerago.presentation.components.LabeledInput
 import com.sclera.sclerago.presentation.components.PageBar
 import com.sclera.sclerago.presentation.components.SubPageBar
@@ -177,7 +178,7 @@ fun ValidationScreen(
                     if (offline) item(key = "offline") { OfflineBanner(OnlineOnly.VALIDATION, Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
                     item(key = "templates") {
                         SectionTitle(stringResource(R.string.valt_templates), null) {
-                            if (s.catalogLoaded) Txt(stringResource(R.string.valt_default_order), 11, 600, C.Yellow, Modifier.pressClickable(shape = r(6), onClick = vm::openOrder).padding(4.dp))
+                            if (s.catalogLoaded) OrderButton(vm::openOrder)
                         }
                         if (s.templates.isEmpty()) {
                             if (offline) EmptyNote(stringResource(R.string.valt_templates_offline))
@@ -202,28 +203,44 @@ fun ValidationScreen(
                             }
                         }
                     }
+                    // A read that failed isn't "nothing saved yet": no counts, and one note that says so with Try again.
                     item(key = "saved-title") {
-                        SectionTitle(stringResource(R.string.valt_saved_validations), s.saved.size)
+                        SectionTitle(stringResource(R.string.valt_saved_validations), s.saved.size.takeUnless { s.loadFailed })
                     }
                     if (s.saved.isEmpty()) item(key = "saved-empty") {
-                        if (s.loading) SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 2)
-                        else EmptyNote(stringResource(if (s.canValidate) R.string.val_saved_empty_reviewer else R.string.val_saved_empty_checker))
+                        when {
+                            s.loading -> SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 2)
+                            s.loadFailed -> LoadFailedNote(stringResource(R.string.val_load_failed_note), vm::reload)
+                            else -> EmptyNote(stringResource(if (s.canValidate) R.string.val_saved_empty_reviewer else R.string.val_saved_empty_checker))
+                        }
                     }
-                    items(s.saved, key = { it.id }) { sv ->
-                        SavedCard(
-                            sv, s.stepsByKey,
-                            onRun = if (!offline) ({ vm.openRunSheet(RunSource.Saved(sv.id)) }) else null,
-                            // Only reviewers (validate) keep saved validations; anyone with check may run them (the others
-                            // see the buttons greyed out, saying why). One that has run can't change any more (the server
-                            // answers 409): as the web, it offers Edit as new (a copy).
-                            onEdit = if (!offline) ({ if (sv.locked) vm.editAsNew(sv) else vm.editValidation(sv) }) else null,
-                            onDelete = if (!offline) ({ vm.askDelete(sv) }) else null,
-                            runBlock = s.checkBlock, keepBlock = s.validateBlock,
-                        )
+                    if (s.saved.isNotEmpty()) item(key = "saved") {
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).height(IntrinsicSize.Max)
+                                .padding(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            s.saved.forEach { sv ->
+                                key(sv.id) {
+                                    SavedCard(
+                                        sv, s.stepsByKey,
+                                        onRun = if (!offline) ({ vm.openRunSheet(RunSource.Saved(sv.id)) }) else null,
+                                        // Only reviewers (validate) keep saved validations; anyone with check may run them
+                                        // (the others see the buttons greyed out, saying why). One that has run can't
+                                        // change any more (the server answers 409): as the web, it offers Edit as new.
+                                        onEdit = if (!offline) ({ if (sv.locked) vm.editAsNew(sv) else vm.editValidation(sv) }) else null,
+                                        onDelete = if (!offline) ({ vm.askDelete(sv) }) else null,
+                                        runBlock = s.checkBlock, keepBlock = s.validateBlock,
+                                        modifier = Modifier.fillMaxHeight(),
+                                    )
+                                }
+                            }
+                        }
                     }
                     // Recent jobs: the newest 100 runs, narrowed by who ran them, status and check (the web's filters).
-                    item(key = "jobs-title") { SectionTitle(stringResource(R.string.valt_recent_jobs), s.matchingRuns.size) }
-                    if (s.runs.isEmpty()) item(key = "jobs-empty") {
+                    item(key = "jobs-title") { SectionTitle(stringResource(R.string.valt_recent_jobs), s.matchingRuns.size.takeUnless { s.loadFailed }) }
+                    // After a failed read the note (with Try again) above already says so; nothing more here.
+                    if (s.runs.isEmpty() && !s.loadFailed) item(key = "jobs-empty") {
                         if (s.loading) {
                             SkeletonList(stringResource(R.string.val_loading), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), count = 3, lead = SkeletonLead.NONE, lines = 3)
                         } else EmptyNote(stringResource(R.string.val_jobs_empty))
@@ -423,7 +440,7 @@ private fun TemplateCard(
     runs: Boolean = true,
 ) {
     Column(
-        modifier.width(272.dp).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(10.dp),
+        modifier.width(CARD_WIDTH).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -453,9 +470,30 @@ private fun TemplateCard(
     }
 }
 
+/** The width of a template card and a saved validation's card, so the two rows match. */
+private val CARD_WIDTH = 272.dp
+
+/** The least height of a saved validation's card, so a short one isn't cramped. */
+private val SAVED_MIN_HEIGHT = 190.dp
+
+/** Default order (Templates' head): an outlined capsule with the sort arrows; opens the templates' order. */
+@Composable
+private fun OrderButton(onClick: () -> Unit) {
+    Row(
+        Modifier.heightIn(min = 40.dp).pressClickable(shape = Capsule, onClick = onClick).border(1.dp, C.Border, Capsule)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LineIcon(Icons.SortArrows, 16.dp, C.Text, 2f)
+        Txt(stringResource(R.string.valt_default_order), 13, 600)
+    }
+}
+
 /**
- * A saved validation: Run (greyed out, saying why, while [runBlock] holds the user back), and Edit (Edit as new once it
- * has run) and Delete ([keepBlock]). A button whose action is null (offline) is left out.
+ * A saved validation, a card in a row that scrolls sideways (as the templates): its name with a lock once it has run,
+ * its steps, when it last ran, then Run (greyed out, saying why, while [runBlock] holds the user back), Edit (Edit as new
+ * once it has run) and Delete ([keepBlock]). A button whose action is null (offline) is left out.
  */
 @Composable
 private fun SavedCard(
@@ -466,61 +504,60 @@ private fun SavedCard(
     onDelete: (() -> Unit)?,
     runBlock: AccessBlock?,
     keepBlock: AccessBlock?,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(r(14)).background(C.Surface)
-            .border(1.dp, C.Border, r(14)).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        // Roomier than a template card (same width): its name, steps and last run each get their own breathing space.
+        modifier.width(CARD_WIDTH).heightIn(min = SAVED_MIN_HEIGHT).clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14))
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         val last = sv.lastRun
-        // The name in full (it wraps), with "Already run" at the end of its line; when it last ran and how many are left
-        // to review sit under it.
-        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(sv.name, 14, 700, maxLines = Int.MAX_VALUE)
-                Txt(
-                    when {
-                        last == null -> stringResource(R.string.valt_not_run_yet)
-                        last.status.active -> stringResource(R.string.valt_last_run_running, relativeTime(last.createdAt ?: 0L))
-                        else -> stringResource(R.string.valt_last_run_review, relativeTime(last.createdAt ?: 0L), last.openCount)
-                    },
-                    11, 400, C.Muted, maxLines = 2,
-                )
-            }
-            // Already run (the web's chip): its runs keep the steps they ran with, so it can't change.
-            if (sv.locked) {
-                val why = stringResource(R.string.valt_ran_note)
-                Row(
-                    Modifier.clip(CircleShape).background(C.Raised).padding(horizontal = 7.dp, vertical = 3.dp)
-                        .semantics { contentDescription = why },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    LineIcon(Icons.Lock, 11.dp, C.Soft, 2.2f)
-                    Txt(stringResource(R.string.valt_ran_chip), 10, 700, C.Soft)
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            // The name, with a lock at the end once it has run: its runs keep the steps they ran with, so it can't change.
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Txt(sv.name, 15, 700, modifier = Modifier.weight(1f), maxLines = 2)
+                if (sv.locked) {
+                    val why = stringResource(R.string.valt_ran_note)
+                    Box(Modifier.padding(top = 2.dp).semantics { contentDescription = why }) { LineIcon(Icons.Lock, 14.dp, C.Soft, 2.2f) }
                 }
             }
+            Txt(sv.steps.joinToString(" · ") { stepName(steps, it) }, 12, 400, C.Soft, maxLines = 2)
+            Txt(
+                when {
+                    last == null -> stringResource(R.string.valt_not_run_yet)
+                    last.status.active -> stringResource(R.string.valt_last_run_running, relativeTime(last.createdAt ?: 0L))
+                    else -> stringResource(R.string.valt_last_run_review, relativeTime(last.createdAt ?: 0L), last.openCount)
+                },
+                11, 400, C.Muted, maxLines = 2,
+            )
         }
-        Txt(sv.steps.joinToString(" · ") { stepName(steps, it) }, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        // Fills the room a taller card's text takes, so every card's buttons line up at the bottom.
+        Spacer(Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            onRun?.let { AccessGate(runBlock) { YellowButton(stringResource(R.string.valt_run), it, height = 36) } }
-            Spacer(Modifier.weight(1f))
+            onRun?.let { AccessGate(runBlock) { YellowButton(stringResource(R.string.valt_run), it, height = 40) } }
             onEdit?.let {
-                // One that has run: Edit as new, with the copy icon (the web's), else Edit.
+                // One that has run: Edit as new, with the copy icon (the web's), else Edit; an outlined button.
                 AccessGate(keepBlock) {
                     Row(
-                        Modifier.heightIn(min = 48.dp).pressClickable(shape = r(8), onClick = it).padding(horizontal = 8.dp),
+                        Modifier.height(40.dp).pressClickable(shape = r(9), onClick = it).border(1.dp, C.Border, r(9))
+                            .padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        if (sv.locked) LineIcon(Icons.Clone, 13.dp, C.Soft, 2.2f)
-                        Txt(stringResource(if (sv.locked) R.string.valt_edit_as_new else R.string.action_edit), 12, 700, C.Soft)
+                        if (sv.locked) LineIcon(Icons.Clone, 14.dp, C.Text, 2.2f)
+                        Txt(stringResource(if (sv.locked) R.string.valt_edit_as_new else R.string.action_edit), 13, 600)
                     }
                 }
             }
+            Spacer(Modifier.weight(1f))
             onDelete?.let {
+                val label = stringResource(R.string.action_delete)
                 AccessGate(keepBlock) {
-                    Txt(stringResource(R.string.action_delete), 12, 700, C.Red, Modifier.pressClickable(shape = r(8), onClick = it).padding(horizontal = 8.dp, vertical = 8.dp))
+                    Box(
+                        Modifier.size(40.dp).pressClickable(shape = r(9), onClick = it).semantics { contentDescription = label },
+                        contentAlignment = Alignment.Center,
+                    ) { LineIcon(Icons.Trash, 19.dp, C.Red, 2f) }
                 }
             }
         }
