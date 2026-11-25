@@ -75,6 +75,12 @@ data class AccessListState(
      * they can: every change control stays, greyed out, and a tap says this.
      */
     val changeReason: UiText? = null,
+    /**
+     * Why the add button (Add person / New group) can't be used now, or null when it can: [changeReason], else nothing to
+     * add to yet (no group for a person; the lists couldn't be read for a group). The button always shows, greyed out
+     * with this.
+     */
+    val addReason: UiText? = null,
     /** Everyone else the organisation's directory lists (not added here yet), under the users, a page at a time. */
     val others: List<DirectoryPerson> = emptyList(),
     /** Another page of [others] can be asked for ("Show more users"). */
@@ -295,6 +301,7 @@ class AccessViewModel @Inject constructor(
     fun listState(): AccessListState {
         val nothingSaved = people.isEmpty() && groups.isEmpty()
         val unavailable = if (!refreshing && nothingSaved) loadError else null
+        val canAdd = if (state.tab == AccessTab.PEOPLE) groups.isNotEmpty() else unavailable == null
         return AccessListState(
             tab = state.tab,
             query = state.query,
@@ -307,8 +314,13 @@ class AccessViewModel @Inject constructor(
             loading = refreshing && nothingSaved,
             refreshing = pulled,
             unavailable = unavailable,
-            canAdd = if (state.tab == AccessTab.PEOPLE) groups.isNotEmpty() else unavailable == null,
+            canAdd = canAdd,
             changeReason = changeReason,
+            addReason = changeReason ?: when {
+                canAdd -> null
+                state.tab == AccessTab.PEOPLE -> UiText.Res(R.string.access_page_add_needs_group)
+                else -> unavailable
+            },
             others = others.people,
             othersHasMore = others.hasMore,
             othersLoading = others.loading,

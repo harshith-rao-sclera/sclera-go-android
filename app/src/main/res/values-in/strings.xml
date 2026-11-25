@@ -528,11 +528,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C. Hanya untuk aset baru: bidang yang sudah ada pada aset tetap memakai satuannya, dan nilai tidak dikonversi.</string>
     <string name="login_offline_banner">Tidak ada koneksi internet</string>
     <string name="login_clear_email">Hapus email</string>
-    <string name="psheet_title">Pilih properti</string>
-    <string name="psheet_use_location">Gunakan lokasi saya</string>
-    <string name="psheet_location_unavailable">Mencari properti terdekat lewat GPS belum tersedia.</string>
-    <string name="psheet_no_assets">Belum ada aset</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">Ceritakan hal penting tentang aset ini.</string>
     <string name="memo_stop">Berhenti</string>
     <string name="memo_save">Simpan memo</string>

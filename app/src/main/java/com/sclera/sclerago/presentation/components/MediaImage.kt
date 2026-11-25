@@ -25,7 +25,10 @@ private class Thumb(val bitmap: ImageBitmap?, val done: Boolean) {
     }
 }
 
-/** Thumbnail / full image for a photo or the first frame of a video; it shimmers while it is read. */
+/**
+ * Thumbnail / full image for a photo or the first frame of a video; it shimmers while it is read. An asset's photo the
+ * offline database doesn't have yet is read from the server's copy ([shownMedia]), shimmering while that is fetched.
+ */
 @Composable
 fun MediaImage(
     media: Media,
@@ -34,6 +37,17 @@ fun MediaImage(
     contentScale: ContentScale = ContentScale.Crop,
     placeholder: Color = C.Raised,
 ) {
+    val shown = if (media.isDoc) media else shownMedia(media, preview = maxPx <= SERVER_PREVIEW_PX)
+    if (shown == null) {
+        SkeletonBlock(modifier, RectangleShape)
+        return
+    }
+    MediaPicture(shown, modifier, maxPx, contentScale, placeholder)
+}
+
+/** [media]'s picture, read from its own URI. */
+@Composable
+private fun MediaPicture(media: Media, modifier: Modifier, maxPx: Int, contentScale: ContentScale, placeholder: Color) {
     val context = LocalContext.current
     // produceState keeps its last value when the keys change, so each new photo sets its own picture (not the last one's).
     // It also says whether the read is over, so a picture that can't be read stops shimmering.

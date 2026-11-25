@@ -52,7 +52,7 @@ class PremiseRepositoryImpl @Inject constructor(
                 Target(id, property?.gps == true, property?.fences.orEmpty(), tick)
             }.distinctUntilChanged().collectLatest { evaluate(it) }
         }
-        // Each property list fresh from the server (sign-in, the Property list, the re-check every few minutes) looks
+        // Each property list fresh from the server (sign-in, the Property list, the re-check every 30 seconds) looks
         // again where the phone is, even when the fences didn't change: the phone may have moved on or off the property.
         scope.launch { properties.listed.collect { refresh() } }
     }

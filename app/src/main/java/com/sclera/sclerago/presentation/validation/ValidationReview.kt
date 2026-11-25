@@ -36,7 +36,10 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.validation.Decision
 import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.domain.validation.ValStep
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.model.reason
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.LabeledInput
@@ -49,6 +52,15 @@ import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import com.sclera.sclerago.domain.validation.RunSetup
+import com.sclera.sclerago.domain.validation.IssueSeverity
+import androidx.compose.ui.platform.testTag
 
 /**
  * One job's results (Review), as the iOS app's: its head and summary, the fields to fix, how the review is going, the
@@ -80,6 +92,8 @@ internal fun JobReview(
         }
     }
     val s = vm.state
+    // "Run setup", opened from the head's Setup.
+    var setupOpen by rememberSaveable(jobId) { mutableStateOf(false) }
     BackHandler(onBack = onBack)
     val saver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri -> vm.saveExport(uri?.toString()) }
     LaunchedEffect(s.export) { s.export?.let { saver.launch(it.fileName) } }
@@ -91,7 +105,7 @@ internal fun JobReview(
             if (j == null) {
                 if (s.runFailed) EmptyNote(stringResource(R.string.valt_job_load_failed)) else ReviewSkeleton()
             } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 150.dp)) {
-                item(key = "head") { ReviewHead(j) }
+                item(key = "head") { ReviewHead(j) { setupOpen = true } }
                 // Apply fixes, above the first card (Export CSV and Run again float in the corner).
                 item(key = "actions") { ReviewActions(j, s.confidentCount, s.checkBlock, s.busy, vm::applyConfident) }
                 item(key = "summary") { ReviewSummary(j) }
@@ -120,7 +134,7 @@ internal fun JobReview(
                     ReviewAssetCard(
                         j, res, localById[res.assetId], selected = res.assetId in s.selected, fresh = res.assetId in s.fresh,
                         onOpen = { if (s.selected.isNotEmpty()) vm.toggleSelected(res.assetId) else vm.openAsset(res.assetId) },
-                        // Ticking is the reviewer's: anyone else's long-press says why instead.
+                        // Anyone may tick; deciding on the ticked assets is the reviewer's (greyed out for anyone else).
                         onSelect = { vm.select(res.assetId) },
                     )
                 }
@@ -139,7 +153,7 @@ internal fun JobReview(
                     }
                 }
             }
-            if (j != null && s.selected.isNotEmpty() && s.canValidate) SelectionBar(s, vm)
+            if (j != null && s.selected.isNotEmpty()) SelectionBar(s, vm)
         }
         // Export CSV and Run again, floating in the corner (not while assets are ticked: the selection bar is there).
         if (j != null && s.selected.isEmpty()) {
@@ -149,6 +163,7 @@ internal fun JobReview(
         j?.let { run -> s.panel?.let { p -> RunAssetSheet(run, p, steps, assets, propName, s, vm, onOpenAsset) } }
         s.merge?.let { MergeSheet(it, s, vm) }
         s.recollectFor?.let { ids -> RecollectSheet(ids.size, s, vm) }
+        j?.setup?.takeIf { setupOpen }?.let { RunSetupSheet(it) { setupOpen = false } }
         ToastEffect(s.message)
     }
 }
@@ -186,6 +201,7 @@ private fun SelectionBar(s: RunReviewUiState, vm: RunReviewViewModel) {
         DecisionButtons(
             s.busy, onValidate = { vm.decide(ids, Decision.VALIDATED) }, onRecollect = { vm.askRecollect(ids) },
             validateBlocked = checkOnly,
+            access = s.validateBlock.reason(),
         )
         if (checkOnly) Txt(stringResource(R.string.rev_submit_first), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
     }
@@ -198,13 +214,60 @@ internal fun DecisionButtons(
     onRecollect: () -> Unit,
     /** Some of the assets aren't submitted: marking as validated is off (submit first). */
     validateBlocked: Boolean = false,
+    /** Why the user can't decide at all (no Validate): both stay, greyed out, and a tap says this ([AccessGate]). */
+    access: UiText? = null,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Pill(
-            stringResource(R.string.rev_mark_validated), { if (!busy && !validateBlocked) onValidate() },
-            Modifier.weight(1f).alpha(if (validateBlocked) 0.4f else 1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700,
-        )
-        Pill(stringResource(R.string.rev_decision_recollect), { if (!busy) onRecollect() }, Modifier.weight(1f), height = 40.dp)
+        AccessGate(access, Modifier.weight(1f)) {
+            Pill(
+                stringResource(R.string.rev_mark_validated), { if (!busy && !validateBlocked) onValidate() },
+                Modifier.fillMaxWidth().alpha(if (validateBlocked && access == null) 0.4f else 1f), bg = C.Yellow, fg = C.OnYellow, height = 40.dp, weight = 700,
+            )
+        }
+        AccessGate(access, Modifier.weight(1f)) {
+            Pill(stringResource(R.string.rev_decision_recollect), { if (!busy) onRecollect() }, Modifier.fillMaxWidth(), height = 40.dp)
+        }
+    }
+}
+
+/**
+ * "Run setup", as the web's: the types the run was limited to, then each step's checks with the fields they looked at
+ * ("All fields" when none were chosen) and the severity their problems were reported as, when one was set.
+ */
+@Composable
+private fun RunSetupSheet(setup: RunSetup, onClose: () -> Unit) {
+    BottomSheet(onClose) {
+        SheetHeader(stringResource(R.string.rev_setup_title), stringResource(R.string.rev_setup_sub), onClose)
+        Column(
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)
+                .testTag("run_setup"),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            val types = setup.types + listOfNotNull(stringResource(R.string.rev_setup_no_type).takeIf { setup.unclassified })
+            if (types.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Txt(stringResource(R.string.rev_setup_types), 13, 700)
+                    Txt(types.joinToString(", "), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                }
+            }
+            setup.steps.forEach { step ->
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Txt(step.name, 13, 700, maxLines = 2)
+                    step.checks.forEach { check ->
+                        val fields = check.fields?.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: stringResource(R.string.rev_setup_all_fields)
+                        val severity = when (check.severity) {
+                            IssueSeverity.WARNING -> stringResource(R.string.rev_setup_as_warning)
+                            IssueSeverity.ERROR -> stringResource(R.string.rev_setup_as_error)
+                            else -> null
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Txt(check.name, 12, 600, maxLines = Int.MAX_VALUE)
+                            Txt(listOfNotNull(fields, severity).joinToString(" · "), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

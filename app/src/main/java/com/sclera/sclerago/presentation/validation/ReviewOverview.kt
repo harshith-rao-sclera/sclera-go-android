@@ -91,11 +91,16 @@ internal fun ReviewCard(
 
 /** The run's name and state, and what it covered: "All 12 assets · 2 steps · Started 1 min ago · Took 3s". */
 @Composable
-internal fun ReviewHead(j: ValRun) {
+internal fun ReviewHead(j: ValRun, onSetup: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Txt(j.name, 22, 800, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
             StatusChip(j.status)
+            // How it was set up (the web's Setup), when the server says.
+            if (j.setup != null) {
+                Spacer(Modifier.weight(1f))
+                TextAction(stringResource(R.string.rev_setup), onSetup, color = C.Soft, icon = Icons.Gear)
+            }
         }
         val took = took(j)?.let { stringResource(R.string.rev_took, it) }
         Txt(
@@ -357,8 +362,8 @@ private fun OutcomeChip(label: String, n: Int, on: Boolean, dot: Color?, onClick
 
 /**
  * One asset of the run: its type's icon, name and outcome, its score, a square per step (how it went there) and how
- * many of its issues are still open. Long-press ticks it (reviewers) to decide on several together; for anyone else it
- * says why it can't.
+ * many of its issues are still open. Long-press ticks it to decide on several together (the decisions are greyed out,
+ * saying why, for anyone who can't sign off).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

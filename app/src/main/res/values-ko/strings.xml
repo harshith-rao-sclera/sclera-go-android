@@ -528,11 +528,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C. 새 자산에만 적용: 이미 자산에 있는 필드는 단위를 유지하며 값은 변환되지 않습니다.</string>
     <string name="login_offline_banner">인터넷에 연결되어 있지 않습니다</string>
     <string name="login_clear_email">이메일 지우기</string>
-    <string name="psheet_title">속성 선택</string>
-    <string name="psheet_use_location">내 위치 사용</string>
-    <string name="psheet_location_unavailable">GPS로 가장 가까운 속성을 찾는 기능은 아직 사용할 수 없습니다.</string>
-    <string name="psheet_no_assets">아직 자산 없음</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">자산에 대해 알아둘 만한 내용을 말해 주세요.</string>
     <string name="memo_stop">중지</string>
     <string name="memo_save">메모 저장</string>

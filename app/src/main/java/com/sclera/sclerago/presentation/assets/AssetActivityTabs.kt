@@ -121,15 +121,16 @@ fun CommentList(
     val editLabel = stringResource(R.string.detail_comment_edit)
     val deleteLabel = stringResource(R.string.detail_comment_delete)
     val notYours = UiText.Res(R.string.access_comment_edit_not_yours)
+    val deleteNotYours = UiText.Res(R.string.access_comment_delete_not_yours)
     // Edge to edge: one row per comment, divided by a line, with no gap or side margin.
     Column(Modifier.fillMaxWidth().topBorder(C.Border)) {
         if (posting) CommentSkeleton()
         comments.forEach { e ->
             val menu = if (readOnly) emptyList() else buildList {
                 add(MenuAct(Icons.Pencil, editLabel, blocked = notYours.takeUnless { e.canEdit }) { editText = e.text; editingId = e.id })
-                // A reviewer the server still refuses (no reason to give here) gets no Delete, as before.
-                val deleteWhy = deleteBlocked.takeUnless { e.canDelete }
-                if (e.canDelete || deleteWhy != null) add(MenuAct(Icons.Trash, deleteLabel, danger = true, blocked = deleteWhy) { onDelete(e) })
+                // Delete always shows; one the user may not remove is greyed out, saying why.
+                val deleteWhy = if (e.canDelete) null else deleteBlocked ?: deleteNotYours
+                add(MenuAct(Icons.Trash, deleteLabel, danger = true, blocked = deleteWhy) { onDelete(e) })
             }
             Row(
                 Modifier.fillMaxWidth().testTag("detail-activity-${e.id}").clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14))

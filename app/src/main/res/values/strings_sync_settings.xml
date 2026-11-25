@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sync settings (side menu, under the open property). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="sync_title">Sync settings</string>
+    <!-- Assets changed on this device whose changes haven't reached the server yet. -->
+    <string name="sync_assets_waiting">Assets waiting</string>
+    <!-- Photos and videos taken or changed on this device that haven't reached the server yet. -->
+    <string name="sync_media_waiting">Media waiting</string>
+    <string name="sync_last_synced">Last synced</string>
+    <string name="sync_never">Not synced yet</string>
+    <string name="sync_data">Data sync</string>
+    <string name="sync_data_sub">Changes from the server come down. Yours always upload.</string>
+    <string name="sync_media">Photo and video sync</string>
+    <string name="sync_media_sub">Photos and videos from the server come down. Yours always upload.</string>
+</resources>

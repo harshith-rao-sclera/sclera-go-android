@@ -103,20 +103,3 @@ private fun ImportSheetWithFilePreview() {
 private fun AddPropertySheetPreview() {
     ScleraTheme { AddPropertySheet(onClose = {}, onAdd = { null }) }
 }
-
-@Preview(name = "Phone", device = PHONE)
-@Preview(name = "Tablet portrait", device = TABLET_PORTRAIT)
-@Preview(name = "Tablet landscape", device = TABLET_LANDSCAPE)
-@Composable
-private fun PropertySheetPreview() {
-    val downloads = PropertyDownloads(currentId = "p1", downloadedIds = setOf("p1", "p2"), restored = true)
-    ScleraTheme {
-        PropertySheetContent(
-            SamplePropertyState.copy(
-                rows = SamplePropertyState.rows.map { it.copy(property = it.property.copy(gps = it.property.id == "p1")) },
-                downloads = downloads,
-            ),
-            "p1", onClose = {}, onQuery = {}, onPick = {}, onDownload = {}, onOffline = {},
-        )
-    }
-}

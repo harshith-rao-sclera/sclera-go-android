@@ -506,7 +506,7 @@ class AssetDetailViewModel @Inject constructor(
                 // Every saved asset, one in Managed Assets too (as the web's: the copies are new drafts), for a group that
                 // can collect.
                 canClone = !t.isNew && useCases.canWorkOn.canCollect(),
-                buttons = buttonBlocks(asset, t.isNew).toUi(),
+                buttons = buttonBlocks(asset, t.isNew).toUi(changeRequests.isReviewer(), changeRequests.isMine(asset.changeRequest)),
                 classify = classified.sheet,
                 jacs = jacs,
                 jacsSuggesting = f.jacsSuggesting,

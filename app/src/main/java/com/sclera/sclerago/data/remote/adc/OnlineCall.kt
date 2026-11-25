@@ -26,12 +26,16 @@ class AdcSessionException(cause: Throwable? = null) : IOException("session ended
 /**
  * Runs one call to the ADC API: checks the connection first, and turns every failure into an
  * [OnlineException] ([OnlineError]) so no server text, status line or body reaches a screen or a log.
+ *
+ * With [offlineReads] on (the app's client has the [OfflineCacheInterceptor]), a call goes to the client even without a
+ * connection: the client answers a read from the last saved answer, or fails it as offline without sending anything.
  */
 @Singleton
 class OnlineCall @Inject constructor(
     private val network: NetworkMonitor,
     @IoDispatcher private val io: CoroutineDispatcher,
     private val refusals: AccessRefusalsImpl = AccessRefusalsImpl(),
+    private val offlineReads: OfflineReads = OfflineReads.None,
 ) {
     /** The parsed JSON body of [request]. */
     suspend fun <T> json(request: suspend () -> Response<ResponseBody>, parse: (String) -> T): T = withContext(io) {
@@ -63,7 +67,7 @@ class OnlineCall @Inject constructor(
     private suspend fun send(request: suspend () -> Response<ResponseBody>): String = send(request) { it.string() }.orEmpty()
 
     private suspend fun <T> send(request: suspend () -> Response<ResponseBody>, read: (ResponseBody) -> T): T? {
-        if (!network.isOnline()) throw OnlineException(OnlineError.Offline)
+        if (!offlineReads.enabled && !network.isOnline()) throw OnlineException(OnlineError.Offline)
         val response = try {
             request()
         } catch (e: AdcSessionException) {

@@ -173,11 +173,15 @@ private fun ChangeMenu(
             // The dock's Change button: sign-off and change-request actions alike.
             Txt(stringResource(R.string.action_change), 16, 700)
             options.forEach { option ->
-                Pill(
-                    changeActionLabel(option.action, count), { onPick(option) },
-                    Modifier.fillMaxWidth().alpha(if (option.blocked != null) 0.4f else 1f).testTag(SelectionChangeTags.option(option.action)),
-                    height = 48.dp, size = 14,
-                )
+                // One the user's group can't use at all is greyed out by its access gate (a tap says why).
+                AccessGate(option.access, Modifier.fillMaxWidth()) {
+                    Pill(
+                        changeActionLabel(option.action, count), { onPick(option) },
+                        Modifier.fillMaxWidth().alpha(if (option.blocked != null && option.access == null) 0.4f else 1f)
+                            .testTag(SelectionChangeTags.option(option.action)),
+                        height = 48.dp, size = 14,
+                    )
+                }
             }
             reviewerOnly.forEach { locked ->
                 AccessGate(locked.block, Modifier.fillMaxWidth()) {

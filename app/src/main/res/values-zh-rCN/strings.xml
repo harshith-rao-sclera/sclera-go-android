@@ -528,11 +528,6 @@
     <string name="cfg_units_metric_detail">米、kPa、°C。仅适用于新资产：资产上已有的字段保留其单位，数值不会被换算。</string>
     <string name="login_offline_banner">无网络连接</string>
     <string name="login_clear_email">清除邮箱</string>
-    <string name="psheet_title">选择物业</string>
-    <string name="psheet_use_location">使用我的位置</string>
-    <string name="psheet_location_unavailable">暂不支持通过GPS查找最近的物业。</string>
-    <string name="psheet_no_assets">暂无资产</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">说说这项资产值得了解的内容。</string>
     <string name="memo_stop">停止</string>
     <string name="memo_save">保存语音备忘</string>

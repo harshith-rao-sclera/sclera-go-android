@@ -100,12 +100,19 @@ object MenuTags {
 }
 
 /** The menu row for the page that is showing: a side-menu page, Validation, Configuration, or else the assets. */
-internal fun activeMenuItem(adminPage: AdminPage?, validationOpen: Boolean, configurationOpen: Boolean, integrationOpen: Boolean = false): MenuItem = when {
+internal fun activeMenuItem(
+    adminPage: AdminPage?,
+    validationOpen: Boolean,
+    configurationOpen: Boolean,
+    integrationOpen: Boolean = false,
+    syncOpen: Boolean = false,
+): MenuItem = when {
     adminPage == AdminPage.PROPERTIES -> MenuItem.PROPERTY
     adminPage == AdminPage.PEOPLE -> MenuItem.USERS
     validationOpen -> MenuItem.VALIDATION
     configurationOpen -> MenuItem.CONFIGURATION
     integrationOpen -> MenuItem.INTEGRATION
+    syncOpen -> MenuItem.SYNC
     else -> MenuItem.ASSETS
 }
 
@@ -132,7 +139,7 @@ fun SideMenu(
         blocks = MenuItem.entries.associateWith(vm::menuBlock),
         accessFailed = vm.accessFailed,
         onRetryAccess = vm::retryAccess,
-        active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen, s.intOpen),
+        active = activeMenuItem(s.adminPage, s.valOpen, s.cfgOpen, s.intOpen, s.syncOpen),
         onClose = vm::closeMenu,
         onPick = vm::pickMenu,
         onSignOut = { if (!sessionVm.logout()) offlineNote() },
@@ -294,6 +301,9 @@ internal fun SideMenuPanel(
                             SectionRow(
                                 MenuItem.INTEGRATION, stringResource(R.string.menu_integration), Icons.Integration, Trailing.Open, active, onPick,
                                 blocks[MenuItem.INTEGRATION],
+                            )
+                            SectionRow(
+                                MenuItem.SYNC, stringResource(R.string.sync_title), Icons.Sync, Trailing.Open, active, onPick, blocks[MenuItem.SYNC],
                             )
                         }
                     }

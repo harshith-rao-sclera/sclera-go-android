@@ -560,11 +560,6 @@
     <string name="cfg_units_metric_detail">מ׳, kPa, °C. לנכסים חדשים בלבד: שדות שכבר קיימים בנכס שומרים על היחידה שלהם, והערכים אינם מומרים.</string>
     <string name="login_offline_banner">אין חיבור לאינטרנט</string>
     <string name="login_clear_email">נקה אימייל</string>
-    <string name="psheet_title">בחירת נכס</string>
-    <string name="psheet_use_location">שימוש במיקום שלי</string>
-    <string name="psheet_location_unavailable">איתור הנכס הקרוב באמצעות GPS עדיין אינו זמין.</string>
-    <string name="psheet_no_assets">אין נכסים עדיין</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">אמרו מה כדאי לדעת על הנכס.</string>
     <string name="memo_stop">עצור</string>
     <string name="memo_save">שמור תזכיר</string>

@@ -175,7 +175,7 @@ public class ImageSyncService {
                             if (!mediaRecords.isEmpty()) {
                                 pushImages(mediaRecords);
                             } else {
-                                if(syncManager.isPullImagesEnabled(syncManager.appContext,syncManager.getVdmsID())){
+                                if(syncManager.isPullImagesEnabled(syncManager.appContext,syncManager.getSwitchKey())){
                                     requestImagePull();
                                 }
                             }
@@ -207,7 +207,7 @@ public class ImageSyncService {
                     if (!mediaRecords.isEmpty()) {
                         pushImages(mediaRecords);
                     } else {
-                        if (syncManager.isPullImagesEnabled(syncManager.appContext, syncManager.getVdmsID()) ) {
+                        if (syncManager.isPullImagesEnabled(syncManager.appContext, syncManager.getSwitchKey()) ) {
                             JSONObject payload = generatePayloadForPullImages();
                             if (payload != null) {
                                 pullImages(payload);

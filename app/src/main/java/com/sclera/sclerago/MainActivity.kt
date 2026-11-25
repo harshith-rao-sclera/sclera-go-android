@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // Off screen: the access stops being re-checked every few minutes.
+        // Off screen: the access and property list stop being read every 30 seconds.
         session.onBackground()
     }
 

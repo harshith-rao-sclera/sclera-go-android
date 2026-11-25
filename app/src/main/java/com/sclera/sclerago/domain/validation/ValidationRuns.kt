@@ -151,6 +151,8 @@ data class ValRun(
     val startedBy: String? = null,
     /** The id of who started it (the server's `createdBy`); null when the app started it or the server doesn't say. */
     val createdBy: String? = null,
+    /** How it was set up, as it ran; only when one run is read from the server (null in lists and offline). */
+    val setup: RunSetup? = null,
 ) {
     /** The server's step state: nothing seen yet is waiting (or skipped once done); else the worst outcome. */
     fun stateOf(step: String): StepState {
@@ -187,8 +189,26 @@ enum class Decision(val wire: String) {
     }
 }
 
+/**
+ * How a run was set up, as it ran (the server's `setup` on one run): each step's checks with the fields and severity
+ * they used, and the asset types it was limited to ([types], plus assets with no type when [unclassified]; neither:
+ * every asset).
+ */
+data class RunSetup(val steps: List<SetupStep>, val types: List<String>, val unclassified: Boolean)
+
+/** One step of a run's setup, with its checks. */
+data class SetupStep(val key: String, val name: String, val checks: List<SetupCheck>)
+
+/**
+ * A check as a run used it: the names of the [fields] it looked at (null: every field; a deleted one as the server names
+ * it) and the [severity] its problems were reported as (null: as the check says).
+ */
+data class SetupCheck(val key: String, val name: String, val fields: List<String>?, val severity: IssueSeverity?)
+
 /** How one asset did in a run. */
 data class RunAssetResult(
+    /** The result's id: the list is newest first by it (time-ordered, so its text order is its age); null from an older server. */
+    val id: String? = null,
     val assetId: String,
     val assetName: String,
     val outcome: StepOutcome,
@@ -222,6 +242,27 @@ data class DecisionOutcome(val updated: Int, val notSubmitted: List<String> = em
 data class ResultFilter(val outcome: StepOutcome? = null, val step: String? = null, val query: String = "")
 
 data class ResultPage(val items: List<RunAssetResult>, val nextCursor: String?)
+
+/**
+ * The results shown after a refresh, as the web's: the fresh first [page] over the rows already [shown]. A shown row the
+ * page leaves out is dropped when it would be on that page (its asset was deleted or merged, or it no longer matches the
+ * filter); rows past the page stay (they are on later pages), and so does the open asset's row ([keep]).
+ */
+fun withFirstPage(shown: List<RunAssetResult>, page: ResultPage, keep: String?): List<RunAssetResult> {
+    val listed = page.items.mapTo(HashSet()) { it.assetId }
+    val last = page.items.lastOrNull()?.id
+    val stays = { r: RunAssetResult ->
+        when {
+            r.assetId in listed -> false
+            r.assetId == keep -> true
+            // The page holds every result: one it leaves out is gone.
+            page.nextCursor == null -> false
+            // Without ids (an older server) a row stays.
+            else -> !(r.id != null && last != null && r.id > last)
+        }
+    }
+    return page.items + shown.filter(stays)
+}
 
 /** What an issue is about. */
 enum class IssueTarget {

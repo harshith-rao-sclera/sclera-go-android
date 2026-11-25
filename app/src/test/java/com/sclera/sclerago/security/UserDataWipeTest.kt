@@ -5,7 +5,9 @@ import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.repository.AccessRefusals
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessRefusalsUseCase
 import com.sclera.sclerago.domain.usecase.access.RecheckAccessUseCase
-import com.sclera.sclerago.domain.usecase.access.RefreshAccessOnForegroundUseCase
+import com.sclera.sclerago.domain.usecase.access.StartAccessSyncUseCase
+import com.sclera.sclerago.domain.usecase.access.StopAccessSyncUseCase
+import com.sclera.sclerago.domain.repository.AccessSyncScheduler
 import com.sclera.sclerago.domain.usecase.auth.CheckSessionOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.ClearUserDataUseCase
 import com.sclera.sclerago.domain.usecase.auth.LogoutUseCase
@@ -58,9 +60,15 @@ class UserDataWipeTest {
         assertEquals(1, ok.cleared)
     }
 
+    /** No schedule: these tests don't bring the app to the foreground. */
+    private object NoAccessSync : AccessSyncScheduler {
+        override fun start() {}
+        override fun stop() {}
+    }
+
     private fun viewModel(repo: FakeAuthRepository, cleaner: CountingCleaner) = SessionViewModel(
         ObserveAuthStateUseCase(repo), CheckSessionOnForegroundUseCase(repo), LogoutUseCase(repo, object : NetworkMonitor { override fun isOnline() = true }), ClearUserDataUseCase(setOf(cleaner)), TrackSessionChangeUseCase(NoopAnalytics),
-        RefreshAccessOnForegroundUseCase(AllowAllAccess()),
+        StartAccessSyncUseCase(NoAccessSync), StopAccessSyncUseCase(NoAccessSync),
         RecheckAccessUseCase(AllowAllAccess(), FakePropertyRepository()),
         ObserveAccessRefusalsUseCase(object : AccessRefusals { override val refused = emptyFlow<Unit>() }),
     )

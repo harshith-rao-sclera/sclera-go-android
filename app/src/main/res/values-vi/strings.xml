@@ -528,11 +528,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C. Chỉ cho tài sản mới: các trường đã có trên tài sản giữ nguyên đơn vị, và giá trị không được quy đổi.</string>
     <string name="login_offline_banner">Không có kết nối internet</string>
     <string name="login_clear_email">Xóa email</string>
-    <string name="psheet_title">Chọn bất động sản</string>
-    <string name="psheet_use_location">Dùng vị trí của tôi</string>
-    <string name="psheet_location_unavailable">Tìm bất động sản gần nhất bằng GPS hiện chưa khả dụng.</string>
-    <string name="psheet_no_assets">Chưa có tài sản</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">Hãy nói những điều đáng biết về tài sản.</string>
     <string name="memo_stop">Dừng</string>
     <string name="memo_save">Lưu ghi nhớ</string>

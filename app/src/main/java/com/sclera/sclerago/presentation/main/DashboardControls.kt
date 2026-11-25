@@ -131,12 +131,17 @@ fun SelectionDock(
     assignDimmed: Boolean = false,
     /** Why each action is greyed out for the signed-in user's group (the User Access Guide); a tap says why. */
     access: DockAccess = DockAccess(),
+    /** "Assign to me" beside Assign; null leaves it out. [takeDimmed] / [takeAccess] grey it out (a tap then says why). */
+    onTake: (() -> Unit)? = null,
+    takeDimmed: Boolean = false,
+    takeAccess: UiText? = null,
 ) {
     Column(modifier.testTag(DashTags.DOCK)) {
         ActionDock(
             onValidate = onValidate, onAssign = onAssign, onSubmit = onSubmit, onDelete = onDelete, floating = true,
             onMove = onMove, moveDimmed = moveDimmed, onEdit = onEdit, offline = offline, onOffline = onOffline, onChange = onChange,
             submitDimmed = submitDimmed, assignToMe = assignToMe, assignDimmed = assignDimmed, access = access,
+            onTake = onTake, takeDimmed = takeDimmed, takeAccess = takeAccess,
         ) {
             SelectionSummary(count, visible, allPicked, onClear, onSelectAll, Modifier.testTag(DashTags.SELECT_ALL))
         }

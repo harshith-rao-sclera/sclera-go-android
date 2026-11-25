@@ -116,7 +116,8 @@ private fun LocationTabs(
     val shown = path ?: listOf(stringResource(R.string.dash_choose_location))
     Row(Modifier.fillMaxWidth().height(TabRowHeight).topBorder(C.Border).background(C.Strip)) {
         LocCell(
-            LocFilter.ALL, selected, LocWeights.ALL, Icons.Property, divider = true, onPick, onChevron,
+            // No dropdown: tapping the open property tab goes to the Property list.
+            LocFilter.ALL, selected, LocWeights.ALL, Icons.Property, divider = true, onPick, null,
         ) { color, weight -> Txt(propertyName, 14, weight, color, maxLines = 1) }
         LocCell(
             LocFilter.SPEC, selected, LocWeights.SPEC, Icons.Pin, divider = true, onPick, onChevron,

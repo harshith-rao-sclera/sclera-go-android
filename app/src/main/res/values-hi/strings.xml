@@ -549,11 +549,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C। केवल नए एसेट के लिए: किसी एसेट में पहले से मौजूद फ़ील्ड अपनी इकाई बनाए रखते हैं, और मान परिवर्तित नहीं किए जाते।</string>
     <string name="login_offline_banner">इंटरनेट कनेक्शन नहीं है</string>
     <string name="login_clear_email">ईमेल हटाएँ</string>
-    <string name="psheet_title">प्रॉपर्टी चुनें</string>
-    <string name="psheet_use_location">मेरा स्थान उपयोग करें</string>
-    <string name="psheet_location_unavailable">GPS से निकटतम प्रॉपर्टी ढूँढना अभी उपलब्ध नहीं है।</string>
-    <string name="psheet_no_assets">अभी कोई एसेट नहीं</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">एसेट के बारे में जानने लायक बातें बोलें।</string>
     <string name="memo_stop">रोकें</string>
     <string name="memo_save">मेमो सहेजें</string>

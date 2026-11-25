@@ -549,11 +549,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C. Yalnızca yeni varlıklar: bir varlıkta zaten bulunan alanlar birimini korur ve değerler dönüştürülmez.</string>
     <string name="login_offline_banner">İnternet bağlantısı yok</string>
     <string name="login_clear_email">E-postayı temizle</string>
-    <string name="psheet_title">Mülk seç</string>
-    <string name="psheet_use_location">Konumumu kullan</string>
-    <string name="psheet_location_unavailable">GPS ile en yakın mülkü bulma henüz kullanılamıyor.</string>
-    <string name="psheet_no_assets">Henüz varlık yok</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">Varlık hakkında bilinmesi gerekenleri söyleyin.</string>
     <string name="memo_stop">Durdur</string>
     <string name="memo_save">Notu kaydet</string>

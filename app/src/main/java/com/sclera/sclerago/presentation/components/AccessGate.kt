@@ -44,13 +44,15 @@ fun AccessGate(reason: UiText?, modifier: Modifier = Modifier, content: @Composa
 
 /** [AccessGate] for a button that needs a permission ([block] from `PermissionGuard.block`). */
 @Composable
-fun AccessGate(block: AccessBlock?, modifier: Modifier = Modifier, content: @Composable () -> Unit) =
+fun AccessGate(block: AccessBlock?, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     AccessGate(block.reason(), modifier, content)
+}
 
 /** [AccessGate] for a button that changes an asset ([lock] from `assetLock`). */
 @Composable
-fun AccessGate(lock: AssetLock?, modifier: Modifier = Modifier, content: @Composable () -> Unit) =
+fun AccessGate(lock: AssetLock?, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     AccessGate(lock.reason(), modifier, content)
+}
 
 /** How faded a blocked button is: the same as an offline one. */
 private const val BLOCKED_DIM = 0.45f

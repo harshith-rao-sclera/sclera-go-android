@@ -123,7 +123,10 @@ interface AdcDocumentsService {
         @Path("media") media: String,
     ): Response<ResponseBody>
 
-    /** One of the asset's media files (a document added to it). */
+    /**
+     * One of the asset's media files (a photo, video, voice memo or document added to it). With `preview=true` a photo
+     * comes back smaller (at most 1280 px on its longest side), as the web's thumbnails; left out (null) for the file itself.
+     */
     @Streaming
     @Headers(AdcConfig.SLOW_CALL)
     @GET("properties/{property}/assets/{asset}/media/{media}/content")
@@ -131,5 +134,6 @@ interface AdcDocumentsService {
         @Path("property") property: String,
         @Path("asset") asset: String,
         @Path("media") media: String,
+        @Query("preview") preview: Boolean? = null,
     ): Response<ResponseBody>
 }

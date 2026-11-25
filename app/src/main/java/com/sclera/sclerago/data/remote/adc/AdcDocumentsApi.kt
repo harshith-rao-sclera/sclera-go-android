@@ -104,9 +104,9 @@ class AdcDocumentsApi @Inject constructor(private val service: AdcDocumentsServi
 
     suspend fun removeMedia(property: String, asset: String, media: String) = call.unit { service.removeMedia(property, asset, media) }
 
-    /** Media file [media] of [asset], handed to [read] as it downloads. */
-    suspend fun <T> mediaContent(property: String, asset: String, media: String, read: (ResponseBody) -> T): T =
-        call.stream({ service.mediaContent(property, asset, media) }, read)
+    /** Media file [media] of [asset], handed to [read] as it downloads; [preview]: a photo's smaller version (1280 px). */
+    suspend fun <T> mediaContent(property: String, asset: String, media: String, read: (ResponseBody) -> T, preview: Boolean = false): T =
+        call.stream({ service.mediaContent(property, asset, media, preview.takeIf { it }) }, read)
 
     private fun documentOf(text: String) = AdcJson.decodeFromString(DocumentDto.serializer(), text)
 

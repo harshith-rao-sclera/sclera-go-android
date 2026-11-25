@@ -7,8 +7,8 @@
     <!-- The File tab for a group that can't collect: adding assets would be refused. -->
     <string name="view_only_no_add">Your group can only view assets, so it can\'t add them.</string>
     <string name="lock_banner_not_assigned">Assigned to someone else</string>
-    <string name="lock_banner_submitted">Submitted, only a reviewer can change it</string>
-    <string name="lock_banner_no_permission">Your access is view only</string>
+    <string name="lock_banner_submitted">Submitted. Only a reviewer can change it.</string>
+    <string name="lock_banner_no_permission">View only. Your group can\'t change assets.</string>
     <string name="lock_banner_no_permission_body">You can look at this asset but not change it, add media or ask for changes. Ask an admin for collect access.</string>
     <!-- A property opened by someone who can't manage properties: they can look but not change it. -->
     <string name="property_view_only">You can look at this property but not change it. Only someone who manages properties can edit it.</string>

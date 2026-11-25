@@ -563,11 +563,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C. Tylko nowe zasoby: pola już przypisane do zasobu zachowują swoją jednostkę, a wartości nie są przeliczane.</string>
     <string name="login_offline_banner">Brak połączenia z internetem</string>
     <string name="login_clear_email">Wyczyść adres e-mail</string>
-    <string name="psheet_title">Wybierz nieruchomość</string>
-    <string name="psheet_use_location">Użyj mojej lokalizacji</string>
-    <string name="psheet_location_unavailable">Wyszukiwanie najbliższej nieruchomości przez GPS nie jest jeszcze dostępne.</string>
-    <string name="psheet_no_assets">Brak zasobów</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">Powiedz, co warto wiedzieć o zasobie.</string>
     <string name="memo_stop">Zatrzymaj</string>
     <string name="memo_save">Zapisz notatkę</string>

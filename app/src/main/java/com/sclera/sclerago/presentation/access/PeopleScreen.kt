@@ -221,21 +221,19 @@ internal fun PeopleContent(
                 }
             }
         }
-        // Add person / New group (when there is something to add to, as the web's button); without Manage access it stays,
-        // greyed out, and a tap says why. The web searches people only.
+        // Add person / New group always shows; without Manage access, or with nothing to add to yet, it is greyed out and a
+        // tap says why. The web searches people only.
         Column(
             Modifier.align(Alignment.BottomEnd).navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (list.canAdd || list.changeReason != null) {
-                AccessGate(list.changeReason) {
-                    CircleFab(
-                        Icons.Plus,
-                        stringResource(if (onPeople) R.string.access_add_person else R.string.access_new_group),
-                        onAdd, Modifier.testTag(AccessTags.FAB_ADD),
-                    )
-                }
+            AccessGate(list.addReason) {
+                CircleFab(
+                    Icons.Plus,
+                    stringResource(if (onPeople) R.string.access_add_person else R.string.access_new_group),
+                    onAdd, Modifier.testTag(AccessTags.FAB_ADD),
+                )
             }
             if (onPeople) {
                 SearchFab(

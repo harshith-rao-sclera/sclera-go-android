@@ -81,7 +81,7 @@ enum class LocFilter { ALL, SPEC, NONE }
 enum class Sheet { NONE, LOC }
 enum class SheetFor { FILTER, ASSET, BULK }
 enum class NetMode { WIFI, AP }
-enum class MenuItem { PROPERTY, USERS, ASSETS, VALIDATION, CONFIGURATION, INTEGRATION }
+enum class MenuItem { PROPERTY, USERS, ASSETS, VALIDATION, CONFIGURATION, INTEGRATION, SYNC }
 enum class CfgPage { BUILDING, FIELDS, GEO, SETTINGS }
 enum class AdminPage { PROPERTIES, PEOPLE }
 
@@ -174,6 +174,8 @@ data class UiState(
     val cfgOpen: Boolean = false,
     // ---- Integration page
     val intOpen: Boolean = false,
+    // ---- Sync settings page
+    val syncOpen: Boolean = false,
     val cfgPage: CfgPage = CfgPage.BUILDING,
     // ---- Property list / People and access (side menu)
     val adminPage: AdminPage? = null,
@@ -500,7 +502,7 @@ class AppViewModel @Inject constructor(
 
     private fun scanShown(t: ScanService.Target): Boolean {
         val s = state
-        val uncovered = s.assetId == null && !s.newAsset && !s.valOpen && !s.cfgOpen && !s.intOpen && s.adminPage == null
+        val uncovered = s.assetId == null && !s.newAsset && !s.valOpen && !s.cfgOpen && !s.intOpen && !s.syncOpen && s.adminPage == null
         return uncovered && when (t) {
             ScanService.Target.BLUETOOTH -> s.tab == Tab.BT && s.btScan
             ScanService.Target.NETWORK, ScanService.Target.ACCESS_POINTS -> s.tab == Tab.NET && s.netScan && t == netTarget
@@ -524,7 +526,7 @@ class AppViewModel @Inject constructor(
         if (!mayCollect()) return false
         val s = state
         val onAssetsPage = s.tab == Tab.ASSETS && listInteractive && s.pv == null && !s.menuOpen &&
-            !s.valOpen && !s.cfgOpen && !s.intOpen && s.adminPage == null
+            !s.valOpen && !s.cfgOpen && !s.intOpen && !s.syncOpen && s.adminPage == null
         if (onAssetsPage) goTab(Tab.CAMERA)
         return onAssetsPage
     }
@@ -557,12 +559,13 @@ class AppViewModel @Inject constructor(
                 // Validation, Configuration and Integration sit on top of the tabs, so they close too.
                 MenuItem.ASSETS -> {
                     closeAdmin()
-                    set { copy(valOpen = false, cfgOpen = false, cfgPage = CfgPage.BUILDING, intOpen = false) }
+                    set { copy(valOpen = false, cfgOpen = false, cfgPage = CfgPage.BUILDING, intOpen = false, syncOpen = false) }
                     switchTab(Tab.ASSETS)
                 }
                 MenuItem.VALIDATION -> { closeAdmin(); showValidation() }
                 MenuItem.CONFIGURATION -> { closeAdmin(); showConfig() }
                 MenuItem.INTEGRATION -> { closeAdmin(); showIntegration() }
+                MenuItem.SYNC -> { closeAdmin(); showSync() }
             }
         }
     }
@@ -571,7 +574,7 @@ class AppViewModel @Inject constructor(
     // Property list / People and access
     fun openAdmin(page: AdminPage) = leaving { showAdmin(page) }
     private fun showAdmin(page: AdminPage) =
-        set { copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, intOpen = false, assetId = null, newAsset = false) }
+        set { copy(adminPage = page, menuOpen = false, valOpen = false, cfgOpen = false, intOpen = false, syncOpen = false, assetId = null, newAsset = false) }
     /** Back to the assets; without a downloaded property there are none, so the Property list stays. */
     fun closeAdmin() = set { copy(adminPage = if (hasProperty) null else AdminPage.PROPERTIES) }
 
@@ -618,6 +621,8 @@ class AppViewModel @Inject constructor(
             MenuItem.ASSETS -> b.assets
             MenuItem.VALIDATION -> b.check
             MenuItem.CONFIGURATION, MenuItem.INTEGRATION -> b.configure
+            // The device's own sync of the open property: anyone who opens it.
+            MenuItem.SYNC -> null
         }
     }
 
@@ -1082,7 +1087,7 @@ class AppViewModel @Inject constructor(
     fun openValidation() = ifPageAllowed(MenuItem.VALIDATION) { leaving { showValidation() } }
     private fun showValidation() {
         if (!canCheck) return
-        set { copy(valOpen = true, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
+        set { copy(valOpen = true, cfgOpen = false, intOpen = false, syncOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     }
     fun closeValidation() = set { copy(valOpen = false, valJobId = null, valAssetId = null, tab = Tab.ASSETS, assetId = null, newAsset = false) }
 
@@ -1095,7 +1100,7 @@ class AppViewModel @Inject constructor(
     private fun openValidationAt(jobId: String, assetId: String?) = ifPageAllowed(MenuItem.VALIDATION) { leaving {
         set {
             copy(
-                valOpen = true, valJobId = jobId, valAssetId = assetId, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false,
+                valOpen = true, valJobId = jobId, valAssetId = assetId, cfgOpen = false, intOpen = false, syncOpen = false, tab = Tab.ASSETS, menuOpen = false,
                 assetId = null, newAsset = false,
             )
         }
@@ -1123,10 +1128,21 @@ class AppViewModel @Inject constructor(
     fun openIntegration() = ifPageAllowed(MenuItem.INTEGRATION) { leaving { showIntegration() } }
     private fun showIntegration() {
         if (!canConfigure) return
-        set { copy(intOpen = true, valOpen = false, cfgOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
+        set { copy(intOpen = true, valOpen = false, cfgOpen = false, syncOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     }
     /** Back from Integration: to the assets, or to Configuration for a group that isn't offered them. */
     fun closeIntegration() = if (!seesAssets) showConfig() else set { copy(intOpen = false, tab = Tab.ASSETS) }
+
+    // ---------- Sync settings ----------
+
+    /** Sync settings of the open property (side menu, under it); it needs a downloaded property. */
+    private fun showSync() {
+        if (!hasProperty) return
+        set { copy(syncOpen = true, valOpen = false, cfgOpen = false, intOpen = false, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
+    }
+
+    /** Back from Sync settings: to the assets, or to Configuration for a group that isn't offered them. */
+    fun closeSync() = if (!seesAssets) { set { copy(syncOpen = false) }; showConfig() } else set { copy(syncOpen = false, tab = Tab.ASSETS) }
 
     init {
         // When the session ends, forget everything on screen so the next user starts clean.
@@ -1154,7 +1170,7 @@ class AppViewModel @Inject constructor(
                     when {
                         !open -> Unit
                         !opens -> if (state.adminPage == null) openAdmin(AdminPage.PROPERTIES)
-                        !sees && state.adminPage == null && !state.cfgOpen && !state.intOpen -> showConfig()
+                        !sees && state.adminPage == null && !state.cfgOpen && !state.intOpen && !state.syncOpen -> showConfig()
                     }
                 }
         }
@@ -1209,7 +1225,7 @@ class AppViewModel @Inject constructor(
     fun openConfig() = ifPageAllowed(MenuItem.CONFIGURATION) { leaving { showConfig() } }
     private fun showConfig() {
         if (!canConfigure) return
-        set { copy(cfgOpen = true, valOpen = false, intOpen = false, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
+        set { copy(cfgOpen = true, valOpen = false, intOpen = false, syncOpen = false, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS, menuOpen = false, assetId = null, newAsset = false) }
     }
     /** Back from Configuration: to the assets, or (Configuration being a configure-only group's first page) the side menu. */
     fun closeConfig() = if (!seesAssets) openMenu() else set { copy(cfgOpen = false, cfgPage = CfgPage.BUILDING, tab = Tab.ASSETS) }
@@ -1318,7 +1334,7 @@ class AppViewModel @Inject constructor(
         // A group that can't open a property goes back to the list; one that only configures has no assets page to fall
         // back on: Configuration is its first page.
         if (hasProperty && !opensProperties && state.adminPage == null) openAdmin(AdminPage.PROPERTIES)
-        else if (hasProperty && !seesAssets && state.adminPage == null && !state.cfgOpen && !state.intOpen) showConfig()
+        else if (hasProperty && !seesAssets && state.adminPage == null && !state.cfgOpen && !state.intOpen && !state.syncOpen) showConfig()
         if (!mayUploadFiles()) set { copy(pendingFilePicker = false) }
         if (!mayCollect()) {
             set { copy(camOpen = false) }

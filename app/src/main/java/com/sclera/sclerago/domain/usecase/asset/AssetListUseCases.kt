@@ -36,8 +36,8 @@ private val CHIP_ORDER = listOf(Status.DRAFT, Status.SUBMITTED, Status.EXCEPTION
  * ([AssetListQuery.managed]), on their own; its count follows the location and the filter, as the other chips. The
  * chip counts (status and Change requests) follow the chosen location (all of the property,
  * one building, floor or location, or the unmapped assets) but not the search text. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
- * so it can overlap the other chips. The Change requests chip shows for admins and reviewers
- * ([AssetListQuery.showChangeRequests]), who act on the requests, and for anyone else only while there are some (as on the web). The Failed validation and
+ * so it can overlap the other chips. The Change requests chip shows for everyone, with 0 while there are none (whoever
+ * the user is: a chip is never hidden by role). The Failed validation and
  * Needs a look chips show while some assets have that mark. The filter sheet's choices ([AssetListQuery.filter], read
  * against the type catalogue [formats]) narrow the list and the chip counts alike, as the location does.
  */
@@ -76,7 +76,7 @@ class BuildAssetListUseCase @Inject constructor() {
                 (markOn == null || it.validationMark == markOn) && (onboardedOn == null || it.src == onboardedOn)
         }
         val changeCount = tab.count { it.changeRequest != null }
-        val changeChip = ToggleChip(changeCount, changesOn).takeIf { query.showChangeRequests || changeCount > 0 || changesOn }
+        val changeChip = ToggleChip(changeCount, changesOn)
         val markChips = ValidationMark.entries.associateWith { m -> ToggleChip(tab.count { it.validationMark == m }, markOn == m) }
             .filterValues { it.count > 0 || it.selected }
         // As the web's optional Managed assets tab: shown while there are some, or while it is chosen.

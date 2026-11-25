@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase.asset
 
+import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.ChangeRequest
 import com.sclera.sclerago.domain.model.Status
@@ -13,8 +14,11 @@ import com.sclera.sclerago.domain.repository.ChangeRequestRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import javax.inject.Inject
 
-/** The longest note a change request takes (the server's `ChangeRequestIn.note`). */
-const val CHANGE_NOTE_MAX = 500
+/** The longest note a change request takes: a line or two, as the web's (the server takes up to 500). */
+const val CHANGE_NOTE_MAX = 200
+
+/** How close to [CHANGE_NOTE_MAX] a note gets before a counter shows, as the web's. */
+const val CHANGE_NOTE_COUNT_FROM = CHANGE_NOTE_MAX - 40
 
 /**
  * Asks an admin to reopen a submitted asset, as the server's `POST …/change-request`: anyone who can collect, only on a
@@ -75,24 +79,40 @@ enum class ChangeAction { MARK_VALIDATED, APPROVE, MOVE_TO_DRAFT, DECLINE, REQUE
 /** Why an action is offered but can't be used for these assets (the web's disabledReason). */
 enum class ChangeActionBlock {
     NOT_ALL_SUBMITTED, NOT_ALL_REQUESTED, NOT_ALL_EXCEPTIONS, ASSIGNED_ELSEWHERE, SOME_ARE_DRAFTS, SIGN_OFF_NOT_SUBMITTED,
+    /** Request change for a reviewer, who changes the asset (Move to draft) instead. */
+    REVIEWER_CHANGES_IT,
+    /** Decline on the user's own requests: Withdraw takes them back. */
+    OWN_REQUEST,
+    /** Withdraw where a request is someone else's: only whoever asked withdraws it. */
+    NOT_YOUR_REQUEST,
 }
 
-/** One action offered for the selection; [blocked] says why it can't be used (null: it can). */
-data class ChangeActionOption(val action: ChangeAction, val blocked: ChangeActionBlock? = null)
+/**
+ * One action offered for the selection; [blocked] says why it can't be used for these assets, [access] why the signed-in
+ * user's group can't use it at all (both null: it can be used).
+ */
+data class ChangeActionOption(val action: ChangeAction, val blocked: ChangeActionBlock? = null, val access: AccessBlock? = null)
 
 /**
- * The change-request actions for [assets], as the web's changeRequestActions:
+ * The change-request actions for [assets], as the web's changeRequestActions. Nothing is left out because of who the user
+ * is: an action someone may not use is listed, greyed out, with why ([ChangeActionOption.blocked] / [ChangeActionOption.access]).
  * - only exceptions (nothing submitted): anyone who may work on them moves them back to draft, no request needed;
- * - a reviewer (Validate), when every one has a request: approve them (back to draft, to whoever asked) or decline them.
- *   Otherwise they move submitted, signed-off and exception assets back to draft, and decline the requests there are;
- * - anyone else: ask for a change (or update their requests), and withdraw when every one is their own request.
+ * - a reviewer (Validate), when every one has a request: approve them (back to draft, to whoever asked) or decline them
+ *   (greyed out when they are all their own: Withdraw). Otherwise they move submitted, signed-off and exception assets
+ *   back to draft, and decline the requests there are. Request change shows for them greyed out (they change it instead);
+ * - anyone else: ask for a change (or update their requests), and withdraw when every one has a request (greyed out unless
+ *   every one is their own). Their reviewer-only actions come from [com.sclera.sclerago.domain.usecase.access.ReviewerOnlyActionsUseCase].
+ * Asking for a change and moving back to draft both need Collect (the server's rule): without it every action is greyed
+ * out with that reason, admins included (the web's mayCollect).
  */
 class ChangeRequestActionsUseCase @Inject constructor(private val guard: PermissionGuard) {
     operator fun invoke(assets: List<Asset>): List<ChangeActionOption> {
         if (assets.isEmpty()) return emptyList()
-        // Asking for a change and moving back to draft both need Collect (the server's rule): a group without it gets
-        // none, admins included (the web's mayCollect).
-        if (!guard.allows(Permission.COLLECT)) return emptyList()
+        val collect = guard.block(Permission.COLLECT) ?: return offered(assets)
+        return offered(assets).map { it.copy(access = collect) }
+    }
+
+    private fun offered(assets: List<Asset>): List<ChangeActionOption> {
         val locked = { a: Asset -> isLockedFor(a.st, reviewer = false) }
         val exception = { a: Asset -> a.st == Status.EXCEPTION }
         if (assets.none(locked)) {
@@ -108,18 +128,28 @@ class ChangeRequestActionsUseCase @Inject constructor(private val guard: Permiss
         val asked = assets.filter { it.changeRequest != null }
         val allAsked = asked.size == assets.size
         val allMine = allAsked && assets.all { isMine(guard, it.changeRequest) }
-        val withdraw = ChangeActionOption(ChangeAction.WITHDRAW)
-        // A reviewer (Validate) changes any asset, so moves submitted ones back to draft and answers requests.
+        val ask = if (allAsked) ChangeAction.UPDATE_REQUEST else ChangeAction.REQUEST
+        // Withdraw, once every one has a request: only whoever asked takes a request back.
+        val withdraw = listOfNotNull(
+            ChangeActionOption(ChangeAction.WITHDRAW, ChangeActionBlock.NOT_YOUR_REQUEST.takeUnless { allMine }).takeIf { allAsked },
+        )
+        // A reviewer (Validate) changes any asset, so moves submitted ones back to draft and answers requests. Request
+        // change still shows for them, greyed out.
         if (guard.isReviewer()) {
-            if (allAsked) return listOf(ChangeActionOption(ChangeAction.APPROVE), ChangeActionOption(ChangeAction.DECLINE))
+            val request = ChangeActionOption(ask, ChangeActionBlock.REVIEWER_CHANGES_IT)
+            if (allAsked) {
+                return listOf(
+                    ChangeActionOption(ChangeAction.APPROVE),
+                    ChangeActionOption(ChangeAction.DECLINE, ChangeActionBlock.OWN_REQUEST.takeIf { allMine }),
+                ) + withdraw + request
+            }
             // Submitted, signed-off and exception assets go back together.
             val blocked = ChangeActionBlock.SOME_ARE_DRAFTS.takeUnless { assets.all { locked(it) || exception(it) } }
             val draft = ChangeActionOption(ChangeAction.MOVE_TO_DRAFT, blocked)
-            if (asked.isEmpty()) return listOf(draft)
-            return listOf(draft, ChangeActionOption(ChangeAction.DECLINE, ChangeActionBlock.NOT_ALL_REQUESTED))
+            if (asked.isEmpty()) return listOf(draft, request)
+            return listOf(draft, ChangeActionOption(ChangeAction.DECLINE, ChangeActionBlock.NOT_ALL_REQUESTED), request)
         }
-        val request = ChangeActionOption(if (allAsked) ChangeAction.UPDATE_REQUEST else ChangeAction.REQUEST, notSubmitted)
-        return if (allMine) listOf(request, withdraw) else listOf(request)
+        return listOf(ChangeActionOption(ask, notSubmitted)) + withdraw
     }
 }
 

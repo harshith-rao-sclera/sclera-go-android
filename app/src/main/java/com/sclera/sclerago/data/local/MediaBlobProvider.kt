@@ -22,7 +22,8 @@ import java.io.OutputStream
 /**
  * Serves asset media from the offline database (`content://<app>.media/<table>/<rowId>`, see [MediaBlobs]): the only
  * copy of each file is the database's. Also serves the documents fetched from the server to be opened
- * (`content://<app>.media/downloads/<id>`, see [DocumentDownloads]). Not exported; another app (a PDF viewer) can read one
+ * (`content://<app>.media/downloads/<id>`, see [DocumentDownloads]) and the media fetched from the server while the
+ * database doesn't have it yet (`content://<app>.media/remote/<key>`, see [RemoteMediaFiles]). Not exported; another app (a PDF viewer) can read one
  * only through a single-use grant on the intent that opens it. Read-only.
  *
  * Photos are streamed straight from the database. Players and viewers need to jump around in a video, a voice memo or a
@@ -46,6 +47,7 @@ class MediaBlobProvider : ContentProvider() {
         context?.let {
             viewDir(it).deleteRecursively()
             DocumentDownloads.dir(it).deleteRecursively()
+            RemoteMediaFiles.dir(it).deleteRecursively()
         }
         return true
     }
@@ -111,11 +113,18 @@ class MediaBlobProvider : ContentProvider() {
             ?.forEach { it.delete() }
     }
 
-    /** The fetched document a `downloads/<id>` URI names, when it is on the device; null for anything else. */
+    /**
+     * The fetched file a `downloads/<id>` URI (a document) or a `remote/<key>` URI (media the database doesn't have yet,
+     * see [RemoteMediaFiles]) names, when it is on the device; null for anything else.
+     */
     private fun download(uri: Uri): File? {
         val segments = uri.pathSegments
-        if (segments.size != 2 || segments[0] != DocumentDownloads.SEGMENT) return null
-        return DocumentDownloads.file(requireNotNull(context), segments[1])
+        if (segments.size != 2) return null
+        return when (segments[0]) {
+            DocumentDownloads.SEGMENT -> DocumentDownloads.file(requireNotNull(context), segments[1])
+            RemoteMediaFiles.SEGMENT -> RemoteMediaFiles.file(requireNotNull(context), segments[1])
+            else -> null
+        }
     }
 
     /** A fetched document's type, by its name's extension. */

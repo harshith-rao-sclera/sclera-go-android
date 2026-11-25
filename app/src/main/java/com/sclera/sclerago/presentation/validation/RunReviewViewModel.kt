@@ -31,7 +31,6 @@ import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.ValRun
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
-import com.sclera.sclerago.presentation.model.message
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -39,6 +38,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.sclera.sclerago.domain.validation.withFirstPage
 
 /** One asset of the run opened from the list: its issues (every status) and what is typed per issue. */
 data class AssetPanelState(
@@ -97,7 +97,7 @@ data class RunReviewUiState(
     /** Why the user can't fix values or run checks (Check), null when they can: those buttons are greyed out and say why. */
     val checkBlock: AccessBlock? = AccessBlock.CHECKING,
     /**
-     * Why the user can't tick assets, sign them off, send them back, merge duplicates or undo fixes (Validate), null when
+     * Why the user can't sign ticked assets off, send them back, merge duplicates or undo fixes (Validate), null when
      * they can: those buttons are greyed out and say why (the User Access Guide).
      */
     val validateBlock: AccessBlock? = AccessBlock.CHECKING,
@@ -152,8 +152,8 @@ class RunReviewViewModel @Inject constructor(
                     copy(
                         checkBlock = check,
                         validateBlock = validate,
-                        // Ticking rows, merging and recollection notes are the reviewer's (Validate) only.
-                        selected = if (validate == null) selected else emptySet(),
+                        // Merging and recollection notes are the reviewer's (Validate) only; ticked rows stay ticked, and
+                        // the selection bar's sign-off buttons are greyed out instead.
                         merge = merge?.takeIf { validate == null },
                         recollectFor = recollectFor?.takeIf { validate == null },
                     )
@@ -212,7 +212,7 @@ class RunReviewViewModel @Inject constructor(
                 val run = state.run ?: break
                 if (run.processed != before) mergeFirstPage()
                 if (run.status.finished) {
-                    loadResults(reset = true)
+                    loadResults(reset = true, refresh = true)
                     loadFinished()
                 }
             }
@@ -235,7 +235,11 @@ class RunReviewViewModel @Inject constructor(
 
     // ---------------------------------------------------------------- Results
 
-    private suspend fun loadResults(reset: Boolean) {
+    /**
+     * Loads the first page ([reset]) or the next one. [refresh]: the first page goes over the rows already shown, as the
+     * web's (rows past it and the open asset's row stay; one whose asset was deleted or merged goes): [withFirstPage].
+     */
+    private suspend fun loadResults(reset: Boolean, refresh: Boolean = false) {
         val filter = state.filter
         val cursor = if (reset) null else state.nextCursor
         if (reset) set { copy(loadingResults = true) } else set { copy(loadingMore = true) }
@@ -244,7 +248,11 @@ class RunReviewViewModel @Inject constructor(
             if (filter != state.filter) return
             set {
                 copy(
-                    results = if (reset) page.items else results + page.items.filter { n -> results.none { it.assetId == n.assetId } },
+                    results = when {
+                        reset && refresh -> withFirstPage(results, page, panel?.assetId)
+                        reset -> page.items
+                        else -> results + page.items.filter { n -> results.none { it.assetId == n.assetId } }
+                    },
                     nextCursor = page.nextCursor,
                 )
             }
@@ -299,10 +307,10 @@ class RunReviewViewModel @Inject constructor(
     fun toggleSelected(id: String) = set { copy(selected = if (id in selected) selected - id else selected + id) }
 
     /**
-     * Long-press on an asset: ticks it to decide on several together (Validate). Someone who can't sign off gets the
-     * reason instead of a tick (the web gives them no tick boxes).
+     * Long-press on an asset: ticks it to decide on several together. Anyone may tick; for someone who can't sign off
+     * (Validate) the selection bar's decisions are greyed out and say why.
      */
-    fun select(id: String) = state.validateBlock?.let { flash(UiText.Res(it.message)) } ?: toggleSelected(id)
+    fun select(id: String) = toggleSelected(id)
 
     /** Why a fix to the asset ([status], its assignee [assignedTo], in Managed Assets when [managed]) would be refused; null when it wouldn't. */
     fun lockOf(status: Status?, assignedTo: String?, managed: Boolean): AssetLock? = useCases.access.lockOf(status, assignedTo, managed)
@@ -329,7 +337,7 @@ class RunReviewViewModel @Inject constructor(
     /** Reloads the run, its first page and (when finished) its issues and insights after a change. */
     private suspend fun refreshAll() {
         loadRun()
-        loadResults(reset = true)
+        loadResults(reset = true, refresh = true)
         if (state.run?.status?.finished == true) loadFinished()
     }
 
@@ -459,6 +467,11 @@ class RunReviewViewModel @Inject constructor(
         } catch (e: OnlineException) {
             set { copy(panel = panel?.copy(loading = false)) }
             flash(if (e.error == OnlineError.NotFound) UiText.Res(R.string.rev_asset_gone) else e.error.toUiText())
+            // Deleted or merged since the run: its result has left the run, so off the list, and the run's totals again.
+            if (e.error == OnlineError.NotFound) {
+                set { copy(results = results.filterNot { it.assetId == assetId }) }
+                loadRun()
+            }
         }
     }
 

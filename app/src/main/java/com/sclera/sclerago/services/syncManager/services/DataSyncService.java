@@ -114,7 +114,7 @@ public class DataSyncService {
                         if (localChanges.length() > 0) {
                             pushChangesWS(localChanges);
                         } else {
-                            if(syncManager.isDataSyncEnabled(syncManager.appContext,syncManager.getVdmsID())) {
+                            if(syncManager.isDataSyncEnabled(syncManager.appContext,syncManager.getSwitchKey())) {
                                 pullChangesWS();
                             }
                         }
@@ -154,7 +154,7 @@ public class DataSyncService {
                             pushChanges(payload); // push for ADC
                         }
                     } else {
-                        if(syncManager.isDataSyncEnabled(syncManager.appContext,syncManager.getVdmsID())){
+                        if(syncManager.isDataSyncEnabled(syncManager.appContext,syncManager.getSwitchKey())){
                             pullChanges();
                         }
                     }

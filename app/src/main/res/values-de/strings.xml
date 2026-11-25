@@ -549,11 +549,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C. Nur für neue Assets: Felder, die schon an einem Asset sind, behalten ihre Einheit, und Werte werden nicht umgerechnet.</string>
     <string name="login_offline_banner">Keine Internetverbindung</string>
     <string name="login_clear_email">E-Mail löschen</string>
-    <string name="psheet_title">Objekt auswählen</string>
-    <string name="psheet_use_location">Meinen Standort verwenden</string>
-    <string name="psheet_location_unavailable">Das nächste Objekt per GPS zu finden ist noch nicht verfügbar.</string>
-    <string name="psheet_no_assets">Noch keine Assets</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">Sag, was man über das Asset wissen sollte.</string>
     <string name="memo_stop">Stopp</string>
     <string name="memo_save">Memo speichern</string>

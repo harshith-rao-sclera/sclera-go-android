@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +34,8 @@ import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.components.LocalMediaSources
+import com.sclera.sclerago.presentation.components.MediaSources
 import com.sclera.sclerago.presentation.components.SaveMediaAs
 import com.sclera.sclerago.presentation.tagging.TagFlowActions
 import com.sclera.sclerago.presentation.tagging.TagFlowHost
@@ -96,6 +99,7 @@ fun AssetDetailRoute(
     onTabOpened: () -> Unit = {},
     vm: AssetDetailViewModel = hiltViewModel(),
     tagVm: TagViewModel = hiltViewModel(),
+    mediaVm: MediaSourceViewModel = hiltViewModel(),
 ) {
     // A new asset's place is the top bar's location, so it is passed again when another location tab is chosen.
     LaunchedEffect(asset.id, isNew, if (isNew) asset.locationId else null) { vm.open(asset, isNew, prefill, scan) }
@@ -228,8 +232,12 @@ fun AssetDetailRoute(
         onOpenDocument = vm::openDocument,
         onPreviewSource = vm::previewSource,
         onDownloadMedia = { m ->
-            downloading = m
-            mediaSave.launch(m)
+            // A file the offline database doesn't have yet is saved from the server's copy (fetched first if need be).
+            scope.launch {
+                val file = mediaVm.downloadable(asset.id, m)
+                downloading = file
+                mediaSave.launch(file)
+            }
         },
         onRemoveMedia = { vm.removeMedia(it, onDropCapture) },
         onMovePhoto = vm::movePhoto,
@@ -257,7 +265,11 @@ fun AssetDetailRoute(
             camOpen = true
         },
     )
-    AssetDetailScreen(state, actions, mic = voice.state, tags = tagState, openTab = openTab, onTabOpened = onTabOpened)
+    // The asset's media is shown from the offline database, or from the server while the sync hasn't brought it down.
+    val mediaSources = remember(asset.id, mediaVm) { MediaSources { m, preview -> mediaVm.source(asset.id, m, preview) } }
+    CompositionLocalProvider(LocalMediaSources provides mediaSources) {
+        AssetDetailScreen(state, actions, mic = voice.state, tags = tagState, openTab = openTab, onTabOpened = onTabOpened)
+    }
     TagFlowHost(
         tagState,
         TagFlowActions(

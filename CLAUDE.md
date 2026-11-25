@@ -251,6 +251,9 @@ on access-code screens; the map WebView loads bundled Leaflet through `WebViewAs
 loads allow-listed hosts; sign-out clears every repository, files and web data; imports are size-limited.
 Each property's geofence (its fences, from the property list) is kept in `global_config.db`'s `properties` table in its
 `geofence` column, encrypted with `SecretCipher` like the access code and contacts, and wiped on sign-out.
+ADC API reads are network-first (`OfflineCacheInterceptor`): each JSON `GET` answer is saved, encrypted with `SecretCipher`, in
+`filesDir/online_cache/responses` (`EncryptedResponseCache`, files named by a SHA-256 of user + org + URL, wiped on sign-out) and
+served only when there is no connection. File content, downloads and polled job status are never kept.
 Still open:
 - The login WebView changes (host allow-list, third-party cookies off) and sign-out → sign-in wipe have not been
   verified end to end on a device; do this before release.

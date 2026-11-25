@@ -528,11 +528,6 @@
     <string name="cfg_units_metric_detail">m、kPa、°C。新しいアセットのみ：すでにアセットにあるフィールドは単位を保ち、値は換算されません。</string>
     <string name="login_offline_banner">インターネットに接続されていません</string>
     <string name="login_clear_email">メールアドレスを消去</string>
-    <string name="psheet_title">物件を選択</string>
-    <string name="psheet_use_location">現在地を使用</string>
-    <string name="psheet_location_unavailable">GPSで最寄りの物件を探す機能はまだ利用できません。</string>
-    <string name="psheet_no_assets">アセットはまだありません</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">アセットについて知っておくべきことを話してください。</string>
     <string name="memo_stop">停止</string>
     <string name="memo_save">メモを保存</string>

@@ -528,11 +528,6 @@
     <string name="cfg_units_metric_detail">ม., kPa, °C เฉพาะสินทรัพย์ใหม่: ฟิลด์ที่มีอยู่ในสินทรัพย์แล้วจะคงหน่วยเดิม และค่าจะไม่ถูกแปลง</string>
     <string name="login_offline_banner">ไม่มีการเชื่อมต่ออินเทอร์เน็ต</string>
     <string name="login_clear_email">ล้างอีเมล</string>
-    <string name="psheet_title">เลือกทรัพย์สิน</string>
-    <string name="psheet_use_location">ใช้ตำแหน่งของฉัน</string>
-    <string name="psheet_location_unavailable">ยังไม่สามารถค้นหาทรัพย์สินที่ใกล้ที่สุดด้วย GPS ได้</string>
-    <string name="psheet_no_assets">ยังไม่มีสินทรัพย์</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">บอกสิ่งที่ควรรู้เกี่ยวกับสินทรัพย์</string>
     <string name="memo_stop">หยุด</string>
     <string name="memo_save">บันทึกเมโม</string>

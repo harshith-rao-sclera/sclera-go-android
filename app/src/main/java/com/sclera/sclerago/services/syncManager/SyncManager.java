@@ -162,6 +162,19 @@ public class SyncManager {
         return ADC_PREF_PREFIX + propertyId + "_total_images";
     }
 
+    /** The key {@code propertyId}'s Data sync and Photo and video sync switches are kept under. */
+    public static String adcSwitchKey(String propertyId) {
+        return ADC_PREF_PREFIX + propertyId;
+    }
+
+    /**
+     * The key this engine's Data sync and Photo and video sync switches are read under: its property for asset data
+     * collection (one switch pair per property), else its vdms.
+     */
+    public String getSwitchKey() {
+        return OfflineFeatures.ASSET_DATA_COLLECTION.equals(feature) ? adcSwitchKey(propertyId) : vdmsID;
+    }
+
     // connections
     private final OkHttpClient client = new OkHttpClient.Builder()
             .addInterceptor(new AuthInterceptor())

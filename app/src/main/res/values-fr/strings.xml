@@ -553,11 +553,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C. Nouveaux actifs uniquement : les champs déjà présents sur un actif gardent leur unité et les valeurs ne sont pas converties.</string>
     <string name="login_offline_banner">Pas de connexion internet</string>
     <string name="login_clear_email">Effacer l\'e-mail</string>
-    <string name="psheet_title">Choisir une propriété</string>
-    <string name="psheet_use_location">Utiliser ma position</string>
-    <string name="psheet_location_unavailable">La recherche de la propriété la plus proche par GPS n\'est pas encore disponible.</string>
-    <string name="psheet_no_assets">Aucun actif pour le moment</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">Dites ce qu\'il faut savoir sur l\'actif.</string>
     <string name="memo_stop">Arrêter</string>
     <string name="memo_save">Enregistrer le mémo</string>

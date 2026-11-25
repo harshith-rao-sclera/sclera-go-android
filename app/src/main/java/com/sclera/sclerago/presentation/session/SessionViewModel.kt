@@ -5,14 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessRefusalsUseCase
 import com.sclera.sclerago.domain.usecase.access.RecheckAccessUseCase
-import com.sclera.sclerago.domain.usecase.access.RefreshAccessOnForegroundUseCase
+import com.sclera.sclerago.domain.usecase.access.StartAccessSyncUseCase
+import com.sclera.sclerago.domain.usecase.access.StopAccessSyncUseCase
 import com.sclera.sclerago.domain.usecase.auth.CheckSessionOnForegroundUseCase
 import com.sclera.sclerago.domain.usecase.auth.ClearUserDataUseCase
 import com.sclera.sclerago.domain.usecase.auth.LogoutUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
 import com.sclera.sclerago.domain.usecase.telemetry.TrackSessionChangeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -26,14 +26,12 @@ class SessionViewModel @Inject constructor(
     private val logoutUseCase: LogoutUseCase,
     private val clearUserData: ClearUserDataUseCase,
     private val trackSessionChange: TrackSessionChangeUseCase,
-    private val refreshAccess: RefreshAccessOnForegroundUseCase,
+    private val startAccessSync: StartAccessSyncUseCase,
+    private val stopAccessSync: StopAccessSyncUseCase,
     private val recheckAccess: RecheckAccessUseCase,
     observeRefusals: ObserveAccessRefusalsUseCase,
 ) : ViewModel() {
     val authState: StateFlow<AuthState> = observeAuthState()
-
-    /** The periodic re-check while the app is on screen ([onForeground] to [onBackground]). */
-    private var recheckJob: Job? = null
 
     init {
         // Whenever the session ends (sign-out, expiry, blocked account), nothing of the user stays on the device.
@@ -58,34 +56,21 @@ class SessionViewModel @Inject constructor(
     }
 
     /**
-     * Back in the foreground: the session is checked, and the user's access read again (as the web does on return); then
-     * the access and the property list are read again every few minutes while the app stays on screen.
+     * Back in the foreground: the session is checked, and the user's access and property list (with the geofences) are
+     * read now and every 30 seconds while the app stays on screen.
      */
     fun onForeground() {
         checkSessionOnForeground()
-        refreshAccess()
-        recheckJob?.cancel()
-        recheckJob = viewModelScope.launch {
-            while (true) {
-                delay(RECHECK_MS)
-                if (authState.value is AuthState.SignedIn) recheckAccess()
-            }
-        }
+        startAccessSync()
     }
 
-    /** Off screen: the periodic re-check stops (it starts again in [onForeground]). */
-    fun onBackground() {
-        recheckJob?.cancel()
-        recheckJob = null
-    }
+    /** Off screen: the access and property list stop being read again (until [onForeground]). */
+    fun onBackground() = stopAccessSync()
 
     /** Signs out; false (nothing happens) when offline: signing out needs the server. */
     fun logout(): Boolean = logoutUseCase()
 
     private companion object {
-        /** How often the access is read again while the app is on screen. */
-        const val RECHECK_MS = 5 * 60_000L
-
         /** After a refused call is acted on, further refusals wait this long (one re-check covers them). */
         const val REFUSAL_PAUSE_MS = 30_000L
     }

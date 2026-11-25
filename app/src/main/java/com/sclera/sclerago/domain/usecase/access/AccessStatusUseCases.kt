@@ -3,6 +3,7 @@ package com.sclera.sclerago.domain.usecase.access
 import com.sclera.sclerago.domain.model.AccessState
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.repository.AccessRefusals
+import com.sclera.sclerago.domain.repository.AccessSyncScheduler
 import com.sclera.sclerago.domain.repository.CurrentAccessRepository
 import com.sclera.sclerago.domain.repository.PropertyRepository
 import kotlinx.coroutines.flow.Flow
@@ -19,16 +20,22 @@ class ObserveAccessFailedUseCase @Inject constructor(private val repo: CurrentAc
 }
 
 /**
- * The app came back to the foreground: the signed-in user's access is fetched again, so a group or permission an admin
- * changed meanwhile applies at once (pages and buttons follow it; see [ObserveAccessChangesUseCase]).
+ * The app is on screen: the signed-in user's access and property list (with each property's geofence) are read now and
+ * every 30 seconds until [StopAccessSyncUseCase], so a group, permission, property or geofence an admin changed applies
+ * while the app stays open (pages and buttons follow it; see [ObserveAccessChangesUseCase]).
  */
-class RefreshAccessOnForegroundUseCase @Inject constructor(private val repo: CurrentAccessRepository) {
-    operator fun invoke() = repo.refresh()
+class StartAccessSyncUseCase @Inject constructor(private val scheduler: AccessSyncScheduler) {
+    operator fun invoke() = scheduler.start()
+}
+
+/** The app left the screen: the access and property list stop being read again until [StartAccessSyncUseCase]. */
+class StopAccessSyncUseCase @Inject constructor(private val scheduler: AccessSyncScheduler) {
+    operator fun invoke() = scheduler.stop()
 }
 
 /**
  * Reads the signed-in user's access and the property list again, so a group, permission or property an admin changed
- * applies while the app stays open: after a refused call, and every few minutes while it is on screen. Offline or
+ * applies while the app stays open: after a refused call, and on [StartAccessSyncUseCase]'s schedule. Offline or
  * refused, what is known stays.
  */
 class RecheckAccessUseCase @Inject constructor(

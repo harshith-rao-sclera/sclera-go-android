@@ -549,11 +549,6 @@
     <string name="cfg_units_metric_detail">m, kPa, °C. Alleen voor nieuwe items: velden die al op een item staan behouden hun eenheid en waarden worden niet omgerekend.</string>
     <string name="login_offline_banner">Geen internetverbinding</string>
     <string name="login_clear_email">E-mail wissen</string>
-    <string name="psheet_title">Pand selecteren</string>
-    <string name="psheet_use_location">Mijn locatie gebruiken</string>
-    <string name="psheet_location_unavailable">Het dichtstbijzijnde pand zoeken via GPS is nog niet beschikbaar.</string>
-    <string name="psheet_no_assets">Nog geen assets</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">Vertel wat het waard is om te weten over het item.</string>
     <string name="memo_stop">Stoppen</string>
     <string name="memo_save">Memo opslaan</string>

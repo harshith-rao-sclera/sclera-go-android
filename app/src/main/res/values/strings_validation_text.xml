@@ -153,4 +153,13 @@
     </plurals>
     <!-- A date field's problem with the field's day in local time: "In the future: 3 Dec 2026." (%1$s is the server's message without its full stop). -->
     <string name="val_issue_date_message">%1$s: %2$s.</string>
+    <!-- A run's review: Setup in its head opens "Run setup" (the checks, fields and severity it ran with, and its types). -->
+    <string name="rev_setup">Setup</string>
+    <string name="rev_setup_title">Run setup</string>
+    <string name="rev_setup_sub">Checks and fields used in this run.</string>
+    <string name="rev_setup_types">Types</string>
+    <string name="rev_setup_no_type">No type</string>
+    <string name="rev_setup_all_fields">All fields</string>
+    <string name="rev_setup_as_warning">Reported as warning</string>
+    <string name="rev_setup_as_error">Reported as error</string>
 </resources>

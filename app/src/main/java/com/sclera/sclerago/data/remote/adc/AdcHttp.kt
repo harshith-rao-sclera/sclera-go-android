@@ -75,11 +75,16 @@ internal class SlowCallInterceptor : Interceptor {
     }
 }
 
-/** The client for the ADC API: the shared client plus the token handling above and 30 s timeouts. No logging interceptor. */
-fun OkHttpClient.forAdc(tokens: AccessTokenProvider): OkHttpClient = newBuilder()
+/**
+ * The client for the ADC API: the shared client plus the token handling above and 30 s timeouts. No logging interceptor.
+ * [offlineCache] ([OfflineCacheInterceptor]) goes first, in front of the token handling, so a read answered from the cache
+ * offline never asks for a token.
+ */
+fun OkHttpClient.forAdc(tokens: AccessTokenProvider, offlineCache: Interceptor? = null): OkHttpClient = newBuilder()
     .connectTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .readTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .writeTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    .apply { offlineCache?.let(::addInterceptor) }
     .addInterceptor(SlowCallInterceptor())
     .addInterceptor(AdcAuthInterceptor(tokens))
     .authenticator(AdcAuthenticator(tokens))

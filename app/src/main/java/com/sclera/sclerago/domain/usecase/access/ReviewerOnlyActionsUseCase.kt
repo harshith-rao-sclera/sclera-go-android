@@ -14,12 +14,12 @@ data class ReviewerOnlyAction(val action: ChangeAction, val block: AccessBlock)
 /**
  * The selection's reviewer-only actions (the User Access Guide: Mark as validated and Move to draft on submitted assets,
  * Approve and Decline on change requests) for someone whose group lacks Validate, so they stay on the Change menu greyed
- * out. Empty for a reviewer (they get the real actions) and for someone who can't collect (they select nothing).
+ * out. Empty for a reviewer (they get the real actions); listed for anyone else, whether or not they can collect.
  */
 class ReviewerOnlyActionsUseCase @Inject constructor(private val guard: PermissionGuard) {
     operator fun invoke(assets: List<Asset>): List<ReviewerOnlyAction> {
         val block = guard.block(Permission.VALIDATE) ?: return emptyList()
-        if (assets.isEmpty() || !guard.allows(Permission.COLLECT)) return emptyList()
+        if (assets.isEmpty()) return emptyList()
         return buildList {
             if (assets.any { it.st == Status.SUBMITTED }) add(ChangeAction.MARK_VALIDATED)
             // Exceptions alone go back to draft without a reviewer (the selection already offers that).

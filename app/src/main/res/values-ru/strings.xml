@@ -563,11 +563,6 @@
     <string name="cfg_units_metric_detail">м, кПа, °C. Только для новых активов: поля, уже добавленные к активу, сохраняют свою единицу, а значения не пересчитываются.</string>
     <string name="login_offline_banner">Нет подключения к интернету</string>
     <string name="login_clear_email">Очистить адрес почты</string>
-    <string name="psheet_title">Выберите объект</string>
-    <string name="psheet_use_location">Использовать моё местоположение</string>
-    <string name="psheet_location_unavailable">Поиск ближайшего объекта по GPS пока недоступен.</string>
-    <string name="psheet_no_assets">Активов пока нет</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">Расскажите, что стоит знать об активе.</string>
     <string name="memo_stop">Стоп</string>
     <string name="memo_save">Сохранить заметку</string>

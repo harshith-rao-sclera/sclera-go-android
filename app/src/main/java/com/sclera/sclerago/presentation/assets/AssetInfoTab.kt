@@ -81,7 +81,7 @@ class AssetDetailActions(
     val onChangeLoc: () -> Unit = {},
     /** Assign the asset to a person (the web's Assign asset). */
     val onAssign: (() -> Unit)? = null,
-    /** Assign reads "Assign to me": the user isn't an admin and takes the asset for themselves. */
+    /** [onAssign] is "Assign to me": the user isn't a reviewer and takes the asset for themselves (Assign then shows greyed out). */
     val assignToMe: Boolean = false,
     val onEdit: (key: String, value: String) -> Unit = { _, _ -> },
     val onDiscardEdits: () -> Unit = {},
@@ -445,12 +445,12 @@ fun AssetInfoTab(
  * the asset's status only; one the signed-in user may not use stays, greyed out, and a tap says why ([AssetButtons]):
  * - Validate: once the server has the asset (Check).
  * - Mark as validated: a submitted asset (Validate).
- * - Assign (Assign to me for anyone but a reviewer): except on a signed-off asset.
+ * - Assign (a reviewer), and Assign to me (anyone but a reviewer): except on a signed-off asset.
  * - Submit: a draft (whoever may change it).
  * - Move to Managed assets: a validated asset not there yet (Configure, and the property linked).
  * - Move to draft: an exception (whoever may work on it), or a submitted or signed-off asset nobody asked to change (a
  *   reviewer); with a request, Approve is in the change request banner, with Decline and Withdraw.
- * - Request change (or update it): a submitted or signed-off asset, for anyone but a reviewer (who changes it instead).
+ * - Request change (or update it): a submitted or signed-off asset (greyed out for a reviewer, who changes it instead).
  * - Delete: except on a signed-off asset (whoever may change it).
  */
 @Composable
@@ -477,10 +477,17 @@ private fun assetBarItems(
                 ),
             )
         }
-        val assignWhy = b.assign ?: actions.assignReason
-        if (!signedOff && (actions.onAssign != null || assignWhy != null)) {
-            val label = stringResource(if (actions.assignToMe) R.string.action_assign_to_me else R.string.action_assign)
-            add(DockItem(label, Icons.UserPlus, C.Cyan, actions.onAssign ?: {}, OnlineOnly.ASSIGN, blocked = assignWhy))
+        if (!signedOff) {
+            // Assign (a reviewer picks who has it) shows for everyone: greyed out, saying why, for anyone else.
+            val assign = if (actions.assignToMe) null else actions.onAssign
+            add(DockItem(stringResource(R.string.action_assign), Icons.UserPlus, C.Cyan, assign ?: {}, OnlineOnly.ASSIGN, blocked = b.assign ?: actions.assignReason))
+            // Assign to me as well, for anyone but a reviewer (whose Assign offers themselves): greyed out, saying why, when
+            // they can't take it.
+            if (!state.reviewer) {
+                val take = if (actions.assignToMe) actions.onAssign else null
+                val takeWhy = b.take ?: actions.assignReason ?: UiText.Res(R.string.access_take_unavailable).takeIf { take == null }
+                add(DockItem(stringResource(R.string.action_assign_to_me), Icons.UserPlus, C.Cyan, take ?: {}, OnlineOnly.ASSIGN, blocked = takeWhy))
+            }
         }
         if (canSubmit) add(DockItem(stringResource(R.string.action_submit), Icons.StatusSubmitted, Status.SUBMITTED.color, { onModal(submitModal) }, blocked = b.change))
         val moveWhy = b.moveToManaged ?: actions.moveReason
@@ -495,7 +502,8 @@ private fun assetBarItems(
                 ),
             )
         }
-        if (submitted && !state.reviewer) {
+        // A reviewer changes the asset instead: it shows for them too, greyed out, saying so.
+        if (submitted) {
             val ask = if (asset.changeRequest != null) ChangeAction.UPDATE_REQUEST else ChangeAction.REQUEST
             add(DockItem(changeActionLabel(ask, 1), Icons.ChangeRequest, C.Orange, actions.changeRequest.onOpen, tag = ChangeRequestTags.ASK, blocked = b.requestChange))
         }

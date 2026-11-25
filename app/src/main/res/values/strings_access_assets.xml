@@ -3,4 +3,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="access_withdraw_not_yours">Only the person who asked for this change can withdraw it.</string>
     <string name="access_comment_edit_not_yours">Only the person who wrote this comment can edit it.</string>
+    <string name="access_comment_delete_not_yours">Only the person who wrote this comment, or a reviewer, can delete it.</string>
+    <string name="access_request_change_reviewer">You review assets, so you can change this one yourself: Move to draft reopens it.</string>
+    <string name="access_decline_own_request">This is your own request. Withdraw it instead.</string>
+    <string name="access_take_unavailable">Assign to me works once your account has loaded. Try again in a moment.</string>
 </resources>

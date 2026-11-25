@@ -57,6 +57,12 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_COUNT_FROM
+import com.sclera.sclerago.domain.usecase.asset.CHANGE_NOTE_MAX
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 
 /** What the change request pieces do: open the dialog, edit its note, send or cancel it, withdraw / decline, reopen. */
 class ChangeRequestActions(
@@ -120,9 +126,9 @@ internal fun ChangeRequestLine(
 /**
  * A change request on a submitted (or signed-off) asset, as one slim line under the top bar on every tab: "Change
  * requested · <who>". Tapping it opens the rest: who asked and when, the note, and what can be done: a reviewer declines it
- * (withdraws, when it is their own) or approves it (back to draft for whoever asked); whoever asked withdraws it. Each of
- * these the signed-in user may not use stays, greyed out, and a tap says why ([declineBlocked], [approveBlocked],
- * [withdrawBlocked]); Withdraw is left out for a reviewer answering someone else's request (Decline does that).
+ * (withdraws, when it is their own) or approves it (back to draft for whoever asked); whoever asked withdraws it. All three
+ * show for everyone; each the signed-in user may not use is greyed out, and a tap says why ([declineBlocked],
+ * [approveBlocked], [withdrawBlocked]: Withdraw on someone else's request, Decline on one's own).
  */
 @Composable
 internal fun ChangeRequestBanner(
@@ -160,23 +166,19 @@ internal fun ChangeRequestBanner(
                 ChangeRequestLine(request, mine, requester, icon = false)
                 // Small labelled pills at the end (32dp tall; each still answers a 48dp touch).
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)) {
-                    if (mine || declineBlocked != null) {
-                        AccessGate(withdrawBlocked) {
-                            Pill(
-                                stringResource(R.string.change_request_withdraw), onClose,
-                                Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.CLOSE),
-                                height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
-                            )
-                        }
+                    AccessGate(withdrawBlocked) {
+                        Pill(
+                            stringResource(R.string.change_request_withdraw), onClose,
+                            Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.CLOSE),
+                            height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
+                        )
                     }
-                    if (!mine) {
-                        AccessGate(declineBlocked) {
-                            Pill(
-                                stringResource(R.string.change_request_decline), onClose,
-                                Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.DECLINE),
-                                height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
-                            )
-                        }
+                    AccessGate(declineBlocked) {
+                        Pill(
+                            stringResource(R.string.change_request_decline), onClose,
+                            Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.DECLINE),
+                            height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
+                        )
                     }
                     AccessGate(approveBlocked) {
                         Pill(
@@ -220,6 +222,13 @@ internal fun ChangeRequestDialog(
                 LabeledInput(
                     stringResource(R.string.change_request_note_label), note, onNote, stringResource(R.string.change_request_note_hint),
                     singleLine = false, minLines = 3,
+                )
+            }
+            // Near the limit, how much of it is used (the field takes no more than it).
+            if (note.length > CHANGE_NOTE_COUNT_FROM) {
+                Txt(
+                    stringResource(R.string.change_request_note_count, note.length, CHANGE_NOTE_MAX), 11, 500, C.Muted,
+                    Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, align = TextAlign.End,
                 )
             }
             Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

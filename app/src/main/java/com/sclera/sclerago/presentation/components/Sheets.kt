@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -347,9 +348,25 @@ fun CapturePreview(p: Preview, onClose: () -> Unit) {
     }
 }
 
-/** A photo at full size, a video that plays (looping, tap to pause), a voice memo to play, or a document to open. */
+/**
+ * A photo at full size, a video that plays (looping, tap to pause), a voice memo to play, or a document to open. An asset's
+ * file the offline database doesn't have yet is opened from the server's copy ([shownMedia]): a photo fetches its own, the
+ * others shimmer while their whole file is fetched.
+ */
 @Composable
 fun MediaFull(media: Media) {
+    val photo = !media.audio && !media.isDoc && !media.video
+    val shown = if (photo) media else shownMedia(media, preview = false)
+    if (shown == null) {
+        SkeletonBlock(Modifier.fillMaxSize(), RectangleShape)
+        return
+    }
+    MediaFullOf(shown)
+}
+
+/** [MediaFull] for [media] as it is. */
+@Composable
+private fun MediaFullOf(media: Media) {
     // A voice memo keeps its file name, so it is checked before documents.
     if (media.audio) {
         AudioFull(media)

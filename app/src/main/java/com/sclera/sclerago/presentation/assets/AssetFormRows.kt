@@ -277,7 +277,10 @@ fun PickRow(
     requester: BringIntoViewRequester? = null,
     /** A short orange tag before the chevron (a mandatory value still missing: "REQUIRED"). */
     tag: String? = null,
-    /** A button of the row's own before the chevron (the JACS code's AI suggest); not on a read-only form. */
+    /**
+     * A button of the row's own before the chevron (the JACS code's AI suggest). It shows on a read-only form too: the
+     * caller greys it out there, saying why.
+     */
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val readOnly = LocalReadOnly.current
@@ -295,7 +298,7 @@ fun PickRow(
         )
         BadgeText(key, badge)
         tag?.let { Txt(it, 10, 700, C.Orange) }
-        if (!readOnly) trailing?.invoke()
+        trailing?.invoke()
         if (!readOnly) LineIcon(Icons.ChevronDown, 13.dp, C.Muted, 3f)
     }
 }

@@ -63,7 +63,19 @@ data class JobDto(
     val startedBy: String? = null,
     /** Who started it (a user id); null when the app did. */
     val createdBy: String? = null,
+    /** How it was set up; only when one run is read. */
+    val setup: JobSetupDto? = null,
 )
+
+@Serializable
+data class SetupCheckDto(val key: String = "", val name: String = "", val fields: List<String>? = null, val severity: String? = null)
+
+@Serializable
+data class SetupStepDto(val key: String = "", val name: String = "", val checks: List<SetupCheckDto> = emptyList())
+
+/** `setup` of one run: each step's checks with the fields and severity they used, and the types it ran on. */
+@Serializable
+data class JobSetupDto(val steps: List<SetupStepDto> = emptyList(), val types: List<String> = emptyList(), val unclassified: Boolean = false)
 
 @Serializable
 data class SavedValidationDto(
@@ -79,6 +91,8 @@ data class SavedValidationDto(
 
 @Serializable
 data class ResultDto(
+    /** The result's id (the list is newest first by it); null from an older server. */
+    val id: String? = null,
     val assetId: String,
     val assetName: String? = null,
     val outcome: String = "",

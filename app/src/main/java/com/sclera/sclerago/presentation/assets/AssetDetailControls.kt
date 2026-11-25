@@ -47,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -350,19 +351,27 @@ private fun AiFillButton(
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         val tip = if (busy) stringResource(R.string.detail_ai_busy) else notice?.asString()
         if (tip != null) Bubble(tip, Int.MAX_VALUE)
-        val inf = rememberInfiniteTransition(label = "ai")
-        // Working (a look-up, or filling the form from new photos): the sparkle blinks inside a cyan ring.
-        val blink by inf.animateFloat(1f, 0.25f, infiniteRepeatable(tween(550), RepeatMode.Reverse), label = "blink")
         val description = stringResource(R.string.detail_ai_fill)
         AccessGate(access) {
             OfflineGate(offline, onBlocked) {
                 AiOffGate(aiOff, onAiOff) {
                     Box(
                         Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().pressClickable(shape = CircleShape, onClick = onClick).background(C.Surface)
-                            .border(if (busy) 2.dp else 1.dp, if (busy) C.Cyan.copy(alpha = 0.4f + 0.6f * blink) else C.Border2, CircleShape)
+                            .border(1.dp, C.Border2, CircleShape)
                             .semantics { contentDescription = description },
                         contentAlignment = Alignment.Center,
-                    ) { LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, if (busy) Modifier.alpha(blink) else Modifier) }
+                    ) {
+                        // Working (a look-up, or filling the form from new photos): a cyan ring spins round the border
+                        // and the sparkle blinks.
+                        if (busy) {
+                            val blink by rememberInfiniteTransition(label = "ai")
+                                .animateFloat(1f, 0.25f, infiniteRepeatable(tween(550), RepeatMode.Reverse), label = "blink")
+                            CircularProgressIndicator(Modifier.matchParentSize(), color = C.Cyan, strokeWidth = 2.dp)
+                            LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f, Modifier.alpha(blink))
+                        } else {
+                            LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f)
+                        }
+                    }
                 }
             }
         }

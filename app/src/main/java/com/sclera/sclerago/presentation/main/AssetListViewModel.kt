@@ -39,6 +39,7 @@ import com.sclera.sclerago.domain.usecase.asset.withAiSwitch
 import com.sclera.sclerago.domain.usecase.config.ObserveAiSwitchUseCase
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
+import com.sclera.sclerago.presentation.model.message
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -87,7 +88,10 @@ data class AssetListState(
     val pickedAssets: List<Asset> = emptyList(),
     /** The status chip each tab is filtered by (null: all). */
     val statusFilter: Map<Tab, Status?> = emptyMap(),
-    /** The change-request actions for the selection (none: the dock's Change action is hidden). */
+    /**
+     * The change-request actions for the selection, those the user can't use included (greyed out). With none, and no
+     * [reviewerOnly] ones, nothing ticked has a change to offer (its status), so the dock has no Change action.
+     */
     val changeOptions: List<ChangeActionOption> = emptyList(),
     /** The menu of [changeOptions] is open. */
     val changeMenu: Boolean = false,
@@ -232,11 +236,8 @@ class AssetListViewModel @Inject constructor(
     ) { read, (types, ai), sc, u, (rights, why) ->
         val catalog = read.withAiSwitch(ai)
         val assets = catalog.assets
-        // Reviewers (Validate) act on change requests, so their chip always shows (the web's).
-        val actsOnRequests = rights.reviewer
         fun query(tab: Tab, filter: AssetFilter) = AssetListQuery(
             tab.sources(sc.network), sc.location, u.query, u.statusFilter[tab], changeRequests = tab in u.changeRequests,
-            showChangeRequests = actsOnRequests,
             validation = u.validation[tab], filter = filter, managed = tab == Tab.ASSETS && tab in u.managed,
             onboarded = u.onboarded[tab]?.takeIf { tab == Tab.ASSETS },
         )
@@ -476,6 +477,10 @@ class AssetListViewModel @Inject constructor(
 
     /** Picks one of the selection's change-request actions: a blocked one says why, any other asks to confirm. */
     fun pickChange(option: ChangeActionOption) {
+        option.access?.let { access ->
+            message.tryEmit(UiText.Res(access.message))
+            return
+        }
         option.blocked?.let { blocked ->
             message.tryEmit(
                 UiText.Res(
@@ -486,6 +491,9 @@ class AssetListViewModel @Inject constructor(
                         ChangeActionBlock.ASSIGNED_ELSEWHERE -> R.string.change_block_assigned_elsewhere
                         ChangeActionBlock.SOME_ARE_DRAFTS -> R.string.change_block_some_drafts
                         ChangeActionBlock.SIGN_OFF_NOT_SUBMITTED -> R.string.sign_off_block_not_submitted
+                        ChangeActionBlock.REVIEWER_CHANGES_IT -> R.string.access_request_change_reviewer
+                        ChangeActionBlock.OWN_REQUEST -> R.string.access_decline_own_request
+                        ChangeActionBlock.NOT_YOUR_REQUEST -> R.string.access_withdraw_not_yours
                     },
                 ),
             )

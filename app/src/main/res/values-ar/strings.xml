@@ -577,11 +577,6 @@
     <string name="cfg_units_metric_detail">م، كيلوباسكال، °م. للأصول الجديدة فقط: تحتفظ الحقول الموجودة في أصل بوحدتها، ولا تُحوَّل القيم.</string>
     <string name="login_offline_banner">لا يوجد اتصال بالإنترنت</string>
     <string name="login_clear_email">مسح البريد الإلكتروني</string>
-    <string name="psheet_title">اختيار العقار</string>
-    <string name="psheet_use_location">استخدام موقعي</string>
-    <string name="psheet_location_unavailable">العثور على أقرب عقار عبر GPS غير متاح بعد.</string>
-    <string name="psheet_no_assets">لا توجد أصول بعد</string>
-    <string name="psheet_gps_badge">GPS</string>
     <string name="memo_subtitle">قل ما يستحق المعرفة عن الأصل.</string>
     <string name="memo_stop">إيقاف</string>
     <string name="memo_save">حفظ المذكرة</string>

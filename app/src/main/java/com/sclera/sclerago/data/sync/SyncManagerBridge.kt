@@ -68,6 +68,18 @@ class SyncManagerBridge @Inject constructor(
 
     fun isSelected(propertyId: String): Boolean = selected == propertyId
 
+    /** [propertyId]'s Data sync switch (the engine's; on until turned off): whether the server's changes come down. */
+    fun dataSyncOn(propertyId: String): Boolean = SyncManager.isDataSyncEnabled(context, SyncManager.adcSwitchKey(propertyId))
+
+    /** [propertyId]'s Photo and video sync switch (the engine's; on until turned off). */
+    fun mediaSyncOn(propertyId: String): Boolean = SyncManager.isPullImagesEnabled(context, SyncManager.adcSwitchKey(propertyId))
+
+    /** Turns [propertyId]'s Data sync on or off; its engine reads it before each pull (its own changes always push). */
+    fun setDataSync(propertyId: String, on: Boolean) = SyncManager.setDataSyncEnabled(context, on, SyncManager.adcSwitchKey(propertyId))
+
+    /** Turns [propertyId]'s Photo and video sync on or off; its engine reads it before each media pull. */
+    fun setMediaSync(propertyId: String, on: Boolean) = SyncManager.setPullImagesEnabled(context, on, SyncManager.adcSwitchKey(propertyId))
+
     /** Properties whose engine [reopenAll] started and [begin] hasn't seen yet. Guarded by [lock]. */
     private val reopened = mutableSetOf<String>()
 

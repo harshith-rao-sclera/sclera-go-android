@@ -420,12 +420,18 @@ fun ActionDock(
     assignDimmed: Boolean = false,
     /** Why each action is greyed out for the signed-in user (the User Access Guide); a tap says why. */
     access: DockAccess = DockAccess(),
+    /** "Assign to me", its own action after Assign (someone who isn't a reviewer takes the assets); null leaves it out. */
+    onTake: (() -> Unit)? = null,
+    /** Greys "Assign to me" out (it can't take these); it still answers a tap, to say why. */
+    takeDimmed: Boolean = false,
+    /** Why "Assign to me" is greyed out for the signed-in user ([AccessGate]); null when they may use it. */
+    takeAccess: com.sclera.sclerago.presentation.common.UiText? = null,
     leading: @Composable RowScope.() -> Unit,
 ) {
     // Floating: the selection dock, flush with the screen edges: a tinted summary strip over the action row; otherwise one row with a top border.
     val actionsRow: @Composable RowScope.() -> Unit = {
         // With more actions each one is a little narrower, so the selection summary keeps room on phones.
-        val actions = listOfNotNull(onValidate, onEdit, onAssign, onSubmit, onChange, onMove, onDelete).size
+        val actions = listOfNotNull(onValidate, onEdit, onAssign, onTake, onSubmit, onChange, onMove, onDelete).size
         val narrow = actions >= 5
         val item = if (floating) Modifier.weight(1f) else Modifier.width(if (actions >= 6) 46.dp else if (narrow) 50.dp else 56.dp)
         // An action the user's group can't use is greyed out by its access gate alone (no offline badge or dimming on top).
@@ -443,6 +449,14 @@ fun ActionDock(
                     val label = stringResource(if (assignToMe) R.string.action_assign_to_me else R.string.action_assign)
                     val dim = assignDimmed && !offline && access.assign == null
                     DockAction(label, Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f))
+                }
+            }
+        }
+        onTake?.let {
+            DockGate(takeAccess, item) { m ->
+                OfflineGate(offline && takeAccess == null, { onOffline(OnlineOnly.ASSIGN) }, m) {
+                    val dim = takeDimmed && !offline && takeAccess == null
+                    DockAction(stringResource(R.string.action_assign_to_me), Icons.UserPlus, C.Cyan, it, Modifier.fillMaxWidth().alpha(if (dim) 0.35f else 1f))
                 }
             }
         }

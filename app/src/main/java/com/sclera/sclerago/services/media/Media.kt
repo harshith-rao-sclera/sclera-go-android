@@ -86,6 +86,9 @@ object MediaLoader {
 
     fun cached(uri: String, maxPx: Int): ImageBitmap? = cache.get("$uri@$maxPx")?.asImageBitmap()
 
+    /** Forgets every picture read (on sign-out). */
+    fun clear() = cache.evictAll()
+
     suspend fun load(context: Context, uri: String, video: Boolean, maxPx: Int): ImageBitmap? = withContext(Dispatchers.IO) {
         val key = "$uri@$maxPx"
         cache.get(key)?.let { return@withContext it.asImageBitmap() }

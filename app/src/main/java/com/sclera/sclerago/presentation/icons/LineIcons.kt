@@ -274,6 +274,20 @@ object Icons {
     /** A tray with an arrow into it: import. */
     val Import = Ico(s("M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"), s("M12 3v12M7.5 10.5L12 15l4.5-4.5"))
     val Clock = Ico(s(circle(12f, 12f, 9f)), s("M12 7v5.5l-3.5 2"))
+    /** Sync (the side menu's Sync settings): two arrows chasing each other round a circle. */
+    val Sync = Ico(
+        s("M20 11a8 8 0 0 0 -14.3 -4.9"), s("M5.5 2.5v4h4"),
+        s("M4 13a8 8 0 0 0 14.3 4.9"), s("M18.5 21.5v-4h-4"),
+    )
+    /** History (the last sync): a clock with an arrow turning back round it. */
+    val History = Ico(s("M3.5 12a8.5 8.5 0 1 0 2.5 -6"), s("M3.5 3.5v4h4"), s("M12 8v4.5l3 1.8"))
+    /** Database (Data sync): a cylinder of stacked records. */
+    val Database = Ico(
+        s("M4.5 6c0-1.66 3.36-3 7.5-3s7.5 1.34 7.5 3-3.36 3-7.5 3-7.5-1.34-7.5-3z"),
+        s("M4.5 6v12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V6"), s("M4.5 12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3"),
+    )
+    /** Photos (Photo and video sync): two pictures, one behind the other. */
+    val Photos = Ico(s(rect(7f, 3f, 14f, 12f, 2f)), s(circle(11.5f, 7.5f, 1.5f)), s("M21 12l-3.5-3.5L11 15"), s("M3 8v10a2 2 0 0 0 2 2h12"))
     val PlusCircle = Ico(s(circle(12f, 12f, 9f)), s("M12 8v8M8 12h8"))
     val CheckSquare = Ico(s(rect(4f, 4f, 16f, 16f, 3f)), s("M8.5 12.5l2.5 2.5 4.5-5"))
     /** Ticks beside lines: multiple check boxes. */

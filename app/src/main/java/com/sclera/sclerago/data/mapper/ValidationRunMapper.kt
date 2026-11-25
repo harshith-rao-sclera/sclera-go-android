@@ -53,6 +53,10 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import com.sclera.sclerago.domain.validation.RunSetup
+import com.sclera.sclerago.domain.validation.SetupStep
+import com.sclera.sclerago.domain.validation.SetupCheck
+import com.sclera.sclerago.data.remote.adc.JobSetupDto
 
 // The Validation page's server JSON (and the same rows in the offline database) as domain models, and the bodies sent.
 
@@ -111,9 +115,31 @@ fun JobDto.toDomain() = ValRun(
     finishedAt = parseDbTime(finishedAt),
     startedBy = startedBy?.takeIf { it.isNotBlank() }?.clip(),
     createdBy = createdBy?.takeIf { isServerId(it) },
+    setup = setup?.toDomain(),
+)
+
+private fun JobSetupDto.toDomain() = RunSetup(
+    steps = steps.map { s ->
+        SetupStep(
+            s.key, s.name.clip(),
+            s.checks.map { c ->
+                SetupCheck(
+                    c.key, c.name.clip(), c.fields?.map { it.clip() },
+                    when (c.severity) {
+                        "warning" -> IssueSeverity.WARNING
+                        "error" -> IssueSeverity.ERROR
+                        else -> null
+                    },
+                )
+            },
+        )
+    },
+    types = types.map { it.clip() },
+    unclassified = unclassified,
 )
 
 fun ResultDto.toDomain() = RunAssetResult(
+    id = id?.takeIf { it.isNotBlank() },
     assetId = assetId,
     assetName = assetName.clip(),
     outcome = StepOutcome.of(outcome),
@@ -318,6 +344,7 @@ fun DbRow.toValRun(): ValRun {
 }
 
 fun DbRow.toRunAssetResult() = RunAssetResult(
+    id = string("id")?.takeIf { it.isNotBlank() },
     assetId = string("asset_id").orEmpty(),
     assetName = string("asset_name").clip(),
     outcome = StepOutcome.of(string("outcome")),

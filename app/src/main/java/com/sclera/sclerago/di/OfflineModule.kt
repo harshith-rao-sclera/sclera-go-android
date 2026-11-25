@@ -16,6 +16,8 @@ import com.sclera.sclerago.data.offline.TypeFieldsLookup
 import com.sclera.sclerago.data.offline.ValidationOfflineSource
 import com.sclera.sclerago.data.offline.ValidationRunsOfflineSource
 import com.sclera.sclerago.data.repository.AssetActivityRepositoryImpl
+import com.sclera.sclerago.data.repository.SyncSettingsRepositoryImpl
+import com.sclera.sclerago.domain.repository.SyncSettingsRepository
 import com.sclera.sclerago.data.repository.AssetConfigRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetFormRepositoryImpl
 import com.sclera.sclerago.data.repository.AssetOwnFieldsRepositoryImpl
@@ -134,6 +136,7 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun assetValidation(impl: AssetValidationRepositoryImpl): AssetValidationRepository
     @Binds abstract fun photoRules(impl: PhotoRulesRepositoryImpl): PhotoRulesRepository
     @Binds abstract fun specLookups(impl: SpecLookupRepositoryImpl): SpecLookupRepository
+    @Binds abstract fun syncSettings(impl: SyncSettingsRepositoryImpl): SyncSettingsRepository
     @Binds abstract fun voiceFill(impl: VoiceFillRepositoryImpl): VoiceFillRepository
     @Binds abstract fun classification(impl: ClassificationRepositoryImpl): ClassificationRepository
     @Binds abstract fun jacs(impl: JacsRepositoryImpl): JacsRepository
