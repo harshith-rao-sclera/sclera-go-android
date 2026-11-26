@@ -19,6 +19,12 @@ class ObserveAccessFailedUseCase @Inject constructor(private val repo: CurrentAc
     operator fun invoke(): Flow<Boolean> = repo.state.map { it is AccessState.Failed }.distinctUntilChanged()
 }
 
+/** The name of the group the signed-in user is in, as the server reports it; null while unknown or when in none. */
+class ObserveGroupNameUseCase @Inject constructor(private val repo: CurrentAccessRepository) {
+    operator fun invoke(): Flow<String?> =
+        repo.state.map { (it as? AccessState.Loaded)?.access?.groupName?.takeIf { name -> name.isNotBlank() } }.distinctUntilChanged()
+}
+
 /**
  * The app is on screen: the signed-in user's access and property list (with each property's geofence) are read now and
  * every 30 seconds until [StopAccessSyncUseCase], so a group, permission, property or geofence an admin changed applies

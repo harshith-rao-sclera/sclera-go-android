@@ -134,6 +134,7 @@ fun SideMenu(
     SideMenuPanel(
         open = s.menuOpen,
         session = (auth as? AuthState.SignedIn)?.session,
+        group = vm.groupName,
         propertyName = vm.propName.takeIf { vm.hasProperty },
         assetCount = vm.assets.size,
         blocks = MenuItem.entries.associateWith(vm::menuBlock),
@@ -172,6 +173,8 @@ internal fun SideMenuPanel(
     /** Offline: Sign out is greyed out (the server has to end the session); a tap calls [onSignOutOffline] to say why. */
     signOutOffline: Boolean = false,
     onSignOutOffline: () -> Unit = {},
+    /** The group the user is in, shown before the organisation; null (unknown, or in none): their sign-in role instead. */
+    group: String? = null,
 ) {
     BackHandler(enabled = open, onBack = onClose)
     val name = session?.displayName.orEmpty()
@@ -234,7 +237,7 @@ internal fun SideMenuPanel(
                     Avatar(name, session?.avatarUrl)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Txt(name, 15, 700)
-                        listOfNotNull(session?.role, session?.organisation).joinToString(" · ").takeIf { it.isNotEmpty() }?.let {
+                        listOfNotNull(group ?: session?.role, session?.organisation).joinToString(" · ").takeIf { it.isNotEmpty() }?.let {
                             Txt(it, 11, 600, C.Yellow)
                         }
                         session?.email?.let { Txt(it.ellipsizeMiddle(EmailMaxChars), 12, 400, C.Muted) }

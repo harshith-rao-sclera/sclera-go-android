@@ -26,7 +26,8 @@
     <string name="change_block_not_submitted">Some of the selected assets aren\'t submitted</string>
     <string name="change_block_not_requested">Some of the selected assets have no change request</string>
     <string name="change_block_not_exceptions">Some of the selected assets aren\'t exceptions</string>
-    <string name="change_block_assigned_elsewhere">Some of the selected assets are assigned to someone else</string>
+    <!-- Move to draft on an exception: the server lets only its assigned collector or a reviewer do it. -->
+    <string name="change_block_not_your_exception">Only the collector it\'s assigned to or a reviewer can move an exception back to draft</string>
     <string name="change_block_some_drafts">Some of the selected assets are already drafts</string>
     <plurals name="change_action_approve">
         <item quantity="one">Approve request</item>

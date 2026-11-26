@@ -106,7 +106,7 @@ fun CameraPage(vm: AppViewModel, shots: FileImportViewModel, online: Boolean) {
             addMore = stringResource(R.string.camera_take_more),
         )
         // Shots still waiting in the review (before they are read) can be gone back to from the camera.
-        s.camOpen -> CameraView(vm, waiting = if (s.camMany && shots.state.step == FileStep.PICK) shots.state.files.size else 0)
+        s.camOpen -> CameraView(vm, waiting = if (s.camMany && shots.state.step == FileStep.PICK) shots.state.files.size else 0, onDiscardReview = shots::discard)
         else -> SubList(vm, Tab.CAMERA, stringResource(R.string.nav_camera), vm::openCam)
     }
 }
@@ -115,7 +115,7 @@ private fun hasCameraPermission(context: Context) =
     ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
 @Composable
-private fun CameraView(vm: AppViewModel, waiting: Int) {
+private fun CameraView(vm: AppViewModel, waiting: Int, onDiscardReview: () -> Unit) {
     val s = vm.state
     BackHandler(enabled = vm.cameraHasShots) { vm.cancelCam() }
     CameraCapture(
@@ -125,7 +125,7 @@ private fun CameraView(vm: AppViewModel, waiting: Int) {
         videoMode = s.videoMode, onVideoMode = vm::setVideoMode,
         onCapture = vm::addCapture, onToggle = vm::toggleStrip, onGalleryPicked = vm::addPicked,
         onClose = vm::cancelCam, onDone = { vm.doneCapturing(reviewWaiting = waiting > 0) },
-        many = s.camMany, onMany = { vm.setCamMany(it, reviewWaiting = waiting > 0) }, waiting = waiting,
+        many = s.camMany, onMany = { vm.setCamMany(it, reviewWaiting = waiting > 0, discardReview = onDiscardReview) }, waiting = waiting,
     )
 }
 
@@ -166,6 +166,17 @@ fun CameraCapture(
     val activity = LocalActivity.current
     val owner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+
+    // Photos taken and still being saved: in the count at once, so it keeps up with a quick burst of shots.
+    var saving by remember { mutableIntStateOf(0) }
+    // Done tapped while some were still being saved: it goes on once they are all in, so none is left behind.
+    var doneAsked by remember { mutableStateOf(false) }
+    LaunchedEffect(saving, doneAsked) {
+        if (doneAsked && saving == 0) {
+            doneAsked = false
+            onDone()
+        }
+    }
 
 
     // --- Permission
@@ -221,6 +232,8 @@ fun CameraCapture(
     fun takePhoto() {
         val f = File(captureDir(context), "IMG_${stamp()}.jpg")
         scope.launch { shutterFlash.snapTo(0.8f); shutterFlash.animateTo(0f, tween(250)) }
+        // Counted from the tap: the camera saves shots one after another, so a quick burst lands a moment later.
+        saving++
         controller.takePicture(
             ImageCapture.OutputFileOptions.Builder(f).build(),
             ContextCompat.getMainExecutor(context),
@@ -228,9 +241,11 @@ fun CameraCapture(
                 // Shots go straight into the strip (several can be taken in a row); one not wanted is unticked there.
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     onCapture(Media("c-${f.name}", Uri.fromFile(f).toString(), video = false, owned = true))
+                    saving--
                 }
 
                 override fun onError(e: ImageCaptureException) {
+                    saving--
                     f.delete()
                     toaster.show(UiText.Res(R.string.camera_photo_failed), ToastKind.PROBLEM)
                 }
@@ -332,7 +347,7 @@ fun CameraCapture(
         }
 
         // Multiple after "Take more": the shots already in the review count too, and the tick goes back to it.
-        val total = chosen + waiting
+        val total = chosen + waiting + saving
         if (total > 0 && !isRecording) {
             // Done: a yellow tick, with how many shots are ticked in a badge on its top corner (read out as one button).
             // Single opens the new asset; Multiple opens the review, where shots can be removed before they are sent.
@@ -342,7 +357,8 @@ fun CameraCapture(
                     .semantics(mergeDescendants = true) { contentDescription = done },
             ) {
                 Box(
-                    Modifier.size(60.dp).fabShadow().pressClickable(shape = CircleShape, onClick = onDone).background(C.Yellow),
+                    Modifier.size(60.dp).fabShadow().pressClickable(shape = CircleShape) { if (saving > 0) doneAsked = true else onDone() }
+                        .background(C.Yellow),
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.Check, 26.dp, C.OnYellow, 3f) }
                 Box(

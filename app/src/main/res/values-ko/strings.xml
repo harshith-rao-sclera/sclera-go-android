@@ -530,7 +530,6 @@
     <string name="memo_subtitle">자산에 대해 알아둘 만한 내용을 말해 주세요.</string>
     <string name="memo_stop">중지</string>
     <string name="memo_save">메모 저장</string>
-    <string name="premise_banner_off">이 부동산의 지오펜스 밖에 있으므로 자산을 볼 수만 있고 추가하거나 편집할 수 없습니다.</string>
     <string name="premise_banner_location_needed">이 부동산은 수집 담당자가 현장에서만 작업하도록 제한합니다. 자산을 추가하거나 편집하려면 위치 접근을 허용하세요.</string>
     <string name="premise_banner_location_unknown">현재 위치를 찾을 수 없으므로 자산을 볼 수만 있고 추가하거나 편집할 수 없습니다.</string>
     <string name="premise_perm_title">현장에 있는지 확인</string>

@@ -36,6 +36,7 @@ import com.sclera.sclerago.domain.model.UNKNOWN_DEVICE
 import com.sclera.sclerago.domain.usecase.asset.AssetPlace
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessFailedUseCase
+import com.sclera.sclerago.domain.usecase.access.ObserveGroupNameUseCase
 import com.sclera.sclerago.domain.usecase.access.RetryAccessUseCase
 import com.sclera.sclerago.domain.usecase.access.OpensPropertiesUseCase
 import com.sclera.sclerago.domain.usecase.access.SeesAssetsUseCase
@@ -232,6 +233,7 @@ class AppViewModel @Inject constructor(
     private val opensPropertiesUseCase: OpensPropertiesUseCase,
     private val observeAccessChanges: ObserveAccessChangesUseCase,
     private val observeAccessFailed: ObserveAccessFailedUseCase,
+    private val observeGroupName: ObserveGroupNameUseCase,
     private val retryAccessUseCase: RetryAccessUseCase,
     private val fileImportAccess: FileImportAccessUseCase,
     private val removeLostProperties: RemoveLostPropertiesUseCase,
@@ -248,6 +250,10 @@ class AppViewModel @Inject constructor(
 
     /** The access couldn't be loaded (and none was kept): pages and changes that need a permission stay unavailable. */
     var accessFailed by mutableStateOf(false)
+        private set
+
+    /** The group the signed-in user is in (the side menu shows it under their name); null while unknown or in none. */
+    var groupName by mutableStateOf<String?>(null)
         private set
 
     /** "Retry" on the banner saying the access couldn't be loaded: fetches it again. */
@@ -995,22 +1001,33 @@ class AppViewModel @Inject constructor(
     fun addCapture(m: Media) {
         // Many assets: each shot goes to the server as it is, ticked; it isn't sorted or counted against the photo rules.
         if (state.camMany) return set { copy(captures = captures + m, camSel = camSel + m.id) }
-        set { copy(captures = captures + m) }
+        // Ticked at once, so the count keeps up with a burst of shots; sorted next (one at a time, in the order taken),
+        // and unticked again if its kind or the asset has no room left.
+        unsorted += m.id
+        set { copy(captures = captures + m, camSel = camSel + m.id) }
         viewModelScope.launch {
             shotLock.withLock {
-                val sorted = assetUseCases.sortShot(m, tickedShots())
-                // Gone meanwhile (Done, discarded): nothing to tick.
-                if (state.captures.none { it.id == m.id }) return@withLock
-                set {
-                    copy(
-                        captures = captures.map { if (it.id == m.id) sorted.shot else it },
-                        camSel = if (sorted.refusal == null) camSel + m.id else camSel - m.id,
-                    )
+                try {
+                    // Measured against the shots already sorted, not the later ones still waiting their turn.
+                    val sorted = assetUseCases.sortShot(m, tickedShots().filter { it.id != m.id && it.id !in unsorted })
+                    // Gone meanwhile (Done, discarded): nothing to tick.
+                    if (state.captures.none { it.id == m.id }) return@withLock
+                    set {
+                        copy(
+                            captures = captures.map { if (it.id == m.id) sorted.shot else it },
+                            camSel = if (sorted.refusal == null) camSel else camSel - m.id,
+                        )
+                    }
+                    sorted.refusal?.let { flash(it.notice()) }
+                } finally {
+                    unsorted -= m.id
                 }
-                sorted.refusal?.let { flash(it.notice()) }
             }
         }
     }
+
+    /** Shots in the strip ticked as they came in and not sorted yet ([addCapture]). Main thread only. */
+    private val unsorted = mutableSetOf<String>()
 
     /**
      * Done in the camera: Single, the ticked shots open one new asset's details (sorted into their kinds, then read by
@@ -1041,15 +1058,27 @@ class AppViewModel @Inject constructor(
     }
 
     /**
-     * The camera's One asset / Many assets. It changes only while the strip is empty, so shots taken one way aren't
-     * used the other (One asset sorts and counts them; Many assets sends each as it is). Back from the review with
-     * Take more ([reviewWaiting]: its shots wait to be read), it stays on Many assets until they are read or discarded.
+     * The camera's One asset / Many assets. Shots taken one way aren't used the other (One asset sorts and counts them;
+     * Many assets sends each as it is), so with shots in the strip, or waiting in the review after Take more
+     * ([reviewWaiting]; [discardReview] throws those away), it asks the same question as leaving the camera ("Discard
+     * your photos?"): Discard deletes them and switches, Keep stays as it is.
      */
-    fun setCamMany(many: Boolean, reviewWaiting: Boolean = false) {
+    fun setCamMany(many: Boolean, reviewWaiting: Boolean = false, discardReview: () -> Unit = {}) {
         if (many == state.camMany) return
-        if (state.captures.isNotEmpty()) return flash(UiText.Res(R.string.camera_mode_shots_first))
-        if (!many && reviewWaiting) return flash(UiText.Res(R.string.camera_mode_review_first))
-        set { copy(camMany = many) }
+        val strip = state.captures.isNotEmpty()
+        val review = !many && reviewWaiting
+        if (!strip && !review) return set { copy(camMany = many) }
+        afterDiscard = {
+            if (review) {
+                discardReview()
+                fileUseCases.deleteOwned(camSent)
+                camSent = emptyList()
+            }
+            set { copy(camMany = many) }
+        }
+        discardMedia = if (strip) state.captures else emptyList()
+        discardStrip = strip
+        set { copy(leaveAsk = LeaveAsk.PHOTOS) }
     }
 
     /**
@@ -1332,6 +1361,7 @@ class AppViewModel @Inject constructor(
             }
         }
         viewModelScope.launch { observeAccessFailed().collect { accessFailed = it } }
+        viewModelScope.launch { observeGroupName().collect { groupName = it } }
         // A downloaded property the server no longer lists (access removed, or deleted) has its data deleted from the
         // device. When it was the one open, the user is taken to the property list and told; its data is already gone,
         // so nothing asks to keep unsaved changes first.

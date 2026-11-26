@@ -2,8 +2,6 @@ package com.sclera.sclerago.presentation.main
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,23 +23,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.components.RoundButton
+import com.sclera.sclerago.presentation.components.ScleraGoLogo
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.endBorder
 import com.sclera.sclerago.presentation.components.r
@@ -52,12 +41,12 @@ import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
-import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
 
 /** Test tags of the dashboard header and tabs. */
 object DashTags {
     const val MENU = "dash-menu"
+    const val OUTSIDE_GEOFENCE = "dash-outside-geofence"
     fun location(filter: LocFilter) = "dash-loc-${filter.name}"
     fun chevron(filter: LocFilter) = "dash-loc-chevron-${filter.name}"
     const val ADD = "dash-add"
@@ -85,6 +74,8 @@ fun DashboardHeader(
     onPick: (LocFilter) -> Unit,
     onChevron: (LocFilter) -> Unit,
     modifier: Modifier = Modifier,
+    /** A collector outside the property's geofence (view only): "Outside geofence" after a lock, under the name. */
+    outsideGeofence: Boolean = false,
 ) {
     val menuLabel = stringResource(R.string.dash_menu)
     Column(
@@ -101,18 +92,34 @@ fun DashboardHeader(
                 // The open property's name in the middle, with the building icon (as the other pages show it), clear of
                 // the menu button and the logo.
                 if (propertyName.isNotBlank()) {
-                    Row(
+                    Column(
                         Modifier.align(Alignment.Center).padding(horizontal = 76.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        // The row takes the whole width between the paddings (its name can shrink): kept in the middle.
-                        horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        // The same icon, size and colour as the property line under the other pages' titles (SubPageBar).
-                        LineIcon(Icons.Building, 12.dp, C.Muted, 1.9f)
-                        Txt(propertyName, 11, 500, C.Muted, modifier = Modifier.weight(1f, fill = false), maxLines = 1)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            // The row takes the whole width between the paddings (its name can shrink): kept in the middle.
+                            horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
+                        ) {
+                            // The same icon, size and colour as the property line under the other pages' titles (SubPageBar).
+                            LineIcon(Icons.Building, 12.dp, C.Muted, 1.9f)
+                            Txt(propertyName, 11, 500, C.Muted, modifier = Modifier.weight(1f, fill = false), maxLines = 1)
+                        }
+                        // Away from a property with geofencing on, a collector only looks: said under its name.
+                        if (outsideGeofence) {
+                            Row(
+                                Modifier.testTag(DashTags.OUTSIDE_GEOFENCE),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                LineIcon(Icons.Lock, 11.dp, C.Orange, 2.2f)
+                                Txt(stringResource(R.string.premise_header_off), 11, 500, C.Orange, maxLines = 1)
+                            }
+                        }
                     }
                 }
-                ScleraGoLogo(Modifier.align(Alignment.CenterEnd).padding(end = 28.dp))
+                ScleraGoLogo(Modifier.align(Alignment.CenterEnd).padding(end = 28.dp), height = 25.dp)
             }
         }
         LocationTabs(propertyName, path, selected, onPick, onChevron)
@@ -191,47 +198,6 @@ private fun RowScope.LocCell(
                     .clickable(interactionSource = press, indication = null) { onChevron(filter) },
                 contentAlignment = Alignment.Center,
             ) { LineIcon(Icons.ChevronDown, 15.dp, fg, 2.8f) }
-        }
-    }
-}
-
-/** Centre of the right loop's hole in login_logo.png (512 × 357), as fractions of the image. */
-private const val GO_CENTRE_X = 390f / 512f
-private const val GO_CENTRE_Y = 234f / 357f
-
-/** "GO"'s font size as a fraction of the logo's height: it fills most of the loop's hole. */
-private const val GO_SIZE = 0.24f
-
-/**
- * The Sclera Go mark (same artwork as the login screen and app icon) with "GO" in its right loop. The mark is scaled
- * down with high-quality filtering, and "GO" is drawn to the logo's own scale (not the font size setting), so both stay
- * sharp at this small size.
- */
-@Composable
-private fun ScleraGoLogo(modifier: Modifier = Modifier) {
-    val measurer = rememberTextMeasurer()
-    Box(modifier.height(25.dp).aspectRatio(512f / 357f)) {
-        Image(
-            // As a bitmap, so it can be scaled down with high-quality filtering (the painter overload has no filterQuality).
-            bitmap = ImageBitmap.imageResource(R.drawable.login_logo),
-            contentDescription = "Sclera Go", // Product name: not translated.
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-            filterQuality = FilterQuality.High,
-        )
-        Canvas(Modifier.matchParentSize()) {
-            val style = TextStyle(
-                color = C.Surface,
-                // toSp undoes the font size setting, so "GO" always fits the loop.
-                fontSize = (size.height * GO_SIZE).toSp(),
-                fontWeight = FontWeight.Bold,
-                fontFamily = ScleraFonts.Inter,
-                letterSpacing = 0.sp,
-            )
-            val go = measurer.measure("GO", style)
-            drawText(
-                go,
-                topLeft = Offset(size.width * GO_CENTRE_X - go.size.width / 2f, size.height * GO_CENTRE_Y - go.size.height / 2f),
-            )
         }
     }
 }

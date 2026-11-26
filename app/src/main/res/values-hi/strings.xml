@@ -551,7 +551,6 @@
     <string name="memo_subtitle">एसेट के बारे में जानने लायक बातें बोलें।</string>
     <string name="memo_stop">रोकें</string>
     <string name="memo_save">मेमो सहेजें</string>
-    <string name="premise_banner_off">आप इस प्रॉपर्टी की जियोफेंस से बाहर हैं, इसलिए आप एसेट देख सकते हैं, लेकिन जोड़ या संपादित नहीं कर सकते।</string>
     <string name="premise_banner_location_needed">यह प्रॉपर्टी कलेक्टरों को केवल साइट पर काम करने देती है। एसेट जोड़ने या संपादित करने के लिए लोकेशन एक्सेस की अनुमति दें।</string>
     <string name="premise_banner_location_unknown">आपकी लोकेशन नहीं मिल पा रही है, इसलिए आप एसेट देख सकते हैं, लेकिन जोड़ या संपादित नहीं कर सकते।</string>
     <string name="premise_perm_title">पुष्टि करें कि आप साइट पर हैं</string>

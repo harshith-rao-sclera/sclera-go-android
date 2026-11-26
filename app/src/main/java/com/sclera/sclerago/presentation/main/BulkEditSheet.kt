@@ -53,6 +53,8 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
+import com.sclera.sclerago.presentation.components.ConfirmDialog
+import com.sclera.sclerago.domain.usecase.asset.BulkIncomplete
 
 /**
  * The web's bulk Edit for the ticked assets: the location (picked in the location sheet, [onPickPlace]) and every
@@ -94,6 +96,37 @@ fun BulkEditSheet(
                 }
             }
         }
+    }
+    s.incomplete?.let { inc ->
+        ConfirmDialog(
+            icon = Icons.Alert, iconBg = C.WarnRow, iconFg = C.Orange,
+            title = stringResource(R.string.bulk_incomplete_title), body = incompleteText(inc),
+            no = stringResource(R.string.bulk_cancel), yes = stringResource(R.string.bulk_update_anyway),
+            onNo = vm::keepEditing, onYes = { vm.update(onUpdated, anyway = true) }, yesBg = C.Yellow,
+        )
+    }
+}
+
+/**
+ * "This asset is / All 5 assets are / 2 of the 5 assets are still missing mandatory fields (Serial Number, Model, +2
+ * more). Update anyway?", as the web's.
+ */
+@Composable
+private fun incompleteText(inc: BulkIncomplete): String {
+    val shown = inc.fieldNames.take(3).joinToString(", ")
+    val names = when {
+        inc.fieldNames.isEmpty() -> null
+        inc.fieldNames.size > 3 -> stringResource(R.string.bulk_incomplete_more, shown, inc.fieldNames.size - 3)
+        else -> shown
+    }
+    return when {
+        inc.total == 1 -> if (names == null) stringResource(R.string.bulk_incomplete_one) else stringResource(R.string.bulk_incomplete_one_named, names)
+        inc.count == inc.total ->
+            if (names == null) pluralStringResource(R.plurals.bulk_incomplete_all, inc.total, inc.total)
+            else pluralStringResource(R.plurals.bulk_incomplete_all_named, inc.total, inc.total, names)
+        else ->
+            if (names == null) pluralStringResource(R.plurals.bulk_incomplete_some, inc.count, inc.count, inc.total)
+            else pluralStringResource(R.plurals.bulk_incomplete_some_named, inc.count, inc.count, inc.total, names)
     }
 }
 

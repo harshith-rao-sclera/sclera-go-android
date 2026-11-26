@@ -10,6 +10,8 @@ import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.LocValue
 import com.sclera.sclerago.domain.model.NO_INPUT_KINDS
+import com.sclera.sclerago.domain.usecase.asset.BulkIncomplete
+import com.sclera.sclerago.domain.usecase.asset.BulkIncompleteUseCase
 import com.sclera.sclerago.domain.usecase.asset.BulkUpdateAssetsUseCase
 import com.sclera.sclerago.domain.usecase.config.ObserveAssetConfigUseCase
 import com.sclera.sclerago.presentation.common.UiText
@@ -32,6 +34,8 @@ data class BulkEditState(
     val place: LocValue? = null,
     val placeLabel: String? = null,
     val saving: Boolean = false,
+    /** Some assets would still miss mandatory fields: "Update assets?" asks first (the web's). */
+    val incomplete: BulkIncomplete? = null,
 ) {
     /** Something to change: a field given a value, or a place. */
     val hasChanges: Boolean get() = place != null || values.values.any { it.isNotBlank() }
@@ -41,6 +45,7 @@ data class BulkEditState(
 @HiltViewModel
 class BulkEditViewModel @Inject constructor(
     private val bulkUpdate: BulkUpdateAssetsUseCase,
+    private val stillIncomplete: BulkIncompleteUseCase,
     observeConfig: ObserveAssetConfigUseCase,
 ) : ViewModel() {
     var sheet by mutableStateOf<BulkEditState?>(null)
@@ -67,6 +72,11 @@ class BulkEditViewModel @Inject constructor(
         sheet = null
     }
 
+    /** "Update assets?" answered Cancel: back to the sheet, nothing written. */
+    fun keepEditing() {
+        sheet = sheet?.copy(incomplete = null)
+    }
+
     fun setValue(key: String, value: String) {
         sheet = sheet?.let { it.copy(values = it.values + (key to value)) }
     }
@@ -81,16 +91,30 @@ class BulkEditViewModel @Inject constructor(
         sheet = sheet?.copy(place = null, placeLabel = null)
     }
 
-    /** Update: writes the changes to every ticked asset, closes the sheet ([onDone]) and says how it went. */
-    fun update(onDone: () -> Unit) {
+    /**
+     * Update: writes the changes to every ticked asset, closes the sheet ([onDone]) and says how it went. When some of
+     * them would still miss mandatory fields it asks first ([BulkEditState.incomplete]; [anyway] once the user said so).
+     */
+    fun update(onDone: () -> Unit, anyway: Boolean = false) {
         val s = sheet ?: return
         if (s.saving) return
         if (!s.hasChanges) {
             message.tryEmit(UiText.Res(R.string.bulk_nothing))
             return
         }
-        sheet = s.copy(saving = true)
+        sheet = s.copy(saving = true, incomplete = null)
         viewModelScope.launch {
+            if (!anyway) {
+                val incomplete = try {
+                    stillIncomplete(s.ids, s.values, fields.value.orEmpty())
+                } catch (_: DataException) {
+                    null // Can't tell: the update goes ahead, as before.
+                }
+                if (incomplete != null) {
+                    sheet = sheet?.copy(saving = false, incomplete = incomplete)
+                    return@launch
+                }
+            }
             try {
                 val r = bulkUpdate(s.ids, s.values, s.place)
                 sheet = null

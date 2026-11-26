@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.Status
+import com.sclera.sclerago.domain.model.PremiseNotice
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailRoute
@@ -272,6 +273,9 @@ fun ScleraApp(
         val keyboardUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         Box(Modifier.fillMaxSize().background(C.Bg)) {
             Column(Modifier.fillMaxSize().imePadding()) {
+                // A collector away from a property with geofencing on looks only: outside its fences the header says so
+                // under the property's name; without the location (permission, or no fix) the banner below says why.
+                val premiseNotice by premise.notice.collectAsStateWithLifecycle()
                 DashboardHeader(
                     propertyName = vm.propName,
                     path = vm.specPathShown,
@@ -281,11 +285,10 @@ fun ScleraApp(
                     // The property tab's arrow opens the Property list page; the location tab's opens the location picker.
                     onChevron = { if (it == LocFilter.ALL) vm.openProp() else vm.openLocFilter() },
                     modifier = Modifier.launchEntrance(Entrance.DashHeader),
+                    outsideGeofence = premiseNotice == PremiseNotice.OFF_PREMISE,
                 )
                 // The user's access couldn't be loaded: pages and changes that need a permission stay unavailable until it is.
                 if (vm.accessFailed) AccessFailedBanner(vm::retryAccess, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
-                // A collector away from a property with geofencing on looks only: the banner says why.
-                val premiseNotice by premise.notice.collectAsStateWithLifecycle()
                 PremiseBanner(premiseNotice, premise::askAgain, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().launchEntrance(Entrance.DashContent)) {
                     HorizontalPager(

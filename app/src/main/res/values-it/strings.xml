@@ -555,7 +555,6 @@
     <string name="memo_subtitle">Di\' ciò che vale la pena sapere sull\'asset.</string>
     <string name="memo_stop">Stop</string>
     <string name="memo_save">Salva memo</string>
-    <string name="premise_banner_off">Sei fuori dal geofence di questa proprietà: puoi visualizzare gli asset ma non aggiungerli né modificarli.</string>
     <string name="premise_banner_location_needed">Questa proprietà consente ai collettori di lavorare solo in sede. Consenti l\'accesso alla posizione per aggiungere o modificare asset.</string>
     <string name="premise_banner_location_unknown">Non è possibile rilevare la tua posizione: puoi visualizzare gli asset ma non aggiungerli né modificarli.</string>
     <string name="premise_perm_title">Conferma di essere in sede</string>

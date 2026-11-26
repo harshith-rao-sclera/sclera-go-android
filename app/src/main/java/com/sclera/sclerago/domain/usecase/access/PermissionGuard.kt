@@ -131,6 +131,13 @@ class PermissionGuard @Inject constructor(
      * assignee who isn't the signed-in user. One assigned to nobody is anyone's to work on. False while the access isn't
      * known yet, so nothing is locked on a guess (the server still decides). Reviewers are checked separately.
      */
+    /**
+     * Whether the user moves an exception assigned to [assignedTo] back to draft, as the server: the collector it is assigned
+     * to, or a reviewer (Validate). Nobody but a reviewer moves one assigned to nobody.
+     */
+    fun movesExceptionBack(assignedTo: String?): Boolean =
+        isReviewer() || (!assignedTo.isNullOrBlank() && assignedTo == userId())
+
     fun isAssignedElsewhere(assignedTo: String?): Boolean {
         val me = (access.state.value as? AccessState.Loaded)?.access?.userId ?: return false
         return !assignedTo.isNullOrBlank() && assignedTo != me

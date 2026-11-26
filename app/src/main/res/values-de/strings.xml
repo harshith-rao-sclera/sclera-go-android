@@ -551,7 +551,6 @@
     <string name="memo_subtitle">Sag, was man über das Asset wissen sollte.</string>
     <string name="memo_stop">Stopp</string>
     <string name="memo_save">Memo speichern</string>
-    <string name="premise_banner_off">Du befindest dich außerhalb des Geofence dieser Liegenschaft. Du kannst Assets ansehen, aber nicht hinzufügen oder bearbeiten.</string>
     <string name="premise_banner_location_needed">Diese Liegenschaft erlaubt Erfassern nur die Arbeit vor Ort. Erlaube den Standortzugriff, um Assets hinzuzufügen oder zu bearbeiten.</string>
     <string name="premise_banner_location_unknown">Dein Standort konnte nicht ermittelt werden. Du kannst Assets ansehen, aber nicht hinzufügen oder bearbeiten.</string>
     <string name="premise_perm_title">Bestätige, dass du vor Ort bist</string>

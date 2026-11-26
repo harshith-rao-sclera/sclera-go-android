@@ -27,14 +27,14 @@ import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
 /**
- * The orange banner shown to a collector who is view only because of the property's geofence: outside its fences, the
- * location permission missing, or the location unknown. [onAllow] (the permission case only) asks for the permission.
+ * The orange banner shown to a collector who is view only because of the property's geofence: the location permission
+ * missing, or the location unknown. [onAllow] (the permission case only) asks for the permission. Outside the fences,
+ * the header says so under the property's name instead.
  */
 @Composable
 fun PremiseBanner(notice: PremiseNotice, onAllow: () -> Unit, modifier: Modifier = Modifier) {
     val message = when (notice) {
-        PremiseNotice.NONE -> return
-        PremiseNotice.OFF_PREMISE -> R.string.premise_banner_off
+        PremiseNotice.NONE, PremiseNotice.OFF_PREMISE -> return
         PremiseNotice.LOCATION_NEEDED -> R.string.premise_banner_location_needed
         PremiseNotice.LOCATION_UNKNOWN -> R.string.premise_banner_location_unknown
     }

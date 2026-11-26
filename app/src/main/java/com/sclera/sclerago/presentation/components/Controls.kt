@@ -2,6 +2,7 @@ package com.sclera.sclerago.presentation.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,10 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.icons.Icons
@@ -27,6 +30,18 @@ import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
 // Small controls shared across screens: page bar, empty note, checkbox, inputs, cards, FAB.
+
+/**
+ * The Sclera Go mark (the login screen's and the Integration card's artwork), on the right of every page bar. Decorative:
+ * TalkBack skips it.
+ */
+@Composable
+fun ScleraGoLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
+    Image(
+        painterResource(R.drawable.login_logo), contentDescription = null,
+        modifier = modifier.height(height).aspectRatio(512f / 357f),
+    )
+}
 
 @Composable
 internal fun PageBar(title: String, sub: String?, onBack: () -> Unit, property: Boolean = false, backLabel: String? = null) {
@@ -53,6 +68,7 @@ internal fun PageBar(title: String, sub: String?, onBack: () -> Unit, property: 
                 }
             }
         }
+        ScleraGoLogo(Modifier.align(Alignment.CenterEnd).padding(end = 6.dp))
     }
 }
 

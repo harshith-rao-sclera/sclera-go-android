@@ -4,27 +4,34 @@ import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.common.formatDateAndTime
 import com.sclera.sclerago.presentation.common.is24Hour
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,12 +56,13 @@ import com.sclera.sclerago.domain.model.TransferStatus
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.SkeletonText
 import com.sclera.sclerago.presentation.components.SkeletonList
-import com.sclera.sclerago.presentation.components.BottomSheet
+import com.sclera.sclerago.presentation.components.PageBar
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.PersonAvatar
 import com.sclera.sclerago.presentation.components.Segmented
-import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.TintChip
+import com.sclera.sclerago.presentation.components.coverPageBehind
+import com.sclera.sclerago.presentation.components.pageGutter
 import com.sclera.sclerago.presentation.components.ToastEffect
 import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.initialsOf
@@ -66,62 +74,92 @@ import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
+/** The history's tabs, in order: All, Exported (sent to VDMS), Imported (from VDMS). */
+private val HistoryFilters = listOf(null, PlacesDirection.TO_VDMS, PlacesDirection.FROM_VDMS)
+
 /**
  * Buildings, floors & locations history (Integration page → History), as the web's: every send to VDMS and import from
  * it, newest first, narrowed by direction, a page at a time. Each is a card (when, which way, who, how it went, and how
- * many were added, updated and skipped) that opens to list its places. Docked on phones, centred on tablets.
+ * many were added, updated and skipped) that opens to list its places. A full page over the Integration page, with
+ * Back in its bar (as the Validation review); swipe sideways, or tap a tab, to change direction.
  */
 @Composable
 internal fun PlacesHistorySheet(propertyId: String, onClose: () -> Unit, vm: PlacesHistoryViewModel = hiltViewModel()) {
     LaunchedEffect(propertyId) { vm.start(propertyId) }
     DisposableEffect(Unit) { onDispose { vm.stop() } }
+    BackHandler(onBack = onClose)
     val s = vm.state
-    BottomSheet(onClose) {
-        SheetHeader(stringResource(R.string.ph_title), null, onClose)
-        Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp).testTag("places_history_sheet")) {
-            val filters = listOf(null, PlacesDirection.TO_VDMS, PlacesDirection.FROM_VDMS)
+    // The tabs and the pages follow each other: a tap scrolls the pages, a swipe picks the tab it settles on.
+    val pager = rememberPagerState(initialPage = HistoryFilters.indexOf(s.filter).coerceAtLeast(0)) { HistoryFilters.size }
+    val shown by rememberUpdatedState(s.filter)
+    LaunchedEffect(s.filter) {
+        val page = HistoryFilters.indexOf(s.filter)
+        if (page >= 0 && pager.currentPage != page) pager.animateScrollToPage(page)
+    }
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.settledPage }.collect { page -> HistoryFilters[page].takeIf { it != shown }?.let(vm::setFilter) }
+    }
+    Column(Modifier.fillMaxSize().coverPageBehind().background(C.Bg).testTag("places_history_sheet")) {
+        PageBar(stringResource(R.string.pi_history), stringResource(R.string.ph_title), onBack = onClose, backLabel = stringResource(R.string.rev_back))
+        // On a tablet the content stays a readable width, centred.
+        Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = pageGutter()).padding(horizontal = 16.dp).padding(top = 10.dp)) {
+            // While a swipe is under way the tab it is heading for lights up.
+            val tab = if (pager.isScrollInProgress) pager.targetPage else pager.currentPage
             Segmented(
                 listOf(stringResource(R.string.ph_filter_all), stringResource(R.string.ph_filter_sent), stringResource(R.string.ph_filter_imported)),
-                filters.indexOf(s.filter), { vm.setFilter(filters[it]) }, modifier = Modifier.fillMaxWidth(),
+                tab, { vm.setFilter(HistoryFilters[it]) }, modifier = Modifier.fillMaxWidth(),
             )
-            if (s.loading) SkeletonText(stringResource(R.string.int_loading), Modifier.padding(vertical = 10.dp), lines = 1)
-            else Txt(pluralStringResource(R.plurals.ph_total, s.total, s.total), 12, 500, C.Muted, Modifier.padding(vertical = 8.dp))
-            when {
-                s.loading && s.items.isEmpty() -> SkeletonList(stringResource(R.string.int_loading), count = 4)
-                s.failed && s.items.isEmpty() -> Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Txt(stringResource(R.string.ph_load_failed), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
-                    LinkText(stringResource(R.string.pi_try_again), onClick = { vm.load() })
-                }
-                s.items.isEmpty() -> Txt(
-                    stringResource(
-                        when (s.filter) {
-                            PlacesDirection.TO_VDMS -> R.string.ph_empty_sent
-                            PlacesDirection.FROM_VDMS -> R.string.ph_empty_imported
-                            null -> R.string.ph_empty
-                        },
-                    ),
-                    13, 400, C.Muted, Modifier.padding(vertical = 16.dp), maxLines = Int.MAX_VALUE,
-                )
-                else -> LazyColumn(
-                    Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding = PaddingValues(bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(s.items, key = { it.id }) { t -> TransferCard(t, s.open == t.id, s.details[t.id], vm) }
-                    val left = s.total - s.items.size
-                    // Show more: placeholder cards where the next imports will go while they are read.
-                    if (s.loadingMore) item { SkeletonList(stringResource(R.string.int_loading), count = 2) }
-                    else if (left > 0) item {
-                        Pill(stringResource(R.string.ph_show_more, left), vm::loadMore, Modifier.fillMaxWidth().testTag("places_history_more"), height = 48.dp)
-                    }
+            HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), key = { HistoryFilters[it]?.name ?: "all" }) { page ->
+                // One list is read at a time: the page being swiped to shows placeholders until it is its turn.
+                if (HistoryFilters[page] == s.filter) HistoryList(s, vm)
+                else Column(Modifier.fillMaxSize()) {
+                    SkeletonText(stringResource(R.string.int_loading), Modifier.padding(vertical = 10.dp), lines = 1)
+                    SkeletonList(stringResource(R.string.int_loading), count = 4)
                 }
             }
         }
-        Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Pill(stringResource(R.string.ph_close), onClose, Modifier.fillMaxWidth(), height = 48.dp, weight = 700)
-        }
     }
     ToastEffect(s.message)
+}
+
+/** The transfers of the open tab: how many, then their cards (placeholders, a retry, or why there are none). */
+@Composable
+private fun HistoryList(s: PlacesHistoryUiState, vm: PlacesHistoryViewModel) {
+    Column(Modifier.fillMaxSize()) {
+        if (s.loading) SkeletonText(stringResource(R.string.int_loading), Modifier.padding(vertical = 10.dp), lines = 1)
+        else Txt(pluralStringResource(R.plurals.ph_total, s.total, s.total), 12, 500, C.Muted, Modifier.padding(vertical = 8.dp))
+        when {
+            s.loading && s.items.isEmpty() -> SkeletonList(stringResource(R.string.int_loading), count = 4)
+            s.failed && s.items.isEmpty() -> Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Txt(stringResource(R.string.ph_load_failed), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                LinkText(stringResource(R.string.pi_try_again), onClick = { vm.load() })
+            }
+            s.items.isEmpty() -> Txt(
+                stringResource(
+                    when (s.filter) {
+                        PlacesDirection.TO_VDMS -> R.string.ph_empty_sent
+                        PlacesDirection.FROM_VDMS -> R.string.ph_empty_imported
+                        null -> R.string.ph_empty
+                    },
+                ),
+                13, 400, C.Muted, Modifier.padding(vertical = 16.dp), maxLines = Int.MAX_VALUE,
+            )
+            else -> LazyColumn(
+                Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(s.items, key = { it.id }) { t -> TransferCard(t, s.open == t.id, s.details[t.id], vm) }
+                val left = s.total - s.items.size
+                // Show more: placeholder cards where the next imports will go while they are read.
+                if (s.loadingMore) item { SkeletonList(stringResource(R.string.int_loading), count = 2) }
+                else if (left > 0) item {
+                    Pill(stringResource(R.string.ph_show_more, left), vm::loadMore, Modifier.fillMaxWidth().testTag("places_history_more"), height = 48.dp)
+                }
+                item { Spacer(Modifier.navigationBarsPadding()) }
+            }
+        }
+    }
 }
 
 /** One transfer: tapping it shows or hides its places. */

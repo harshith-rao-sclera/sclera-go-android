@@ -27,4 +27,27 @@
     </plurals>
     <!-- Submit on the selection bar, greyed out while a ticked asset is already submitted, an exception or signed off. -->
     <string name="submit_block_some_submitted">Some of the selected assets are already submitted</string>
+    <!-- Update when some ticked assets would still miss mandatory fields (the web's "Update assets?"). -->
+    <string name="bulk_incomplete_title">Update assets?</string>
+    <string name="bulk_update_anyway">Update anyway</string>
+    <string name="bulk_incomplete_one">This asset is still missing mandatory fields. Update anyway?</string>
+    <string name="bulk_incomplete_one_named">This asset is still missing mandatory fields (%1$s). Update anyway?</string>
+    <plurals name="bulk_incomplete_all">
+        <item quantity="one">The asset is still missing mandatory fields. Update anyway?</item>
+        <item quantity="other">All %1$d assets are still missing mandatory fields. Update anyway?</item>
+    </plurals>
+    <plurals name="bulk_incomplete_all_named">
+        <item quantity="one">The asset is still missing mandatory fields (%2$s). Update anyway?</item>
+        <item quantity="other">All %1$d assets are still missing mandatory fields (%2$s). Update anyway?</item>
+    </plurals>
+    <plurals name="bulk_incomplete_some">
+        <item quantity="one">%1$d of the %2$d assets is still missing mandatory fields. Update anyway?</item>
+        <item quantity="other">%1$d of the %2$d assets are still missing mandatory fields. Update anyway?</item>
+    </plurals>
+    <plurals name="bulk_incomplete_some_named">
+        <item quantity="one">%1$d of the %2$d assets is still missing mandatory fields (%3$s). Update anyway?</item>
+        <item quantity="other">%1$d of the %2$d assets are still missing mandatory fields (%3$s). Update anyway?</item>
+    </plurals>
+    <!-- The first three field names, then how many more: "Serial Number, Model, Location, +2 more". -->
+    <string name="bulk_incomplete_more">%1$s, +%2$d more</string>
 </resources>

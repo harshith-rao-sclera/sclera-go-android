@@ -83,7 +83,6 @@ fun SyncSettingsScreen(
                     .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Txt(propName, 13, 600, C.Muted)
                 Waiting(s)
                 LastSynced(s)
                 Switches(s, vm::setDataSync, vm::setMediaSync)
@@ -92,17 +91,20 @@ fun SyncSettingsScreen(
     }
 }
 
-/** Assets waiting and Media waiting, side by side (placeholders until first read). */
+/**
+ * Assets waiting and Media waiting, side by side (placeholders until first read): the same tiles as the Property list's
+ * and Users and access' counts; a label too long for a phone's half width shrinks a little rather than being cut off.
+ */
 @Composable
 private fun Waiting(s: SyncSettings?) {
     StatRow {
         StatCard(
             Icons.Box, C.Yellow, s?.assetsWaiting?.toString().orEmpty(), stringResource(R.string.sync_assets_waiting),
-            Modifier.weight(1f).testTag(SyncSettingsTags.ASSETS), valueSize = 24, labelSize = 12, prominent = true, loading = s == null,
+            Modifier.weight(1f).testTag(SyncSettingsTags.ASSETS), valueSize = 24, labelSize = 12, prominent = true, loading = s == null, labelMinSize = 10,
         )
         StatCard(
             Icons.Gallery, C.Blue, s?.mediaWaiting?.toString().orEmpty(), stringResource(R.string.sync_media_waiting),
-            Modifier.weight(1f).testTag(SyncSettingsTags.MEDIA), valueSize = 24, labelSize = 12, prominent = true, loading = s == null,
+            Modifier.weight(1f).testTag(SyncSettingsTags.MEDIA), valueSize = 24, labelSize = 12, prominent = true, loading = s == null, labelMinSize = 10,
         )
     }
 }

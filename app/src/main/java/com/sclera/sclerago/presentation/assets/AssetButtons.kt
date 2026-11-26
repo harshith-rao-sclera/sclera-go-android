@@ -78,6 +78,7 @@ private fun ButtonBlock?.text(): UiText? = when (this) {
     is ButtonBlock.Locked -> lock.reason()
     ButtonBlock.NotYourRequest -> UiText.Res(R.string.access_withdraw_not_yours)
     is ButtonBlock.TakeRefused -> UiText.Res(refusal.message(many = false))
+    ButtonBlock.NotYourException -> UiText.Res(R.string.change_block_not_your_exception)
 }
 
 /** What a tap on a greyed-out "Assign to me" says for [TakeRefusal] (the web's takeReason), for one asset or [many]. */

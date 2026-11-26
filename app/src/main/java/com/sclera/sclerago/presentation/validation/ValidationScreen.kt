@@ -476,6 +476,9 @@ private val CARD_WIDTH = 272.dp
 /** The least height of a saved validation's card, so a short one isn't cramped. */
 private val SAVED_MIN_HEIGHT = 190.dp
 
+/** The least width of a saved validation's Edit button (about Run's), so a short label doesn't make it a small box. */
+private val EDIT_MIN_WIDTH = 88.dp
+
 /** Default order (Templates' head): an outlined capsule with the sort arrows; opens the templates' order. */
 @Composable
 private fun OrderButton(onClick: () -> Unit) {
@@ -537,15 +540,16 @@ private fun SavedCard(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             onRun?.let { AccessGate(runBlock) { YellowButton(stringResource(R.string.valt_run), it, height = 40) } }
             onEdit?.let {
-                // One that has run: Edit as new, with the copy icon (the web's), else Edit; an outlined button.
+                // One that has run: Edit as new, with the copy icon (the web's), else Edit with a pencil; an outlined
+                // button at least as wide as Run, so a short "Edit" isn't a small box.
                 AccessGate(keepBlock) {
                     Row(
-                        Modifier.height(40.dp).pressClickable(shape = r(9), onClick = it).border(1.dp, C.Border, r(9))
-                            .padding(horizontal = 10.dp),
+                        Modifier.height(40.dp).widthIn(min = EDIT_MIN_WIDTH).pressClickable(shape = r(9), onClick = it)
+                            .border(1.dp, C.Border, r(9)).padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                     ) {
-                        if (sv.locked) LineIcon(Icons.Clone, 14.dp, C.Text, 2.2f)
+                        LineIcon(if (sv.locked) Icons.Clone else Icons.Pencil, 14.dp, C.Text, 2.2f)
                         Txt(stringResource(if (sv.locked) R.string.valt_edit_as_new else R.string.action_edit), 13, 600)
                     }
                 }

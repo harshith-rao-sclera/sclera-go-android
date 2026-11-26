@@ -503,7 +503,7 @@ class AssetListViewModel @Inject constructor(
                         ChangeActionBlock.NOT_ALL_SUBMITTED -> R.string.change_block_not_submitted
                         ChangeActionBlock.NOT_ALL_REQUESTED -> R.string.change_block_not_requested
                         ChangeActionBlock.NOT_ALL_EXCEPTIONS -> R.string.change_block_not_exceptions
-                        ChangeActionBlock.ASSIGNED_ELSEWHERE -> R.string.change_block_assigned_elsewhere
+                        ChangeActionBlock.NOT_YOUR_EXCEPTION -> R.string.change_block_not_your_exception
                         ChangeActionBlock.SOME_ARE_DRAFTS -> R.string.change_block_some_drafts
                         ChangeActionBlock.SIGN_OFF_NOT_SUBMITTED -> R.string.sign_off_block_not_submitted
                         ChangeActionBlock.REVIEWER_CHANGES_IT -> R.string.access_request_change_reviewer

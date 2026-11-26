@@ -354,26 +354,30 @@ fun CapturePreview(p: Preview, onClose: () -> Unit) {
  * others shimmer while their whole file is fetched.
  */
 @Composable
-fun MediaFull(media: Media) {
+fun MediaFull(
+    media: Media,
+    /** A document's Open when the screen opens it itself (fetched from the server); null: opened from [media]'s own file. */
+    onOpenFile: (() -> Unit)? = null,
+) {
     val photo = !media.audio && !media.isDoc && !media.video
     val shown = if (photo) media else shownMedia(media, preview = false)
     if (shown == null) {
         SkeletonBlock(Modifier.fillMaxSize(), RectangleShape)
         return
     }
-    MediaFullOf(shown)
+    MediaFullOf(shown, onOpenFile)
 }
 
 /** [MediaFull] for [media] as it is. */
 @Composable
-private fun MediaFullOf(media: Media) {
+private fun MediaFullOf(media: Media, onOpenFile: (() -> Unit)?) {
     // A voice memo keeps its file name, so it is checked before documents.
     if (media.audio) {
         AudioFull(media)
         return
     }
     if (media.isDoc) {
-        DocFull(media)
+        DocFull(media, onOpenFile)
         return
     }
     if (!media.video) {
@@ -454,9 +458,12 @@ private suspend fun openPlayer(context: Context, uri: Uri): MediaPlayer? {
     }
 }
 
-/** An uploaded document: its type and name, with a button to open it in another app. */
+/**
+ * An uploaded document: its type and name, with a button to open it in another app ([onOpenFile] when the screen
+ * fetches it from the server, else from its own file).
+ */
 @Composable
-private fun DocFull(media: Media) {
+private fun DocFull(media: Media, onOpenFile: (() -> Unit)?) {
     val context = androidx.compose.ui.platform.LocalContext.current
     Column(
         Modifier.fillMaxSize().padding(24.dp),
@@ -468,9 +475,16 @@ private fun DocFull(media: Media) {
         }
         Txt(media.fileName ?: stringResource(R.string.detail_document), 15, 600, maxLines = 3)
         val openWith = stringResource(R.string.doc_open_with)
-        Pill(stringResource(R.string.scrt_doc_open), {
+        Pill(stringResource(R.string.scrt_doc_open), open@{
+            onOpenFile?.let { it(); return@open }
+            val uri = Uri.parse(media.uri)
+            // With its type (from the provider, else its name), so an app that reads that kind of file offers to open it;
+            // without one, no app takes the file and nothing opens.
+            val type = (if (uri.scheme == "content") runCatching { context.contentResolver.getType(uri) }.getOrNull() else null)
+                ?: android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(media.fileName?.substringAfterLast('.', "")?.lowercase().orEmpty())
+                ?: "*/*"
             val i = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                .setData(Uri.parse(media.uri))
+                .setDataAndType(uri, type)
                 .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
             runCatching { context.startActivity(android.content.Intent.createChooser(i, openWith)) }
         }, bg = C.Yellow, fg = C.OnYellow, height = 40.dp, hPad = 24.dp, size = 14, weight = 700)

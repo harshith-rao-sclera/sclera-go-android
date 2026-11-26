@@ -24,6 +24,9 @@ sealed interface ButtonBlock {
 
     /** Assign to me: the asset already has an assignee, or is submitted or signed off (the web's takeReason). */
     data class TakeRefused(val refusal: TakeRefusal) : ButtonBlock
+
+    /** Move to draft on an exception: only the collector it's assigned to, or a reviewer, moves it back. */
+    data object NotYourException : ButtonBlock
 }
 
 /**
@@ -99,7 +102,9 @@ class AssetButtonBlocksUseCase @Inject constructor(
             collect = collect,
             validate = managed ?: missing(Permission.CHECK),
             signOff = managed ?: validate,
-            moveToDraft = managed ?: if (asset.st == Status.EXCEPTION) lock else reopen,
+            moveToDraft = managed ?: if (asset.st == Status.EXCEPTION) {
+                lock ?: ButtonBlock.NotYourException.takeUnless { guard.movesExceptionBack(asset.assignedTo) }
+            } else reopen,
             requestChange = managed ?: collect,
             approve = managed ?: reopen,
             decline = managed ?: validate,

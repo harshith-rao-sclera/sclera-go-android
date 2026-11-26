@@ -217,6 +217,8 @@ fun PhotoViewer(
     onDownload: ((Media) -> Unit)?,
     onRemove: ((Media) -> Unit)?,
     removeBlocked: UiText? = null,
+    /** A document's Open, when the server has it (fetched and opened as from the Documents tab); null: opened from the device. */
+    onOpenFile: (() -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxSize().testTag(PhotoTags.VIEWER).background(C.shade(0.96f)).noRippleClick { }) {
         Row(
@@ -245,7 +247,7 @@ fun PhotoViewer(
             Box(
                 Modifier.fillMaxWidth().heightIn(max = 440.dp).fillMaxHeight().clip(r(14)).background(C.Raised),
                 contentAlignment = Alignment.Center,
-            ) { key(m.id) { MediaFull(m) } }
+            ) { key(m.id) { MediaFull(m, onOpenFile) } }
         }
     }
 }

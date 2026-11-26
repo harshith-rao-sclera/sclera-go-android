@@ -382,6 +382,10 @@ fun AssetDetailScreen(
         preview?.let { i ->
             state.media.getOrNull(i)?.let { m -> PhotoViewer(
                 m, onClose = { preview = null },
+                // A file added to the asset is one of its documents too: its Open fetches it from the server and opens it
+                // in another app, as from the Documents tab. One the server doesn't have yet opens from the device.
+                onOpenFile = m.takeIf { it.isDoc }?.let { x -> state.documents.firstOrNull { it.id == x.id } }
+                    ?.let { doc -> { actions.onOpenDocument(doc) } },
                 onDownload = actions.onDownloadMedia,
                 // As the web: media can be removed unless the asset is signed off (a new asset's too, before it is saved);
                 // greyed out, saying why, for whoever may not change it.

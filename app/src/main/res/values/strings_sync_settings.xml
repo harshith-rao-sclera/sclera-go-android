@@ -8,8 +8,9 @@
     <string name="sync_media_waiting">Media waiting</string>
     <string name="sync_last_synced">Last synced</string>
     <string name="sync_never">Not synced yet</string>
+    <!-- The two switches only stop downloads; what is changed on this device is always uploaded. -->
     <string name="sync_data">Data sync</string>
-    <string name="sync_data_sub">Changes from the server come down. Yours always upload.</string>
+    <string name="sync_data_sub">Download changes other people make. Your own changes upload either way.</string>
     <string name="sync_media">Photo and video sync</string>
-    <string name="sync_media_sub">Photos and videos from the server come down. Yours always upload.</string>
+    <string name="sync_media_sub">Download photos and videos other people add. Yours upload either way.</string>
 </resources>

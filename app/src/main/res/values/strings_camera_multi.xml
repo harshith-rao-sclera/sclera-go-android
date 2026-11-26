@@ -9,9 +9,6 @@
     <!-- The camera's switch: all shots make one asset (Single), or each shot is read by the server as its own asset (Multiple). -->
     <string name="camera_single">Single</string>
     <string name="camera_multiple">Multiple</string>
-    <string name="camera_mode_shots_first">Use or remove the shots in the strip first.</string>
-    <!-- Single tapped after Take more, while Multiple's shots still wait in the review. -->
-    <string name="camera_mode_review_first">Read or discard the shots waiting in the review first.</string>
     <string name="camera_take_more">Take more</string>
     <string name="camera_asset_full">One asset takes up to %1$d photos. Untick one to tick another.</string>
     <!-- A shot refused in the camera as its kind (1: Nameplate, Asset or Label ID) already has the most (2) allowed. -->

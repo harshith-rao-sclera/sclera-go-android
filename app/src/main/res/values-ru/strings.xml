@@ -565,7 +565,6 @@
     <string name="memo_subtitle">Расскажите, что стоит знать об активе.</string>
     <string name="memo_stop">Стоп</string>
     <string name="memo_save">Сохранить заметку</string>
-    <string name="premise_banner_off">Вы находитесь за пределами геозоны этого объекта, поэтому можете просматривать активы, но не добавлять и не редактировать их.</string>
     <string name="premise_banner_location_needed">Этот объект разрешает сборщикам работать только на месте. Разрешите доступ к геопозиции, чтобы добавлять или редактировать активы.</string>
     <string name="premise_banner_location_unknown">Не удаётся определить ваше местоположение, поэтому вы можете просматривать активы, но не добавлять и не редактировать их.</string>
     <string name="premise_perm_title">Подтвердите, что вы на месте</string>

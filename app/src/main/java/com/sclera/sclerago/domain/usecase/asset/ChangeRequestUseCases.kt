@@ -65,6 +65,10 @@ class ReopenAssetsUseCase @Inject constructor(private val repo: AssetRepository,
     suspend operator fun invoke(ids: Collection<String>) {
         guard.requireOffline(Permission.COLLECT)
         requireUnlocked(repo, guard, ids)
+        // An exception goes back only with the collector it's assigned to, or a reviewer, as the server refuses the rest.
+        val wanted = ids.toSet()
+        val notMine = repo.catalog.value.assets.any { it.id in wanted && it.st == Status.EXCEPTION && !guard.movesExceptionBack(it.assignedTo) }
+        if (notMine) throw DataException(DataError.FORBIDDEN)
         repo.setStatus(ids, Status.DRAFT)
     }
 }
@@ -78,7 +82,7 @@ enum class ChangeAction { MARK_VALIDATED, APPROVE, MOVE_TO_DRAFT, DECLINE, REQUE
 
 /** Why an action is offered but can't be used for these assets (the web's disabledReason). */
 enum class ChangeActionBlock {
-    NOT_ALL_SUBMITTED, NOT_ALL_REQUESTED, NOT_ALL_EXCEPTIONS, ASSIGNED_ELSEWHERE, SOME_ARE_DRAFTS, SIGN_OFF_NOT_SUBMITTED,
+    NOT_ALL_SUBMITTED, NOT_ALL_REQUESTED, NOT_ALL_EXCEPTIONS, NOT_YOUR_EXCEPTION, SOME_ARE_DRAFTS, SIGN_OFF_NOT_SUBMITTED,
     /** Request change for a reviewer, who changes the asset (Move to draft) instead. */
     REVIEWER_CHANGES_IT,
     /** Decline on the user's own requests: Withdraw takes them back. */
@@ -119,7 +123,8 @@ class ChangeRequestActionsUseCase @Inject constructor(private val guard: Permiss
             if (assets.none(exception)) return emptyList()
             val blocked = when {
                 !assets.all(exception) -> ChangeActionBlock.NOT_ALL_EXCEPTIONS
-                !guard.isReviewer() && assets.any { guard.isAssignedElsewhere(it.assignedTo) } -> ChangeActionBlock.ASSIGNED_ELSEWHERE
+                // Only the collector it's assigned to, or a reviewer, moves an exception back (the server's rule).
+                assets.any { !guard.movesExceptionBack(it.assignedTo) } -> ChangeActionBlock.NOT_YOUR_EXCEPTION
                 else -> null
             }
             return listOf(ChangeActionOption(ChangeAction.MOVE_TO_DRAFT, blocked))

@@ -62,7 +62,7 @@ internal fun SubPageBar(title: String, property: String?, onMenu: () -> Unit) {
         RoundButton(44.dp, Color.Transparent, onMenu, shape = r(10)) {
             LineIcon(Icons.Menu, 22.dp, C.Text)
         }
-        Column(Modifier.weight(1f).padding(end = 56.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             Txt(title, 16, 700)
             if (property != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -71,6 +71,8 @@ internal fun SubPageBar(title: String, property: String?, onMenu: () -> Unit) {
                 }
             }
         }
+        // The logo on the right, as wide as the menu button, so the title stays in the middle.
+        Box(Modifier.width(44.dp), contentAlignment = Alignment.Center) { ScleraGoLogo() }
     }
 }
 
@@ -92,6 +94,8 @@ internal fun StatCard(
     loading: Boolean = false,
     /** Replaces the plain [icon] inside the tile (e.g. a filled badge); [icon] is then unused. */
     iconContent: (@Composable () -> Unit)? = null,
+    /** The smallest the label may shrink to so it fits on its line (a longer label on a phone); null: it never shrinks. */
+    labelMinSize: Number? = null,
 ) {
     val shape = r(if (prominent) 16 else 12)
     val look = if (prominent) {
@@ -114,7 +118,7 @@ internal fun StatCard(
         Column(verticalArrangement = Arrangement.spacedBy(if (prominent) 2.dp else 1.dp)) {
             if (loading) SkeletonBlock(Modifier.padding(vertical = 4.dp).width((valueSize * 1.6f).dp).height((valueSize * 0.8f).dp))
             else Txt(value, valueSize, if (prominent) 800 else 700)
-            Txt(label, labelSize, if (prominent) 500 else 400, C.Muted)
+            Txt(label, labelSize, if (prominent) 500 else 400, C.Muted, minSize = labelMinSize)
         }
     }
 }

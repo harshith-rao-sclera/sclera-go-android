@@ -52,8 +52,9 @@
 
     <!-- Integration page: buildings, floors and locations, sent to or imported from VDMS by hand (places import) -->
     <string name="pi_section_title">Buildings, floors &amp; locations</string>
-    <string name="pi_send">Export to VDMS</string>
-    <string name="pi_import">Import from VDMS</string>
+    <!-- The Buildings, floors & locations card's two buttons (to VDMS and from VDMS); kept short to fit side by side. -->
+    <string name="pi_send">Export</string>
+    <string name="pi_import">Import</string>
     <string name="pi_load_failed">Couldn\'t load buildings, floors and locations.</string>
     <string name="pi_try_again">Try again</string>
     <string name="pi_refresh_late">VDMS hasn\'t answered yet. Its list updates once it does.</string>
@@ -192,7 +193,8 @@
     <string name="pi_kind_location_label">Location</string>
     <string name="pi_kind_place_label">Place</string>
 
-    <string name="ph_title">Buildings, floors &amp; locations history</string>
+    <!-- Under "History" in the places history page's bar: what the history is of. -->
+    <string name="ph_title">Buildings, floors &amp; locations</string>
     <string name="ph_filter_all">All</string>
     <string name="ph_filter_sent">Exported</string>
     <string name="ph_filter_imported">Imported</string>
@@ -206,7 +208,6 @@
     <string name="ph_empty_sent">Nothing has been exported to VDMS yet.</string>
     <string name="ph_empty_imported">Nothing has been imported from VDMS yet.</string>
     <string name="ph_show_more">Show more (%1$d)</string>
-    <string name="ph_close">Close</string>
     <string name="ph_expanded">Showing its places</string>
     <string name="ph_collapsed">Places hidden</string>
     <string name="ph_to_vdms">To VDMS</string>

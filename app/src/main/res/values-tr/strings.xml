@@ -551,7 +551,6 @@
     <string name="memo_subtitle">Varlık hakkında bilinmesi gerekenleri söyleyin.</string>
     <string name="memo_stop">Durdur</string>
     <string name="memo_save">Notu kaydet</string>
-    <string name="premise_banner_off">Bu mülkün coğrafi sınırının dışındasınız; varlıkları görüntüleyebilir ancak ekleyemez veya düzenleyemezsiniz.</string>
     <string name="premise_banner_location_needed">Bu mülk, toplayıcıların yalnızca sahada çalışmasına izin verir. Varlık eklemek veya düzenlemek için konum erişimine izin verin.</string>
     <string name="premise_banner_location_unknown">Konumunuz bulunamadı; varlıkları görüntüleyebilir ancak ekleyemez veya düzenleyemezsiniz.</string>
     <string name="premise_perm_title">Sahada olduğunuzu onaylayın</string>

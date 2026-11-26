@@ -579,7 +579,6 @@
     <string name="memo_subtitle">قل ما يستحق المعرفة عن الأصل.</string>
     <string name="memo_stop">إيقاف</string>
     <string name="memo_save">حفظ المذكرة</string>
-    <string name="premise_banner_off">أنت خارج السياج الجغرافي لهذا العقار، لذا يمكنك عرض الأصول ولكن لا يمكنك إضافتها أو تعديلها.</string>
     <string name="premise_banner_location_needed">يقصر هذا العقار عمل جامعي البيانات على الموقع. اسمح بالوصول إلى الموقع لإضافة الأصول أو تعديلها.</string>
     <string name="premise_banner_location_unknown">تعذر تحديد موقعك، لذا يمكنك عرض الأصول ولكن لا يمكنك إضافتها أو تعديلها.</string>
     <string name="premise_perm_title">تأكيد وجودك في الموقع</string>

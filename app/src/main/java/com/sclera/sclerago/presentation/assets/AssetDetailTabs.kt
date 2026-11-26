@@ -73,7 +73,6 @@ import com.sclera.sclerago.presentation.common.formatDate
 import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.IconMenu
-import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
@@ -245,9 +244,17 @@ private fun DocumentCard(
     }
     val type = d.contentType?.substringAfter('/')?.uppercase(locale)
     val fileLine = listOfNotNull(d.sizeBytes?.let { sizeText(it) }, type).joinToString(" · ").ifEmpty { null }
+    // Tapping the card opens the document (a file in the app or another app, a web page in the browser); none while it is
+    // being fetched. A document with nothing to open isn't tappable.
+    val openLabel = stringResource(R.string.doc_open_cd, d.title)
     Row(
         Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("doc-${d.id}").clip(r(16)).background(C.Surface)
-            .border(1.dp, C.Border, r(16)).padding(12.dp),
+            .border(1.dp, C.Border, r(16))
+            .then(
+                if (open != null) Modifier.pressClickable(shape = r(16), pressed = PRESSED_CARD, enabled = !opening, onClickLabel = openLabel, role = Role.Button, onClick = open)
+                else Modifier,
+            )
+            .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(Modifier.size(48.dp).background(C.YTintBg, r(12)), contentAlignment = Alignment.Center) {
@@ -283,14 +290,13 @@ private fun DocumentCard(
             }
         }
         Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween, horizontalAlignment = Alignment.CenterHorizontally) {
-            if (open != null) {
-                val label = stringResource(R.string.doc_open_cd, d.title)
-                RoundButton(36.dp, C.Raised, if (opening) ({}) else open, Modifier.semantics { contentDescription = label }) {
-                    if (opening) CircularProgressIndicator(Modifier.size(16.dp), color = C.Yellow, strokeWidth = 2.dp)
-                    else LineIcon(if (d.hasFile) Icons.Eye else Icons.ArrowUpRight, 16.dp, C.Yellow, 2.2f)
+            // While the file is fetched to be opened, a spinner where the remove button's partner was.
+            if (opening) {
+                Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(Modifier.size(16.dp), color = C.Yellow, strokeWidth = 2.dp)
                 }
             } else {
-                Spacer(Modifier.size(36.dp))
+                Spacer(Modifier.size(0.dp))
             }
             if (canRemove) {
                 val label = stringResource(R.string.doc_remove_cd, d.title)

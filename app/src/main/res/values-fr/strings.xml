@@ -555,7 +555,6 @@
     <string name="memo_subtitle">Dites ce qu\'il faut savoir sur l\'actif.</string>
     <string name="memo_stop">Arrêter</string>
     <string name="memo_save">Enregistrer le mémo</string>
-    <string name="premise_banner_off">Vous êtes en dehors de la géoclôture de ce site : vous pouvez consulter les actifs, mais pas en ajouter ni les modifier.</string>
     <string name="premise_banner_location_needed">Ce site limite le travail des collecteurs à une présence sur place. Autorisez l\'accès à la position pour ajouter ou modifier des actifs.</string>
     <string name="premise_banner_location_unknown">Votre position est introuvable : vous pouvez consulter les actifs, mais pas en ajouter ni les modifier.</string>
     <string name="premise_perm_title">Confirmez que vous êtes sur place</string>

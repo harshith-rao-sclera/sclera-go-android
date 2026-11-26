@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The geofence line under the property name in the dashboard header. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- After a lock: a collector outside the property's geofence, who can look at assets but not add or edit them. -->
+    <string name="premise_header_off">Outside geofence</string>
+</resources>

@@ -94,9 +94,10 @@ internal fun ReviewCard(
 @Composable
 internal fun ReviewHead(j: ValRun, onSetup: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Txt(j.name, 22, 800, modifier = Modifier.weight(1f, fill = false), maxLines = 2)
-            StatusChip(j.status)
+        // The whole name, on as many lines as it needs (a run named after its steps can be long); the state beside its first line.
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Txt(j.name, 20, 800, modifier = Modifier.weight(1f, fill = false), maxLines = Int.MAX_VALUE)
+            Box(Modifier.padding(top = 2.dp)) { StatusChip(j.status) }
         }
         // How it was set up (the web's Setup), when the server says: on its own line under the name, so a phone shows
         // the name in full.
