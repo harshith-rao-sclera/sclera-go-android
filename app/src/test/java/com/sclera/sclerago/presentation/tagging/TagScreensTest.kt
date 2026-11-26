@@ -55,6 +55,31 @@ class TagScreensTest {
         assertEquals(listOf(TagKind.BARCODE, TagKind.NFC, TagKind.QR), started)
     }
 
+    // The QR icon's popover: Movable and Fixed, each passed on as the placement picked.
+    private fun checkPlacementPopover() {
+        val picked = mutableListOf<Boolean>()
+        compose.setContent {
+            ScleraTheme { TagsBar(TagUiState(phase = TagPhase.ChoosingPlacement), TagsActions(onPlacement = { picked += it })) }
+        }
+        compose.onNodeWithTag(TagTags.PLACEMENT_FIXED).assertIsDisplayed()
+        compose.onNodeWithTag(TagTags.PLACEMENT_MOVABLE).assertIsDisplayed().performClick()
+        assertEquals(listOf(true), picked)
+    }
+
+    private fun checkPlacementPicksFixed() {
+        val picked = mutableListOf<Boolean>()
+        compose.setContent {
+            ScleraTheme { TagsBar(TagUiState(phase = TagPhase.ChoosingPlacement), TagsActions(onPlacement = { picked += it })) }
+        }
+        compose.onNodeWithTag(TagTags.PLACEMENT_FIXED).performClick()
+        assertEquals(listOf(false), picked)
+    }
+
+    private fun checkNoPopoverWhenIdle() {
+        compose.setContent { ScleraTheme { TagsBar(TagUiState(), TagsActions()) } }
+        compose.onNodeWithTag(TagTags.PLACEMENT_MOVABLE).assertDoesNotExist()
+    }
+
     private fun checkRescanSheet() {
         host(TagUiState(phase = TagPhase.ConfirmingRescan))
         compose.onNodeWithTag(TagTags.SHEET_PRIMARY).assertIsDisplayed().performClick()
@@ -101,6 +126,12 @@ class TagScreensTest {
     @Test @Config(qualifiers = PHONE) fun barOnPhone() = checkBar()
     @Test @Config(qualifiers = TABLET_PORTRAIT) fun barOnTabletPortrait() = checkBar()
     @Test @Config(qualifiers = TABLET_LANDSCAPE) fun barOnTabletLandscape() = checkBar()
+
+    @Test @Config(qualifiers = PHONE) fun placementPopoverOnPhone() = checkPlacementPopover()
+    @Test @Config(qualifiers = TABLET_PORTRAIT) fun placementPopoverOnTabletPortrait() = checkPlacementPopover()
+    @Test @Config(qualifiers = TABLET_LANDSCAPE) fun placementPopoverOnTabletLandscape() = checkPlacementPopover()
+    @Test @Config(qualifiers = PHONE) fun placementFixedOnPhone() = checkPlacementPicksFixed()
+    @Test @Config(qualifiers = PHONE) fun noPlacementPopoverWhenIdle() = checkNoPopoverWhenIdle()
 
     @Test @Config(qualifiers = PHONE) fun rescanOnPhone() = checkRescanSheet()
     @Test @Config(qualifiers = TABLET_PORTRAIT) fun rescanOnTabletPortrait() = checkRescanSheet()

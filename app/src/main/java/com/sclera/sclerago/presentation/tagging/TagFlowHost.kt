@@ -87,7 +87,8 @@ private const val NFC_TIMEOUT_MS = 20_000L
 @Composable
 fun TagFlowHost(state: TagUiState, actions: TagFlowActions) {
     when (val phase = state.phase) {
-        TagPhase.Idle -> Unit
+        // The placement popover hangs off the QR icon in the Tags bar (TagsBar draws it).
+        TagPhase.Idle, TagPhase.ChoosingPlacement -> Unit
         TagPhase.ConfirmingRescan -> MessageSheet(
             icon = Icons.Qr, tint = C.Green, tintBg = Color(0x245DBE8C), tintBd = Color(0x805DBE8C),
             title = stringResource(R.string.tag_rescan_title), message = stringResource(R.string.tag_rescan_message),

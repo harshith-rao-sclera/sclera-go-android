@@ -126,10 +126,9 @@ fun AssetDetailRoute(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val tagState by tagVm.state.collectAsStateWithLifecycle()
-    // The Tags bar shows what the synced data says the asset carries, and what its "QR / Barcode / NFC Tagged" fields
-    // say (those fields are not shown in the form); the view model may still be on the asset before for a frame.
-    val fieldTags = if (state.asset?.id == asset.id) state.fieldTags else emptySet()
-    LaunchedEffect(asset.id, asset.tagged, fieldTags) { tagVm.open(asset.id, asset.propertyId, asset.tagged + fieldTags) }
+    // The Tags bar follows the asset's tag columns only (qr_code_tag, barcode_tag, nfc_tag): set when a tag is written or
+    // moved, and by a sync. They come back with the asset whenever they change, so the bar updates while it is open.
+    LaunchedEffect(asset.id, asset.tagged) { tagVm.open(asset.id, asset.propertyId, asset.tagged) }
     // The view model catches up one frame after the asset changes; until then there is nothing to show.
     if (state.asset?.id != asset.id) return
 
@@ -256,7 +255,11 @@ fun AssetDetailRoute(
             onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,
         ),
         // NFC is checked first: switched off (or missing), the message shows without the NFC dialog flashing up.
-        tags = TagsActions(onStart = { kind -> tagVm.start(kind, if (kind == TagKind.NFC) NfcTagReader.problem(context) else null) }),
+        tags = TagsActions(
+            onStart = { kind -> tagVm.start(kind, if (kind == TagKind.NFC) NfcTagReader.problem(context) else null) },
+            onPlacement = tagVm::choosePlacement,
+            onDismissPlacement = tagVm::cancel,
+        ),
         onAddPhoto = { kind ->
             // What the camera takes goes to [kind]'s card; Camera (no kind) puts it in Other photos as it is, unsorted.
             // Photo, video and gallery are in the camera.

@@ -331,6 +331,7 @@
     <string name="detail_system_type">Loại hệ thống</string>
     <string name="detail_asset_type">Loại tài sản</string>
     <string name="detail_sub_type">Loại phụ</string>
+    <string name="select_no_match">Không có kết quả phù hợp</string>
     <string name="detail_jacs_code">Mã JACS</string>
     <string name="detail_yes">Có</string>
     <string name="detail_no">Không</string>
@@ -453,6 +454,9 @@
     <string name="tag_kind_qr">Mã QR</string>
     <string name="tag_kind_barcode">Mã vạch</string>
     <string name="tag_kind_nfc">Thẻ NFC</string>
+    <string name="tag_placement_title">Vị trí mã QR</string>
+    <string name="tag_placement_movable">Có thể di chuyển</string>
+    <string name="tag_placement_fixed">Cố định</string>
     <string name="tag_tagged_qr">Đã gắn thẻ mã QR</string>
     <string name="tag_tagged_barcode">Đã gắn thẻ mã vạch</string>
     <string name="tag_tagged_nfc">Đã gắn thẻ NFC</string>

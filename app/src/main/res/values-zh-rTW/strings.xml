@@ -331,6 +331,7 @@
     <string name="detail_system_type">系統類型</string>
     <string name="detail_asset_type">資產類型</string>
     <string name="detail_sub_type">子類型</string>
+    <string name="select_no_match">沒有相符項目</string>
     <string name="detail_jacs_code">JACS 代碼</string>
     <string name="detail_yes">是</string>
     <string name="detail_no">否</string>
@@ -453,6 +454,9 @@
     <string name="tag_kind_qr">QR 碼</string>
     <string name="tag_kind_barcode">條碼</string>
     <string name="tag_kind_nfc">NFC 標籤</string>
+    <string name="tag_placement_title">QR 碼位置</string>
+    <string name="tag_placement_movable">可移動</string>
+    <string name="tag_placement_fixed">固定</string>
     <string name="tag_tagged_qr">QR 碼已綁定</string>
     <string name="tag_tagged_barcode">條碼已綁定</string>
     <string name="tag_tagged_nfc">NFC 標籤已綁定</string>

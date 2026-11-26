@@ -335,6 +335,7 @@
     <string name="detail_system_type">Systemtyp</string>
     <string name="detail_asset_type">Anlagentyp</string>
     <string name="detail_sub_type">Untertyp</string>
+    <string name="select_no_match">Keine Treffer</string>
     <string name="detail_jacs_code">JACS-Code</string>
     <string name="detail_yes">Ja</string>
     <string name="detail_no">Nein</string>
@@ -474,6 +475,9 @@
     <string name="tag_kind_qr">QR-Code</string>
     <string name="tag_kind_barcode">Barcode</string>
     <string name="tag_kind_nfc">NFC-Tag</string>
+    <string name="tag_placement_title">Platzierung des QR-Codes</string>
+    <string name="tag_placement_movable">Beweglich</string>
+    <string name="tag_placement_fixed">Fest</string>
     <string name="tag_tagged_qr">QR-Code getaggt</string>
     <string name="tag_tagged_barcode">Barcode getaggt</string>
     <string name="tag_tagged_nfc">NFC-Tag getaggt</string>

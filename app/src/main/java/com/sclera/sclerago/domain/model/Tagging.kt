@@ -3,12 +3,10 @@ package com.sclera.sclerago.domain.model
 /** The kinds of physical tag an asset can carry. */
 enum class TagKind { QR, BARCODE, NFC }
 
-/** Answers to a tag field that mean the tag is on the asset. */
-private val TAGGED_ANSWERS = setOf("yes", "y", "true", "1", "tagged")
-
 /**
  * The kind of tag a field such as "QR Tagged", "Barcode Tagged" or "NFC Tagged" records (some properties have these
- * fields; any capitalisation or spacing), or null for any other field. The Tags bar shows them, not the form.
+ * fields; any capitalisation or spacing), or null for any other field. The form doesn't show them: the Tags bar shows
+ * the asset's tag columns instead.
  */
 fun tagKindOfField(name: String): TagKind? = when (name.filter(Char::isLetterOrDigit).lowercase()) {
     "qrtagged" -> TagKind.QR
@@ -16,10 +14,6 @@ fun tagKindOfField(name: String): TagKind? = when (name.filter(Char::isLetterOrD
     "nfctagged" -> TagKind.NFC
     else -> null
 }
-
-/** The kinds the tag fields among [answers] (field name to answer) say are on the asset: answered yes, true or tagged. */
-fun taggedByFields(answers: Map<String, String>): Set<TagKind> =
-    answers.mapNotNull { (name, value) -> tagKindOfField(name)?.takeIf { value.trim().lowercase() in TAGGED_ANSWERS } }.toSet()
 
 /** The tag read off a sticker or chip. */
 class TagValue private constructor(

@@ -351,6 +351,7 @@
     <string name="detail_system_type">نوع النظام</string>
     <string name="detail_asset_type">نوع الأصل</string>
     <string name="detail_sub_type">النوع الفرعي</string>
+    <string name="select_no_match">لا توجد نتائج</string>
     <string name="detail_jacs_code">رمز JACS</string>
     <string name="detail_yes">نعم</string>
     <string name="detail_no">لا</string>
@@ -502,6 +503,9 @@
     <string name="tag_kind_qr">رمز QR</string>
     <string name="tag_kind_barcode">باركود</string>
     <string name="tag_kind_nfc">علامة NFC</string>
+    <string name="tag_placement_title">موضع رمز QR</string>
+    <string name="tag_placement_movable">قابل للنقل</string>
+    <string name="tag_placement_fixed">ثابت</string>
     <string name="tag_tagged_qr">تم وسم رمز QR</string>
     <string name="tag_tagged_barcode">تم وسم الباركود</string>
     <string name="tag_tagged_nfc">تم وسم علامة NFC</string>

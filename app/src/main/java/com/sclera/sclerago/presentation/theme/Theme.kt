@@ -68,6 +68,9 @@ object C {
     val Splash = Color(0xFF0B0B0C)
     val BrandYellow = Color(0xFFFFCB05)
     val FieldRowWash = Color(0x99272A2F)
+    /** Pop-overs hanging off an icon (the QR placement choice): fill and 1dp outline / divider. */
+    val PopoverBg = Color(0xFF26262A)
+    val PopoverLine = Color(0xFF3A393E)
 
     /** Dim behind sheets and dialogs. */
     val Overlay = Color(0x99000000)

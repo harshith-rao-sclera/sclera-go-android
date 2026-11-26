@@ -34,6 +34,12 @@ interface QrTagStore {
 
     /** How many QR codes of either kind the asset holds. */
     fun tagCount(asset: String): Int
+
+    /**
+     * Records where a code the phone already has was placed (its `movable` column: 1 movable, 0 fixed) after the server took the
+     * tag. The row is not marked to be sent again; a code the phone doesn't have yet comes down with the next sync.
+     */
+    fun setMovable(tag: TagValue, movable: Boolean)
 }
 
 /** The QR tables of the global database (`qr_code_table` for Sclera's codes, `client_qr_code_table` for the customer's own). */
@@ -57,7 +63,7 @@ class GlobalQrTagStore @Inject constructor(private val bridge: SyncManagerBridge
         // The server refuses a code that belongs to another property when it syncs (826); say so now. A code with no property yet is free.
         val stored = existing?.propertyId
         if (!stored.isNullOrEmpty() && stored != write.property) throw TaggingException(TaggingError.TAKEN_BY_OTHER_PROPERTY)
-        val movable = if (write.placement.isMovable) 1 else 0
+        val movable = movableValue(write.placement.isMovable)
         val image = Base64.encodeToString(photo, Base64.NO_WRAP)
         val now = time.nowMillis()
         db.beginTransaction()
@@ -74,6 +80,12 @@ class GlobalQrTagStore @Inject constructor(private val bridge: SyncManagerBridge
         val db = db()
         fun count(table: String) = db.rawQuery("SELECT COUNT(*) FROM $table WHERE device_id = ?", arrayOf(asset)).use { if (it.moveToFirst()) it.getInt(0) else 0 }
         return count("qr_code_table") + count("client_qr_code_table")
+    }
+
+    override fun setMovable(tag: TagValue, movable: Boolean) {
+        val sql = if (tag.isSystem) "UPDATE qr_code_table SET movable = ? WHERE id = ?"
+        else "UPDATE client_qr_code_table SET movable = ? WHERE client_qr_code_id = ?"
+        db().execSQL(sql, arrayOf(movableValue(movable), tag.id))
     }
 
     private fun saveSystem(db: SQLiteDatabase, w: TagWrite, existing: QrTagRow?, movable: Int, image: String, direction: String, user: String, now: Long) {
@@ -106,6 +118,9 @@ class GlobalQrTagStore @Inject constructor(private val bridge: SyncManagerBridge
             arrayOf(UUID.randomUUID().toString(), w.tag.id, w.asset, w.property, direction, movable, image, user, now, user, now, PENDING_SYNC),
         )
     }
+
+    /** The `movable` column's value: 1 for a movable code, 0 for a fixed one. */
+    private fun movableValue(movable: Boolean): Int = if (movable) 1 else 0
 
     private fun changes(db: SQLiteDatabase): Int = db.rawQuery("SELECT changes()", null).use { if (it.moveToFirst()) it.getInt(0) else 0 }
 

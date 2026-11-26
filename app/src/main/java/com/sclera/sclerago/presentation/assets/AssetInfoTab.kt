@@ -306,7 +306,7 @@ fun AssetInfoTab(
                 // Not classified yet shows as "-", as on the web.
                 SelectRow(
                     k, labels.getValue(k), v(k), listOf(UNCLASSIFIED to notSet) + choices.filter { it != UNCLASSIFIED }.map { it to it },
-                    state.dirty(k), { actions.onEdit(k, it) }, requester = ui.requester(k),
+                    state.dirty(k), { actions.onEdit(k, it) }, requester = ui.requester(k), searchable = true,
                 )
             }
         }
