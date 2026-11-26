@@ -533,8 +533,6 @@
     <string name="memo_subtitle">บอกสิ่งที่ควรรู้เกี่ยวกับสินทรัพย์</string>
     <string name="memo_stop">หยุด</string>
     <string name="memo_save">บันทึกเมโม</string>
-    <string name="premise_banner_location_needed">ทรัพย์สินนี้จำกัดให้ผู้เก็บข้อมูลทำงานในสถานที่เท่านั้น อนุญาตการเข้าถึงตำแหน่งเพื่อเพิ่มหรือแก้ไขสินทรัพย์</string>
-    <string name="premise_banner_location_unknown">ไม่พบตำแหน่งของคุณ จึงดูสินทรัพย์ได้แต่เพิ่มหรือแก้ไขไม่ได้</string>
     <string name="premise_perm_title">ยืนยันว่าคุณอยู่ในสถานที่</string>
     <string name="premise_perm_body">ทรัพย์สินนี้อนุญาตให้ผู้เก็บข้อมูลเพิ่มและแก้ไขสินทรัพย์ในสถานที่เท่านั้น Sclera Go เปรียบเทียบตำแหน่งของคุณกับขอบเขตของทรัพย์สินบนโทรศัพท์เครื่องนี้ โดยไม่บันทึกหรือส่งตำแหน่งออกไป</string>
     <string name="lock_banner_off_premise">อยู่นอกทรัพย์สิน</string>

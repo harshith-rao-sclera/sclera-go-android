@@ -582,8 +582,6 @@
     <string name="memo_subtitle">قل ما يستحق المعرفة عن الأصل.</string>
     <string name="memo_stop">إيقاف</string>
     <string name="memo_save">حفظ المذكرة</string>
-    <string name="premise_banner_location_needed">يقصر هذا العقار عمل جامعي البيانات على الموقع. اسمح بالوصول إلى الموقع لإضافة الأصول أو تعديلها.</string>
-    <string name="premise_banner_location_unknown">تعذر تحديد موقعك، لذا يمكنك عرض الأصول ولكن لا يمكنك إضافتها أو تعديلها.</string>
     <string name="premise_perm_title">تأكيد وجودك في الموقع</string>
     <string name="premise_perm_body">يسمح هذا العقار لجامعي البيانات بإضافة الأصول وتعديلها في الموقع فقط. يقارن Sclera Go موقعك بحدود العقار على هذا الهاتف. لا يتم حفظه أو إرساله.</string>
     <string name="lock_banner_off_premise">خارج العقار</string>

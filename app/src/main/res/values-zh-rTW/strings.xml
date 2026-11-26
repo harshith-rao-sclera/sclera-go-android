@@ -533,8 +533,6 @@
     <string name="memo_subtitle">說說這項資產值得了解的內容。</string>
     <string name="memo_stop">停止</string>
     <string name="memo_save">儲存語音備忘</string>
-    <string name="premise_banner_location_needed">此物業僅允許蒐集人員在現場作業。請允許存取位置資訊，以新增或編輯資產。</string>
-    <string name="premise_banner_location_unknown">無法取得你的位置，因此只能檢視資產，無法新增或編輯。</string>
     <string name="premise_perm_title">確認你在現場</string>
     <string name="premise_perm_body">此物業僅允許蒐集人員在現場新增和編輯資產。Sclera Go 會在這支手機上將你的位置與物業邊界進行比對，不會儲存或傳送位置資訊。</string>
     <string name="lock_banner_off_premise">不在物業範圍內</string>

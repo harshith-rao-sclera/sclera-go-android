@@ -533,8 +533,6 @@
     <string name="memo_subtitle">Ceritakan hal penting tentang aset ini.</string>
     <string name="memo_stop">Berhenti</string>
     <string name="memo_save">Simpan memo</string>
-    <string name="premise_banner_location_needed">Properti ini membatasi kolektor agar bekerja di lokasi. Izinkan akses lokasi untuk menambah atau mengedit aset.</string>
-    <string name="premise_banner_location_unknown">Lokasi Anda tidak dapat ditemukan, jadi Anda dapat melihat aset tetapi tidak dapat menambah atau mengeditnya.</string>
     <string name="premise_perm_title">Konfirmasi bahwa Anda berada di lokasi</string>
     <string name="premise_perm_body">Properti ini hanya mengizinkan kolektor menambah dan mengedit aset di lokasi. Sclera Go membandingkan lokasi Anda dengan batas properti di ponsel ini. Lokasi tidak disimpan atau dikirim.</string>
     <string name="lock_banner_off_premise">Di luar properti</string>

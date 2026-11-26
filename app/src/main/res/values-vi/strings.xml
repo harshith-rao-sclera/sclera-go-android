@@ -533,8 +533,6 @@
     <string name="memo_subtitle">Hãy nói những điều đáng biết về tài sản.</string>
     <string name="memo_stop">Dừng</string>
     <string name="memo_save">Lưu ghi nhớ</string>
-    <string name="premise_banner_location_needed">Bất động sản này chỉ cho phép người thu thập làm việc tại chỗ. Hãy cho phép truy cập vị trí để thêm hoặc chỉnh sửa tài sản.</string>
-    <string name="premise_banner_location_unknown">Không tìm thấy vị trí của bạn, nên bạn chỉ có thể xem tài sản chứ không thể thêm hoặc chỉnh sửa.</string>
     <string name="premise_perm_title">Xác nhận bạn đang ở hiện trường</string>
     <string name="premise_perm_body">Bất động sản này chỉ cho phép người thu thập thêm và chỉnh sửa tài sản tại chỗ. Sclera Go so sánh vị trí của bạn với ranh giới bất động sản ngay trên điện thoại này. Vị trí không được lưu hoặc gửi đi.</string>
     <string name="lock_banner_off_premise">Ngoài bất động sản</string>

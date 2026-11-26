@@ -49,7 +49,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.Status
-import com.sclera.sclerago.domain.model.PremiseNotice
 import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailRoute
@@ -69,7 +68,6 @@ import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalUnsavedForms
 import com.sclera.sclerago.presentation.components.LocationPicker
 import com.sclera.sclerago.presentation.components.PermissionSheet
-import com.sclera.sclerago.presentation.components.PremiseBanner
 import com.sclera.sclerago.presentation.premise.PremisePrompt
 import com.sclera.sclerago.presentation.premise.PremiseViewModel
 import com.sclera.sclerago.presentation.components.PullRefresh
@@ -297,11 +295,10 @@ fun ScleraApp(
                     // The property tab's arrow opens the Property list page; the location tab's opens the location picker.
                     onChevron = { if (it == LocFilter.ALL) vm.openProp() else vm.openLocFilter() },
                     modifier = Modifier.launchEntrance(Entrance.DashHeader),
-                    outsideGeofence = premiseNotice == PremiseNotice.OFF_PREMISE,
+                    premise = premiseNotice, onAllowLocation = premise::askAgain,
                 )
                 // The user's access couldn't be loaded: pages and changes that need a permission stay unavailable until it is.
                 if (vm.accessFailed) AccessFailedBanner(vm::retryAccess, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
-                PremiseBanner(premiseNotice, premise::askAgain, Modifier.readableWidth().padding(horizontal = 10.dp, vertical = 6.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().launchEntrance(Entrance.DashContent)) {
                     HorizontalPager(
                         state = pager,

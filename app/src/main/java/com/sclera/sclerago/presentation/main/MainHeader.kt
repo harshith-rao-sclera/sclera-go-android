@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.main
 
+import com.sclera.sclerago.domain.model.PremiseNotice
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.LocalIndication
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -34,6 +36,7 @@ import com.sclera.sclerago.presentation.components.RoundButton
 import com.sclera.sclerago.presentation.components.ScleraGoLogo
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.endBorder
+import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.readableWidth
 import com.sclera.sclerago.presentation.components.topBorder
@@ -46,7 +49,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 /** Test tags of the dashboard header and tabs. */
 object DashTags {
     const val MENU = "dash-menu"
-    const val OUTSIDE_GEOFENCE = "dash-outside-geofence"
+    const val PREMISE = "dash-premise"
     fun location(filter: LocFilter) = "dash-loc-${filter.name}"
     fun chevron(filter: LocFilter) = "dash-loc-chevron-${filter.name}"
     const val ADD = "dash-add"
@@ -74,8 +77,12 @@ fun DashboardHeader(
     onPick: (LocFilter) -> Unit,
     onChevron: (LocFilter) -> Unit,
     modifier: Modifier = Modifier,
-    /** A collector outside the property's geofence (view only): "Outside geofence" after a lock, under the name. */
-    outsideGeofence: Boolean = false,
+    /**
+     * Why a geo-restricted collector only looks in this property ([PremiseNotice.NONE]: they don't), said after a lock
+     * under the name: outside the fence, location not allowed (a tap there asks for it, [onAllowLocation]) or no fix.
+     */
+    premise: PremiseNotice = PremiseNotice.NONE,
+    onAllowLocation: () -> Unit = {},
 ) {
     val menuLabel = stringResource(R.string.dash_menu)
     Column(
@@ -106,23 +113,39 @@ fun DashboardHeader(
                             LineIcon(Icons.Building, 12.dp, C.Text, 1.9f)
                             Txt(propertyName, 11, 500, C.Text, modifier = Modifier.weight(1f, fill = false), maxLines = 1)
                         }
-                        // Away from a property with geofencing on, a collector only looks: said under its name.
-                        if (outsideGeofence) {
-                            Row(
-                                Modifier.testTag(DashTags.OUTSIDE_GEOFENCE),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                LineIcon(Icons.Lock, 11.dp, C.Orange, 2.2f)
-                                Txt(stringResource(R.string.premise_header_off), 11, 500, C.Orange, maxLines = 1)
-                            }
-                        }
+                        // A geo-restricted collector who only looks here: why, under its name.
+                        PremiseLine(premise, onAllowLocation)
                     }
                 }
                 ScleraGoLogo(Modifier.align(Alignment.CenterEnd).padding(end = 28.dp), height = 25.dp)
             }
         }
         LocationTabs(propertyName, path, selected, onPick, onChevron)
+    }
+}
+
+/**
+ * Why a geo-restricted collector only looks in this property, after a lock: "Outside geofence", "Allow location" (tapped,
+ * it asks for the location permission) or "Location unavailable"; nothing when they aren't held.
+ */
+@Composable
+private fun PremiseLine(premise: PremiseNotice, onAllowLocation: () -> Unit) {
+    val text = when (premise) {
+        PremiseNotice.NONE -> return
+        PremiseNotice.OFF_PREMISE -> R.string.premise_header_off
+        PremiseNotice.LOCATION_NEEDED -> R.string.premise_header_allow
+        PremiseNotice.LOCATION_UNKNOWN -> R.string.premise_header_unknown
+    }
+    val asks = premise == PremiseNotice.LOCATION_NEEDED
+    Row(
+        Modifier.testTag(DashTags.PREMISE)
+            .then(if (asks) Modifier.pressClickable(shape = r(6), role = Role.Button, onClick = onAllowLocation) else Modifier)
+            .padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        LineIcon(Icons.Lock, 11.dp, C.Orange, 2.2f)
+        Txt(stringResource(text), 11, 500, C.Orange, maxLines = 1)
     }
 }
 

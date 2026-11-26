@@ -761,8 +761,6 @@
     <string name="memo_subtitle">Say what\'s worth knowing about the asset.</string>
     <string name="memo_stop">Stop</string>
     <string name="memo_save">Save memo</string>
-    <string name="premise_banner_location_needed">Your group works in this property only on site. Allow location access to add or edit assets.</string>
-    <string name="premise_banner_location_unknown">Your location can\'t be found, so you can view assets but not add or edit them.</string>
     <string name="premise_perm_title">Confirm you are on site</string>
     <string name="premise_perm_body">Your group can add and edit assets in this property only on site. Sclera Go compares your location with the property boundary and sends it with your work in this property to Sclera, which checks it too. It isn\'t kept on the phone.</string>
     <string name="lock_banner_off_premise">Outside the property</string>

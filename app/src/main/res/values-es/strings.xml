@@ -558,8 +558,6 @@
     <string name="memo_subtitle">Cuenta lo que merece saberse del activo.</string>
     <string name="memo_stop">Detener</string>
     <string name="memo_save">Guardar nota</string>
-    <string name="premise_banner_location_needed">Esta propiedad limita a los recolectores a trabajar en el sitio. Permite el acceso a la ubicación para añadir o editar activos.</string>
-    <string name="premise_banner_location_unknown">No se puede obtener tu ubicación, por lo que puedes ver los activos pero no añadirlos ni editarlos.</string>
     <string name="premise_perm_title">Confirma que estás en el sitio</string>
     <string name="premise_perm_body">Esta propiedad solo permite a los recolectores añadir y editar activos en el sitio. Sclera Go compara tu ubicación con el límite de la propiedad en este teléfono. No se guarda ni se envía.</string>
     <string name="lock_banner_off_premise">Fuera de la propiedad</string>

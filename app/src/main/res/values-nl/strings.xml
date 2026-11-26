@@ -554,8 +554,6 @@
     <string name="memo_subtitle">Vertel wat het waard is om te weten over het item.</string>
     <string name="memo_stop">Stoppen</string>
     <string name="memo_save">Memo opslaan</string>
-    <string name="premise_banner_location_needed">Deze locatie beperkt verzamelaars tot werken ter plaatse. Sta locatietoegang toe om assets toe te voegen of te bewerken.</string>
-    <string name="premise_banner_location_unknown">Je locatie kan niet worden bepaald, dus je kunt assets bekijken maar niet toevoegen of bewerken.</string>
     <string name="premise_perm_title">Bevestig dat je ter plaatse bent</string>
     <string name="premise_perm_body">Deze locatie laat verzamelaars alleen ter plaatse assets toevoegen en bewerken. Sclera Go vergelijkt je locatie op deze telefoon met de grens van de locatie. Deze wordt niet opgeslagen of verzonden.</string>
     <string name="lock_banner_off_premise">Buiten de locatie</string>

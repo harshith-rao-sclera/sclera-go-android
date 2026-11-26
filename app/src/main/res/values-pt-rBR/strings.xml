@@ -558,8 +558,6 @@
     <string name="memo_subtitle">Diga o que vale a pena saber sobre o ativo.</string>
     <string name="memo_stop">Parar</string>
     <string name="memo_save">Salvar memorando</string>
-    <string name="premise_banner_location_needed">Esta propriedade limita os coletores a trabalhar no local. Permita o acesso à localização para adicionar ou editar ativos.</string>
-    <string name="premise_banner_location_unknown">Não foi possível encontrar sua localização, então você pode ver os ativos, mas não adicionar nem editar.</string>
     <string name="premise_perm_title">Confirme que você está no local</string>
     <string name="premise_perm_body">Esta propriedade só permite que os coletores adicionem e editem ativos no local. O Sclera Go compara sua localização com o limite da propriedade neste telefone. Ela não é salva nem enviada.</string>
     <string name="lock_banner_off_premise">Fora da propriedade</string>

@@ -20,40 +20,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
-import com.sclera.sclerago.domain.model.PremiseNotice
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
-
-/**
- * The orange banner shown to a collector who is view only because of the property's geofence: the location permission
- * missing, or the location unknown. [onAllow] (the permission case only) asks for the permission. Outside the fences,
- * the header says so under the property's name instead.
- */
-@Composable
-fun PremiseBanner(notice: PremiseNotice, onAllow: () -> Unit, modifier: Modifier = Modifier) {
-    val message = when (notice) {
-        PremiseNotice.NONE, PremiseNotice.OFF_PREMISE -> return
-        PremiseNotice.LOCATION_NEEDED -> R.string.premise_banner_location_needed
-        PremiseNotice.LOCATION_UNKNOWN -> R.string.premise_banner_location_unknown
-    }
-    Row(
-        modifier.fillMaxWidth().clip(r(10)).background(C.WarnRow).border(1.dp, C.Orange.copy(alpha = 0.35f), r(10))
-            .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp).testTag(PremiseTags.BANNER),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        LineIcon(Icons.Fence, 18.dp, C.Orange, 2.2f)
-        Txt(stringResource(message), 12, 500, C.Soft, Modifier.weight(1f).padding(vertical = 4.dp), maxLines = Int.MAX_VALUE)
-        if (notice == PremiseNotice.LOCATION_NEEDED) {
-            Pill(
-                stringResource(R.string.scrt_perm_allow), onAllow, Modifier.testTag(PremiseTags.ALLOW),
-                bg = C.Orange.copy(alpha = 0.18f), fg = C.Orange, height = 48.dp, hPad = 16.dp, weight = 700,
-            )
-        }
-    }
-}
 
 /** Why the location is wanted, just before Android's own prompt (the geofence check; nothing is kept or sent). */
 @Composable
@@ -83,10 +53,8 @@ fun LocationPermissionSheet(onContinue: () -> Unit, onNotNow: () -> Unit) {
     }
 }
 
-/** Test tags of the geofence banner and location sheet. */
+/** Test tags of the location sheet. */
 object PremiseTags {
-    const val BANNER = "premise-banner"
-    const val ALLOW = "premise-allow"
     const val SHEET = "premise-sheet"
     const val CONTINUE = "premise-continue"
 }

@@ -3,4 +3,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- After a lock: a collector outside the property's geofence, who can look at assets but not add or edit them. -->
     <string name="premise_header_off">Outside geofence</string>
+    <!-- After a lock: the location permission is missing; tapping it asks for it. -->
+    <string name="premise_header_allow">Allow location</string>
+    <!-- After a lock: the phone's position can't be found, so the collector only looks. -->
+    <string name="premise_header_unknown">Location unavailable</string>
 </resources>

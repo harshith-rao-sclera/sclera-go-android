@@ -568,8 +568,6 @@
     <string name="memo_subtitle">Розкажіть, що варто знати про актив.</string>
     <string name="memo_stop">Стоп</string>
     <string name="memo_save">Зберегти нотатку</string>
-    <string name="premise_banner_location_needed">Цей об\'єкт дозволяє збирачам працювати лише на місці. Дозвольте доступ до геопозиції, щоб додавати або редагувати активи.</string>
-    <string name="premise_banner_location_unknown">Не вдається визначити ваше місцеперебування, тому ви можете переглядати активи, але не додавати й не редагувати їх.</string>
     <string name="premise_perm_title">Підтвердьте, що ви на місці</string>
     <string name="premise_perm_body">Цей об\'єкт дозволяє збирачам додавати й редагувати активи лише на місці. Sclera Go порівнює ваше місцеперебування з межею об\'єкта на цьому телефоні. Його не зберігають і не надсилають.</string>
     <string name="lock_banner_off_premise">За межами об\'єкта</string>

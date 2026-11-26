@@ -568,8 +568,6 @@
     <string name="memo_subtitle">Powiedz, co warto wiedzieć o zasobie.</string>
     <string name="memo_stop">Zatrzymaj</string>
     <string name="memo_save">Zapisz notatkę</string>
-    <string name="premise_banner_location_needed">Ta nieruchomość pozwala kolektorom pracować tylko na miejscu. Zezwól na dostęp do lokalizacji, aby dodawać lub edytować zasoby.</string>
-    <string name="premise_banner_location_unknown">Nie można ustalić Twojej lokalizacji, więc możesz przeglądać zasoby, ale nie możesz ich dodawać ani edytować.</string>
     <string name="premise_perm_title">Potwierdź, że jesteś na miejscu</string>
     <string name="premise_perm_body">Ta nieruchomość pozwala kolektorom dodawać i edytować zasoby tylko na miejscu. Sclera Go porównuje Twoją lokalizację z granicą nieruchomości na tym telefonie. Nie jest ona zapisywana ani wysyłana.</string>
     <string name="lock_banner_off_premise">Poza nieruchomością</string>
