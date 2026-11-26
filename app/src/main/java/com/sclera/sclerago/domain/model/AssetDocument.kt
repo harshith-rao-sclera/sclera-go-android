@@ -75,6 +75,11 @@ data class AssetDocument(
     val removable: Boolean = false,
     /** A photo the asset was read from: a resized copy of it (base64 JPEG or PNG) to show as a thumbnail. */
     val preview: String? = null,
+    /**
+     * A file added to the asset (the Documents tab's + or Media's Add file), kept on the phone as one of its media and
+     * synced with it: it opens, and is removed, from the phone, online or offline.
+     */
+    val onDevice: Boolean = false,
 ) {
     /** A photo the asset was read from: Media shows it under "From the source file" (not a document to list). */
     val isSourcePhoto: Boolean get() = source == DocumentSource.SOURCE_FILE && fileKind == IMAGE_KIND

@@ -8,6 +8,7 @@ import com.sclera.sclerago.data.mapper.orderBody
 import com.sclera.sclerago.data.mapper.toBody
 import com.sclera.sclerago.data.mapper.toDomain
 import com.sclera.sclerago.data.mapper.toJson
+import com.sclera.sclerago.data.mapper.toReviewAsset
 import com.sclera.sclerago.data.offline.ValidationRunsOfflineSource
 import com.sclera.sclerago.data.remote.adc.AdcValidationApi
 import com.sclera.sclerago.domain.model.OnlineError
@@ -28,6 +29,7 @@ import com.sclera.sclerago.domain.validation.RunExport
 import com.sclera.sclerago.domain.validation.RunInsights
 import com.sclera.sclerago.domain.validation.RunIssue
 import com.sclera.sclerago.domain.validation.RunRequest
+import com.sclera.sclerago.domain.validation.ServerReviewAsset
 import com.sclera.sclerago.domain.validation.StepOrder
 import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.ValRun
@@ -35,6 +37,8 @@ import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.domain.validation.ValTemplate
 import com.sclera.sclerago.domain.validation.ValidationDef
 import com.sclera.sclerago.domain.validation.ValidationDraft
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.JsonPrimitive
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -156,6 +160,12 @@ class ValidationRunRepositoryImpl @Inject constructor(
         api.decide(propertyId, jobId, decisionBody(assetIds, decision, note)).let { DecisionOutcome(it.updated, it.notSubmitted) }
 
     override suspend fun mergeAsset(propertyId: String, assetId: String): MergeAsset = api.asset(propertyId, assetId).toDomain()
+
+    // Both read together, as the web's review does.
+    override suspend fun reviewAsset(propertyId: String, assetId: String): ServerReviewAsset = coroutineScope {
+        val fields = async { api.assetFields(propertyId, assetId) }
+        api.asset(propertyId, assetId).toReviewAsset(fields.await())
+    }
 
     override suspend fun merge(propertyId: String, keepId: String, mergeIds: List<String>, values: Map<String, IssueValue>) =
         api.merge(propertyId, mergeBody(keepId, mergeIds, values))

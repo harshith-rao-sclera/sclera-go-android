@@ -3,6 +3,8 @@ package com.sclera.sclerago.presentation.assets
 import com.sclera.sclerago.presentation.common.issueMessage
 import com.sclera.sclerago.presentation.common.issueValueText
 import com.sclera.sclerago.presentation.components.RunFab
+import com.sclera.sclerago.presentation.components.RunFabHeight
+import com.sclera.sclerago.presentation.components.fabClearance
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.components.SkeletonLine
@@ -314,11 +316,11 @@ fun ValidateFab(
     }
     // One above the other at the end, so "Revalidate from step 3" and "Run every step" both show in full on a phone.
     Column(
-        modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        modifier.padding(start = DetailFabMargin, end = DetailFabMargin, bottom = DetailFabMargin),
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(ValidateFabGap),
     ) {
-        if (first != null && first > 1 && !validating) {
+        if (runEveryShown(validation, validating)) {
             AccessGate(blocked) {
                 OfflineGate(offline, onOffline) {
                     Pill(
@@ -335,6 +337,21 @@ fun ValidateFab(
         }
     }
 }
+
+/** The gap between [ValidateFab]'s run button and "Run every step" over it. */
+private val ValidateFabGap = 10.dp
+
+/** [ValidateFab] offers "Run every step" too: a step past the first needs a look and no run is going. */
+private fun runEveryShown(validation: AssetValidation?, validating: Boolean): Boolean =
+    (validation?.firstProblem ?: 0) > 1 && !validating
+
+/**
+ * The room the Validation tab leaves after its content for [ValidateFab] (and "Run every step" over it, counted as tall
+ * as the run button), so it scrolls clear of them.
+ */
+@Composable
+fun validateFabClearance(validation: AssetValidation?, validating: Boolean): Dp =
+    fabClearance(if (runEveryShown(validation, validating)) 2 else 1, margin = DetailFabMargin, gap = ValidateFabGap, size = RunFabHeight)
 
 /**
  * One step in the steps card: its mark, name, outcome and "Starts here" on the first to look at; a step that failed or

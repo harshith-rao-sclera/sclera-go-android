@@ -59,6 +59,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Asset
@@ -71,6 +72,7 @@ import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.bottomBorder
+import com.sclera.sclerago.presentation.components.fabClearance
 import com.sclera.sclerago.presentation.components.fabShadow
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.icons.Ico
@@ -295,7 +297,7 @@ fun FormFloatingButtons(
         }
     }
     val aiOffText = UiText.Res(R.string.ai_off)
-    Column(modifier.padding(end = 16.dp, bottom = 16.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier.padding(end = DetailFabMargin, bottom = DetailFabMargin), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(FormFabGap)) {
         // A look-up or recording already running carries on (and can be stopped) whatever the connection.
         val aiOffline = offline && !aiBusy
         val aiWhy = when {
@@ -319,6 +321,13 @@ fun FormFloatingButtons(
         )
     }
 }
+
+/** The gap between the AI and voice buttons. */
+private val FormFabGap = 12.dp
+
+/** The room the Info tab leaves after its content for [FormFloatingButtons] (AI over voice), so it scrolls clear of them. */
+@Composable
+fun formFloatingButtonsClearance(): Dp = fabClearance(2, margin = DetailFabMargin, gap = FormFabGap)
 
 /** The floating buttons, to say which one shows the AI-off reason. */
 private enum class FloatingButton { AI, MIC }

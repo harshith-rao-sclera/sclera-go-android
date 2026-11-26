@@ -102,9 +102,9 @@ fun DashboardHeader(
                             // The row takes the whole width between the paddings (its name can shrink): kept in the middle.
                             horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
                         ) {
-                            // The same icon, size and colour as the property line under the other pages' titles (SubPageBar).
-                            LineIcon(Icons.Building, 12.dp, C.Muted, 1.9f)
-                            Txt(propertyName, 11, 500, C.Muted, modifier = Modifier.weight(1f, fill = false), maxLines = 1)
+                            // The property, in white: the same icon and size as the property line under the other pages' titles.
+                            LineIcon(Icons.Building, 12.dp, C.Text, 1.9f)
+                            Txt(propertyName, 11, 500, C.Text, modifier = Modifier.weight(1f, fill = false), maxLines = 1)
                         }
                         // Away from a property with geofencing on, a collector only looks: said under its name.
                         if (outsideGeofence) {

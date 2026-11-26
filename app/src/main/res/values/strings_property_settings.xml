@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuration > Property Settings. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- The section of the ways people add assets from their phone. -->
+    <string name="cfgs_phone_onboarding">Phone onboarding</string>
+    <string name="cfgs_bluetooth">Bluetooth</string>
+    <string name="cfgs_bluetooth_sub">Add assets found over Bluetooth</string>
+    <string name="cfgs_wifi">Wi-Fi</string>
+    <string name="cfgs_wifi_sub">Add assets found on Wi-Fi</string>
+    <!-- Metric units apply only to assets classified from now on. -->
+    <string name="cfgs_units_sub">m, kPa, °C. New assets only</string>
+</resources>

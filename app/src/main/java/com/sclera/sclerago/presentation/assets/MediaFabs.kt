@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.Media
@@ -21,7 +22,9 @@ import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.CircleFab
 import com.sclera.sclerago.presentation.components.FabAction
+import com.sclera.sclerago.presentation.components.FabGap
 import com.sclera.sclerago.presentation.components.FabMenu
+import com.sclera.sclerago.presentation.components.fabClearance
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.theme.C
 
@@ -59,9 +62,9 @@ fun MediaFabs(
             FabAction(stringResource(R.string.media_add_file_fab), Icons.FileUpload, "media-add-file", onAddFile),
         )
     Column(
-        modifier.padding(end = 16.dp, bottom = 16.dp),
+        modifier.padding(end = DetailFabMargin, bottom = DetailFabMargin),
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(FabGap),
     ) {
         AccessGate(blocked) {
             FabMenu(open, { open = it }, actions, stringResource(R.string.media_add_fab), stringResource(R.string.action_close), Modifier.testTag("media-add"))
@@ -75,8 +78,19 @@ fun MediaFabs(
     }
 }
 
+/** The room the Media tab leaves after its content for [MediaFabs] (the + over the mic), so it scrolls clear of them. */
+@Composable
+fun mediaFabsClearance(): Dp = fabClearance(2, margin = DetailFabMargin)
+
 /** Upload document: the Documents tab's floating +. */
 @Composable
-fun UploadDocumentFab(onUpload: () -> Unit, modifier: Modifier = Modifier, busy: Boolean = false) {
-    CircleFab(Icons.Plus, stringResource(R.string.doc_upload), onUpload, modifier.padding(end = 16.dp, bottom = 16.dp).testTag("doc-upload"), busy = busy)
+fun UploadDocumentFab(onUpload: () -> Unit, modifier: Modifier = Modifier) {
+    CircleFab(Icons.Plus, stringResource(R.string.doc_upload), onUpload, modifier.padding(end = DetailFabMargin, bottom = DetailFabMargin).testTag("doc-upload"))
 }
+
+/** The room the Documents tab leaves after its content for [UploadDocumentFab], so it scrolls clear of it. */
+@Composable
+fun uploadDocumentFabClearance(): Dp = fabClearance(1, margin = DetailFabMargin)
+
+/** How far the asset details' floating buttons sit from the page's bottom and end edges. */
+internal val DetailFabMargin = 16.dp

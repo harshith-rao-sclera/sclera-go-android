@@ -7,6 +7,7 @@ import com.sclera.sclerago.domain.model.NAME_FIELD_KEY
 import com.sclera.sclerago.domain.model.DraftsAccepted
 import com.sclera.sclerago.domain.model.ImportedFile
 import com.sclera.sclerago.domain.model.IMPORTABLE_KINDS
+import com.sclera.sclerago.domain.model.IMPORTABLE_KINDS_AI_OFF
 import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
@@ -22,12 +23,13 @@ import javax.inject.Inject
 
 /**
  * Why [file] can't be uploaded to scan for assets (`POST /documents`): not one of the kinds the File tab takes
- * ([IMPORTABLE_KINDS]), an empty file or one over the limit; null when it can go. A size the file manager didn't
- * give (-1) is left to the server.
+ * ([IMPORTABLE_KINDS]), one only AI reads while the property's AI is off ([aiOn] false: Excel and CSV only), an empty
+ * file or one over the limit; null when it can go. A size the file manager didn't give (-1) is left to the server.
  */
 class CheckUploadUseCase @Inject constructor() {
-    operator fun invoke(file: ImportedFile): UploadProblem? = when {
+    operator fun invoke(file: ImportedFile, aiOn: Boolean = true): UploadProblem? = when {
         documentKind(file.name, file.mime) !in IMPORTABLE_KINDS -> UploadProblem.UNREADABLE
+        !aiOn && documentKind(file.name, file.mime) !in IMPORTABLE_KINDS_AI_OFF -> UploadProblem.NEEDS_AI
         file.size == 0L -> UploadProblem.EMPTY
         file.size > MAX_DOCUMENT_UPLOAD_MB * 1024L * 1024L -> UploadProblem.TOO_LARGE
         else -> null

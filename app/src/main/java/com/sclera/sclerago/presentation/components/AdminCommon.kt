@@ -96,6 +96,8 @@ internal fun StatCard(
     iconContent: (@Composable () -> Unit)? = null,
     /** The smallest the label may shrink to so it fits on its line (a longer label on a phone); null: it never shrinks. */
     labelMinSize: Number? = null,
+    /** How many lines the label may take before it is cut off (a narrow tile can wrap "Assets waiting"). */
+    labelLines: Int = 1,
 ) {
     val shape = r(if (prominent) 16 else 12)
     val look = if (prominent) {
@@ -118,7 +120,7 @@ internal fun StatCard(
         Column(verticalArrangement = Arrangement.spacedBy(if (prominent) 2.dp else 1.dp)) {
             if (loading) SkeletonBlock(Modifier.padding(vertical = 4.dp).width((valueSize * 1.6f).dp).height((valueSize * 0.8f).dp))
             else Txt(value, valueSize, if (prominent) 800 else 700)
-            Txt(label, labelSize, if (prominent) 500 else 400, C.Muted, minSize = labelMinSize)
+            Txt(label, labelSize, if (prominent) 500 else 400, C.Muted, maxLines = labelLines, minSize = labelMinSize)
         }
     }
 }

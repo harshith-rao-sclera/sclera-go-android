@@ -3,7 +3,6 @@ package com.sclera.sclerago.presentation.integration
 import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,14 +18,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.PlacesDirection
 import com.sclera.sclerago.presentation.components.AccessGate
-import com.sclera.sclerago.presentation.components.SkeletonList
+import com.sclera.sclerago.presentation.components.RoundButton
+import com.sclera.sclerago.presentation.components.SkeletonLine
+import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
@@ -36,22 +39,23 @@ import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
 /**
- * Buildings, floors & locations on the Integration page (shown once the property is linked), as the web's: they don't
- * sync with VDMS, so "Send to VDMS" and "Import from VDMS" open the sheet to pick them, and History lists every send and
- * import.
+ * Buildings, floors & locations on the Integration page (shown once the property is linked), as the iOS app's: they
+ * don't sync with VDMS, so Export and Import open the sheet to pick them, and History (the round
+ * button beside them) lists every send and import. Under the title, how old VDMS's list is.
  */
 @Composable
 internal fun PlacesCard(s: PlacesUiState, online: Boolean, vm: PlacesImportViewModel) {
     Column(
-        Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(14.dp).testTag("places_card"),
+        Modifier.fillMaxWidth().clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16)).padding(14.dp).testTag("places_card"),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Txt(stringResource(R.string.pi_section_title), 15, 700, modifier = Modifier.weight(1f), maxLines = 2)
-            HistoryButton(online, vm)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Txt(stringResource(R.string.pi_section_title), 18, 700, maxLines = 2)
+            ListAge(s)
         }
         val ready = !s.loading && s.places != null
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HistoryButton(online, vm)
             CardButton(
                 stringResource(R.string.pi_send), ready && !s.pushActive, s.access, online, vm::explainOffline,
                 Modifier.weight(1f).testTag("places_send"),
@@ -61,9 +65,8 @@ internal fun PlacesCard(s: PlacesUiState, online: Boolean, vm: PlacesImportViewM
                 Modifier.weight(1f).testTag("places_import"),
             ) { vm.open(PlacesDirection.FROM_VDMS) }
         }
-        when {
-            s.loading && s.places == null -> SkeletonList(stringResource(R.string.int_loading), count = 3, lines = 1, card = false, gap = 2.dp)
-            s.failed && s.places == null -> Row(verticalAlignment = Alignment.CenterVertically) {
+        if (s.failed && s.places == null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Txt(stringResource(R.string.pi_load_failed), 12, 400, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
                 LinkText(stringResource(R.string.pi_try_again), onClick = vm::load)
             }
@@ -71,19 +74,27 @@ internal fun PlacesCard(s: PlacesUiState, online: Boolean, vm: PlacesImportViewM
     }
 }
 
-/** History: every send to and import from VDMS. */
+/** How old VDMS's list of buildings, floors and locations is ("VDMS's list is from 22 h ago"); a placeholder while read. */
+@Composable
+private fun ListAge(s: PlacesUiState) {
+    val places = s.places
+    when {
+        places == null && s.loading -> SkeletonLine(0.5f, 11.dp, Modifier.padding(vertical = 3.dp))
+        places == null -> Unit // The failed line under the buttons says so.
+        places.snapshotAt == null -> Txt(stringResource(R.string.pi_no_snapshot), 13, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        else -> Txt(stringResource(R.string.pi_card_list_from, agoText(places.snapshotAt)), 13, 400, C.Muted, maxLines = 2)
+    }
+}
+
+/** History: every send to and import from VDMS, as a round button. */
 @Composable
 private fun HistoryButton(online: Boolean, vm: PlacesImportViewModel) {
+    val label = stringResource(R.string.pi_history)
     OfflineGate(!online, vm::explainOffline) {
-        Row(
-            Modifier.heightIn(min = 48.dp).pressClickable(shape = r(10), role = Role.Button, onClick = vm::openHistory)
-                .padding(horizontal = 10.dp).testTag("places_history"),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            LineIcon(Icons.Clock, 16.dp, C.Yellow, 2.2f)
-            Txt(stringResource(R.string.pi_history), 12, 700, C.Yellow)
-        }
+        RoundButton(
+            34.dp, C.Btn, vm::openHistory,
+            Modifier.semantics { contentDescription = label; role = Role.Button }.testTag("places_history"),
+        ) { LineIcon(Icons.History, 16.dp, C.Text, 2.2f) }
     }
 }
 
@@ -99,7 +110,7 @@ private fun CardButton(text: String, enabled: Boolean, access: AccessBlock?, onl
                 text, { if (enabled) onClick() },
                 // The access gate dims it already; not twice.
                 Modifier.fillMaxWidth().alpha(if (enabled || access != null) 1f else 0.4f).semantics { role = Role.Button },
-                bg = C.Btn, height = 48.dp, weight = 700,
+                bg = C.Yellow, fg = C.OnYellow, height = 34.dp, hPad = 8.dp, size = 12, weight = 700,
             )
         }
     }
@@ -116,10 +127,18 @@ internal fun SkippedLine(text: String) {
 
 /** A text button in the card's or the sheet's lines (Refresh, Try again, Select all…), with a full-size touch target. */
 @Composable
-internal fun LinkText(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun LinkText(
+    text: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    size: Int = 12,
+    /** The space either side of the text (0 to line the text up with the lines above it). */
+    hPad: Dp = 8.dp,
+    onClick: () -> Unit,
+) {
     Box(
-        modifier.heightIn(min = 48.dp).pressClickable(shape = r(8), enabled = enabled, role = Role.Button, onClick = onClick).padding(horizontal = 8.dp),
+        modifier.heightIn(min = 48.dp).pressClickable(shape = r(8), enabled = enabled, role = Role.Button, onClick = onClick).padding(horizontal = hPad),
         contentAlignment = Alignment.Center,
-    ) { Txt(text, 12, 700, if (enabled) C.Yellow else C.Muted) }
+    ) { Txt(text, size, 700, if (enabled) C.Yellow else C.Muted) }
 }
 

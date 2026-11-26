@@ -12,6 +12,12 @@ const val MAX_DOCUMENT_UPLOAD_MB = 200
  */
 val IMPORTABLE_KINDS = setOf("spreadsheet", "pdf", "image", "video", "word", "text")
 
+/**
+ * What the File tab takes while the property's AI switch is off: Excel and CSV only, the one kind the server reads without
+ * AI (the rest would only fail with "AI off"), as the web's "AI off: Excel and CSV only".
+ */
+val IMPORTABLE_KINDS_AI_OFF = setOf("spreadsheet")
+
 /** A value read from a file that the AI is less sure of than this needs checking (the web highlights it). */
 const val UNSURE_BELOW = 0.7
 
@@ -19,6 +25,8 @@ const val UNSURE_BELOW = 0.7
 enum class UploadProblem {
     /** Not a spreadsheet, PDF, photo, video, Word or text file (the server's `readers.kind_of` gives no kind). */
     UNREADABLE,
+    /** A PDF, photo, video, Word or text file while the property's AI is off: only AI reads those ([IMPORTABLE_KINDS_AI_OFF]). */
+    NEEDS_AI,
     EMPTY,
     /** Over [MAX_DOCUMENT_UPLOAD_MB]. */
     TOO_LARGE,

@@ -1,11 +1,14 @@
 package com.sclera.sclerago.presentation.integration
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxSize
+import com.sclera.sclerago.presentation.components.OnOffSwitch
+import com.sclera.sclerago.presentation.components.CloseButton
+import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,11 +55,9 @@ import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.ListLoader
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.SearchField
-import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.TintChip
 import com.sclera.sclerago.presentation.components.agoText
 import com.sclera.sclerago.presentation.components.r
-import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
@@ -76,7 +77,7 @@ internal fun PlacesImportSheet(sh: PlacesSheetState, s: PlacesUiState, vm: Place
     val busy = sh.waiting && !sh.timedOut
     GuardedClose(sh.selected.isNotEmpty() && !sh.done && !sh.waiting, vm::close) { close ->
         BottomSheet(close) {
-            SheetHeader(stringResource(if (toVdms) R.string.pi_to_title else R.string.pi_from_title), null, close)
+            Title(stringResource(if (toVdms) R.string.pi_to_title else R.string.pi_from_title), close)
             Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp).testTag("places_sheet")) {
                 when {
                     sh.result != null -> ResultBody(sh)
@@ -88,11 +89,11 @@ internal fun PlacesImportSheet(sh: PlacesSheetState, s: PlacesUiState, vm: Place
                     else -> Picker(sh, s, noSnapshot, vm)
                 }
             }
-            Column(Modifier.fillMaxWidth().topBorder(C.Border).padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
                 if (sh.done) {
                     Pill(
                         stringResource(R.string.int_done), close,
-                        Modifier.fillMaxWidth().testTag("places_done"), bg = C.Yellow, fg = C.OnYellow, height = 48.dp, weight = 700,
+                        Modifier.fillMaxWidth().testTag("places_done"), bg = C.Yellow, fg = C.OnYellow, height = 50.dp, size = 15, weight = 700,
                     )
                 } else {
                     val ok = sh.selected.isNotEmpty() && !noSnapshot && !loading && !sh.submitting && !busy
@@ -102,12 +103,25 @@ internal fun PlacesImportSheet(sh: PlacesSheetState, s: PlacesUiState, vm: Place
                         Pill(
                             label, { if (ok) vm.submit() },
                             Modifier.fillMaxWidth().alpha(if (ok) 1f else 0.4f).testTag("places_submit"),
-                            bg = C.Yellow, fg = C.OnYellow, height = 48.dp, weight = 700,
+                            bg = C.Yellow, fg = C.OnYellow, height = 50.dp, size = 15, weight = 700,
                         )
                     }
                 }
             }
         }
+    }
+}
+
+/** The sheet's title in large type (it wraps onto a second line), with the round close button beside it. */
+@Composable
+private fun Title(title: String, onClose: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 6.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Txt(title, 20, 700, C.Text, Modifier.weight(1f).padding(top = 4.dp), maxLines = 3)
+        CloseButton(onClose, size = 40.dp, iconSize = 16.dp)
     }
 }
 
@@ -123,80 +137,73 @@ private fun RefreshButton(s: PlacesUiState, vm: PlacesImportViewModel) {
     // Asking VDMS needs Configure, as the server: greyed out with why without it.
     AccessGate(s.access) {
         Box(
-            Modifier.size(48.dp).pressClickable(shape = r(10), enabled = !s.refreshing, role = Role.Button, onClick = vm::refresh)
+            Modifier.size(44.dp).border(1.dp, C.Border, r(12))
+                .pressClickable(shape = r(12), enabled = !s.refreshing, role = Role.Button, onClick = vm::refresh)
                 .semantics { contentDescription = label }.testTag("places_refresh"),
             contentAlignment = Alignment.Center,
         ) { LineIcon(Icons.Refresh, 18.dp, if (s.refreshing) C.Muted else C.Yellow, 2.2f) }
     }
 }
 
-/** The toolbar and the tree, scrolling as one (so a short screen or large text still reaches the tree). */
+/**
+ * The toolbar (search, "hide existing", the tally, Select all / Clear, why ticks changed) over the tree, which sits in its
+ * own bordered card filling the rest of the sheet and scrolls inside it.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ColumnScope.Picker(sh: PlacesSheetState, s: PlacesUiState, noSnapshot: Boolean, vm: PlacesImportViewModel) {
     val toVdms = sh.direction == PlacesDirection.TO_VDMS
     val v = sh.view
-    LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("places_tree"), contentPadding = PaddingValues(bottom = 8.dp)) {
+    Column(Modifier.weight(1f).fillMaxWidth().testTag("places_tree")) {
         when {
-            noSnapshot -> item {
-                EmptyBlock(stringResource(R.string.pi_no_snapshot)) {
-                    AccessGate(s.access) { LinkText(stringResource(R.string.pi_ask_vdms), onClick = vm::refresh) }
-                }
+            noSnapshot -> EmptyBlock(stringResource(R.string.pi_no_snapshot)) {
+                AccessGate(s.access) { LinkText(stringResource(R.string.pi_ask_vdms), onClick = vm::refresh) }
             }
-            v.tally.total == 0 -> item { EmptyBlock(stringResource(if (toVdms) R.string.pi_to_empty else R.string.pi_from_empty)) }
-            v.tally.fresh == 0 && v.tally.changed == 0 && sh.hideExisting -> item {
+            v.tally.total == 0 -> EmptyBlock(stringResource(if (toVdms) R.string.pi_to_empty else R.string.pi_from_empty))
+            v.tally.fresh == 0 && v.tally.changed == 0 && sh.hideExisting ->
                 EmptyBlock(stringResource(if (toVdms) R.string.pi_to_nothing else R.string.pi_from_nothing)) {
                     LinkText(stringResource(R.string.pi_show_them)) { vm.setHideExisting(false) }
                 }
-            }
             else -> {
-                item {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        SearchField(sh.search, vm::setSearch, stringResource(R.string.pi_search), Modifier.weight(1f))
-                        RefreshButton(s, vm)
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SearchField(sh.search, vm::setSearch, stringResource(R.string.pi_search), Modifier.weight(1f))
+                    RefreshButton(s, vm)
                 }
-                item {
-                    Row(
-                        Modifier.fillMaxWidth().heightIn(min = 48.dp).pressClickable(shape = r(8), pressed = PRESSED_CARD, role = Role.Checkbox) { vm.setHideExisting(!sh.hideExisting) },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        CheckBox(sh.hideExisting, size = 20.dp, checkSize = 12.dp)
-                        Txt(stringResource(if (toVdms) R.string.pi_to_hide else R.string.pi_from_hide), 13, 500, C.Text, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
-                    }
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 4.dp).heightIn(min = 48.dp)
+                        .pressClickable(shape = r(8), pressed = PRESSED_CARD, role = Role.Switch) { vm.setHideExisting(!sh.hideExisting) },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Txt(stringResource(if (toVdms) R.string.pi_to_hide else R.string.pi_from_hide), 14, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+                    OnOffSwitch(sh.hideExisting, onChange = vm::setHideExisting)
                 }
-                item {
-                    val summary = if (v.tally.changed > 0) {
-                        stringResource(R.string.pi_selection_changed, sh.selected.size, v.tally.fresh, v.tally.total, v.tally.changed)
-                    } else {
-                        stringResource(R.string.pi_selection, sh.selected.size, v.tally.fresh, v.tally.total)
-                    }
-                    Txt(summary, 12, 500, C.Muted, Modifier.testTag("places_selection"), maxLines = Int.MAX_VALUE)
+                val summary = if (v.tally.changed > 0) {
+                    stringResource(R.string.pi_selection_changed, sh.selected.size, v.tally.fresh, v.tally.total, v.tally.changed)
+                } else {
+                    stringResource(R.string.pi_selection, sh.selected.size, v.tally.fresh, v.tally.total)
                 }
-                item {
-                    FlowRow(verticalArrangement = Arrangement.Center) {
-                        LinkText(
-                            stringResource(if (sh.searching) R.string.pi_select_all_shown else R.string.pi_select_all),
-                            enabled = v.addable.isNotEmpty(), onClick = vm::selectAll,
-                        )
-                        if (v.changes.isNotEmpty()) LinkText(stringResource(R.string.pi_select_changes), onClick = vm::selectChanges)
-                        LinkText(stringResource(R.string.pi_clear), enabled = sh.selected.isNotEmpty(), onClick = vm::clear)
-                    }
+                Txt(summary, 13, 500, C.Muted, Modifier.padding(top = 6.dp).testTag("places_selection"), maxLines = Int.MAX_VALUE)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                    LinkText(
+                        stringResource(if (sh.searching) R.string.pi_select_all_shown else R.string.pi_select_all),
+                        enabled = v.addable.isNotEmpty(), size = 14, hPad = 0.dp, onClick = vm::selectAll,
+                    )
+                    if (v.changes.isNotEmpty()) LinkText(stringResource(R.string.pi_select_changes), size = 14, hPad = 0.dp, onClick = vm::selectChanges)
+                    LinkText(stringResource(R.string.pi_clear), enabled = sh.selected.isNotEmpty(), size = 14, hPad = 0.dp, onClick = vm::clear)
                 }
                 sh.parentNote?.let { note ->
-                    item {
-                        Row(
-                            Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(r(10)).background(C.WarnRow).padding(10.dp).testTag("places_parent_note"),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            LineIcon(Icons.Info, 15.dp, C.Orange, 2.2f, Modifier.padding(top = 1.dp))
-                            Txt(note.asString(), 12, 500, C.Soft, Modifier.weight(1f), maxLines = Int.MAX_VALUE)
+                    Txt(note.asString(), 13, 500, C.Orange, Modifier.padding(bottom = 12.dp).testTag("places_parent_note"), maxLines = Int.MAX_VALUE)
+                }
+                Box(Modifier.weight(1f).fillMaxWidth().padding(bottom = 4.dp).clip(r(14)).border(1.dp, C.Border, r(14))) {
+                    if (v.noneShown) {
+                        EmptyBlock(stringResource(R.string.pi_no_match, sh.search.trim()))
+                    } else {
+                        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 8.dp)) {
+                            items(v.rows) { row -> PlaceRowItem(row, sh.direction, vm) }
                         }
                     }
                 }
-                if (v.noneShown) item { EmptyBlock(stringResource(R.string.pi_no_match, sh.search.trim())) }
-                else items(v.rows) { row -> PlaceRowItem(row, sh.direction, vm) }
             }
         }
     }
@@ -210,12 +217,18 @@ private fun EmptyBlock(text: String, action: (@Composable () -> Unit)? = null) {
     }
 }
 
-/** A building, floor or location: open/close (when it has rows under it), its tick box, name, badge and child count. */
+/**
+ * A building, floor or location: open/close (when it has rows under it), its tick box, its name with how many floors or
+ * locations it holds (and its badge) under it, and a line under the row from its own indent.
+ */
 @Composable
 private fun PlaceRowItem(row: PlaceTreeRow, direction: PlacesDirection, vm: PlacesImportViewModel) {
     val n = row.node
     val rot by animateFloatAsState(if (row.open) 90f else 0f, tween(200), label = "places_tree")
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = (row.depth * 20).dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = (row.depth * 20).dp).bottomBorder(C.Border).heightIn(min = 52.dp).padding(start = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         if (n.children.isNotEmpty()) {
             val toggleLabel = stringResource(if (row.open) R.string.pi_collapse else R.string.pi_expand, n.name)
             Box(
@@ -234,36 +247,28 @@ private fun PlaceRowItem(row: PlaceTreeRow, direction: PlacesDirection, vm: Plac
         )
         val tip = if (n.status == PlaceStatus.CHANGED) stringResource(R.string.pi_update_tip) else null
         Row(
-            Modifier.weight(1f).heightIn(min = 48.dp).pressClickable(shape = r(8), enabled = row.enabled, role = Role.Checkbox) { vm.toggle(n) }
-                
+            Modifier.weight(1f).heightIn(min = 52.dp).pressClickable(shape = r(8), enabled = row.enabled, role = Role.Checkbox) { vm.toggle(n) }
                 .semantics { stateDescription = listOfNotNull(tickState, tip).joinToString(", ") }
-                .padding(end = 4.dp),
+                .padding(end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(Modifier.alpha(if (row.enabled) 1f else 0.35f)) {
                 CheckBox(row.tick == Tick.ON, size = 20.dp, checkSize = 12.dp, partly = row.tick == Tick.PARTLY)
             }
-            LineIcon(
-                when (n.kind) {
-                    PlaceKind.BUILDING -> Icons.Building
-                    PlaceKind.FLOOR -> Icons.Floor
-                    PlaceKind.LOCATION -> Icons.Pin
-                },
-                16.dp, C.Muted,
-            )
-            Column(Modifier.weight(1f).padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(Modifier.weight(1f).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 val same = n.status == PlaceStatus.SAME
-                Txt(n.name, 14, if (n.kind == PlaceKind.BUILDING) 700 else 500, if (same) C.Muted else C.Text, maxLines = 2)
+                val building = n.kind == PlaceKind.BUILDING
+                Txt(n.name, if (building) 15 else 14, if (building) 700 else 500, if (same) C.Muted else C.Text, maxLines = 2)
+                if (n.children.isNotEmpty()) {
+                    val count = n.children.size
+                    Txt(
+                        if (building) pluralStringResource(R.plurals.pi_count_floors, count, count)
+                        else pluralStringResource(R.plurals.pi_count_locations, count, count),
+                        12, 400, C.Muted,
+                    )
+                }
                 badgeOf(n, direction)?.let { b -> Badge(b) }
-            }
-            if (n.children.isNotEmpty()) {
-                val count = n.children.size
-                Txt(
-                    if (n.kind == PlaceKind.BUILDING) pluralStringResource(R.plurals.pi_count_floors, count, count)
-                    else pluralStringResource(R.plurals.pi_count_locations, count, count),
-                    11, 500, C.Muted,
-                )
             }
         }
     }

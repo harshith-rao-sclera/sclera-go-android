@@ -171,4 +171,6 @@ data class MergeAssetDto(
     val buildingName: String? = null,
     val floorName: String? = null,
     val locationName: String? = null,
+    /** drafted, submitted, exception or saved. */
+    val status: String? = null,
 )

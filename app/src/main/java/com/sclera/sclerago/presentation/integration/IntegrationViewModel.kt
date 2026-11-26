@@ -9,7 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.model.AuthState
+import com.sclera.sclerago.domain.model.ManagedCounts
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.PlaceScope
 import com.sclera.sclerago.domain.model.VdmsChoice
 import com.sclera.sclerago.domain.model.VdmsLink
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
@@ -46,6 +48,8 @@ data class IntegrationUiState(
     val access: AccessBlock? = AccessBlock.CHECKING,
     /** The organisation's name as the card and the sheets show it (the Sclera company name, else the organisation id). */
     val organisation: String = "",
+    /** The whole property's Managed Assets counts, for the link card; null until read (or when they can't be). */
+    val counts: ManagedCounts? = null,
     val adding: AddLinkState? = null,
     val message: UiText? = null,
 )
@@ -85,6 +89,7 @@ class IntegrationViewModel @Inject constructor(
             try {
                 val link = useCases.get(state.propertyId)
                 set { copy(link = link, loading = false, loadFailed = false) }
+                if (link != null) loadCounts()
             } catch (_: OnlineException) {
                 // A failed read isn't "not linked": the link already shown stays; without one the page says it couldn't tell.
                 set { copy(loading = false, loadFailed = link == null) }
@@ -92,6 +97,20 @@ class IntegrationViewModel @Inject constructor(
             }
         }
     }
+
+    /** The whole property's Managed Assets counts. When they can't be read the line just isn't shown (as the summary). */
+    private suspend fun loadCounts() {
+        val propertyId = state.propertyId
+        try {
+            val c = useCases.counts(propertyId, PlaceScope())
+            if (state.propertyId == propertyId) set { copy(counts = c) }
+        } catch (_: OnlineException) {
+            // The line stays as it was.
+        }
+    }
+
+    /** + on a property that is already linked: says it can have only one VDMS. */
+    fun explainLinked() = flash(UiText.Res(R.string.int_already_linked))
 
     /** An online-only button was tapped offline: says why it needs the server. */
     fun explainOffline(why: OnlineOnly) = flash(UiText.Res(why.message))

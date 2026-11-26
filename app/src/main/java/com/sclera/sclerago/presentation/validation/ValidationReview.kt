@@ -105,7 +105,7 @@ internal fun JobReview(
             PageBar(stringResource(R.string.rev_title), null, onBack = onBack, backLabel = stringResource(R.string.rev_back))
             if (j == null) {
                 if (s.runFailed) EmptyNote(stringResource(R.string.valt_job_load_failed)) else ReviewSkeleton()
-            } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 150.dp)) {
+            } else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = reviewFabsClearance(j, s.selected.isEmpty()))) {
                 item(key = "head") { ReviewHead(j) { setupOpen = true } }
                 // Apply fixes, above the first card (Export CSV and Run again float in the corner).
                 item(key = "actions") { ReviewActions(j, s.confidentCount, s.checkBlock, s.busy, vm::applyConfident) }

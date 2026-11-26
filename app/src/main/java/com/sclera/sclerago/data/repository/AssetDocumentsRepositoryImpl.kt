@@ -52,17 +52,28 @@ class AssetDocumentsRepositoryImpl @Inject constructor(
 
     override suspend fun list(assetId: String): List<AssetDocument> = coroutineScope {
         val property = property()
-        val media = async { api.assetMedia(property, assetId) }
-        val files = async { api.assetFiles(property, assetId) }
-        val pages = async { api.webDocuments(property, assetId) }
-        val manuals = async { jobs.assetManuals(property, assetId).manuals }
+        // Offline each list comes from the response cache: one never fetched online is left out, not the whole tab.
+        val media = async { lastKnown { api.assetMedia(property, assetId) } }
+        val files = async { lastKnown { api.assetFiles(property, assetId) } }
+        val pages = async { lastKnown { api.webDocuments(property, assetId) } }
+        val manuals = async { lastKnown { jobs.assetManuals(property, assetId).manuals } }
         val names = fieldNames(assetId)
+        val parts = listOf(files, media, pages, manuals).map { it.await() }
+        // Offline with none of them kept: offline, as before.
+        if (parts.all { it == null }) throw OnlineException(OnlineError.Offline)
         // As the web's Documents tab: the file the asset was read from first, then the documents added to it (one answering
         // a field is that field's, not one added to the asset), then web pages and manuals.
-        files.await().map { it.toDocument() } +
-            media.await().filter { it.kind == DOCUMENT_KIND && it.fieldId == null }.map { it.toDocument() } +
-            pages.await().map { it.toDocument(names) } +
-            manuals.await().map { it.toDocument() }
+        files.await().orEmpty().map { it.toDocument() } +
+            media.await().orEmpty().filter { it.kind == DOCUMENT_KIND && it.fieldId == null }.map { it.toDocument() } +
+            pages.await().orEmpty().map { it.toDocument(names) } +
+            manuals.await().orEmpty().map { it.toDocument() }
+    }
+
+    /** [read]'s answer, or null when it fails only for want of a connection (offline with nothing kept for it). */
+    private suspend fun <T> lastKnown(read: suspend () -> List<T>): List<T>? = try {
+        read()
+    } catch (e: OnlineException) {
+        if (e.error == OnlineError.Offline) null else throw e
     }
 
     override suspend fun download(assetId: String, document: AssetDocument): OpenableFile {
@@ -78,12 +89,6 @@ class AssetDocumentsRepositoryImpl @Inject constructor(
             DocumentSource.WEB_PAGE -> api.webDocumentContent(property, assetId, document.id, keep)
             DocumentSource.MANUAL -> api.manualContent(property, document.id, keep)
         }
-    }
-
-    override suspend fun upload(assetId: String, doc: Media) {
-        val uri = Uri.parse(doc.uri)
-        val name = doc.fileName?.takeIf { it.isNotBlank() } ?: DEFAULT_NAME
-        api.uploadMedia(property(), assetId, name, contentType(uri, name), doc.sizeBytes ?: -1L) { open(uri) }
     }
 
     override suspend fun removeAttachment(assetId: String, documentId: String) = api.removeMedia(property(), assetId, documentId)
@@ -102,15 +107,6 @@ class AssetDocumentsRepositoryImpl @Inject constructor(
         DocumentSource.WEB_PAGE, DocumentSource.MANUAL -> d.title.removeSuffix(".pdf").ifBlank { DEFAULT_NAME } + ".pdf"
         DocumentSource.ATTACHMENT, DocumentSource.SOURCE_FILE -> d.title.ifBlank { DEFAULT_NAME }
     }
-
-    /** A picked file's stream: one the app keeps (`file://`) or one from the file manager (`content://`). */
-    private fun open(uri: Uri): InputStream =
-        if (uri.scheme == FILE_SCHEME) File(requireNotNull(uri.path)).inputStream()
-        else context.contentResolver.openInputStream(uri) ?: throw FileNotFoundException("no stream")
-
-    private fun contentType(uri: Uri, name: String): String? =
-        (if (uri.scheme == FILE_SCHEME) null else context.contentResolver.getType(uri))
-            ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
 
     /** A document added to the asset. */
     private fun MediaDto.toDocument(): AssetDocument {

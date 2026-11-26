@@ -54,6 +54,7 @@ import com.sclera.sclerago.domain.usecase.asset.CreateAssetUseCase
 import com.sclera.sclerago.presentation.access.PeopleScreen
 import com.sclera.sclerago.presentation.assets.AssetDetailRoute
 import com.sclera.sclerago.presentation.assets.CameraPage
+import com.sclera.sclerago.presentation.assets.CropShotScreen
 import com.sclera.sclerago.presentation.assets.FilePage
 import com.sclera.sclerago.presentation.assets.assetList
 import com.sclera.sclerago.presentation.assign.AssignSheet
@@ -102,6 +103,7 @@ private val TrackEasing = CubicBezierEasing(0.22f, 0.8f, 0.24f, 1f)
 /**
  * What the File tab can upload to scan for assets: spreadsheets (xlsx, xlsm, xls, csv, tsv), PDFs, photos, videos, Word
  * (docx) and text (txt, md, json, xml), each at most 200 MB. Each pick is checked again by name ([IMPORTABLE_KINDS]).
+ * With the property's AI off only [IMPORT_MIME_TYPES_AI_OFF] are offered.
  */
 private val IMPORT_MIME_TYPES = arrayOf(
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -114,6 +116,16 @@ private val IMPORT_MIME_TYPES = arrayOf(
     "text/*",
     "application/json",
     "application/xml",
+)
+
+/** What the File tab offers while the property's AI is off: Excel and CSV (and TSV), the files read without AI. */
+private val IMPORT_MIME_TYPES_AI_OFF = arrayOf(
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel.sheet.macroEnabled.12",
+    "application/vnd.ms-excel",
+    "text/csv",
+    "text/comma-separated-values",
+    "text/tab-separated-values",
 )
 
 @Composable
@@ -213,7 +225,7 @@ fun ScleraApp(
         LaunchedEffect(s.pendingFilePicker) {
             if (s.pendingFilePicker) {
                 vm.filePickerLaunched()
-                filePicker.launch(IMPORT_MIME_TYPES)
+                filePicker.launch(if (files.aiOn) IMPORT_MIME_TYPES else IMPORT_MIME_TYPES_AI_OFF)
             }
         }
 
@@ -463,6 +475,8 @@ fun ScleraApp(
                 )
             }
             s.pv?.let { CapturePreview(it, vm::closePreview) }
+            // Cropping a photo of the camera's strip: the whole screen, over the header and the tabs.
+            s.cropShot?.let { shot -> FullPage { CropShotScreen(shot, vm::closeCrop) { cropped -> vm.cropped(shot, cropped) } } }
             SideMenu(vm)
 
             // Why a scan needs its permission, just before Android asks.

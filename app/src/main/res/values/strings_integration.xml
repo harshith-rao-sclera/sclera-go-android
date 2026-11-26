@@ -10,6 +10,10 @@
     <string name="int_add_title">Add Integration</string>
     <string name="int_field_integration">Integration</string>
     <string name="int_field_vdms">VDMS</string>
+    <!-- + tapped on a property that already has a link. -->
+    <string name="int_already_linked">This property already has an integration. A property can only be linked to one VDMS.</string>
+    <!-- Under the link card's fields: %1$d assets moved to Managed Assets, %2$d of them sent back. -->
+    <string name="int_managed_counts">%1$d in Managed Assets · %2$d returned</string>
     <string name="int_select">Select</string>
     <string name="int_no_options">No options</string>
     <string name="int_once_note">Once integrated, this property\'s VDMS can\'t be changed again.</string>
@@ -52,9 +56,11 @@
 
     <!-- Integration page: buildings, floors and locations, sent to or imported from VDMS by hand (places import) -->
     <string name="pi_section_title">Buildings, floors &amp; locations</string>
-    <!-- The Buildings, floors & locations card's two buttons (to VDMS and from VDMS); kept short to fit side by side. -->
+    <!-- The Buildings, floors & locations card's two buttons (to VDMS and from VDMS), side by side after the History button. -->
     <string name="pi_send">Export</string>
     <string name="pi_import">Import</string>
+    <!-- Under the card's title. %1$s is how long ago, e.g. "22 h ago". -->
+    <string name="pi_card_list_from">VDMS\'s list is from %1$s</string>
     <string name="pi_load_failed">Couldn\'t load buildings, floors and locations.</string>
     <string name="pi_try_again">Try again</string>
     <string name="pi_refresh_late">VDMS hasn\'t answered yet. Its list updates once it does.</string>

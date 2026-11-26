@@ -97,112 +97,85 @@ internal fun SheetButtons(yes: String, enabled: Boolean, onNo: () -> Unit, no: S
 
 @Composable
 fun PropertySettingsPage(vm: AppViewModel, cfg: ConfigViewModel) {
-    val bt = vm.onboardingOn(Tab.BT)
-    val net = vm.onboardingOn(Tab.NET)
+    // AI and units are settings at the server, unknown until they are read (then they can't be changed).
+    val reading = cfg.photos.load == LoadState.LOADING
+    val ai = cfg.aiValidation
+    val metric = cfg.metricUnits
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter()).padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 40.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter())
+            .padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 40.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        Txt(stringResource(R.string.cfgt_onboarding_intro, vm.propName), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
-        CfgCard {
-            SettingsHeader(
-                stringResource(R.string.cfgt_network_onboarding),
-                stringResource(
-                    when {
-                        bt && net -> R.string.cfgt_onboarding_both_on
-                        bt -> R.string.cfgt_onboarding_bt_only
-                        net -> R.string.cfgt_onboarding_wifi_only
-                        else -> R.string.cfgt_onboarding_both_off
-                    },
-                ),
-            )
-            OnboardRow(Icons.Bluetooth, stringResource(R.string.cfgt_bt_onboarding), stringResource(R.string.cfgt_bt_onboarding_hint), bt, vm.onboardingSaving(Tab.BT)) { vm.setOnboarding(Tab.BT, it) }
-            OnboardRow(Icons.Wifi, stringResource(R.string.cfgt_wifi_onboarding), stringResource(R.string.cfgt_wifi_onboarding_hint), net, vm.onboardingSaving(Tab.NET)) { vm.setOnboarding(Tab.NET, it) }
+        SettingsSection(stringResource(R.string.cfgs_phone_onboarding)) {
+            SettingRow(
+                stringResource(R.string.cfgs_bluetooth), stringResource(R.string.cfgs_bluetooth_sub),
+                vm.onboardingOn(Tab.BT), busy = vm.onboardingSaving(Tab.BT),
+            ) { vm.setOnboarding(Tab.BT, it) }
+            SettingRow(
+                stringResource(R.string.cfgs_wifi), stringResource(R.string.cfgs_wifi_sub),
+                vm.onboardingOn(Tab.NET), busy = vm.onboardingSaving(Tab.NET), divider = true,
+            ) { vm.setOnboarding(Tab.NET, it) }
         }
-        // The property's AI switch (the web's AI group): a setting at the server; unknown until the settings are read (then it
-        // can't be changed). Saved, the asset screens' AI buttons follow at once.
-        val ai = cfg.aiValidation
-        CfgCard {
-            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(stringResource(R.string.cfg_ai_title), 13, 700)
-                if (ai == null && cfg.photos.load == LoadState.LOADING) {
-                    SkeletonText(stringResource(R.string.cfg_loading), Modifier.padding(top = 4.dp), lines = 1)
-                } else {
-                    Txt(
-                        stringResource(if (ai != null) R.string.cfg_ai_validation_hint else R.string.cfg_settings_load_failed),
-                        11, 400, C.Muted, maxLines = Int.MAX_VALUE,
-                    )
-                }
-            }
-            OnboardRow(Icons.Sparkles, stringResource(R.string.cfg_ai_validation), stringResource(R.string.cfg_ai_validation_row), ai == true, cfg.aiSaving) {
-                if (ai != null) cfg.setAiValidation(it)
-            }
+        // Saved, the asset screens' AI buttons follow at once.
+        SettingsSection(stringResource(R.string.cfg_ai_title)) {
+            SettingRow(
+                stringResource(R.string.cfg_ai_validation), settingSub(ai, reading, R.string.cfg_ai_validation_row),
+                ai == true, busy = cfg.aiSaving, known = ai != null, loading = ai == null && reading,
+            ) { cfg.setAiValidation(it) }
         }
-        // Units (the web's Units switch): US or metric for the fields a type brings; unknown until the settings are read.
-        val metric = cfg.metricUnits
-        CfgCard {
-            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Txt(stringResource(R.string.cfg_units_title), 13, 700)
-                if (metric == null && cfg.photos.load == LoadState.LOADING) {
-                    SkeletonText(stringResource(R.string.cfg_loading), Modifier.padding(top = 4.dp), lines = 1)
-                } else {
-                    Txt(
-                        stringResource(if (metric != null) R.string.cfg_units_hint else R.string.cfg_settings_load_failed),
-                        11, 400, C.Muted, maxLines = Int.MAX_VALUE,
-                    )
-                }
-            }
-            OnboardRow(Icons.Globe, stringResource(R.string.cfg_units_metric), stringResource(R.string.cfg_units_metric_row), metric == true, cfg.unitsSaving) {
-                if (metric != null) cfg.setMetricUnits(it)
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Txt(stringResource(R.string.cfgt_on_the_phone), 10, 600, C.Muted, spacing = 0.6f)
-            CfgCard {
-                Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-                    listOf(
-                        Triple(Tab.BT, stringResource(R.string.nav_bluetooth), Icons.Bluetooth), Triple(Tab.NET, stringResource(R.string.nav_network), Icons.Wifi),
-                        Triple(Tab.ASSETS, stringResource(R.string.label_assets), Icons.Box),
-                        Triple(Tab.CAMERA, stringResource(R.string.nav_camera), Icons.Camera), Triple(Tab.FILE, stringResource(R.string.nav_file), Icons.FileUpload),
-                    ).filter { it.first in vm.navTabs }.forEach { (_, label, icon) ->
-                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Box(Modifier.height(22.dp), contentAlignment = Alignment.Center) { LineIcon(icon, 16.dp, C.Text, 2f) }
-                            Txt(label, 10, 600, C.Muted)
-                        }
-                    }
-                }
-            }
-            Txt(stringResource(R.string.cfgt_onboarding_footer), 11, 400, C.Dim, maxLines = Int.MAX_VALUE)
+        // US or metric for the fields a type brings.
+        SettingsSection(stringResource(R.string.cfg_units_title)) {
+            SettingRow(
+                stringResource(R.string.cfg_units_metric), settingSub(metric, reading, R.string.cfgs_units_sub),
+                metric == true, busy = cfg.unitsSaving, known = metric != null, loading = metric == null && reading,
+            ) { cfg.setMetricUnits(it) }
         }
     }
 }
 
-/** A settings card's title with its optional line under it. */
+/** A server setting's line: [sub] once read, or that it couldn't be read. */
 @Composable
-private fun SettingsHeader(title: String, sub: String?) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Txt(title, 15, 700)
-        sub?.let { Txt(it, 12, 400, C.Muted, maxLines = Int.MAX_VALUE) }
+private fun settingSub(value: Boolean?, reading: Boolean, sub: Int): String =
+    stringResource(if (value == null && !reading) R.string.cfg_settings_load_failed else sub)
+
+/** A section of settings: its name in small capitals above a card of rows. */
+@Composable
+private fun SettingsSection(title: String, rows: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Txt(title.uppercase(), 11, 600, C.Muted, Modifier.padding(start = 4.dp), spacing = 0.6f)
+        CfgCard(content = rows)
     }
 }
 
-/** A setting's switch row; changing it needs Configure (greyed out, with why, without it). */
+/**
+ * A setting: its name and one short line, with its switch. Changing it needs Configure (greyed out, with why, without
+ * it); while its save is on its way it is dimmed and takes no taps; a server setting not read yet ([known] false) can't
+ * be changed, and shows a placeholder line while it is being read ([loading]).
+ */
 @Composable
-private fun OnboardRow(icon: Ico, title: String, body: String, on: Boolean, busy: Boolean = false, onChange: (Boolean) -> Unit) = ConfigGate(Modifier.fillMaxWidth()) {
-    // While its save is on its way the row is dimmed and takes no taps, as the web's switch.
+private fun SettingRow(
+    title: String,
+    sub: String,
+    on: Boolean,
+    busy: Boolean = false,
+    divider: Boolean = false,
+    known: Boolean = true,
+    loading: Boolean = false,
+    onChange: (Boolean) -> Unit,
+) = ConfigGate(Modifier.fillMaxWidth()) {
+    val usable = known && !busy
     Row(
-        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !busy) { onChange(!on) }.fillMaxWidth().topBorder(C.Border).alpha(if (busy) 0.6f else 1f)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = usable) { onChange(!on) }.fillMaxWidth()
+            .then(if (divider) Modifier.topBorder(C.Border) else Modifier).alpha(if (busy || !known) 0.6f else 1f)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(36.dp).clip(r(9)).background(if (on) C.YTintBg else C.Raised), contentAlignment = Alignment.Center) {
-            LineIcon(icon, 16.dp, if (on) C.Yellow else C.Dim, 2.2f)
-        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, 12, 600)
-            Txt(body, 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+            Txt(title, 15, 600)
+            if (loading) SkeletonText(stringResource(R.string.cfg_loading), Modifier.padding(top = 2.dp), lines = 1)
+            else Txt(sub, 12, 400, C.Muted, maxLines = 2)
         }
-        OnOffSwitch(on) { if (!busy) onChange(it) }
+        OnOffSwitch(on) { if (usable) onChange(it) }
     }
 }

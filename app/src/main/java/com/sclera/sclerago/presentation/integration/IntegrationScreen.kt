@@ -4,19 +4,14 @@ import com.sclera.sclerago.presentation.components.SkeletonLead
 import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.ToastEffect
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -31,20 +26,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AccessBlock
+import com.sclera.sclerago.domain.model.ManagedCounts
 import com.sclera.sclerago.domain.model.VdmsChoice
 import com.sclera.sclerago.presentation.common.ConnectivityViewModel
 import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.BottomSheet
 import com.sclera.sclerago.presentation.components.ChoiceList
 import com.sclera.sclerago.presentation.components.CircleFab
+import com.sclera.sclerago.presentation.components.fabClearance
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.EmptyNote
 import com.sclera.sclerago.presentation.components.LoadFailedNote
@@ -52,6 +47,7 @@ import com.sclera.sclerago.presentation.components.GuardedClose
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.components.Pill
+import com.sclera.sclerago.presentation.components.ScleraGoLogo
 import com.sclera.sclerago.presentation.components.SearchField
 import com.sclera.sclerago.presentation.components.SheetHeader
 import com.sclera.sclerago.presentation.components.SubPageBar
@@ -65,9 +61,10 @@ import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
 /**
- * The Integration page (side menu → Integration), the same as the web's: a floating + to add an integration (only while
- * the property has no link), and the link's card (logo, organisation name, info → View Integration). A link can't be changed here.
- * Once linked, the Buildings, floors & locations card sends places to VDMS or imports them from it ([PlacesCard]).
+ * The Integration page (side menu → Integration), as the iOS app's: a floating + to add an integration (a property has one
+ * at most: once linked, a tap says so), and the link's card (logo, organisation name, VDMS, and how many assets are in Managed Assets).
+ * A link can't be changed here. Once linked, the Buildings, floors & locations card sends places to VDMS or imports them
+ * from it ([PlacesCard]).
  */
 @Composable
 fun IntegrationScreen(
@@ -93,7 +90,7 @@ fun IntegrationScreen(
             SubPageBar(stringResource(R.string.int_title), propName, onMenu)
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = pageGutter())
-                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 60.dp), // room for the floating +
+                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = fabClearance(1, navigationBars = true)), // room for the floating +
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // The link is read and made on the server: offline the page says so (what was last read still shows).
@@ -103,20 +100,27 @@ fun IntegrationScreen(
                     s.loadFailed -> LoadFailedNote(stringResource(R.string.int_load_failed_note), vm::load)
                     s.link == null -> EmptyNote(stringResource(R.string.int_none))
                     else -> {
-                        LinkCard(vm.nameOf(s.link), s.link.vdmsId)
+                        LinkCard(vm.nameOf(s.link), s.link.vdmsId, s.counts)
                         PlacesCard(p, online, places)
                     }
                 }
             }
         }
-        // Add Integration: the floating + as on the other pages. Always there, as the web's button; greyed out and inert
-        // once the property is linked, while loading, or while whether it is linked is unknown (the read failed). Without
-        // Configure it is greyed out too, and a tap says why.
-        val canAdd = s.link == null && !s.loading && !s.loadFailed
+        // Add Integration: the floating + as on the other pages, always there. A property has one VDMS at most: once linked
+        // it is greyed out and a tap says it already has one. Greyed out and inert while loading, or while whether it is
+        // linked is unknown (the read failed). Without Configure it is greyed out too, and a tap says why.
+        val linked = s.link != null
+        val canAdd = !linked && !s.loading && !s.loadFailed
         AccessGate(s.access, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 14.dp)) {
             OfflineGate(!online && canAdd && s.access == null, { vm.explainOffline(OnlineOnly.INTEGRATION) }) {
                 CircleFab(
-                    Icons.Plus, stringResource(R.string.int_add_title), { if (canAdd) vm.startAdding() },
+                    Icons.Plus, stringResource(R.string.int_add_title),
+                    {
+                        when {
+                            linked -> vm.explainLinked()
+                            canAdd -> vm.startAdding()
+                        }
+                    },
                     // The access gate dims it already; not twice.
                     Modifier.alpha(if (canAdd || s.access != null) 1f else 0.4f).testTag("integration_add"),
                 )
@@ -130,16 +134,20 @@ fun IntegrationScreen(
     }
 }
 
-/** The link's card: the Sclera logo, then the integration (the organisation) and its VDMS, shown in the card itself. */
+/**
+ * The link's card: the Sclera logo, then the integration (the organisation) and its VDMS, shown in the card itself, then
+ * how many assets are in Managed Assets and how many came back ([counts], left out until read).
+ */
 @Composable
-private fun LinkCard(name: String, vdmsId: String) {
+private fun LinkCard(name: String, vdmsId: String, counts: ManagedCounts?) {
     Column(
-        Modifier.fillMaxWidth().clip(r(14)).background(C.Surface).border(1.dp, C.Border, r(14)).padding(14.dp).testTag("integration_card"),
+        Modifier.fillMaxWidth().clip(r(16)).background(C.Surface).border(1.dp, C.Border, r(16)).padding(14.dp).testTag("integration_card"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Image(painterResource(R.drawable.login_logo), contentDescription = null, modifier = Modifier.height(28.dp).aspectRatio(512f / 357f))
+        ScleraGoLogo(height = 34.dp)
         ReadOnly(stringResource(R.string.int_field_integration), name, inline = true)
         ReadOnly(stringResource(R.string.int_field_vdms), vdmsId, inline = true)
+        counts?.let { Txt(stringResource(R.string.int_managed_counts, it.moved, it.returned), 13, 400, C.Muted, maxLines = 2) }
     }
 }
 
@@ -147,13 +155,13 @@ private fun LinkCard(name: String, vdmsId: String) {
 @Composable
 private fun ReadOnly(label: String, value: String, inline: Boolean = false) {
     val box: @Composable (Modifier) -> Unit = { m ->
-        Box(m.fillMaxWidth().heightIn(min = 40.dp).clip(r(10)).background(C.Bg).border(1.dp, C.Border2, r(10)).padding(horizontal = 12.dp, vertical = 11.dp), contentAlignment = Alignment.CenterStart) {
-            if (inline) Txt(value.ifBlank { "—" }, 14, 600, maxLines = Int.MAX_VALUE) else Txt(value.ifBlank { "—" }, 13, 500, C.Soft, maxLines = Int.MAX_VALUE)
+        Box(m.fillMaxWidth().heightIn(min = 40.dp).clip(r(12)).background(C.Bg).border(1.dp, C.Border2, r(12)).padding(horizontal = 12.dp, vertical = 11.dp), contentAlignment = Alignment.CenterStart) {
+            if (inline) Txt(value.ifBlank { "—" }, 15, 600, maxLines = Int.MAX_VALUE) else Txt(value.ifBlank { "—" }, 13, 500, C.Soft, maxLines = Int.MAX_VALUE)
         }
     }
     if (inline) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Txt(label, 13, 400, C.Muted, Modifier.width(90.dp), maxLines = 2)
+            Txt(label, 14, 400, C.Muted, Modifier.width(100.dp), maxLines = 2)
             box(Modifier.weight(1f))
         }
     } else {

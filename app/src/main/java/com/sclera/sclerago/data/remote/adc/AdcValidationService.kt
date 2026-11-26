@@ -40,6 +40,16 @@ interface AdcValidationService {
         @Query("cursor") cursor: String?,
     ): Response<ResponseBody>
 
+    /** The active standard fields, then [assetId]'s own fields after them (the review's Asset info, as the web's). */
+    @GET("properties/{p}/fields")
+    suspend fun assetFields(
+        @Path("p") property: String,
+        @Query("assetId") assetId: String,
+        @Query("active") active: Boolean,
+        @Query("limit") limit: Int,
+        @Query("cursor") cursor: String?,
+    ): Response<ResponseBody>
+
     @GET("properties/{p}/validations")
     suspend fun validations(@Path("p") property: String): Response<ResponseBody>
 

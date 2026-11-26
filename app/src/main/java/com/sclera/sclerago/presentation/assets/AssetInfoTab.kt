@@ -49,9 +49,6 @@ import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
-import com.sclera.sclerago.domain.model.assetTypes
-import com.sclera.sclerago.domain.model.subtypes
-import com.sclera.sclerago.domain.model.systemTypes
 import com.sclera.sclerago.domain.model.tagKindOfField
 import com.sclera.sclerago.domain.usecase.asset.AssetPerson
 import com.sclera.sclerago.domain.usecase.asset.ChangeAction
@@ -123,10 +120,8 @@ class AssetDetailActions(
     val onTakePhoto: () -> Unit = {},
     val onPickGallery: () -> Unit = {},
     val onPickFiles: () -> Unit = {},
-    /** The Documents tab's Upload: one file, sent to the server as one of the asset's documents. */
+    /** The Documents tab's +: picks files kept as the asset's media, as [onPickFiles] (Media's Add file). */
     val onUploadDocument: () -> Unit = {},
-    /** The greyed-out Upload (offline, or the server doesn't have the asset yet): says why documents can't be added. */
-    val onDocumentsBlocked: () -> Unit = {},
     /** The Media tab's Record memo: records a voice memo for the asset. */
     val onRecordMemo: () -> Unit = {},
     /** The comment being typed changed / post it (Comments tab). */
@@ -169,8 +164,8 @@ class AssetDetailActions(
     val tags: TagsActions = TagsActions(),
 )
 
-/** Opening the JACS code picker, and what it does; [onSuggest] asks the AI for codes (the AI button beside an empty code). */
-class JacsActions(val onOpen: () -> Unit = {}, val picker: JacsPickerActions = JacsPickerActions(), val onSuggest: () -> Unit = {})
+/** Opening the JACS code picker, and what it does. */
+class JacsActions(val onOpen: () -> Unit = {}, val picker: JacsPickerActions = JacsPickerActions())
 
 /** The form's own view state: which sections are closed and where a Fix button should scroll to. */
 @Stable
@@ -218,6 +213,8 @@ fun AssetInfoTab(
     onModal: (DetailModal) -> Unit,
     /** The remove button of one of the asset's own fields was tapped (the screen asks first). */
     onRemoveField: (FieldCfg) -> Unit = {},
+    /** A type row (system, asset or sub type) was tapped: the screen opens its picker. */
+    onPickType: (TypePick) -> Unit = {},
 ) {
     val asset = state.asset ?: return
     val spec = FieldSpec(state.fields)
@@ -253,7 +250,6 @@ fun AssetInfoTab(
     }
 
     // System details: the type comes from the property's catalogue, the JACS code is written as it is (no list exists).
-    val formats = state.formats
     fun missing(key: String) = spec.required(key) && (v(key).isEmpty() || (key != "jacs" && v(key) == UNCLASSIFIED))
     // The web always lists all four rows.
     val systemShown = SYSTEM_KEYS
@@ -277,36 +273,18 @@ fun AssetInfoTab(
                 // Picked from the JACS catalog (or typed there), which sets the type too.
                 // A mandatory code still missing is highlighted and tagged REQUIRED, as the design canvas.
                 val jacsMissing = missing(k)
-                // No code yet on a saved asset: the AI suggests some for its type (as the web's button beside the JACS
-                // dropdown; the server needs the asset and Collect). Greyed out, saying why, for whoever may not change it.
-                val suggest = !isNew && isServerId(asset.id) && v(k).isEmpty()
                 PickRow(
                     k, labels.getValue(k), v(k),
                     stringResource(if (jacsMissing) R.string.detail_select_jacs else R.string.jacs_none), state.dirty(k), actions.jacs.onOpen,
                     rowBg = if (jacsMissing) C.WarnRow else Color.Transparent,
                     mono = true, badge = state.badgeFor(k), requester = ui.requester(k),
                     tag = if (jacsMissing) stringResource(R.string.detail_required_tag) else null,
-                    trailing = if (suggest) {
-                        {
-                            AccessGate(state.buttons.change) {
-                                JacsSuggestButton(
-                                    busy = state.jacsSuggesting, aiOff = !state.aiOn, offline = !state.online,
-                                    onSuggest = actions.jacs.onSuggest, onOffline = { actions.onOffline(OnlineOnly.SUGGEST_JACS) },
-                                )
-                            }
-                        }
-                    } else null,
                 )
             } else {
-                val choices = when (k) {
-                    "sys" -> formats.systemTypes()
-                    "typ" -> formats.assetTypes(v("sys"))
-                    else -> formats.subtypes(v("sys"), v("typ"))
-                }
-                // Not classified yet shows as "-", as on the web.
-                SelectRow(
-                    k, labels.getValue(k), v(k), listOf(UNCLASSIFIED to notSet) + choices.filter { it != UNCLASSIFIED }.map { it to it },
-                    state.dirty(k), { actions.onEdit(k, it) }, requester = ui.requester(k),
+                // Opens the type picker (search and the types' icons); not classified yet shows as "-", as on the web.
+                PickRow(
+                    k, labels.getValue(k), v(k).takeUnless { it == UNCLASSIFIED }.orEmpty(), notSet, state.dirty(k),
+                    { onPickType(TypePick(k, labels.getValue(k))) }, requester = ui.requester(k),
                 )
             }
         }

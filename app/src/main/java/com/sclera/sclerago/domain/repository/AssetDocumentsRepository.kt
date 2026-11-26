@@ -1,7 +1,6 @@
 package com.sclera.sclerago.domain.repository
 
 import com.sclera.sclerago.domain.model.AssetDocument
-import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.OpenableFile
 
 /**
@@ -18,9 +17,6 @@ interface AssetDocumentsRepository {
 
     /** [document]'s file, fetched from the server to be opened. */
     suspend fun download(assetId: String, document: AssetDocument): OpenableFile
-
-    /** Adds the picked file [doc] to the asset's documents. */
-    suspend fun upload(assetId: String, doc: Media)
 
     /** Takes the document [documentId] added to the asset off it. */
     suspend fun removeAttachment(assetId: String, documentId: String)

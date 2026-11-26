@@ -206,6 +206,8 @@ object Icons {
         s("M4 9a8 8 0 0 1 14-3l2 2M20 15a8 8 0 0 1-14 3l-2-2"), s("M20 4v4h-4M4 20v-4h4"), s(circle(12f, 12f, 2.5f)),
     )
     val Expand = Ico(s("M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"))
+    /** Crop: two corner brackets crossing, as a photo editor's crop tool. */
+    val Crop = Ico(s("M6 2v14a2 2 0 0 0 2 2h14"), s("M18 22V8a2 2 0 0 0-2-2H2"))
     val Search = Ico(s(circle(11f, 11f, 7f)), s("M20 20l-3.5-3.5"))
     val Save = Ico(s("M5 3h11l3 3v15H5z"), s("M8 3v5h7V3M8 21v-7h8v7"))
     val Crosshair = Ico(s(circle(12f, 12f, 3f)), s(circle(12f, 12f, 7.5f)), s("M12 2v3M12 19v3M2 12h3M19 12h3"))

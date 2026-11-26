@@ -95,13 +95,6 @@ class AdcDocumentsApi @Inject constructor(private val service: AdcDocumentsServi
     suspend fun assetMedia(property: String, asset: String): List<MediaDto> =
         call.json({ service.assetMedia(property, asset) }) { AdcJson.decodeFromString(ListSerializer(MediaDto.serializer()), it) }
 
-    /** Adds a file to [asset]'s media, streamed from [open] as [upload] streams one. */
-    suspend fun uploadMedia(property: String, asset: String, filename: String, contentType: String?, size: Long, open: () -> InputStream): MediaDto {
-        val body = StreamingFileBody((contentType ?: OCTET_STREAM).toMediaTypeOrNull(), size, open) {}
-        val part = MultipartBody.Part.createFormData("file", filename, body)
-        return call.json({ service.uploadMedia(property, asset, part) }) { AdcJson.decodeFromString(MediaDto.serializer(), it) }
-    }
-
     suspend fun removeMedia(property: String, asset: String, media: String) = call.unit { service.removeMedia(property, asset, media) }
 
     /** Media file [media] of [asset], handed to [read] as it downloads; [preview]: a photo's smaller version (1280 px). */

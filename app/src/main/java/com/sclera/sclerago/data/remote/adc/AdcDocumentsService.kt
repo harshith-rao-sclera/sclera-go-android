@@ -102,19 +102,6 @@ interface AdcDocumentsService {
     @GET("properties/{property}/assets/{asset}/media")
     suspend fun assetMedia(@Path("property") property: String, @Path("asset") asset: String): Response<ResponseBody>
 
-    /**
-     * Adds one `file` (multipart) to the asset's media: a document becomes one added to it. `201` with the media; `409`
-     * when the asset is locked, `422` for a file it can't take, an empty one or one over its size limit.
-     */
-    @Multipart
-    @Headers(AdcConfig.SLOW_CALL)
-    @POST("properties/{property}/assets/{asset}/media")
-    suspend fun uploadMedia(
-        @Path("property") property: String,
-        @Path("asset") asset: String,
-        @Part file: MultipartBody.Part,
-    ): Response<ResponseBody>
-
     /** Takes one of the asset's media off it. `204`. */
     @DELETE("properties/{property}/assets/{asset}/media/{media}")
     suspend fun removeMedia(

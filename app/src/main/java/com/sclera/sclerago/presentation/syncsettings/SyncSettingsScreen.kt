@@ -100,11 +100,11 @@ private fun Waiting(s: SyncSettings?) {
     StatRow {
         StatCard(
             Icons.Box, C.Yellow, s?.assetsWaiting?.toString().orEmpty(), stringResource(R.string.sync_assets_waiting),
-            Modifier.weight(1f).testTag(SyncSettingsTags.ASSETS), valueSize = 24, labelSize = 12, prominent = true, loading = s == null, labelMinSize = 10,
+            Modifier.weight(1f).testTag(SyncSettingsTags.ASSETS), valueSize = 24, labelSize = 12, prominent = true, loading = s == null, labelMinSize = 10, labelLines = 2,
         )
         StatCard(
             Icons.Gallery, C.Blue, s?.mediaWaiting?.toString().orEmpty(), stringResource(R.string.sync_media_waiting),
-            Modifier.weight(1f).testTag(SyncSettingsTags.MEDIA), valueSize = 24, labelSize = 12, prominent = true, loading = s == null, labelMinSize = 10,
+            Modifier.weight(1f).testTag(SyncSettingsTags.MEDIA), valueSize = 24, labelSize = 12, prominent = true, loading = s == null, labelMinSize = 10, labelLines = 2,
         )
     }
 }

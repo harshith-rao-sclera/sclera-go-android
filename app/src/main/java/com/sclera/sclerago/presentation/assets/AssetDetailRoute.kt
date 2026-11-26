@@ -42,7 +42,6 @@ import com.sclera.sclerago.presentation.tagging.TagFlowHost
 import com.sclera.sclerago.presentation.tagging.TagViewModel
 import com.sclera.sclerago.presentation.tagging.TagsActions
 import com.sclera.sclerago.services.media.describeAttachments
-import com.sclera.sclerago.services.media.describeDocument
 import com.sclera.sclerago.services.media.describeVisualMedia
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -154,13 +153,6 @@ fun AssetDetailRoute(
     val filePick = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) scope.launch { vm.attachFiles(describeAttachments(context, uris)) }
     }
-    // The Documents tab's Add: one file, added to the asset's documents.
-    val documentPick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) scope.launch {
-            val doc = describeDocument(context, uri)
-            if (doc != null) vm.attachDocument(doc) else attach(describeAttachments(context, listOf(uri)))
-        }
-    }
 
     // The viewer's Download: the system's save dialog, then the file is copied where the user chose.
     var downloading by remember(asset.id) { mutableStateOf<Media?>(null) }
@@ -221,8 +213,8 @@ fun AssetDetailRoute(
         onPickGallery = { galleryPick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
         // Excel, CSV, PDF, Word and text only (checked again, with the 10 MB limit, once picked).
         onPickFiles = { filePick.launch(ATTACHABLE_FILE_TYPES.toTypedArray()) },
-        onUploadDocument = { documentPick.launch(arrayOf("*/*")) },
-        onDocumentsBlocked = vm::documentsBlocked,
+        // Documents' +: the same files as Media's Add file, kept the same way.
+        onUploadDocument = { filePick.launch(ATTACHABLE_FILE_TYPES.toTypedArray()) },
         onCommentChange = vm::editComment,
         onPostComment = vm::postComment,
         onUpdateComment = vm::updateComment,
@@ -250,7 +242,6 @@ fun AssetDetailRoute(
         jacs = JacsActions(
             onOpen = vm::openJacs,
             picker = JacsPickerActions(onQuery = vm::searchJacs, onMore = vm::moreJacs, onPick = vm::pickJacs, onClose = vm::closeJacs),
-            onSuggest = vm::suggestJacs,
         ),
         classify = ClassifyActions(
             onPickType = vm::pickSuggestedType, onPickCode = vm::pickSuggestedCode,

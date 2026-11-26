@@ -15,6 +15,7 @@ import com.sclera.sclerago.domain.validation.RunIssue
 import com.sclera.sclerago.domain.validation.RunRequest
 import com.sclera.sclerago.domain.validation.StepOrder
 import com.sclera.sclerago.domain.validation.ValRun
+import com.sclera.sclerago.domain.validation.ServerReviewAsset
 import com.sclera.sclerago.domain.validation.ValStep
 import com.sclera.sclerago.domain.validation.ValTemplate
 import com.sclera.sclerago.domain.validation.ValidationDef
@@ -110,6 +111,9 @@ interface ValidationRunRepository {
 
     /** An asset as the server has it, for merging duplicates. */
     suspend fun mergeAsset(propertyId: String, assetId: String): MergeAsset
+
+    /** An asset and the fields it has as the server has them, for the review's Asset info. */
+    suspend fun reviewAsset(propertyId: String, assetId: String): ServerReviewAsset
 
     /** Merges [mergeIds] into [keepId], with the chosen value per field id. */
     suspend fun merge(propertyId: String, keepId: String, mergeIds: List<String>, values: Map<String, IssueValue>)

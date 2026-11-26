@@ -21,6 +21,7 @@ import com.sclera.sclerago.domain.model.UploadProblem
 import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessBlocksUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveAuthStateUseCase
+import com.sclera.sclerago.domain.usecase.config.AiSwitchUseCases
 import com.sclera.sclerago.domain.usecase.fileimport.FileImportUseCases
 import com.sclera.sclerago.domain.usecase.media.FileUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
@@ -121,6 +122,7 @@ class FileImportViewModel @Inject constructor(
     private val useCases: FileImportUseCases,
     private val fileUseCases: FileUseCases,
     accessBlocks: ObserveAccessBlocksUseCase,
+    private val aiSwitch: AiSwitchUseCases,
 ) : ViewModel() {
     var state by mutableStateOf(FileImportState())
         private set
@@ -132,8 +134,27 @@ class FileImportViewModel @Inject constructor(
     var collectBlock by mutableStateOf<AccessBlock?>(accessBlocks.now().collect)
         private set
 
+    /**
+     * The property's AI switch: off, only Excel and CSV can be read (the server reads the rest with AI only), so the file
+     * manager offers just those and any other file picked is refused with why, as the web's "AI off: Excel and CSV only".
+     */
+    var aiOn by mutableStateOf(true)
+        private set
+
     private fun set(f: FileImportState.() -> FileImportState) {
         state = state.f()
+    }
+
+    /** Reads the AI switch again unless it was read lately (the File tab asks as it opens, as the web's does). */
+    fun refreshAi() {
+        viewModelScope.launch { aiSwitch.refresh() }
+    }
+
+    /** Files waiting to be sent, checked again with the AI switch as it now is ([aiOn]). */
+    private fun recheck() = set {
+        if (step != FileStep.PICK || busy || reading) return@set this
+        val now = files.mapNotNull { f -> useCases.check(f, aiOn)?.let { f.id to it } }.toMap()
+        copy(problems = now, off = off - problems.keys + now.keys)
     }
 
     /** The property files go to: the current one. Drafts belong to the property they were read for. */
@@ -145,6 +166,12 @@ class FileImportViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { accessBlocks().map { it.collect }.distinctUntilChanged().collect { collectBlock = it } }
+        viewModelScope.launch {
+            aiSwitch.observe().collect { on ->
+                aiOn = on
+                recheck()
+            }
+        }
         viewModelScope.launch {
             downloads.observe().map { it.currentId }.distinctUntilChanged().collect { id ->
                 if (property != null && id != property) reset(FileOutcome.Cleared)
@@ -171,7 +198,7 @@ class FileImportViewModel @Inject constructor(
             set {
                 val base = if (step == FileStep.PICK) this else FileImportState()
                 val fresh = picked.filter { f -> base.files.none { it.uri == f.uri } }
-                val refused = fresh.mapNotNull { f -> useCases.check(f)?.let { f.id to it } }.toMap()
+                val refused = fresh.mapNotNull { f -> useCases.check(f, aiOn)?.let { f.id to it } }.toMap()
                 base.copy(files = base.files + fresh, problems = base.problems + refused, off = base.off + refused.keys)
             }
         }
@@ -193,7 +220,7 @@ class FileImportViewModel @Inject constructor(
             set {
                 val base = if (step == FileStep.PICK) this else FileImportState()
                 val fresh = shots.filter { f -> base.files.none { it.uri == f.uri } }
-                val refused = fresh.mapNotNull { f -> useCases.check(f)?.let { f.id to it } }.toMap()
+                val refused = fresh.mapNotNull { f -> useCases.check(f, aiOn)?.let { f.id to it } }.toMap()
                 base.copy(files = base.files + fresh, problems = base.problems + refused, off = base.off + refused.keys)
             }
         }

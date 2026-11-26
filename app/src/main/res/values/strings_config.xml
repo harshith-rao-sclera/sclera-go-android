@@ -162,7 +162,6 @@
 
     <!-- Settings -->
     <string name="cfg_ai_validation">AI</string>
-    <string name="cfg_ai_validation_hint">Off, nothing in this property asks the AI. Its AI buttons stay, disabled.</string>
     <string name="cfg_settings_load_failed">Couldn’t load the property’s settings.</string>
     <string name="cfg_setting_on">%1$s turned on</string>
     <string name="cfg_setting_off">%1$s turned off</string>
@@ -170,9 +169,7 @@
     <string name="cfg_ai_title">AI</string>
     <string name="cfg_ai_validation_row">Suggestions, manuals, AI checks, file reading</string>
     <string name="cfg_units_title">Units</string>
-    <string name="cfg_units_hint">The fields an asset type brings are in US units (ft, psi, °F) or metric (m, kPa, °C). Fields already on an asset keep their unit, and no answer is converted.</string>
     <string name="cfg_units_metric">Metric units</string>
-    <string name="cfg_units_metric_row">m, kPa, °C. Applies to assets classified from now on.</string>
     <string name="cfg_units_metric_saved">Metric units</string>
     <string name="cfg_units_us_saved">US units</string>
     <string name="cfg_checks_whole_hint">Values with decimals are flagged.</string>
