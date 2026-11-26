@@ -529,7 +529,7 @@ class AssetDetailViewModel @Inject constructor(
                 // Every saved asset, one in Managed Assets too (as the web's: the copies are new drafts), for a group that
                 // can collect.
                 canClone = !t.isNew && useCases.canWorkOn.canCollect(),
-                buttons = buttonBlocks(asset, t.isNew).toUi(changeRequests.isReviewer(), changeRequests.isMine(asset.changeRequest)),
+                buttons = buttonBlocks(asset, t.isNew).toUi(changeRequests.isReviewer()),
                 classify = classified.sheet,
                 jacs = jacs,
                 jacsTitle = (f.edits["jacs"] ?: saved["jacs"])?.trim()?.let(jacsTitles::get),

@@ -126,9 +126,10 @@ internal fun ChangeRequestLine(
 /**
  * A change request on a submitted (or signed-off) asset, as one slim line under the top bar on every tab: "Change
  * requested · <who>". Tapping it opens the rest: who asked and when, the note, and what can be done: a reviewer declines it
- * (withdraws, when it is their own) or approves it (back to draft for whoever asked); whoever asked withdraws it. All three
- * show for everyone; each the signed-in user may not use is greyed out, and a tap says why ([declineBlocked],
- * [approveBlocked], [withdrawBlocked]: Withdraw on someone else's request, Decline on one's own).
+ * or approves it (back to draft for whoever asked); whoever asked withdraws it. Only what can apply to the signed-in user
+ * shows: Withdraw only on their own request ([mine]), Decline only on someone else's, and Decline / Approve only for a
+ * group that has them ([showDecline], [showApprove]). One that applies but can't be used now is greyed out, and a tap says
+ * why ([declineBlocked], [approveBlocked], [withdrawBlocked]).
  */
 @Composable
 internal fun ChangeRequestBanner(
@@ -138,6 +139,8 @@ internal fun ChangeRequestBanner(
     declineBlocked: UiText?,
     approveBlocked: UiText?,
     withdrawBlocked: UiText?,
+    showDecline: Boolean,
+    showApprove: Boolean,
     onClose: () -> Unit,
     onReopen: () -> Unit,
     modifier: Modifier = Modifier,
@@ -166,21 +169,21 @@ internal fun ChangeRequestBanner(
                 ChangeRequestLine(request, mine, requester, icon = false)
                 // Small labelled pills at the end (32dp tall; each still answers a 48dp touch).
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)) {
-                    AccessGate(withdrawBlocked) {
+                    if (mine) AccessGate(withdrawBlocked) {
                         Pill(
                             stringResource(R.string.change_request_withdraw), onClose,
                             Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.CLOSE),
                             height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
                         )
                     }
-                    AccessGate(declineBlocked) {
+                    if (!mine && showDecline) AccessGate(declineBlocked) {
                         Pill(
                             stringResource(R.string.change_request_decline), onClose,
                             Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.DECLINE),
                             height = 32.dp, hPad = 14.dp, size = 12, weight = 700,
                         )
                     }
-                    AccessGate(approveBlocked) {
+                    if (showApprove) AccessGate(approveBlocked) {
                         Pill(
                             stringResource(R.string.change_request_reopen), onReopen,
                             Modifier.minimumInteractiveComponentSize().testTag(ChangeRequestTags.REOPEN),

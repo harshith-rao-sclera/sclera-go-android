@@ -88,7 +88,7 @@ class PremiseRepositoryImpl @Inject constructor(
         }
         // A property just opened is held to view only until it is known; looking again keeps what was known meanwhile.
         if (evaluatedFor != id) {
-            _status.value = PremiseStatus.UNKNOWN
+            _status.value = PremiseStatus.CHECKING
             forCalls.set(null)
         }
         evaluatedFor = id

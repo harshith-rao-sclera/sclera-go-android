@@ -19,6 +19,9 @@ enum class PremiseStatus {
 
     /** The phone's position couldn't be found (no fix). */
     UNKNOWN,
+
+    /** A property just opened: its position is being found out. Held to view only meanwhile, but nothing is said yet. */
+    CHECKING,
     ;
 
     /** A collector is held to view only: anything but "not applicable" and "on premise" (unknown counts as off premise). */

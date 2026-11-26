@@ -36,21 +36,21 @@ data class AssetButtons(
 )
 
 /** An action of the asset bar that can be left out for the signed-in user (see [AssetButtons.hidden]). */
-enum class BarAction { VALIDATE, SIGN_OFF, ASSIGN, TAKE, SUBMIT, MOVE_TO_MANAGED, MOVE_TO_DRAFT, REQUEST_CHANGE, DELETE }
+enum class BarAction { VALIDATE, SIGN_OFF, ASSIGN, TAKE, SUBMIT, MOVE_TO_MANAGED, MOVE_TO_DRAFT, REQUEST_CHANGE, DELETE, APPROVE, DECLINE }
 
 /**
- * [AssetButtonBlocks] as what a tap on each greyed-out button says ([reviewer]: the signed-in user is a reviewer; [mine]:
- * they made the asset's change request). On the asset bar, an action the user's group doesn't allow is left out
- * ([AssetButtons.hidden]): Assign for anyone but a reviewer, Request change for a reviewer (who changes the asset instead),
- * and any whose permission is missing. One blocked by the asset's state (submitted, someone else's) or a passing state
- * (access still loading, off site) stays, greyed out with why, as does Decline on one's own request (Withdraw takes it back).
+ * [AssetButtonBlocks] as what a tap on each greyed-out button says ([reviewer]: the signed-in user is a reviewer). On the
+ * asset bar and the change request banner, an action the user's group doesn't allow is left out ([AssetButtons.hidden]):
+ * Assign for anyone but a reviewer, Request change for a reviewer (who changes the asset instead), and any whose
+ * permission is missing (Approve and Decline included). One blocked by the asset's state (submitted, someone else's) or a
+ * passing state (access still loading, off site) stays, greyed out with why.
  */
-fun AssetButtonBlocks.toUi(reviewer: Boolean, mine: Boolean): AssetButtons = AssetButtons(
+fun AssetButtonBlocks.toUi(reviewer: Boolean): AssetButtons = AssetButtons(
     change = change.text(), collect = collect.text(), validate = validate.text(), signOff = signOff.text(),
     moveToDraft = moveToDraft.text(),
     requestChange = requestChange.text(),
     approve = approve.text(),
-    decline = decline.text() ?: UiText.Res(R.string.access_decline_own_request).takeIf { mine },
+    decline = decline.text(),
     withdraw = withdraw.text(),
     assign = assign.text(),
     take = take.text(),
@@ -66,6 +66,8 @@ fun AssetButtonBlocks.toUi(reviewer: Boolean, mine: Boolean): AssetButtons = Ass
         if (moveToManaged.lacksPermission) add(BarAction.MOVE_TO_MANAGED)
         if (moveToDraft.lacksPermission) add(BarAction.MOVE_TO_DRAFT)
         if (requestChange.lacksPermission || reviewer) add(BarAction.REQUEST_CHANGE)
+        if (approve.lacksPermission) add(BarAction.APPROVE)
+        if (decline.lacksPermission) add(BarAction.DECLINE)
     },
 )
 

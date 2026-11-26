@@ -186,8 +186,9 @@ fun AssetDetailScreen(
             request?.let {
                 ChangeRequestBanner(
                     it, state.changeRequestMine, state.changeRequester,
-                    // A reviewer declines or approves it; whoever asked withdraws it; anyone else sees why they can't.
+                    // A reviewer declines or approves it; whoever asked withdraws it. What can't apply to this user isn't shown.
                     declineBlocked = b.decline, approveBlocked = b.approve, withdrawBlocked = b.withdraw,
+                    showDecline = BarAction.DECLINE !in b.hidden, showApprove = BarAction.APPROVE !in b.hidden,
                     onClose = actions.changeRequest.onClose,
                     onReopen = { modal = DetailModal.APPROVE_REQUEST },
                 )

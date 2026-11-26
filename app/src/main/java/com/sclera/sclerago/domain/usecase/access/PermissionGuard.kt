@@ -80,7 +80,9 @@ class PermissionGuard @Inject constructor(
     fun observePremiseNotice(): Flow<PremiseNotice> =
         combine(access.state, premise.status) { state, status ->
             when {
-                !heldByLocation(state, status) -> PremiseNotice.NONE
+                // Still finding out where the phone is (a property just opened): held, but not said yet, so the first
+                // thing shown is the answer (outside the fence, no permission, or no fix), not a passing "can't be found".
+                !heldByLocation(state, status) || status == PremiseStatus.CHECKING -> PremiseNotice.NONE
                 status == PremiseStatus.OFF_PREMISE -> PremiseNotice.OFF_PREMISE
                 status == PremiseStatus.LOCATION_PERMISSION_NEEDED -> PremiseNotice.LOCATION_NEEDED
                 else -> PremiseNotice.LOCATION_UNKNOWN
