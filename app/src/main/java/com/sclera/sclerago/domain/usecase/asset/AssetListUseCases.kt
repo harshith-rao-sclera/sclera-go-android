@@ -35,7 +35,7 @@ private val CHIP_ORDER = listOf(Status.DRAFT, Status.SUBMITTED, Status.EXCEPTION
  * chip. The assets in Managed Assets ([managed], never in [assets]) are listed only while the Managed assets chip is on
  * ([AssetListQuery.managed]), on their own; its count follows the location and the filter, as the other chips. The
  * chip counts (status and Change requests) follow the chosen location (all of the property,
- * one building, floor or location, or the unmapped assets) but not the search text. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
+ * one building, floor or location, or the unmapped assets) and the search text, as the web's status tabs do. The "AI suggestion" chip counts every asset with the AI flag (see [isIn]),
  * so it can overlap the other chips. The Change requests chip shows for everyone, with 0 while there are none (whoever
  * the user is: a chip is never hidden by role). The Failed validation and
  * Needs a look chips show while some assets have that mark. The filter sheet's choices ([AssetListQuery.filter], read
@@ -51,10 +51,11 @@ class BuildAssetListUseCase @Inject constructor() {
         val text = query.text.trim().lowercase()
         // As the API's `q`: the name, manufacturer, model, serial number, description or any other answer.
         fun searched(list: List<Asset>) = if (text.isEmpty()) list else list.filter { it.hasText(text) }
-        // The tab's assets in the chosen location that pass the filter: what the chips count.
-        val tab = scope(assets, query).filter { query.filter.matches(it, formats) }
+        // The tab's assets in the chosen location that pass the filter and the search: what the chips count (as the web's
+        // status tabs, which ask the summary with the list's filters and search, but not their own status).
+        val tab = searched(scope(assets, query).filter { query.filter.matches(it, formats) })
         // The same of the assets in Managed Assets: what the Managed assets chip counts.
-        val inManaged = scope(managed, query).filter { query.filter.matches(it, formats) }
+        val inManaged = searched(scope(managed, query).filter { query.filter.matches(it, formats) })
         val managedOn = query.managed
         // Bluetooth / Wi-Fi: on the Assets tab only (the other tabs already list one way of onboarding each).
         val onboardedOn = query.onboarded?.takeIf { query.sources == null && !managedOn }
@@ -71,7 +72,7 @@ class BuildAssetListUseCase @Inject constructor() {
             query.sources == null -> EmptyReason.ASSETS_TAB
             else -> EmptyReason.SOURCE_TAB
         }
-        val items = if (managedOn) searched(inManaged) else searched(tab).filter {
+        val items = if (managedOn) inManaged else tab.filter {
             (chosen == null || it.isIn(chosen)) && (!changesOn || it.changeRequest != null) &&
                 (markOn == null || it.validationMark == markOn) && (onboardedOn == null || it.src == onboardedOn)
         }

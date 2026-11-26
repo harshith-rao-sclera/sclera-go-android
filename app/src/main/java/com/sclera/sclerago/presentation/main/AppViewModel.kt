@@ -332,6 +332,12 @@ class AppViewModel @Inject constructor(
     /** A property is downloaded, so its assets, sections and side-menu card can show. */
     val hasProperty: Boolean get() = currentProp.isNotEmpty()
 
+    /**
+     * The property opened last has been read from the phone, so the first page is known: its assets, or the Property list
+     * when there is none. Until then nothing is shown, rather than an empty asset list that then gives way.
+     */
+    val startKnown: Boolean get() = downloadFlow.value.restored
+
     val propName: String get() = properties.firstOrNull { it.id == currentProp }?.name.orEmpty()
     /** The location tab path, or null when no location is chosen yet. */
     val specPathShown: List<String>? get() = state.specPath.takeIf { it.isNotEmpty() }
@@ -1309,11 +1315,12 @@ class AppViewModel @Inject constructor(
      */
     private fun openRecentProperty() {
         viewModelScope.launch {
+            // No property opened before: the Property list at once (not after the access check below, which can take a while).
+            if (downloads.observe().first { it.restored }.currentId == null) openAdmin(AdminPage.PROPERTIES)
             // Properties the user lost access to are removed first (online), so their sync doesn't start and then get
             // closed under it.
             val lost = if (downloads.isOnline()) removeLostProperties.beforeSyncStarts(LOST_CHECK_WAIT_MS) else null
             lost?.let(::onLostProperties)
-            if (downloads.observe().first { it.restored }.currentId == null) openAdmin(AdminPage.PROPERTIES)
             // Every downloaded property syncs again, the current one included.
             downloads.resume()
         }

@@ -331,7 +331,6 @@
     <string name="detail_system_type">系统类型</string>
     <string name="detail_asset_type">资产类型</string>
     <string name="detail_sub_type">子类型</string>
-    <string name="select_no_match">无匹配项</string>
     <string name="detail_jacs_code">JACS 代码</string>
     <string name="detail_yes">是</string>
     <string name="detail_no">否</string>

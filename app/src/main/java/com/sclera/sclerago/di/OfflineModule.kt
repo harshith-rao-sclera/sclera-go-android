@@ -138,6 +138,7 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun voiceFill(impl: VoiceFillRepositoryImpl): VoiceFillRepository
     @Binds abstract fun classification(impl: ClassificationRepositoryImpl): ClassificationRepository
     @Binds abstract fun jacs(impl: JacsRepositoryImpl): JacsRepository
+    @Binds @IntoSet abstract fun clearJacs(impl: JacsRepositoryImpl): UserDataCleaner
     @Binds abstract fun assetIcons(impl: AssetIconRepositoryImpl): AssetIconRepository
     @Binds abstract fun locations(impl: LocationRepositoryImpl): LocationRepository
     @Binds abstract fun assetConfig(impl: AssetConfigRepositoryImpl): AssetConfigRepository

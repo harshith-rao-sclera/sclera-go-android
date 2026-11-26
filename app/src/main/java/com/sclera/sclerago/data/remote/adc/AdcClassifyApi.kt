@@ -1,5 +1,7 @@
 package com.sclera.sclerago.data.remote.adc
 
+import retrofit2.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -40,6 +42,22 @@ class AdcClassifyApi @Inject constructor(private val service: AdcClassifyService
     suspend fun jacsCodes(query: String?, cursor: String?, limit: Int): PageDto<JacsCodeDto> =
         call.json({ service.jacsCodes(query, cursor, limit) }) { AdcJson.decodeFromString(PageDto.serializer(JacsCodeDto.serializer()), it) }
 
+    /**
+     * The whole JACS catalogue with its version (the `ETag`), or null when it hasn't changed since [etag] (`304`).
+     */
+    suspend fun jacsCatalog(etag: String?): Pair<String?, JacsCatalogDto>? {
+        var tag: String? = null
+        val text = call.json({
+            val answer = service.jacsCatalog(etag)
+            tag = answer.headers()["ETag"]
+            // Not changed: an empty body, read as "nothing new".
+            if (answer.code() == NOT_MODIFIED) Response.success(NOT_MODIFIED_BODY.toResponseBody()) else answer
+        }) { it }
+        if (text.isEmpty()) return null
+        val catalog = AdcJson.decodeFromString(JacsCatalogDto.serializer(), text)
+        return (tag ?: catalog.version) to catalog
+    }
+
     suspend fun jacsMasterFormat(property: String, code: String): JacsMasterFormatDto =
         call.json({ service.jacsMasterFormat(property, code) }) { AdcJson.decodeFromString(JacsMasterFormatDto.serializer(), it) }
 
@@ -52,5 +70,8 @@ class AdcClassifyApi @Inject constructor(private val service: AdcClassifyService
     suspend fun classification(property: String): ClassificationDto =
         call.json({ service.classification(property) }) { AdcJson.decodeFromString(ClassificationDto.serializer(), it) }
 
-    /** Every active type's fields of [property]. */
+    private companion object {
+        const val NOT_MODIFIED = 304
+        const val NOT_MODIFIED_BODY = ""
+    }
 }

@@ -55,4 +55,6 @@ fun DbRow.toMasterFormat() = MasterFormat(
     systemType = string("system_type").orEmpty(),
     assetType = string("asset_type")?.takeIf { it.isNotBlank() },
     subtype = string("subtype")?.takeIf { it.isNotBlank() },
+    // A database synced before the server had the column has no such value: none.
+    jacsCode = string("jacs_code")?.trim()?.takeIf { it.isNotEmpty() },
 )

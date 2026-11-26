@@ -149,7 +149,8 @@ internal fun ReviewAssetInfoTab(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Txt(row.label, 12, 500, C.Muted, Modifier.weight(0.42f), maxLines = 2)
-                Txt(row.value ?: "—", 13, 600, if (row.value == null) C.Muted else C.Text, Modifier.weight(0.58f), maxLines = Int.MAX_VALUE)
+                val shown = row.value?.let { v -> row.title?.let { stringResource(R.string.jacs_with_title, v, it) } ?: v }
+                Txt(shown ?: "—", 13, 600, if (row.value == null) C.Muted else C.Text, Modifier.weight(0.58f), maxLines = Int.MAX_VALUE)
             }
         }
     }

@@ -331,7 +331,6 @@
     <string name="detail_system_type">ประเภทระบบ</string>
     <string name="detail_asset_type">ประเภทสินทรัพย์</string>
     <string name="detail_sub_type">ประเภทย่อย</string>
-    <string name="select_no_match">ไม่พบรายการที่ตรงกัน</string>
     <string name="detail_jacs_code">รหัส JACS</string>
     <string name="detail_yes">ใช่</string>
     <string name="detail_no">ไม่ใช่</string>

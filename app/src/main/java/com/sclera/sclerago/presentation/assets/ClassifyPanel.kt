@@ -33,8 +33,7 @@ import com.sclera.sclerago.domain.model.SuggestionSource
 import com.sclera.sclerago.domain.model.TypeSuggestion
 import com.sclera.sclerago.presentation.components.SkeletonLead
 import com.sclera.sclerago.presentation.components.SkeletonList
-import com.sclera.sclerago.presentation.components.OfflineBanner
-import com.sclera.sclerago.presentation.model.OnlineOnly
+import com.sclera.sclerago.presentation.components.OfflineGate
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.r
@@ -72,13 +71,16 @@ internal fun ClassifyPanel(
     onSuggest: () -> Unit,
     actions: ClassifyActions,
     modifier: Modifier = Modifier,
-    /** Offline: a banner says suggestions need the server (the type can still be picked by hand) instead of the button. */
+    /**
+     * Offline: suggestions need the server, so the button stays, greyed out, and a tap calls [onOffline] to say why (the
+     * type can still be picked by hand).
+     */
     offline: Boolean = false,
+    onOffline: () -> Unit = {},
 ) {
     val loading = c?.phase == ClassifyPhase.LOADING
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (offline && !loading) OfflineBanner(OnlineOnly.SUGGEST_TYPE)
-        else Row(
+        OfflineGate(offline && !loading, onOffline, Modifier.fillMaxWidth()) { Row(
             Modifier.fillMaxWidth().heightIn(min = 44.dp).pressClickable(shape = Capsule, pressed = PRESSED_CARD, enabled = !loading, onClick = onSuggest).background(C.Surface).border(1.dp, C.Border2, Capsule)
                 .testTag(DetailTags.SUGGEST_TYPE)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
@@ -97,7 +99,7 @@ internal fun ClassifyPanel(
                 ),
                 13, 600, C.Cyan, maxLines = 1,
             )
-        }
+        } }
         when (c?.phase) {
             ClassifyPhase.ERROR -> Txt(c.error?.asString() ?: stringResource(R.string.classify_failed), 12, 500, C.Orange, maxLines = Int.MAX_VALUE)
             ClassifyPhase.RESULTS -> Column(Modifier.testTag(ClassifyTags.RESULTS), verticalArrangement = Arrangement.spacedBy(10.dp)) {

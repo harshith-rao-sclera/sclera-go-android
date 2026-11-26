@@ -343,7 +343,6 @@
     <string name="detail_system_type">Typ systemu</string>
     <string name="detail_asset_type">Typ zasobu</string>
     <string name="detail_sub_type">Podtyp</string>
-    <string name="select_no_match">Brak wyników</string>
     <string name="detail_jacs_code">Kod JACS</string>
     <string name="detail_yes">Tak</string>
     <string name="detail_no">Nie</string>

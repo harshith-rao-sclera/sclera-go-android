@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase.validation
 
+import com.sclera.sclerago.domain.repository.JacsRepository
 import com.sclera.sclerago.domain.system.ClockFormat
 import java.util.Locale
 import com.sclera.sclerago.domain.model.ANSWER_NO
@@ -27,12 +28,17 @@ import javax.inject.Inject
 class GetReviewAssetInfoUseCase @Inject constructor(
     private val repo: ValidationRunRepository,
     private val clock: ClockFormat,
+    private val jacs: JacsRepository,
 ) {
     suspend operator fun invoke(propertyId: String, assetId: String, zone: ZoneId = ZoneId.systemDefault()): ReviewAssetInfo {
         val asset = repo.reviewAsset(propertyId, assetId)
         val shown = asset.fields.filter { it.visible && it.kind !in NO_INPUT_KINDS }
         return ReviewAssetInfo(
-            rows = shown.map { f -> AssetInfoRow(f.label, readable(f, asset.values[f.id].orEmpty().trim(), zone)) },
+            rows = shown.map { f ->
+                val value = readable(f, asset.values[f.id].orEmpty().trim(), zone)
+                // The JACS code with its title from the catalogue kept on the phone, as the web shows it.
+                AssetInfoRow(f.label, value, title = value?.takeIf { f.key == JACS_KEY }?.let { jacs.titles.value[it] })
+            },
             place = asset.place,
             status = asset.status,
             kind = asset.kind,
@@ -57,5 +63,6 @@ class GetReviewAssetInfoUseCase @Inject constructor(
     private companion object {
         /** System, asset and sub type count as empty while they are still unclassified, as the form shows them. */
         val CLASSIFICATION_KEYS = setOf("sys", "typ", "sub")
+        const val JACS_KEY = "jacs"
     }
 }

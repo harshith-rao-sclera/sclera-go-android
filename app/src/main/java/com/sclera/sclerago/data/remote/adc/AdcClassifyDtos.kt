@@ -125,3 +125,15 @@ class ClassifyPhoto(val filename: String, val contentType: String, val bytes: By
 /** One type's fields (`GET /master-formats/{id}/fields`). */
 @Serializable
 data class MasterFormatFieldsDto(val masterFormatId: String, val fields: List<TypeFieldDto> = emptyList())
+
+/** One type a catalogue code is filed under. */
+@Serializable
+data class JacsGroupDto(val systemType: String? = null, val assetType: String? = null, val subAssetType: String? = null)
+
+/** A code of the whole catalogue. */
+@Serializable
+data class JacsCatalogCodeDto(val code: String, val title: String? = null, val groups: List<JacsGroupDto> = emptyList())
+
+/** `GET /jacs-codes/catalog`: the whole JACS catalogue, sorted by code; [version] is also its `ETag`. */
+@Serializable
+data class JacsCatalogDto(val version: String? = null, val count: Int = 0, val codes: List<JacsCatalogCodeDto> = emptyList())

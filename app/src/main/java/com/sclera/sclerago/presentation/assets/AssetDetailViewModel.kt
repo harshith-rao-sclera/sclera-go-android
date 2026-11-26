@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.jacsCodeForType
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
@@ -197,6 +198,8 @@ data class AssetDetailState(
     val buttons: AssetButtons = AssetButtons(),
     /** The JACS code picker while it is open (null: closed). */
     val jacs: JacsPickerState? = null,
+    /** The title of the JACS code in the form, from the catalogue kept on the phone (null: unknown, or no code). */
+    val jacsTitle: String? = null,
     /** The "Suggest type" sheet while it is open (null: closed). */
     val classify: ClassifyState? = null,
     /** A building, floor or location picked for the asset and not saved yet ([place] already shows it). */
@@ -418,16 +421,25 @@ class AssetDetailViewModel @Inject constructor(
     }
 
     /** What [pickers] puts together. */
-    private data class Pickers(val classified: ClassifierUi, val jacs: JacsPickerState?, val online: Boolean, val aiOn: Boolean)
+    private data class Pickers(
+        val classified: ClassifierUi,
+        val jacs: JacsPickerState?,
+        val online: Boolean,
+        val aiOn: Boolean,
+        /** JACS code → title, from the catalogue kept on the phone. */
+        val jacsTitles: Map<String, String>,
+    )
 
     /**
      * The classifier's part of the screen, the JACS code picker, whether the device is online and the property's AI switch,
      * as one (the screen's state takes five sources), again whenever the signed-in user's access changes.
      */
-    private val pickers = combine(classifier.ui, jacsPicker.state, observeOnline(), observeAccess(), aiSwitch.observe()) { classified, jacs, online, _, aiOn ->
+    private val pickers = combine(
+        classifier.ui, combine(jacsPicker.state, jacsCodes.titles()) { p, t -> p to t }, observeOnline(), observeAccess(), aiSwitch.observe(),
+    ) { classified, (jacs, jacsTitles), online, _, aiOn ->
         // The access itself isn't kept: a change to it (fetched, changed, failed) only makes the screen work out its
         // permission checks again (lock, Check, Clone, comments, own fields, change actions, tags).
-        Pickers(classified, jacs, online, aiOn)
+        Pickers(classified, jacs, online, aiOn, jacsTitles)
     }
 
     /** Messages to flash after saving, submitting, validating or adding media. */
@@ -473,7 +485,7 @@ class AssetDetailViewModel @Inject constructor(
         }
 
     val state: StateFlow<AssetDetailState> =
-        combine(opened, form, observeConfig(), fromDb, pickers) { o, f, config, db, (classified, jacs, online, aiOn) ->
+        combine(opened, form, observeConfig(), fromDb, pickers) { o, f, config, db, (classified, jacs, online, aiOn, jacsTitles) ->
             val t = o?.target ?: return@combine AssetDetailState()
             val asset = o.asset ?: return@combine AssetDetailState()
             val details = o.details
@@ -520,6 +532,7 @@ class AssetDetailViewModel @Inject constructor(
                 buttons = buttonBlocks(asset, t.isNew).toUi(changeRequests.isReviewer(), changeRequests.isMine(asset.changeRequest)),
                 classify = classified.sheet,
                 jacs = jacs,
+                jacsTitle = (f.edits["jacs"] ?: saved["jacs"])?.trim()?.let(jacsTitles::get),
                 online = online,
                 refreshing = f.refreshing,
                 aiOn = aiOn,
@@ -663,7 +676,12 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         if (s.locked) return
         // A new system or asset type also resets the types below it that the catalogue doesn't file under it.
-        val changes = if (key in CLASS_KEYS) formData.reclassify(s.formats, s.values, key, value) else mapOf(key to value)
+        val typed = if (key in CLASS_KEYS) formData.reclassify(s.formats, s.values, key, value) else mapOf(key to value)
+        // A type picked brings its own JACS code, unless the code in the form is already under the same number (as the
+        // web and the server: 238219-TRM stays when Fan Coil Units, 238219, is picked).
+        val code = if (key in CLASS_KEYS) jacsCodeForType(s.formats.formatFor(s.values + typed), s.value("jacs")) else null
+        val changes = if (code != null) typed + ("jacs" to code) else typed
+        if (code != null) classifier.noteCode(code)
         // A value typed over an applied AI suggestion no longer came from its page, as the server drops it.
         form.update { it.copy(edits = it.edits + changes, aiSources = it.aiSources - changes.keys) }
         // A new type shows its fields.
@@ -1036,8 +1054,8 @@ class AssetDetailViewModel @Inject constructor(
 
     /**
      * Puts the JACS [code] in the form (blank: none) and, as the web does, the type the property has for it: its
-     * system, asset and sub type, whose fields then show. Without a connection, or a type for the code, only the code
-     * changes. Nothing is saved until Save.
+     * system, asset and sub type, whose fields then show ([JacsTypeUseCase], offline too). Without a type for the code,
+     * or when the asset's type already has a code under the same number, only the code changes. Nothing is saved until Save.
      */
     fun pickJacs(code: String) {
         if (state.value.locked) return
@@ -1047,11 +1065,10 @@ class AssetDetailViewModel @Inject constructor(
         form.update { it.copy(edits = it.edits + ("jacs" to value), aiSources = it.aiSources - "jacs") }
         if (value.isEmpty()) return
         viewModelScope.launch {
-            val type = try {
-                jacsCodes.typeFor(value)
-            } catch (_: OnlineException) {
-                null
-            } ?: return@launch
+            // Worked out on the phone (also offline): the type whose own code it is, or the one the catalogue files it
+            // under; the server's match when neither (online). The type stays when its own code is under the same number.
+            val now = state.value
+            val type = jacsCodes.typeFor(value, now.formats, now.formats.formatFor(now.values)) ?: return@launch
             // Picked another code meanwhile: that one decides.
             if (state.value.value("jacs") != value) return@launch
             val update = mapOf("sys" to type.systemType, "typ" to (type.assetType ?: UNCLASSIFIED), "sub" to (type.subtype ?: UNCLASSIFIED))

@@ -335,7 +335,6 @@
     <string name="detail_system_type">सिस्टम प्रकार</string>
     <string name="detail_asset_type">एसेट प्रकार</string>
     <string name="detail_sub_type">उप-प्रकार</string>
-    <string name="select_no_match">कोई मिलान नहीं</string>
     <string name="detail_jacs_code">JACS कोड</string>
     <string name="detail_yes">हाँ</string>
     <string name="detail_no">नहीं</string>

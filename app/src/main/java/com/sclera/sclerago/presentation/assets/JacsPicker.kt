@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.foundation.background
@@ -127,7 +128,9 @@ internal class JacsPicker(private val useCases: JacsUseCases, private val scope:
                 }
             }
         } catch (e: OnlineException) {
-            picker.update { it?.copy(loading = false, error = e.error.toUiText()) }
+            // Offline with no catalogue on the phone yet (it comes with the first connection): a code can still be typed.
+            val why = if (e.error == OnlineError.Offline) UiText.Res(R.string.jacs_catalog_missing) else e.error.toUiText()
+            picker.update { it?.copy(loading = false, error = why) }
         }
     }
 

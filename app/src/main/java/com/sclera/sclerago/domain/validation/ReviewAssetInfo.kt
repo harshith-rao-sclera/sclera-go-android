@@ -5,8 +5,11 @@ import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.LocationTag
 import com.sclera.sclerago.domain.model.Status
 
-/** One line of an asset's info in the review: a field's name and its value as a person reads it (null when empty). */
-data class AssetInfoRow(val label: String, val value: String?)
+/**
+ * One line of an asset's info in the review: a field's name and its value as a person reads it (null when empty); a JACS
+ * code's catalogue [title] ("Fan Coil Units") to show with it, when known.
+ */
+data class AssetInfoRow(val label: String, val value: String?, val title: String? = null)
 
 /**
  * What the review's asset sheet shows about the asset as the server has it: its Type and Location tag (its own, not

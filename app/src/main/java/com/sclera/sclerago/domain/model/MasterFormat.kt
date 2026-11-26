@@ -6,6 +6,11 @@ data class MasterFormat(
     val systemType: String,
     val assetType: String? = null,
     val subtype: String? = null,
+    /**
+     * The type's own JACS code (`master_formats.jacs_code`): what an asset given this type gets. Null or blank: none (or
+     * not worked out by the server yet).
+     */
+    val jacsCode: String? = null,
 ) {
     /** The most specific name the app's [AssetType] is worked out from. */
     val label: String get() = assetType ?: systemType

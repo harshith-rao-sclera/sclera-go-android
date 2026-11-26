@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.remote.adc
 
+import retrofit2.http.Header
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -29,6 +30,13 @@ interface AdcClassifyService {
     /** The JACS catalog: codes matching every word of `q` (all when absent), best first, `{ data, nextCursor, hasMore }`. */
     @GET("jacs-codes")
     suspend fun jacsCodes(@Query("q") query: String?, @Query("cursor") cursor: String?, @Query("limit") limit: Int): Response<ResponseBody>
+
+    /**
+     * The whole JACS catalogue ([JacsCatalogDto]). With [etag] (the version kept) it answers `304` and no body until the
+     * catalogue changes.
+     */
+    @GET("jacs-codes/catalog")
+    suspend fun jacsCatalog(@Header("If-None-Match") etag: String?): Response<ResponseBody>
 
     /** The property's master format for a JACS code, `{ code, masterFormat }` (`masterFormat` null when it has none). */
     @GET("properties/{property}/jacs-codes/{code}/master-format")

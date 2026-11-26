@@ -422,6 +422,9 @@ fun ScleraApp(
             // Sync settings page (side menu, under the open property): what waits to upload and the sync switches.
             if (s.syncOpen && vm.hasProperty) FullPage { SyncSettingsScreen(vm.currentProp, vm.propName, vm::closeSync, onMenu = vm::openMenu) }
 
+            // Until the property opened last is read: a plain page, not the asset list that the Property list then replaces.
+            if (s.adminPage == null && !vm.startKnown) FullPage { Box(Modifier.fillMaxSize().background(C.Bg)) }
+
             // Property list / People and access (side menu).
             when (s.adminPage) {
                 AdminPage.PROPERTIES -> FullPage { PropertyListScreen(vm) }

@@ -59,8 +59,8 @@ class AssetDetailScreenTest {
         compose.onNodeWithTag(PhotoTags.tile(1)).assertIsDisplayed()
         compose.onNodeWithTag(PhotoTags.ADD).assertIsDisplayed()
         compose.onNodeWithTag(DetailTags.LOCATION).assertIsDisplayed()
-        // Fields read from the nameplate carry OCR, the doubtful one CHECK.
-        compose.onNodeWithTag(DetailTags.badge("make")).performScrollTo().assertTextContains(str(R.string.detail_badge_ocr))
+        // Only a doubtful value read from the nameplate carries a badge (CHECK); a sure one has none (OCR is gone).
+        compose.onNodeWithTag(DetailTags.badge("make")).assertDoesNotExist()
         compose.onNodeWithTag(DetailTags.badge("speed")).performScrollTo().assertTextContains(str(R.string.detail_badge_check))
         // Collapsed Classification says what is missing.
         compose.onNodeWithText(str(R.string.detail_required_summary, "JACS code")).performScrollTo().assertIsDisplayed()

@@ -335,7 +335,6 @@
     <string name="detail_system_type">Sistem türü</string>
     <string name="detail_asset_type">Varlık türü</string>
     <string name="detail_sub_type">Alt tür</string>
-    <string name="select_no_match">Eşleşme yok</string>
     <string name="detail_jacs_code">JACS kodu</string>
     <string name="detail_yes">Evet</string>
     <string name="detail_no">Hayır</string>

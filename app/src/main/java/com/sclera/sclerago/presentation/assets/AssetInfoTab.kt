@@ -275,8 +275,10 @@ fun AssetInfoTab(
                 // Picked from the JACS catalog (or typed there), which sets the type too.
                 // A mandatory code still missing is highlighted and tagged REQUIRED, as the design canvas.
                 val jacsMissing = missing(k)
+                // With its title, as the web: "238219 · Fan Coil Units" (the code alone when the catalogue lacks it).
+                val code = v(k)
                 PickRow(
-                    k, labels.getValue(k), v(k),
+                    k, labels.getValue(k), state.jacsTitle?.takeIf { code.isNotBlank() }?.let { stringResource(R.string.jacs_with_title, code, it) } ?: code,
                     stringResource(if (jacsMissing) R.string.detail_select_jacs else R.string.jacs_none), state.dirty(k), actions.jacs.onOpen,
                     rowBg = if (jacsMissing) C.WarnRow else Color.Transparent,
                     mono = true, badge = state.badgeFor(k), requester = ui.requester(k),
@@ -296,7 +298,7 @@ fun AssetInfoTab(
         AccessGate(state.buttons.change, Modifier.fillMaxWidth()) {
             ClassifyPanel(
                 state.classify, actions.onSuggestType, actions.classify, Modifier.padding(horizontal = 12.dp).padding(top = 8.dp),
-                offline = !state.online,
+                offline = !state.online, onOffline = { actions.onOffline(OnlineOnly.SUGGEST_TYPE) },
             )
         }
     }
