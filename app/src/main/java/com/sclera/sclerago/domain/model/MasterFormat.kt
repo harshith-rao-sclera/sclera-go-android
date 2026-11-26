@@ -27,6 +27,27 @@ fun List<MasterFormat>.formatFor(values: Map<String, String>): MasterFormat? {
 /** The system types of the catalogue, in its order. */
 fun List<MasterFormat>.systemTypes(): List<String> = map { it.systemType }.filter { it.isNotBlank() }.distinct()
 
+/**
+ * The catalogue row that stands for a type in a list of them (its icon): the system type [system] (its own row, with no
+ * asset type), the asset type [type] under it (with no sub type), or the sub type [subtype] under both; the first row
+ * filed under the name when it has no row of its own. Null when the catalogue doesn't have it.
+ */
+fun List<MasterFormat>.formatOf(system: String, type: String? = null, subtype: String? = null): MasterFormat? {
+    val under = filter {
+        it.systemType.equals(system, true) &&
+            (type == null || it.assetType.equals(type, true)) &&
+            (subtype == null || it.subtype.equals(subtype, true))
+    }
+    val own = under.firstOrNull {
+        when {
+            subtype != null -> true
+            type != null -> it.subtype.isNullOrBlank()
+            else -> it.assetType.isNullOrBlank()
+        }
+    }
+    return own ?: under.firstOrNull()
+}
+
 /** The asset types filed under [system], in the catalogue's order. */
 fun List<MasterFormat>.assetTypes(system: String): List<String> =
     filter { it.systemType.equals(system, true) }.mapNotNull { it.assetType }.distinct()

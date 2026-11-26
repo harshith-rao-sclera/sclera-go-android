@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cropping a photo of the camera's strip (Single). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- The crop badge on a photo in the camera's strip, read out. -->
+    <string name="crop_open">Crop this photo</string>
+    <string name="crop_failed">The photo couldn\'t be cropped. Try again.</string>
+</resources>

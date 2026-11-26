@@ -1,6 +1,7 @@
 package com.sclera.sclerago.presentation.validation
 
 import com.sclera.sclerago.presentation.components.FilterFab
+import com.sclera.sclerago.presentation.components.fabClearance
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import androidx.compose.runtime.key
@@ -173,7 +174,10 @@ fun ValidationScreen(
             // Pull down to read the saved validations and runs again, as on the other pages (with a connection: also
             // after a read that found none, to try again).
             PullRefresh(s.refreshing, vm::refresh, Modifier.weight(1f).fillMaxWidth(), enabled = online) {
-                LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = 160.dp)) {
+                // Room for the floating buttons, so the last job scrolls clear of them: the filter (once there are runs),
+                // over the + and the run button (online only).
+                val fabs = (if (s.runs.isNotEmpty()) 1 else 0) + (if (offline) 0 else 2)
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = pageGutter(), end = pageGutter(), bottom = fabClearance(fabs, navigationBars = true))) {
                     item(key = "top") { Spacer(Modifier.height(4.dp)) }
                     if (offline) item(key = "offline") { OfflineBanner(OnlineOnly.VALIDATION, Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
                     item(key = "templates") {

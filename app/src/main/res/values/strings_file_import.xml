@@ -2,6 +2,9 @@
 <!-- Assets → File tab: upload files, the server reads the assets in them, review and add them. English only for now. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="file_import_hint">Excel, CSV, PDF, photos, videos, Word or text files · max %1$d MB each. You review the assets found before adding.</string>
+    <!-- The property's AI is off: only Excel and CSV can be read (the web's "AI off: Excel and CSV only"). -->
+    <string name="file_import_hint_ai_off">AI off: Excel and CSV only · max %1$d MB each. You review the assets found before adding.</string>
+    <string name="file_import_needs_ai">Can\'t be read with AI off: only Excel and CSV files are read without it. An admin can turn AI on.</string>
     <string name="file_import_ready">Ready to upload</string>
     <string name="file_import_unreadable">Can\'t be used here. Use an Excel, CSV, PDF, photo, video, Word or text file.</string>
     <string name="file_import_empty">This file is empty.</string>

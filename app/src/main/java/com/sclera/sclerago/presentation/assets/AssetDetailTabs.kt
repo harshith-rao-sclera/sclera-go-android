@@ -160,12 +160,14 @@ private fun fileKindRes(kind: String?) = when (kind) {
 }
 
 /**
- * The Documents tab: a card per document — the ones added to the asset (kept on the device and synced like its photos),
- * then from the server the web pages its applied AI suggestions came from and its model's manuals from the manufacturer's site.
+ * The Documents tab: a card per document — the file the asset was read from, the files added to it (the Documents
+ * tab's + and Media's Add file, kept on the device and synced like its photos, so they show offline too), then from the
+ * server the web pages its applied AI suggestions came from and its model's manuals from the manufacturer's site.
  * Each card shows its type, its name, a tag (the file's kind, or the document's category) and its details: when a file
  * was added, its size and type; or what a page was used for (a manual's model), its site and whether the PDF is kept. The
  * eye fetches the file and opens it ([onOpen]); the bin deletes it when the user may. Upload document is the floating +
- * ([UploadDocumentFab]). Documents are the server's only (not synced): offline none show, and none can be changed.
+ * ([UploadDocumentFab]). The server's documents (source file, web pages, manuals) need the connection: offline only the
+ * files kept on the device show.
  */
 @Composable
 fun DocumentsTab(
@@ -180,7 +182,7 @@ fun DocumentsTab(
     lockReason: UiText? = null,
     collectReason: UiText? = null,
 ) {
-    val waiting = searching || ui.loading || ui.uploading
+    val waiting = searching || ui.loading
     if (documents.isEmpty() && !waiting) {
         EmptyTab(stringResource(if (ui.failed) R.string.doc_load_failed else R.string.doc_none))
         return
@@ -190,7 +192,8 @@ fun DocumentsTab(
         // other the user may not remove keeps its bin, greyed out, saying why.
         val why = lockReason ?: collectReason.takeUnless { d.removable }
         val fixed = d.source == DocumentSource.MANUAL || d.source == DocumentSource.SOURCE_FILE
-        val removable = !fixed && !signedOff && !ui.offline && (d.removable || why != null)
+        // A file kept on the phone is removed there, offline too; the server's need the connection.
+        val removable = !fixed && !signedOff && (d.onDevice || !ui.offline) && (d.removable || why != null)
         DocumentCard(d, canRemove = removable, opening = ui.opening == d.id, onOpen = onOpen, onRemove = { onRemove(d) }, removeBlocked = why)
     }
     // Being fetched or added, or the AI lookup or the manual search is still finding pages and manuals: placeholder cards.

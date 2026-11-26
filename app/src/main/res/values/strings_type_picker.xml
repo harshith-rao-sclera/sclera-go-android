@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The asset form's type picker (system, asset and sub type). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Clears a type already chosen: the form then shows "-". -->
+    <string name="type_picker_none">Not classified</string>
+    <!-- The picker has nothing to list: the type above isn't chosen, or the catalogue holds none under it. -->
+    <string name="type_picker_system_first">Choose a system type first.</string>
+    <string name="type_picker_type_first">No sub types here. Choose an asset type first, or pick another one.</string>
+    <string name="type_picker_none_listed">No types in this property\'s catalogue yet.</string>
+</resources>

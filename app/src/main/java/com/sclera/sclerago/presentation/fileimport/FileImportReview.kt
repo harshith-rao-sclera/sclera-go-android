@@ -322,6 +322,7 @@ private fun FoundDraft.toItem(off: Set<String>): ReviewItem {
 
 private fun UploadProblem.text(): UiText = when (this) {
     UploadProblem.UNREADABLE -> UiText.Res(R.string.file_import_unreadable)
+    UploadProblem.NEEDS_AI -> UiText.Res(R.string.file_import_needs_ai)
     UploadProblem.EMPTY -> UiText.Res(R.string.file_import_empty)
     UploadProblem.TOO_LARGE -> UiText.Res(R.string.file_import_too_large, listOf(MAX_DOCUMENT_UPLOAD_MB))
 }

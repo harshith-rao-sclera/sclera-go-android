@@ -45,6 +45,9 @@ import com.sclera.sclerago.presentation.components.SkeletonLead
 import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.CircleFab
+import com.sclera.sclerago.presentation.components.FabGap
+import com.sclera.sclerago.presentation.components.FabMargin
+import com.sclera.sclerago.presentation.components.fabClearance
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.OfflineBanner
 import com.sclera.sclerago.presentation.components.PullRefresh
@@ -180,7 +183,8 @@ internal fun PeopleContent(
                     LazyColumn(
                         Modifier.fillMaxSize().testTag(if (pageOnPeople) AccessTags.LIST else AccessTags.LIST_GROUPS),
                         state = if (pageOnPeople) peopleScroll else groupsScroll,
-                        contentPadding = PaddingValues(start = gutter + 8.dp, end = gutter + 8.dp, top = 4.dp, bottom = 160.dp),
+                        // Room for the + (and, on Users, the search) button, so the last card scrolls clear of them.
+                        contentPadding = PaddingValues(start = gutter + 8.dp, end = gutter + 8.dp, top = 4.dp, bottom = fabClearance(if (pageOnPeople) 2 else 1, navigationBars = true)),
                         verticalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
                         val unavailable = list.unavailable
@@ -224,9 +228,9 @@ internal fun PeopleContent(
         // Add person / New group always shows; without Manage access, or with nothing to add to yet, it is greyed out and a
         // tap says why. The web searches people only.
         Column(
-            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
+            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().imePadding().padding(end = FabMargin, bottom = FabMargin),
             horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(FabGap),
         ) {
             AccessGate(list.addReason) {
                 CircleFab(

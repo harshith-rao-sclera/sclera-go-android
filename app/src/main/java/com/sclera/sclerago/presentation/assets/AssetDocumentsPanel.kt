@@ -5,7 +5,6 @@ import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.DataException
 import com.sclera.sclerago.domain.model.DocumentFileStatus
 import com.sclera.sclerago.domain.model.DocumentSource
-import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.OpenableFile
@@ -29,14 +28,15 @@ data class DocumentsUi(
     val documents: List<AssetDocument> = emptyList(),
     /** Fetching them (the first time, or again after a change). */
     val loading: Boolean = false,
-    /** Offline: documents are the server's only (not synced), so none can be fetched, opened, added or taken off. */
+    /**
+     * Offline: the server's documents shown are the last list it sent (from the response cache); their files can't be
+     * fetched to open, and none can be taken off.
+     */
     val offline: Boolean = false,
     /** The last fetch failed for another reason. */
     val failed: Boolean = false,
     /** The document whose file is being fetched to be opened. */
     val opening: String? = null,
-    /** A document is being added. */
-    val uploading: Boolean = false,
 )
 
 /**
@@ -99,30 +99,6 @@ internal class AssetDocumentsPanel(
         }
     }
 
-    /** Sends the picked files [docs] to the server as the asset's documents. */
-    fun upload(docs: List<Media>) {
-        val id = assetId ?: return
-        if (docs.isEmpty()) return
-        if (!onServer) {
-            scope.launch { notify(UiText.Res(R.string.doc_not_on_server)) }
-            return
-        }
-        ui.update { it.copy(uploading = true) }
-        scope.launch {
-            try {
-                docs.forEach { useCases.upload(id, it) }
-                notify(UiText.Res(R.string.doc_uploaded))
-            } catch (e: OnlineException) {
-                notify(e.error.toUiText())
-            } catch (e: DataException) {
-                notify(e.error.toUiText())
-            } finally {
-                ui.update { it.copy(uploading = false) }
-                reload()
-            }
-        }
-    }
-
     /** Takes [document] off the asset on the server. */
     fun remove(document: AssetDocument) {
         val id = assetId ?: return
@@ -140,26 +116,25 @@ internal class AssetDocumentsPanel(
         }
     }
 
-    /** Shows [id]'s documents whenever the device is online; offline, none, saying so. */
+    /**
+     * Shows [id]'s documents, again each time the device comes online. Offline the list is still asked for: the response
+     * cache answers with the last list the server sent (none when it never sent one), and the tab says it is offline.
+     */
     private suspend fun follow(id: String) {
         online.distinctUntilChanged().collectLatest { on ->
-            if (!on) {
-                ui.update { it.copy(documents = emptyList(), loading = false, failed = false, offline = true) }
-                return@collectLatest
-            }
             var polls = 0
             do {
-                ui.update { it.copy(loading = true, offline = false) }
-                val pending = fetch(id)
+                ui.update { it.copy(loading = true, offline = !on) }
+                val pending = fetch(id, on) && on
                 if (pending) delay(PENDING_POLL_MS)
             } while (pending && ++polls < MAX_POLLS)
         }
     }
 
-    /** One fetch; true when a web page's PDF is still downloading on the server. */
-    private suspend fun fetch(id: String): Boolean = try {
+    /** One fetch ([on]: the device is online); true when a web page's PDF is still downloading on the server. */
+    private suspend fun fetch(id: String, on: Boolean): Boolean = try {
         val docs = useCases.list(id)
-        ui.update { it.copy(documents = docs, loading = false, failed = false, offline = false) }
+        ui.update { it.copy(documents = docs, loading = false, failed = false, offline = !on) }
         docs.any { it.source == DocumentSource.WEB_PAGE && it.fileStatus == DocumentFileStatus.PENDING }
     } catch (e: OnlineException) {
         val offline = e.error == OnlineError.Offline

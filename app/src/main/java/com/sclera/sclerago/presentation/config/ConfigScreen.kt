@@ -2,6 +2,7 @@ package com.sclera.sclerago.presentation.config
 
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
+import com.sclera.sclerago.presentation.components.fabClearance
 import com.sclera.sclerago.presentation.components.rememberAppear
 import com.sclera.sclerago.presentation.components.scrim
 import com.sclera.sclerago.presentation.components.popIn
@@ -368,7 +369,7 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String, online
                         }
                     }
                 }
-                Spacer(Modifier.height(220.dp)) // room for the three floating buttons
+                Spacer(Modifier.height(fabClearance(3))) // room for the three floating buttons
             }
 
             val sheetOpen = adding || openLoc != null || buildingSheet != null || floorsSheet || nameAsk != null || deleteAsk != null ||
@@ -1063,7 +1064,8 @@ private fun AssetFields(fv: FieldsConfigViewModel, cfg: ConfigViewModel, propNam
         }
 
         // Photos: the property's photo rules at the server (nameplate, asset, label ID), as the web's table.
-        TableCard(Modifier.padding(top = 14.dp, bottom = 96.dp)) {
+        // Room under it for the floating + (its 10dp margin), so the table scrolls clear of it.
+        TableCard(Modifier.padding(top = 14.dp, bottom = fabClearance(1, margin = 10.dp))) {
             TableHeader {
                 HeaderText(stringResource(R.string.cfg_col_photos), Modifier.weight(1f))
                 HeaderText(stringResource(R.string.cfg_col_min), Modifier.width(STEPPER_W), TextAlign.Center)

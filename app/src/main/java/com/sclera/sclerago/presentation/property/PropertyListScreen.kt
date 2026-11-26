@@ -66,11 +66,25 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.presentation.common.asString
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.sclera.sclerago.presentation.components.FabAction
 import com.sclera.sclerago.presentation.components.ConfirmDialog
 import com.sclera.sclerago.presentation.components.FabMenu
+import com.sclera.sclerago.presentation.components.FabGap
+import com.sclera.sclerago.presentation.components.FabMargin
+import com.sclera.sclerago.presentation.components.fabClearance
 import com.sclera.sclerago.presentation.components.noRippleClick
 import com.sclera.sclerago.presentation.components.PullRefresh
 import com.sclera.sclerago.presentation.components.SearchFab
@@ -209,6 +223,8 @@ internal fun PropertyListContent(
 ) {
     val gutter = pageGutter()
     var menuOpen by rememberSaveable { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    FollowFinishedDownload(state, listState)
     Box(Modifier.fillMaxSize().background(C.Bg)) {
         Column(Modifier.fillMaxSize()) {
             // Just "Properties": the page lists every property, so no current property under the title.
@@ -218,7 +234,9 @@ internal fun PropertyListContent(
             PullRefresh(state.refreshing, onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !state.loading) {
                 LazyColumn(
                     Modifier.fillMaxSize().testTag(PropertyTags.LIST),
-                    contentPadding = PaddingValues(start = gutter + 8.dp, end = gutter + 8.dp, top = 10.dp, bottom = 160.dp),
+                    state = listState,
+                    // Room for the + menu and search buttons, so the last property scrolls clear of them.
+                    contentPadding = PaddingValues(start = gutter + 8.dp, end = gutter + 8.dp, top = 10.dp, bottom = fabClearance(2, navigationBars = true)),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     item { Header(state) }
@@ -227,7 +245,9 @@ internal fun PropertyListContent(
                         val download = state.downloads.active[id]
                         val downloaded = id in state.downloads.downloadedIds
                         PropertyCard(
-                            id, row.property.name, current = id == currentId,
+                            // A property that finishes downloading slides up into the downloaded ones (listed first).
+                            modifier = Modifier.animateItem(fadeInSpec = RowFade, placementSpec = RowMove, fadeOutSpec = RowFade),
+                            id = id, name = row.property.name, current = id == currentId,
                             download = download, downloaded = downloaded, online = state.online,
                             // A downloaded property opens (offline too); another one is downloaded first, then opens.
                             onClick = {
@@ -263,9 +283,9 @@ internal fun PropertyListContent(
         // The page dims behind the open menu; a tap on it closes the menu.
         if (menuOpen) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)).noRippleClick { menuOpen = false })
         Column(
-            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
+            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().imePadding().padding(end = FabMargin, bottom = FabMargin),
             horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(FabGap),
         ) {
             FabMenu(
                 menuOpen, { menuOpen = it },
@@ -323,6 +343,7 @@ private fun PropertyCard(
     id: String,
     name: String,
     current: Boolean,
+    modifier: Modifier = Modifier,
     download: PropertyDownload?,
     downloaded: Boolean,
     online: Boolean,
@@ -348,8 +369,13 @@ private fun PropertyCard(
         else -> Modifier.background(C.Surface)
     }
     val fade = Modifier.alpha(if (faint) FaintAlpha else if (openBlock != null) BlockedAlpha else 1f)
+    val edge = if (faint) Color.Transparent else if (current) C.Yellow.copy(alpha = 0.3f) else C.Border
+    // Just downloaded (the tick shows): a yellow ring, which fades out with the tick, in step ([DONE_FADE_MS]).
+    val finished = download is PropertyDownload.Finished
+    val ring by animateColorAsState(if (finished) C.Yellow else edge, tween(DONE_FADE_MS), label = "done-ring")
+    val ringWidth by animateDpAsState(if (finished) 1.5.dp else 1.dp, tween(DONE_FADE_MS), label = "done-ring-width")
     Box(
-        Modifier.fillMaxWidth().pressClickable(
+        modifier.fillMaxWidth().pressClickable(
             shape = r(12), pressed = PRESSED_CARD, role = Role.Button,
             onClick = when {
                 openBlock != null -> ({ toaster.show(openBlock, ToastKind.INFO) })
@@ -357,7 +383,7 @@ private fun PropertyCard(
                 else -> onClick
             },
         ).then(surface)
-            .border(1.dp, if (faint) Color.Transparent else if (current) C.Yellow.copy(alpha = 0.3f) else C.Border, r(12))
+            .border(ringWidth, ring, r(12))
             .semantics {
                 selected = current
                 if (current) stateDescription = currentLabel
@@ -393,15 +419,19 @@ private fun PropertyCard(
                             contentAlignment = Alignment.Center,
                         ) { CircularProgressIndicator(Modifier.size(22.dp), color = C.Yellow, strokeWidth = 2.5.dp) }
                     }
-                    download is PropertyDownload.Finished -> {
+                    // The tick, then the arrow of a downloaded property: the tick fades into the arrow as the ring fades.
+                    finished || downloaded -> {
+                        val tick by animateFloatAsState(if (finished) 1f else 0f, tween(DONE_FADE_MS), label = "done-tick")
                         val done = stringResource(R.string.property_downloaded)
                         Box(
-                            Modifier.size(48.dp, RowControl).semantics { contentDescription = done }.testTag(PropertyTags.done(id)),
+                            Modifier.size(48.dp, RowControl).then(
+                                if (finished) Modifier.semantics { contentDescription = done }.testTag(PropertyTags.done(id)) else Modifier,
+                            ),
                             contentAlignment = Alignment.Center,
-                        ) { LineIcon(Icons.Check, 22.dp, C.Green, 2.8f) }
-                    }
-                    downloaded -> Box(Modifier.size(48.dp, RowControl), contentAlignment = Alignment.Center) {
-                        LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f)
+                        ) {
+                            LineIcon(Icons.ChevronRight, 13.dp, C.Dim, 2.8f, Modifier.alpha(1f - tick))
+                            LineIcon(Icons.Check, 22.dp, C.Green, 2.8f, Modifier.alpha(tick))
+                        }
                     }
                     else -> {
                         // Offline the download button stays, with the offline badge (the card is faded already).
@@ -450,6 +480,52 @@ private fun DownloadProgress(name: String, d: PropertyDownload.Running, modifier
 
 /** How faded a property that can't be used offline looks (as in the design). */
 private const val FaintAlpha = 0.26f
+
+/** How a property row moves to its new place (a download finishing moves it up) and fades in or out. */
+// A set time with an ease (not a spring), so the row stops cleanly where it lands instead of settling in small steps.
+private const val MOVE_MS = 450
+private val RowMove = tween<IntOffset>(MOVE_MS, easing = FastOutSlowInEasing)
+private val RowFade = tween<Float>(220)
+
+/**
+ * How long a just-downloaded property's tick and yellow ring take to fade out, together. They show for as long as the
+ * download says it has finished ([PropertyDownload.Finished]), then fade out in step.
+ */
+private const val DONE_FADE_MS = 450
+
+/**
+ * A property whose download (started from this list) has just finished moves up into the downloaded properties; should
+ * it land above the screen, the list scrolls up to it.
+ */
+@Composable
+private fun FollowFinishedDownload(state: PropertyListState, list: LazyListState) {
+    var landed by remember { mutableStateOf<String?>(null) }
+    // Downloads seen running here: only those count as landing (not properties already downloaded when the list opened).
+    val running = remember { mutableSetOf<String>() }
+    LaunchedEffect(state.downloads) {
+        running += state.downloads.active.filterValues { it.inProgress }.keys
+        val done = running.firstOrNull { it in state.downloads.downloadedIds } ?: return@LaunchedEffect
+        running -= done
+        landed = done
+    }
+    // Apart from the download changes above (which come often), so the moment isn't cut short by the next one.
+    LaunchedEffect(landed) {
+        val done = landed ?: return@LaunchedEffect
+        // The list's first item is its header, so a property's place in the list is one after its row.
+        val at = state.rows.indexOfFirst { it.property.id == done } + 1
+        // After the move: scrolling while the rows still slide makes the two motions fight (a jitter where it lands).
+        delay(MOVE_MS.toLong())
+        if (at > 0 && at <= list.firstVisibleItemIndex) {
+            // One eased scroll up by the rows in between (they are all about one height). animateScrollToItem springs and
+            // then corrects itself once the row is laid out, which shows as a jitter as it stops.
+            val rows = list.layoutInfo.visibleItemsInfo.filter { it.index > 0 }
+            val rowStep = rows.takeIf { it.isNotEmpty() }?.let { r -> r.sumOf { it.size } / r.size + list.layoutInfo.mainAxisItemSpacing } ?: 0
+            val distance = (list.firstVisibleItemIndex - (at - 1)) * rowStep + list.firstVisibleItemScrollOffset
+            if (distance > 0) list.animateScrollBy(-distance.toFloat(), tween(MOVE_MS, easing = FastOutSlowInEasing))
+        }
+        landed = null
+    }
+}
 
 /** How faded the name and icon of a property the user's group can't open are (as a greyed-out button). */
 private const val BlockedAlpha = 0.45f

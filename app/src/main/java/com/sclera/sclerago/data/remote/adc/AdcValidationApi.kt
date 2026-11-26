@@ -6,6 +6,8 @@ import kotlinx.serialization.json.JsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
+import retrofit2.Response
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,11 +27,19 @@ class AdcValidationApi @Inject constructor(private val service: AdcValidationSer
     suspend fun resetOrder(p: String) = call.unit { service.resetOrder(p) }
 
     /** Every active field, following `nextCursor` (at most [MAX_PAGES] pages). */
-    suspend fun fields(p: String): List<FieldDto> {
-        val all = mutableListOf<FieldDto>()
+    suspend fun fields(p: String): List<FieldDto> =
+        allPages(FieldDto.serializer()) { cursor -> service.fields(p, true, FIELDS_PAGE, cursor) }
+
+    /** The active fields one asset has, in the form's order: the standard fields, then its own. */
+    suspend fun assetFields(p: String, assetId: String): List<CfgFieldDto> =
+        allPages(CfgFieldDto.serializer()) { cursor -> service.assetFields(p, assetId, true, FIELDS_PAGE, cursor) }
+
+    /** Every page of a list, following `nextCursor` (at most [MAX_PAGES] pages). */
+    private suspend fun <T> allPages(s: KSerializer<T>, fetch: suspend (String?) -> Response<ResponseBody>): List<T> {
+        val all = mutableListOf<T>()
         var cursor: String? = null
         repeat(MAX_PAGES) {
-            val page = call.json({ service.fields(p, true, FIELDS_PAGE, cursor) }) { page(FieldDto.serializer(), it) }
+            val page = call.json({ fetch(cursor) }) { page(s, it) }
             all += page.data
             cursor = page.nextCursor
             if (!page.hasMore || cursor == null) return all

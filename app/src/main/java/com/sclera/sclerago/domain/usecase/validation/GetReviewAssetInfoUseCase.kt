@@ -10,11 +10,9 @@ import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.NO_INPUT_KINDS
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.amountText
-import com.sclera.sclerago.domain.usecase.asset.GetAssetDetailsUseCase
-import com.sclera.sclerago.domain.usecase.asset.ObserveAssetFieldsUseCase
+import com.sclera.sclerago.domain.repository.ValidationRunRepository
 import com.sclera.sclerago.domain.validation.AssetInfoRow
 import com.sclera.sclerago.domain.validation.ReviewAssetInfo
-import kotlinx.coroutines.flow.first
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -22,18 +20,22 @@ import java.time.format.FormatStyle
 import javax.inject.Inject
 
 /**
- * The asset as it is on this phone, for the review's Asset info tab (the web's AssetDetails): each field the form shows,
- * in its order, with its value as a person reads it. Null when the asset isn't on this phone (not synced yet, or gone).
+ * The asset as the server has it, for the review's Asset info tab (the web's AssetDetails): each field its form has, in
+ * order, with its value as a person reads it, then where it is and its status. Throws
+ * [com.sclera.sclerago.domain.model.OnlineException] when it can't be read (offline, or deleted since the run).
  */
 class GetReviewAssetInfoUseCase @Inject constructor(
-    private val details: GetAssetDetailsUseCase,
-    private val fields: ObserveAssetFieldsUseCase,
+    private val repo: ValidationRunRepository,
     private val clock: ClockFormat,
 ) {
-    suspend operator fun invoke(assetId: String, zone: ZoneId = ZoneId.systemDefault()): ReviewAssetInfo? {
-        val values = details(assetId)?.fields ?: return null
-        val shown = fields(assetId).first().filter { it.visible && it.kind !in NO_INPUT_KINDS }
-        return ReviewAssetInfo(shown.map { f -> AssetInfoRow(f.label, readable(f, values[f.key].orEmpty().trim(), zone)) })
+    suspend operator fun invoke(propertyId: String, assetId: String, zone: ZoneId = ZoneId.systemDefault()): ReviewAssetInfo {
+        val asset = repo.reviewAsset(propertyId, assetId)
+        val shown = asset.fields.filter { it.visible && it.kind !in NO_INPUT_KINDS }
+        return ReviewAssetInfo(
+            rows = shown.map { f -> AssetInfoRow(f.label, readable(f, asset.values[f.id].orEmpty().trim(), zone)) },
+            place = asset.place,
+            status = asset.status,
+        )
     }
 
     /** A stored value as the web shows it: dates and times (seconds since 1970) as such, checkboxes as Yes / No. */

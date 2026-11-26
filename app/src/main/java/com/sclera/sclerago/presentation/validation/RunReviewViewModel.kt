@@ -48,9 +48,11 @@ data class AssetPanelState(
     val typed: Map<String, String> = emptyMap(),
     /** Issues with a call in flight. */
     val busy: Set<String> = emptySet(),
-    /** The asset as it is on this phone (Asset info); null until read, or when it isn't on this phone. */
+    /** The asset as the server has it (Asset info); null until read. */
     val info: ReviewAssetInfo? = null,
     val infoLoading: Boolean = true,
+    /** Why Asset info couldn't be read (offline, deleted since the run); null once it is. */
+    val infoFailed: UiText? = null,
 )
 
 /** Merging duplicates: the assets, the one kept and the value chosen per field (by the asset it comes from). */
@@ -472,13 +474,31 @@ class RunReviewViewModel @Inject constructor(
         }
         set { copy(panel = AssetPanelState(assetId)) }
         viewModelScope.launch { reloadPanel(assetId) }
-        viewModelScope.launch {
-            val info = useCases.assetInfo(assetId)
-            set { copy(panel = panel?.takeIf { it.assetId == assetId }?.copy(info = info, infoLoading = false)) }
+    }
+
+    /** Asset info's Try again: reads the asset from the server again. */
+    fun retryInfo() {
+        val assetId = state.panel?.assetId ?: return
+        set { copy(panel = panel?.copy(infoLoading = true, infoFailed = null)) }
+        viewModelScope.launch { loadInfo(assetId) }
+    }
+
+    /** Asset info, from the server as the web reads it: when the asset opens, and again whenever its issues are. */
+    private suspend fun loadInfo(assetId: String) {
+        try {
+            val info = useCases.assetInfo(p, assetId)
+            set { copy(panel = panel?.takeIf { it.assetId == assetId }?.copy(info = info, infoLoading = false, infoFailed = null)) }
+        } catch (e: OnlineException) {
+            val gone = e.error == OnlineError.NotFound
+            val why = if (gone) UiText.Res(R.string.rev_asset_gone) else e.error.toUiText()
+            // What was read before stays (a fix may just not have reached it), unless the asset is gone.
+            set { copy(panel = panel?.takeIf { it.assetId == assetId }?.let { it.copy(info = if (gone) null else it.info, infoLoading = false, infoFailed = why) }) }
         }
     }
 
     private suspend fun reloadPanel(assetId: String) {
+        // A fix, a decision or a recheck can change the asset's values and status: Asset info is read again beside the issues.
+        viewModelScope.launch { loadInfo(assetId) }
         try {
             val issues = useCases.issues.ofAsset(p, j, assetId)
             set { copy(panel = panel?.takeIf { it.assetId == assetId }?.copy(issues = issues, loading = false)) }

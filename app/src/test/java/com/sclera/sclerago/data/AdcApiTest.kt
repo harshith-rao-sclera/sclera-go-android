@@ -150,10 +150,11 @@ class AdcApiTest {
         assertTrue(seen.isEmpty())
     }
 
+    /** With the phone online, a server that drops the call is a server failure, not "offline". */
     @Test
-    fun aClosedServer_isOffline() {
+    fun aClosedServer_whileOnline_isAServerFailure() {
         val api = api()
         server.stop(0)
-        assertFails(OnlineError.Offline) { api.properties("org-1") }
+        assertFails(OnlineError.Server) { api.properties("org-1") }
     }
 }

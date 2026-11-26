@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.remote.adc
 
+import android.util.Log
 import com.sclera.sclerago.di.IoDispatcher
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
@@ -59,7 +60,7 @@ class OnlineCall @Inject constructor(
 
     /**
      * Reads [request]'s answer as it arrives with [read] (a file written to the device as it downloads, never held whole
-     * in memory). A connection lost on the way is [OnlineError.Offline]; an answer with no body is [OnlineError.Server].
+     * in memory). A connection lost on the way is [OnlineError.Offline] when the phone has no network, else [OnlineError.Server]; an answer with no body is [OnlineError.Server].
      */
     suspend fun <T> stream(request: suspend () -> Response<ResponseBody>, read: (ResponseBody) -> T): T =
         withContext(io) { send(request, read) ?: throw OnlineException(OnlineError.Server) }
@@ -73,7 +74,7 @@ class OnlineCall @Inject constructor(
         } catch (e: AdcSessionException) {
             throw OnlineException(OnlineError.SessionExpired, e)
         } catch (e: IOException) {
-            throw OnlineException(OnlineError.Offline, e)
+            throw OnlineException(failed(e), e)
         }
         // Refused: the user's access may have changed since it was read, so it is read again (AccessRefusals).
         if (response.code() == 403) refusals.report()
@@ -81,11 +82,25 @@ class OnlineCall @Inject constructor(
             if (response.isSuccessful) response.body()?.use(read)
             else throw OnlineException(errorFor(response.code(), response.headers()["Retry-After"], response.errorBody()?.use { it.string() }))
         } catch (e: IOException) {
-            throw OnlineException(OnlineError.Offline, e)
+            throw OnlineException(failed(e), e)
         }
     }
 
+    /**
+     * A call that broke off: offline only when the phone has no network now. With one, the server or the way to it dropped
+     * the call (it timed out, or a long one such as the AI's photo look-up was cut off), which a connection can't fix:
+     * [OnlineError.Server], so screens don't say "You're offline" with the internet on.
+     */
+    private fun failed(e: IOException): OnlineError {
+        if (!network.isOnline()) return OnlineError.Offline
+        // Which kind of failure (its class only, never a URL or data). Debug only: Log.w is stripped from release builds.
+        Log.w(TAG, "Call failed while online: ${e.javaClass.simpleName}")
+        return OnlineError.Server
+    }
+
     internal companion object {
+        private const val TAG = "OnlineCall"
+
         /** The [OnlineError] for an HTTP failure; [body] is the RFC 9457 problem JSON, read only for its `type`. */
         fun errorFor(status: Int, retryAfter: String?, body: String?): OnlineError = when (status) {
             401 -> OnlineError.SessionExpired

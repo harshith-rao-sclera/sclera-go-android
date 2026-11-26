@@ -215,12 +215,6 @@ object MediaLoader {
     }
 }
 
-/** A file picked for the Documents tab, as a document with its name kept; null for a photo, which stays a photo. */
-suspend fun describeDocument(context: Context, uri: Uri): Media? =
-    describeFiles(context, listOf(uri)).firstOrNull()?.takeUnless { it.mime?.startsWith("image/") == true }?.let { f ->
-        Media("doc-${System.currentTimeMillis()}", f.uri, video = f.mime?.startsWith("video/") == true, fileName = f.name)
-    }
-
 /** Files picked in the system file manager, as attachments: photos/videos stay media, anything else a document. */
 suspend fun describeAttachments(context: Context, uris: List<Uri>): List<Media> {
     val files = describeFiles(context, uris)

@@ -47,4 +47,6 @@ class IntegrationUseCases @Inject constructor(
     val get: GetIntegrationUseCase,
     val search: SearchVdmsUseCase,
     val link: LinkVdmsUseCase,
+    /** The link card's line: how many assets are in Managed Assets and how many came back. */
+    val counts: GetManagedCountsUseCase,
 )

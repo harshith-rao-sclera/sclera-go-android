@@ -1,6 +1,8 @@
 package com.sclera.sclerago.presentation.validation
 
 import com.sclera.sclerago.presentation.components.CircleFab
+import com.sclera.sclerago.presentation.components.FabMargin
+import com.sclera.sclerago.presentation.components.fabClearance
 import androidx.compose.ui.platform.testTag
 import com.sclera.sclerago.presentation.components.pressClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -149,9 +151,9 @@ internal fun ReviewFabs(j: ValRun, checkBlock: AccessBlock?, busy: Boolean, onEx
     val export = j.processed > 0
     if (!runAgain && !export) return
     Column(
-        modifier.padding(end = 14.dp, bottom = 14.dp),
+        modifier.padding(end = FabMargin, bottom = FabMargin),
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(ReviewFabGap),
     ) {
         if (export) {
             CircleFab(
@@ -163,6 +165,19 @@ internal fun ReviewFabs(j: ValRun, checkBlock: AccessBlock?, busy: Boolean, onEx
             CircleFab(Icons.Refresh, stringResource(R.string.rev_run_again), onRunAgain, Modifier.testTag("review_run_again"), iconSize = 22.dp, stroke = 2.4f)
         }
     }
+}
+
+/** The gap between the stacked [ReviewFabs]. */
+private val ReviewFabGap = 10.dp
+
+/**
+ * The room the run's list leaves after its last row for the [ReviewFabs] (placed with the navigation bar), so it scrolls
+ * clear of them; none while they are hidden ([shown] false: assets are ticked and the selection bar is there instead).
+ */
+@Composable
+internal fun reviewFabsClearance(j: ValRun, shown: Boolean): Dp {
+    val buttons = if (shown) listOf(j.status.finished, j.processed > 0).count { it } else 0
+    return fabClearance(buttons, navigationBars = true, gap = ReviewFabGap)
 }
 
 /** How far the run got, its data quality, and how many assets failed, need a look or passed. */

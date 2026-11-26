@@ -26,14 +26,17 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.validation.AssetInfoRow
 import com.sclera.sclerago.domain.validation.ReviewAssetInfo
+import com.sclera.sclerago.presentation.common.UiText
+import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.components.Capsule
+import com.sclera.sclerago.presentation.components.LoadFailedNote
 import com.sclera.sclerago.presentation.components.Pill
 import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
-// The review's asset sheet: what the asset is on this phone (the web's AssetSummary and AssetDetails).
+// The review's asset sheet: what the asset is on the server (the web's AssetSummary and AssetDetails).
 
 /** The asset's status as the web's review names it: drafts are being collected; signed off is validated. */
 @Composable
@@ -46,9 +49,12 @@ private fun statusText(st: Status): String = stringResource(
     },
 )
 
-/** Its first letter, where it is ("Property 1 › No location yet"), its status and how many of its fields are filled. */
+/**
+ * Its first letter, where it is ("Property 1 › No location yet"), its status and how many of its fields are filled: as
+ * the server has it ([info]), or as this phone has it ([local]) until that is read.
+ */
 @Composable
-internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, info: ReviewAssetInfo?) {
+internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, info: ReviewAssetInfo?, loading: Boolean) {
     Row(
         Modifier.fillMaxWidth().clip(r(12)).background(C.Surface).border(1.dp, C.Border, r(12)).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -58,14 +64,20 @@ internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, inf
             Txt(name.trim().take(1).uppercase().ifEmpty { "?" }, 16, 700)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (local == null) {
-                Txt(stringResource(R.string.rev_asset_not_here), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+            val st = info?.status ?: local?.st
+            if (st == null) {
+                if (loading) {
+                    SkeletonLine(0.7f, 11.dp)
+                    SkeletonLine(0.45f, 9.dp)
+                } else {
+                    Txt(stringResource(R.string.rev_asset_not_here), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
+                }
                 return@Column
             }
-            val where = local.where.ifBlank { stringResource(R.string.rev_no_location) }
+            val where = (info?.place ?: local?.where).orEmpty().ifBlank { stringResource(R.string.rev_no_location) }
             Txt(if (propName.isBlank()) where else stringResource(R.string.rev_place, propName, where), 13, 600, maxLines = Int.MAX_VALUE)
             Txt(
-                info?.let { stringResource(R.string.rev_fields_filled, statusText(local.st), it.filled, it.total) } ?: statusText(local.st),
+                info?.let { stringResource(R.string.rev_fields_filled, statusText(st), it.filled, it.total) } ?: statusText(st),
                 12, 400, C.Muted, maxLines = 2,
             )
             if (info != null && info.total > 0) {
@@ -77,17 +89,27 @@ internal fun ReviewAssetStrip(name: String, local: Asset?, propName: String, inf
     }
 }
 
-/** Asset info: each field and its value, then where it is and its status; and the way to the asset to fix them. */
 /** How many placeholder rows the Asset info tab shows while the asset's fields are read. */
 private const val INFO_PLACEHOLDER_ROWS = 6
 
+/**
+ * Asset info, as the server has it: each field and its value, then where it is and its status; and the way to the asset
+ * (when it is on this phone, [local]) to fix them. Couldn't be read: says why ([failed]) with Try again ([onRetry]).
+ */
 @Composable
-internal fun ReviewAssetInfoTab(local: Asset?, info: ReviewAssetInfo?, loading: Boolean, onOpenAsset: (String) -> Unit) {
-    if (local == null) {
-        Txt(stringResource(R.string.rev_asset_not_here), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+internal fun ReviewAssetInfoTab(
+    local: Asset?,
+    info: ReviewAssetInfo?,
+    loading: Boolean,
+    failed: UiText?,
+    onRetry: () -> Unit,
+    onOpenAsset: (String) -> Unit,
+) {
+    if (info == null && !loading) {
+        LoadFailedNote(failed?.asString() ?: stringResource(R.string.rev_asset_not_here), onRetry)
         return
     }
-    if (loading) {
+    if (info == null) {
         // The fields' table in placeholders: a label and a value per row.
         val label = stringResource(R.string.val_loading)
         Column(
@@ -107,9 +129,10 @@ internal fun ReviewAssetInfoTab(local: Asset?, info: ReviewAssetInfo?, loading: 
         }
         return
     }
-    val rows = info?.rows.orEmpty() + listOf(
-        AssetInfoRow(stringResource(R.string.rev_info_location), local.where.ifBlank { null }),
-        AssetInfoRow(stringResource(R.string.rev_info_status), statusText(local.st)),
+    val status = info.status ?: local?.st
+    val rows = info.rows + listOf(
+        AssetInfoRow(stringResource(R.string.rev_info_location), info.place.ifBlank { null }),
+        AssetInfoRow(stringResource(R.string.rev_info_status), status?.let { statusText(it) }),
     )
     Column(Modifier.fillMaxWidth().clip(r(12)).background(C.Bg).border(1.dp, C.Border, r(12)).padding(horizontal = 12.dp)) {
         rows.forEachIndexed { i, row ->
@@ -123,6 +146,8 @@ internal fun ReviewAssetInfoTab(local: Asset?, info: ReviewAssetInfo?, loading: 
             }
         }
     }
+    // Fixed on the asset itself, on this phone: only when it is here.
+    if (local == null) return
     Pill(
         stringResource(R.string.rev_open_asset), { onOpenAsset(local.id) }, Modifier.fillMaxWidth(),
         bg = C.Yellow, fg = C.OnYellow, height = 46.dp, size = 14, weight = 700,

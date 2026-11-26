@@ -115,6 +115,8 @@ fun AssetDetailScreen(
     val tab = shownTab(tabs, chosen)
     val onInfo = tab == DetailTabKind.INFO
     var modal by remember(asset.id) { mutableStateOf(DetailModal.NONE) }
+    // The type row (system, asset or sub type) whose picker is open.
+    var typePick by remember(asset.id) { mutableStateOf<TypePick?>(null) }
     var preview by remember(asset.id) { mutableStateOf<Int?>(null) }
     val ui = remember(asset.id) { FormUi() }
 
@@ -206,8 +208,16 @@ fun AssetDetailScreen(
                         userScrollEnabled = !editing, key = { kinds.getOrElse(it) { DetailTabKind.INFO } },
                     ) { page ->
                         val pageTab = kinds.getOrElse(page) { DetailTabKind.INFO }
+                        // Room at the end so the last card scrolls clear of the tab's floating buttons (as shown below).
+                        val fabRoom = when (pageTab) {
+                            DetailTabKind.INFO -> formFloatingButtonsClearance()
+                            DetailTabKind.VALIDATION ->
+                                if (isServerId(asset.id)) validateFabClearance(state.validation, state.validating) else 0.dp
+                            DetailTabKind.DOCUMENTS -> if (mediaClosed) 0.dp else uploadDocumentFabClearance()
+                            DetailTabKind.MEDIA -> if (mediaClosed) 0.dp else mediaFabsClearance()
+                            else -> 0.dp
+                        }
                         Column(
-                            // Room at the end so the last card scrolls clear of the AI and mic buttons.
                             // The Info sections run edge to edge on a phone; the other tabs keep a margin, as on the web.
                             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(
                                 horizontal = when (pageTab) {
@@ -216,7 +226,7 @@ fun AssetDetailScreen(
                                     else -> maxOf(pageGutter(), PhoneSide)
                                 },
                             )
-                                .padding(top = 12.dp, bottom = 160.dp),
+                                .padding(top = 12.dp, bottom = maxOf(fabRoom, 12.dp)),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             val open = { i: Int -> preview = i }
@@ -236,7 +246,7 @@ fun AssetDetailScreen(
                                     // A step that failed or needs a look shows first; tapping it opens the Validation tab. (Not
                                     // for one in Managed Assets: its checks went with the move, and the line at the top says so.)
                                     if (!state.managed) ValidationBanner(state.validation) { chosen = DetailTabKind.VALIDATION }
-                                    AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it })
+                                    AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it }, onPickType = { typePick = it })
                                 }
                                 DetailTabKind.VALIDATION -> {
                                     // Validating again is done by the server: offline the last synced results show under a banner.
@@ -253,10 +263,21 @@ fun AssetDetailScreen(
                                 // then the ones added to it, its web pages and manuals.
                                 DetailTabKind.DOCUMENTS -> {
                                     if (state.documentsUi.offline) OfflineBanner(OnlineOnly.DOCUMENTS)
+                                    // A file kept on the phone opens in the media viewer and is removed as media; the
+                                    // server's documents are fetched to open and removed there.
+                                    fun onPhone(d: AssetDocument) = state.media.indexOfFirst { d.onDevice && it.id == d.id }
                                     DocumentsTab(
                                         state.documents.filterNot { it.isSourcePhoto }, state.documentsUi,
-                                        mediaClosed, { if (it.previewable) actions.onPreviewSource(it) else actions.onOpenDocument(it) },
-                                        { removeDoc = it },
+                                        mediaClosed,
+                                        { d ->
+                                            val i = onPhone(d)
+                                            when {
+                                                i >= 0 -> preview = i
+                                                d.previewable -> actions.onPreviewSource(d)
+                                                else -> actions.onOpenDocument(d)
+                                            }
+                                        },
+                                        { d -> state.media.getOrNull(onPhone(d))?.let { removeMedia = it } ?: run { removeDoc = d } },
                                         searching = state.aiBusy || state.manualsSearching, lockReason = b.change, collectReason = b.collect,
                                     )
                                 }
@@ -293,7 +314,7 @@ fun AssetDetailScreen(
                                     )
                                 }
                                 DetailTabKind.HISTORY -> HistoryList(state.activity)
-                                else -> AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it })
+                                else -> AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it }, onPickType = { typePick = it })
                             }
                         }
                     }
@@ -323,15 +344,13 @@ fun AssetDetailScreen(
                 )
             }
         }
-        // Documents and Media add with floating buttons, like the other pages. Documents are kept on the server only (not
-        // synced), so Upload is greyed out offline and until the server has the asset; a tap says why. Whoever may not change
-        // the asset sees both greyed out, saying that instead.
+        // Documents and Media add with floating buttons, like the other pages. Documents' + keeps files as Media's Add file
+        // does (on the phone, synced with the asset), so it works offline and on a new asset too. Whoever may not change the
+        // asset sees both greyed out, saying why.
         FabSwap(!mediaClosed && tab == DetailTabKind.DOCUMENTS) {
             Box(Modifier.fillMaxWidth()) {
                 AccessGate(b.change, Modifier.align(Alignment.BottomEnd)) {
-                    OfflineGate(state.documentsBlocked, actions.onDocumentsBlocked) {
-                        UploadDocumentFab(actions.onUploadDocument, busy = state.documentsUi.uploading)
-                    }
+                    UploadDocumentFab(actions.onUploadDocument)
                 }
             }
         }
@@ -346,6 +365,7 @@ fun AssetDetailScreen(
 
         state.ai?.let { AiSuggestDialog(it, state, actions.ai) }
         state.jacs?.let { JacsPickerSheet(it, state.value("jacs"), actions.jacs.picker) }
+        typePick?.let { p -> TypePickerSheet(p, state.formats, state::value, actions.onEdit) { typePick = null } }
         state.voice?.let { VoiceFillSheet(it, state, actions.voice) }
         state.typing?.let { text ->
             DescribeSheet(text, state.voiceReading, actions.typing.onText, actions.typing.onFill, actions.typing.onClose)
@@ -384,7 +404,7 @@ fun AssetDetailScreen(
                 m, onClose = { preview = null },
                 // A file added to the asset is one of its documents too: its Open fetches it from the server and opens it
                 // in another app, as from the Documents tab. One the server doesn't have yet opens from the device.
-                onOpenFile = m.takeIf { it.isDoc }?.let { x -> state.documents.firstOrNull { it.id == x.id } }
+                onOpenFile = m.takeIf { it.isDoc }?.let { x -> state.documentsUi.documents.firstOrNull { it.id == x.id } }
                     ?.let { doc -> { actions.onOpenDocument(doc) } },
                 onDownload = actions.onDownloadMedia,
                 // As the web: media can be removed unless the asset is signed off (a new asset's too, before it is saved);

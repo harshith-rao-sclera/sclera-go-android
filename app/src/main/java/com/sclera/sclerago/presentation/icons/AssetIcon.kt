@@ -16,7 +16,11 @@ val LocalAssetIcons = compositionLocalOf { AssetIcons() }
  * ([Icons.Box]) show.
  */
 @Composable
-fun assetIco(asset: Asset): Ico = storedIco(LocalAssetIcons.current.nameFor(asset.masterFormatId))
+fun assetIco(asset: Asset): Ico = typeIco(asset.masterFormatId)
+
+/** The icon of the catalogue type [masterFormatId] (null: the generic one), as [assetIco] draws an asset's. */
+@Composable
+fun typeIco(masterFormatId: String?): Ico = storedIco(LocalAssetIcons.current.nameFor(masterFormatId))
 
 /**
  * The generic asset icon as global_config.db keeps it (the server's "generic"), for something that has no type yet: a

@@ -120,16 +120,4 @@
     <string name="cfgt_max_length_hint">e.g. 20</string>
 
     <!-- Property Settings -->
-    <string name="cfgt_onboarding_intro">Choose how people can add assets in %1$s from their phone.</string>
-    <string name="cfgt_network_onboarding">Network onboarding</string>
-    <string name="cfgt_onboarding_both_on">Both are on, so the phone shows its Bluetooth and Network tabs for this property.</string>
-    <string name="cfgt_onboarding_bt_only">Only Bluetooth is on, so the phone hides its Network tab for this property.</string>
-    <string name="cfgt_onboarding_wifi_only">Only Wi-Fi is on, so the phone hides its Bluetooth tab for this property.</string>
-    <string name="cfgt_onboarding_both_off">Both are off, so the phone hides its Bluetooth and Network tabs for this property.</string>
-    <string name="cfgt_bt_onboarding">Bluetooth onboarding</string>
-    <string name="cfgt_bt_onboarding_hint">People can add assets by finding them over Bluetooth on their phone.</string>
-    <string name="cfgt_wifi_onboarding">Wi-Fi onboarding</string>
-    <string name="cfgt_wifi_onboarding_hint">People can add assets by finding them on the Wi-Fi network.</string>
-    <string name="cfgt_on_the_phone">ON THE PHONE</string>
-    <string name="cfgt_onboarding_footer">Turning onboarding off only hides it on the phone; assets already added stay as they are.</string>
 </resources>

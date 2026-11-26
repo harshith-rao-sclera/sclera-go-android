@@ -140,7 +140,7 @@ internal fun RunAssetSheet(
                     val open = if (p.loading) res.openCount else p.issues.count { it.status == IssueStatus.OPEN }
                     DecisionRow(res.decision, res.decisionNote, open, s, p, vm, lock, checkOnly = res.checkOnly, alreadyValidated = res.alreadyValidated)
                 }
-                ReviewAssetStrip(name, local, propName, p.info)
+                ReviewAssetStrip(name, local, propName, p.info, p.infoLoading)
                 // Checks and Asset info are two pages side by side: swipe between them, or tap the switch. The switch follows a
                 // swipe as it goes (to the page it is heading for).
                 val pages = rememberPagerState(initialPage = tab) { RESULT_PAGES }
@@ -153,7 +153,7 @@ internal fun RunAssetSheet(
                 HorizontalPager(pages, Modifier.fillMaxWidth(), pageSpacing = 16.dp, verticalAlignment = Alignment.Top) { page ->
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (page == INFO_PAGE) {
-                            ReviewAssetInfoTab(local, p.info, p.infoLoading, onOpenAsset)
+                            ReviewAssetInfoTab(local, p.info, p.infoLoading, p.infoFailed, vm::retryInfo, onOpenAsset)
                         } else {
                             // Missing data is filled in on the asset itself (on this phone), which opens on top of this review.
                             val fillIn = local?.let { a -> { onOpenAsset(a.id) } }

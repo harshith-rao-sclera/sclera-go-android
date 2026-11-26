@@ -156,6 +156,8 @@ data class UiState(
     val camSel: Set<String> = emptySet(),
     /** The camera makes many assets: every shot goes to the server as its own file (no sorting, no photo rules). */
     val camMany: Boolean = false,
+    /** The strip's photo being cropped (Single), its crop screen over the camera; null when none. */
+    val cropShot: Media? = null,
     /** Shots handed to the Camera's import to be read by the server; the UI takes them ([AppViewModel.shotsSent]). */
     val camToSend: List<Media>? = null,
     /** The Camera tab shows what the server read from the shots (the File tab's review). */
@@ -906,7 +908,7 @@ class AppViewModel @Inject constructor(
     // ---------- Camera ----------
 
     fun cancelCam() = leaving { set { copy(camOpen = false) } }
-    fun openCam() = if (!mayCollect()) flashViewOnly() else set { copy(camOpen = true) }
+    fun openCam() = if (!mayCollect()) flashViewOnly() else set { copy(camOpen = true, cropShot = null) }
 
     /** The camera is on screen with shots in its strip that aren't an asset yet (swiping away is off meanwhile). */
     val cameraHasShots: Boolean
@@ -1005,6 +1007,14 @@ class AppViewModel @Inject constructor(
         // and unticked again if its kind or the asset has no room left.
         unsorted += m.id
         set { copy(captures = captures + m, camSel = camSel + m.id) }
+        sortInStrip(m)
+    }
+
+    /**
+     * Sorts strip shot [m] (ticked, and in [unsorted]) into its kind, after the shots before it: it stays ticked while its
+     * kind and the asset have room, else it is unticked and the camera says why.
+     */
+    private fun sortInStrip(m: Media) {
         viewModelScope.launch {
             shotLock.withLock {
                 try {
@@ -1026,22 +1036,61 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    /** The crop badge on a photo of the strip (Single): its crop screen opens over the camera. */
+    fun openCrop(m: Media) {
+        if (state.camMany || m.video || state.captures.none { it.id == m.id }) return
+        set { copy(cropShot = m) }
+    }
+
+    /** The crop screen is closed without cropping: the photo stays as it was. */
+    fun closeCrop() = set { copy(cropShot = null) }
+
+    /**
+     * [shot] was cropped into [cropped]: the cropped photo takes its place in the strip, ticked, and is sorted again (what
+     * it shows changed, so its kind may have); the original's file goes when it was the app's own (a gallery photo stays).
+     */
+    fun cropped(shot: Media, cropped: Media) {
+        if (state.captures.none { it.id == shot.id }) {
+            fileUseCases.deleteOwned(listOf(cropped))
+            return set { copy(cropShot = null) }
+        }
+        unsorted += cropped.id
+        set {
+            copy(
+                captures = captures.map { if (it.id == shot.id) cropped else it },
+                camSel = camSel - shot.id + cropped.id, cropShot = null,
+            )
+        }
+        fileUseCases.deleteOwned(listOf(shot))
+        sortInStrip(cropped)
+    }
+
     /** Shots in the strip ticked as they came in and not sorted yet ([addCapture]). Main thread only. */
     private val unsorted = mutableSetOf<String>()
 
     /**
      * Done in the camera: Single, the ticked shots open one new asset's details (sorted into their kinds, then read by
      * the AI); Multiple, they join the review. With nothing ticked, Multiple goes back to the shots already waiting in
-     * the review ([reviewWaiting], after "Take more").
+     * the review ([reviewWaiting], after "Take more"). The shots left unticked are discarded with it (the app's own
+     * files deleted), so the strip is empty when the camera opens again.
      */
     fun doneCapturing(reviewWaiting: Boolean = false) {
         if (!mayCollect()) return flashViewOnly()
         val picked = state.captures.filter { it.id in state.camSel }
         if (state.camMany && picked.isEmpty() && reviewWaiting) return set { copy(camOpen = false, camReview = true) }
         if (picked.isEmpty()) return
+        dropUnticked()
         if (state.camMany) return sendShots(picked)
         set { copy(captures = captures.filter { it.id !in camSel }, camSel = emptySet(), camOpen = false) }
         openNewWithMedia(picked)
+    }
+
+    /** The shots in the strip not ticked: thrown away (the app's own files deleted; a gallery photo stays in the gallery). */
+    private fun dropUnticked() {
+        val left = state.captures.filter { it.id !in state.camSel }
+        if (left.isEmpty()) return
+        fileUseCases.deleteOwned(left)
+        set { copy(captures = captures - left.toSet()) }
     }
 
     /**

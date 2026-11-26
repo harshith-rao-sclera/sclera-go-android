@@ -3,7 +3,6 @@ package com.sclera.sclerago.domain.usecase.asset
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AuthState
 import com.sclera.sclerago.domain.model.DocumentSource
-import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.OpenableFile
@@ -65,22 +64,6 @@ class OpenAssetDocumentUseCase @Inject constructor(private val repo: AssetDocume
 }
 
 /**
- * The Documents tab's Add: [doc] is sent to the server as one of the asset's documents (its media of kind document).
- * Throws OnlineException (Offline without a connection, Forbidden without Collect) or DataException (the asset is locked).
- */
-class UploadAssetDocumentUseCase @Inject constructor(
-    private val repo: AssetDocumentsRepository,
-    private val assets: AssetRepository,
-    private val guard: PermissionGuard,
-) {
-    suspend operator fun invoke(assetId: String, doc: Media) {
-        guard.requireOnline(Permission.COLLECT)
-        requireUnlocked(assets, guard, listOf(assetId))
-        repo.upload(assetId, doc)
-    }
-}
-
-/**
  * Takes [document] off asset [assetId], as the server allows: a document added to it or a web page by anyone who can
  * collect and may change the asset; the uploaded file as [GetAssetDocumentsUseCase] says (the file isn't the asset's,
  * other assets may have been read from it, so whether the asset may be changed isn't asked). Nothing in Managed Assets
@@ -113,6 +96,5 @@ class RemoveAssetDocumentUseCase @Inject constructor(
 class AssetDocumentUseCases @Inject constructor(
     val list: GetAssetDocumentsUseCase,
     val open: OpenAssetDocumentUseCase,
-    val upload: UploadAssetDocumentUseCase,
     val remove: RemoveAssetDocumentUseCase,
 )

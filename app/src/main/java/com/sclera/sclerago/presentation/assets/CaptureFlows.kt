@@ -93,6 +93,8 @@ private val Glass = Color(0xB3141518) // rgba(20,21,24,0.7)
 @Composable
 fun CameraPage(vm: AppViewModel, shots: FileImportViewModel, online: Boolean) {
     val s = vm.state
+    // Many assets sends the shots to be read as files are, which only AI does: the switch is read again as the camera opens.
+    LaunchedEffect(s.camOpen) { if (s.camOpen) shots.refreshAi() }
     // Many assets: the shots handed over are read by the server, as files are on the File tab.
     LaunchedEffect(s.camToSend) {
         s.camToSend?.let { sent ->
@@ -106,7 +108,10 @@ fun CameraPage(vm: AppViewModel, shots: FileImportViewModel, online: Boolean) {
             addMore = stringResource(R.string.camera_take_more),
         )
         // Shots still waiting in the review (before they are read) can be gone back to from the camera.
-        s.camOpen -> CameraView(vm, waiting = if (s.camMany && shots.state.step == FileStep.PICK) shots.state.files.size else 0, onDiscardReview = shots::discard)
+        s.camOpen -> CameraView(
+            vm, waiting = if (s.camMany && shots.state.step == FileStep.PICK) shots.state.files.size else 0, onDiscardReview = shots::discard,
+            aiOn = shots.aiOn,
+        )
         else -> SubList(vm, Tab.CAMERA, stringResource(R.string.nav_camera), vm::openCam)
     }
 }
@@ -115,18 +120,24 @@ private fun hasCameraPermission(context: Context) =
     ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
 @Composable
-private fun CameraView(vm: AppViewModel, waiting: Int, onDiscardReview: () -> Unit) {
+private fun CameraView(vm: AppViewModel, waiting: Int, onDiscardReview: () -> Unit, aiOn: Boolean) {
     val s = vm.state
     BackHandler(enabled = vm.cameraHasShots) { vm.cancelCam() }
-    CameraCapture(
-        // Only run the camera while this tab is actually on screen (the pager also composes neighbours).
-        active = s.tab == Tab.CAMERA && s.pv == null && s.sheet == Sheet.NONE && !vm.showDetail,
-        captures = s.captures, selected = s.camSel,
-        videoMode = s.videoMode, onVideoMode = vm::setVideoMode,
-        onCapture = vm::addCapture, onToggle = vm::toggleStrip, onGalleryPicked = vm::addPicked,
-        onClose = vm::cancelCam, onDone = { vm.doneCapturing(reviewWaiting = waiting > 0) },
-        many = s.camMany, onMany = { vm.setCamMany(it, reviewWaiting = waiting > 0, discardReview = onDiscardReview) }, waiting = waiting,
-    )
+    Box(Modifier.fillMaxSize()) {
+        CameraCapture(
+            // Only run the camera while this tab is actually on screen (the pager also composes neighbours), and not
+            // under the crop screen.
+            active = s.tab == Tab.CAMERA && s.pv == null && s.sheet == Sheet.NONE && !vm.showDetail && s.cropShot == null,
+            captures = s.captures, selected = s.camSel,
+            videoMode = s.videoMode, onVideoMode = vm::setVideoMode,
+            onCapture = vm::addCapture, onToggle = vm::toggleStrip, onGalleryPicked = vm::addPicked,
+            onClose = vm::cancelCam, onDone = { vm.doneCapturing(reviewWaiting = waiting > 0) },
+            many = s.camMany, onMany = { vm.setCamMany(it, reviewWaiting = waiting > 0, discardReview = onDiscardReview) }, waiting = waiting,
+            manyAiOff = !aiOn, onManyBlocked = { vm.flash(UiText.Res(R.string.ai_off)) },
+            // Single: a photo in the strip can be cropped before it makes the asset.
+            onCrop = if (s.camMany) null else vm::openCrop,
+        )
+    }
 }
 
 /** The most the camera's gallery lets be picked at once. */
@@ -156,10 +167,18 @@ fun CameraCapture(
     /** The Camera tab's One asset (false) / Many assets (true) switch; null (an asset's Add photo): no switch. */
     many: Boolean? = null,
     onMany: (Boolean) -> Unit = {},
+    /**
+     * The property's AI is off: Many assets (its shots are read by the server with AI, as the File tab's photos) is greyed
+     * out, and a tap calls [onManyBlocked] to say why, as the web's AI buttons.
+     */
+    manyAiOff: Boolean = false,
+    onManyBlocked: () -> Unit = {},
     /** Multiple: shots already waiting in the review ("Take more"); the tick then shows and goes back to it. */
     waiting: Int = 0,
     /** Opened from an asset (its Add photo): the shots join that asset, so the hint says so instead of "start a new asset". */
     addingToAsset: Boolean = false,
+    /** Crops a photo of the strip (its crop badge); null: no badge (Multiple, videos). */
+    onCrop: ((Media) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val toaster = LocalToaster.current
@@ -337,7 +356,9 @@ fun CameraCapture(
                     // Single / Multiple asset(s), between close and flash.
                     Row(Modifier.clip(Capsule).background(Glass).padding(3.dp)) {
                         ModeChip(stringResource(R.string.camera_single), on = !many) { onMany(false) }
-                        ModeChip(stringResource(R.string.camera_multiple), on = many) { onMany(true) }
+                        AiOffGate(manyAiOff && !many, onManyBlocked) {
+                            ModeChip(stringResource(R.string.camera_multiple), on = many) { onMany(true) }
+                        }
                     }
                 }
             }
@@ -402,6 +423,15 @@ fun CameraCapture(
                             Box(Modifier.fillMaxSize().background(Color(0x73141518)), contentAlignment = Alignment.Center) {
                                 LineIcon(Icons.Check, 28.dp, C.White, 2.6f)
                             }
+                        }
+                        // Crop: a yellow badge in the photo's corner opens it to crop.
+                        if (onCrop != null && !m.video) {
+                            val cropLabel = stringResource(R.string.crop_open)
+                            Box(
+                                Modifier.align(Alignment.TopEnd).padding(3.dp).size(28.dp).clip(CircleShape).background(C.Yellow)
+                                    .pressClickable(shape = CircleShape) { onCrop(m) }.semantics { contentDescription = cropLabel },
+                                contentAlignment = Alignment.Center,
+                            ) { LineIcon(Icons.Crop, 15.dp, C.OnYellow, 2.4f) }
                         }
                     }
                 }
@@ -494,14 +524,16 @@ fun FilePage(vm: AppViewModel, files: FileImportViewModel, online: Boolean) {
     val s = vm.state
     when {
         s.revFile -> FileImportReview(files, onAddFiles = vm::backToFiles, onClose = vm::closeFiles, flash = vm::flash, online = online)
-        s.fileOpen -> FileWaiting(vm)
+        s.fileOpen -> FileWaiting(vm, files)
         else -> SubList(vm, Tab.FILE, stringResource(R.string.nav_file), vm::openFile, Icons.FileUploadBadge)
     }
 }
 
 /** Shown behind the system file manager while it is open. */
 @Composable
-private fun FileWaiting(vm: AppViewModel) {
+private fun FileWaiting(vm: AppViewModel, files: FileImportViewModel) {
+    // The AI switch is read again as the file manager opens: off, only Excel and CSV can be read.
+    LaunchedEffect(Unit) { files.refreshAi() }
     Column(
         Modifier.fillMaxSize().background(Color(0xFF151619)).padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -509,7 +541,10 @@ private fun FileWaiting(vm: AppViewModel) {
     ) {
         LineIcon(Icons.FileUpload, 40.dp, C.Yellow, 1.6f)
         Txt(stringResource(R.string.file_choose_title), 16, 700)
-        Txt(stringResource(R.string.file_import_hint, MAX_DOCUMENT_UPLOAD_MB), 12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center)
+        Txt(
+            stringResource(if (files.aiOn) R.string.file_import_hint else R.string.file_import_hint_ai_off, MAX_DOCUMENT_UPLOAD_MB),
+            12, 400, C.Muted, maxLines = Int.MAX_VALUE, align = TextAlign.Center,
+        )
         // Adding assets needs Collect: for a group without it Browse stays, greyed out, and a tap says why.
         AccessGate(vm.collectBlock) {
             Pill(stringResource(R.string.file_browse_files), vm::openFile, bg = C.Yellow, fg = C.OnYellow, height = 44.dp, hPad = 20.dp, size = 14, weight = 700)

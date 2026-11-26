@@ -19,6 +19,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -53,6 +56,34 @@ import com.sclera.sclerago.presentation.theme.C
 /** Floating action buttons of the design's "Floating actions" section (54dp circles, search capsule). */
 val FabSize = 54.dp
 
+/** How far a corner's floating buttons sit from the page's bottom and end edges. */
+val FabMargin = 14.dp
+
+/** The gap between floating buttons stacked in one corner. */
+val FabGap = 14.dp
+
+/** Space left between a list's last item and the top floating button, once scrolled to the end. */
+private val FabBreathingRoom = 16.dp
+
+/**
+ * The room a scrolling list leaves after its last item, so that scrolled to the end the item sits fully above the
+ * [buttons] floating buttons stacked in its bottom corner: [margin] + [buttons] × [size] + the [gap]s between them +
+ * 16dp, plus the navigation bar when the buttons are placed with `navigationBarsPadding()` ([navigationBars]).
+ * Use it as the list's bottom content padding (or its last spacer). No buttons: no room.
+ */
+@Composable
+fun fabClearance(
+    buttons: Int,
+    navigationBars: Boolean = false,
+    margin: Dp = FabMargin,
+    gap: Dp = FabGap,
+    size: Dp = FabSize,
+): Dp {
+    if (buttons <= 0) return 0.dp
+    val bar = if (navigationBars) WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() else 0.dp
+    return margin + size * buttons + gap * (buttons - 1) + FabBreathingRoom + bar
+}
+
 /**
  * The floating run button (validating an asset): a yellow capsule with ▶ and [label]; while [busy] a spinner takes the
  * ▶'s place and it can't be tapped, nor while not [enabled].
@@ -60,7 +91,7 @@ val FabSize = 54.dp
 @Composable
 fun RunFab(label: String, busy: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Row(
-        modifier.height(52.dp).fabShadow(Capsule).pressClickable(shape = Capsule, enabled = enabled && !busy, role = Role.Button, onClick = onClick)
+        modifier.height(RunFabHeight).fabShadow(Capsule).pressClickable(shape = Capsule, enabled = enabled && !busy, role = Role.Button, onClick = onClick)
             .background(if (enabled || busy) C.Yellow else C.PrimaryOffBg).padding(start = 16.dp, end = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -71,6 +102,9 @@ fun RunFab(label: String, busy: Boolean, onClick: () -> Unit, modifier: Modifier
         Txt(label, 14, 800, fg)
     }
 }
+
+/** How tall the [RunFab] capsule is. */
+val RunFabHeight = 52.dp
 
 /**
  * A filter button: a dark circle with a funnel; while [count] choices are on, the funnel is yellow with a count badge.

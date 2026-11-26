@@ -16,7 +16,7 @@
     <string name="offline_assign">You’re offline. Assets are assigned on the server. Try again when you’re connected.</string>
     <string name="offline_move_to_managed">You’re offline. Assets are moved to managed assets through the server. Try again when you’re connected.</string>
 
-    <string name="offline_documents">You’re offline. Documents are kept on the server, not on this phone. Try again when you’re connected.</string>
+    <string name="offline_documents">You’re offline. Showing the documents as they were last time you were connected. Files added to this asset open and can be added; the others open once you’re connected.</string>
 
     <string name="offline_files">You’re offline. Files are uploaded to the server and read there, so the ones picked wait here. Try again when you’re connected.</string>
     <string name="offline_read_file">You’re offline. Reading a file means uploading it to the server. Try again when you’re connected.</string>

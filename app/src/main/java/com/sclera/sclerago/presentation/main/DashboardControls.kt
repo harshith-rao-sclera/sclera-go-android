@@ -26,6 +26,8 @@ import com.sclera.sclerago.presentation.components.DockAccess
 import com.sclera.sclerago.presentation.components.SelectionSummary
 import com.sclera.sclerago.presentation.components.BottomTabBar
 import com.sclera.sclerago.presentation.components.CircleFab
+import com.sclera.sclerago.presentation.components.FabGap
+import com.sclera.sclerago.presentation.components.FabMargin
 import com.sclera.sclerago.presentation.components.NavItem
 import com.sclera.sclerago.presentation.components.SearchFab
 import com.sclera.sclerago.presentation.icons.Ico
@@ -81,9 +83,9 @@ fun DashboardFabs(
     addBlock: UiText? = null,
 ) {
     Column(
-        modifier.navigationBarsPadding().imePadding().padding(end = 14.dp, bottom = 14.dp),
+        modifier.navigationBarsPadding().imePadding().padding(end = FabMargin, bottom = FabMargin),
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(FabGap),
     ) {
         onAdd?.let { AccessGate(addBlock) { CircleFab(Icons.Plus, stringResource(R.string.dash_add_asset), it, Modifier.testTag(DashTags.ADD)) } }
         onFilter?.let {

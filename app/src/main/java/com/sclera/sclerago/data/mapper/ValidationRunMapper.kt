@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.mapper
 
+import com.sclera.sclerago.data.remote.adc.CfgFieldDto
 import com.sclera.sclerago.data.remote.adc.CheckDto
 import com.sclera.sclerago.data.remote.adc.InsightsDto
 import com.sclera.sclerago.data.remote.adc.IssueDto
@@ -30,6 +31,7 @@ import com.sclera.sclerago.domain.validation.RunRequest
 import com.sclera.sclerago.domain.validation.RunScope
 import com.sclera.sclerago.domain.validation.RunSource
 import com.sclera.sclerago.domain.validation.RunStatus
+import com.sclera.sclerago.domain.validation.ServerReviewAsset
 import com.sclera.sclerago.domain.validation.StepGroup
 import com.sclera.sclerago.domain.validation.StepOutcome
 import com.sclera.sclerago.domain.validation.StepSeverity
@@ -206,8 +208,18 @@ fun InsightsDto.toDomain() = RunInsights(
 fun MergeAssetDto.toDomain() = MergeAsset(
     id = id,
     name = name.clip(),
-    place = listOfNotNull(buildingName, floorName, locationName).filter { it.isNotBlank() }.joinToString(" › ").clip(),
+    place = place(),
     values = values.mapNotNull { (k, v) -> v.toIssueValue()?.let { k to it } }.toMap(),
+)
+
+private fun MergeAssetDto.place() = listOfNotNull(buildingName, floorName, locationName).filter { it.isNotBlank() }.joinToString(" › ").clip()
+
+/** The asset and its fields as the server has them, for the review's Asset info. */
+fun MergeAssetDto.toReviewAsset(fields: List<CfgFieldDto>) = ServerReviewAsset(
+    fields = fields.mapNotNull { it.toFieldCfg() },
+    values = values.mapValues { (_, v) -> v.shownText().clip() }.filterValues { it.isNotBlank() },
+    place = place(),
+    status = status?.takeIf { it.isNotBlank() }?.let { statusFromDb(it, validated = false) },
 )
 
 // ---------------------------------------------------------------- Saved validations

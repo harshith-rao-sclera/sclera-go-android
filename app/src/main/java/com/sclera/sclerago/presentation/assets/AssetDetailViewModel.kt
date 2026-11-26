@@ -12,6 +12,8 @@ import com.sclera.sclerago.domain.model.Asset
 import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDetails
 import com.sclera.sclerago.domain.model.AssetDocument
+import com.sclera.sclerago.domain.model.documentKind
+import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.AssetLock
 import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.model.CloneRequest
@@ -189,8 +191,6 @@ data class AssetDetailState(
     val buttons: AssetButtons = AssetButtons(),
     /** The JACS code picker while it is open (null: closed). */
     val jacs: JacsPickerState? = null,
-    /** The AI is being asked for JACS codes for the asset (its button beside the code spins). */
-    val jacsSuggesting: Boolean = false,
     /** The "Suggest type" sheet while it is open (null: closed). */
     val classify: ClassifyState? = null,
     /** A building, floor or location picked for the asset and not saved yet ([place] already shows it). */
@@ -239,7 +239,6 @@ data class AssetDetailState(
      * Documents can't be added now: they are kept on the server only (not synced), so not offline, nor to an asset the
      * server doesn't have yet (new, or saved here and not synced).
      */
-    val documentsBlocked: Boolean get() = !online || isNew || asset?.id?.let(::isServerId) != true
 
     /** The mandatory fields still empty in the form. */
     val missingRequired: List<FieldCfg> get() = missingRequiredFields(fields, values)
@@ -381,8 +380,6 @@ class AssetDetailViewModel @Inject constructor(
         val addFieldError: UiText? = null,
         /** A pull to refresh is reading the asset, its activity, checks and documents again. */
         val refreshing: Boolean = false,
-        /** The AI is being asked for JACS codes for the asset. */
-        val jacsSuggesting: Boolean = false,
     )
 
     private val target = MutableStateFlow<Target?>(null)
@@ -485,8 +482,12 @@ class AssetDetailViewModel @Inject constructor(
                 pendingPlace = f.place,
                 formats = db.formats, photoRules = db.photoRules,
                 fieldRows = (db.rows ?: own.filter { it.visible }.map { FormEntry.Input(it.key) }) + typeExtra.map { FormEntry.Input(it.key) },
-                // From the server: the documents added to it, its source file, its web pages and manuals (none while new).
-                documents = if (t.isNew) emptyList() else db.documents.documents,
+                // The files added to it (kept on the phone, so also offline and while new), then from the server its source
+                // file, its web pages and manuals, and any file added on the web that hasn't reached the phone yet.
+                documents = documentsOf(
+                    asset.media.filter { m -> m.isDocument() && m.fieldId == null } + f.newPicks.filter { it.isDocument() },
+                    if (t.isNew) emptyList() else db.documents.documents,
+                ),
                 documentsUi = db.documents,
                 saved = saved, edits = f.edits, fields = fields, details = details,
                 media = asset.media.map { m -> if (m.id in f.movedKinds) m.copy(category = f.movedKinds[m.id]) else m } + f.newPicks,
@@ -510,7 +511,6 @@ class AssetDetailViewModel @Inject constructor(
                 buttons = buttonBlocks(asset, t.isNew).toUi(changeRequests.isReviewer(), changeRequests.isMine(asset.changeRequest)),
                 classify = classified.sheet,
                 jacs = jacs,
-                jacsSuggesting = f.jacsSuggesting,
                 online = online,
                 refreshing = f.refreshing,
                 aiOn = aiOn,
@@ -540,7 +540,7 @@ class AssetDetailViewModel @Inject constructor(
         manualsJob?.cancel()
         scanFill?.cancel()
         classifier.reset()
-        jacsPicker.reset()
+        jacsPicker.close()
         photoFill.cancel()
         form.value = Form()
         target.value = Target(asset, isNew, prefill)
@@ -749,9 +749,9 @@ class AssetDetailViewModel @Inject constructor(
     private var asOther = false
 
     /**
-     * Media's Add file: Excel, CSV, PDF, Word and text files only (no photos or videos), at most 10 MB each. They are kept
-     * on the phone as the asset's media and synced like its photos (a new asset keeps them until it is saved). What is
-     * refused is said.
+     * Media's Add file and the Documents tab's +: Excel, CSV, PDF, Word and text files only (no photos or videos), at most
+     * 10 MB each. They are kept on the phone as the asset's media and synced like its photos, online or offline (a new
+     * asset keeps them until it is saved); the Documents tab lists them too. What is refused is said.
      */
     fun attachFiles(picked: List<Media>) {
         photoKind = null
@@ -776,9 +776,9 @@ class AssetDetailViewModel @Inject constructor(
         val kind = photoKind.also { photoKind = null }
         // From Media's Camera: Other photos, as taken (not sorted).
         val other = asOther.also { asOther = false }
-        // Documents (not photos, videos or voice memos) become the asset's documents (see [uploadDocuments]).
+        // Files (not photos, videos or voice memos) are kept as the asset's media, as Add file keeps them ([attachFiles]).
         val (docs, rest) = picked.partition { it.isDocument() }
-        uploadDocuments(docs)
+        if (docs.isNotEmpty()) attachFiles(docs)
         if (rest.isEmpty()) return
         val media = rest.map { if (!it.video && !it.isDoc && !it.audio) it.copy(category = kind ?: it.category) else it }
         if (other || !useCases.sortPhotos.needed(media)) {
@@ -796,35 +796,6 @@ class AssetDetailViewModel @Inject constructor(
             // Another asset was opened meanwhile: these photos were for the one before.
             if (state.value.asset?.id == assetId) addPicked(sorted)
         }
-    }
-
-    /**
-     * The Documents tab's Add: [doc] goes to the server as one of the asset's documents (documents are not synced); a
-     * video picked there is one of its media, as before. The asset's source document stays as it is.
-     */
-    fun attachDocument(doc: Media) {
-        photoKind = null
-        if (doc.isDocument()) uploadDocuments(listOf(doc)) else addPicked(listOf(doc.copy(category = null)))
-    }
-
-    /**
-     * Sends [docs] to the server as the asset's documents (documents are not synced), unless it is read-only. Offline, or
-     * for an asset the server doesn't have yet, they are not added and the user is told why ([documentsBlocked]).
-     */
-    private fun uploadDocuments(docs: List<Media>) {
-        val s = state.value
-        if (docs.isEmpty() || s.asset == null || s.managed || s.locked) return
-        if (s.documentsBlocked) {
-            deleteOwned(docs)
-            documentsBlocked()
-            return
-        }
-        documents.upload(docs)
-    }
-
-    /** Says why documents can't be added now: offline, or the asset isn't on the server yet. */
-    fun documentsBlocked() {
-        message.tryEmit(if (!state.value.online) UiText.Res(OnlineOnly.DOCUMENTS.message) else UiText.Res(R.string.doc_not_on_server))
     }
 
     /** Fetches [document]'s file from the server, then the screen opens it ([openedDocuments]). */
@@ -1029,57 +1000,7 @@ class AssetDetailViewModel @Inject constructor(
 
     fun openJacs() {
         if (state.value.locked) return
-        jacsPicker.open(jacsTypeId(state.value))
-    }
-
-    /**
-     * The type JACS codes are suggested for, as the web's: the one the form's system, asset and sub type name, else the
-     * asset's saved type while those are unchanged (a retired type the catalogue lacks); null when the type was changed to
-     * none the catalogue has (the AI then works out the type itself).
-     */
-    private fun jacsTypeId(s: AssetDetailState): String? =
-        s.formats.formatFor(s.values)?.id ?: s.asset?.masterFormatId?.takeIf { CLASS_KEYS.none(s::dirty) }
-
-    /**
-     * The AI button beside an empty JACS code (the web's): up to three codes for the open, saved asset's type
-     * ([jacsTypeId]), ranked by the server from its saved answers and photos. They head the JACS code picker, which then
-     * opens; none says so. Not with the property's AI off, and only where the asset can be changed (the server needs
-     * Collect). Nothing is saved.
-     */
-    fun suggestJacs() {
-        val s = state.value
-        val asset = s.asset ?: return
-        if (s.isNew || s.locked || form.value.jacsSuggesting) return
-        if (!s.aiOn) {
-            message.tryEmit(AI_OFF)
-            return
-        }
-        val type = jacsTypeId(s)
-        form.update { it.copy(jacsSuggesting = true) }
-        viewModelScope.launch {
-            try {
-                val codes = jacsCodes.suggest(asset.id, type)
-                // Another asset opened meanwhile: these codes were for the one before.
-                if (state.value.asset?.id != asset.id) return@launch
-                if (codes.isEmpty()) message.emit(UiText.Res(R.string.jacs_suggest_none))
-                else jacsPicker.openSuggested(codes, type)
-            } catch (e: OnlineException) {
-                message.emit(e.error.jacsSuggestText())
-            } finally {
-                form.update { it.copy(jacsSuggesting = false) }
-            }
-        }
-    }
-
-    /**
-     * Why suggesting JACS codes failed: offline; nothing to go on (no photo, name, manufacturer, model or type); the
-     * property's AI switch off; else that it couldn't (the server's own words aren't kept by the app).
-     */
-    private suspend fun OnlineError.jacsSuggestText(): UiText = when {
-        this == OnlineError.Offline -> toUiText()
-        this == OnlineError.Invalid -> UiText.Res(R.string.classify_need_input)
-        aiSwitch.isAiOffRefusal(this) -> AI_OFF
-        else -> UiText.Res(R.string.jacs_suggest_failed)
+        jacsPicker.open()
     }
 
     fun searchJacs(text: String) = jacsPicker.query(text)
@@ -1091,17 +1012,15 @@ class AssetDetailViewModel @Inject constructor(
     /**
      * Puts the JACS [code] in the form (blank: none) and, as the web does, the type the property has for it: its
      * system, asset and sub type, whose fields then show. Without a connection, or a type for the code, only the code
-     * changes; so does a code the AI suggested for the type the form has (as the web's `forType`). Nothing is saved
-     * until Save.
+     * changes. Nothing is saved until Save.
      */
     fun pickJacs(code: String) {
         if (state.value.locked) return
         jacsPicker.close()
         val value = code.trim()
-        val keepType = jacsPicker.keepsType(value, jacsTypeId(state.value))
         classifier.noteCode(value)
         form.update { it.copy(edits = it.edits + ("jacs" to value), aiSources = it.aiSources - "jacs") }
-        if (value.isEmpty() || keepType) return
+        if (value.isEmpty()) return
         viewModelScope.launch {
             val type = try {
                 jacsCodes.typeFor(value)
@@ -1852,5 +1771,29 @@ class AssetDetailViewModel @Inject constructor(
     }
 }
 
-/** A picked file that is a document (not a photo, video or voice memo): kept only on the server. */
+/** A picked file that is a document (not a photo, video or voice memo). */
 private fun Media.isDocument() = isDoc && !audio && !video
+
+/**
+ * The Documents tab's list: the file the asset was read from first, then the files added to it ([files]: the Documents
+ * tab's + and Media's Add file, kept on the phone as its media, so they show offline too), then from the server its web
+ * pages and manuals, and any file added on the web that hasn't reached the phone yet. A file the server lists as well
+ * keeps who added it from there.
+ */
+private fun documentsOf(files: List<Media>, server: List<AssetDocument>): List<AssetDocument> {
+    val byId = server.associateBy { it.id }
+    val own = files.map { m ->
+        val name = m.fileName.orEmpty()
+        val known = byId[m.id]
+        AssetDocument(
+            id = m.id, source = DocumentSource.ATTACHMENT, title = name, url = null, publisher = null,
+            hasFile = true, fileKind = documentKind(name, known?.contentType), uploadedBy = known?.uploadedBy,
+            uploaderName = known?.uploaderName, uploadedAt = known?.uploadedAt ?: m.createdAt,
+            sizeBytes = m.sizeBytes ?: known?.sizeBytes, contentType = known?.contentType, removable = true, onDevice = true,
+        )
+    }
+    val ids = own.map { it.id }.toSet()
+    val (sources, rest) = server.filterNot { it.source == DocumentSource.ATTACHMENT && it.id in ids }
+        .partition { it.source == DocumentSource.SOURCE_FILE }
+    return sources + own + rest
+}

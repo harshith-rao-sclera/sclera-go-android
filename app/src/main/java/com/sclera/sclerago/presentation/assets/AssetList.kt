@@ -4,6 +4,7 @@ import com.sclera.sclerago.presentation.components.pressScale
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.components.SkeletonBlock
 import com.sclera.sclerago.presentation.components.SkeletonList
+import com.sclera.sclerago.presentation.components.fabClearance
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
@@ -148,7 +149,8 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
             EmptyCard(data.empty, list.query, Modifier.animateItem(fadeInSpec = ItemFade, placementSpec = null, fadeOutSpec = ItemFade).readableWidth())
         }
     }
-    item(key = "pad") { Spacer(Modifier.height(160.dp)) }
+    // Room for the dashboard's +, filter and search buttons, so the last row scrolls clear of them.
+    item(key = "pad") { Spacer(Modifier.height(fabClearance(3, navigationBars = true))) }
 }
 
 @Composable
