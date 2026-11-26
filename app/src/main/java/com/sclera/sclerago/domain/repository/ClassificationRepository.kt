@@ -23,11 +23,8 @@ interface ClassificationRepository {
     ): ClassificationResult
 
     /**
-     * The fields an asset of the type [masterFormatId] gets: the ones kept on the device, else asked from the server (and
-     * kept). Empty for a type the library doesn't know, or when neither is possible.
+     * The fields an asset of the type [masterFormatId] gets, as the property's database keeps them (they come with the
+     * sync, so offline too). Empty for a type with none, or one the database doesn't have.
      */
     suspend fun typeFields(masterFormatId: String): List<TypeField>
-
-    /** Downloads every active type's fields of the current property to keep for working offline; does nothing without a connection. */
-    suspend fun refresh()
 }

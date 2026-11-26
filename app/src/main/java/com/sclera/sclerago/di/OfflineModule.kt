@@ -3,7 +3,6 @@ package com.sclera.sclerago.di
 import com.sclera.sclerago.data.local.LocalAssetFileStore
 import com.sclera.sclerago.data.local.PropertyListCache
 import com.sclera.sclerago.data.local.PropertyTable
-import com.sclera.sclerago.data.local.TypeFieldsStore
 import com.sclera.sclerago.data.offline.AssetFileStore
 import com.sclera.sclerago.data.offline.AssetsOfflineSource
 import com.sclera.sclerago.data.offline.AssetsWriter
@@ -105,15 +104,14 @@ object OfflineModule {
         places: PlacesOfflineSource,
         formats: MasterFormatsOfflineSource,
         files: AssetFileStore,
-        typeFields: TypeFieldsStore,
-        downloads: PropertyDownloadRepository,
+        fields: FieldsOfflineSource,
         // Lazily: these repositories are made after the writer (sign-out wipes through it).
         people: Provider<AccessRepository>,
         auth: Provider<AuthRepository>,
     ) = AssetsWriter(
         db, io, time, ids, user, places, formats, files,
-        // The fields kept on the device for the current property's types (an asset of a type gets them when saved).
-        TypeFieldsLookup { formatId -> downloads.downloads.value.currentId?.let { typeFields.get(it, formatId) }.orEmpty() },
+        // The type's fields in the property's database (an asset of a type gets them when saved).
+        TypeFieldsLookup(fields::typeFieldsNow),
         // Names for "Asset assigned to …": the people list kept here (admins'), else the signed-in user's own name.
         nameOf = { userId ->
             people.get().people.value.firstOrNull { it.id == userId }?.name?.takeIf { it.isNotBlank() }
@@ -147,6 +145,5 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun propertyList(impl: PropertyTable): PropertyListCache
 
     @Binds @IntoSet abstract fun clearAssetFiles(impl: LocalAssetFileStore): UserDataCleaner
-    @Binds @IntoSet abstract fun clearTypeFields(impl: TypeFieldsStore): UserDataCleaner
     @Binds @IntoSet abstract fun clearAssetIcons(impl: AssetIconRepositoryImpl): UserDataCleaner
 }

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.offline
 
+import com.sclera.sclerago.domain.model.TypeField
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.FieldKeys
@@ -21,6 +22,13 @@ private const val STANDARD_FIELDS = "SELECT * FROM asset_fields WHERE is_standar
 
 private const val EFFECTIVE_FIELDS =
     "SELECT * FROM asset_fields WHERE (is_standard = 1 OR asset_id = ?) AND %LIVE% ORDER BY (COALESCE(is_standard, 0) = 0), position, key"
+
+/**
+ * A type's fields, as the sync keeps them (`services/fields.py`: no `asset_id`, `master_format_id` the type): what an asset
+ * of that type gets, copied onto it when an answer is saved. Active ones only, in their order.
+ */
+private const val TYPE_FIELDS =
+    "SELECT * FROM asset_fields WHERE asset_id IS NULL AND master_format_id = ? AND is_active = 1 AND %LIVE% ORDER BY position, key"
 
 /** The asset fields: the standard ones every asset has, and the extra ones a single asset carries. Reads only. */
 class FieldsOfflineSource(private val db: AdcDatabase, private val io: CoroutineDispatcher) {
@@ -74,6 +82,24 @@ class FieldsOfflineSource(private val db: AdcDatabase, private val io: Coroutine
                 .toMap()
         }
     }
+
+    /**
+     * The fields of the type [masterFormatId], from the property's database (every type's fields come with the sync, so
+     * they are there offline once the property is downloaded); empty for a type with none. Blocking.
+     */
+    fun typeFieldsNow(masterFormatId: String): List<TypeField> = db.whenTable(TABLE, emptyList()) {
+        if (!db.hasColumn(TABLE, "master_format_id")) return@whenTable emptyList()
+        db.query(TYPE_FIELDS.replace("%LIVE%", db.notRemoved(TABLE)), listOf(masterFormatId)).mapNotNull { row ->
+            val name = row.string("name")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            TypeField(
+                name = name, type = row.string("type").orEmpty(), options = DbJson.stringList(row.string("options")),
+                helpText = row.string("help_text")?.trim()?.takeIf { it.isNotEmpty() }, position = row.int("position") ?: 0,
+            )
+        }
+    }
+
+    /** [typeFieldsNow], off the main thread. */
+    suspend fun typeFields(masterFormatId: String): List<TypeField> = withContext(io) { typeFieldsNow(masterFormatId) }
 
     private fun loadStandard(): List<DbRow> = db.whenTable(TABLE, emptyList()) {
         db.query(STANDARD_FIELDS.replace("%LIVE%", db.notRemoved(TABLE)))

@@ -61,7 +61,6 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
 
     private var sheetJob: Job? = null
     private var fieldsJob: Job? = null
-    private var refreshed = false
     private var details = ClassifyDetails()
 
     /** The asset asked about when the server has it as saved (its own answers and photos are used); null otherwise. */
@@ -72,13 +71,6 @@ internal class AssetClassifier(private val useCases: ClassifyAssetUseCases, priv
         close()
         fieldsJob?.cancel()
         typeFields.value = emptyList()
-    }
-
-    /** Keeps every type's fields of the property on the device, once, so a type picked offline shows its fields. */
-    fun refreshOnce() {
-        if (refreshed) return
-        refreshed = true
-        scope.launch { useCases.refreshTypeFields() }
     }
 
     /**

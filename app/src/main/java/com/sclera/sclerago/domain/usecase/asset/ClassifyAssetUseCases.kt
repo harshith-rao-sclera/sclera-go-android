@@ -69,14 +69,8 @@ class GetTypeFieldsUseCase @Inject constructor(private val repo: ClassificationR
     }
 }
 
-/** Keeps every type's fields of the current property on the device, for picking a type and saving assets offline. */
-class RefreshTypeFieldsUseCase @Inject constructor(private val repo: ClassificationRepository) {
-    suspend operator fun invoke() = repo.refresh()
-}
-
 /** Classifying an asset, bundled for injection. */
 class ClassifyAssetUseCases @Inject constructor(
     val suggest: SuggestAssetTypeUseCase,
     val typeFields: GetTypeFieldsUseCase,
-    val refreshTypeFields: RefreshTypeFieldsUseCase,
 )

@@ -53,6 +53,4 @@ class AdcClassifyApi @Inject constructor(private val service: AdcClassifyService
         call.json({ service.classification(property) }) { AdcJson.decodeFromString(ClassificationDto.serializer(), it) }
 
     /** Every active type's fields of [property]. */
-    suspend fun allTypeFields(property: String): List<MasterFormatFieldsDto> =
-        call.json({ service.allTypeFields(property, ids = null) }) { AdcJson.decodeFromString(MasterFormatFieldsListDto.serializer(), it).data }
 }

@@ -1,6 +1,6 @@
 package com.sclera.sclerago.data.repository
 
-import com.sclera.sclerago.data.local.TypeFieldsStore
+import com.sclera.sclerago.data.offline.FieldsOfflineSource
 import com.sclera.sclerago.data.offline.AssetFileStore
 import com.sclera.sclerago.data.offline.MediaBlobs
 import com.sclera.sclerago.data.remote.adc.AdcClassifyApi
@@ -28,13 +28,14 @@ import javax.inject.Inject
 
 /**
  * Classification at the server for the current property (`/classification/suggest`, `/master-formats/…/fields`), with
- * each type's fields kept on the device ([TypeFieldsStore]) for picking a type and saving an asset offline.
+ * each type's fields read from the property's database ([FieldsOfflineSource]), where the sync keeps them, for picking a
+ * type and saving an asset offline.
  */
 class ClassificationRepositoryImpl @Inject constructor(
     private val api: AdcClassifyApi,
     private val files: AssetFileStore,
     private val blobs: MediaBlobs,
-    private val store: TypeFieldsStore,
+    private val fields: FieldsOfflineSource,
     private val downloads: PropertyDownloadRepository,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : ClassificationRepository {
@@ -54,7 +55,6 @@ class ClassificationRepositoryImpl @Inject constructor(
             if (masterFormatId == null && sent.isEmpty() && details.isEmpty) throw OnlineException(OnlineError.Invalid)
             api.suggest(property, details.toDto(), sent, masterFormatId, assetId = null)
         }
-        withContext(io) { answer.suggestions.forEach { store.put(property, it.masterFormatId, it.fields.map { f -> f.toField() }) } }
         return answer.toResult()
     }
 
@@ -65,26 +65,8 @@ class ClassificationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun typeFields(masterFormatId: String): List<TypeField> {
-        val property = property() ?: return emptyList()
-        withContext(io) { store.get(property, masterFormatId) }?.let { return it }
-        return try {
-            val fields = api.typeFields(property, masterFormatId).fields.map { it.toField() }
-            withContext(io) { store.put(property, masterFormatId, fields) }
-            fields
-        } catch (_: OnlineException) {
-            // Offline, or a type the server no longer has: no extra fields (the server adds them when the asset syncs).
-            emptyList()
-        }
-    }
-
-    override suspend fun refresh() {
-        val property = property() ?: return
-        try {
-            val all = api.allTypeFields(property).associate { it.masterFormatId to it.fields.map { f -> f.toField() } }
-            withContext(io) { store.putAll(property, all) }
-        } catch (_: OnlineException) {
-            // Kept as before: the next refresh with a connection brings them.
-        }
+        if (property() == null) return emptyList()
+        return fields.typeFields(masterFormatId)
     }
 
     /** What is typed, as the server takes it: each core detail at most [MAX_DETAIL] characters. */

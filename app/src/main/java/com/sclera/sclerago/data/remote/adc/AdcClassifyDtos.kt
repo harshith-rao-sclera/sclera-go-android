@@ -56,12 +56,6 @@ data class SuggestDetailsDto(
     val other: Map<String, String>? = null,
 )
 
-/** One type's fields (`GET /master-formats/{id}/fields`, and each item of the all-types list). */
-@Serializable
-data class MasterFormatFieldsDto(val masterFormatId: String, val fields: List<TypeFieldDto> = emptyList())
-
-@Serializable
-data class MasterFormatFieldsListDto(val data: List<MasterFormatFieldsDto> = emptyList())
 
 /**
  * The type a spec look-up thinks the asset is, when it isn't the one it has (`suggestedType`): values for its fields
@@ -127,3 +121,7 @@ data class ClassificationDto(val systemTypes: List<ClassSystemTypeDto> = emptyLi
 
 /** A photo sent with a suggestion request. */
 class ClassifyPhoto(val filename: String, val contentType: String, val bytes: ByteArray)
+
+/** One type's fields (`GET /master-formats/{id}/fields`). */
+@Serializable
+data class MasterFormatFieldsDto(val masterFormatId: String, val fields: List<TypeFieldDto> = emptyList())

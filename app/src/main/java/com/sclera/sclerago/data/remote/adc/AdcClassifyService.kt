@@ -46,8 +46,4 @@ interface AdcClassifyService {
     @Headers(AdcConfig.SLOW_CALL)
     @GET("properties/{property}/classification")
     suspend fun classification(@Path("property") property: String): Response<ResponseBody>
-
-    /** Every active type's fields, `{ data: [{ masterFormatId, fields }] }`; [ids] (comma-separated) narrows it. */
-    @GET("properties/{property}/master-formats/fields")
-    suspend fun allTypeFields(@Path("property") property: String, @Query("ids") ids: String?): Response<ResponseBody>
 }

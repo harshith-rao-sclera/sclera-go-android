@@ -575,7 +575,6 @@ class AssetDetailViewModel @Inject constructor(
         photoFill.cancel()
         form.value = Form()
         target.value = Target(asset, isNew, prefill)
-        classifier.refreshOnce()
         // Someone may have flipped the property's AI switch: read again when the last read is old (the web's askAiOn).
         viewModelScope.launch { aiSwitch.refresh() }
         if (isNew) startWithCaptures(asset)
