@@ -29,8 +29,8 @@ class PermissionGuard @Inject constructor(
     private val premise: PremiseRepository = NoPremiseRestriction,
 ) {
     /**
-     * What the user may do now: their permissions, except that a collector (not an admin, with Collect) of a property
-     * with geofencing on has no Collect while the phone is not on premise (or its location is unknown): view only.
+     * What the user may do now: their permissions, except that someone whose group is geo restricted keeps View alone in
+     * a property with a geofence while the phone is not inside it (or its location is unknown): view only, as the server.
      */
     fun allows(permission: Permission): Boolean = allows(access.state.value, premise.status.value, permission)
 
@@ -53,7 +53,7 @@ class PermissionGuard @Inject constructor(
         is AccessState.NoGroup -> AccessBlock.NO_GROUP
         is AccessState.Loaded -> when {
             permission in state.access.permissions ->
-                if (permission == Permission.COLLECT && heldByLocation(state, status)) AccessBlock.OFF_PREMISE else null
+                if (permission != Permission.VIEW && heldByLocation(state, status)) AccessBlock.OFF_PREMISE else null
             permission.needsAllProperties && limitedManager(state.access) -> AccessBlock.NEEDS_ALL_PROPERTIES
             else -> AccessBlock.missing(permission)
         }
@@ -73,10 +73,10 @@ class PermissionGuard @Inject constructor(
     /** [holds], kept up to date as the access changes. */
     fun observeHolds(permission: Permission): Flow<Boolean> = access.state.map { holds(it, permission) }.distinctUntilChanged()
 
-    /** The user is a collector held to view only by the geofence right now (see [allows]). */
+    /** The user is held to view only by the geofence right now (their group is geo restricted; see [allows]). */
     fun viewOnlyByLocation(): Boolean = heldByLocation(access.state.value, premise.status.value)
 
-    /** Why the user is a collector held to view only, as [PremiseNotice.NONE] when they are not; kept up to date. */
+    /** Why the user is held to view only by the geofence, as [PremiseNotice.NONE] when they are not; kept up to date. */
     fun observePremiseNotice(): Flow<PremiseNotice> =
         combine(access.state, premise.status) { state, status ->
             when {
@@ -87,11 +87,12 @@ class PermissionGuard @Inject constructor(
             }
         }.distinctUntilChanged()
 
+    /** The server's geo restriction: the group is geo restricted, and the phone isn't (known to be) inside the fence. */
     private fun heldByLocation(state: AccessState, status: PremiseStatus): Boolean =
-        status.restrictsCollectors && state is AccessState.Loaded && !state.access.isAdmin && Permission.COLLECT in state.access.permissions
+        status.restrictsCollectors && state is AccessState.Loaded && state.access.geoRestricted
 
     private fun allows(state: AccessState, status: PremiseStatus, permission: Permission): Boolean =
-        holds(state, permission) && !(permission == Permission.COLLECT && heldByLocation(state, status))
+        holds(state, permission) && !(permission != Permission.VIEW && heldByLocation(state, status))
 
     /**
      * Only what the access says, as the web (which won't sign someone in until `/me` answers): while it isn't known

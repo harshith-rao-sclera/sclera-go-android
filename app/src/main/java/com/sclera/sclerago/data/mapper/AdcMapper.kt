@@ -97,15 +97,22 @@ fun GroupDto.toGroup() = Group(
     description = description.orEmpty(),
     permissions = permissions.mapNotNull(::permissionOf).toSet(), // a key this app doesn't know is ignored
     locked = isBuiltIn,
+    geoRestricted = geoRestricted,
 )
 
 private fun permissionKeys(permissions: Set<Permission>) = JsonArray(permissions.map { JsonPrimitive(it.key) })
 
-/** A group's name, description and permissions; a locked group (Admins) always has every permission, so none are sent (as the web does). */
+/**
+ * A group's name, description, permissions and geo restriction; a locked group (Admins) always has every permission and
+ * is never geo restricted, so neither is sent (as the web does).
+ */
 fun Group.toCreateBody(): JsonObject = buildJsonObject {
     put("name", name.trim())
     put("description", textOrNull(description))
-    if (!locked) put("permissions", permissionKeys(permissions))
+    if (!locked) {
+        put("permissions", permissionKeys(permissions))
+        put("geoRestricted", geoRestricted && !geoExempt)
+    }
 }
 
 fun Group.toUpdateBody(): JsonObject = toCreateBody()
@@ -172,4 +179,5 @@ fun MeDto.toCurrentAccess(signedInEmail: String) = CurrentAccess(
     canManageProperties = canManageProperties,
     isAdmin = isAdmin,
     imageUrl = imageUrl,
+    geoRestricted = geoRestricted,
 )

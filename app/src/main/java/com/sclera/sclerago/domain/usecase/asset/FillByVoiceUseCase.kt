@@ -46,7 +46,7 @@ class FillByVoiceUseCase @Inject constructor(
             VoiceReading(repo.fill(text, form, Locale.getDefault().toLanguageTag(), TimeZone.getDefault().id, time.nowMillis()), byAi = true)
         } catch (e: OnlineException) {
             when (e.error) {
-                OnlineError.SessionExpired, OnlineError.Forbidden -> throw e
+                OnlineError.SessionExpired, OnlineError.Forbidden, OnlineError.GeoRestricted -> throw e
                 // Offline, AI not set up, too slow or failing, nothing it could use, or a request it refused (both are
                 // Invalid here): the phone reads it ("<field name> <value>").
                 else -> VoiceReading(VoiceFillResult(onPhone(text, fields)), byAi = false)

@@ -19,6 +19,11 @@ data class CurrentAccess(
     val isAdmin: Boolean = false,
     /** Their profile photo's link as the server has it (see [profilePhoto]). */
     val imageUrl: String? = null,
+    /**
+     * Their group is geo restricted, as the server holds them (never Admins, nor anyone who manages properties): in a
+     * property with a geofence they make changes only from inside it; from anywhere else they may only look.
+     */
+    val geoRestricted: Boolean = false,
 ) {
     /** A person with no group has no access yet: the server refuses everything for them. */
     val hasGroup: Boolean get() = groupId != null

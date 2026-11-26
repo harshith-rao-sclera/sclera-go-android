@@ -1,5 +1,7 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.presentation.model.locationTagText
+import com.sclera.sclerago.presentation.model.labelRes
 import com.sclera.sclerago.presentation.components.SkeletonLine
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -130,7 +132,12 @@ internal fun ReviewAssetInfoTab(
         return
     }
     val status = info.status ?: local?.st
-    val rows = info.rows + listOf(
+    // Its Type and Location tag first, read-only (the asset's own, not fields), as the web shows them above the fields.
+    val tags = listOf(
+        AssetInfoRow(stringResource(R.string.asset_kind_label), info.kind?.let { stringResource(it.labelRes) }),
+        AssetInfoRow(stringResource(R.string.location_tag_label), info.locationTag?.let { locationTagText(it) }),
+    )
+    val rows = tags + info.rows + listOf(
         AssetInfoRow(stringResource(R.string.rev_info_location), info.place.ifBlank { null }),
         AssetInfoRow(stringResource(R.string.rev_info_status), status?.let { statusText(it) }),
     )

@@ -173,4 +173,7 @@ data class MergeAssetDto(
     val locationName: String? = null,
     /** drafted, submitted, exception or saved. */
     val status: String? = null,
+    /** Its Type ("existing" or "proposed") and Location tag ("wall:north"): the asset's own, not fields. */
+    val type: String? = null,
+    val locationTag: String? = null,
 )

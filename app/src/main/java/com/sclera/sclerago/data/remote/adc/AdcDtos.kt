@@ -72,6 +72,8 @@ data class GroupDto(
     val permissions: List<String> = emptyList(),
     val isBuiltIn: Boolean = false,
     val userCount: Int = 0,
+    /** Geo restriction: its people make changes in a property with a geofence only from inside it. */
+    val geoRestricted: Boolean = false,
 )
 
 @Serializable
@@ -195,4 +197,9 @@ data class MeDto(
     val isAdmin: Boolean = false,
     /** Their profile photo, as Sclera has it (an https link). */
     val imageUrl: String? = null,
+    /**
+     * Their group is geo restricted (and they don't manage properties): in a property with a geofence they make changes
+     * only from inside it, sending where they are with each call there.
+     */
+    val geoRestricted: Boolean = false,
 )

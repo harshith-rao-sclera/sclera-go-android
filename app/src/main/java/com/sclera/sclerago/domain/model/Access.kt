@@ -67,9 +67,23 @@ data class Group(
     val description: String,
     val permissions: Set<Permission>,
     val locked: Boolean = false,
+    /**
+     * Geo restriction: its people make changes in a property with a geofence only from inside it (from anywhere else they
+     * may only look). It has no effect on a group that is exempt ([geoExempt]).
+     */
+    val geoRestricted: Boolean = false,
 ) {
     /** Whether this group's people can do [p] (a locked group can do everything). */
     fun can(p: Permission): Boolean = locked || p in permissions
+
+    /**
+     * Never held to a geofence: Admins (someone must always be able to fix a fence), and a group that can manage
+     * properties or access (they open every property from anywhere), as the server rules.
+     */
+    val geoExempt: Boolean get() = locked || Permission.MANAGE_PROPERTIES in permissions || Permission.MANAGE_ACCESS in permissions
+
+    /** The geo restriction holds its people (on, and the group isn't exempt). */
+    val heldToFence: Boolean get() = geoRestricted && !geoExempt
 
     /** Everything the group's people can do, in [Permission] order. */
     val effectivePermissions: List<Permission> get() = Permission.entries.filter(::can)

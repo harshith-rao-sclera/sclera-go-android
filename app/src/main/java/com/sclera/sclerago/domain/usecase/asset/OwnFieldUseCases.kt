@@ -4,6 +4,7 @@ import com.sclera.sclerago.domain.model.AddFieldOutcome
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.OWN_FIELD_KINDS
 import com.sclera.sclerago.domain.model.OWN_FIELD_NAME_MAX
+import com.sclera.sclerago.domain.model.OPTION_KINDS
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.repository.AssetOwnFieldsRepository
 import com.sclera.sclerago.domain.repository.AssetRepository
@@ -23,13 +24,26 @@ class AddAssetFieldUseCase @Inject constructor(
     /** The signed-in user may add fields to assets. */
     fun allowed(): Boolean = guard.allows(Permission.COLLECT)
 
-    suspend operator fun invoke(assetId: String, name: String, kind: FieldKind): AddFieldOutcome {
+    /**
+     * Adds [name] of [kind] to asset [assetId]. [options] are a dropdown's or multiple check boxes' choices (blank and
+     * repeated ones dropped; other kinds take none) and [currency] a currency field's code (USD), as the server requires.
+     */
+    suspend operator fun invoke(
+        assetId: String,
+        name: String,
+        kind: FieldKind,
+        options: List<String> = emptyList(),
+        currency: String? = null,
+    ): AddFieldOutcome {
         val trimmed = name.trim().take(OWN_FIELD_NAME_MAX)
         if (trimmed.isEmpty()) return AddFieldOutcome.NoName
         require(kind in OWN_FIELD_KINDS) { "Not a type an asset's own field can have" }
+        val choices = if (kind in OPTION_KINDS) options.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() } else emptyList()
+        if (kind in OPTION_KINDS && choices.isEmpty()) return AddFieldOutcome.NoOptions
+        val unit = if (kind == FieldKind.CURRENCY) currency?.trim()?.uppercase()?.takeIf { it.isNotEmpty() } ?: return AddFieldOutcome.NoCurrency else null
         guard.requireOffline(Permission.COLLECT)
         requireUnlocked(assets, guard, listOf(assetId))
-        return repo.add(assetId, trimmed, kind)?.let(AddFieldOutcome::Added) ?: AddFieldOutcome.NameTaken
+        return repo.add(assetId, trimmed, kind, choices, unit)?.let(AddFieldOutcome::Added) ?: AddFieldOutcome.NameTaken
     }
 }
 

@@ -32,11 +32,13 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.FieldKind
 import com.sclera.sclerago.domain.model.OWN_FIELD_KINDS
 import com.sclera.sclerago.domain.model.OWN_FIELD_NAME_MAX
+import com.sclera.sclerago.domain.model.OPTION_KINDS
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.ChoiceList
+import com.sclera.sclerago.presentation.components.CurrencyPicker
 import com.sclera.sclerago.presentation.components.FieldLabel
 import com.sclera.sclerago.presentation.components.FormSheet
 import com.sclera.sclerago.presentation.components.SheetInput
@@ -50,6 +52,7 @@ import com.sclera.sclerago.presentation.theme.Txt
 object AddFieldTags {
     const val OPEN = "add-field-open"
     const val NAME = "add-field-name"
+    const val OPTIONS = "add-field-options"
     fun remove(label: String) = "add-field-remove-$label"
 }
 
@@ -59,7 +62,8 @@ object AddFieldTags {
  */
 class AddFieldActions(
     val onOpen: () -> Unit = {},
-    val onAdd: (name: String, kind: FieldKind) -> Unit = { _, _ -> },
+    /** [options]: a dropdown's or multiple check boxes' choices; [currency]: a currency field's code. */
+    val onAdd: (name: String, kind: FieldKind, options: List<String>, currency: String?) -> Unit = { _, _, _, _ -> },
     val onNameChange: () -> Unit = {},
     val onClose: () -> Unit = {},
     val onRemove: (key: String) -> Unit = {},
@@ -114,24 +118,30 @@ internal fun AddFieldRow(onClick: () -> Unit, blocked: UiText? = null) {
 }
 
 /**
- * Add field, as the web's (For this asset only): a name and a type (Text, Number, Date, Yes / No, Link). The field is
- * added to this asset alone and shows at the end of its fields, empty, to fill in like the rest.
+ * Add field (For this asset only): a name and a type, the types Configuration's Add field offers. A dropdown or multiple
+ * check boxes also takes its options (one per line), a currency field its currency. The field is added to this asset alone
+ * and shows at the end of its fields, empty, to fill in like the rest.
  */
 @Composable
 internal fun AddFieldSheet(state: AssetDetailState, actions: AddFieldActions) {
     var name by rememberSaveable { mutableStateOf("") }
     var kind by rememberSaveable { mutableStateOf(FieldKind.TEXT) }
+    var options by rememberSaveable { mutableStateOf("") }
+    var currency by rememberSaveable { mutableStateOf("") }
     val busy = state.addingField
     val labels = OWN_FIELD_KINDS.associateWith { stringResource(it.ownFieldLabel()) }
+    val choices = options.lines().map { it.trim() }.filter { it.isNotEmpty() }
+    val complete = name.isNotBlank() &&
+        (kind !in OPTION_KINDS || choices.isNotEmpty()) && (kind != FieldKind.CURRENCY || currency.isNotBlank())
 
     FormSheet(
         title = stringResource(R.string.own_field_title),
         sub = stringResource(R.string.own_field_sub),
         primary = stringResource(if (busy) R.string.own_field_adding else R.string.own_field_go),
-        primaryEnabled = name.isNotBlank() && !busy,
+        primaryEnabled = complete && !busy,
         error = state.addFieldError?.asString(),
         onClose = actions.onClose,
-        onPrimary = { if (name.isNotBlank() && !busy) actions.onAdd(name, kind) },
+        onPrimary = { if (complete && !busy) actions.onAdd(name, kind, choices, currency.takeIf { kind == FieldKind.CURRENCY }) },
         leadingIcon = Icons.Plus,
         dirty = name.isNotBlank(),
     ) {
@@ -145,14 +155,31 @@ internal fun AddFieldSheet(state: AssetDetailState, actions: AddFieldActions) {
             FieldLabel(stringResource(R.string.own_field_type))
             ChoiceList(OWN_FIELD_KINDS, { labels.getValue(it) }, { it == kind }, { kind = it })
         }
+        if (kind in OPTION_KINDS) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FieldLabel(stringResource(R.string.own_field_options))
+                Box(Modifier.testTag(AddFieldTags.OPTIONS)) {
+                    SheetInput(options, { options = it; actions.onNameChange() }, stringResource(R.string.own_field_options_hint), multiLine = true)
+                }
+            }
+        }
+        if (kind == FieldKind.CURRENCY) {
+            CurrencyPicker(currency, state.currencies) { currency = it; actions.onNameChange() }
+            if (state.currencies.isEmpty()) Txt(stringResource(R.string.own_field_currency_unavailable), 11, 500, C.Muted, maxLines = Int.MAX_VALUE)
+        }
     }
 }
 
-/** The web's names for the types a field added to one asset can have. */
+/** The names of the types a field added to one asset can have. */
 private fun FieldKind.ownFieldLabel() = when (this) {
-    FieldKind.NUMBER -> R.string.own_field_type_number
-    FieldKind.DATE -> R.string.own_field_type_date
+    FieldKind.CHECKBOX -> R.string.own_field_type_checkbox
+    FieldKind.MULTI -> R.string.own_field_type_multi
     FieldKind.YESNO -> R.string.own_field_type_yesno
+    FieldKind.DATE -> R.string.own_field_type_date
+    FieldKind.TIME -> R.string.own_field_type_time
+    FieldKind.NUMBER -> R.string.own_field_type_number
+    FieldKind.CURRENCY -> R.string.own_field_type_currency
     FieldKind.URL -> R.string.own_field_type_link
+    FieldKind.DROPDOWN -> R.string.own_field_type_dropdown
     else -> R.string.own_field_type_text
 }

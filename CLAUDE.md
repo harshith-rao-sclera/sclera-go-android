@@ -254,6 +254,10 @@ Each property's geofence (its fences, from the property list) is kept in `global
 ADC API reads are network-first (`OfflineCacheInterceptor`): each JSON `GET` answer is saved, encrypted with `SecretCipher`, in
 `filesDir/online_cache/responses` (`EncryptedResponseCache`, files named by a SHA-256 of user + org + URL, wiped on sign-out) and
 served only when there is no connection. File content, downloads and polled job status are never kept.
+Geo restriction (a group setting, `geoRestricted` from `/me`): for such a person in a property with a geofence the phone
+reads its location (`PremiseRepositoryImpl`) and sends it with every call inside that property as `X-ADC-Position`
+(`PositionForCalls`, memory only, never stored or logged, cleared on sign-out), as the server requires; outside the fence, or
+without a position, they keep View only. Nobody else's location is read or sent.
 Still open:
 - The login WebView changes (host allow-list, third-party cookies off) and sign-out → sign-in wipe have not been
   verified end to end on a device; do this before release.

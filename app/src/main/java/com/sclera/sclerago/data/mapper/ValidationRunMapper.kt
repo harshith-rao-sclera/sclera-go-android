@@ -1,5 +1,7 @@
 package com.sclera.sclerago.data.mapper
 
+import com.sclera.sclerago.domain.model.LocationTag
+import com.sclera.sclerago.domain.model.AssetKind
 import com.sclera.sclerago.data.remote.adc.CfgFieldDto
 import com.sclera.sclerago.data.remote.adc.CheckDto
 import com.sclera.sclerago.data.remote.adc.InsightsDto
@@ -220,6 +222,8 @@ fun MergeAssetDto.toReviewAsset(fields: List<CfgFieldDto>) = ServerReviewAsset(
     values = values.mapValues { (_, v) -> v.shownText().clip() }.filterValues { it.isNotBlank() },
     place = place(),
     status = status?.takeIf { it.isNotBlank() }?.let { statusFromDb(it, validated = false) },
+    kind = AssetKind.of(type),
+    locationTag = LocationTag.of(locationTag),
 )
 
 // ---------------------------------------------------------------- Saved validations

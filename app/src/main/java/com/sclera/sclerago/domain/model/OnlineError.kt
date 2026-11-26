@@ -11,6 +11,12 @@ sealed interface OnlineError {
     /** The signed-in user is not allowed to do this. */
     data object Forbidden : OnlineError
 
+    /**
+     * Their group is geo restricted and the phone isn't inside the property's geofence (or didn't say where it is): they
+     * may only look there (the server's `geo-restricted` refusal).
+     */
+    data object GeoRestricted : OnlineError
+
     data object NotFound : OnlineError
 
     /** The change clashes with what is there; [code] is the server's problem code (e.g. a group that still has people). */

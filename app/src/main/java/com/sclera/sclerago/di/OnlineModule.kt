@@ -36,6 +36,7 @@ import com.sclera.sclerago.data.repository.ConfigPlacesRepositoryImpl
 import com.sclera.sclerago.data.repository.CurrencyRepositoryImpl
 import com.sclera.sclerago.data.repository.FileImportRepositoryImpl
 import com.sclera.sclerago.data.repository.GeofenceRepositoryImpl
+import com.sclera.sclerago.data.remote.adc.PositionForCalls
 import com.sclera.sclerago.data.repository.PremiseRepositoryImpl
 import com.sclera.sclerago.data.repository.OnboardingRepositoryImpl
 import com.sclera.sclerago.data.repository.PropertyRepositoryImpl
@@ -144,8 +145,12 @@ abstract class OnlineModule {
         @Provides
         @Singleton
         @AdcClient
-        fun adcClient(base: OkHttpClient, tokens: AccessTokenProvider, offlineCache: OfflineCacheInterceptor): OkHttpClient =
-            base.forAdc(tokens, offlineCache)
+        fun adcClient(
+            base: OkHttpClient,
+            tokens: AccessTokenProvider,
+            offlineCache: OfflineCacheInterceptor,
+            position: PositionForCalls,
+        ): OkHttpClient = base.forAdc(tokens, offlineCache, position)
 
         /** The ADC answers kept for offline belong to the signed-in user in their organisation (as `GET /me` names them). */
         @Provides

@@ -63,6 +63,7 @@ fun OnlineError.toUiText(): UiText = when (this) {
     OnlineError.Offline -> UiText.Res(R.string.online_error_offline)
     OnlineError.SessionExpired -> UiText.Res(R.string.online_error_session)
     OnlineError.Forbidden -> UiText.Res(R.string.online_error_forbidden)
+    OnlineError.GeoRestricted -> UiText.Res(R.string.online_error_geo_restricted)
     OnlineError.NotFound -> UiText.Res(R.string.online_error_not_found)
     is OnlineError.Conflict -> UiText.Res(R.string.online_error_conflict)
     OnlineError.Invalid -> UiText.Res(R.string.online_error_invalid)

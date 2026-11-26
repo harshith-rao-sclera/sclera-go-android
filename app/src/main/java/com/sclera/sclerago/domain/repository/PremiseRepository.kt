@@ -6,8 +6,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Whether the phone is on premise of the current property when it has geofencing on. It is worked out again whenever the
- * current property changes and on [refresh] (the app came back to the foreground, or the location permission was granted).
+ * Whether the phone is inside the current property's geofence, for someone whose group is geo restricted. It is worked
+ * out again whenever the current property changes and on [refresh] (the app came back to the foreground, or the location
+ * permission was granted).
  */
 interface PremiseRepository {
     val status: StateFlow<PremiseStatus>
@@ -22,7 +23,10 @@ object NoPremiseRestriction : PremiseRepository {
     override fun refresh() = Unit
 }
 
-/** Where the phone is. A position is used once to compare it with the fences; it is never kept, logged or sent. */
+/**
+ * Where the phone is. Read only for someone whose group is geo restricted: compared with the fences, and sent to the
+ * server with the calls inside that property (its geo restriction); never stored or logged.
+ */
 interface DeviceLocationSource {
     /** The location permission is already granted (this never asks for it). */
     fun permissionGranted(): Boolean

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A group's geo restriction (Access) and the server's refusal for it. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="access_security">Security</string>
+    <string name="access_geo_restriction">Geo restriction</string>
+    <string name="access_geo_restriction_hint">Its users can only open and work in a property from inside the property\'s geofence. Properties without a geofence aren\'t affected.</string>
+    <string name="access_geo_restriction_admins">Admins are never geo restricted, so someone can always fix a property\'s geofence.</string>
+    <string name="access_geo_restriction_managers">Doesn\'t apply: users who can manage properties or access open every property from anywhere.</string>
+    <!-- The server refused a change: the user's group is geo restricted and the phone isn't inside the property's geofence. -->
+    <string name="online_error_geo_restricted">You\'re outside this property\'s geofence, so it\'s open to view only. Your group makes changes only from inside it.</string>
+</resources>

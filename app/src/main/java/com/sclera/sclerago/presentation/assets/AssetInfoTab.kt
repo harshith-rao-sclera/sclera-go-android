@@ -215,6 +215,8 @@ fun AssetInfoTab(
     onRemoveField: (FieldCfg) -> Unit = {},
     /** A type row (system, asset or sub type) was tapped: the screen opens its picker. */
     onPickType: (TypePick) -> Unit = {},
+    /** The Location tag row was tapped: the screen opens its sheet. */
+    onTagLocation: () -> Unit = {},
 ) {
     val asset = state.asset ?: return
     val spec = FieldSpec(state.fields)
@@ -311,6 +313,8 @@ fun AssetInfoTab(
             ?.let { Summary(stringResource(R.string.detail_required_summary, it.label), warn = true) }
             ?: Summary(stringResource(R.string.detail_filled_summary, others.count { v(it.key).isNotEmpty() }, others.size)),
     ) {
+        // The asset's own Type and Location tag (not fields) come first, as on the web.
+        TypeAndLocationTagRows(state, actions.onEdit, onTagLocation)
         state.fieldRows.forEach { row ->
             // Each row is its own for its asset and field, so a text box never carries what it showed for another asset
             // or field (the web's "empty Description shows the previous asset's text").

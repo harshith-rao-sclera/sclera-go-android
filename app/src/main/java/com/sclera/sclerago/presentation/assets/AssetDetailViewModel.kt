@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AddFieldOutcome
+import com.sclera.sclerago.domain.model.ASSET_DETAIL_KEYS
 import com.sclera.sclerago.domain.model.AttachRefusal
 import com.sclera.sclerago.domain.model.MAX_ATTACHED_FILE_BYTES
 import com.sclera.sclerago.domain.model.attachRefusal
@@ -33,6 +34,7 @@ import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
+import com.sclera.sclerago.domain.model.Currency
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.PlaceNames
@@ -47,6 +49,7 @@ import com.sclera.sclerago.domain.model.Unheard
 import com.sclera.sclerago.domain.model.VOICE_SURE_ENOUGH
 import com.sclera.sclerago.domain.model.fitPhotoRules
 import com.sclera.sclerago.domain.model.formatFor
+import com.sclera.sclerago.domain.model.typeFieldName
 import com.sclera.sclerago.domain.model.missingRequiredFields
 import com.sclera.sclerago.domain.model.photoCounts
 import com.sclera.sclerago.domain.model.photoRoom
@@ -72,6 +75,7 @@ import com.sclera.sclerago.domain.usecase.asset.PlanPhotoFillUseCase
 import com.sclera.sclerago.domain.usecase.asset.RemoveAssetFieldUseCase
 import com.sclera.sclerago.domain.usecase.auth.ObserveOnlineUseCase
 import com.sclera.sclerago.domain.usecase.config.AiSwitchUseCases
+import com.sclera.sclerago.domain.usecase.config.GetCurrenciesUseCase
 import com.sclera.sclerago.domain.usecase.config.ObserveAssetConfigUseCase
 import com.sclera.sclerago.domain.usecase.media.DeleteOwnedMediaUseCase
 import com.sclera.sclerago.domain.validation.isServerId
@@ -153,6 +157,8 @@ data class AssetDetailState(
     val addFieldOpen: Boolean = false,
     val addingField: Boolean = false,
     val addFieldError: UiText? = null,
+    /** The currencies Add field offers a currency field (read when the sheet opens; empty until then, or offline). */
+    val currencies: List<Currency> = emptyList(),
     /** The signed-in user made the asset's change request. */
     val changeRequestMine: Boolean = false,
     /** Who made the asset's change request (name, else email); null when they aren't known on this device. */
@@ -327,6 +333,7 @@ class AssetDetailViewModel @Inject constructor(
     private val observeOnline: ObserveOnlineUseCase,
     private val cloneAsset: CloneAssetUseCase,
     private val addField: AddAssetFieldUseCase,
+    private val getCurrencies: GetCurrenciesUseCase,
     private val removeField: RemoveAssetFieldUseCase,
     private val deleteOwned: DeleteOwnedMediaUseCase,
     observeAccess: ObserveAccessChangesUseCase,
@@ -383,6 +390,7 @@ class AssetDetailViewModel @Inject constructor(
         val addFieldOpen: Boolean = false,
         val addingField: Boolean = false,
         val addFieldError: UiText? = null,
+        val currencies: List<Currency> = emptyList(),
         /** A pull to refresh is reading the asset, its activity, checks and documents again. */
         val refreshing: Boolean = false,
     )
@@ -508,6 +516,7 @@ class AssetDetailViewModel @Inject constructor(
                 aiManuals = f.aiManuals, manualsSearching = f.manualsSearching,
                 canAddField = !t.isNew && !asset.managed && addField.allowed(),
                 addFieldOpen = f.addFieldOpen && !t.isNew, addingField = f.addingField, addFieldError = f.addFieldError,
+                currencies = f.currencies,
                 changeRequester = changeRequests.requesterName(asset.changeRequest),
                 lock = if (t.isNew) null else canEditAsset.lock(asset),
                 // Every saved asset, one in Managed Assets too (as the web's: the copies are new drafts), for a group that
@@ -522,6 +531,23 @@ class AssetDetailViewModel @Inject constructor(
                 aiHasResults = f.ai?.phase == AiPhase.RESULTS,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AssetDetailState())
+
+    /** What decides which of its type's fields the form adds: the asset, its type, and the names of the fields it has. */
+    private data class TypeFieldsFor(val assetId: String?, val formatId: String?, val own: List<String>)
+
+    init {
+        // As the web's form: the fields of the asset's type (saved, or picked and not saved yet) that it doesn't have yet
+        // follow its own, so they show and can be filled; saving an answer makes the asset's own copy (TypeFieldsWriter).
+        // Before, they showed only right after the type was picked, so an asset classified elsewhere showed none.
+        viewModelScope.launch {
+            state.map { s -> TypeFieldsFor(s.asset?.id, s.formats.formatFor(s.values)?.id, s.fields.filter { typeFieldName(it.key) == null }.map { it.label }) }
+                .distinctUntilChanged()
+                .collect { k ->
+                    val s = state.value
+                    if (k.assetId == null) classifier.clearTypeFields() else classifier.showTypeFields(s.formats, s.fields, s.values)
+                }
+        }
+    }
 
     /**
      * Shows [asset]; when that asset is already open its edits are kept (they survive recomposition). A new asset that is
@@ -662,8 +688,8 @@ class AssetDetailViewModel @Inject constructor(
     }
 
     fun discardEdits() {
+        // The type's fields follow the type left after discarding (see the init above).
         form.update { it.copy(edits = emptyMap(), aiSources = emptyMap(), place = null) }
-        classifier.clearTypeFields()
     }
 
     /** Keeps the edits; the asset keeps its status, as the server's edit does. */
@@ -1251,7 +1277,8 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         val source = s.asset ?: return
         if (s.isNew || !s.canClone || form.value.cloning) return
-        val values = s.saved.filterKeys { it in keys }.filterValues { it.isNotBlank() }
+        // Its Type and Location tag are copied too, as the web's clone does.
+        val values = s.saved.filterKeys { it in keys || it in ASSET_DETAIL_KEYS }.filterValues { it.isNotBlank() }
         val request = CloneRequest(copies = copies, place = place, values = values, keepType = CLONE_TYPE_KEYS.all { it in keys })
         form.update { it.copy(cloning = true) }
         viewModelScope.launch {
@@ -1273,6 +1300,14 @@ class AssetDetailViewModel @Inject constructor(
         val s = state.value
         if (s.isNew || !s.canAddField || !s.canEdit) return
         form.update { it.copy(addFieldOpen = true, addFieldError = null) }
+        // For a currency field's currency; offline (and nothing kept) the list stays empty and the sheet says so.
+        if (form.value.currencies.isEmpty()) viewModelScope.launch {
+            try {
+                val list = getCurrencies()
+                form.update { it.copy(currencies = list) }
+            } catch (_: OnlineException) {
+            }
+        }
     }
 
     fun closeAddField() = form.update { if (it.addingField) it else it.copy(addFieldOpen = false, addFieldError = null) }
@@ -1281,17 +1316,18 @@ class AssetDetailViewModel @Inject constructor(
     fun clearAddFieldError() = form.update { if (it.addFieldError == null) it else it.copy(addFieldError = null) }
 
     /**
-     * Adds a field named [name] of [kind] to the open asset alone. It shows at the end of the asset's fields, empty, to
-     * fill in like the rest; what is already typed in the form stays (as the web's).
+     * Adds a field named [name] of [kind] to the open asset alone, with its [options] (a dropdown or multiple check boxes)
+     * or [currency] (a currency field). It shows at the end of the asset's fields, empty, to fill in like the rest; what is
+     * already typed in the form stays (as the web's).
      */
-    fun addOwnField(name: String, kind: FieldKind) {
+    fun addOwnField(name: String, kind: FieldKind, options: List<String>, currency: String?) {
         val s = state.value
         val asset = s.asset ?: return
         if (s.isNew || s.managed || form.value.addingField) return
         form.update { it.copy(addingField = true, addFieldError = null) }
         viewModelScope.launch {
             try {
-                when (addField(asset.id, name, kind)) {
+                when (addField(asset.id, name, kind, options, currency)) {
                     is AddFieldOutcome.Added -> {
                         form.update { it.copy(addFieldOpen = false) }
                         message.emit(UiText.Res(R.string.own_field_added, listOf(UiText.Raw(name.trim()))))
@@ -1299,6 +1335,8 @@ class AssetDetailViewModel @Inject constructor(
                     AddFieldOutcome.NameTaken ->
                         form.update { it.copy(addFieldError = UiText.Res(R.string.own_field_name_taken, listOf(UiText.Raw(name.trim())))) }
                     AddFieldOutcome.NoName -> form.update { it.copy(addFieldError = UiText.Res(R.string.own_field_name_needed)) }
+                    AddFieldOutcome.NoOptions -> form.update { it.copy(addFieldError = UiText.Res(R.string.own_field_options_needed)) }
+                    AddFieldOutcome.NoCurrency -> form.update { it.copy(addFieldError = UiText.Res(R.string.own_field_currency_needed)) }
                 }
             } catch (e: DataException) {
                 form.update { it.copy(addFieldError = e.error.toUiText()) }

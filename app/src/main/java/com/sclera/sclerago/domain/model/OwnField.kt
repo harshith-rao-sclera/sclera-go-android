@@ -1,7 +1,14 @@
 package com.sclera.sclerago.domain.model
 
-/** The types a field added to one asset can have, in the web's order ("Add field": Text, Number, Date, Yes / No, Link). */
-val OWN_FIELD_KINDS = listOf(FieldKind.TEXT, FieldKind.NUMBER, FieldKind.DATE, FieldKind.YESNO, FieldKind.URL)
+/**
+ * The types a field added to one asset can have: the ones Configuration's Add field offers, in its order. The server takes
+ * any of them for one asset (`POST /assets/{id}/fields`); a dropdown or multiple check boxes need options, a currency
+ * field its currency. (The web's own Add field offers only Text, Number, Date, Yes / No and Link.)
+ */
+val OWN_FIELD_KINDS = listOf(
+    FieldKind.TEXT, FieldKind.CHECKBOX, FieldKind.MULTI, FieldKind.YESNO, FieldKind.DATE,
+    FieldKind.TIME, FieldKind.NUMBER, FieldKind.CURRENCY, FieldKind.URL, FieldKind.DROPDOWN,
+)
 
 /** The longest name a field may have, as the server's (and the web's input) allow. */
 const val OWN_FIELD_NAME_MAX = 120
@@ -16,4 +23,10 @@ sealed interface AddFieldOutcome {
 
     /** No name was given. */
     data object NoName : AddFieldOutcome
+
+    /** A dropdown or multiple check boxes was given no options. */
+    data object NoOptions : AddFieldOutcome
+
+    /** A currency field was given no currency. */
+    data object NoCurrency : AddFieldOutcome
 }

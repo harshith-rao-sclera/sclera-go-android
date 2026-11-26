@@ -1,16 +1,25 @@
 package com.sclera.sclerago.domain.validation
 
+import com.sclera.sclerago.domain.model.AssetKind
 import com.sclera.sclerago.domain.model.FieldCfg
+import com.sclera.sclerago.domain.model.LocationTag
 import com.sclera.sclerago.domain.model.Status
 
 /** One line of an asset's info in the review: a field's name and its value as a person reads it (null when empty). */
 data class AssetInfoRow(val label: String, val value: String?)
 
 /**
- * What the review's asset sheet shows about the asset as the server has it: its fields, how many are filled, where it
- * is (building › floor › location, blank when it has no place) and its status.
+ * What the review's asset sheet shows about the asset as the server has it: its Type and Location tag (its own, not
+ * fields; null when it has none), its fields, how many are filled, where it is (building › floor › location, blank when it
+ * has no place) and its status.
  */
-data class ReviewAssetInfo(val rows: List<AssetInfoRow>, val place: String = "", val status: Status? = null) {
+data class ReviewAssetInfo(
+    val rows: List<AssetInfoRow>,
+    val place: String = "",
+    val status: Status? = null,
+    val kind: AssetKind? = null,
+    val locationTag: LocationTag? = null,
+) {
     val filled: Int get() = rows.count { it.value != null }
     val total: Int get() = rows.size
 }
@@ -24,4 +33,7 @@ data class ServerReviewAsset(
     /** Building › floor › location; blank when it has no place. */
     val place: String,
     val status: Status?,
+    /** Its Type and Location tag (null: none). */
+    val kind: AssetKind? = null,
+    val locationTag: LocationTag? = null,
 )

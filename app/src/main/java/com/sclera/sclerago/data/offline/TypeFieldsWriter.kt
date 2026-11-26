@@ -117,11 +117,12 @@ internal class TypeFieldsWriter(private val lookup: TypeFieldsLookup, private va
 
     /**
      * Adds a field to asset [assetId] alone, as the server's `POST /assets/{id}/fields`: named [name], of type [type]
-     * (the server's type text), not mandatory, `is_standard` NULL, a new 10-hex key, after the asset's other own fields.
+     * (the server's type text), not mandatory, `is_standard` NULL, a new 10-hex key, after the asset's other own fields;
+     * [options] are its choices (`[{label}]`, a dropdown or multiple check boxes) and [unit] a currency field's currency.
      * Returns its key, or null when the asset's form already has a field of that name (a standard one or its own;
      * the server refuses it, 409).
      */
-    fun AdcDatabase.addOwnField(assetId: String, name: String, type: String, now: String): String? {
+    fun AdcDatabase.addOwnField(assetId: String, name: String, type: String, now: String, options: List<String> = emptyList(), unit: String? = null): String? {
         if (!hasTable(TABLE)) return null
         val own = query(live(OWN_FIELDS, TABLE), listOf(assetId))
         val taken = own.map { it.string("name").orEmpty().lowercase() } + query(live(STANDARD_FIELD_NAMES, TABLE)).map { it.string("name").orEmpty().lowercase() }
@@ -129,10 +130,12 @@ internal class TypeFieldsWriter(private val lookup: TypeFieldsLookup, private va
         val key = freeKey()
         val row = linkedMapOf<String, Any?>(
             "id" to ids.next(), "key" to key, "asset_id" to assetId, "name" to name, "type" to type,
-            "options" to null, "is_required" to 0, "is_active" to 1, "is_standard" to null, "is_builtin" to 0,
+            "options" to optionsJson(options), "is_required" to 0, "is_active" to 1, "is_standard" to null, "is_builtin" to 0,
             "position" to 1 + (own.mapNotNull { it.int("position") }.maxOrNull() ?: -1), "help_text" to null,
             "checks" to "{}", "aliases" to "[]", "version" to 1, "created_at" to now, "updated_at" to now,
         )
+        // A currency field's currency, as the server keeps it (its `unit`).
+        if (unit != null && hasColumn(TABLE, "unit")) row["unit"] = unit
         execute("INSERT INTO $TABLE (${row.keys.joinToString()}) VALUES (${placeholders(row.size)})", row.values.toList(), setOf(TABLE))
         return key
     }

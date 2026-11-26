@@ -1,10 +1,11 @@
 package com.sclera.sclerago.domain.model
 
 /**
- * Whether the phone is on premise of the current property, for a property with geofencing on. Nothing here holds a position.
+ * Whether the phone is inside the current property's geofence, for someone whose group is geo restricted. Nothing here
+ * holds a position.
  */
 enum class PremiseStatus {
-    /** The current property has geofencing off (or there is no current property): nobody is restricted. */
+    /** Not geo restricted, or the current property has no fence (or there is none): nobody is held. */
     NOT_APPLICABLE,
 
     /** Geofencing is on and the phone is inside one of the property's fences. */
@@ -16,7 +17,7 @@ enum class PremiseStatus {
     /** Geofencing is on, but the location permission is not granted, so the location is unknown. */
     LOCATION_PERMISSION_NEEDED,
 
-    /** Geofencing is on, but there is no location fix or the property has no fence drawn. */
+    /** The phone's position couldn't be found (no fix). */
     UNKNOWN,
     ;
 

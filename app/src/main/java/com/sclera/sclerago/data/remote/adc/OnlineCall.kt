@@ -101,10 +101,13 @@ class OnlineCall @Inject constructor(
     internal companion object {
         private const val TAG = "OnlineCall"
 
+        /** The server's refusal for someone geo restricted outside the property's fence. */
+        private const val GEO_RESTRICTED = "geo-restricted"
+
         /** The [OnlineError] for an HTTP failure; [body] is the RFC 9457 problem JSON, read only for its `type`. */
         fun errorFor(status: Int, retryAfter: String?, body: String?): OnlineError = when (status) {
             401 -> OnlineError.SessionExpired
-            403 -> OnlineError.Forbidden
+            403 -> if (problemCode(body) == GEO_RESTRICTED) OnlineError.GeoRestricted else OnlineError.Forbidden
             404 -> OnlineError.NotFound
             409, 412 -> OnlineError.Conflict(problemCode(body) ?: "conflict")
             400, 422 -> OnlineError.Invalid

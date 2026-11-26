@@ -20,8 +20,8 @@ import java.time.format.FormatStyle
 import javax.inject.Inject
 
 /**
- * The asset as the server has it, for the review's Asset info tab (the web's AssetDetails): each field its form has, in
- * order, with its value as a person reads it, then where it is and its status. Throws
+ * The asset as the server has it, for the review's Asset info tab (the web's AssetDetails): its Type and Location tag, each
+ * field its form has, in order, with its value as a person reads it, then where it is and its status. Throws
  * [com.sclera.sclerago.domain.model.OnlineException] when it can't be read (offline, or deleted since the run).
  */
 class GetReviewAssetInfoUseCase @Inject constructor(
@@ -35,6 +35,8 @@ class GetReviewAssetInfoUseCase @Inject constructor(
             rows = shown.map { f -> AssetInfoRow(f.label, readable(f, asset.values[f.id].orEmpty().trim(), zone)) },
             place = asset.place,
             status = asset.status,
+            kind = asset.kind,
+            locationTag = asset.locationTag,
         )
     }
 

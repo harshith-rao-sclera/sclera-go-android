@@ -80,12 +80,18 @@ internal class SlowCallInterceptor : Interceptor {
  * [offlineCache] ([OfflineCacheInterceptor]) goes first, in front of the token handling, so a read answered from the cache
  * offline never asks for a token.
  */
-fun OkHttpClient.forAdc(tokens: AccessTokenProvider, offlineCache: Interceptor? = null): OkHttpClient = newBuilder()
+fun OkHttpClient.forAdc(
+    tokens: AccessTokenProvider,
+    offlineCache: Interceptor? = null,
+    /** Geo restriction: where the phone is, sent with each call inside a property ([PositionHeaderInterceptor]). */
+    position: PositionForCalls? = null,
+): OkHttpClient = newBuilder()
     .connectTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .readTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .writeTimeout(AdcConfig.TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .apply { offlineCache?.let(::addInterceptor) }
     .addInterceptor(SlowCallInterceptor())
+    .apply { position?.let { addInterceptor(PositionHeaderInterceptor(it)) } }
     .addInterceptor(AdcAuthInterceptor(tokens))
     .authenticator(AdcAuthenticator(tokens))
     .build()

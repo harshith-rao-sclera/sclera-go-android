@@ -138,18 +138,24 @@ class AssetsWriter(
         val oldPlace = PlaceColumns(row.id("building_id"), row.id("floor_id"), row.id("location_id"))
         val newPlace = place?.let { placeColumns(it.placeId) } ?: oldPlace
         val moved = newPlace != oldPlace
-        if (changedKeys.isEmpty() && !retyped && !recoded && !moved) return@write
+        // Its Type and Location tag (columns of their own, not answers).
+        val details = detailEdits(id, values)
+        val answered = changedKeys.isNotEmpty() || retyped || recoded || moved
+        if (!answered && details.isEmpty()) return@write
 
-        execute(
-            ASSET_UPDATE_VALUES,
-            listOf(
-                keep(row, "name", newColumns.getValue("name")), keep(row, "manufacturer", newColumns.getValue("manufacturer")),
-                keep(row, "model", newColumns.getValue("model")), keep(row, "serial_number", newColumns.getValue("serial_number")),
-                keep(row, "master_format_id", classification.formatId), keep(row, "jacs_code_id", classification.jacs),
-                keep(row, "classification_source", classification.source), now, now, id,
-            ),
-            setOf("assets"),
-        )
+        if (answered) {
+            execute(
+                ASSET_UPDATE_VALUES,
+                listOf(
+                    keep(row, "name", newColumns.getValue("name")), keep(row, "manufacturer", newColumns.getValue("manufacturer")),
+                    keep(row, "model", newColumns.getValue("model")), keep(row, "serial_number", newColumns.getValue("serial_number")),
+                    keep(row, "master_format_id", classification.formatId), keep(row, "jacs_code_id", classification.jacs),
+                    keep(row, "classification_source", classification.source), now, now, id,
+                ),
+                setOf("assets"),
+            )
+        }
+        writeDetails(id, details, now = now.takeIf { !answered })
         more.filter { it in split.columns }.forEach { column ->
             execute("UPDATE assets SET $column = ? WHERE id = ?", listOf(keep(row, column, newColumns.getValue(column)), id), setOf("assets"))
         }
@@ -175,7 +181,8 @@ class AssetsWriter(
             listOfNotNull(
                 Change("Master format", null, text(formatLabel(oldFormat)), text(formatLabel(classification.formatId))).takeIf { retyped },
                 Change("JACS code", null, text(oldJacs), text(classification.jacs)).takeIf { recoded },
-            )
+            ) +
+            details.map { Change(it.label, null, text(detailText(it.old)), text(detailText(it.new))) }
         if (lines.isNotEmpty()) history(id, "updated", "Asset updated", changesJson(lines), now)
         typeChange?.takeIf { it.changed }?.let { typeHistory(id, classification.formatId, it, now) }
         refreshAiSuggestion(id, row.bool("ai_suggestion"))
@@ -404,9 +411,9 @@ class AssetsWriter(
     }
 
     /** Adds a field named [name] of type [type] to asset [assetId] alone; its key, or null when the name is taken. */
-    suspend fun addOwnField(assetId: String, name: String, type: String): String? = db.write(io) {
+    suspend fun addOwnField(assetId: String, name: String, type: String, options: List<String> = emptyList(), unit: String? = null): String? = db.write(io) {
         refuseIfManaged(assetId)
-        with(typeFields) { addOwnField(assetId, name, type, now()) }
+        with(typeFields) { addOwnField(assetId, name, type, now(), options, unit) }
     }
 
     /**
@@ -494,6 +501,8 @@ class AssetsWriter(
                 execute("UPDATE assets SET $column = ? WHERE id = ?", listOf(it, asset.id), setOf("assets"))
             }
         }
+        // Its Type and Location tag, as the server's POST /assets takes them.
+        writeDetails(asset.id, detailEdits(null, item.values))
         // A new asset of a type gets the type's fields, as the server's POST /assets does.
         val typeChange = classification.formatId?.let { with(typeFields) { applyType(asset.id, it, extra, now) } }
         typeChange?.let { putTypeAnswers(extra, typed, it) }

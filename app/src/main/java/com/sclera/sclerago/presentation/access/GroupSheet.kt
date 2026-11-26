@@ -66,9 +66,10 @@ internal fun GroupSheet(
     var name by remember { mutableStateOf(initial.name) }
     var description by remember { mutableStateOf(initial.description) }
     var perms by remember { mutableStateOf(initial.permissions) }
+    var geo by remember { mutableStateOf(initial.geoRestricted) }
     var error by remember { mutableStateOf<UiText?>(null) }
     val toaster = LocalToaster.current
-    val draft = initial.copy(name = name, description = description, permissions = perms)
+    val draft = initial.copy(name = name, description = description, permissions = perms, geoRestricted = geo)
     val deleteButton: (@Composable RowScope.() -> Unit)? =
         if (!isNew && canDelete) {
             {
@@ -94,7 +95,8 @@ internal fun GroupSheet(
             onPrimary = { if (blocked != null) toaster.show(blocked, ToastKind.INFO) else error = onSave(draft)?.toUiText() },
             bodyPadding = PaddingValues(16.dp), bodySpacing = 18.dp,
             primaryModifier = Modifier.testTag(AccessTags.SHEET_PRIMARY),
-            dirty = name.trim() != initial.name.trim() || description.trim() != initial.description.trim() || perms != initial.permissions,
+            dirty = name.trim() != initial.name.trim() || description.trim() != initial.description.trim() || perms != initial.permissions ||
+                geo != initial.geoRestricted,
             footerLeading = deleteButton,
         ) {
             StackedField(stringResource(R.string.access_field_name)) {
@@ -115,6 +117,22 @@ internal fun GroupSheet(
                         PermissionRow(it, on = locked || it in perms, permissionsReason) { perms = perms.toggled(it, infos) }
                     }
                 }
+            }
+            // Security, as the web: geo restriction. Never on Admins, and no effect on a group that manages properties or
+            // access (shown off, greyed out, saying why).
+            StackedField(stringResource(R.string.access_security)) {
+                val why = when {
+                    locked -> R.string.access_geo_restriction_admins
+                    draft.geoExempt -> R.string.access_geo_restriction_managers
+                    else -> null
+                }
+                val on = draft.heldToFence
+                ChoiceCard(
+                    on, Role.Checkbox, { CheckBox(on, shape = r(5), offColor = C.Soft, checkSize = 12.dp, size = 20.dp) },
+                    stringResource(R.string.access_geo_restriction), stringResource(why ?: R.string.access_geo_restriction_hint),
+                    Modifier.testTag(AccessTags.GEO_RESTRICTION),
+                    reason = blocked ?: why?.let { UiText.Res(it) }, onClick = { geo = !geo },
+                )
             }
         }
     }

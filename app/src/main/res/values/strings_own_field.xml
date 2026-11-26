@@ -13,6 +13,16 @@
     <string name="own_field_type_date">Date</string>
     <string name="own_field_type_yesno">Yes / No</string>
     <string name="own_field_type_link">Link</string>
+    <string name="own_field_type_checkbox">Check box</string>
+    <string name="own_field_type_multi">Multiple check boxes</string>
+    <string name="own_field_type_time">Time</string>
+    <string name="own_field_type_currency">Currency</string>
+    <string name="own_field_type_dropdown">Dropdown</string>
+    <string name="own_field_options">Options</string>
+    <string name="own_field_options_hint">One option per line</string>
+    <string name="own_field_options_needed">Add at least one option.</string>
+    <string name="own_field_currency_needed">Pick the field\'s currency.</string>
+    <string name="own_field_currency_unavailable">Currencies can\'t be loaded without a connection. Connect to pick one.</string>
     <string name="own_field_go">Add</string>
     <string name="own_field_adding">Adding…</string>
     <string name="own_field_added">“%1$s” added to this asset</string>

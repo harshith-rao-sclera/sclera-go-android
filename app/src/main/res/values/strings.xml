@@ -619,7 +619,6 @@
         <item quantity="one">Fix %1$d check to validate</item>
         <item quantity="other">Fix %1$d checks to validate</item>
     </plurals>
-    <string name="detail_badge_ocr" translatable="false">OCR</string>
     <string name="dash_clear_search_text">Clear search text</string>
     <string name="detail_voice_fill">Fill fields by voice</string>
     <string name="data_error_not_ready">The data is not ready yet. Wait for the download to finish.</string>
@@ -759,12 +758,12 @@
     <string name="memo_subtitle">Say what\'s worth knowing about the asset.</string>
     <string name="memo_stop">Stop</string>
     <string name="memo_save">Save memo</string>
-    <string name="premise_banner_location_needed">This property limits collectors to working on site. Allow location access to add or edit assets.</string>
+    <string name="premise_banner_location_needed">Your group works in this property only on site. Allow location access to add or edit assets.</string>
     <string name="premise_banner_location_unknown">Your location can\'t be found, so you can view assets but not add or edit them.</string>
     <string name="premise_perm_title">Confirm you are on site</string>
-    <string name="premise_perm_body">This property only lets collectors add and edit assets on site. Sclera Go compares your location with the property boundary on this phone. It is not saved or sent.</string>
+    <string name="premise_perm_body">Your group can add and edit assets in this property only on site. Sclera Go compares your location with the property boundary and sends it with your work in this property to Sclera, which checks it too. It isn\'t kept on the phone.</string>
     <string name="lock_banner_off_premise">Outside the property</string>
-    <string name="lock_banner_off_premise_body">This property uses geofencing. Collectors can view this asset but not change it while away from the site or while the phone\'s location is unknown.</string>
+    <string name="lock_banner_off_premise_body">This property uses geofencing. Your group can view this asset but not change it while away from the site or while the phone\'s location is unknown.</string>
     <string name="property_fab_import_title">Import from spreadsheet</string>
     <string name="property_fab_import_sub">Many properties from an .xlsx file</string>
     <string name="property_fab_new_title">New property</string>

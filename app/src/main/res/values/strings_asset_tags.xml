@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The asset's Type and Location tag (its own, not fields), above its fields in the Info tab. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="asset_kind_label">Type</string>
+    <string name="asset_kind_existing">Existing</string>
+    <string name="asset_kind_proposed">Proposed</string>
+
+    <string name="location_tag_label">Location tag</string>
+    <!-- The Location tag row while the asset has none. -->
+    <string name="location_tag_none">Location not tagged</string>
+    <!-- A location tag as the row shows it: %1$s = the surface (Wall), %2$s = where on it (North). -->
+    <string name="location_tag_value">%1$s : %2$s</string>
+    <string name="location_tag_title">Location Tag</string>
+    <string name="location_tag_sub">Specify the asset location</string>
+    <!-- Read out for a surface's dropdown: %1$s = the surface (Wall). -->
+    <string name="location_tag_position">%1$s position</string>
+
+    <string name="location_tag_surface_ceiling">Ceiling</string>
+    <string name="location_tag_surface_wall">Wall</string>
+    <string name="location_tag_surface_floor">Floor</string>
+
+    <string name="location_tag_spot_below">Below</string>
+    <string name="location_tag_spot_above">Above</string>
+    <string name="location_tag_spot_north">North</string>
+    <string name="location_tag_spot_south">South</string>
+    <string name="location_tag_spot_east">East</string>
+    <string name="location_tag_spot_west">West</string>
+    <string name="location_tag_spot_on">On</string>
+    <string name="location_tag_spot_none">None</string>
+</resources>

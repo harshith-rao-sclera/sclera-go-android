@@ -11,6 +11,9 @@ import com.sclera.sclerago.domain.model.sourceToDb
 import com.sclera.sclerago.domain.model.statusFromDb
 import com.sclera.sclerago.domain.model.statusToDb
 import com.sclera.sclerago.domain.model.AssetType
+import com.sclera.sclerago.domain.model.ASSET_KIND_KEY
+import com.sclera.sclerago.domain.model.LOCATION_TAG_KEY
+import com.sclera.sclerago.domain.model.assetDetailValue
 import com.sclera.sclerago.domain.model.typeOf
 
 /** A tagged flag column: a number other than 0, or the text 1, true, yes or tagged (any case); anything else, null or missing is untagged. */
@@ -33,6 +36,13 @@ const val DESCRIPTION_COLUMN = "description"
  * is read-only here until Managed Assets sends it back (RETURNING 3 / RETURNED 4, a draft again).
  */
 const val VDMS_MOVED = 2
+
+/**
+ * The asset's Type and Location tag `assets` columns (the server's DETAIL_COLUMNS, t0030), by their details form keys.
+ * A database synced before the server had them has no such columns: read as null, and check with hasColumn before
+ * writing them.
+ */
+val ASSET_DETAIL_COLUMNS = mapOf(ASSET_KIND_KEY to "type", LOCATION_TAG_KEY to "location_tag")
 
 /**
  * The `assets` column naming the asset a copy was made from with Clone (the server's `cloned_from`, t0023). A database
@@ -154,6 +164,8 @@ fun DbRow.toAssetDetails(valuesRow: DbRow? = null, format: MasterFormat? = null)
         valuesRow?.let { putAll(DbJson.stringMap(it.answersJson()).mapKeys { (k, _) -> FieldKeys.toApp(k) }) }
         // The Description column once the server has it; an answer kept in asset_values before shows until it is set.
         string(DESCRIPTION_COLUMN)?.takeIf { it.isNotBlank() }?.let { put(DESCRIPTION_COLUMN, it) }
+        // Type and Location tag, the asset's own (not fields), when the database has their columns.
+        ASSET_DETAIL_COLUMNS.forEach { (key, column) -> assetDetailValue(key, string(column))?.let { put(key, it) } }
     }
     val confidence = DbJson.doubleMap(valuesRow?.string("confidence")).mapKeys { (k, _) -> FieldKeys.toApp(k) }
     val sources = DbJson.stringMap(valuesRow?.string("sources")).mapKeys { (k, _) -> FieldKeys.toApp(k) }
@@ -198,7 +210,8 @@ fun Asset.toAssetRow(): Map<String, Any?> {
 fun splitAssetValues(values: Map<String, String>, moreColumns: Set<String> = emptySet()): AssetValueSplit {
     val columnOf = ASSET_COLUMNS + moreColumns.associateWith { it }
     val columns = values.filterKeys { it in columnOf }.mapKeys { (k, _) -> columnOf.getValue(k) }
-    val extra = values.filterKeys { it !in columnOf && it !in CLASSIFICATION_KEYS }.mapKeys { (k, _) -> FieldKeys.toDb(k) }
+    // Type and Location tag are columns of their own ([ASSET_DETAIL_COLUMNS]), never answers.
+    val extra = values.filterKeys { it !in columnOf && it !in CLASSIFICATION_KEYS && it !in ASSET_DETAIL_COLUMNS }.mapKeys { (k, _) -> FieldKeys.toDb(k) }
     return AssetValueSplit(columns, extra)
 }
 

@@ -30,6 +30,7 @@ object AccessTags {
     const val STAT_GROUPS = "access_stat_groups"
     const val PERSON_SHEET = "access_person_sheet"
     const val GROUP_SHEET = "access_group_sheet"
+    const val GEO_RESTRICTION = "access_geo_restriction"
     const val SHEET_PRIMARY = "access_sheet_primary"
     const val EMAIL = "access_email_field"
     const val GROUP_NAME = "access_group_name"

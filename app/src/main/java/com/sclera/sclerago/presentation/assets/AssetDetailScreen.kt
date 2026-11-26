@@ -53,6 +53,7 @@ import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDocument
 import com.sclera.sclerago.domain.model.AssetLock
+import com.sclera.sclerago.domain.model.LOCATION_TAG_KEY
 import com.sclera.sclerago.domain.model.DocumentSource
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.Media
@@ -117,6 +118,8 @@ fun AssetDetailScreen(
     var modal by remember(asset.id) { mutableStateOf(DetailModal.NONE) }
     // The type row (system, asset or sub type) whose picker is open.
     var typePick by remember(asset.id) { mutableStateOf<TypePick?>(null) }
+    // The Location tag sheet is open.
+    var tagging by remember(asset.id) { mutableStateOf(false) }
     var preview by remember(asset.id) { mutableStateOf<Int?>(null) }
     val ui = remember(asset.id) { FormUi() }
 
@@ -246,7 +249,7 @@ fun AssetDetailScreen(
                                     // A step that failed or needs a look shows first; tapping it opens the Validation tab. (Not
                                     // for one in Managed Assets: its checks went with the move, and the line at the top says so.)
                                     if (!state.managed) ValidationBanner(state.validation) { chosen = DetailTabKind.VALIDATION }
-                                    AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it }, onPickType = { typePick = it })
+                                    AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it }, onPickType = { typePick = it }, onTagLocation = { tagging = true })
                                 }
                                 DetailTabKind.VALIDATION -> {
                                     // Validating again is done by the server: offline the last synced results show under a banner.
@@ -314,7 +317,7 @@ fun AssetDetailScreen(
                                     )
                                 }
                                 DetailTabKind.HISTORY -> HistoryList(state.activity)
-                                else -> AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it }, onPickType = { typePick = it })
+                                else -> AssetInfoTab(state, actions, ui, onModal = { modal = it }, onRemoveField = { removeField = it }, onPickType = { typePick = it }, onTagLocation = { tagging = true })
                             }
                         }
                     }
@@ -366,6 +369,7 @@ fun AssetDetailScreen(
         state.ai?.let { AiSuggestDialog(it, state, actions.ai) }
         state.jacs?.let { JacsPickerSheet(it, state.value("jacs"), actions.jacs.picker) }
         typePick?.let { p -> TypePickerSheet(p, state.formats, state::value, actions.onEdit) { typePick = null } }
+        if (tagging) LocationTagSheet(state.value(LOCATION_TAG_KEY), onSave = { actions.onEdit(LOCATION_TAG_KEY, it) }) { tagging = false }
         state.voice?.let { VoiceFillSheet(it, state, actions.voice) }
         state.typing?.let { text ->
             DescribeSheet(text, state.voiceReading, actions.typing.onText, actions.typing.onFill, actions.typing.onClose)

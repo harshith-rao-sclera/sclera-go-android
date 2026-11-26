@@ -209,6 +209,8 @@ internal fun GroupCard(row: GroupRow, onEdit: () -> Unit) {
                             Tag(stringResource(R.string.access_more_tags, perms.size - MAX_TAGS), C.IconGrey)
                         }
                     }
+                    // Its people work in a fenced property only from inside it (the web's warning tag).
+                    if (g.heldToFence) Tag(stringResource(R.string.access_geo_restriction), C.Orange)
                 }
             }
             LineIcon(Icons.ChevronRight, 12.dp, C.Dim, 3f)
