@@ -31,6 +31,9 @@ import javax.inject.Inject
 sealed interface TagPhase {
     data object Idle : TagPhase
 
+    /** The QR icon's popover: the user says whether the code goes on something movable or fixed in place, before it is scanned. */
+    data object ChoosingPlacement : TagPhase
+
     /** The asset already has a QR tag: ask before it is replaced. */
     data object ConfirmingRescan : TagPhase
 
@@ -76,31 +79,47 @@ class TagViewModel @Inject constructor(
     private var pending: Pending? = null
     private var job: Job? = null
 
-    /** Kinds tagged this session, by asset id. */
-    private val taggedByAsset = mutableMapOf<String, Set<TagKind>>()
+    /** The placement picked in the QR popover for the code being scanned: movable (stored as 1) or fixed (0). */
+    private var isMovable = false
+
+    /** What each asset's data last said it carries (the assets table's tag columns), by asset id. */
+    private val savedByAsset = mutableMapOf<String, Set<TagKind>>()
+
+    /**
+     * Kinds tagged here that the asset's data doesn't show yet, by asset id: shown until the data next changes (the
+     * tagged flag written after the tag, or a sync), which then decides alone.
+     */
+    private val taggedHere = mutableMapOf<String, Set<TagKind>>()
 
     private class Target(val asset: String, val property: String)
     private class Pending(val tag: TagValue, val placement: TagPlacement, val photo: TagPhoto?)
 
     /**
-     * Points the flow at [asset]; a different asset starts fresh. [saved] are the kinds its synced data already says
-     * it carries; they show as tagged along with the ones tagged in this session.
+     * Points the flow at [asset]; a different asset starts fresh. [saved] are the kinds its data says it carries now (the
+     * assets table's tag columns). It is called again whenever they change (a tag written here, one moved to or from
+     * another asset, a sync), so a kind the data no longer has stops showing as tagged, even while the asset is open.
      */
     fun open(asset: String, property: String, saved: Set<TagKind> = emptySet()) {
-        saved.takeIf { it.isNotEmpty() }?.let { taggedByAsset[asset] = taggedByAsset[asset].orEmpty() + it }
+        // New word from the data: it replaces what was tagged here and not yet written to it.
+        if (savedByAsset[asset] != saved) taggedHere.remove(asset)
+        savedByAsset[asset] = saved
         if (target?.asset == asset) {
-            _state.update { it.copy(tagged = taggedByAsset[asset].orEmpty()) }
+            _state.update { it.copy(tagged = taggedOf(asset)) }
             return
         }
         job?.cancel()
         pending = null
         target = Target(asset, property)
-        _state.update { TagUiState(tagged = taggedByAsset[asset].orEmpty()) }
+        _state.update { TagUiState(tagged = taggedOf(asset)) }
     }
 
+    /** The kinds the Tags bar shows for [asset]: what its data says, and what was tagged here that the data doesn't show yet. */
+    private fun taggedOf(asset: String): Set<TagKind> = savedByAsset[asset].orEmpty() + taggedHere[asset].orEmpty()
+
     /**
-     * The user picked [kind]. Only a QR code can be tagged offline; the others say so instead. [nfcProblem]: why the
-     * phone can't read NFC now (none, or switched off), checked before the NFC dialog opens so it never flashes up.
+     * The user picked [kind]. Only a QR code can be tagged offline; the others say so instead. A QR code first asks
+     * where it goes (movable or fixed, [choosePlacement]). [nfcProblem]: why the phone can't read NFC now (none, or
+     * switched off), checked before the NFC dialog opens so it never flashes up.
      */
     fun start(kind: TagKind, nfcProblem: NfcFailure? = null) {
         val now = target ?: return
@@ -111,15 +130,26 @@ class TagViewModel @Inject constructor(
         if (kind != TagKind.QR && !network.isOnline()) return fail(UiText.Res(R.string.tag_error_offline))
         if (kind == TagKind.NFC && nfcProblem != null) return nfcFailed(nfcProblem)
         pending = null
+        isMovable = false
         _state.update {
             it.copy(
-                phase = when {
-                    kind == TagKind.QR && TagKind.QR in it.tagged -> TagPhase.ConfirmingRescan
-                    kind == TagKind.NFC -> TagPhase.ReadingNfc
-                    else -> TagPhase.Scanning(kind)
+                phase = when (kind) {
+                    TagKind.QR -> TagPhase.ChoosingPlacement
+                    TagKind.NFC -> TagPhase.ReadingNfc
+                    TagKind.BARCODE -> TagPhase.Scanning(kind)
                 },
             )
         }
+    }
+
+    /**
+     * The user picked the QR code's placement in the popover: [movable] for something that can be moved, else fixed. It is
+     * written with the tag (the `movable` column: 1 or 0). An asset that already has a QR code then asks before it is replaced.
+     */
+    fun choosePlacement(movable: Boolean) {
+        if (_state.value.phase != TagPhase.ChoosingPlacement) return
+        isMovable = movable
+        _state.update { it.copy(phase = if (TagKind.QR in it.tagged) TagPhase.ConfirmingRescan else TagPhase.Scanning(TagKind.QR)) }
     }
 
     fun confirmRescan() = _state.update { it.copy(phase = TagPhase.Scanning(TagKind.QR)) }
@@ -137,7 +167,7 @@ class TagViewModel @Inject constructor(
         _state.update { it.copy(phase = TagPhase.Working) }
         job = viewModelScope.launch {
             try {
-                val (tag, placement) = tags.build(kind, scan, isMovable = false)
+                val (tag, placement) = tags.build(kind, scan, isMovable = kind == TagKind.QR && isMovable)
                 attach(tag, placement, scan.photo?.let(::TagPhoto), isMoveConfirmed = false)
             } catch (e: CancellationException) {
                 throw e
@@ -218,9 +248,8 @@ class TagViewModel @Inject constructor(
 
     private fun succeeded(asset: String, kind: TagKind) {
         pending = null
-        val kinds = taggedByAsset[asset].orEmpty() + kind
-        taggedByAsset[asset] = kinds
-        _state.update { it.copy(phase = TagPhase.Idle, tagged = kinds, notice = TagNotice.Tagged(kind)) }
+        taggedHere[asset] = taggedHere[asset].orEmpty() + kind
+        _state.update { it.copy(phase = TagPhase.Idle, tagged = taggedOf(asset), notice = TagNotice.Tagged(kind)) }
     }
 
     private fun fail(message: UiText, nfcSettings: Boolean = false) {

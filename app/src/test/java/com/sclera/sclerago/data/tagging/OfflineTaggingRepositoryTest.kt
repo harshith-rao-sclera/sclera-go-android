@@ -21,6 +21,7 @@ import com.sclera.sclerago.domain.usecase.tagging.CanTagAssetUseCase
 import com.sclera.sclerago.testutil.InMemoryAssetRepository
 import com.sclera.sclerago.testutil.allowAllGuard
 import kotlinx.coroutines.flow.MutableStateFlow
+import okhttp3.ResponseBody.Companion.toResponseBody
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -28,6 +29,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import org.junit.runner.RunWith
+import androidx.test.ext.junit.runners.AndroidJUnit4
 
 private class FakeQrTags : QrTagStore {
     val rows = mutableMapOf<String, QrTagRow>()
@@ -45,8 +48,15 @@ private class FakeQrTags : QrTagStore {
     }
 
     override fun tagCount(asset: String) = counts[asset] ?: 0
+
+    val movable = mutableMapOf<String, Boolean>()
+    override fun setMovable(tag: TagValue, movable: Boolean) {
+        this.movable[tag.id] = movable
+    }
 }
 
+// Robolectric: the online repository logs its answers with android.util.Log.
+@RunWith(AndroidJUnit4::class)
 class OfflineTaggingRepositoryTest {
     private val tags = FakeQrTags()
     private val creds = object : SyncCredentialsProvider {
@@ -151,7 +161,7 @@ class OfflineTaggingRepositoryTest {
             creds,
         )
         val network = com.sclera.sclerago.testutil.FakeNetworkMonitor(online = false)
-        val routed = ConnectionAwareTaggingRepository(network, online, repo, com.sclera.sclerago.data.offline.AssetTagFlagStore { _, _, _ -> }, NoTagHistory)
+        val routed = ConnectionAwareTaggingRepository(network, online, repo, com.sclera.sclerago.data.offline.AssetTagFlagStore { _, _, _ -> }, NoTagHistory, tags)
         assertEquals(TagUse.FREE, routed.check(qr, "a1", "p1").use)
         routed.write(TagWrite(qr, "a1", "p1", null, placement, photo))
         assertEquals(1, tags.saved.size)
@@ -162,5 +172,43 @@ class OfflineTaggingRepositoryTest {
         } catch (_: Exception) {
         }
         assertEquals(1, tags.saved.size)
+    }
+
+    @Test
+    fun `offline the QR placement is saved with the tag`() = runTest {
+        repo.write(TagWrite(qr, "a1", "p1", null, placement, photo))
+        repo.write(TagWrite(TagValue.qr("own-2"), "a1", "p1", null, placement.copy(isMovable = false), photo))
+        assertEquals(listOf(true, false), tags.saved.map { it.first.placement.isMovable })
+    }
+
+    @Test
+    fun `online a QR code the server took gets its placement in the phone's row too, movable or fixed`() = runTest {
+        val written = """{"status":200,"data":{"newCollectionIdCount":1,"existingCollectionIdCount":0}}"""
+        val online = TaggingRepositoryImpl(
+            com.sclera.sclerago.data.remote.tagging.TagApi(
+                object : com.sclera.sclerago.data.remote.tagging.TagService {
+                    override suspend fun check(path: String, asset: String, property: String) = throw java.io.IOException("unused")
+                    override suspend fun register(path: String, body: okhttp3.RequestBody) = throw java.io.IOException("unused")
+                    override suspend fun writeWithPhoto(path: String, parts: List<okhttp3.MultipartBody.Part>, timeoutSeconds: String) =
+                        retrofit2.Response.success(written.toResponseBody())
+                    override suspend fun write(path: String, body: okhttp3.RequestBody) =
+                        retrofit2.Response.success(written.toResponseBody())
+                },
+                com.sclera.sclerago.data.remote.adc.OnlineCall(com.sclera.sclerago.testutil.FakeNetworkMonitor(), kotlinx.coroutines.Dispatchers.Unconfined),
+            ),
+            creds,
+        )
+        val routed = ConnectionAwareTaggingRepository(
+            com.sclera.sclerago.testutil.FakeNetworkMonitor(), online, repo, com.sclera.sclerago.data.offline.AssetTagFlagStore { _, _, _ -> }, NoTagHistory, tags,
+        )
+        routed.write(TagWrite(qr, "a1", "p1", null, placement, photo))
+        assertEquals(true, tags.movable["own-1"])
+        routed.write(TagWrite(qr, "a1", "p1", null, placement.copy(isMovable = false), photo))
+        assertEquals(false, tags.movable["own-1"])
+        // Online nothing is queued in the phone's tables for the sync.
+        assertTrue(tags.saved.isEmpty())
+        // A barcode has no placement.
+        routed.write(TagWrite(TagValue.barcode("123"), "a1", "p1", null, TagPlacement(), null))
+        assertEquals(setOf("own-1"), tags.movable.keys)
     }
 }

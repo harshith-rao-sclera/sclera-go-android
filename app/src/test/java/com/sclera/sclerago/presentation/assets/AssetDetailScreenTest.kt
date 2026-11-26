@@ -23,6 +23,7 @@ import com.sclera.sclerago.domain.usecase.asset.EvaluateAssetChecksUseCase
 import com.sclera.sclerago.domain.validation.AssetCheckId
 import com.sclera.sclerago.domain.validation.AssetCheckInput
 import com.sclera.sclerago.presentation.common.formatDayAndTime
+import com.sclera.sclerago.presentation.tagging.TagTags
 import com.sclera.sclerago.presentation.theme.ScleraTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -50,6 +51,8 @@ class AssetDetailScreenTest {
         val state = sampleDetailState()
         compose.setContent { ScleraTheme { AssetDetailScreen(state, AssetDetailActions()) } }
         compose.onNodeWithTag(DetailTags.TAB_INFO).assertIsDisplayed()
+        // An added asset can be tagged (QR, barcode, NFC).
+        compose.onNodeWithTag(TagTags.BAR).assertIsDisplayed()
         compose.onNodeWithTag(DetailTags.TAB_VALIDATION).assertIsDisplayed()
         // The photos are the asset's real ones (two), then the add button.
         compose.onNodeWithTag(PhotoTags.tile(0)).assertIsDisplayed()
@@ -97,6 +100,23 @@ class AssetDetailScreenTest {
         compose.onNodeWithText(str(R.string.detail_no_unsaved)).assertDoesNotExist()
         compose.onNodeWithText(context.resources.getQuantityString(R.plurals.detail_unsaved, 2, 2)).performScrollTo().assertIsDisplayed()
     }
+
+    // A new asset is tagged only once it has been added: no Tags bar while it is being filled in.
+    private fun checkNewAssetHasNoTagsBar() {
+        val state = sampleDetailState(isNew = true, media = emptyList())
+        compose.setContent { ScleraTheme { AssetDetailScreen(state, AssetDetailActions()) } }
+        compose.onNodeWithTag(DetailTags.SAVE).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(TagTags.BAR).assertDoesNotExist()
+    }
+
+    @Test @Config(qualifiers = PHONE)
+    fun phone_newAsset_hasNoTagsBar() = checkNewAssetHasNoTagsBar()
+
+    @Test @Config(qualifiers = TABLET_PORTRAIT)
+    fun tabletPortrait_newAsset_hasNoTagsBar() = checkNewAssetHasNoTagsBar()
+
+    @Test @Config(qualifiers = TABLET_LANDSCAPE)
+    fun tabletLandscape_newAsset_hasNoTagsBar() = checkNewAssetHasNoTagsBar()
 
     @Test @Config(qualifiers = PHONE)
     fun newAsset_hasNoTabsOrActionCard_andSavesAsDraftOrSubmitsAfterConfirming() {

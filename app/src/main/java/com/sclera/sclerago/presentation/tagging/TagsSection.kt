@@ -34,6 +34,10 @@ import com.sclera.sclerago.presentation.theme.Txt
 class TagsActions(
     /** The user tapped the icon of a kind of tag to attach. */
     val onStart: (TagKind) -> Unit = {},
+    /** The user picked where the QR code goes in the QR icon's popover: movable (true) or fixed (false). */
+    val onPlacement: (movable: Boolean) -> Unit = {},
+    /** The QR popover was closed without a choice. */
+    val onDismissPlacement: () -> Unit = {},
 )
 
 object TagTags {
@@ -49,11 +53,14 @@ object TagTags {
     const val TOAST = com.sclera.sclerago.presentation.components.ToastTags.TOAST
     const val SHEET_PRIMARY = "tag-sheet-primary"
     const val SHEET_SECONDARY = "tag-sheet-secondary"
+    const val PLACEMENT_MOVABLE = "tag-placement-movable"
+    const val PLACEMENT_FIXED = "tag-placement-fixed"
 }
 
 /**
  * The Tags bar at the top of an asset's Info tab (the design's): "Tags" and how many of the three kinds the asset has, then one icon
- * per kind: green once tagged, yellow while not. Tapping an icon starts that kind; with [blocked] (an asset the user may not
+ * per kind: green once tagged, yellow while not. Tapping an icon starts that kind (the QR icon first opens its placement popover:
+ * movable or fixed); with [blocked] (an asset the user may not
  * change: someone else's, a submitted or signed-off one for anyone but a reviewer, or a view-only group) the icons are greyed
  * out and a tap says why.
  */
@@ -79,6 +86,7 @@ fun TagsBar(state: TagUiState, actions: TagsActions, modifier: Modifier = Modifi
                     contentAlignment = Alignment.Center,
                 ) {
                     LineIcon(iconOf(kind), 22.dp, if (tagged) C.Green else C.Yellow, 1.6f)
+                    if (kind == TagKind.QR && state.phase == TagPhase.ChoosingPlacement) QrPlacementPopover(actions)
                 }
             }
         }

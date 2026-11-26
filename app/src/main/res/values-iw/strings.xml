@@ -343,6 +343,7 @@
     <string name="detail_system_type">סוג מערכת</string>
     <string name="detail_asset_type">סוג נכס</string>
     <string name="detail_sub_type">תת-סוג</string>
+    <string name="select_no_match">אין תוצאות</string>
     <string name="detail_jacs_code">קוד JACS</string>
     <string name="detail_yes">כן</string>
     <string name="detail_no">לא</string>
@@ -485,6 +486,9 @@
     <string name="tag_kind_qr">קוד QR</string>
     <string name="tag_kind_barcode">ברקוד</string>
     <string name="tag_kind_nfc">תג NFC</string>
+    <string name="tag_placement_title">מיקום קוד QR</string>
+    <string name="tag_placement_movable">נייד</string>
+    <string name="tag_placement_fixed">קבוע</string>
     <string name="tag_tagged_qr">קוד QR תויג</string>
     <string name="tag_tagged_barcode">ברקוד תויג</string>
     <string name="tag_tagged_nfc">תג NFC תויג</string>

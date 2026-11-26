@@ -339,6 +339,7 @@
     <string name="detail_system_type">Tipo di sistema</string>
     <string name="detail_asset_type">Tipo di asset</string>
     <string name="detail_sub_type">Sottotipo</string>
+    <string name="select_no_match">Nessun risultato</string>
     <string name="detail_jacs_code">Codice JACS</string>
     <string name="detail_yes">Sì</string>
     <string name="detail_no">No</string>
@@ -478,6 +479,9 @@
     <string name="tag_kind_qr">Codice QR</string>
     <string name="tag_kind_barcode">Codice a barre</string>
     <string name="tag_kind_nfc">Tag NFC</string>
+    <string name="tag_placement_title">Posizionamento del codice QR</string>
+    <string name="tag_placement_movable">Mobile</string>
+    <string name="tag_placement_fixed">Fisso</string>
     <string name="tag_tagged_qr">Codice QR associato</string>
     <string name="tag_tagged_barcode">Codice a barre associato</string>
     <string name="tag_tagged_nfc">Tag NFC associato</string>

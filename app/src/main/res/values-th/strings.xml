@@ -331,6 +331,7 @@
     <string name="detail_system_type">ประเภทระบบ</string>
     <string name="detail_asset_type">ประเภทสินทรัพย์</string>
     <string name="detail_sub_type">ประเภทย่อย</string>
+    <string name="select_no_match">ไม่พบรายการที่ตรงกัน</string>
     <string name="detail_jacs_code">รหัส JACS</string>
     <string name="detail_yes">ใช่</string>
     <string name="detail_no">ไม่ใช่</string>
@@ -453,6 +454,9 @@
     <string name="tag_kind_qr">คิวอาร์โค้ด</string>
     <string name="tag_kind_barcode">บาร์โค้ด</string>
     <string name="tag_kind_nfc">แท็ก NFC</string>
+    <string name="tag_placement_title">ตำแหน่งรหัส QR</string>
+    <string name="tag_placement_movable">เคลื่อนย้ายได้</string>
+    <string name="tag_placement_fixed">ติดตั้งถาวร</string>
     <string name="tag_tagged_qr">ติดแท็กคิวอาร์โค้ดแล้ว</string>
     <string name="tag_tagged_barcode">ติดแท็กบาร์โค้ดแล้ว</string>
     <string name="tag_tagged_nfc">ติดแท็ก NFC แล้ว</string>

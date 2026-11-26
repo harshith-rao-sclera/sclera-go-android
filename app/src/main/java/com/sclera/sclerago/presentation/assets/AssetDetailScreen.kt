@@ -235,12 +235,12 @@ fun AssetDetailScreen(
                             val open = { i: Int -> preview = i }
                             when (pageTab) {
                                 DetailTabKind.INFO -> {
-                                    // The Tags bar first (a new asset has its id already, so it can be tagged too), then the photos,
-                                    // with a + that opens the camera (as the Media tab's Camera, into Other photos).
+                                    // The Tags bar first, once the asset has been added (not while a new one is being filled in),
+                                    // then the photos, with a + that opens the camera (as the Media tab's Camera, into Other photos).
                                     // Tagging changes the asset (its tag flags), so only for whoever may change it (collect,
                                     // theirs or nobody's unless a reviewer, not in Managed Assets): a submitted or signed-off
                                     // asset only by a reviewer. Anyone else sees the icons greyed out, saying why.
-                                    TagsBar(tags, actions.tags, blocked = b.change)
+                                    if (!isNew) TagsBar(tags, actions.tags, blocked = b.change)
                                     InfoPhotoStrip(
                                         state.media, onAdd = if (mediaClosed) null else ({ actions.onAddPhoto(null) }), onOpen = open,
                                         onDownload = actions.onDownloadMedia, onRemove = if (mediaClosed) null else ({ removeMedia = it }),

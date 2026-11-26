@@ -335,6 +335,7 @@
     <string name="detail_system_type">सिस्टम प्रकार</string>
     <string name="detail_asset_type">एसेट प्रकार</string>
     <string name="detail_sub_type">उप-प्रकार</string>
+    <string name="select_no_match">कोई मिलान नहीं</string>
     <string name="detail_jacs_code">JACS कोड</string>
     <string name="detail_yes">हाँ</string>
     <string name="detail_no">नहीं</string>
@@ -474,6 +475,9 @@
     <string name="tag_kind_qr">QR कोड</string>
     <string name="tag_kind_barcode">बारकोड</string>
     <string name="tag_kind_nfc">NFC टैग</string>
+    <string name="tag_placement_title">QR कोड का स्थान</string>
+    <string name="tag_placement_movable">चल</string>
+    <string name="tag_placement_fixed">स्थिर</string>
     <string name="tag_tagged_qr">QR कोड टैग किया गया</string>
     <string name="tag_tagged_barcode">बारकोड टैग किया गया</string>
     <string name="tag_tagged_nfc">NFC टैग टैग किया गया</string>

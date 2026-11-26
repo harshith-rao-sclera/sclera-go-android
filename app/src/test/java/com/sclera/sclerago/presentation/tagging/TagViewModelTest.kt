@@ -70,9 +70,11 @@ class TagViewModelTest {
     }
 
     @Test
-    fun `picking QR or barcode opens the scanner and NFC waits for a chip`() {
+    fun `picking QR asks for its placement, barcode opens the scanner and NFC waits for a chip`() {
         val vm = vm()
         vm.start(TagKind.QR)
+        assertEquals(TagPhase.ChoosingPlacement, vm.state.value.phase)
+        vm.choosePlacement(movable = true)
         assertEquals(TagPhase.Scanning(TagKind.QR), vm.state.value.phase)
         vm.cancel()
         vm.start(TagKind.BARCODE)
@@ -91,13 +93,14 @@ class TagViewModelTest {
         vm.start(TagKind.NFC)
         assertEquals(res(R.string.tag_error_offline), vm.failure())
         vm.start(TagKind.QR)
-        assertEquals(TagPhase.Scanning(TagKind.QR), vm.state.value.phase)
+        assertEquals(TagPhase.ChoosingPlacement, vm.state.value.phase)
     }
 
     @Test
     fun `a QR scan is tagged and the toast kind is set`() {
         val vm = vm()
         vm.start(TagKind.QR)
+        vm.choosePlacement(movable = false)
         vm.scanned(TagKind.QR, TagScan("sticker-1", byteArrayOf(1, 2)))
         val s = vm.state.value
         assertEquals(TagPhase.Idle, s.phase)
@@ -111,6 +114,33 @@ class TagViewModelTest {
         assertEquals(2, write.photo?.data?.size)
         vm.toastShown()
         assertNull(vm.state.value.notice)
+    }
+
+    @Test
+    fun `a QR code picked as movable is written movable, and as fixed is written fixed`() {
+        val vm = vm()
+        vm.start(TagKind.QR)
+        vm.choosePlacement(movable = true)
+        vm.scanned(TagKind.QR, TagScan("sticker-1", byteArrayOf(1)))
+        assertTrue(repo.written.last().placement.isMovable)
+        vm.start(TagKind.QR)
+        vm.choosePlacement(movable = false)
+        vm.confirmRescan()
+        vm.scanned(TagKind.QR, TagScan("sticker-2", byteArrayOf(1)))
+        assertFalse(repo.written.last().placement.isMovable)
+    }
+
+    @Test
+    fun `closing the QR popover goes back to idle and the next pick starts as fixed`() {
+        val vm = vm()
+        vm.start(TagKind.QR)
+        vm.cancel()
+        assertEquals(TagPhase.Idle, vm.state.value.phase)
+        vm.start(TagKind.QR)
+        vm.choosePlacement(movable = true)
+        vm.start(TagKind.BARCODE)
+        vm.scanned(TagKind.BARCODE, TagScan("5901234123457", null))
+        assertFalse(repo.written.last().placement.isMovable)
     }
 
     @Test
@@ -128,6 +158,7 @@ class TagViewModelTest {
         val vm = vm()
         vm.scanned(TagKind.QR, TagScan("one", null))
         vm.start(TagKind.QR)
+        vm.choosePlacement(movable = true)
         assertEquals(TagPhase.ConfirmingRescan, vm.state.value.phase)
         vm.confirmRescan()
         assertEquals(TagPhase.Scanning(TagKind.QR), vm.state.value.phase)
@@ -141,6 +172,45 @@ class TagViewModelTest {
         assertTrue(vm.state.value.tagged.isEmpty())
         vm.open("a2", "p1")
         assertEquals(setOf(TagKind.QR), vm.state.value.tagged)
+    }
+
+    @Test
+    fun `the bar follows the asset's data while it is open, so a tag moved away or synced off shows untagged`() {
+        val vm = vm()
+        vm.open("a2", "p1", setOf(TagKind.QR, TagKind.NFC))
+        assertEquals(setOf(TagKind.QR, TagKind.NFC), vm.state.value.tagged)
+        // A sync, or the QR code moved to another asset: the data now says only NFC.
+        vm.open("a2", "p1", setOf(TagKind.NFC))
+        assertEquals(setOf(TagKind.NFC), vm.state.value.tagged)
+        vm.open("a2", "p1", emptySet())
+        assertTrue(vm.state.value.tagged.isEmpty())
+        // And a sync that brings a tag shows it.
+        vm.open("a2", "p1", setOf(TagKind.BARCODE))
+        assertEquals(setOf(TagKind.BARCODE), vm.state.value.tagged)
+    }
+
+    @Test
+    fun `a kind tagged here shows until the data changes, then the data alone decides`() {
+        val vm = vm()
+        vm.scanned(TagKind.BARCODE, TagScan("5901234123457", null))
+        // The data hasn't changed yet (no flag written): the tag still shows.
+        vm.open("a2", "p1", emptySet())
+        assertEquals(setOf(TagKind.BARCODE), vm.state.value.tagged)
+        // The flag written after the tag comes back with the asset.
+        vm.open("a2", "p1", setOf(TagKind.BARCODE))
+        assertEquals(setOf(TagKind.BARCODE), vm.state.value.tagged)
+        // Later the tag is moved to another asset and this one's flag is cleared.
+        vm.open("a2", "p1", emptySet())
+        assertTrue(vm.state.value.tagged.isEmpty())
+    }
+
+    @Test
+    fun `an asset reopened after its tag moved away shows untagged`() {
+        val vm = vm()
+        vm.open("a1", "p1", setOf(TagKind.QR))
+        vm.open("a2", "p1")
+        vm.open("a1", "p1", emptySet())
+        assertTrue(vm.state.value.tagged.isEmpty())
     }
 
     @Test

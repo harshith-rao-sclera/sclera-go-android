@@ -343,6 +343,7 @@
     <string name="detail_system_type">Тип системи</string>
     <string name="detail_asset_type">Тип активу</string>
     <string name="detail_sub_type">Підтип</string>
+    <string name="select_no_match">Немає збігів</string>
     <string name="detail_jacs_code">Код JACS</string>
     <string name="detail_yes">Так</string>
     <string name="detail_no">Ні</string>
@@ -488,6 +489,9 @@
     <string name="tag_kind_qr">QR-код</string>
     <string name="tag_kind_barcode">Штрихкод</string>
     <string name="tag_kind_nfc">NFC-мітка</string>
+    <string name="tag_placement_title">Розміщення QR-коду</string>
+    <string name="tag_placement_movable">Переміщуваний</string>
+    <string name="tag_placement_fixed">Стаціонарний</string>
     <string name="tag_tagged_qr">QR-код прив’язано</string>
     <string name="tag_tagged_barcode">Штрихкод прив’язано</string>
     <string name="tag_tagged_nfc">NFC-мітку прив’язано</string>

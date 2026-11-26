@@ -43,7 +43,6 @@ import com.sclera.sclerago.domain.model.ScanFacts
 import com.sclera.sclerago.domain.model.Source
 import com.sclera.sclerago.domain.model.SpecLookup
 import com.sclera.sclerago.domain.model.Status
-import com.sclera.sclerago.domain.model.TagKind
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.Unheard
 import com.sclera.sclerago.domain.model.VOICE_SURE_ENOUGH
@@ -54,7 +53,6 @@ import com.sclera.sclerago.domain.model.missingRequiredFields
 import com.sclera.sclerago.domain.model.photoCounts
 import com.sclera.sclerago.domain.model.photoRoom
 import com.sclera.sclerago.domain.model.photosShort
-import com.sclera.sclerago.domain.model.taggedByFields
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessChangesUseCase
 import com.sclera.sclerago.domain.usecase.asset.AddAssetFieldUseCase
 import com.sclera.sclerago.domain.usecase.asset.ReloadAssetsUseCase
@@ -247,9 +245,6 @@ data class AssetDetailState(
      * Documents can't be added now: they are kept on the server only (not synced), so not offline, nor to an asset the
      * server doesn't have yet (new, or saved here and not synced).
      */
-
-    /** The tags the asset's "QR / Barcode / NFC Tagged" fields say it carries (shown in the Tags bar, not the form). */
-    val fieldTags: Set<TagKind> get() = taggedByFields(fields.associate { it.label to saved[it.key].orEmpty() })
 
     /** The mandatory fields still empty in the form. */
     val missingRequired: List<FieldCfg> get() = missingRequiredFields(fields, values)

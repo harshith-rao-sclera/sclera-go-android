@@ -46,6 +46,7 @@ import com.sclera.sclerago.domain.model.PlaceNames
 import com.sclera.sclerago.domain.model.labelWithCurrency
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.PlainField
+import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.bottomBorder
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
@@ -60,6 +61,8 @@ object DetailTags {
     fun section(key: String) = "detail-section-$key"
     fun field(key: String) = "detail-field-$key"
     fun badge(key: String) = "detail-badge-$key"
+    /** The search box at the top of a searchable dropdown ([SelectRow] with `searchable`). */
+    fun search(key: String) = "detail-search-$key"
     const val TAB_INFO = "detail-tab-info"
     const val TAB_VALIDATION = "detail-tab-validation"
     const val TAB_EMPTY = "detail-tab-empty"
@@ -301,7 +304,10 @@ fun PickRow(
     }
 }
 
-/** A dropdown row: label and the chosen option. */
+/**
+ * A dropdown row: label and the chosen option. [searchable]: the list opens with a search box on top that narrows it to the
+ * options containing what is typed (any case), for long lists such as the System, Asset and Sub types.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SelectRow(
@@ -313,8 +319,14 @@ fun SelectRow(
     onChange: (String) -> Unit,
     rowBg: Color = Color.Transparent,
     requester: BringIntoViewRequester? = null,
+    searchable: Boolean = false,
 ) {
     var open by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    fun close() {
+        open = false
+        query = ""
+    }
     val readOnly = LocalReadOnly.current
     val shown = options.firstOrNull { it.first == value }?.second ?: value
     Row(
@@ -332,15 +344,40 @@ fun SelectRow(
                 Modifier.fillMaxWidth().bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
                 maxLines = Int.MAX_VALUE,
             )
-            DropdownMenu(open, { open = false }, containerColor = C.Surface) {
-                options.forEach { (k, text) ->
+            DropdownMenu(open, ::close, containerColor = C.Surface) {
+                if (searchable) SelectSearch(key, query) { query = it }
+                val shownOptions = filterOptions(options, query)
+                if (shownOptions.isEmpty()) {
+                    Txt(stringResource(R.string.select_no_match), 14, 500, C.Muted, Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+                }
+                shownOptions.forEach { (k, text) ->
                     DropdownMenuItem(
                         text = { Txt(text, 14, if (k == value) 700 else 500, if (k == value) C.Yellow else C.Text, maxLines = Int.MAX_VALUE) },
-                        onClick = { onChange(k); open = false },
+                        onClick = { onChange(k); close() },
                     )
                 }
             }
         }
         if (!readOnly) LineIcon(Icons.ChevronDown, 13.dp, C.Muted, 3f)
+    }
+}
+
+/** The options whose text contains [query] (any case, ends trimmed); all of them while it is blank. */
+internal fun filterOptions(options: List<Pair<String, String>>, query: String): List<Pair<String, String>> {
+    val q = query.trim()
+    return if (q.isEmpty()) options else options.filter { it.second.contains(q, ignoreCase = true) }
+}
+
+/** The search box at the top of a searchable dropdown: a magnifier and the text typed. */
+@Composable
+private fun SelectSearch(key: String, query: String, onQuery: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).heightIn(min = 44.dp)
+            .background(C.Raised, r(12)).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LineIcon(Icons.Search, 16.dp, C.Muted, 2.2f)
+        PlainField(query, onQuery, stringResource(R.string.action_search), Modifier.weight(1f).testTag(DetailTags.search(key)), size = 14)
     }
 }

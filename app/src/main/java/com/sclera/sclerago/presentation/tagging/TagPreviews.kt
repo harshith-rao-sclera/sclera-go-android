@@ -22,11 +22,20 @@ private fun Section() = ScleraTheme {
 }
 
 @Composable
+private fun Placement() = ScleraTheme {
+    Box(Modifier.fillMaxSize().background(C.Surface)) { TagsBar(TagUiState(phase = TagPhase.ChoosingPlacement), TagsActions()) }
+}
+
+@Composable
 private fun Flow(state: TagUiState) = ScleraTheme { Box(Modifier.fillMaxSize().background(C.Bg)) { TagFlowHost(state, NoActions) } }
 
 @Preview(name = "Tags - phone", device = PHONE) @Composable private fun TagRowsPhone() = Section()
 @Preview(name = "Tags - tablet portrait", device = TABLET_PORTRAIT) @Composable private fun TagRowsTabletPortrait() = Section()
 @Preview(name = "Tags - tablet landscape", device = TABLET_LANDSCAPE) @Composable private fun TagRowsTabletLandscape() = Section()
+
+@Preview(name = "QR placement - phone", device = PHONE) @Composable private fun PlacementPhone() = Placement()
+@Preview(name = "QR placement - tablet portrait", device = TABLET_PORTRAIT) @Composable private fun PlacementTabletPortrait() = Placement()
+@Preview(name = "QR placement - tablet landscape", device = TABLET_LANDSCAPE) @Composable private fun PlacementTabletLandscape() = Placement()
 
 @Preview(name = "Rescan - phone", device = PHONE) @Composable private fun RescanPhone() = Flow(TagUiState(phase = TagPhase.ConfirmingRescan))
 @Preview(name = "Rescan - tablet portrait", device = TABLET_PORTRAIT) @Composable private fun RescanTabletPortrait() = Flow(TagUiState(phase = TagPhase.ConfirmingRescan))

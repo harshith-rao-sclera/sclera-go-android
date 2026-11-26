@@ -479,6 +479,7 @@
     <string name="detail_system_type">System type</string>
     <string name="detail_asset_type">Asset type</string>
     <string name="detail_sub_type">Sub type</string>
+    <string name="select_no_match">No matches</string>
     <string name="detail_jacs_code">JACS Code</string>
     <string name="classify_suggest">Suggest type</string>
     <string name="classify_jacs_loading">Finding JACS codes for this type…</string>
@@ -681,6 +682,9 @@
     <string name="tag_kind_qr">QR code</string>
     <string name="tag_kind_barcode">Barcode</string>
     <string name="tag_kind_nfc">NFC tag</string>
+    <string name="tag_placement_title">QR code placement</string>
+    <string name="tag_placement_movable">Movable</string>
+    <string name="tag_placement_fixed">Fixed</string>
     <string name="tag_tagged_qr">QR code tagged</string>
     <string name="tag_tagged_barcode">Barcode tagged</string>
     <string name="tag_tagged_nfc">NFC tag tagged</string>

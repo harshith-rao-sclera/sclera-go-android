@@ -98,6 +98,8 @@ object Icons {
     /** The property (site): the side menu's two-building icon. A getter, as [Buildings] is declared further down. */
     val Property: Ico get() = Buildings
     val Pin = Ico(s("M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"), s(circle(12f, 9.5f, 2.5f)))
+    /** Four arrows out from the centre: something that can be moved (a movable QR code). */
+    val Move = Ico(s("M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"))
     val Unmapped = Ico(
         s("M9.3 4.2A7 7 0 0 1 19 9.5c0 1.6-.6 3.3-1.5 4.8M14.8 17.6C13.3 19.6 12 21 12 21s-7-6.2-7-11.5c0-.9.2-1.8.5-2.6"),
         s("M3 3l18 18"),

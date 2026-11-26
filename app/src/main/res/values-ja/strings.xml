@@ -331,6 +331,7 @@
     <string name="detail_system_type">システムタイプ</string>
     <string name="detail_asset_type">資産タイプ</string>
     <string name="detail_sub_type">サブタイプ</string>
+    <string name="select_no_match">一致する項目はありません</string>
     <string name="detail_jacs_code">JACSコード</string>
     <string name="detail_yes">はい</string>
     <string name="detail_no">いいえ</string>
@@ -453,6 +454,9 @@
     <string name="tag_kind_qr">QRコード</string>
     <string name="tag_kind_barcode">バーコード</string>
     <string name="tag_kind_nfc">NFCタグ</string>
+    <string name="tag_placement_title">QRコードの設置</string>
+    <string name="tag_placement_movable">移動可能</string>
+    <string name="tag_placement_fixed">固定</string>
     <string name="tag_tagged_qr">QRコードをタグ付けしました</string>
     <string name="tag_tagged_barcode">バーコードをタグ付けしました</string>
     <string name="tag_tagged_nfc">NFCタグをタグ付けしました</string>
