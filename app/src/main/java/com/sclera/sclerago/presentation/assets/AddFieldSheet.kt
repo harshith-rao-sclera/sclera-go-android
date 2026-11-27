@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,9 +84,7 @@ internal fun OwnFieldRow(label: String, onRemove: () -> Unit, blocked: UiText? =
                     .semantics { contentDescription = description }.testTag(AddFieldTags.remove(label)),
                 contentAlignment = Alignment.Center,
             ) {
-                Box(Modifier.size(24.dp).clip(CircleShape).background(C.Raised), contentAlignment = Alignment.Center) {
-                    LineIcon(Icons.Close, 11.dp, C.Muted, 2.6f)
-                }
+                LineIcon(Icons.Trash, 17.dp, C.Muted, 2.2f)
             }
         }
     }

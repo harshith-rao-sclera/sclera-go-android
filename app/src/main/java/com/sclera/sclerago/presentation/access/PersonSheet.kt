@@ -37,7 +37,7 @@ import com.sclera.sclerago.presentation.components.SkeletonLead
 import com.sclera.sclerago.presentation.components.SkeletonList
 import com.sclera.sclerago.presentation.components.AccessGate
 import com.sclera.sclerago.presentation.components.CheckBox
-import com.sclera.sclerago.presentation.components.ChoiceSheet
+import com.sclera.sclerago.presentation.components.SearchablePickerSheet
 import com.sclera.sclerago.presentation.components.FormSheet
 import com.sclera.sclerago.presentation.components.LocalToaster
 import com.sclera.sclerago.presentation.components.ToastKind
@@ -186,11 +186,12 @@ internal fun PersonSheet(
         }
         if (choosingGroup) {
             // Someone already here can be left in no group: they keep their sign-in but can open nothing.
-            val options = (if (isNew) emptyList() else listOf(noAccess to null)) + groups.map { it.name to it.description.ifBlank { null } }
-            ChoiceSheet(
-                stringResource(R.string.access_choose_group), options, group?.name ?: noAccess.takeIf { !isNew },
-                onPick = { name ->
-                    groupId = groups.firstOrNull { it.name == name }?.id.orEmpty()
+            val options = (if (isNew) emptyList() else listOf("" to noAccess)) + groups.map { it.id to it.name }
+            SearchablePickerSheet(
+                title = stringResource(R.string.access_choose_group), options = options, selectedValue = groupId,
+                pickerId = "access-group", descriptions = groups.associate { it.id to it.description },
+                onPick = { id ->
+                    groupId = id
                     choosingGroup = false
                     error = null
                 },

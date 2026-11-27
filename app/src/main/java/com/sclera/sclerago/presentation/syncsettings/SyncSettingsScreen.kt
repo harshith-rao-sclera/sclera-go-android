@@ -145,9 +145,16 @@ private fun LastSynced(s: SyncSettings?) {
 @Composable
 private fun Switches(s: SyncSettings?, onData: (Boolean) -> Unit, onMedia: (Boolean) -> Unit) {
     Column(Modifier.fillMaxWidth().clip16()) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Txt(stringResource(R.string.sync_section), 18, 700)
+            Txt(stringResource(R.string.sync_shared), 12, 400, C.Muted, maxLines = Int.MAX_VALUE)
+        }
         SwitchRow(
             Icons.Database, stringResource(R.string.sync_data), stringResource(R.string.sync_data_sub),
-            on = s?.dataSync ?: true, enabled = s != null, tag = SyncSettingsTags.DATA, onChange = onData,
+            on = s?.dataSync ?: true, enabled = s != null, tag = SyncSettingsTags.DATA, divider = true, onChange = onData,
         )
         SwitchRow(
             Icons.Photos, stringResource(R.string.sync_media), stringResource(R.string.sync_media_sub),

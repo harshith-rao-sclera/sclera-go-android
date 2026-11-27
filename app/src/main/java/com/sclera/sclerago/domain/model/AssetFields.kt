@@ -22,6 +22,9 @@ const val ANSWER_NO = "No"
 const val CHECKED = "true"
 const val UNCHECKED = "false"
 
+/** True only for the value the API uses for a checked box. Legacy numeric defaults such as "1" are unchecked. */
+fun checkboxIsChecked(value: String): Boolean = value.equals(CHECKED, ignoreCase = true)
+
 /** The server's field type text (`asset_fields.type`) of each kind. */
 private val TYPE_OF_KIND = mapOf(
     FieldKind.TEXT to "text", FieldKind.TEXTAREA to "textarea", FieldKind.NUMBER to "number", FieldKind.URL to "url",

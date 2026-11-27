@@ -181,7 +181,6 @@ internal fun Modifier.draggablePhoto(
                 shadowElevation = 18.dp.toPx()
                 shape = RoundedCornerShape(12.dp)
                 clip = true
-                alpha = 0.95f
             }
         }
         .pointerInput(m.id, card) {

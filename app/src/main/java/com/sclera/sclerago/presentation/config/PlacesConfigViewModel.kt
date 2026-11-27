@@ -16,6 +16,9 @@ import com.sclera.sclerago.domain.usecase.config.PlaceProblem
 import com.sclera.sclerago.domain.usecase.config.PlaceRefused
 import com.sclera.sclerago.domain.usecase.config.PlacesConfigUseCases
 import com.sclera.sclerago.domain.usecase.property.ValidateImportFileUseCase
+import com.sclera.sclerago.domain.usecase.property.AddressUseCases
+import com.sclera.sclerago.presentation.property.AddressField
+import com.sclera.sclerago.presentation.property.AddressSuggestions
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.toUiText
 import com.sclera.sclerago.presentation.property.PickedSheet
@@ -25,6 +28,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 /**
@@ -35,9 +39,34 @@ import javax.inject.Inject
 class PlacesConfigViewModel @Inject constructor(
     private val useCases: PlacesConfigUseCases,
     validateFile: ValidateImportFileUseCase,
+    private val address: AddressUseCases,
 ) : ViewModel() {
     private var propertyId = ""
     private var loadJob: Job? = null
+    private var addressJob: Job? = null
+    var suggestions by mutableStateOf<AddressSuggestions?>(null)
+        private set
+
+    fun suggestAddress(field: AddressField, country: String, state: String, text: String) {
+        addressJob?.cancel()
+        suggestions = AddressSuggestions(field, emptyList(), searching = true)
+        addressJob = viewModelScope.launch {
+            if (text.isNotBlank()) delay(250)
+            val found = try {
+                when (field) {
+                    AddressField.COUNTRY -> address.countries(text)
+                    AddressField.STATE -> address.states(country, text)
+                    AddressField.CITY -> address.cities(country, state, text)
+                }
+            } catch (_: OnlineException) { emptyList() }
+            suggestions = AddressSuggestions(field, found)
+        }
+    }
+
+    fun clearAddressSuggestions() {
+        addressJob?.cancel()
+        suggestions = null
+    }
     private val sheetImport = SheetImportFlow(validateFile)
 
     /** The Import buildings sheet; null while it is closed. */

@@ -74,7 +74,7 @@ enum class WhenKind { DATE, TIME }
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: Boolean, onChange: (String) -> Unit, rowBg: Color) {
+fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: Boolean, onChange: (String) -> Unit, rowBg: Color, onUndo: (() -> Unit)? = null) {
     val readOnly = LocalReadOnly.current
     var open by remember { mutableStateOf(false) }
     val zone = ZoneId.systemDefault()
@@ -89,7 +89,7 @@ fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: B
     }
     Row(
         Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !readOnly) { open = true }.fillMaxWidth().testTag(DetailTags.field(key)).heightIn(min = 48.dp).topBorder(C.Border).background(rowBg)
-            .padding(horizontal = 12.dp),
+            .padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -98,11 +98,23 @@ fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: B
             shown ?: stringResource(R.string.detail_value_none), 14, 600, if (shown != null) C.Text else C.Muted,
             Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
         )
-        if (!readOnly) LineIcon(if (kind == WhenKind.DATE) Icons.Calendar else Icons.Clock, 15.dp, C.Muted, 2.2f)
+        if (!readOnly) Row(verticalAlignment = Alignment.CenterVertically) {
+            if (onUndo != null) FieldActions(key, label, value.isNotBlank(), edited, { onChange("") }, onUndo, actionWidth = 32.dp)
+            Box(Modifier.width(24.dp), contentAlignment = Alignment.Center) {
+                LineIcon(if (kind == WhenKind.DATE) Icons.Calendar else Icons.Clock, 15.dp, C.Muted, 2.2f)
+            }
+        }
     }
     if (!open) return
     val ok = stringResource(R.string.action_ok)
     val cancel = stringResource(R.string.action_cancel)
+    val clear = stringResource(R.string.assign_clear)
+    val dismiss: @Composable () -> Unit = {
+        Row {
+            if (value.isNotBlank()) TextButton({ onChange(""); open = false }) { Txt(clear, 14, 600) }
+            TextButton({ open = false }) { Txt(cancel, 14, 600) }
+        }
+    }
     if (kind == WhenKind.DATE) {
         // The picker works in UTC days; the chosen day is kept as its start in the phone's time zone, as the web does.
         val initial = instant?.atZone(zone)?.toLocalDate()?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
@@ -118,7 +130,7 @@ fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: B
                     open = false
                 }) { Txt(ok, 14, 700, C.Yellow) }
             },
-            dismissButton = { TextButton({ open = false }) { Txt(cancel, 14, 600) } },
+            dismissButton = dismiss,
         ) { DatePicker(picker) }
     } else {
         val start = instant?.atZone(zone)?.toLocalTime() ?: LocalTime.now(zone)
@@ -132,7 +144,7 @@ fun WhenRow(key: String, label: String, value: String, kind: WhenKind, edited: B
                     open = false
                 }) { Txt(ok, 14, 700, C.Yellow) }
             },
-            dismissButton = { TextButton({ open = false }) { Txt(cancel, 14, 600) } },
+            dismissButton = dismiss,
             text = { TimePicker(picker) },
             containerColor = C.Surface,
         )

@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,6 +46,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -115,6 +119,13 @@ fun AssetDetailScreen(
     var chosen by rememberSaveable { mutableStateOf(DetailTabKind.INFO) }
     val tab = shownTab(tabs, chosen)
     val onInfo = tab == DetailTabKind.INFO
+    val keyboardUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val focusManager = LocalFocusManager.current
+    var keyboardWasUp by remember { mutableStateOf(false) }
+    LaunchedEffect(keyboardUp) {
+        if (keyboardWasUp && !keyboardUp) focusManager.clearFocus()
+        keyboardWasUp = keyboardUp
+    }
     var modal by remember(asset.id) { mutableStateOf(DetailModal.NONE) }
     // The type row (system, asset or sub type) whose picker is open.
     var typePick by remember(asset.id) { mutableStateOf<TypePick?>(null) }
@@ -202,14 +213,13 @@ fun AssetDetailScreen(
             val barTab = if (pager.isScrollInProgress) kinds.getOrNull(pager.targetPage) ?: tab else tab
             if (tabs.isNotEmpty()) DetailTabBar(tabs, barTab) { chosen = it }
             CompositionLocalProvider(LocalReadOnly provides locked) {
-                // While a field is being edited, sideways drags belong to it (moving the cursor, scrolling a long value),
-                // so the pages don't swipe; the tabs still switch them.
+                // Track focus to prevent pull-to-refresh while a field is being edited.
                 var editing by remember { mutableStateOf(false) }
                 // Pull down on any tab to read the asset again, as on the asset list (not while adding one: nothing saved yet).
                 PullRefresh(state.refreshing, actions.onRefresh, Modifier.weight(1f).fillMaxWidth(), enabled = !isNew && !editing) {
                     HorizontalPager(
                         pager, Modifier.fillMaxSize().onFocusChanged { editing = it.hasFocus },
-                        userScrollEnabled = !editing, key = { kinds.getOrElse(it) { DetailTabKind.INFO } },
+                        key = { kinds.getOrElse(it) { DetailTabKind.INFO } },
                     ) { page ->
                         val pageTab = kinds.getOrElse(page) { DetailTabKind.INFO }
                         // Room at the end so the last card scrolls clear of the tab's floating buttons (as shown below).
@@ -326,8 +336,8 @@ fun AssetDetailScreen(
             }
         }
 
-        // Greyed out, saying why, for whoever may not change the asset.
-        FabSwap(onInfo) {
+        // Keep the floating controls behind the keyboard instead of moving them over the form.
+        if (!keyboardUp) FabSwap(onInfo) {
             Box(Modifier.fillMaxWidth()) {
                 FormFloatingButtons(
                     aiBusy = state.aiBusy, aiNotice = null, listening = mic.listening, heard = mic.heard,

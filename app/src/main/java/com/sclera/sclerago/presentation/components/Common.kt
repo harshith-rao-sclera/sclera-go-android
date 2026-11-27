@@ -486,7 +486,7 @@ fun ActionDock(
     if (floating) {
         Column(Modifier.fillMaxWidth().background(C.Surface)) {
             Row(
-                Modifier.fillMaxWidth().height(32.dp).background(C.YTintBg).topBorder(C.YTintBd).padding(start = 4.dp, end = 14.dp),
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).background(C.YTintBg).topBorder(C.YTintBd).padding(start = 4.dp, end = 14.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 content = { leading() },
             )

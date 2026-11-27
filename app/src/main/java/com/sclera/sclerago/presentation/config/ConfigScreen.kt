@@ -2,6 +2,7 @@ package com.sclera.sclerago.presentation.config
 
 import com.sclera.sclerago.presentation.components.CurrencyPicker
 import com.sclera.sclerago.presentation.components.PickField
+import com.sclera.sclerago.presentation.components.SearchablePickField
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.PRESSED_CARD
 import com.sclera.sclerago.presentation.components.fabClearance
@@ -60,10 +61,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.ANSWER_YES
-import com.sclera.sclerago.domain.model.BUILDING_TYPES
 import com.sclera.sclerago.domain.model.BuildingInfo
 import com.sclera.sclerago.domain.model.CHECKED
-import com.sclera.sclerago.domain.model.COUNTRIES
 import com.sclera.sclerago.domain.model.Currency
 import com.sclera.sclerago.domain.model.DEFAULT_DATE_PICKER
 import com.sclera.sclerago.domain.model.DEFAULT_NOW
@@ -87,7 +86,12 @@ import com.sclera.sclerago.domain.model.OPTION_COLORS
 import com.sclera.sclerago.domain.model.OPTION_KINDS
 import com.sclera.sclerago.domain.model.OptionProblem
 import com.sclera.sclerago.domain.model.PhotoKind
-import com.sclera.sclerago.domain.model.REGIONS
+import com.sclera.sclerago.domain.model.PROPERTY_TYPES
+import com.sclera.sclerago.domain.model.PROPERTY_REGIONS
+import com.sclera.sclerago.domain.model.regionOfCountry
+import com.sclera.sclerago.domain.model.AddressSuggestion
+import com.sclera.sclerago.presentation.property.AddressField
+import com.sclera.sclerago.presentation.property.AddressPickerSheet
 import com.sclera.sclerago.domain.model.TEXT_KINDS
 import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.domain.model.ValueRule
@@ -175,7 +179,6 @@ fun ConfigScreen(
 ) {
     val s = vm.state
     val online by connectivity.online.collectAsStateWithLifecycle()
-    var addingField by remember { mutableStateOf(false) }
     // Configuration reads and writes the server (fields, places, settings, geofence): read again each time it opens.
     LaunchedEffect(vm.currentProp) {
         cfg.open(vm.currentProp)
@@ -210,8 +213,7 @@ fun ConfigScreen(
         Box(Modifier.fillMaxSize().background(C.Bg)) {
             Column(Modifier.fillMaxSize()) {
                 SubPageBar(stringResource(R.string.menu_configuration), vm.propName, vm::openMenu)
-                // Every tab stays composed (as the web keeps them mounted), so unsaved work on one, such as fences being
-                // drawn on the map, survives switching to another.
+                // Keep the map mounted so switching tabs never discards unsaved fence edits.
                 HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = CFG_TABS.size - 1, key = { it }) { i ->
                     val page = CFG_TABS[i].page
                     Column(Modifier.fillMaxSize()) {
@@ -226,11 +228,19 @@ fun ConfigScreen(
                             CfgPage.GEO -> false to null
                         }
                         PullRefresh(refreshing, { refresh?.invoke() }, Modifier.weight(1f).fillMaxWidth(), enabled = refresh != null && (online || page == CfgPage.BUILDING)) {
-                            when (page) {
-                                CfgPage.BUILDING -> BuildingInfo(places, vm.propName, online)
-                                CfgPage.FIELDS -> AssetFields(fields, cfg, vm.propName, addingField) { addingField = it }
-                                CfgPage.GEO -> Geofencing(cfg)
-                                CfgPage.SETTINGS -> PropertySettingsPage(vm, cfg)
+                            if (page == CfgPage.GEO) {
+                                Geofencing(cfg)
+                            } else key(s.cfgPage) {
+                                // A fresh visit starts at the top with no previous search or selection.
+                                when (page) {
+                                    CfgPage.BUILDING -> BuildingInfo(places, vm.propName, online)
+                                    CfgPage.FIELDS -> {
+                                        var addingField by remember { mutableStateOf(false) }
+                                        AssetFields(fields, cfg, vm.propName, addingField) { addingField = it }
+                                    }
+                                    CfgPage.SETTINGS -> PropertySettingsPage(vm, cfg)
+                                    CfgPage.GEO -> Unit
+                                }
                             }
                         }
                     }
@@ -496,8 +506,9 @@ private fun BuildingInfo(places: PlacesConfigViewModel, propName: String, online
     }
     buildingSheet?.let { id ->
         val b = if (id.isEmpty()) null else tree.firstOrNull { it.id == id }
-        EditBuildingSheet(b, onClose = { buildingSheet = null }) { n, info, visible ->
+        EditBuildingSheet(b, places, onClose = { places.clearAddressSuggestions(); buildingSheet = null }) { n, info, visible ->
             if (b == null) places.addBuilding(n, info) { bId = it; fId = null } else places.saveBuilding(b, n, info, visible)
+            places.clearAddressSuggestions()
             buildingSheet = null
         }
     }
@@ -835,11 +846,39 @@ private fun phoneOk(p: String) = Regex("^[+0-9 ()-]+$").matches(p) && p.count(Ch
 
 /** Add or edit a building: details, address, primary contact, notes and site access. */
 @Composable
-private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String, BuildingInfo, Boolean) -> Unit) {
+private fun EditBuildingSheet(b: LocNode?, places: PlacesConfigViewModel, onClose: () -> Unit, onSave: (String, BuildingInfo, Boolean) -> Unit) {
     val i0 = b?.info ?: BuildingInfo()
     var name by remember { mutableStateOf(b?.name.orEmpty()) }
     var info by remember { mutableStateOf(i0) }
     var visible by remember { mutableStateOf(b?.active ?: true) }
+    var focusedAddress by remember { mutableStateOf<AddressField?>(null) }
+
+    fun pickAddress(field: AddressField, suggestion: AddressSuggestion) {
+        info = when (field) {
+            AddressField.COUNTRY -> info.copy(country = suggestion.name,
+                state = if (suggestion.name.equals(info.country.trim(), true)) info.state else "",
+                city = if (suggestion.name.equals(info.country.trim(), true)) info.city else "",
+                region = regionOfCountry(suggestion.code) ?: info.region)
+            AddressField.STATE -> info.copy(state = suggestion.name, city = if (suggestion.name.equals(info.state.trim(), true)) info.city else "")
+            AddressField.CITY -> info.copy(city = suggestion.name, state = suggestion.state ?: info.state)
+        }
+        places.clearAddressSuggestions()
+    }
+
+    @Composable
+    fun AddressInput(field: AddressField, label: String, hint: String) {
+        val value = when (field) { AddressField.COUNTRY -> info.country; AddressField.STATE -> info.state; AddressField.CITY -> info.city }
+        val waiting = field != AddressField.COUNTRY && info.country.isBlank()
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            SheetFieldLabel(label)
+            Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).pressClickable(enabled = !waiting) { focusedAddress = field }
+                .background(C.Bg, r(10)).border(1.dp, C.Border, r(10)).padding(horizontal = 12.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                Txt(value.ifEmpty { if (waiting) stringResource(R.string.property_choose_country_first) else hint }, 13, 400,
+                    if (value.isEmpty()) C.Muted else C.Text, Modifier.weight(1f), maxLines = 1)
+                LineIcon(Icons.ChevronDown, 12.dp, C.Muted, 2.4f)
+            }
+        }
+    }
     val emailBad = info.email.isNotBlank() && !EMAIL_RE.matches(info.email.trim())
     val phoneBad = info.phone.isNotBlank() && !phoneOk(info.phone.trim())
     val ok = name.isNotBlank() && info.type.isNotBlank() && !emailBad && !phoneBad
@@ -852,16 +891,20 @@ private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String,
         ) {
             SheetSection(stringResource(R.string.cfgt_building_details))
             LabeledInput(stringResource(R.string.cfgt_building_name), name, { name = it.take(MAX_PLACE_NAME) }, stringResource(R.string.cfgt_building_name_hint), sheet = true)
-            PickField(stringResource(R.string.cfgt_building_type), info.type, stringResource(R.string.property_select_type), BUILDING_TYPES) { info = info.copy(type = it) }
+            SearchablePickField(
+                stringResource(R.string.cfgt_building_type), info.type, stringResource(R.string.property_select_type), PROPERTY_TYPES.map { it.value to it.label }, "building-type",
+            ) { info = info.copy(type = it) }
             LabeledInput(stringResource(R.string.field_address_line1), info.address1, { info = info.copy(address1 = it) }, stringResource(R.string.field_address_line1_hint), sheet = true)
             LabeledInput(stringResource(R.string.field_address_line2), info.address2, { info = info.copy(address2 = it) }, stringResource(R.string.field_address_line2_hint), sheet = true)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PickField(stringResource(R.string.field_country), info.country, stringResource(R.string.cfgt_select_country), COUNTRIES, Modifier.weight(1f)) { info = info.copy(country = it) }
-                Box(Modifier.weight(1f)) { LabeledInput(stringResource(R.string.field_state), info.state, { info = info.copy(state = it) }, stringResource(R.string.property_enter_state), sheet = true) }
+                Box(Modifier.weight(1f)) { AddressInput(AddressField.COUNTRY, stringResource(R.string.field_country), stringResource(R.string.property_type_or_select_country)) }
+                Box(Modifier.weight(1f)) { AddressInput(AddressField.STATE, stringResource(R.string.field_state), stringResource(R.string.property_type_or_select_state)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PickField(stringResource(R.string.field_region), info.region, stringResource(R.string.property_select_region), REGIONS, Modifier.weight(1f)) { info = info.copy(region = it) }
-                Box(Modifier.weight(1f)) { LabeledInput(stringResource(R.string.field_city), info.city, { info = info.copy(city = it) }, stringResource(R.string.property_enter_city), sheet = true) }
+                SearchablePickField(
+                    stringResource(R.string.field_region), info.region, stringResource(R.string.property_select_region), PROPERTY_REGIONS.map { it.value to it.label }, "building-region", Modifier.weight(1f),
+                ) { info = info.copy(region = it) }
+                Box(Modifier.weight(1f)) { AddressInput(AddressField.CITY, stringResource(R.string.field_city), stringResource(R.string.property_type_or_select_city)) }
             }
 
             SheetSection(stringResource(R.string.property_group_contact))
@@ -887,6 +930,14 @@ private fun EditBuildingSheet(b: LocNode?, onClose: () -> Unit, onSave: (String,
         }
         SheetButtons(if (b == null) stringResource(R.string.cfgt_add_building) else stringResource(R.string.cfg_save), ok, onClose) { onSave(name, info, visible) }
     }
+    }
+    focusedAddress?.let { field ->
+        val title = stringResource(when (field) { AddressField.COUNTRY -> R.string.field_country; AddressField.STATE -> R.string.field_state; AddressField.CITY -> R.string.field_city })
+        val value = when (field) { AddressField.COUNTRY -> info.country; AddressField.STATE -> info.state; AddressField.CITY -> info.city }
+        AddressPickerSheet(field, title, info.country, value, places.suggestions,
+            onSearch = { places.suggestAddress(field, info.country, info.state, it) },
+            onPick = { pickAddress(field, it); focusedAddress = null },
+            onClose = { places.clearAddressSuggestions(); focusedAddress = null })
     }
 }
 

@@ -44,6 +44,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -610,7 +615,20 @@ private fun PhotoCard(
         modifier.zIndex(if (drag != null && drag.from == key) 1f else 0f)
             .then(if (drag != null) Modifier.photoDropTarget(drag, key) else Modifier)
             // Rounded without clipping, so a photo dragged out of the card stays on top of the others, not cut off at its edge.
-            .padding(horizontal = 12.dp).fillMaxWidth().background(bg.value, r(14)).border(1.dp, C.Border, r(14)).border(2.dp, edge.value, r(14))
+            .padding(horizontal = 12.dp).fillMaxWidth().background(bg.value, r(14)).drawBehind {
+                // Draw the card edges behind its children, including a photo dragged across the edge.
+                fun drawEdge(color: androidx.compose.ui.graphics.Color, width: Float) {
+                    val inset = width / 2f
+                    drawRoundRect(
+                        color = color, topLeft = Offset(inset, inset),
+                        size = Size(size.width - width, size.height - width),
+                        cornerRadius = CornerRadius((14.dp.toPx() - inset).coerceAtLeast(0f)),
+                        style = Stroke(width),
+                    )
+                }
+                drawEdge(C.Border, 1.dp.toPx())
+                drawEdge(edge.value, 2.dp.toPx())
+            }
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

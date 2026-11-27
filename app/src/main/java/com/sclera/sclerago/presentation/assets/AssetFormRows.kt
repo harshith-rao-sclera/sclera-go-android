@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -29,24 +31,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
+import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.PlaceNames
+import com.sclera.sclerago.domain.model.UNCHECKED
+import com.sclera.sclerago.domain.model.checkboxIsChecked
 import com.sclera.sclerago.domain.model.labelWithCurrency
+import com.sclera.sclerago.presentation.components.CheckBox
 import com.sclera.sclerago.presentation.components.LocalReadOnly
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.bottomBorder
+import com.sclera.sclerago.presentation.components.r
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
@@ -172,20 +186,62 @@ fun FieldRow(
     requester: BringIntoViewRequester? = null,
     /** A text that may be long (notes, description): the value wraps over as many lines as it needs. */
     multiLine: Boolean = false,
+    keyboard: KeyboardType = KeyboardType.Text,
+    onUndo: (() -> Unit)? = null,
 ) {
+    var focused by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
-            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg).padding(horizontal = 12.dp),
+            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg).padding(start = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         FieldLabel(label, Modifier.width(92.dp))
         PlainField(
             value, onChange, stringResource(R.string.detail_field_hint, label.removeSuffix(" *").lowercase(Locale.getDefault())),
-            Modifier.weight(1f).bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
-            size = if (mono) 13 else 15, weight = 600, mono = mono, singleLine = !multiLine,
+            Modifier.weight(1f).onFocusChanged { focused = it.isFocused }
+                .padding(end = if (focused && onUndo != null) 0.dp else 12.dp)
+                .bottomBorder(if (edited) C.Yellow else Color.Transparent, 1.5.dp).padding(vertical = 6.dp),
+            size = if (mono) 13 else 15, weight = 600, mono = mono, singleLine = !multiLine, keyboard = keyboard,
         )
         BadgeText(key, badge)
+        if (!LocalReadOnly.current && focused && onUndo != null) {
+            FieldActions(key, label, value.isNotEmpty(), edited, { onChange("") }, onUndo, actionWidth = 32.dp)
+        }
+    }
+}
+
+/** A boolean field: unlike a yes/no field, it is shown and edited as one checkbox. */
+@Composable
+fun CheckboxRow(
+    key: String,
+    label: String,
+    value: String,
+    savedValue: String,
+    onChange: (String) -> Unit,
+    rowBg: Color = Color.Transparent,
+    requester: BringIntoViewRequester? = null,
+) {
+    val checked = checkboxIsChecked(value)
+    val readOnly = LocalReadOnly.current
+    Row(
+        Modifier.pressClickable(pressed = PRESSED_CARD, enabled = !readOnly, role = Role.Checkbox) {
+            val next = !checked
+            onChange(if (next == checkboxIsChecked(savedValue)) savedValue else if (next) CHECKED else UNCHECKED)
+        }.fillMaxWidth().testTag(DetailTags.field(key)).then(if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier)
+            .heightIn(min = 48.dp).topBorder(C.Border).background(rowBg).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        FieldLabel(label, Modifier.width(92.dp))
+        Box(
+            Modifier.size(34.dp).clip(r(9)).background(if (checked) C.YTintBg else Color.Transparent)
+                .then(if (checked) Modifier.border(1.dp, C.YTintBd, r(9)) else Modifier),
+            contentAlignment = Alignment.Center,
+        ) {
+            CheckBox(checked, size = 22.dp, checkSize = 13.dp)
+        }
+        Box(Modifier.weight(1f))
     }
 }
 
@@ -313,6 +369,7 @@ fun SelectRow(
     onChange: (String) -> Unit,
     rowBg: Color = Color.Transparent,
     requester: BringIntoViewRequester? = null,
+    onUndo: (() -> Unit)? = null,
 ) {
     var open by remember { mutableStateOf(false) }
     val readOnly = LocalReadOnly.current
@@ -341,7 +398,45 @@ fun SelectRow(
                 }
             }
         }
+        if (!readOnly && onUndo != null) {
+            FieldActions(key, label, value.isNotEmpty(), edited, { onChange("") }, onUndo)
+        }
         if (!readOnly) LineIcon(Icons.ChevronDown, 13.dp, C.Muted, 3f)
+    }
+}
+
+/** Compact, adjacent touch targets at the end of an editable value. */
+@Composable
+internal fun FieldActions(key: String, label: String, canClear: Boolean, edited: Boolean, onClear: () -> Unit, onUndo: () -> Unit, actionWidth: Dp = 40.dp) {
+    if (canClear || edited) Row(verticalAlignment = Alignment.CenterVertically) {
+        if (canClear) ClearFieldButton(key, label, onClear, actionWidth)
+        if (edited) UndoFieldButton(key, onUndo, actionWidth)
+    }
+}
+
+/** Restores a field's saved value without opening its picker. */
+@Composable
+internal fun UndoFieldButton(key: String, onUndo: () -> Unit, actionWidth: Dp = 40.dp) {
+    val undoLabel = stringResource(R.string.cfg_geo_undo)
+    Box(
+        Modifier.width(actionWidth).height(48.dp).testTag("detail-undo-$key")
+            .semantics { contentDescription = undoLabel }.pressClickable(role = Role.Button, onClick = onUndo),
+        contentAlignment = Alignment.Center,
+    ) {
+        LineIcon(Icons.Undo, 18.dp, C.Yellow, 2.2f)
+    }
+}
+
+/** Clears the current value; the undo control can then restore the saved value. */
+@Composable
+internal fun ClearFieldButton(key: String, label: String, onClear: () -> Unit, actionWidth: Dp = 40.dp) {
+    val clearLabel = stringResource(R.string.bulk_clear, label.removeSuffix(" *"))
+    Box(
+        Modifier.width(actionWidth).height(48.dp).testTag("detail-clear-$key")
+            .semantics { contentDescription = clearLabel }.pressClickable(role = Role.Button, onClick = onClear),
+        contentAlignment = Alignment.Center,
+    ) {
+        LineIcon(Icons.Close, 16.dp, C.Muted, 2.2f)
     }
 }
 

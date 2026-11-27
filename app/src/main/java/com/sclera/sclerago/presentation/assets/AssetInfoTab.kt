@@ -38,7 +38,6 @@ import com.sclera.sclerago.domain.model.ANSWER_NO
 import com.sclera.sclerago.domain.model.ANSWER_YES
 import com.sclera.sclerago.domain.model.AssetActivity
 import com.sclera.sclerago.domain.model.AssetDocument
-import com.sclera.sclerago.domain.model.CHECKED
 import com.sclera.sclerago.domain.model.ClonePlace
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.FieldKind
@@ -46,7 +45,6 @@ import com.sclera.sclerago.domain.model.FormEntry
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.Status
-import com.sclera.sclerago.domain.model.UNCHECKED
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
 import com.sclera.sclerago.domain.model.isSubmittedOrSignedOff
 import com.sclera.sclerago.domain.model.tagKindOfField
@@ -521,19 +519,24 @@ private fun AssetFieldRow(f: FieldCfg, state: AssetDetailState, spec: FieldSpec,
     val label = spec.label(k, f.label)
     when (f.kind) {
         FieldKind.DATE, FieldKind.TIME -> {
-            WhenRow(k, label, value, if (f.kind == FieldKind.DATE) WhenKind.DATE else WhenKind.TIME, state.dirty(k), onChange, bg)
+            WhenRow(k, label, value, if (f.kind == FieldKind.DATE) WhenKind.DATE else WhenKind.TIME, state.dirty(k), onChange, bg) {
+                onChange(state.saved[k].orEmpty())
+            }
             return
         }
         FieldKind.MULTI -> if (f.options.isNotEmpty()) {
             MultiCheckRow(k, label, value, f.options, state.dirty(k), onChange, bg)
             return
         }
+        FieldKind.CHECKBOX -> {
+            CheckboxRow(k, label, value, state.saved[k].orEmpty(), onChange, bg, ui.requester(k))
+            return
+        }
         else -> {}
     }
     val choices = when (f.kind) {
-        // Yes / no answers are stored as the words, checkboxes as true / false (as the web stores them).
+        // Yes / no answers are stored as words. Checkboxes use their own checkbox row above.
         FieldKind.YESNO -> listOf(ANSWER_YES to stringResource(R.string.detail_yes), ANSWER_NO to stringResource(R.string.detail_no))
-        FieldKind.CHECKBOX -> listOf(CHECKED to stringResource(R.string.detail_yes), UNCHECKED to stringResource(R.string.detail_no))
         FieldKind.DROPDOWN -> f.options.map { it to it }
         else -> emptyList()
     }
@@ -543,11 +546,29 @@ private fun AssetFieldRow(f: FieldCfg, state: AssetDetailState, spec: FieldSpec,
             rowBg = bg, requester = ui.requester(k),
         )
     } else {
+        val isAmount = f.kind == FieldKind.NUMBER || f.kind == FieldKind.CURRENCY
         FieldRow(
-            k, label, value, onChange, state.dirty(k), state.badgeFor(k), rowBg = bg,
+            k, label, value, if (isAmount) { typed -> onChange(numericValue(typed)) } else onChange, state.dirty(k), state.badgeFor(k), rowBg = bg,
             // Text wraps over as many lines as it needs (no "…"); codes and addresses (serial, MAC, IP…) stay on one line.
             mono = k in CODE_KEYS, requester = ui.requester(k),
             multiLine = f.kind == FieldKind.TEXTAREA || (f.kind == FieldKind.TEXT && k !in CODE_KEYS),
+            keyboard = if (isAmount) androidx.compose.ui.text.input.KeyboardType.Decimal else androidx.compose.ui.text.input.KeyboardType.Text,
+            onUndo = { onChange(state.saved[k].orEmpty()) },
         )
+    }
+}
+
+/** Allows only a signed decimal amount while the user types. */
+private fun numericValue(value: String) = buildString {
+    var decimal = false
+    value.forEach { char ->
+        when {
+            char.isDigit() -> append(char)
+            char == '-' && isEmpty() -> append(char)
+            char == '.' && !decimal -> {
+                append(char)
+                decimal = true
+            }
+        }
     }
 }

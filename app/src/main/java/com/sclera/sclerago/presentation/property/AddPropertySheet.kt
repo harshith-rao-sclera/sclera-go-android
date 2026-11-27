@@ -27,7 +27,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -61,6 +60,7 @@ import com.sclera.sclerago.presentation.components.PillTone
 import com.sclera.sclerago.presentation.components.PlainField
 import com.sclera.sclerago.presentation.components.StatusPill
 import com.sclera.sclerago.presentation.components.SecureWindow
+import com.sclera.sclerago.presentation.components.SearchablePickerSheet
 import com.sclera.sclerago.presentation.components.topBorder
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.theme.C
@@ -81,7 +81,6 @@ private enum class Picker { TYPE, REGION }
 private const val NotesMax = 256
 
 /** How many suggestions show under an address field at once (typing narrows them). */
-private const val SuggestionsShown = 8
 
 /**
  * Add New Property, as the web's form: Property details (name and type required; address lines, then City, State and
@@ -145,15 +144,6 @@ internal fun AddPropertySheet(
         AddressField.COUNTRY -> country
     }
 
-    fun typeInto(field: AddressField, text: String) {
-        when (field) {
-            AddressField.CITY -> city = text
-            AddressField.STATE -> state = text
-            AddressField.COUNTRY -> country = text
-        }
-        onSuggest(field, country, state, text)
-    }
-
     fun pick(field: AddressField, s: AddressSuggestion) {
         when (field) {
             // A different country clears the state and city, which no longer belong to it; its code sets the region.
@@ -184,21 +174,8 @@ internal fun AddPropertySheet(
         // State and City wait for a country, as in the design.
         val waiting = needsCountry && country.isBlank()
         InlineField(stringResource(label), dim = waiting) {
-            InlineInput(
-                valueOf(field), { typeInto(field, it) }, stringResource(if (waiting) R.string.property_choose_country_first else hint), enabled = editable && !waiting,
-                modifier = Modifier.onFocusChanged {
-                    if (it.isFocused && focused != field) {
-                        focused = field
-                        onSuggest(field, country, state, valueOf(field)) // the lists open as soon as the field is tapped
-                    } else if (!it.isFocused && focused == field) {
-                        focused = null
-                    }
-                },
-            )
+            InlineSelect(valueOf(field), stringResource(if (waiting) R.string.property_choose_country_first else hint), enabled = editable && !waiting) { focused = field }
         }
-        val here = suggestions?.takeIf { editable && it.field == field && focused == field }
-        if (here?.searching == true) SuggestionsSkeleton()
-        else here?.items.orEmpty().take(SuggestionsShown).forEach { s -> Suggestion(s) { pick(field, s) } }
     }
 
     val deleteName = from.name
@@ -307,15 +284,23 @@ internal fun AddPropertySheet(
             }
         }
         when (picker) {
-            Picker.TYPE -> ChoiceSheet(
-                stringResource(R.string.property_field_type), PROPERTY_TYPES.map { it.label to null }, typeLabel.ifEmpty { null },
-                { label -> type = PROPERTY_TYPES.first { it.label == label }.value; picker = null; error = null }, { picker = null },
+            Picker.TYPE -> SearchablePickerSheet(
+                title = stringResource(R.string.property_field_type), options = PROPERTY_TYPES.map { it.value to it.label }, selectedValue = type,
+                pickerId = "property-type",
+                onPick = { value -> type = value; picker = null; error = null }, onClose = { picker = null },
             )
             Picker.REGION -> ChoiceSheet(
                 stringResource(R.string.field_region), PROPERTY_REGIONS.map { it.label to null }, regionLabel.ifEmpty { null },
                 { label -> region = PROPERTY_REGIONS.first { it.label == label }.value; picker = null }, { picker = null },
             )
             null -> Unit
+        }
+        focused?.let { field ->
+            val title = stringResource(when (field) { AddressField.COUNTRY -> R.string.field_country; AddressField.STATE -> R.string.field_state; AddressField.CITY -> R.string.field_city })
+            AddressPickerSheet(field, title, country, valueOf(field), suggestions,
+                onSearch = { onSuggest(field, country, state, it) },
+                onPick = { pick(field, it); focused = null },
+                onClose = { onClearSuggestions(); focused = null })
         }
     }
 }

@@ -318,6 +318,7 @@ object Icons {
     /** Two switches: Configuration → Property Settings. */
     val Toggles = Ico(s(rect(3f, 4f, 18f, 7f, 3.5f)), f(circle(16.5f, 7.5f, 2f)), s(rect(3f, 13f, 18f, 7f, 3.5f)), f(circle(7.5f, 16.5f, 2f)))
     val Refresh = Ico(s("M20 12a8 8 0 1 1-2.3-5.7"), s("M20 4v5h-5"))
+    val Undo = Ico(s("M9 7H5v-4"), s("M5 7a8 8 0 1 1-1 8"))
     val Hash = Ico(s("M5 9h15M4 15h15M10 3L8 21M16 3l-2 18"))
     /** A banknote: an amount of money (currency fields). */
     val Banknote = Ico(s(rect(2.5f, 6f, 19f, 12f, 2f)), s(circle(12f, 12f, 2.5f)), s("M6 12h.01M18 12h.01"))
