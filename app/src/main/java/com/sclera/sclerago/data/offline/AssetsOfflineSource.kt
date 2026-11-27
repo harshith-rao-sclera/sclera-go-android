@@ -106,7 +106,7 @@ class AssetsOfflineSource(
     /** An asset's comments and recorded changes, newest first. */
     suspend fun activity(assetId: String): List<AssetActivity> = withContext(io) { loadActivity(assetId) }
 
-    fun activityFlow(assetId: String): Flow<List<AssetActivity>> = db.watch(io, "asset_activity") { loadActivity(assetId) }
+    fun activityFlow(assetId: String): Flow<List<AssetActivity>> = db.watch(io, "asset_activity", "asset_fields") { loadActivity(assetId) }
 
     /** One page of the assets [filter] keeps. */
     private fun loadPage(filter: AssetQueryFilter, limit: Int?, offset: Int, propertyId: String): List<Asset> =
@@ -155,7 +155,14 @@ class AssetsOfflineSource(
     }
 
     private fun loadActivity(assetId: String): List<AssetActivity> = db.whenTable("asset_activity", emptyList()) {
-        db.query(ACTIVITY_FOR.replace("%LIVE%", db.notRemoved("asset_activity")), listOf(assetId)).map { it.toAssetActivity() }
+        val types = db.whenTable("asset_fields", emptyMap()) {
+            db.query("SELECT id, type FROM asset_fields", emptyList()).mapNotNull { row ->
+                val id = row.string("id")
+                val type = row.string("type")
+                if (id == null || type == null) null else id to type
+            }.toMap()
+        }
+        db.query(ACTIVITY_FOR.replace("%LIVE%", db.notRemoved("asset_activity")), listOf(assetId)).map { it.toAssetActivity(types) }
     }
 
     /** [rows] as assets: media, spec values, master formats and place names are fetched for all of them at once. */

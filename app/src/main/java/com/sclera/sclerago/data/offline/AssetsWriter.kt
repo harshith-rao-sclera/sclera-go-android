@@ -736,7 +736,7 @@ class AssetsWriter(
             // A column's answer was in asset_values before the column came (Description): that is its old value then.
             val old = if (key in columnKeys) text(row.string(key)) ?: before[key].orNull() else before[key].orNull()
             val new = if (key in columnKeys) text(newColumns[key]) else after[key].orNull()
-            if (old == new) null else Change(f.string("name") ?: key, f.string("id"), old, new)
+            if (old == new) null else Change(f.string("name") ?: key, f.string("id"), old, new, f.string("type"))
         }
 
     /** A place's change as history lines: Building, Floor and Location, by name, for the levels that changed. */
@@ -790,7 +790,7 @@ class AssetsWriter(
     }
 
     /** One change in a history line: [from] and [to] as the server stores them (text, a number, a list...), null for none. */
-    private class Change(val field: String, val fieldId: String?, val from: JsonElement?, val to: JsonElement?)
+    private class Change(val field: String, val fieldId: String?, val from: JsonElement?, val to: JsonElement?, val type: String? = null)
 
     /** `[{field, fieldId, from, to}]`, the server's history format. */
     private fun changesJson(changes: List<Change>): String? = if (changes.isEmpty()) null else JsonArray(
@@ -798,6 +798,7 @@ class AssetsWriter(
             buildJsonObject {
                 put("field", it.field)
                 put("fieldId", it.fieldId?.let(::JsonPrimitive) ?: JsonNull)
+                it.type?.let { type -> put("type", type) }
                 put("from", it.from ?: JsonNull)
                 put("to", it.to ?: JsonNull)
             }

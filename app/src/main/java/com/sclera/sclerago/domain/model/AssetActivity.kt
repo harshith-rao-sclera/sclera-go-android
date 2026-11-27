@@ -3,7 +3,7 @@ package com.sclera.sclerago.domain.model
 enum class ActivityKind { COMMENT, HISTORY }
 
 /** One field an edit changed: its name, and the value before and after (null: empty). */
-data class FieldChange(val field: String, val from: String?, val to: String?)
+data class FieldChange(val field: String, val from: String?, val to: String?, val type: String? = null)
 
 /** One entry in an asset's activity feed: a comment, or a recorded change ([action] such as created or submitted). */
 data class AssetActivity(

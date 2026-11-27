@@ -35,7 +35,7 @@ fun DbRow.toMedia(uri: String? = null): Media {
 }
 
 /** An `asset_activity` row as an [AssetActivity]. */
-fun DbRow.toAssetActivity() = AssetActivity(
+fun DbRow.toAssetActivity(fieldTypes: Map<String, String> = emptyMap()) = AssetActivity(
     id = string("id").orEmpty(),
     assetId = string("asset_id").orEmpty(),
     kind = if (string("kind") == "comment") ActivityKind.COMMENT else ActivityKind.HISTORY,
@@ -44,7 +44,7 @@ fun DbRow.toAssetActivity() = AssetActivity(
     changes = historyChanges(),
     createdBy = string("created_by"),
     createdAt = parseDbTime(string("created_at")),
-    fieldChanges = fieldChanges(historyChanges()),
+    fieldChanges = fieldChanges(historyChanges(), fieldTypes),
     // As the server: a comment whose row moved past its first version was changed (not the timestamps: clocks step back).
     edited = (int("version") ?: 1) > 1,
 )
@@ -57,11 +57,13 @@ private fun DbRow.historyChanges(): String? =
     string("field_changes") ?: string("changes")?.takeIf { it.trimStart().startsWith("[") }
 
 /** A history line's `changes` JSON (`[{field, fieldId, from, to}]`, values of any JSON type) as text changes. */
-private fun fieldChanges(json: String?): List<FieldChange> =
+internal fun fieldChanges(json: String?, fieldTypes: Map<String, String> = emptyMap()): List<FieldChange> =
     (runCatching { Json.parseToJsonElement(json.orEmpty()) }.getOrNull() as? JsonArray).orEmpty().mapNotNull { item ->
         val o = item as? JsonObject ?: return@mapNotNull null
         val field = (o["field"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-        FieldChange(field, valueText(o["from"]), valueText(o["to"]))
+        val id = (o["fieldId"] as? JsonPrimitive)?.contentOrNull
+        val type = (o["type"] as? JsonPrimitive)?.contentOrNull ?: fieldTypes[id]
+        FieldChange(field, valueText(o["from"]), valueText(o["to"]), type)
     }
 
 /** A changed value as text: a list joined with commas, null for empty. */

@@ -116,7 +116,7 @@ internal fun SsoWebStep(
                     // Show the Keycloak page as designed: the app's dark theme would otherwise make
                     // WebView auto-darken it (background photo blacked out, Log in button dimmed).
                     disableAutoDarkening(settings)
-                    // Only pages on the Sclera domain are loaded (see SsoClient), so cookies stay first-party.
+                    // Identity providers can use their own domains; third-party cookies remain disabled.
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
                     webChromeClient = object : WebChromeClient() {
@@ -217,13 +217,7 @@ private class SsoClient(
             finish(onReturned)
             return true
         }
-        // Never leave the Sclera domain or drop to plain http inside the sign-in page.
-        if (!sso.isTrustedUrl(url)) {
-            Log.w(TAG, "Blocked sign-in navigation to ${request.url.host}")
-            view.stopLoading()
-            finish { onError(UiText.Res(R.string.sso_error_untrusted)) }
-            return true
-        }
+        // Temporarily permit redirects to external identity providers during sign-in.
         return false
     }
 

@@ -25,7 +25,7 @@ import javax.inject.Singleton
 /**
  * Works out whether the phone is inside the current property's geofence, for the server's geo restriction: only for
  * someone whose group is geo restricted ([com.sclera.sclerago.domain.model.CurrentAccess.geoRestricted]) and only for a
- * property with a fence (whether or not its enforce switch is on); nobody else's location is read. It looks again whenever
+ * property with an enforced fence; nobody else's location is read. It looks again whenever
  * the current property, its fences or the access change, each time a property list comes fresh from the server, and on
  * [refresh]. Failing safe: no location permission or no fix is never "on premise". The fences come with the property list
  * (kept encrypted on the device, wiped on sign-out), so this works offline. The position found is handed to
@@ -57,7 +57,7 @@ class PremiseRepositoryImpl @Inject constructor(
                 val id = d.currentId
                 val property = list.firstOrNull { it.id == id }
                 val restricted = (state as? AccessState.Loaded)?.access?.geoRestricted == true
-                Target(id, restricted, property?.fences.orEmpty(), tick)
+                Target(id, restricted, property?.gps == true, property?.fences.orEmpty(), tick)
             }.distinctUntilChanged().collectLatest { evaluate(it) }
         }
         // Each property list fresh from the server (sign-in, the Property list, the re-check every 30 seconds) looks
@@ -75,12 +75,12 @@ class PremiseRepositoryImpl @Inject constructor(
         _status.value = PremiseStatus.NOT_APPLICABLE
     }
 
-    private data class Target(val id: String?, val restricted: Boolean, val fences: List<Fence>, val tick: Int)
+    private data class Target(val id: String?, val restricted: Boolean, val enforced: Boolean, val fences: List<Fence>, val tick: Int)
 
     private suspend fun evaluate(target: Target) {
         val id = target.id
-        // Not geo restricted, or a property without a fence (nowhere to be inside): nobody is held, nothing is read or sent.
-        if (id == null || !target.restricted || target.fences.isEmpty()) {
+        // With no enforced fence, nobody is held and no location is read or sent.
+        if (id == null || !requiresPremiseCheck(target.restricted, target.enforced, target.fences)) {
             evaluatedFor = null
             forCalls.set(null)
             _status.value = PremiseStatus.NOT_APPLICABLE
@@ -108,3 +108,6 @@ class PremiseRepositoryImpl @Inject constructor(
         }
     }
 }
+
+internal fun requiresPremiseCheck(restricted: Boolean, enforced: Boolean, fences: List<Fence>): Boolean =
+    restricted && enforced && fences.isNotEmpty()

@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.sclera.sclerago.R
 import com.sclera.sclerago.domain.model.ActivityKind
 import com.sclera.sclerago.domain.model.AssetActivity
+import com.sclera.sclerago.domain.model.storedDate
 import com.sclera.sclerago.presentation.common.UiText
 import com.sclera.sclerago.presentation.common.asString
 import com.sclera.sclerago.presentation.common.formatDateTimeSeconds
@@ -66,6 +67,10 @@ import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.translation.TranslatedComment
 import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 // The asset details' Comments and History tabs.
 
@@ -216,12 +221,14 @@ fun HistoryList(activity: List<AssetActivity>) {
                     Txt(e.text.ifEmpty { e.action.orEmpty() }, 14, 400, maxLines = Int.MAX_VALUE)
                     // As the web: "Building: empty → Harbour Point Tower", the old value struck through.
                     e.fieldChanges.forEach { c ->
+                        val from = historyValue(c.from, c.type, locale) ?: empty
+                        val to = historyValue(c.to, c.type, locale) ?: empty
                         Text(
                             buildAnnotatedString {
                                 withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = C.Text)) { append(stringResource(R.string.scrt_history_field_label, c.field)) }
-                                withStyle(SpanStyle(color = C.Muted, textDecoration = TextDecoration.LineThrough)) { append(c.from ?: empty) }
+                                withStyle(SpanStyle(color = C.Muted, textDecoration = TextDecoration.LineThrough)) { append(from) }
                                 append(" → ")
-                                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = C.Text)) { append(c.to ?: empty) }
+                                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = C.Text)) { append(to) }
                             },
                             color = C.Soft, fontSize = 12.sp, fontFamily = ScleraFonts.Inter, maxLines = Int.MAX_VALUE,
                         )
@@ -235,6 +242,11 @@ fun HistoryList(activity: List<AssetActivity>) {
             }
         }
     }
+}
+
+internal fun historyValue(value: String?, type: String?, locale: Locale, zone: ZoneId = ZoneId.systemDefault()): String? {
+    if (value == null || !type.equals("date", ignoreCase = true)) return value
+    return storedDate(value, zone)?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)) ?: value
 }
 
 /**

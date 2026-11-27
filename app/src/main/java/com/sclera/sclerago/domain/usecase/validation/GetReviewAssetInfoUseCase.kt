@@ -15,6 +15,7 @@ import com.sclera.sclerago.domain.repository.ValidationRunRepository
 import com.sclera.sclerago.domain.validation.AssetInfoRow
 import com.sclera.sclerago.domain.validation.ReviewAssetInfo
 import java.time.Instant
+import com.sclera.sclerago.domain.model.storedDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -46,14 +47,14 @@ class GetReviewAssetInfoUseCase @Inject constructor(
         )
     }
 
-    /** A stored value as the web shows it: dates and times (seconds since 1970) as such, checkboxes as Yes / No. */
+    /** A stored value as the web shows it: dates and times as such, checkboxes as Yes / No. */
     private fun readable(f: FieldCfg, v: String, zone: ZoneId): String? {
         if (v.isEmpty() || (f.key in CLASSIFICATION_KEYS && v == UNCLASSIFIED)) return null
-        val at = v.toLongOrNull()?.let { Instant.ofEpochSecond(it).atZone(zone) }
         return when {
-            f.kind == FieldKind.DATE && at != null -> at.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+            f.kind == FieldKind.DATE -> storedDate(v, zone)?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: v
             // On the phone's 12/24-hour clock.
-            f.kind == FieldKind.TIME && at != null -> at.format(DateTimeFormatter.ofPattern(if (clock.is24Hour()) "HH:mm" else "h:mm a", Locale.getDefault()))
+            f.kind == FieldKind.TIME -> runCatching { Instant.ofEpochSecond(v.toLong()).atZone(zone) }.getOrNull()
+                ?.format(DateTimeFormatter.ofPattern(if (clock.is24Hour()) "HH:mm" else "h:mm a", Locale.getDefault())) ?: v
             f.kind == FieldKind.CHECKBOX -> if (v.equals(CHECKED, ignoreCase = true)) ANSWER_YES else ANSWER_NO
             // A currency field's amount with its currency ("1200 USD"), as the web reads it.
             else -> f.amountText(v)
