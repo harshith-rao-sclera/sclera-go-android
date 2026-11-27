@@ -200,6 +200,7 @@ object Icons {
     )
     val Sparkle = Ico(s("M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"))
     val Close = Ico(s("M18 6L6 18M6 6l12 12"))
+    val Warning = Ico(s("M12 3l10 18H2z"), s("M12 10v5M12 18.2v.1"))
     val FlashOff = Ico(s("M13 3L6 13h5l-1 8 7-10h-5z"), s("M3 3l18 18"))
     val Flash = Ico(s("M13 3L6 13h5l-1 8 7-10h-5z"))
     val Video = Ico(f("M3 6h12v12H3zM15 10l6-3v10l-6-3z"))

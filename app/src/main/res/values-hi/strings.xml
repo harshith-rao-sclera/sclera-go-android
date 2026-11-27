@@ -580,4 +580,17 @@
     <string name="property_type_or_select_city">शहर लिखें या चुनें</string>
     <string name="property_choose_country_first">पहले देश चुनें</string>
     <string name="rev_back">वापस</string>
+    <string name="translate_title">इसमें अनुवाद करें</string>
+    <string name="translate_search">भाषाएँ खोजें</string>
+    <string name="translate_none">अनुवाद न करें</string>
+    <string name="translate_none_sub">पाठ को वैसे ही दिखाएँ जैसा लिखा गया था</string>
+    <string name="translate_button">अनुवाद करें</string>
+    <string name="translate_row_downloading">%1$s · नामों और टिप्पणियों के लिए डाउनलोड हो रही है…</string>
+    <string name="translate_row_ready">%1$s · तैयार, ऑफ़लाइन काम करती है</string>
+    <string name="translate_row_failed">डाउनलोड नहीं हुई। नाम और टिप्पणियाँ जैसे लिखे थे वैसे रहेंगे।</string>
+    <string name="translate_try_again">फिर कोशिश करें</string>
+    <string name="translate_no_match">इस नाम की कोई भाषा नहीं मिली।</string>
+    <string name="translate_comment_label">%1$s में अनुवादित</string>
+    <string name="translate_comment_failed">इसका अनुवाद नहीं हो सका</string>
+    <string name="translate_comment_translating">अनुवाद हो रहा है…</string>
 </resources>

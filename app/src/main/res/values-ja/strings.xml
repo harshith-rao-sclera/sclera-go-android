@@ -559,4 +559,17 @@
     <string name="property_type_or_select_city">市区町村を入力または選択</string>
     <string name="property_choose_country_first">先に国を選択してください</string>
     <string name="rev_back">戻る</string>
+    <string name="translate_title">翻訳先</string>
+    <string name="translate_search">言語を検索</string>
+    <string name="translate_none">翻訳しない</string>
+    <string name="translate_none_sub">書かれたとおりに表示</string>
+    <string name="translate_button">翻訳</string>
+    <string name="translate_row_downloading">%1$s · 名前とコメント用にダウンロード中…</string>
+    <string name="translate_row_ready">%1$s · 準備完了、オフラインで使えます</string>
+    <string name="translate_row_failed">ダウンロードされていません。名前とコメントは書かれたまま表示されます。</string>
+    <string name="translate_try_again">再試行</string>
+    <string name="translate_no_match">その名前の言語はありません。</string>
+    <string name="translate_comment_label">%1$sに翻訳</string>
+    <string name="translate_comment_failed">翻訳できませんでした</string>
+    <string name="translate_comment_translating">翻訳中…</string>
 </resources>

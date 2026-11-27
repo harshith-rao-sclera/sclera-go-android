@@ -559,4 +559,17 @@
     <string name="property_type_or_select_city">พิมพ์หรือเลือกเมือง</string>
     <string name="property_choose_country_first">เลือกประเทศก่อน</string>
     <string name="rev_back">กลับ</string>
+    <string name="translate_title">แปลเป็น</string>
+    <string name="translate_search">ค้นหาภาษา</string>
+    <string name="translate_none">ไม่แปล</string>
+    <string name="translate_none_sub">แสดงข้อความตามที่เขียน</string>
+    <string name="translate_button">แปล</string>
+    <string name="translate_row_downloading">%1$s · กำลังดาวน์โหลดสำหรับชื่อและความคิดเห็น…</string>
+    <string name="translate_row_ready">%1$s · พร้อมแล้ว ใช้ได้แบบออฟไลน์</string>
+    <string name="translate_row_failed">ยังไม่ได้ดาวน์โหลด ชื่อและความคิดเห็นจะแสดงตามที่เขียน</string>
+    <string name="translate_try_again">ลองอีกครั้ง</string>
+    <string name="translate_no_match">ไม่พบภาษาที่ตรงกับชื่อนั้น</string>
+    <string name="translate_comment_label">แปลเป็น %1$s แล้ว</string>
+    <string name="translate_comment_failed">ไม่สามารถแปลข้อความนี้ได้</string>
+    <string name="translate_comment_translating">กำลังแปล…</string>
 </resources>

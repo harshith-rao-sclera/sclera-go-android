@@ -559,4 +559,17 @@
     <string name="property_type_or_select_city">输入或选择城市</string>
     <string name="property_choose_country_first">请先选择国家</string>
     <string name="rev_back">返回</string>
+    <string name="translate_title">翻译为</string>
+    <string name="translate_search">搜索语言</string>
+    <string name="translate_none">不翻译</string>
+    <string name="translate_none_sub">按原文显示文本</string>
+    <string name="translate_button">翻译</string>
+    <string name="translate_row_downloading">%1$s · 正在为名称和评论下载…</string>
+    <string name="translate_row_ready">%1$s · 已就绪，可离线使用</string>
+    <string name="translate_row_failed">未下载。名称和评论保持原文。</string>
+    <string name="translate_try_again">重试</string>
+    <string name="translate_no_match">没有与该名称匹配的语言。</string>
+    <string name="translate_comment_label">已翻译为%1$s</string>
+    <string name="translate_comment_failed">无法翻译此内容</string>
+    <string name="translate_comment_translating">正在翻译…</string>
 </resources>
