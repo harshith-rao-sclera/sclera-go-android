@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pinch to zoom on a camera preview. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- How far the camera is zoomed in while pinching, e.g. "2.4×". -->
+    <string name="camera_zoom">%1$s×</string>
+</resources>

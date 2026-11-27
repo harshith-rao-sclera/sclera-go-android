@@ -577,7 +577,6 @@
     <string name="detail_select_jacs">בחר קוד JACS</string>
     <string name="detail_required_tag">שדה חובה</string>
     <string name="property_group_address">כתובת</string>
-    <string name="property_pill_ready">מוכן</string>
     <string name="property_pill_required">%1$d חובה</string>
     <string name="property_pill_none_yet">אין עדיין</string>
     <string name="property_label_type">סוג</string>

@@ -16,6 +16,7 @@ import com.sclera.sclerago.domain.model.MAX_CLASSIFY_PHOTOS
 import com.sclera.sclerago.domain.model.readablePhotos
 import com.sclera.sclerago.domain.repository.AssetFormRepository
 import com.sclera.sclerago.domain.repository.AssetValidationRepository
+import com.sclera.sclerago.domain.repository.LookupsRunHereRepository
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
@@ -83,13 +84,24 @@ class ObservePhotoRulesUseCase @Inject constructor(private val repo: PhotoRulesR
  * The web's AI suggestions: the asset's newest look-up, starting one (as anyone who can collect may), following it until
  * it has finished, and telling the server its suggestions were shown.
  */
-class SpecLookupUseCase @Inject constructor(private val repo: SpecLookupRepository, private val guard: PermissionGuard) {
+class SpecLookupUseCase @Inject constructor(
+    private val repo: SpecLookupRepository,
+    private val guard: PermissionGuard,
+    private val runHere: LookupsRunHereRepository,
+) {
     suspend fun latest(assetId: String): SpecLookup? = repo.latest(assetId)
 
+    /** Starts a look-up, remembered as started on this phone (the AI button's dot). */
     suspend fun start(assetId: String, typed: Map<String, String>): SpecLookup {
         guard.requireOnline(Permission.COLLECT)
-        return repo.start(assetId, typed)
+        return repo.start(assetId, typed).also { runHere.keep(assetId, it.id) }
     }
+
+    /** The look-up started on this phone for [assetId] whose suggestions haven't been applied; null when there is none. */
+    fun startedHere(assetId: String): String? = runHere.lookupFor(assetId)
+
+    /** [assetId]'s suggestions were applied, or its look-up came to nothing: no dot any more. */
+    fun forgetStartedHere(assetId: String) = runHere.forget(assetId)
 
     /** Asks again every [POLL_MS] until the look-up has finished; the server gives up on one after ten minutes. */
     suspend fun follow(assetId: String, lookup: SpecLookup): SpecLookup {
@@ -112,7 +124,7 @@ class SpecLookupUseCase @Inject constructor(private val repo: SpecLookupReposito
     /** The phone's look-up from [photos] and the form's [typed] values (POST /properties/{id}/lookup). */
     suspend fun lookUpOnPhone(assetId: String, photos: List<Media>, typed: Map<String, String>, masterFormatId: String?): SpecLookup {
         guard.requireOnline(Permission.COLLECT)
-        return repo.lookUpOnPhone(assetId, photos, typed, masterFormatId)
+        return repo.lookUpOnPhone(assetId, photos, typed, masterFormatId).also { runHere.keep(assetId, it.id) }
     }
 
     private companion object {

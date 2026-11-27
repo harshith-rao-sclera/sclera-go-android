@@ -545,7 +545,6 @@
     <string name="detail_select_jacs">JACSコードを選択</string>
     <string name="detail_required_tag">必須</string>
     <string name="property_group_address">住所</string>
-    <string name="property_pill_ready">準備完了</string>
     <string name="property_pill_required">必須 %1$d 件</string>
     <string name="property_pill_none_yet">まだありません</string>
     <string name="property_label_type">種類</string>

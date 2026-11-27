@@ -59,7 +59,7 @@ internal fun DetailModalDialog(modal: DetailModal, state: AssetDetailState, acti
             icon = Icons.ShieldCheck, iconBg = Status.VALIDATED.chipBg, iconFg = C.Purple,
             title = stringResource(R.string.sign_off_action),
             body = pluralStringResource(R.plurals.sign_off_body, 1),
-            no = stringResource(R.string.action_cancel), yes = stringResource(R.string.sign_off_action), yesBg = C.Yellow,
+            no = stringResource(R.string.action_cancel), yes = stringResource(R.string.sign_off_confirm), yesBg = C.Yellow,
             onNo = { onDone() },
             onYes = {
                 onDone()

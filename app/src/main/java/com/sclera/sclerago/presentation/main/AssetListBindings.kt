@@ -36,7 +36,6 @@ fun rememberAssetListBinding(
         onToggle = list::toggle,
         onOpen = { id -> if (s.selecting) list.toggle(id) else app.openAsset(id) },
         // A row's validation mark opens the asset on its Validation tab (the web's badge); while selecting it picks, as the row.
-        onOpenValidation = { id -> if (s.selecting) list.toggle(id) else app.openAssetValidation(id) },
         loading = s.loading,
         refreshing = s.refreshing,
         onRefresh = list::refresh,

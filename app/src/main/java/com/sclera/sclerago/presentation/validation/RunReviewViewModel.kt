@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.domain.validation.canSaveAs
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -519,8 +520,9 @@ class RunReviewViewModel @Inject constructor(
 
     fun applyTyped(issue: RunIssue) {
         val text = state.panel?.typed?.get(issue.id).orEmpty()
-        if (text.isBlank()) return
-        onIssue(issue, R.string.rev_apply_failed) { useCases.fix.applyText(p, issue.id, text) }
+        // Only a value that suits the field (the server refuses the rest): a number, one of a dropdown's options.
+        if (!canSaveAs(issue.typedKind, text, issue.fieldOptions)) return
+        onIssue(issue, R.string.rev_apply_failed) { useCases.fix.applyText(p, issue.id, text.trim()) }
     }
 
     fun dismiss(issue: RunIssue) = onIssue(issue, R.string.rev_update_failed) { useCases.fix.dismiss(p, issue.id) }

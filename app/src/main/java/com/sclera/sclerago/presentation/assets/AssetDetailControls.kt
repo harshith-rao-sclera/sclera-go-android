@@ -24,6 +24,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -58,6 +59,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -277,6 +279,10 @@ fun FormFloatingButtons(
     aiOff: Boolean = false,
     voiceOff: Boolean = false,
     blocked: UiText? = null,
+    /** AI suggestions found were closed without applying them (a dot on the AI button). */
+    aiKept: Boolean = false,
+    /** A voice fill review was closed without applying it (a dot on the mic). */
+    voiceKept: Boolean = false,
 ) {
     // Which button's offline reason shows in its bubble, for a few seconds after a tap.
     var why by remember { mutableStateOf<OnlineOnly?>(null) }
@@ -307,7 +313,7 @@ fun FormFloatingButtons(
         }
         AiFillButton(
             aiBusy, aiWhy, onAi, aiOffline, onBlocked = { why = OnlineOnly.AI_SUGGESTIONS },
-            aiOff = aiOff && !aiBusy, onAiOff = { offTip = FloatingButton.AI }, access = blocked,
+            aiOff = aiOff && !aiBusy, onAiOff = { offTip = FloatingButton.AI }, access = blocked, kept = aiKept,
         )
         MicButton(
             listening, reading, heard, onMic, offline && !listening && !reading, onType = onType,
@@ -318,6 +324,7 @@ fun FormFloatingButtons(
             },
             onBlocked = { why = OnlineOnly.VOICE_FILL },
             aiOff = voiceOff && !listening && !reading, onAiOff = { offTip = FloatingButton.MIC }, access = blocked,
+            kept = voiceKept && !listening && !reading,
         )
     }
 }
@@ -331,6 +338,15 @@ fun formFloatingButtonsClearance(): Dp = fabClearance(2, margin = DetailFabMargi
 
 /** The floating buttons, to say which one shows the AI-off reason. */
 private enum class FloatingButton { AI, MIC }
+
+/**
+ * The small green dot on a floating button's top corner: a review closed without applying it waits behind the button.
+ * Ringed in the page colour so it stands off the button.
+ */
+@Composable
+private fun BoxScope.KeptDot() {
+    Box(Modifier.align(Alignment.TopEnd).size(14.dp).clip(CircleShape).background(C.Bg).padding(2.dp).clip(CircleShape).background(C.Green))
+}
 
 /** How long a floating button's offline reason stays in its bubble. */
 private const val OFFLINE_TIP_MS = 4_000L
@@ -356,18 +372,24 @@ private fun AiFillButton(
     aiOff: Boolean,
     onAiOff: () -> Unit,
     access: UiText?,
+    kept: Boolean = false,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         val tip = if (busy) stringResource(R.string.detail_ai_busy) else notice?.asString()
+        val waiting = stringResource(R.string.detail_review_waiting)
         if (tip != null) Bubble(tip, Int.MAX_VALUE)
         val description = stringResource(R.string.detail_ai_fill)
         AccessGate(access) {
             OfflineGate(offline, onBlocked) {
                 AiOffGate(aiOff, onAiOff) {
+                  Box {
                     Box(
                         Modifier.size(54.dp).testTag(FloatingTags.AI).fabShadow().pressClickable(shape = CircleShape, onClick = onClick).background(C.Surface)
                             .border(1.dp, C.Border2, CircleShape)
-                            .semantics { contentDescription = description },
+                            .semantics {
+                                contentDescription = description
+                                if (kept) stateDescription = waiting
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         // Working (a look-up, or filling the form from new photos): a cyan ring spins round the border
@@ -381,6 +403,8 @@ private fun AiFillButton(
                             LineIcon(Icons.Sparkles, 27.dp, C.Cyan, 2.2f)
                         }
                     }
+                    if (kept && !busy) KeptDot()
+                  }
                 }
             }
         }
@@ -405,6 +429,7 @@ private fun MicButton(
     aiOff: Boolean,
     onAiOff: () -> Unit,
     access: UiText?,
+    kept: Boolean = false,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         when {
@@ -414,6 +439,7 @@ private fun MicButton(
         }
         val description = stringResource(if (listening) R.string.voice_stop else R.string.detail_voice_fill)
         val typeLabel = stringResource(R.string.describe_type_instead)
+        val waiting = stringResource(R.string.detail_review_waiting)
         AccessGate(access) {
             OfflineGate(offline, onBlocked) {
                 AiOffGate(aiOff, onAiOff) {
@@ -431,7 +457,10 @@ private fun MicButton(
                             // Recording: a stop square to tap when done. Reading: dimmed and not tappable until the sheet shows.
                             Modifier.size(54.dp).testTag(FloatingTags.MIC).alpha(if (reading) 0.5f else 1f).fabShadow().clip(CircleShape)
                                 .background(if (listening) C.Red else C.Yellow)
-                                .semantics { contentDescription = description }
+                                .semantics {
+                                    contentDescription = description
+                                    if (kept) stateDescription = waiting
+                                }
                                 // A long press types the description instead (noisy sites, or when speaking won't do).
                                 .combinedClickable(
                                     enabled = !reading, onLongClickLabel = typeLabel,
@@ -441,6 +470,7 @@ private fun MicButton(
                         ) {
                             if (listening) LineIcon(Icons.Stop, 24.dp, C.White, 2.2f) else LineIcon(Icons.Mic, 24.dp, C.OnYellow, 2.2f)
                         }
+                        if (kept) KeptDot()
                     }
                 }
             }

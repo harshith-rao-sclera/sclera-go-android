@@ -566,7 +566,6 @@
     <string name="detail_select_jacs">JACS-Code auswählen</string>
     <string name="detail_required_tag">ERFORDERLICH</string>
     <string name="property_group_address">Adresse</string>
-    <string name="property_pill_ready">Bereit</string>
     <string name="property_pill_required">%1$d erforderlich</string>
     <string name="property_pill_none_yet">Noch keine</string>
     <string name="property_label_type">Typ</string>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A validation fix of one's own that follows its field's type (the run review). English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- A dropdown field's fix, when the issue has no suggestion. -->
+    <string name="rev_choose_option">Choose an option</string>
+    <!-- A dropdown field's fix, below the suggested ones. -->
+    <string name="rev_or_choose_option">Or choose an option</string>
+    <!-- A number field's fix, when the issue has no suggestion. -->
+    <string name="rev_type_number">Type a number</string>
+    <!-- A number field's fix, below the suggested ones. -->
+    <string name="rev_or_type_number">Or type a number</string>
+    <!-- Under a number field's fix when a letter was typed (it isn't taken). -->
+    <string name="rev_numbers_only">Numbers only</string>
+</resources>

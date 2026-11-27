@@ -38,12 +38,12 @@ import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.theme.Txt
 
-/** A labelled box that opens a list to pick from. */
+/** A box that opens a list to pick from, with its [label] above it (none when null). */
 @Composable
-internal fun PickField(label: String, value: String, placeholder: String, options: List<String>, modifier: Modifier = Modifier, onPick: (String) -> Unit) {
+internal fun PickField(label: String?, value: String, placeholder: String, options: List<String>, modifier: Modifier = Modifier, onPick: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        FieldLabel(label)
+        label?.let { FieldLabel(it) }
         Box {
             Row(
                 Modifier.fillMaxWidth().height(44.dp).pressClickable(shape = r(12), pressed = PRESSED_CARD) { open = true }.background(C.Bg).border(1.dp, C.Border2, r(12))

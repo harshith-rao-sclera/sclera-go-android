@@ -40,11 +40,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -64,7 +62,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -92,7 +89,6 @@ import com.sclera.sclerago.presentation.icons.assetIco
 import com.sclera.sclerago.presentation.model.color
 import com.sclera.sclerago.presentation.model.icon
 import com.sclera.sclerago.presentation.model.labelRes
-import com.sclera.sclerago.presentation.model.problemsRes
 import com.sclera.sclerago.presentation.theme.C
 import com.sclera.sclerago.presentation.translation.rememberTranslated
 import com.sclera.sclerago.presentation.theme.Txt
@@ -109,9 +105,6 @@ object AssetListTags {
     fun chip(status: Status?) = "asset-chip-${status?.name ?: "ALL"}"
     fun validation(mark: ValidationMark) = "asset-chip-validation-${mark.name}"
     fun onboarded(source: Source) = "asset-chip-onboarded-${source.name}"
-
-    /** A row's validation mark, when it opens the asset's Validation tab. */
-    fun validationMark(id: String) = "asset-row-validation-$id"
 }
 
 /**
@@ -135,7 +128,6 @@ fun LazyListScope.assetList(list: AssetListBinding, header: (@Composable () -> U
         AssetRow(
             a, a.id in list.picked, list.picked.isNotEmpty(), { list.onToggle(a.id) }, { list.onOpen(a.id) },
             Modifier.animateItem(fadeInSpec = ItemFade, placementSpec = ItemMove, fadeOutSpec = ItemFade).readableWidth().testTag(AssetListTags.row(a.id)),
-            onOpenValidation = list.onOpenValidation?.let { open -> { open(a.id) } },
         )
     }
     when {
@@ -313,11 +305,10 @@ private val IconSwap: AnimatedContentTransitionScope<*>.() -> ContentTransform =
 private val LocalCountsLoading = staticCompositionLocalOf { false }
 
 /**
- * One asset: its type icon, name, manufacturer and model, whether it is a copy (Cloned) and whether its validation failed
- * or needs a look, how it was onboarded, and its status. One in Managed Assets ([Asset.managed]) is read-only: it can't be
- * ticked (its icon and a long press open it, as a tap does), and it shows "In Managed Assets" in place of its status and
- * validation mark. [onOpenValidation]: pressing the validation mark opens the asset on its Validation tab (the web's
- * badge); null leaves the mark part of the row.
+ * One asset: its type icon, name, manufacturer and model, whether it is a copy (Cloned), how it was onboarded, and its
+ * status. How its validation stands is not shown here: the Failed validation and Needs a look chips at the top narrow the
+ * list to those. One in Managed Assets ([Asset.managed]) is read-only: it can't be ticked (its icon and a long press open
+ * it, as a tap does), and it shows "In Managed Assets" in place of its status.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -328,7 +319,6 @@ fun AssetRow(
     onToggle: () -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
-    onOpenValidation: (() -> Unit)? = null,
 ) {
     // Long press anywhere on the row selects it (and so starts multi-select); one in Managed Assets is never selected.
     val haptics = LocalHapticFeedback.current
@@ -341,7 +331,6 @@ fun AssetRow(
     val recollectLabel = stringResource(R.string.dash_recollect_badge)
     val changeRequestedLabel = stringResource(R.string.dash_change_requested_badge)
     val clonedLabel = stringResource(R.string.asset_cloned_badge)
-    val openValidationLabel = stringResource(R.string.asset_open_validation)
     val rowBg by animateColorAsState(if (picked) C.PickedRow else C.Surface, label = "row")
     val icBg by animateColorAsState(if (picked) C.Yellow else C.Raised, label = "icbg")
     val icBd by animateColorAsState(if (picked) C.Yellow else if (selMode) C.RadioOff else C.Raised, label = "icbd")
@@ -388,16 +377,6 @@ fun AssetRow(
                 }
                 // The web card's "Cloned" badge: a copy made with Clone.
                 if (a.clonedFrom != null) LineIcon(Icons.Clone, 14.dp, C.Soft, 2.1f, Modifier.semantics { contentDescription = clonedLabel })
-                // The web card's validation icon, when a step failed or needs a look (not for one in Managed Assets). A plain
-                // icon like the others beside it; pressed, it opens the asset on its Validation tab.
-                a.validationMark?.takeIf { !a.managed }?.let { mark ->
-                    val described = pluralStringResource(mark.problemsRes, a.validationProblems, a.validationProblems)
-                    val open = onOpenValidation?.let { go ->
-                        Modifier.clickable(null, null, onClickLabel = openValidationLabel, role = Role.Button, onClick = go)
-                            .testTag(AssetListTags.validationMark(a.id))
-                    } ?: Modifier
-                    ValidationMarkIcon(mark, a.validationProblems, open.semantics { contentDescription = described })
-                }
                 LineIcon(a.src.icon, 15.dp, a.src.color, 2f)
                 Box(Modifier.width(17.dp), contentAlignment = Alignment.Center) {
                     // In Managed Assets: that is its status here (the web card's "In Managed Assets").
@@ -408,19 +387,6 @@ fun AssetRow(
                 }
             }
         }
-    }
-}
-
-/** A row's validation mark: its icon in its colour, with how many steps need attention in a small badge at its corner. */
-@Composable
-private fun ValidationMarkIcon(mark: ValidationMark, problems: Int, modifier: Modifier = Modifier) {
-    Box(modifier.padding(top = 4.dp, end = 6.dp)) {
-        LineIcon(mark.icon, 15.dp, mark.color, 2f)
-        Box(
-            Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-5).dp).heightIn(min = 13.dp).widthIn(min = 13.dp)
-                .background(mark.color, Capsule).padding(horizontal = 3.dp),
-            contentAlignment = Alignment.Center,
-        ) { Txt(problems.toString(), 9, 700, C.Bg) }
     }
 }
 
@@ -467,9 +433,4 @@ class AssetListBinding(
     val onManaged: () -> Unit = {},
     /** The Bluetooth / Wi-Fi chip (Assets tab): lists only the assets onboarded that way (it stays on when tapped again). */
     val onOnboarded: (Source) -> Unit = {},
-    /**
-     * A row's validation mark (failed or needs a look), pressed: opens that asset on its Validation tab, as the web's
-     * badge. Null leaves the mark part of the row (a tap opens the asset as usual).
-     */
-    val onOpenValidation: ((String) -> Unit)? = null,
 )

@@ -580,7 +580,6 @@
     <string name="detail_select_jacs">Wybierz kod JACS</string>
     <string name="detail_required_tag">WYMAGANE</string>
     <string name="property_group_address">Adres</string>
-    <string name="property_pill_ready">Gotowe</string>
     <string name="property_pill_required">Wymagane: %1$d</string>
     <string name="property_pill_none_yet">Brak</string>
     <string name="property_label_type">Typ</string>

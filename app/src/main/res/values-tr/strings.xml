@@ -566,7 +566,6 @@
     <string name="detail_select_jacs">JACS kodunu seçin</string>
     <string name="detail_required_tag">ZORUNLU</string>
     <string name="property_group_address">Adres</string>
-    <string name="property_pill_ready">Hazır</string>
     <string name="property_pill_required">%1$d zorunlu</string>
     <string name="property_pill_none_yet">Henüz yok</string>
     <string name="property_label_type">Tür</string>

@@ -545,7 +545,6 @@
     <string name="detail_select_jacs">Chọn mã JACS</string>
     <string name="detail_required_tag">BẮT BUỘC</string>
     <string name="property_group_address">Địa chỉ</string>
-    <string name="property_pill_ready">Sẵn sàng</string>
     <string name="property_pill_required">Cần %1$d</string>
     <string name="property_pill_none_yet">Chưa có</string>
     <string name="property_label_type">Loại</string>

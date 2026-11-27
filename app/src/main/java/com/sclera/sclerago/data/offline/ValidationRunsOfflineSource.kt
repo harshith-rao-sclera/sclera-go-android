@@ -1,5 +1,6 @@
 package com.sclera.sclerago.data.offline
 
+import com.sclera.sclerago.data.mapper.toIssueField
 import com.sclera.sclerago.data.mapper.toRunAssetResult
 import com.sclera.sclerago.data.mapper.toRunIssue
 import com.sclera.sclerago.data.mapper.toValRun
@@ -44,7 +45,7 @@ private const val VR_OPEN_COUNTS = """
     SELECT asset_id, COUNT(*) AS n FROM validation_issues WHERE job_id = ? AND status = 'open' AND %LIVE% GROUP BY asset_id"""
 
 
-private const val VR_FIELD_NAMES_TYPES = "SELECT id, name, type FROM asset_fields WHERE %LIVE%"
+private const val VR_FIELD_NAMES_TYPES = "SELECT id, name, type, options FROM asset_fields WHERE %LIVE%"
 
 /**
  * The Validation page's data as sync last brought it to the phone (saved validations, runs, their results and issues),
@@ -99,7 +100,7 @@ class ValidationRunsOfflineSource(private val db: AdcDatabase, private val io: C
     suspend fun issues(jobId: String, assetId: String?, status: IssueStatus?): List<RunIssue> = withContext(io) {
         db.whenTable("validation_issues", emptyList()) {
             val fields = db.whenTable("asset_fields", emptyMap()) {
-                db.query(VR_FIELD_NAMES_TYPES.live("asset_fields")).associate { it.string("id").orEmpty() to (it.string("name").orEmpty() to it.string("type").orEmpty()) }
+                db.query(VR_FIELD_NAMES_TYPES.live("asset_fields")).associate { it.string("id").orEmpty() to it.toIssueField() }
             }
             val sql = VR_ISSUES.live("validation_issues").replace("%ASSET%", if (assetId != null) " AND asset_id = ?" else "")
             db.query(sql, listOfNotNull(jobId, assetId)).map { it.toRunIssue(fields) }.filter { status == null || it.status == status }

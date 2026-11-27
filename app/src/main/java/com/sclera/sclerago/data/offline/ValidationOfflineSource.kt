@@ -1,5 +1,7 @@
 package com.sclera.sclerago.data.offline
 
+import com.sclera.sclerago.data.mapper.toIssueField
+import com.sclera.sclerago.data.mapper.IssueField
 import com.sclera.sclerago.data.mapper.DbJson
 import com.sclera.sclerago.data.mapper.DbRow
 import com.sclera.sclerago.data.mapper.parseDbTime
@@ -35,7 +37,7 @@ private const val RUNS_OF_ASSETS = """
 
 private const val ASSET_ISSUES = "SELECT * FROM validation_issues WHERE asset_id = ? AND %LIVE% ORDER BY id"
 
-private const val FIELD_NAMES_TYPES = "SELECT id, name, type FROM asset_fields WHERE %LIVE%"
+private const val FIELD_NAMES_TYPES = "SELECT id, name, type, options FROM asset_fields WHERE %LIVE%"
 
 /** An asset's validation results and issues as sync brought them (its Validation tab and its list badge). Reads only. */
 class ValidationOfflineSource(private val db: AdcDatabase, private val io: CoroutineDispatcher) {
@@ -95,10 +97,9 @@ class ValidationOfflineSource(private val db: AdcDatabase, private val io: Corou
         }
     }
 
-    /** Every field's name and type by id: an issue names its field as the server's fieldName does. */
-    private fun fieldNamesTypes(): Map<String, Pair<String, String>> = db.whenTable("asset_fields", emptyMap()) {
-        db.query(FIELD_NAMES_TYPES.replace("%LIVE%", db.notRemoved("asset_fields")))
-            .associate { it.string("id").orEmpty() to (it.string("name").orEmpty() to it.string("type").orEmpty()) }
+    /** Every field's name, type and options by id: an issue names its field as the server's fieldName does. */
+    private fun fieldNamesTypes(): Map<String, IssueField> = db.whenTable("asset_fields", emptyMap()) {
+        db.query(FIELD_NAMES_TYPES.replace("%LIVE%", db.notRemoved("asset_fields"))).associate { it.string("id").orEmpty() to it.toIssueField() }
     }
 
     /** [assetId]'s result in the newest job that checked it. Blocking. */

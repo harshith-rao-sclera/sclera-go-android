@@ -288,10 +288,21 @@ class AssetListViewModel @Inject constructor(
 
     fun setScope(location: LocationFilter) = scope.update { it.copy(location = location) }
 
-    /** The lists now show [propertyId]: a filter chosen on another property doesn't carry over. */
+    /**
+     * The lists now show [propertyId]: nothing chosen on another property carries over. The filter, the status chips
+     * (status, Change requests, validation, Managed, Bluetooth / Wi-Fi) go back to All, and the search and a selection
+     * of the other property's assets are dropped.
+     */
     fun bindProperty(propertyId: String?) {
         if (ui.value.propertyId == propertyId) return
-        ui.update { it.copy(propertyId = propertyId, filter = AssetFilter(), draft = null, names = emptyMap(), everyone = emptySet(), photos = emptyMap()) }
+        ui.update {
+            it.copy(
+                propertyId = propertyId, filter = AssetFilter(), draft = null, names = emptyMap(), everyone = emptySet(), photos = emptyMap(),
+                statusFilter = emptyMap(), changeRequests = emptySet(), validation = emptyMap(), managed = emptySet(), onboarded = emptyMap(),
+                picked = emptySet(), query = "", searchOpen = false,
+                changeMenu = false, changeAction = null, changeNote = "", changeNoteStart = "", confirmDelete = false,
+            )
+        }
         // Its assignees (names and emails for "Assigned to"), read from the device and, online, from the server.
         propertyId?.takeIf { it.isNotBlank() }?.let { p -> viewModelScope.launch { filters.names.open(p) } }
     }

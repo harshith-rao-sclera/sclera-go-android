@@ -566,7 +566,6 @@
     <string name="detail_select_jacs">JACS-code selecteren</string>
     <string name="detail_required_tag">VERPLICHT</string>
     <string name="property_group_address">Adres</string>
-    <string name="property_pill_ready">Klaar</string>
     <string name="property_pill_required">%1$d vereist</string>
     <string name="property_pill_none_yet">Nog geen</string>
     <string name="property_label_type">Type</string>

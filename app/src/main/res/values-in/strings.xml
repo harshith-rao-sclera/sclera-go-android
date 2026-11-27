@@ -545,7 +545,6 @@
     <string name="detail_select_jacs">Pilih kode JACS</string>
     <string name="detail_required_tag">WAJIB</string>
     <string name="property_group_address">Alamat</string>
-    <string name="property_pill_ready">Siap</string>
     <string name="property_pill_required">%1$d wajib</string>
     <string name="property_pill_none_yet">Belum ada</string>
     <string name="property_label_type">Jenis</string>

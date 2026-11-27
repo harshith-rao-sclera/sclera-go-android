@@ -570,7 +570,6 @@
     <string name="detail_select_jacs">Seleccionar código JACS</string>
     <string name="detail_required_tag">OBLIGATORIO</string>
     <string name="property_group_address">Dirección</string>
-    <string name="property_pill_ready">Listo</string>
     <string name="property_pill_required">%1$d obligatorios</string>
     <string name="property_pill_none_yet">Ninguna aún</string>
     <string name="property_label_type">Tipo</string>

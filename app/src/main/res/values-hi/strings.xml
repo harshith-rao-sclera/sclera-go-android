@@ -566,7 +566,6 @@
     <string name="detail_select_jacs">JACS कोड चुनें</string>
     <string name="detail_required_tag">आवश्यक</string>
     <string name="property_group_address">पता</string>
-    <string name="property_pill_ready">तैयार</string>
     <string name="property_pill_required">%1$d आवश्यक</string>
     <string name="property_pill_none_yet">अभी कोई नहीं</string>
     <string name="property_label_type">प्रकार</string>

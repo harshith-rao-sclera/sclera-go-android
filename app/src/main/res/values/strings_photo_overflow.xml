@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A new asset's camera shots: past their kind's limit they go to Other photos (silently); past every limit together they're left out. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Photos left out as the asset already had the most (2) photos all kinds allow together. -->
+    <plurals name="photos_over_cap">
+        <item quantity="one">%1$d photo wasn\'t added: one asset takes up to %2$d photos.</item>
+        <item quantity="other">%1$d photos weren\'t added: one asset takes up to %2$d photos.</item>
+    </plurals>
+    <!-- The shutter tapped when the new asset already has the most photos (1) all kinds allow together. -->
+    <string name="camera_full_untick">One asset takes up to %1$d photos. Untick one to take another.</string>
+</resources>

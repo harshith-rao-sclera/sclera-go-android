@@ -28,5 +28,4 @@
     <!-- An asset row's badge for a copy made with Clone (the web card's "Cloned"). -->
     <string name="asset_cloned_badge">Cloned</string>
     <!-- An asset row's validation badge, pressed: opens the asset on its Validation tab (the web's "Open validation"). -->
-    <string name="asset_open_validation">Open validation</string>
 </resources>

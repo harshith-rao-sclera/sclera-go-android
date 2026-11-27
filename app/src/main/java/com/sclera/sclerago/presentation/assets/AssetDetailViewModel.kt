@@ -1,5 +1,6 @@
 package com.sclera.sclerago.presentation.assets
 
+import com.sclera.sclerago.domain.model.fitPhotosToOther
 import com.sclera.sclerago.domain.model.jacsCodeForType
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -181,6 +182,13 @@ data class AssetDetailState(
     val aiBusy: Boolean = false,
     /** The voice fill sheet while it is open: what was heard and the values found in it (null: closed). */
     val voice: VoiceFillState? = null,
+    /** A voice fill review was closed without applying it: it is kept, and the mic opens it again ([reopenVoice]). */
+    val voiceKept: Boolean = false,
+    /**
+     * AI suggestions from a look-up run here (Look up pressed, or a new search the AI button started) were closed
+     * without applying them: the AI button shows them again. Results the server already had don't count.
+     */
+    val aiKept: Boolean = false,
     /** What was said is being read by the server's AI (the mic shows it is working). */
     val voiceReading: Boolean = false,
     /** The describe sheet (typing instead of speaking) while it is open: its text (null: closed). */
@@ -362,7 +370,11 @@ class AssetDetailViewModel @Inject constructor(
         val place: LocValue? = null,
         val ai: AiDialogState? = null,
         val aiOpen: Boolean = false,
+        /** A look-up was started here (not only the server's last one shown): its results earn the AI button's dot. */
+        val aiRanHere: Boolean = false,
+        /** The last voice fill's review, kept until applied or replaced (shown while [voiceOpen]). */
         val voice: VoiceFillState? = null,
+        val voiceOpen: Boolean = false,
         val voiceReading: Boolean = false,
         /** The describe sheet's text while it is open (null: closed). */
         val typing: String? = null,
@@ -512,7 +524,8 @@ class AssetDetailViewModel @Inject constructor(
                 saved = saved, edits = f.edits, fields = fields, details = details,
                 media = asset.media.map { m -> if (m.id in f.movedKinds) m.copy(category = f.movedKinds[m.id]) else m } + f.newPicks,
                 newPicks = f.newPicks,
-                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase.let { it == AiPhase.SEARCHING || it == AiPhase.LOADING }, voice = f.voice, voiceReading = f.voiceReading, typing = f.typing, sortingPhotos = f.sorting > 0,
+                ai = f.ai?.takeIf { f.aiOpen }, aiBusy = f.ai?.phase.let { it == AiPhase.SEARCHING || it == AiPhase.LOADING }, voice = f.voice?.takeIf { f.voiceOpen }, voiceKept = f.voice != null && !f.voiceOpen,
+                aiKept = f.aiRanHere && !f.aiOpen && f.ai?.phase == AiPhase.RESULTS, voiceReading = f.voiceReading, typing = f.typing, sortingPhotos = f.sorting > 0,
                 activity = if (t.isNew) emptyList() else db.activity,
                 handling = if (t.isNew) null else handling(asset, db.activity),
                 commentDraft = f.commentDraft, commentError = f.commentProblem?.problemText(), commentPosting = f.commentPosting,
@@ -583,6 +596,7 @@ class AssetDetailViewModel @Inject constructor(
         photoFill.cancel()
         form.value = Form()
         target.value = Target(asset, isNew, prefill)
+        if (!isNew) restoreLookupRunHere(asset.id)
         // Someone may have flipped the property's AI switch: read again when the last read is old (the web's askAiOn).
         viewModelScope.launch { aiSwitch.refresh() }
         if (isNew) startWithCaptures(asset)
@@ -629,11 +643,11 @@ class AssetDetailViewModel @Inject constructor(
                 }
                 target.update { t -> if (t != null && t.isNew && t.asset.id == asset.id) t.copy(asset = t.asset.copy(media = sorted)) else t }
             }
-            // Several shots may sort into one kind: those past its most are left out (as the server refuses them), and
-            // taken off the shots the asset is made from.
+            // Several shots may sort into one kind: those past its most go to Other photos (the server takes any number
+            // there); only those past every kind's limit together are left out and taken off the shots.
             val shots = target.value?.takeIf { it.isNew && it.asset.id == asset.id }?.asset?.media.orEmpty()
-            val fitted = fitPhotoRules(state.value.photoRules, emptyList(), shots)
-            if (fitted.refused.isNotEmpty()) {
+            val fitted = fitPhotosToOther(state.value.photoRules, shots)
+            if (fitted.refused.isNotEmpty() || fitted.movedToOther.isNotEmpty()) {
                 target.update { t -> if (t != null && t.isNew && t.asset.id == asset.id) t.copy(asset = t.asset.copy(media = fitted.kept)) else t }
                 photoLimitNotices(fitted).forEach { message.emit(it) }
                 fitted.refused.forEach { dropped.emit(it) }
@@ -1231,6 +1245,7 @@ class AssetDetailViewModel @Inject constructor(
             return
         }
         setAi { it.copy(phase = AiPhase.SEARCHING, error = null, startedAt = System.currentTimeMillis(), fromPhoto = photos.isNotEmpty()) }
+        form.update { it.copy(aiRanHere = true) }
         val found = try {
             formData.lookups.lookUpOnPhone(asset.id, photos, typed, s.formats.formatFor(s.values)?.id)
         } catch (e: OnlineException) {
@@ -1248,6 +1263,51 @@ class AssetDetailViewModel @Inject constructor(
      * it is done, and opening the sheet again shows where it got to (or its results). Results stay to come back to.
      */
     fun closeAi() = form.update { it.copy(aiOpen = false) }
+
+    /**
+     * Opened again after a look-up was started here and its suggestions weren't applied: it is read back from the server
+     * (followed while it still runs), so the AI button shows its dot again and opens on the suggestions. Only that same
+     * look-up counts; one started elsewhere since, or one that found nothing, is left for the AI button as usual.
+     */
+    private fun restoreLookupRunHere(assetId: String) {
+        val startedHere = formData.lookups.startedHere(assetId) ?: return
+        form.update { it.copy(aiRanHere = true, ai = AiDialogState(AiPhase.LOADING)) }
+        aiJob = viewModelScope.launch {
+            val latest = try {
+                formData.lookups.latest(assetId)
+            } catch (_: OnlineException) {
+                // Offline or not reachable: the AI button reads it again when pressed (the mark stays for then).
+                startOverAi()
+                return@launch
+            }
+            if (target.value?.asset?.id != assetId) return@launch
+            when {
+                latest == null || latest.id != startedHere -> forgetLookupRunHere(assetId)
+                latest.status.waiting -> {
+                    setAi { it.copy(make = latest.typed["make"].orEmpty(), model = latest.typed["model"].orEmpty()) }
+                    follow(assetId, latest)
+                }
+                latest.status == LookupStatus.COMPLETED && hasNews(latest) -> {
+                    setAi { it.copy(make = latest.typed["make"].orEmpty(), model = latest.typed["model"].orEmpty()) }
+                    show(latest)
+                }
+                else -> forgetLookupRunHere(assetId)
+            }
+        }
+    }
+
+    /** Nothing to come back to: the AI button starts from the server again when pressed. */
+    private fun forgetLookupRunHere(assetId: String) {
+        formData.lookups.forgetStartedHere(assetId)
+        startOverAi()
+    }
+
+    /** No look-up held here any more; one pressed open meanwhile reads the server as the AI button does. */
+    private fun startOverAi() {
+        val wasOpen = form.value.aiOpen
+        form.update { it.copy(aiRanHere = false, ai = null, aiOpen = false) }
+        if (wasOpen) openAi()
+    }
 
     /** The results on show were seen, which tidies the asset's "ready" mark at the server. */
     private fun markSeen() {
@@ -1506,8 +1566,10 @@ class AssetDetailViewModel @Inject constructor(
         }.toMap()
         // What the AI found stays (the AI button shows it again) until the asset is closed.
         form.update {
-            it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys + pages, aiOpen = false)
+            // Applied: nothing waits behind the AI button any more (no dot).
+            it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys + pages, aiOpen = false, aiRanHere = false)
         }
+        s.asset?.id?.let(formData.lookups::forgetStartedHere)
         // What was applied, as the web's toast: "Filled the type, the JACS code and 3 fields · review and save".
         val fields = (typedIdentity(d) + picked).keys.count { it !in typeValues && !(jacs != null && it == "jacs") }
         message.tryEmit(UiText.Res(R.string.ai_applied_what, listOf(filledText(type != null, jacs != null, fields))))
@@ -1535,7 +1597,7 @@ class AssetDetailViewModel @Inject constructor(
                 // The AI says how sure it is of each value; the phone's own reading has only the recognizer's word for it.
                 val confidence = if (reading.byAi) r.confidence else heardSure?.let { h -> r.values.keys.associateWith { h } }.orEmpty()
                 val picks = r.values.mapValues { (key, v) -> VoicePick(on = (confidence[key] ?: 1.0) >= VOICE_SURE_ENOUGH, value = v) }
-                form.update { it.copy(voice = VoiceFillState(said.trim(), picks, confidence, r.unmatched, reading.byAi)) }
+                form.update { it.copy(voice = VoiceFillState(said.trim(), picks, confidence, r.unmatched, reading.byAi), voiceOpen = true) }
             } catch (e: OnlineException) {
                 message.emit(e.error.aiText())
             } finally {
@@ -1555,7 +1617,7 @@ class AssetDetailViewModel @Inject constructor(
             message.tryEmit(AI_OFF)
             return
         }
-        form.update { it.copy(typing = prefill.take(DESCRIBE_MAX), voice = null) }
+        form.update { it.copy(typing = prefill.take(DESCRIBE_MAX), voiceOpen = false) }
     }
 
     fun setTyping(text: String) = form.update { f -> f.typing?.let { f.copy(typing = text.take(DESCRIBE_MAX)) } ?: f }
@@ -1576,14 +1638,21 @@ class AssetDetailViewModel @Inject constructor(
         f.copy(voice = v.copy(picks = v.picks + (key to pick.copy(on = !pick.on))))
     }
 
-    fun closeVoice() = form.update { it.copy(voice = null) }
+    /** Closes the review without applying it; it is kept, and the mic shows it again ([reopenVoice]). */
+    fun closeVoice() = form.update { it.copy(voiceOpen = false) }
+
+    /** The mic with a review kept: that review again, ticks as they were left, instead of listening anew. */
+    fun reopenVoice() = form.update { f -> if (f.voice != null) f.copy(voiceOpen = true) else f }
+
+    /** Speak again from the review: the kept one goes, as what is said next replaces it. */
+    fun discardVoice() = form.update { it.copy(voice = null, voiceOpen = false) }
 
     /** Puts the ticked values heard into the form; nothing is saved until Save. */
     fun applyVoice() {
         val v = form.value.voice ?: return
         val update = v.picks.filterValues { it.on }.mapValues { it.value.value }
         if (update.isEmpty()) return
-        form.update { it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys, voice = null) }
+        form.update { it.copy(edits = it.edits + update, aiSources = it.aiSources - update.keys, voice = null, voiceOpen = false) }
         message.tryEmit(UiText.Plural(R.plurals.ai_applied, update.size))
     }
 
@@ -1603,6 +1672,7 @@ class AssetDetailViewModel @Inject constructor(
         // Not on the server: the phone's look-up, with the manufacturer and model typed in the dialog.
         if (state.value.isNew) return lookUpOnPhone()
         setAi { it.copy(phase = AiPhase.SEARCHING, error = null, startedAt = System.currentTimeMillis(), fromPhoto = false) }
+        form.update { it.copy(aiRanHere = true) }
         try {
             follow(asset.id, formData.lookups.start(asset.id, typedIdentity(d)))
         } catch (e: OnlineException) {

@@ -545,7 +545,6 @@
     <string name="detail_select_jacs">選擇 JACS 代碼</string>
     <string name="detail_required_tag">必填</string>
     <string name="property_group_address">地址</string>
-    <string name="property_pill_ready">就緒</string>
     <string name="property_pill_required">必填 %1$d 項</string>
     <string name="property_pill_none_yet">尚無</string>
     <string name="property_label_type">類型</string>

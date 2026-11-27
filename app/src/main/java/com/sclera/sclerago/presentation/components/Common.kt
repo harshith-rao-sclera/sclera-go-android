@@ -277,6 +277,8 @@ fun PlainField(
     keyboard: androidx.compose.ui.text.input.KeyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
     /** When set, the keyboard shows a search key that calls it (e.g. the geofence address search). */
     onSubmit: (() -> Unit)? = null,
+    /** When set, an edit whose text it refuses is undone as it's typed (e.g. letters in a number). */
+    accept: ((String) -> Boolean)? = null,
 ) {
     // The state-based text field: a one-line value scrolls as the cursor or its handle is dragged towards a hidden end,
     // so the cursor can be put anywhere in a long value (the value-based field didn't scroll while the handle moved).
@@ -331,6 +333,9 @@ fun PlainField(
             imeAction = if (onSubmit != null) androidx.compose.ui.text.input.ImeAction.Search else androidx.compose.ui.text.input.ImeAction.Default,
         ),
         onKeyboardAction = onSubmit?.let { submit -> KeyboardActionHandler { submit() } },
+        inputTransformation = accept?.let { ok ->
+            androidx.compose.foundation.text.input.InputTransformation { if (!ok(asCharSequence().toString())) revertAllChanges() }
+        },
         readOnly = readOnly || LocalReadOnly.current,
         lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(minHeightInLines = minLines),
         cursorBrush = SolidColor(C.Yellow),

@@ -580,7 +580,6 @@
     <string name="detail_select_jacs">Виберіть код JACS</string>
     <string name="detail_required_tag">ОБОВ\'ЯЗКОВО</string>
     <string name="property_group_address">Адреса</string>
-    <string name="property_pill_ready">Готово</string>
     <string name="property_pill_required">Обов\'язкових: %1$d</string>
     <string name="property_pill_none_yet">Поки немає</string>
     <string name="property_label_type">Тип</string>

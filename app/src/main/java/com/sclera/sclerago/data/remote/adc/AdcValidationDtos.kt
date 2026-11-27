@@ -138,6 +138,8 @@ data class IssueDto(
     val resolvedValue: JsonElement? = null,
     /** False for missing data (the Complete step): filled in, never dismissed. */
     val canDismiss: Boolean = true,
+    /** A dropdown field's options (labels) to pick a fix from; empty for other fields. */
+    val fieldOptions: List<String> = emptyList(),
 )
 
 @Serializable

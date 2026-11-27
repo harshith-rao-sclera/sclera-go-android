@@ -98,9 +98,6 @@ fun AssetDetailScreen(
     modifier: Modifier = Modifier,
     mic: MicState = MicState(),
     tags: TagUiState = TagUiState(),
-    /** A tab to open on (the list's validation badge opens Validation); [onTabOpened] once it is chosen. */
-    openTab: DetailTabKind? = null,
-    onTabOpened: () -> Unit = {},
 ) {
     // Still being read from the property's data: the page's shape in placeholders (back already works).
     val asset = state.asset
@@ -153,14 +150,6 @@ fun AssetDetailScreen(
     LaunchedEffect(pager) {
         snapshotFlow { pager.isScrollInProgress }.collect { scrolling ->
             if (!scrolling) kinds.getOrNull(pager.currentPage)?.let { if (it != chosen) chosen = it }
-        }
-    }
-    // Opened on a given tab (the list's validation badge: Validation). After the pager's own effects, so its first reading
-    // of the page it rests on doesn't put the tab back; the pager then slides there.
-    LaunchedEffect(asset.id, openTab) {
-        if (openTab != null) {
-            chosen = openTab
-            onTabOpened()
         }
     }
 
@@ -345,6 +334,8 @@ fun AssetDetailScreen(
                     modifier = Modifier.align(Alignment.BottomEnd), reading = state.voiceReading, offline = !state.online,
                     // The property's AI switch off: both stay, dimmed (AI suggestions still opens a look-up's results).
                     aiOff = !state.aiUsable, voiceOff = !state.aiOn, blocked = b.change,
+                    // A review closed without applying it waits behind its button: a small dot says so.
+                    aiKept = state.aiKept, voiceKept = state.voiceKept,
                 )
             }
         }

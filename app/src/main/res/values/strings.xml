@@ -772,7 +772,6 @@
     <string name="detail_select_jacs">Select JACS code</string>
     <string name="detail_required_tag">REQUIRED</string>
     <string name="property_group_address">Address</string>
-    <string name="property_pill_ready">Ready</string>
     <string name="property_pill_required">%1$d required</string>
     <string name="property_pill_none_yet">None yet</string>
     <string name="property_label_type">Type</string>

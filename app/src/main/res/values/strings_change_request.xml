@@ -92,6 +92,8 @@
     <string name="move_draft_body">The asset goes back to Draft so it can be edited again, then submitted.</string>
     <!-- A reviewer or an admin signs submitted assets off without a validation run (the web's signOffActions). -->
     <string name="sign_off_action">Mark as validated</string>
+    <!-- The Mark as validated dialog's confirm button: short, so it fits beside Cancel on a phone. -->
+    <string name="sign_off_confirm">Mark</string>
     <string name="sign_off_block_not_submitted">Only submitted assets can be marked as validated</string>
     <plurals name="sign_off_body">
         <item quantity="one">The asset moves to Validated without a validation run. Someone with Configure can then move it to Managed assets.</item>

@@ -30,6 +30,8 @@
     <string name="mv_action">Move</string>
     <string name="mv_title">Move to managed assets</string>
     <string name="mv_network_label">Network name *</string>
+    <!-- Placeholder of the search box above the network names. -->
+    <string name="mv_search_networks">Search networks</string>
     <string name="mv_assignee_label">Assignee</string>
     <string name="mv_submit">Submit</string>
     <string name="mv_choose_network">Choose a network</string>

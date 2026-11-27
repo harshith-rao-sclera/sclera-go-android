@@ -15,7 +15,6 @@ import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
-import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -26,7 +25,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -36,13 +36,15 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sclera.sclerago.domain.model.TagScannerFailure
 import com.sclera.sclerago.domain.model.TagKind
 import com.sclera.sclerago.domain.usecase.tagging.TagScan
+import com.sclera.sclerago.presentation.components.CameraPreview
 import com.sclera.sclerago.services.tagging.TagFrameAnalyzer
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
 /**
  * The camera preview that reads a QR code or a barcode ([TagFrameAnalyzer]). It asks for the camera at the moment it opens and
- * reports [TagScannerFailure.CAMERA_DENIED] if refused; the camera is released when it leaves the screen.
+ * reports [TagScannerFailure.CAMERA_DENIED] if refused; the camera is released when it leaves the screen. The zoom shows
+ * [zoomBadgeTop] down while pinching.
  */
 @Composable
 fun TagScannerView(
@@ -51,6 +53,7 @@ fun TagScannerView(
     onScan: (TagScan) -> Unit,
     onFailure: (TagScannerFailure) -> Unit,
     modifier: Modifier = Modifier,
+    zoomBadgeTop: Dp = 72.dp,
 ) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
@@ -106,16 +109,8 @@ fun TagScannerView(
     // Again whenever the camera is bound anew (another kind of code), so the light stays as the button shows.
     LaunchedEffect(torchOn, kind) { controller.enableTorch(torchOn) }
 
-    AndroidView(
-        factory = { ctx ->
-            PreviewView(ctx).apply {
-                scaleType = PreviewView.ScaleType.FILL_CENTER
-                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                this.controller = controller
-            }
-        },
-        modifier = modifier,
-    )
+    // Tap to focus and pinch to zoom on a small, close-up or far-off code.
+    CameraPreview(controller, modifier, zoomBadgeTop)
 }
 
 private fun analysisResolution(isQr: Boolean): ResolutionSelector = ResolutionSelector.Builder()

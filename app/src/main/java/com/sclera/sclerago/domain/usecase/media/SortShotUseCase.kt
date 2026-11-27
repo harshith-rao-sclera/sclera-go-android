@@ -1,5 +1,9 @@
 package com.sclera.sclerago.domain.usecase.media
 
+import com.sclera.sclerago.domain.model.photoCap
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.Flow
+import com.sclera.sclerago.domain.model.cameraPhotoRefusal
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.PhotoKind
 import com.sclera.sclerago.domain.model.PhotoRefusal
@@ -22,17 +26,30 @@ class SortShotUseCase @Inject constructor(private val sort: SortPhotosUseCase, p
      * Sorts [shot] and checks it beside [have] (the asset's photos and the ticked shots); [kind] is the kind of the card
      * the camera was opened from (null: the kind read off the photo, or none at all when [readKind] is false: Other photos).
      */
-    suspend operator fun invoke(shot: Media, have: List<Media>, kind: PhotoKind? = null, readKind: Boolean = true): SortedShot {
+    suspend operator fun invoke(
+        shot: Media,
+        have: List<Media>,
+        kind: PhotoKind? = null,
+        readKind: Boolean = true,
+        /** A new asset from the camera: past its kind's limit a shot goes to Other photos; refused only past every limit together. */
+        newAsset: Boolean = false,
+    ): SortedShot {
         if (shot.video) return SortedShot(shot, null)
         val sorted = when {
             kind != null -> shot.copy(category = kind)
             !readKind -> shot.copy(category = null)
             else -> sort(listOf(shot), fallback = null).first()
         }
-        return SortedShot(sorted, refusal(sorted, have))
+        return SortedShot(sorted, refusal(sorted, have, newAsset))
     }
 
     /** Why [shot] (already sorted) can't be ticked beside [have]; null when it can. */
-    suspend fun refusal(shot: Media, have: List<Media>): PhotoRefusal? =
-        if (shot.video) null else photoRefusal(rules.rules().first(), have, shot.category)
+    /** The most photos one new asset takes from the camera ([photoCap]), as the property's photo rules change. */
+    fun newAssetCap(): Flow<Int> = rules.rules().map(::photoCap)
+
+    suspend fun refusal(shot: Media, have: List<Media>, newAsset: Boolean = false): PhotoRefusal? = when {
+        shot.video -> null
+        newAsset -> cameraPhotoRefusal(rules.rules().first(), have)
+        else -> photoRefusal(rules.rules().first(), have, shot.category)
+    }
 }

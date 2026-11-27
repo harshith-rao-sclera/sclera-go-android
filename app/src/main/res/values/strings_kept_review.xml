@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The AI and mic buttons of an asset's details. English only for now. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Read out on the AI or mic button while a review closed without applying it waits behind it (the dot). -->
+    <string name="detail_review_waiting">Review waiting</string>
+</resources>

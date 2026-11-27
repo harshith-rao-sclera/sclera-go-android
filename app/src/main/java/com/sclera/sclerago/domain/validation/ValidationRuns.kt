@@ -331,11 +331,16 @@ data class RunIssue(
      * filled in on the asset instead (keeping it changes nothing; the next run finds it again).
      */
     val canDismiss: Boolean = true,
+    /** A dropdown field's options (labels), to pick a fix from (the server's fieldOptions); empty for other fields. */
+    val fieldOptions: List<String> = emptyList(),
 ) {
     /** A field's value or the JACS code: a value can be applied or typed. */
     val likeField: Boolean get() = fieldId != null || target == IssueTarget.JACS_CODE
     val canApply: Boolean get() = likeField || target == IssueTarget.CLASSIFICATION
-    val canType: Boolean get() = likeField && fieldType != "date"
+
+    /** What a fix typed for it must be, from its field's type; null when nothing is typed (not a field, a date, media). */
+    val typedKind: TypedKind? get() = if (likeField) typedKind(fieldType, fieldOptions) else null
+    val canType: Boolean get() = typedKind != null
 
     /** A fix sure enough to apply in bulk (the web's "confident fixes"). */
     val confident: Boolean get() = status == IssueStatus.OPEN && canApply && (suggestions.firstOrNull()?.confidence ?: 0.0) >= CONFIDENT

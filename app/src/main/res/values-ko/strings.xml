@@ -545,7 +545,6 @@
     <string name="detail_select_jacs">JACS 코드 선택</string>
     <string name="detail_required_tag">필수</string>
     <string name="property_group_address">주소</string>
-    <string name="property_pill_ready">준비됨</string>
     <string name="property_pill_required">필수 %1$d개</string>
     <string name="property_pill_none_yet">아직 없음</string>
     <string name="property_label_type">유형</string>

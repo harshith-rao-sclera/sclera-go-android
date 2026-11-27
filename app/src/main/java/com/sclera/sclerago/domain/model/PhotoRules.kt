@@ -51,7 +51,21 @@ sealed interface PhotoRefusal {
 
     /** The asset already has [MAX_PHOTOS_PER_ASSET] photos. */
     data object AssetFull : PhotoRefusal
+
+    /** A new asset from the camera already has [max] photos: every kind's limit together ([photoCap]). */
+    data class TooMany(val max: Int) : PhotoRefusal
 }
+
+/** The most photos one new asset takes from the camera: nameplate, asset and label ID limits together. */
+fun photoCap(rules: List<PhotoRule>): Int = rules.sumOf { it.max }
+
+/**
+ * Why one more shot can't join a new asset from the camera holding [have]: only when it has [photoCap] photos. A shot of
+ * a kind that is full is kept, and goes to Other photos ([fitPhotosToOther]).
+ */
+fun cameraPhotoRefusal(rules: List<PhotoRule>, have: List<Media>): PhotoRefusal? =
+    photoCap(rules).let { cap -> if (have.count { it.isAssetPhoto() } >= cap) PhotoRefusal.TooMany(cap) else null }
+
 
 /**
  * Why one more photo of [kind] (null: no kind, Other photos) can't join an asset holding [have], as the server's
@@ -68,9 +82,47 @@ fun photoRefusal(rules: List<PhotoRule>, have: List<Media>, kind: PhotoKind?): P
  * What [fitPhotoRules] let in ([kept], in order) and turned away ([refused]), with the most photos the property allows
  * of each kind it turned photos away from ([limits]; 0: it doesn't collect that kind).
  */
-data class FittedPhotos(val kept: List<Media>, val refused: List<Media>, val limits: Map<PhotoKind, Int> = emptyMap()) {
+data class FittedPhotos(
+    val kept: List<Media>,
+    val refused: List<Media>,
+    val limits: Map<PhotoKind, Int> = emptyMap(),
+    /** How many photos of each kind went to Other photos, past that kind's limit ([fitPhotosToOther]). */
+    val movedToOther: Map<PhotoKind, Int> = emptyMap(),
+    /** Set when [refused] were turned away for being past [photoCap] (this many), not for their kind. */
+    val cap: Int? = null,
+) {
     /** How many photos of each kind were turned away. */
-    val refusedByKind: Map<PhotoKind, Int> get() = refused.mapNotNull { it.category }.groupingBy { it }.eachCount()
+    val refusedByKind: Map<PhotoKind, Int> get() = if (cap != null) emptyMap() else refused.mapNotNull { it.category }.groupingBy { it }.eachCount()
+}
+
+/**
+ * [adding] (a new asset's camera shots, in order) kept as the camera keeps them: a photo past its kind's limit goes to
+ * Other photos (its kind dropped, as the server takes any number there) and only photos past [photoCap] are turned away.
+ * Videos, voice memos, files and field photos all go in.
+ */
+fun fitPhotosToOther(rules: List<PhotoRule>, adding: List<Media>): FittedPhotos {
+    val cap = photoCap(rules)
+    val counts = PhotoKind.entries.associateWith { 0 }.toMutableMap()
+    val moved = mutableMapOf<PhotoKind, Int>()
+    val kept = mutableListOf<Media>()
+    val refused = mutableListOf<Media>()
+    var photos = 0
+    adding.forEach { m ->
+        if (!m.isAssetPhoto()) return@forEach kept.plusAssign(m)
+        if (photos >= cap) return@forEach refused.plusAssign(m)
+        photos++
+        val kind = m.category
+        val max = kind?.let { k -> rules.firstOrNull { it.kind == k }?.max }
+        if (kind != null && max != null && counts.getValue(kind) >= max) {
+            kept += m.copy(category = null)
+            moved[kind] = (moved[kind] ?: 0) + 1
+        } else {
+            kept += m
+            if (kind != null) counts[kind] = counts.getValue(kind) + 1
+        }
+    }
+    val limits = moved.keys.associateWith { k -> rules.firstOrNull { it.kind == k }?.max ?: 0 }
+    return FittedPhotos(kept, refused, limits, moved, cap.takeIf { refused.isNotEmpty() })
 }
 
 /**

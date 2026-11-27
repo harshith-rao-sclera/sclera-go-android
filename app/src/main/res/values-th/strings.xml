@@ -545,7 +545,6 @@
     <string name="detail_select_jacs">เลือกรหัส JACS</string>
     <string name="detail_required_tag">จำเป็น</string>
     <string name="property_group_address">ที่อยู่</string>
-    <string name="property_pill_ready">พร้อม</string>
     <string name="property_pill_required">ต้องกรอก %1$d</string>
     <string name="property_pill_none_yet">ยังไม่มี</string>
     <string name="property_label_type">ประเภท</string>

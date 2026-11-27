@@ -73,7 +73,7 @@ internal fun SelectionChangeDialogs(state: AssetListState, list: AssetListViewMo
             BackHandler(onBack = list::closeChange)
             ChangeConfirm(
                 title = stringResource(R.string.sign_off_action), body = pluralStringResource(R.plurals.sign_off_body, count),
-                yes = changeActionLabel(action, count), requests = {}, onNo = list::closeChange, onYes = list::applyChange,
+                yes = stringResource(R.string.sign_off_confirm), requests = {}, onNo = list::closeChange, onYes = list::applyChange,
             )
         }
         ChangeAction.WITHDRAW -> {

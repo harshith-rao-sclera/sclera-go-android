@@ -266,8 +266,6 @@ fun ScleraApp(
                 prefill = vm.newPrefill,
                 scan = vm.newScanFacts,
                 onDropCapture = vm::dropNewMedia,
-                openTab = s.assetTab,
-                onTabOpened = vm::assetTabOpened,
             )
         }
 

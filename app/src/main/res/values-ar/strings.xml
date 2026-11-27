@@ -594,7 +594,6 @@
     <string name="detail_select_jacs">اختر رمز JACS</string>
     <string name="detail_required_tag">مطلوب</string>
     <string name="property_group_address">العنوان</string>
-    <string name="property_pill_ready">جاهز</string>
     <string name="property_pill_required">%1$d مطلوب</string>
     <string name="property_pill_none_yet">لا شيء بعد</string>
     <string name="property_label_type">النوع</string>

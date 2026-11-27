@@ -23,11 +23,13 @@ import javax.inject.Inject
  * (bluetooth, wifi, camera…) but not its link to the scanned device. They are written to the offline
  * database and synced as new assets. Each copy records what it was copied from ([NewAsset.copyOf], the server's
  * `clonedFrom`), as the web's clone does: the list's Cloned badge and filter, and a "Cloned from …" history line.
+ * A field not picked starts as its default (Configuration → Asset fields), as on any asset added; what was picked wins.
  */
 class CloneAssetUseCase @Inject constructor(
     private val repo: AssetRepository,
     private val ids: IdGenerator,
     private val guard: PermissionGuard,
+    private val newValues: NewAssetValuesUseCase,
 ) {
     /** Makes the copies; returns how many. Throws [DataException] (FORBIDDEN, FAILED). */
     suspend operator fun invoke(source: Asset, request: CloneRequest): Int {
@@ -35,6 +37,8 @@ class CloneAssetUseCase @Inject constructor(
         if (request.copies !in 1..MAX_CLONE_COPIES) throw DataException(DataError.FAILED)
         val place = request.place
         val keepsPlace = place != ClonePlace.NONE
+        // The fields' defaults under what was picked; the name and type stay as the clone sets them.
+        val values = newValues(name = "", prefill = emptyMap()) - CLONE_KEEPS + request.values
         val copies = List(request.copies) {
             val asset = Asset(
                 id = ids.next(), name = "", detail = source.detail,
@@ -45,9 +49,14 @@ class CloneAssetUseCase @Inject constructor(
                 locationId = source.locationId.takeIf { place == ClonePlace.LOCATION },
                 masterFormatId = source.masterFormatId.takeIf { request.keepType },
             )
-            NewAsset(asset, request.values, copyOf = source.id)
+            NewAsset(asset, values, copyOf = source.id)
         }
         repo.add(copies)
         return copies.size
+    }
+
+    private companion object {
+        /** Set by the clone itself (the name only when picked, the type with [CloneRequest.keepType]), never by a default. */
+        val CLONE_KEEPS = setOf("name", "sys", "typ", "sub")
     }
 }

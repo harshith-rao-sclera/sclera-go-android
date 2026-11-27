@@ -423,12 +423,11 @@ internal fun RowScope.InlineSelect(
 }
 
 /** A section's status on the right of its title: "Ready" in green, "1 required" in yellow, "Locked" in grey. */
-enum class PillTone { READY, NEEDED, NEUTRAL }
+enum class PillTone { NEEDED, NEUTRAL }
 
 @Composable
 internal fun StatusPill(text: String, tone: PillTone) {
     val c = when (tone) {
-        PillTone.READY -> C.Green
         PillTone.NEEDED -> C.Yellow
         PillTone.NEUTRAL -> VIEW_ONLY_COLOR.asColor()
     }

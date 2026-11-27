@@ -1,5 +1,14 @@
 package com.sclera.sclerago.presentation.validation
 
+import com.sclera.sclerago.domain.validation.canTypeAs
+import com.sclera.sclerago.domain.validation.canSaveAs
+import com.sclera.sclerago.domain.validation.TypedKind
+import com.sclera.sclerago.presentation.components.PickField
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.LaunchedEffect
@@ -390,21 +399,7 @@ private fun OpenIssue(
     }
     // A submitted asset is changed through a change request (said up front, as the web).
     if (lock == AssetLock.SUBMITTED) Txt(stringResource(R.string.rev_locked_note), 11, 400, C.Muted, maxLines = Int.MAX_VALUE)
-    if (issue.canType) {
-        val typed = p.typed[issue.id].orEmpty()
-        AccessGate(fix, Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PlainField(
-                    typed, { vm.setTyped(issue.id, it) },
-                    stringResource(if (issue.suggestions.isEmpty()) R.string.rev_type_value else R.string.rev_or_type),
-                    Modifier.weight(1f).heightIn(min = 44.dp).clip(r(10)).background(C.Surface).border(1.dp, C.Border2, r(10))
-                        .padding(horizontal = 12.dp, vertical = 11.dp),
-                    size = 13,
-                )
-                Pill(stringResource(R.string.val_save), { if (!busy && typed.isNotBlank()) vm.applyTyped(issue) }, Modifier.alpha(if (typed.isNotBlank()) 1f else 0.4f), height = 44.dp)
-            }
-        }
-    }
+    issue.typedKind?.let { kind -> TypedFixRow(issue, kind, p.typed[issue.id].orEmpty(), busy, fix, vm) }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Merging deletes the other assets: the reviewer's (Validate).
         if (issue.related.isNotEmpty()) AccessGate(s.validateBlock.reason() ?: lock.reason()) {
@@ -434,6 +429,51 @@ private fun OpenIssue(
  * A suggested value (a date field's as its day, not its stored number), with Apply (greyed out, saying why, while
  * [reason] holds the user back).
  */
+/**
+ * A fix of one's own, following the field's type as the server checks it (the web's typed fix): a dropdown's options to
+ * pick from, digits only for a number (a letter isn't taken, and it says so), a URL keyboard for a link. Save stays off
+ * until the value suits the field.
+ */
+@Composable
+private fun TypedFixRow(issue: RunIssue, kind: TypedKind, typed: String, busy: Boolean, fix: UiText?, vm: RunReviewViewModel) {
+    val savable = canSaveAs(kind, typed, issue.fieldOptions)
+    var refused by remember(issue.id) { mutableStateOf(false) }
+    val first = issue.suggestions.isEmpty()
+    AccessGate(fix, Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (kind == TypedKind.OPTION) {
+                    PickField(
+                        null, typed, stringResource(if (first) R.string.rev_choose_option else R.string.rev_or_choose_option), issue.fieldOptions,
+                        Modifier.weight(1f).testTag("review_typed_fix_${issue.id}"),
+                    ) { vm.setTyped(issue.id, it) }
+                } else {
+                    val placeholder = when {
+                        kind == TypedKind.NUMBER -> if (first) R.string.rev_type_number else R.string.rev_or_type_number
+                        first -> R.string.rev_type_value
+                        else -> R.string.rev_or_type
+                    }
+                    PlainField(
+                        typed, { vm.setTyped(issue.id, it) },
+                        stringResource(placeholder),
+                        Modifier.weight(1f).heightIn(min = 44.dp).clip(r(10)).background(C.Surface).border(1.dp, if (refused) C.Red else C.Border2, r(10))
+                            .padding(horizontal = 12.dp, vertical = 11.dp).testTag("review_typed_fix_${issue.id}"),
+                        size = 13,
+                        keyboard = when (kind) {
+                            TypedKind.NUMBER -> KeyboardType.Decimal
+                            TypedKind.URL -> KeyboardType.Uri
+                            else -> KeyboardType.Text
+                        },
+                        accept = { text: String -> canTypeAs(kind, text).also { refused = !it } }.takeIf { kind == TypedKind.NUMBER },
+                    )
+                }
+                Pill(stringResource(R.string.val_save), { if (!busy && savable) vm.applyTyped(issue) }, Modifier.alpha(if (savable) 1f else 0.4f), height = 44.dp)
+            }
+            if (refused) Txt(stringResource(R.string.rev_numbers_only), 11, 500, C.Red, Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+        }
+    }
+}
+
 @Composable
 private fun SuggestionRow(sug: IssueSuggestion, fieldType: String?, best: Boolean, enabled: Boolean, reason: UiText?, onApply: () -> Unit) {
     val uri = LocalUriHandler.current

@@ -1,5 +1,6 @@
 package com.sclera.sclerago.domain.usecase.asset
 
+import com.sclera.sclerago.domain.model.fitPhotosToOther
 import com.sclera.sclerago.domain.model.clockTimeLabel
 import com.sclera.sclerago.domain.system.ClockFormat
 import com.sclera.sclerago.domain.model.ActivityKind
@@ -24,7 +25,6 @@ import com.sclera.sclerago.domain.model.Status
 import com.sclera.sclerago.domain.model.SubmitOutcome
 import com.sclera.sclerago.domain.model.assetLock
 import com.sclera.sclerago.domain.model.FittedPhotos
-import com.sclera.sclerago.domain.model.fitPhotoRules
 import com.sclera.sclerago.domain.model.typeOf
 import com.sclera.sclerago.domain.repository.AccessRepository
 import com.sclera.sclerago.domain.repository.AssetActivityRepository
@@ -419,9 +419,10 @@ class CreateAssetUseCase @Inject constructor(
                 // sorted into nameplate, label ID or asset; one that can't be read is an equipment (asset) photo, as before.
                 val first = captures.first()
                 val captured = (if (first.video) "Video ${first.durationText}" else "Photo") + " · captured " + clockTimeLabel(first.createdAt, clock.is24Hour())
-                // Several shots may sort into one kind: those past its most are left out, as the server refuses them.
+                // Several shots may sort into one kind: those past its most go to Other photos (the server takes any
+                // number there); only those past every kind's limit together are left out.
                 val sorted = if (sortCaptures) sortPhotos(captures, fallback = PhotoKind.ASSET) else captures
-                fitted = fitPhotoRules(photoRules.rules().first(), emptyList(), sorted + media)
+                fitted = fitPhotosToOther(photoRules.rules().first(), sorted + media)
                 val shots = fitted.kept
                 // The name is what the form has (typed, or read off the photo by the AI); no "Asset from photo …" stand-in.
                 Asset(id, name, formDetail ?: captured, place.loc, place.where, Source.CAMERA, st, typeOf(name), place.prop, shots, locationId = place.placeId) to Source.CAMERA
@@ -495,4 +496,5 @@ class AssetUseCases @Inject constructor(
     val addComment: AddCommentUseCase,
     val updateComment: UpdateCommentUseCase,
     val removeComment: RemoveCommentUseCase,
+    val newValues: NewAssetValuesUseCase,
 )

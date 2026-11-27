@@ -231,8 +231,8 @@ internal fun AddPropertySheet(
                 stringResource(R.string.property_group_details), Icons.Building, collapsible = true,
                 trailing = {
                     val missing = (if (name.isBlank()) 1 else 0) + (if (type.isBlank()) 1 else 0)
-                    if (missing == 0) StatusPill(stringResource(R.string.property_pill_ready), PillTone.READY)
-                    else StatusPill(stringResource(R.string.property_pill_required, missing), PillTone.NEEDED)
+                    // Only while something is missing: a complete section shows no tag.
+                    if (missing > 0) StatusPill(stringResource(R.string.property_pill_required, missing), PillTone.NEEDED)
                 },
             ) {
                 InlineField(stringResource(R.string.field_name), required = true) {

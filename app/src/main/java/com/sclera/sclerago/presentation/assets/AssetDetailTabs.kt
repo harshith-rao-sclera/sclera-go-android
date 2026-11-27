@@ -372,11 +372,15 @@ internal fun photoLimitNotices(fitted: FittedPhotos): List<UiText> = fitted.refu
     val max = fitted.limits[kind] ?: 0
     if (max == 0) UiText.Plural(R.plurals.photos_kind_not_collected, n, listOf(n, UiText.Res(kind.nameRes())))
     else UiText.Plural(R.plurals.photos_over_limit, n, listOf(n, UiText.Res(kind.nameRes()), max))
-}
+} + listOfNotNull(
+    fitted.cap?.let { cap -> UiText.Plural(R.plurals.photos_over_cap, fitted.refused.size, listOf(fitted.refused.size, cap)) },
+)
+
 
 /** What the camera says when a shot is refused ([PhotoRefusal]): its kind is full or not collected, or the asset is full. */
 internal fun PhotoRefusal.notice(): UiText = when (this) {
     PhotoRefusal.AssetFull -> UiText.Res(R.string.camera_asset_full, listOf(MAX_PHOTOS_PER_ASSET))
+    is PhotoRefusal.TooMany -> UiText.Res(R.string.camera_asset_full, listOf(max))
     is PhotoRefusal.KindFull ->
         if (max == 0) UiText.Res(R.string.camera_kind_not_collected, listOf(UiText.Res(kind.nameRes())))
         else UiText.Res(R.string.camera_kind_full, listOf(UiText.Res(kind.nameRes()), max))

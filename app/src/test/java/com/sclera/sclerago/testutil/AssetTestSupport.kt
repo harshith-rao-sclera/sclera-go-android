@@ -24,6 +24,7 @@ import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.usecase.asset.AddAssetsUseCase
 import com.sclera.sclerago.domain.usecase.asset.AddCommentUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssetUseCases
+import com.sclera.sclerago.domain.usecase.asset.NewAssetValuesUseCase
 import com.sclera.sclerago.domain.usecase.asset.AssignLocationUseCase
 import com.sclera.sclerago.domain.usecase.asset.AttachMediaUseCase
 import com.sclera.sclerago.domain.usecase.asset.AutofillAssetUseCase
@@ -171,5 +172,6 @@ fun assetUseCases(
         CanWorkOnAssetUseCase(repo, guard), EvaluateAssetChecksUseCase(), AutofillAssetUseCase(autofill, guard), BuildFormValuesUseCase(time),
         ObserveAssetActivityUseCase(activity, InMemoryAccessRepository(), FakeAuthRepository(), guard), AddCommentUseCase(activity, guard),
         UpdateCommentUseCase(activity, repo), RemoveCommentUseCase(activity, repo),
+        NewAssetValuesUseCase(config, BuildFormValuesUseCase(time)),
     )
 }

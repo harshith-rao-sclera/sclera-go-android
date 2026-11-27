@@ -1,5 +1,8 @@
 package com.sclera.sclerago.presentation.main
 
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import com.sclera.sclerago.domain.model.AccessBlock
 import com.sclera.sclerago.domain.usecase.access.AccessBlocks
 import com.sclera.sclerago.domain.usecase.access.ObserveAccessBlocksUseCase
@@ -50,7 +53,6 @@ import com.sclera.sclerago.domain.usecase.property.PropertyDownloadUseCases
 import com.sclera.sclerago.domain.usecase.property.PropertyUseCases
 import com.sclera.sclerago.domain.usecase.property.RemoveLostPropertiesUseCase
 import com.sclera.sclerago.domain.model.LostProperties
-import com.sclera.sclerago.presentation.assets.DetailTabKind
 import com.sclera.sclerago.presentation.assets.photoLimitNotices
 import com.sclera.sclerago.presentation.assets.notice
 import com.sclera.sclerago.presentation.common.UiText
@@ -140,11 +142,6 @@ data class UiState(
     val devAdding: Map<Source, Set<String>> = emptyMap(),
     val pv: Preview? = null,
     val assetId: String? = null,
-    /**
-     * The tab the asset's details open on ([AppViewModel.openAssetValidation]: Validation); null keeps the screen's own
-     * choice. Cleared once the details screen has shown it ([AppViewModel.assetTabOpened]).
-     */
-    val assetTab: DetailTabKind? = null,
     val newAsset: Boolean = false,
     val newSrc: Source = Source.MANUAL,
     /** Photos/videos the new-asset form opens with (Camera tab: the shot just taken). */
@@ -154,9 +151,11 @@ data class UiState(
     /** Photos/videos taken (or picked) in the Camera tab, newest first. */
     val captures: List<Media> = emptyList(),
     val camSel: Set<String> = emptySet(),
+    /** Strip shots still being read and checked against the photo rules (Single): not ticked or counted yet. */
+    val camSorting: Set<String> = emptySet(),
     /** The camera makes many assets: every shot goes to the server as its own file (no sorting, no photo rules). */
     val camMany: Boolean = false,
-    /** The strip's photo being cropped (Single), its crop screen over the camera; null when none. */
+    /** The strip's photo being cropped, its crop screen over the camera; null when none. */
     val cropShot: Media? = null,
     /** Shots handed to the Camera's import to be read by the server; the UI takes them ([AppViewModel.shotsSent]). */
     val camToSend: List<Media>? = null,
@@ -799,7 +798,8 @@ class AppViewModel @Inject constructor(
                 var made = 0
                 fresh.forEach { d ->
                     val created = assetUseCases.create(
-                        deviceName(d), "", emptyList(), prefillFor(d), false,
+                        // As the new-asset form would start it: the fields' defaults, then what the scan found.
+                        deviceName(d), "", emptyList(), assetUseCases.newValues(deviceName(d), prefillFor(d)), false,
                         place = place, captures = emptyList(), device = d, deviceSource = src,
                     )
                     markAdded(src, d.id, created.id)
@@ -814,13 +814,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun openAsset(id: String) = set { copy(assetId = id, newAsset = false, assetTab = null) }
-
-    /** Opens asset [id] on its Validation tab: a row's failed or needs-a-look validation mark (the web's badge). */
-    fun openAssetValidation(id: String) = set { copy(assetId = id, newAsset = false, assetTab = DetailTabKind.VALIDATION) }
-
-    /** The details screen has opened on [UiState.assetTab]: later it keeps the tab its user picks. */
-    fun assetTabOpened() = set { if (assetTab == null) this else copy(assetTab = null) }
+    fun openAsset(id: String) = set { copy(assetId = id, newAsset = false) }
 
     /** The "+" button: the new-asset form, only for someone who may add assets (Collect); the web hides Add otherwise. */
     fun openNew() {
@@ -830,7 +824,7 @@ class AppViewModel @Inject constructor(
     fun closeDetail() {
         // A camera shot that never became an asset is thrown away with the form.
         if (state.newAsset) fileUseCases.deleteOwned(state.newMedia)
-        set { copy(assetId = null, assetTab = null, newAsset = false, newMedia = emptyList(), newDevice = null) }
+        set { copy(assetId = null, newAsset = false, newMedia = emptyList(), newDevice = null) }
     }
 
     /** A shot the new asset's form opened with was removed there: it isn't made into the asset, and its file goes. */
@@ -982,12 +976,14 @@ class AppViewModel @Inject constructor(
     fun toggleStrip(id: String) {
         val s = state
         if (id in s.camSel) return set { copy(camSel = camSel - id) }
+        // Still being checked: it is ticked by itself when it fits.
+        if (id in s.camSorting) return
         val m = s.captures.firstOrNull { it.id == id } ?: return
         // Many assets: every shot is its own file, so there is nothing to count.
         if (s.camMany) return set { copy(camSel = camSel + id) }
         viewModelScope.launch {
             shotLock.withLock {
-                val refusal = assetUseCases.sortShot.refusal(m, tickedShots())
+                val refusal = assetUseCases.sortShot.refusal(m, tickedShots(), newAsset = true)
                 if (refusal == null) set { copy(camSel = camSel + id) } else flash(refusal.notice())
             }
         }
@@ -1009,42 +1005,53 @@ class AppViewModel @Inject constructor(
     fun addCapture(m: Media) {
         // Many assets: each shot goes to the server as it is, ticked; it isn't sorted or counted against the photo rules.
         if (state.camMany) return set { copy(captures = captures + m, camSel = camSel + m.id) }
-        // Ticked at once, so the count keeps up with a burst of shots; sorted next (one at a time, in the order taken),
-        // and unticked again if its kind or the asset has no room left.
-        unsorted += m.id
-        set { copy(captures = captures + m, camSel = camSel + m.id) }
+        // Sorted next (one at a time, in the order taken) and ticked only when its kind and the asset have room, so the
+        // count never goes past what the asset can take; until then the strip shows it being checked.
+        set { copy(captures = captures + m, camSorting = camSorting + m.id) }
         sortInStrip(m)
     }
 
     /**
-     * Sorts strip shot [m] (ticked, and in [unsorted]) into its kind, after the shots before it: it stays ticked while its
-     * kind and the asset have room, else it is unticked and the camera says why.
+     * Sorts strip shot [m] (in [UiState.camSorting]) into its kind, after the shots before it: it is ticked while its
+     * kind and the asset have room, else it stays unticked and the camera says why.
      */
     private fun sortInStrip(m: Media) {
         viewModelScope.launch {
             shotLock.withLock {
                 try {
-                    // Measured against the shots already sorted, not the later ones still waiting their turn.
-                    val sorted = assetUseCases.sortShot(m, tickedShots().filter { it.id != m.id && it.id !in unsorted })
+                    // Measured against the shots already checked, not the later ones still waiting their turn. Only how many
+                    // the new asset takes is checked here (every kind's limit together); the kind of each photo is read when
+                    // the asset opens, and those past their kind's limit go to Other photos then.
+                    val sorted = assetUseCases.sortShot(m, tickedShots().filter { it.id != m.id }, readKind = false, newAsset = true)
                     // Gone meanwhile (Done, discarded): nothing to tick.
                     if (state.captures.none { it.id == m.id }) return@withLock
                     set {
                         copy(
                             captures = captures.map { if (it.id == m.id) sorted.shot else it },
-                            camSel = if (sorted.refusal == null) camSel else camSel - m.id,
+                            camSel = if (sorted.refusal == null) camSel + m.id else camSel - m.id,
                         )
                     }
                     sorted.refusal?.let { flash(it.notice()) }
                 } finally {
-                    unsorted -= m.id
+                    set { copy(camSorting = camSorting - m.id) }
                 }
             }
         }
     }
 
-    /** The crop badge on a photo of the strip (Single): its crop screen opens over the camera. */
+    /**
+     * The most photos one new asset takes from the camera (Single): every kind's limit together. At it the shutter is
+     * greyed out until a shot is unticked. Null until the property's photo rules are read.
+     */
+    val newAssetPhotoCap: StateFlow<Int?> =
+        assetUseCases.sortShot.newAssetCap().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The shutter was tapped with the new asset's photos full ([newAssetPhotoCap]). */
+    fun cameraFull(cap: Int) = flash(UiText.Res(R.string.camera_full_untick, listOf(cap)))
+
+    /** The crop badge on a photo of the strip (Single and Multiple): its crop screen opens over the camera. */
     fun openCrop(m: Media) {
-        if (state.camMany || m.video || state.captures.none { it.id == m.id }) return
+        if (m.video || state.captures.none { it.id == m.id }) return
         set { copy(cropShot = m) }
     }
 
@@ -1052,27 +1059,29 @@ class AppViewModel @Inject constructor(
     fun closeCrop() = set { copy(cropShot = null) }
 
     /**
-     * [shot] was cropped into [cropped]: the cropped photo takes its place in the strip, ticked, and is sorted again (what
-     * it shows changed, so its kind may have); the original's file goes when it was the app's own (a gallery photo stays).
+     * [shot] was cropped into [cropped]: the cropped photo takes its place in the strip, ticked; in Single it is sorted
+     * again (what it shows changed, so its kind may have), in Multiple it goes to the server as it is, as every shot there.
+     * The original's file goes when it was the app's own (a gallery photo stays).
      */
     fun cropped(shot: Media, cropped: Media) {
         if (state.captures.none { it.id == shot.id }) {
             fileUseCases.deleteOwned(listOf(cropped))
             return set { copy(cropShot = null) }
         }
-        unsorted += cropped.id
+        if (state.camMany) {
+            set { copy(captures = captures.map { if (it.id == shot.id) cropped else it }, camSel = camSel - shot.id + cropped.id, cropShot = null) }
+            fileUseCases.deleteOwned(listOf(shot))
+            return
+        }
         set {
             copy(
                 captures = captures.map { if (it.id == shot.id) cropped else it },
-                camSel = camSel - shot.id + cropped.id, cropShot = null,
+                camSel = camSel - shot.id, camSorting = camSorting + cropped.id, cropShot = null,
             )
         }
         fileUseCases.deleteOwned(listOf(shot))
         sortInStrip(cropped)
     }
-
-    /** Shots in the strip ticked as they came in and not sorted yet ([addCapture]). Main thread only. */
-    private val unsorted = mutableSetOf<String>()
 
     /**
      * Done in the camera: Single, the ticked shots open one new asset's details (sorted into their kinds, then read by

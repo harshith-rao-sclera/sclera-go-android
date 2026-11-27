@@ -83,8 +83,6 @@ data class Asset(
      * look (the web card's validation icon). Null when every step passed or it was never validated.
      */
     val validationMark: ValidationMark? = null,
-    /** How many of its steps failed or need a look. */
-    val validationProblems: Int = 0,
     /** The kinds of tag the synced data says it carries (the assets table's qr_code_tag, barcode_tag, nfc_tag). */
     val tagged: Set<TagKind> = emptySet(),
     /**

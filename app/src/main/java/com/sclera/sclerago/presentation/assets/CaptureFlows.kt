@@ -1,5 +1,17 @@
 package com.sclera.sclerago.presentation.assets
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.CircularProgressIndicator
+import com.sclera.sclerago.presentation.components.SkeletonBlock
+import com.sclera.sclerago.services.media.MediaLoader
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.mutableStateListOf
+import androidx.camera.view.PreviewView
 import com.sclera.sclerago.presentation.components.pressClickable
 import com.sclera.sclerago.presentation.components.LocalToaster
 import com.sclera.sclerago.presentation.components.ToastKind
@@ -23,7 +35,6 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
-import androidx.camera.view.PreviewView
 import androidx.camera.view.video.AudioConfig
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -49,7 +60,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -60,6 +70,7 @@ import com.sclera.sclerago.domain.limits.MAX_CLIP_MS
 import com.sclera.sclerago.domain.model.MAX_DOCUMENT_UPLOAD_MB
 import com.sclera.sclerago.domain.model.Media
 import com.sclera.sclerago.domain.model.formatDuration
+import com.sclera.sclerago.presentation.components.CameraPreview
 import com.sclera.sclerago.presentation.components.Capsule
 import com.sclera.sclerago.presentation.components.MediaImage
 import com.sclera.sclerago.presentation.components.AccessGate
@@ -122,6 +133,7 @@ private fun hasCameraPermission(context: Context) =
 @Composable
 private fun CameraView(vm: AppViewModel, waiting: Int, onDiscardReview: () -> Unit, aiOn: Boolean) {
     val s = vm.state
+    val cap by vm.newAssetPhotoCap.collectAsStateWithLifecycle()
     BackHandler(enabled = vm.cameraHasShots) { vm.cancelCam() }
     Box(Modifier.fillMaxSize()) {
         CameraCapture(
@@ -134,14 +146,56 @@ private fun CameraView(vm: AppViewModel, waiting: Int, onDiscardReview: () -> Un
             onClose = vm::cancelCam, onDone = { vm.doneCapturing(reviewWaiting = waiting > 0) },
             many = s.camMany, onMany = { vm.setCamMany(it, reviewWaiting = waiting > 0, discardReview = onDiscardReview) }, waiting = waiting,
             manyAiOff = !aiOn, onManyBlocked = { vm.flash(UiText.Res(R.string.ai_off)) },
-            // Single: a photo in the strip can be cropped before it makes the asset.
-            onCrop = if (s.camMany) null else vm::openCrop,
+            // A photo in the strip can be cropped before it makes the asset (Single) or is sent to be read (Multiple).
+            onCrop = vm::openCrop,
+            checking = s.camSorting,
+            // Single: one asset takes up to every photo kind's limit together; the shutter waits for an untick at it.
+            maxPhotos = cap.takeUnless { s.camMany },
+            onFull = { cap?.let(vm::cameraFull) },
         )
     }
 }
 
 /** The most the camera's gallery lets be picked at once. */
 private const val GALLERY_MAX = 20
+
+/** The size the strip's thumbnails are read at (pixels). */
+private const val STRIP_PX = 240
+
+/** A shot being saved, shown in the strip by [frame] (what the preview showed as it was taken; null: none). */
+private class PendingShot(val id: String, val frame: ImageBitmap?) {
+    /** Its crop badge was tapped before it was saved: it opens to crop as soon as it is. */
+    var cropAsked by mutableStateOf(false)
+}
+
+/** Over a strip shot still being saved or checked against the photo rules: dimmed, with a small spinner. */
+@Composable
+private fun StripChecking() {
+    Box(Modifier.fillMaxSize().background(Color(0x73141518)), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(Modifier.size(22.dp), color = C.White, strokeWidth = 2.5.dp)
+    }
+}
+
+/** The yellow crop badge in a strip photo's top corner. */
+@Composable
+private fun BoxScope.CropBadge(onClick: () -> Unit) {
+    val cropLabel = stringResource(R.string.crop_open)
+    Box(
+        Modifier.align(Alignment.TopEnd).padding(3.dp).size(28.dp).clip(CircleShape).background(C.Yellow)
+            .pressClickable(shape = CircleShape, onClick = onClick).semantics { contentDescription = cropLabel },
+        contentAlignment = Alignment.Center,
+    ) { LineIcon(Icons.Crop, 15.dp, C.OnYellow, 2.4f) }
+}
+
+/** What [view] shows now, small enough for the strip; null when there is nothing to take. Main thread. */
+private fun previewFrame(view: PreviewView?): ImageBitmap? {
+    val full = runCatching { view?.bitmap }.getOrNull() ?: return null
+    val scale = STRIP_PX.toFloat() / minOf(full.width, full.height)
+    if (scale >= 1f) return full.asImageBitmap()
+    val small = Bitmap.createScaledBitmap(full, (full.width * scale).toInt().coerceAtLeast(1), (full.height * scale).toInt().coerceAtLeast(1), true)
+    if (small !== full) full.recycle()
+    return small.asImageBitmap()
+}
 
 /**
  * The live camera screen: preview, photo/video capture, flash, lens switch, gallery import and the
@@ -177,8 +231,19 @@ fun CameraCapture(
     waiting: Int = 0,
     /** Opened from an asset (its Add photo): the shots join that asset, so the hint says so instead of "start a new asset". */
     addingToAsset: Boolean = false,
-    /** Crops a photo of the strip (its crop badge); null: no badge (Multiple, videos). */
+    /** Crops a photo of the strip (its crop badge); null: no badge. Videos never have one. */
     onCrop: ((Media) -> Unit)? = null,
+    /**
+     * Shots of the strip still being read and checked against the photo rules: a spinner instead of a tick, and not in
+     * the count until they are ticked (so it never shows more than the asset can take). Done waits for them.
+     */
+    checking: Set<String> = emptySet(),
+    /**
+     * The most photos the shots may come to (ticked, being saved or being checked); at it the shutter is greyed out for
+     * photos and a tap calls [onFull] instead, until one is unticked. Null: no limit. Videos aren't counted.
+     */
+    maxPhotos: Int? = null,
+    onFull: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val toaster = LocalToaster.current
@@ -188,10 +253,16 @@ fun CameraCapture(
 
     // Photos taken and still being saved: in the count at once, so it keeps up with a quick burst of shots.
     var saving by remember { mutableIntStateOf(0) }
+    // The same shots in the strip, in the order taken: a frame of the preview stands in for each until its photo is saved
+    // and its thumbnail read, so the strip keeps up with the count.
+    val pending = remember { mutableStateListOf<PendingShot>() }
+    // Saved shots whose thumbnail is still being read: the preview's frame taken with each, shown until it is.
+    val frames = remember { mutableStateMapOf<String, ImageBitmap>() }
+    var previewView by remember { mutableStateOf<PreviewView?>(null) }
     // Done tapped while some were still being saved: it goes on once they are all in, so none is left behind.
     var doneAsked by remember { mutableStateOf(false) }
-    LaunchedEffect(saving, doneAsked) {
-        if (doneAsked && saving == 0) {
+    LaunchedEffect(saving, doneAsked, checking) {
+        if (doneAsked && saving == 0 && checking.isEmpty()) {
             doneAsked = false
             onDone()
         }
@@ -253,23 +324,39 @@ fun CameraCapture(
         scope.launch { shutterFlash.snapTo(0.8f); shutterFlash.animateTo(0f, tween(250)) }
         // Counted from the tap: the camera saves shots one after another, so a quick burst lands a moment later.
         saving++
+        lateinit var shot: PendingShot
+        // The picture is asked for first, so nothing holds up the shutter.
         controller.takePicture(
             ImageCapture.OutputFileOptions.Builder(f).build(),
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
-                // Shots go straight into the strip (several can be taken in a row); one not wanted is unticked there.
+                // Shots go straight into the strip as soon as they are saved (several can be taken in a row); one not
+                // wanted is unticked there. Until its thumbnail is read, the preview's frame stays in its place.
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    onCapture(Media("c-${f.name}", Uri.fromFile(f).toString(), video = false, owned = true))
+                    val m = Media("c-${f.name}", Uri.fromFile(f).toString(), video = false, owned = true)
+                    shot.frame?.let { frames[m.id] = it }
+                    onCapture(m)
+                    pending.remove(shot)
+                    if (shot.cropAsked) onCrop?.invoke(m)
                     saving--
+                    scope.launch {
+                        MediaLoader.load(context, m.uri, video = false, maxPx = STRIP_PX)
+                        frames.remove(m.id)
+                    }
                 }
 
                 override fun onError(e: ImageCaptureException) {
+                    pending.remove(shot)
                     saving--
                     f.delete()
                     toaster.show(UiText.Res(R.string.camera_photo_failed), ToastKind.PROBLEM)
                 }
             },
         )
+        // Then what the preview shows now stands in for it in the strip until it is saved (the callbacks above come later,
+        // on this same thread).
+        shot = PendingShot("p-${f.name}", previewFrame(previewView))
+        pending += shot
     }
 
     fun toggleRecording() {
@@ -306,19 +393,13 @@ fun CameraCapture(
 
     val chosen = captures.count { it.id in selected }
     val isRecording = recording != null
+    // Photos taken that count or may yet: ticked, still being saved, or still being checked.
+    val photosTaken = captures.count { !it.video && (it.id in selected || it.id in checking) } + saving
+    val photosFull = maxPhotos != null && !videoMode && photosTaken >= maxPhotos
 
     Box(Modifier.fillMaxSize().background(Color.Black).clipToBounds()) {
         if (granted) {
-            AndroidView(
-                factory = { ctx ->
-                    PreviewView(ctx).apply {
-                        scaleType = PreviewView.ScaleType.FILL_CENTER
-                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                        this.controller = controller
-                    }
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
+            CameraPreview(controller, Modifier.fillMaxSize(), onView = { previewView = it })
             Box(Modifier.fillMaxSize().alpha(shutterFlash.value).background(Color.White))
         } else {
             PermissionPrompt(
@@ -368,8 +449,10 @@ fun CameraCapture(
         }
 
         // Multiple after "Take more": the shots already in the review count too, and the tick goes back to it.
-        val total = chosen + waiting + saving
-        if (total > 0 && !isRecording) {
+        // Only ticked shots count: one still being saved or checked may yet be turned away (the asset's photos are full).
+        val total = chosen + waiting
+        val busy = saving > 0 || checking.isNotEmpty()
+        if ((total > 0 || busy) && !isRecording) {
             // Done: a yellow tick, with how many shots are ticked in a badge on its top corner (read out as one button).
             // Single opens the new asset; Multiple opens the review, where shots can be removed before they are sent.
             val done = pluralStringResource(R.plurals.camera_use_shots, total, total)
@@ -378,7 +461,7 @@ fun CameraCapture(
                     .semantics(mergeDescendants = true) { contentDescription = done },
             ) {
                 Box(
-                    Modifier.size(60.dp).fabShadow().pressClickable(shape = CircleShape) { if (saving > 0) doneAsked = true else onDone() }
+                    Modifier.size(60.dp).fabShadow().pressClickable(shape = CircleShape) { if (busy) doneAsked = true else onDone() }
                         .background(C.Yellow),
                     contentAlignment = Alignment.Center,
                 ) { LineIcon(Icons.Check, 26.dp, C.OnYellow, 3f) }
@@ -391,7 +474,7 @@ fun CameraCapture(
         }
 
         // Captures strip
-        if (captures.isEmpty()) {
+        if (captures.isEmpty() && pending.isEmpty()) {
             Box(
                 Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp).clip(Capsule).background(Glass)
                     .padding(horizontal = 12.dp, vertical = 7.dp),
@@ -408,7 +491,9 @@ fun CameraCapture(
                 items(captures, key = { it.id }) { m ->
                     val on = m.id in selected
                     Box(Modifier.size(78.dp).pressClickable(shape = r(4)) { onToggle(m.id) }) {
-                        MediaImage(m, Modifier.fillMaxSize(), maxPx = 240)
+                        val frame = frames[m.id]
+                        if (frame != null) Image(frame, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        else MediaImage(m, Modifier.fillMaxSize(), maxPx = STRIP_PX)
                         if (m.video) {
                             Row(
                                 Modifier.align(Alignment.BottomStart).padding(start = 6.dp, bottom = 5.dp),
@@ -419,20 +504,24 @@ fun CameraCapture(
                                 Txt(m.durationText, 10, 700, C.White)
                             }
                         }
-                        if (on) {
+                        if (m.id in checking) StripChecking()
+                        else if (on) {
                             Box(Modifier.fillMaxSize().background(Color(0x73141518)), contentAlignment = Alignment.Center) {
                                 LineIcon(Icons.Check, 28.dp, C.White, 2.6f)
                             }
                         }
                         // Crop: a yellow badge in the photo's corner opens it to crop.
-                        if (onCrop != null && !m.video) {
-                            val cropLabel = stringResource(R.string.crop_open)
-                            Box(
-                                Modifier.align(Alignment.TopEnd).padding(3.dp).size(28.dp).clip(CircleShape).background(C.Yellow)
-                                    .pressClickable(shape = CircleShape) { onCrop(m) }.semantics { contentDescription = cropLabel },
-                                contentAlignment = Alignment.Center,
-                            ) { LineIcon(Icons.Crop, 15.dp, C.OnYellow, 2.4f) }
-                        }
+                        if (onCrop != null && !m.video) CropBadge { onCrop(m) }
+                    }
+                }
+                // Shots still being saved: the preview's frame (a placeholder when there was none), with a spinner.
+                // Their crop badge shows at once too; tapped, the photo opens to crop as soon as it is saved.
+                items(pending, key = { it.id }) { p ->
+                    Box(Modifier.size(78.dp).clip(r(4))) {
+                        p.frame?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                            ?: SkeletonBlock(Modifier.fillMaxSize(), RectangleShape)
+                        StripChecking()
+                        if (onCrop != null) CropBadge { p.cropAsked = true }
                     }
                 }
             }
@@ -462,7 +551,14 @@ fun CameraCapture(
                 }
             }) { LineIcon(Icons.Gallery, 22.dp, C.Text) }
             Box(
-                Modifier.size(76.dp).alpha(if (granted) 1f else 0.4f).pressClickable(shape = CircleShape, enabled = granted) { if (videoMode) toggleRecording() else takePhoto() }.border(4.dp, C.Text, CircleShape)
+                // At the photo limit the shutter is greyed out, and a tap says to untick one first.
+                Modifier.size(76.dp).alpha(if (granted && !photosFull) 1f else 0.4f).pressClickable(shape = CircleShape, enabled = granted) {
+                    when {
+                        videoMode -> toggleRecording()
+                        photosFull -> onFull()
+                        else -> takePhoto()
+                    }
+                }.border(4.dp, C.Text, CircleShape)
                     
                     .padding(9.dp),
                 contentAlignment = Alignment.Center,

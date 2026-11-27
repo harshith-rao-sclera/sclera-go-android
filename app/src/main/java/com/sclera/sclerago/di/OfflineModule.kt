@@ -1,6 +1,7 @@
 package com.sclera.sclerago.di
 
 import com.sclera.sclerago.data.local.LocalAssetFileStore
+import com.sclera.sclerago.data.local.LookupsRunHereStore
 import com.sclera.sclerago.data.local.PropertyListCache
 import com.sclera.sclerago.data.local.PropertyTable
 import com.sclera.sclerago.data.offline.AssetFileStore
@@ -47,6 +48,7 @@ import com.sclera.sclerago.domain.repository.LocationRepository
 import com.sclera.sclerago.domain.repository.PhotoRulesRepository
 import com.sclera.sclerago.domain.repository.PropertyDownloadRepository
 import com.sclera.sclerago.domain.repository.SpecLookupRepository
+import com.sclera.sclerago.domain.repository.LookupsRunHereRepository
 import com.sclera.sclerago.domain.repository.UserDataCleaner
 import com.sclera.sclerago.domain.repository.VoiceFillRepository
 import com.sclera.sclerago.domain.system.IdGenerator
@@ -134,6 +136,8 @@ abstract class OfflineRepositoryModule {
     @Binds abstract fun assetValidation(impl: AssetValidationRepositoryImpl): AssetValidationRepository
     @Binds abstract fun photoRules(impl: PhotoRulesRepositoryImpl): PhotoRulesRepository
     @Binds abstract fun specLookups(impl: SpecLookupRepositoryImpl): SpecLookupRepository
+    @Binds abstract fun lookupsRunHere(impl: LookupsRunHereStore): LookupsRunHereRepository
+    @Binds @IntoSet abstract fun clearLookupsRunHere(impl: LookupsRunHereStore): UserDataCleaner
     @Binds abstract fun syncSettings(impl: SyncSettingsRepositoryImpl): SyncSettingsRepository
     @Binds abstract fun voiceFill(impl: VoiceFillRepositoryImpl): VoiceFillRepository
     @Binds abstract fun classification(impl: ClassificationRepositoryImpl): ClassificationRepository

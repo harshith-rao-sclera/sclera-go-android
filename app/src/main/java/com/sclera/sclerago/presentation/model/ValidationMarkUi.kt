@@ -1,6 +1,5 @@
 package com.sclera.sclerago.presentation.model
 
-import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import com.sclera.sclerago.R
@@ -29,12 +28,4 @@ val ValidationMark.color: Color
     get() = when (this) {
         ValidationMark.FAILED -> C.Red
         ValidationMark.NEEDS_LOOK -> C.Orange
-    }
-
-/** What a screen reader says for the row's mark: how many steps need attention. */
-@get:PluralsRes
-val ValidationMark.problemsRes: Int
-    get() = when (this) {
-        ValidationMark.FAILED -> R.plurals.asset_validation_failed
-        ValidationMark.NEEDS_LOOK -> R.plurals.asset_validation_look
     }

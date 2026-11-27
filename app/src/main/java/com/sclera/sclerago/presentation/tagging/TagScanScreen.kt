@@ -78,11 +78,12 @@ fun TagScanScreen(
     var torchOn by remember { mutableStateOf(false) }
     val isQr = kind == TagKind.QR
     Box(modifier.fillMaxSize().background(Color.Black).testTag(TagTags.SCREEN)) {
-        TagScannerView(kind, torchOn, onScan, onFailure, Modifier.fillMaxSize())
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val width = if (isQr) minOf(264.dp, maxHeight * 0.42f, maxWidth - 48.dp) else minOf(320.dp, maxWidth - 48.dp)
             val height = if (isQr) width else width * 150f / 320f
             val top = maxHeight * (if (isQr) QR_FRACTION_TOP else BARCODE_FRACTION_TOP)
+            // The zoom shows inside the clear window, where the dimmed surround doesn't darken it.
+            TagScannerView(kind, torchOn, onScan, onFailure, Modifier.fillMaxSize(), zoomBadgeTop = top + 12.dp)
             Viewfinder(width, height, top)
             Column(
                 Modifier.align(Alignment.TopCenter).offset(y = top + height + 36.dp).padding(horizontal = 24.dp),

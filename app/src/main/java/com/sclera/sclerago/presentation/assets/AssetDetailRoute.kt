@@ -93,9 +93,6 @@ fun AssetDetailRoute(
     scan: ScanFacts? = null,
     /** A photo a new asset was opened with (the Camera tab's shots) was removed on its page. */
     onDropCapture: (Media) -> Unit = {},
-    /** A tab to open on (the list's validation badge: Validation); [onTabOpened] once the screen has chosen it. */
-    openTab: DetailTabKind? = null,
-    onTabOpened: () -> Unit = {},
     vm: AssetDetailViewModel = hiltViewModel(),
     tagVm: TagViewModel = hiltViewModel(),
     mediaVm: MediaSourceViewModel = hiltViewModel(),
@@ -142,6 +139,8 @@ fun AssetDetailRoute(
     var memoOpen by remember(asset.id) { mutableStateOf(false) }
     var camCaps by remember(asset.id) { mutableStateOf(listOf<Media>()) }
     var camSel by remember(asset.id) { mutableStateOf(setOf<String>()) }
+    // Shots still being read and checked against the photo rules: not ticked or counted yet.
+    var camChecking by remember(asset.id) { mutableStateOf(setOf<String>()) }
     var camVideo by remember(asset.id) { mutableStateOf(false) }
     // One shot is sorted and checked at a time, so two quick shots can't both take the last room of a kind.
     val shotLock = remember(asset.id) { Mutex() }
@@ -196,12 +195,13 @@ fun AssetDetailRoute(
             onToggle = vm::toggleAiPick, onToggleType = vm::toggleAiType, onEdit = vm::editAiPick, onApply = vm::applyAi,
             onToggleJacs = vm::toggleAiJacs,
         ),
-        onMic = voice::toggle,
+        // A review closed without applying it opens again from the mic, rather than listening anew.
+        onMic = { if (state.voiceKept) vm.reopenVoice() else voice.toggle() },
         onType = { vm.openTyping() },
         voice = VoiceFillActions(
             onToggle = vm::toggleVoicePick, onApply = vm::applyVoice, onClose = vm::closeVoice,
             onSpeakAgain = {
-                vm.closeVoice()
+                vm.discardVoice()
                 voice.toggle()
             },
             onEditText = { vm.openTyping(state.voice?.said.orEmpty()) },
@@ -262,7 +262,7 @@ fun AssetDetailRoute(
     // The asset's media is shown from the offline database, or from the server while the sync hasn't brought it down.
     val mediaSources = remember(asset.id, mediaVm) { MediaSources { m, preview -> mediaVm.source(asset.id, m, preview) } }
     CompositionLocalProvider(LocalMediaSources provides mediaSources) {
-        AssetDetailScreen(state, actions, mic = voice.state, tags = tagState, openTab = openTab, onTabOpened = onTabOpened)
+        AssetDetailScreen(state, actions, mic = voice.state, tags = tagState)
     }
     TagFlowHost(
         tagState,
@@ -299,19 +299,26 @@ fun AssetDetailRoute(
                 // ticked ones.
                 onCapture = { m ->
                     camCaps = camCaps + m
+                    camChecking = camChecking + m.id
                     scope.launch {
                         shotLock.withLock {
-                            val sorted = vm.sortShot(m, camCaps.filter { it.id in camSel && it.id != m.id })
-                            if (camCaps.none { it.id == m.id }) return@withLock
-                            camCaps = camCaps.map { if (it.id == m.id) sorted.shot else it }
-                            if (sorted.refusal == null) camSel = camSel + m.id
-                            else toaster.show(sorted.refusal.notice(), ToastKind.PROBLEM)
+                            try {
+                                val sorted = vm.sortShot(m, camCaps.filter { it.id in camSel && it.id != m.id })
+                                if (camCaps.none { it.id == m.id }) return@withLock
+                                camCaps = camCaps.map { if (it.id == m.id) sorted.shot else it }
+                                if (sorted.refusal == null) camSel = camSel + m.id
+                                else toaster.show(sorted.refusal.notice(), ToastKind.PROBLEM)
+                            } finally {
+                                camChecking = camChecking - m.id
+                            }
                         }
                     }
                 },
+                checking = camChecking,
                 onToggle = { id ->
                     val m = camCaps.firstOrNull { it.id == id }
-                    if (id in camSel || m == null) camSel = camSel - id
+                    if (id in camChecking) Unit // ticked by itself when it fits
+                    else if (id in camSel || m == null) camSel = camSel - id
                     else scope.launch {
                         shotLock.withLock {
                             val refusal = vm.shotRefusal(m, camCaps.filter { it.id in camSel })

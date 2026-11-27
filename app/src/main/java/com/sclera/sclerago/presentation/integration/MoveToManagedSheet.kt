@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -66,8 +70,18 @@ fun MoveToManagedSheet(
                         else -> Txt(stringResource(R.string.int_no_options), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
                     }
                 }
+                // Searched by name on the phone; the one picked stays in the list.
+                var networkQuery by rememberSaveable { mutableStateOf("") }
+                val q = networkQuery.trim()
+                val shownNetworks = if (q.isEmpty()) networks else networks.filter { it.contains(q, ignoreCase = true) || it == s.network }
+                if (networks.isNotEmpty()) {
+                    SearchField(networkQuery, { networkQuery = it }, stringResource(R.string.mv_search_networks), Modifier.testTag("move_network_search"))
+                }
                 // The web shows each name capitalised and sends it as it is.
-                ChoiceList(networks, { n -> n.replaceFirstChar { it.uppercaseChar() } }, { it == s.network }, vm::pickNetwork)
+                ChoiceList(shownNetworks, { n -> n.replaceFirstChar { it.uppercaseChar() } }, { it == s.network }, vm::pickNetwork)
+                if (networks.isNotEmpty() && shownNetworks.isEmpty()) {
+                    Txt(stringResource(R.string.cfgt_no_match), 12, 400, C.Muted, Modifier.padding(8.dp), maxLines = Int.MAX_VALUE)
+                }
 
                 Txt(stringResource(R.string.mv_assignee_label), 12, 600, C.Muted, Modifier.padding(top = 6.dp))
                 SearchField(s.query, vm::setQuery, stringResource(R.string.int_select))

@@ -191,6 +191,8 @@ fun IssueDto.toDomain() = RunIssue(
     status = IssueStatus.of(status),
     resolvedValue = resolvedValue.toIssueValue(),
     canDismiss = canDismiss,
+    // As sent: the server compares a picked fix with them exactly.
+    fieldOptions = fieldOptions.filter { it.isNotBlank() }.distinct(),
 )
 
 fun InsightsDto.toDomain() = RunInsights(
@@ -375,7 +377,17 @@ fun DbRow.toRunAssetResult() = RunAssetResult(
 
 private fun parsed(text: String?): JsonElement? = text?.takeIf { it.isNotBlank() }?.let(::parseJson)
 
-fun DbRow.toRunIssue(fieldNames: Map<String, Pair<String, String>>): RunIssue {
+/** A field as an issue names it: its name, type and, for a dropdown, its option labels (the server's fieldOptions). */
+data class IssueField(val name: String, val type: String, val options: List<String>)
+
+/** [IssueField] of an `asset_fields` row (id, name, type, options). */
+fun DbRow.toIssueField() = IssueField(
+    name = string("name").orEmpty(),
+    type = string("type").orEmpty(),
+    options = if (string("type") == "dropdown") DbJson.stringList(string("options")).filter { it.isNotBlank() }.distinct() else emptyList(),
+)
+
+fun DbRow.toRunIssue(fields: Map<String, IssueField>): RunIssue {
     val fieldId = string("field_id")?.takeIf { it.isNotBlank() }
     val target = IssueTarget.of(string("target"))
     val rule = string("rule").orEmpty()
@@ -386,8 +398,8 @@ fun DbRow.toRunIssue(fieldNames: Map<String, Pair<String, String>>): RunIssue {
         assetName = "",
         target = target,
         fieldId = fieldId,
-        fieldName = if (target == IssueTarget.JACS_CODE) "JACS code" else fieldId?.let { fieldNames[it]?.first },
-        fieldType = if (target == IssueTarget.JACS_CODE) "text" else fieldId?.let { fieldNames[it]?.second },
+        fieldName = if (target == IssueTarget.JACS_CODE) "JACS code" else fieldId?.let { fields[it]?.name },
+        fieldType = if (target == IssueTarget.JACS_CODE) "text" else fieldId?.let { fields[it]?.type },
         rule = rule,
         ruleName = rule,
         step = com.sclera.sclerago.domain.validation.stepOf(rule),
@@ -407,6 +419,7 @@ fun DbRow.toRunIssue(fieldNames: Map<String, Pair<String, String>>): RunIssue {
         status = IssueStatus.of(string("status")),
         resolvedValue = parsed(string("resolved_value")).toIssueValue(),
         canDismiss = com.sclera.sclerago.domain.validation.canDismiss(rule),
+        fieldOptions = if (target == IssueTarget.JACS_CODE) emptyList() else fieldId?.let { fields[it]?.options }.orEmpty(),
     )
 }
 

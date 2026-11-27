@@ -7,6 +7,7 @@ import com.sclera.sclerago.domain.model.DEFAULT_TIME_PICKER
 import com.sclera.sclerago.domain.model.DEFAULT_TODAY
 import com.sclera.sclerago.domain.model.FieldCfg
 import com.sclera.sclerago.domain.model.UNCLASSIFIED
+import com.sclera.sclerago.domain.repository.AssetConfigRepository
 import com.sclera.sclerago.domain.system.TimeProvider
 import java.time.Instant
 import java.time.ZoneId
@@ -45,4 +46,17 @@ class BuildFormValuesUseCase @Inject constructor(private val time: TimeProvider)
         }
         return values
     }
+}
+
+/**
+ * The values of an asset added without its form (a scanned device's +, or Add on the ticked devices), as the new-asset
+ * form would have started it: each field's default from the property's fields (Configuration → Asset fields), then what
+ * the scan found ([prefill], which wins).
+ */
+class NewAssetValuesUseCase @Inject constructor(
+    private val config: AssetConfigRepository,
+    private val formValues: BuildFormValuesUseCase,
+) {
+    operator fun invoke(name: String, prefill: Map<String, String>): Map<String, String> =
+        formValues(name, isNew = true, details = null, fields = config.config.value.fields, prefill = prefill)
 }

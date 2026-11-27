@@ -183,7 +183,6 @@ class AssetsOfflineSource(
                 // or Managed Assets (VDMS) returned it.
                 recollect = row.string("status") == "drafted" && (id in sentBack || row.int("vdms_state") in VDMS_SENT_BACK),
                 validationMark = checked[id]?.mark(),
-                validationProblems = checked[id]?.problems?.size ?: 0,
                 requiredMissing = required.missingFor(id, row, values[id].orEmpty()).isNotEmpty(),
             )
         }
