@@ -1,5 +1,15 @@
 package com.sclera.sclerago.presentation.validation
 
+import androidx.compose.ui.semantics.contentDescription
+import com.sclera.sclerago.presentation.theme.ScleraFonts
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.material3.Text
 import com.sclera.sclerago.domain.validation.canTypeAs
 import com.sclera.sclerago.domain.validation.canSaveAs
 import com.sclera.sclerago.domain.validation.TypedKind
@@ -371,10 +381,42 @@ private fun IssueRow(issue: RunIssue, p: AssetPanelState, s: RunReviewUiState, v
                     if (fromWeb) SmallChip(stringResource(R.string.rev_from_web), C.Blue, C.Blue.copy(alpha = 0.14f))
                 }
             }
-            Txt(issueMessage(issue.message, issue.fieldType, issue.currentValue?.text), 13, 700, C.Text, maxLines = Int.MAX_VALUE)
+            val message = issueMessage(issue.message, issue.fieldType, issue.currentValue?.text)
+            Txt(message, 13, 700, C.Text, maxLines = Int.MAX_VALUE)
+            if (open && issue.likeField) SavedValue(issue, message)
             if (open) OpenIssue(issue, p, s, vm, busy, lock, fillIn) else ClosedIssue(issue, s, vm, busy, lock)
         }
     }
+}
+
+/**
+ * What the field holds now, beside what would replace it, so the choice is in view (the web's savedValue): struck through
+ * before the one suggested fix, or "Now: …" when there are several (or none). Not shown when the field is empty, holds a
+ * type (not plain text), or the [message] already names the value.
+ */
+@Composable
+private fun SavedValue(issue: RunIssue, message: String) {
+    val raw = issue.currentValue?.text?.trim().orEmpty()
+    if (raw.isEmpty()) return
+    val saved = issueValueText(raw, issue.fieldType).trim()
+    if (saved.isEmpty() || message.contains(saved)) return
+    val onlyFix = issue.suggestions.singleOrNull()?.let { it.label?.takeIf(String::isNotBlank) ?: issueValueText(it.value.text, issue.fieldType) }
+        ?.takeIf { it.isNotBlank() }
+    val savedNow = stringResource(R.string.rev_saved_now_label)
+    val text = if (onlyFix != null) {
+        buildAnnotatedString {
+            withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) { append(saved) }
+            append(" → ")
+            withStyle(SpanStyle(color = C.Text, fontWeight = FontWeight.SemiBold)) { append(onlyFix) }
+        }
+    } else {
+        AnnotatedString(stringResource(R.string.rev_saved_now, saved))
+    }
+    // Spaces kept as they are: "Chiller  1" → "Chiller 1" must show the extra space.
+    Text(
+        text, Modifier.semantics { contentDescription = if (onlyFix != null) "$savedNow: $saved → $onlyFix" else text.text },
+        color = C.Soft, fontSize = 12.sp, fontFamily = ScleraFonts.Inter,
+    )
 }
 
 @Composable

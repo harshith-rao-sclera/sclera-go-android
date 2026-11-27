@@ -30,12 +30,23 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // The asset data collection API: QA for debug builds; release builds read `ADC_API_URL_RELEASE` from
-    // gradle.properties (the production URL is not agreed yet, so it falls back to QA). Always https, ends in "/".
+    // The asset data collection API: QA for debug builds, production for release (which may override it with
+    // `ADC_API_URL_RELEASE` in gradle.properties). Always https, ends in "/". QA keeps `/api` in front of `/v1/`
+    // (its gateway takes it off); production has none.
     val adcQaApiUrl = "https://adc-qa.sclera.com/api/v1/"
-    val adcReleaseApiUrl = (providers.gradleProperty("ADC_API_URL_RELEASE").orNull ?: adcQaApiUrl)
+    val adcApiUrl = "https://api.adc.sclera.com/v1/"
+    val adcReleaseApiUrl = (providers.gradleProperty("ADC_API_URL_RELEASE").orNull ?: adcApiUrl)
         .also { require(it.startsWith("https://")) { "ADC_API_URL_RELEASE must be an https URL" } }
         .let { if (it.endsWith("/")) it else "$it/" }
+
+    // The sync engine's server (data, image and large-file sync, its config and the property database downloads): its
+    // own address, as the ADC API's: QA for debug builds, production for release (which may override it with
+    // `SYNC_URL_RELEASE`). Always https, ends in "/sync" with no trailing slash: the engine adds "/sync" itself, so
+    // only the host is handed to it.
+    val syncQaUrl = "https://adc-qa.sclera.com/sync"
+    val syncUrl = "https://api.adc.sclera.com/sync"
+    val syncReleaseUrl = (providers.gradleProperty("SYNC_URL_RELEASE").orNull ?: syncUrl).trimEnd('/')
+        .also { require(it.startsWith("https://") && it.endsWith("/sync")) { "SYNC_URL_RELEASE must be an https URL ending in /sync" } }
 
     buildTypes {
         debug {
@@ -43,6 +54,7 @@ android {
             buildConfigField("String", "ACCOUNTS_URL", "\"https://qa-accounts.sclera.com\"")
             buildConfigField("String", "APP_URL", "\"https://qa-app.sclera.com\"")
             buildConfigField("String", "ADC_API_URL", "\"$adcQaApiUrl\"")
+            buildConfigField("String", "SYNC_URL", "\"$syncQaUrl\"")
             enableUnitTestCoverage = true
         }
         release {
@@ -51,6 +63,7 @@ android {
             buildConfigField("String", "ACCOUNTS_URL", "\"https://accounts.sclera.com\"")
             buildConfigField("String", "APP_URL", "\"https://app.sclera.com\"")
             buildConfigField("String", "ADC_API_URL", "\"$adcReleaseApiUrl\"")
+            buildConfigField("String", "SYNC_URL", "\"$syncReleaseUrl\"")
             // R8: shrink, optimize and obfuscate the whole app (AGP 9.0 has no stable `optimization {}` DSL).
             isMinifyEnabled = true
             isShrinkResources = true

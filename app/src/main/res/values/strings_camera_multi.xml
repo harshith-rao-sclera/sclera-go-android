@@ -10,6 +10,8 @@
     <string name="camera_single">Single</string>
     <string name="camera_multiple">Multiple</string>
     <string name="camera_take_more">Take more</string>
+    <!-- A Multiple video stopped on its own at the server's upload limit (1: megabytes); what was recorded is kept. -->
+    <string name="camera_video_size_limit">The video stopped at the %1$d MB upload limit. What was recorded is kept.</string>
     <string name="camera_asset_full">One asset takes up to %1$d photos. Untick one to tick another.</string>
     <!-- A shot refused in the camera as its kind (1: Nameplate, Asset or Label ID) already has the most (2) allowed. -->
     <string name="camera_kind_full">%1$s already has %2$d photos, the most this property allows. Untick one to tick another.</string>

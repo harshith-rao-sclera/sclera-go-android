@@ -7,7 +7,9 @@ import com.sclera.sclerago.domain.model.LocNode
 import com.sclera.sclerago.domain.model.MasterFormat
 import com.sclera.sclerago.domain.model.PhotoRule
 import com.sclera.sclerago.domain.model.PlaceNames
+import com.sclera.sclerago.domain.model.RunningLookup
 import com.sclera.sclerago.domain.model.SpecLookup
+import com.sclera.sclerago.domain.system.TimeProvider
 import com.sclera.sclerago.domain.model.placeNames
 import com.sclera.sclerago.domain.model.reclassify
 import com.sclera.sclerago.domain.model.Permission
@@ -88,17 +90,37 @@ class SpecLookupUseCase @Inject constructor(
     private val repo: SpecLookupRepository,
     private val guard: PermissionGuard,
     private val runHere: LookupsRunHereRepository,
+    private val time: TimeProvider,
 ) {
     suspend fun latest(assetId: String): SpecLookup? = repo.latest(assetId)
 
-    /** Starts a look-up, remembered as started on this phone (the AI button's dot). */
+    /**
+     * Starts a look-up, remembered as started on this phone (the AI button's dot). Leaving the asset meanwhile doesn't
+     * stop it being started.
+     */
     suspend fun start(assetId: String, typed: Map<String, String>): SpecLookup {
         guard.requireOnline(Permission.COLLECT)
-        return repo.start(assetId, typed).also { runHere.keep(assetId, it.id) }
+        return runHere.run(assetId, running(typed, fromPhoto = false)) { repo.start(assetId, typed) }
     }
 
-    /** The look-up started on this phone for [assetId] whose suggestions haven't been applied; null when there is none. */
-    fun startedHere(assetId: String): String? = runHere.lookupFor(assetId)
+    /**
+     * The look-up started here for [assetId] that is still being asked for (the asset was left and opened again
+     * meanwhile), as it started; null when none is.
+     */
+    fun runningHere(assetId: String): RunningLookup? = runHere.running(assetId)
+
+    /** How a look-up started now is shown while it runs: what it looks up, and whether it reads photos first. */
+    private fun running(typed: Map<String, String>, fromPhoto: Boolean) =
+        RunningLookup(time.nowMillis(), fromPhoto, typed["make"].orEmpty(), typed["model"].orEmpty())
+
+    /** Waits for the look-up still being asked for [assetId]; null when there is none. */
+    suspend fun awaitRunningHere(assetId: String): SpecLookup? = runHere.awaitRunning(assetId)
+
+    /**
+     * The look-up started on this phone for [assetId] whose suggestions haven't been applied; null when there is none.
+     * A server job (with an id) is to be read back from the server; the phone's look-up (no id) is what it found.
+     */
+    fun startedHere(assetId: String): SpecLookup? = runHere.lookupFor(assetId)
 
     /** [assetId]'s suggestions were applied, or its look-up came to nothing: no dot any more. */
     fun forgetStartedHere(assetId: String) = runHere.forget(assetId)
@@ -121,10 +143,15 @@ class SpecLookupUseCase @Inject constructor(
     /** The photos the phone's look-up sends, as the server reads them (a few spare in case one can't be read here). */
     fun photosToRead(media: List<Media>): List<Media> = readablePhotos(media, MAX_CLASSIFY_PHOTOS * 2)
 
-    /** The phone's look-up from [photos] and the form's [typed] values (POST /properties/{id}/lookup). */
+    /**
+     * The phone's look-up from [photos] and the form's [typed] values (POST /properties/{id}/lookup). The server keeps
+     * nothing of it, so it runs on when the asset is left, and what it found is kept here until applied.
+     */
     suspend fun lookUpOnPhone(assetId: String, photos: List<Media>, typed: Map<String, String>, masterFormatId: String?): SpecLookup {
         guard.requireOnline(Permission.COLLECT)
-        return repo.lookUpOnPhone(assetId, photos, typed, masterFormatId).also { runHere.keep(assetId, it.id) }
+        return runHere.run(assetId, running(typed, fromPhoto = photos.isNotEmpty())) {
+            repo.lookUpOnPhone(assetId, photos, typed, masterFormatId)
+        }
     }
 
     private companion object {

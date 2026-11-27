@@ -11,4 +11,8 @@
     <string name="rev_or_type_number">Or type a number</string>
     <!-- Under a number field's fix when a letter was typed (it isn't taken). -->
     <string name="rev_numbers_only">Numbers only</string>
+    <!-- An open issue: what the field holds now (1), when there are several suggested fixes or none. -->
+    <string name="rev_saved_now">Now: %1$s</string>
+    <!-- Read out before the saved value struck through beside the one suggested fix. -->
+    <string name="rev_saved_now_label">Saved now</string>
 </resources>

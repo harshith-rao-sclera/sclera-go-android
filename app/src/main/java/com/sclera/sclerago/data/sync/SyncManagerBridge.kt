@@ -13,7 +13,6 @@ import com.sclera.sclerago.utility.Utility
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.requery.android.database.sqlite.SQLiteDatabase
 import org.json.JSONObject
-import java.net.URI
 import java.util.Optional
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -262,9 +261,9 @@ class SyncManagerBridge @Inject constructor(
         const val SESSION_URL = AuthConfig.SCLERA_API + "/token"
 
         /**
-         * The ADC host alone (`https://adc.…`): the engine adds `/adc-offline-sync/api/v1/…` itself, so the
-         * `/api/v1/` that [BuildConfig.ADC_API_URL] ends in would double the path and every sync call would 404.
+         * The sync server as the engine takes it: [BuildConfig.SYNC_URL] (`https://api.adc.sclera.com/sync`) without
+         * its `/sync`, which the engine adds itself before `/api/v1/…`.
          */
-        val ENGINE_URL: String = URI(BuildConfig.ADC_API_URL).let { "${it.scheme}://${it.rawAuthority}" }
+        val ENGINE_URL: String = BuildConfig.SYNC_URL.removeSuffix("/sync")
     }
 }

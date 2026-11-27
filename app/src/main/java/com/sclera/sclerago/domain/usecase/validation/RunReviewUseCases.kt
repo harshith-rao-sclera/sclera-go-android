@@ -4,6 +4,7 @@ import com.sclera.sclerago.domain.model.OnlineError
 import com.sclera.sclerago.domain.model.OnlineException
 import com.sclera.sclerago.domain.model.Permission
 import com.sclera.sclerago.domain.repository.FileRepository
+import com.sclera.sclerago.domain.repository.ValidationCatalogRepository
 import com.sclera.sclerago.domain.repository.ValidationRunRepository
 import com.sclera.sclerago.domain.usecase.access.PermissionGuard
 import com.sclera.sclerago.domain.validation.BulkFixResult
@@ -104,9 +105,20 @@ class DecideAssetsUseCase @Inject constructor(private val repo: ValidationRunRep
     }
 }
 
-/** Merges duplicate assets into the one kept, with the value chosen for each field that differs. Reviewers only. */
-class MergeDuplicatesUseCase @Inject constructor(private val repo: ValidationRunRepository, private val guard: PermissionGuard) {
-    suspend fun load(propertyId: String, assetIds: List<String>): List<MergeAsset> = assetIds.distinct().map { repo.mergeAsset(propertyId, it) }
+/**
+ * Merges duplicate assets into the one kept, with the value chosen for each field that differs. Reviewers only. Only the
+ * property's standard fields are compared and chosen, as on the web: an asset's own fields are left to the server, which
+ * moves them to the kept asset (or keeps the kept asset's field of that name) and refuses a value for one that isn't its.
+ */
+class MergeDuplicatesUseCase @Inject constructor(
+    private val repo: ValidationRunRepository,
+    private val catalog: ValidationCatalogRepository,
+    private val guard: PermissionGuard,
+) {
+    suspend fun load(propertyId: String, assetIds: List<String>): List<MergeAsset> {
+        val standard = catalog.fields(propertyId).mapTo(HashSet()) { it.id }
+        return assetIds.distinct().map { id -> repo.mergeAsset(propertyId, id).let { a -> a.copy(values = a.values.filterKeys { it in standard }) } }
+    }
 
     /** The value each field gets by default: the kept asset's when it has one, else the first other asset's. */
     fun defaults(keep: MergeAsset, all: List<MergeAsset>): Map<String, IssueValue> {

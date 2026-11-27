@@ -4,8 +4,9 @@
 
   Pins are the SHA-256 of the public key (SPKI) of Let's Encrypt's intermediates and roots, not of the leaf
   certificates, which renew every 90 days:
-    RSA chain (accounts.sclera.com):     intermediate "YR1", roots "ISRG Root YR" and "ISRG Root X1";
-    ECDSA chain (adc-qa.sclera.com):     intermediate "YE1", roots "ISRG Root YE" and "ISRG Root X2".
+    RSA chain (accounts.sclera.com, app.sclera.com): intermediate "YR1", roots "ISRG Root YR" and "ISRG Root X1";
+    ECDSA chain (adc-qa.sclera.com):                   intermediate "YE1", roots "ISRG Root YE" and "ISRG Root X2".
+  The production API (api.adc.sclera.com) is served with Amazon's certificates instead: it has its own pin-set below.
   Any one matching is enough, so a change of intermediate does not lock people out. Pins stop being enforced
   after the expiration date (then normal validation applies); renew them before then:
     openssl s_client -connect accounts.sclera.com:443 -showcerts   (then hash each certificate's public key)
@@ -26,6 +27,26 @@
             <pin digest="SHA-256">brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=</pin>
             <pin digest="SHA-256">sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w=</pin>
             <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin>
+        </pin-set>
+    </domain-config>
+
+    <!--
+      The production asset data collection API. Its certificate is Amazon's, so the Let's Encrypt pins above don't match
+      it; this more specific entry takes its place for this host. Pins (SHA-256 of the public key):
+        intermediates "Amazon RSA 2048 S23" (in use), "Amazon RSA 2048 M01", "M02", "M03" (backups);
+        roots "Amazon Root CA 1" (in use) and "Starfield Services Root CA - G2" (cross-sign).
+      Any one matching is enough. Check with:
+        openssl s_client -connect api.adc.sclera.com:443 -showcerts   (then hash each certificate's public key)
+    -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">api.adc.sclera.com</domain>
+        <pin-set expiration="2028-08-01">
+            <pin digest="SHA-256">LvuAxGX2Q3XiunS97SGTuTBOiN5ke14BFa6zkkILJ28=</pin>
+            <pin digest="SHA-256">++MBgDH5WGvL9Bcn5Be30cRcL0f5O+NyoXuWtQdX1aI=</pin>
+            <pin digest="SHA-256">f0KW/FtqTjs108NpYj42SrGvOB2PpxIVM8nWxjPqJGE=</pin>
+            <pin digest="SHA-256">NqvDJlas/GRcYbcWE8S/IceH9cq77kg0jVhZeAPXq8k=</pin>
+            <pin digest="SHA-256">9+ze1cZgR9KO1kZrVDxA4HQ6voHRCSVNz4RdTCx4U8U=</pin>
+            <pin digest="SHA-256">KwccWaCgrnaw6tsrrSO61FgLacNgG2MMLq8GE6+oP5I=</pin>
         </pin-set>
     </domain-config>
 

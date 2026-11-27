@@ -4,5 +4,7 @@
     <string name="camera_discard_title">Discard your photos?</string>
     <string name="camera_discard_body">The photos and videos you took aren’t saved as an asset yet. If you leave now, they’re deleted.</string>
     <string name="camera_discard_keep">Keep photos</string>
+    <!-- Closing the camera opened from an asset's Add photo with shots still in its strip. -->
+    <string name="camera_discard_body_asset">The photos and videos you took aren’t added to this asset yet. If you close the camera, they’re deleted.</string>
     <string name="detail_discard_photos_body">What you’ve entered won’t be saved, and the photos and videos you took for it are deleted.</string>
 </resources>

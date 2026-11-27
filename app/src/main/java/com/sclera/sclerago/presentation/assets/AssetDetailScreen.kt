@@ -236,13 +236,14 @@ fun AssetDetailScreen(
                             when (pageTab) {
                                 DetailTabKind.INFO -> {
                                     // The Tags bar first, once the asset has been added (not while a new one is being filled in),
-                                    // then the photos, with a + that opens the camera (as the Media tab's Camera, into Other photos).
+                                    // then the photos, with a + that opens the camera; what it takes is read and sorted into
+                                    // nameplate, label ID or asset (one that can't be read goes to Other photos).
                                     // Tagging changes the asset (its tag flags), so only for whoever may change it (collect,
                                     // theirs or nobody's unless a reviewer, not in Managed Assets): a submitted or signed-off
                                     // asset only by a reviewer. Anyone else sees the icons greyed out, saying why.
                                     if (!isNew) TagsBar(tags, actions.tags, blocked = b.change)
                                     InfoPhotoStrip(
-                                        state.media, onAdd = if (mediaClosed) null else ({ actions.onAddPhoto(null) }), onOpen = open,
+                                        state.media, onAdd = if (mediaClosed) null else actions.onAddSortedPhoto, onOpen = open,
                                         onDownload = actions.onDownloadMedia, onRemove = if (mediaClosed) null else ({ removeMedia = it }),
                                         blocked = b.change,
                                     )

@@ -786,6 +786,9 @@ class AssetDetailViewModel @Inject constructor(
         useCases.sortShot(shot, state.value.media + ticked, photoKind, readKind = !asOther)
 
     /** Why shot [shot] can't be ticked beside the asset's photos and the shots already [ticked]; null when it can. */
+    /** A shot of the camera's strip that won't be added (replaced by its crop): the app's own file is deleted. */
+    fun discardShot(shot: Media) = deleteOwned(listOf(shot))
+
     suspend fun shotRefusal(shot: Media, ticked: List<Media>): PhotoRefusal? = useCases.sortShot.refusal(shot, state.value.media + ticked)
 
     fun choosePhotoKind(kind: PhotoKind?) {
@@ -1265,14 +1268,53 @@ class AssetDetailViewModel @Inject constructor(
     fun closeAi() = form.update { it.copy(aiOpen = false) }
 
     /**
-     * Opened again after a look-up was started here and its suggestions weren't applied: it is read back from the server
-     * (followed while it still runs), so the AI button shows its dot again and opens on the suggestions. Only that same
-     * look-up counts; one started elsewhere since, or one that found nothing, is left for the AI button as usual.
+     * Opened again after a look-up was started here and its suggestions weren't applied: the AI button shows its dot
+     * again and opens on the suggestions. One still under way when the asset was left carried on: it is waited for (the
+     * AI button blinks meanwhile, as it does while a look-up runs), not started again. The phone's look-up from photos
+     * isn't kept by the server, so what it found comes back from the phone; a server job is read back from the server
+     * (followed while it still runs), and only that same job counts: one started elsewhere since, or one that found
+     * nothing, is left for the AI button as usual.
      */
     private fun restoreLookupRunHere(assetId: String) {
-        val startedHere = formData.lookups.startedHere(assetId) ?: return
-        form.update { it.copy(aiRanHere = true, ai = AiDialogState(AiPhase.LOADING)) }
+        val running = formData.lookups.runningHere(assetId)
+        val before = formData.lookups.startedHere(assetId)
+        if (running == null && before == null) return
+        form.update {
+            it.copy(
+                aiRanHere = true,
+                // Still running: the searching sheet carries on from when it started (its time, progress and steps).
+                ai = if (running != null) {
+                    AiDialogState(AiPhase.SEARCHING, running.make, running.model, startedAt = running.startedAt, fromPhoto = running.fromPhoto)
+                } else {
+                    AiDialogState(AiPhase.LOADING, before?.typed?.get("make").orEmpty(), before?.typed?.get("model").orEmpty())
+                },
+            )
+        }
         aiJob = viewModelScope.launch {
+            val kept = try {
+                formData.lookups.awaitRunningHere(assetId) ?: formData.lookups.startedHere(assetId)
+            } catch (e: OnlineException) {
+                failAi(e.error)
+                return@launch
+            }
+            if (kept == null) {
+                startOverAi()
+                return@launch
+            }
+            val startedHere = kept.id
+            // What is still empty decides which suggestions are offered: the asset's form is read first.
+            withTimeoutOrNull(FORM_WAIT_MS) { state.first { it.asset?.id == assetId && it.fields.isNotEmpty() } }
+            if (startedHere.isBlank()) {
+                if (!hasNews(kept)) {
+                    forgetLookupRunHere(assetId)
+                    return@launch
+                }
+                setAi { it.copy(make = kept.typed["make"] ?: it.make, model = kept.typed["model"] ?: it.model) }
+                show(kept)
+                // Finished while the sheet was closed: say so, as a look-up left running does.
+                if (running != null && !form.value.aiOpen) message.emit(doneText(kept, state.value.value("name").ifBlank { state.value.asset?.name.orEmpty() }))
+                return@launch
+            }
             val latest = try {
                 formData.lookups.latest(assetId)
             } catch (_: OnlineException) {

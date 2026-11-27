@@ -104,7 +104,7 @@ object MediaLoader {
     internal const val MAX_PHOTO_BYTES = 15L * 1024 * 1024
 
     /**
-     * True for an https URL on the Sclera domain (profile photos, e.g. `qa-app.sclera.com`, see
+     * True for an https URL on the Sclera domain (profile photos, e.g. `app.sclera.com`, see
      * [AuthConfig.isTrustedHost]): nothing is downloaded over plain http or from any other server.
      */
     internal fun isAllowedPhotoUrl(url: String): Boolean {

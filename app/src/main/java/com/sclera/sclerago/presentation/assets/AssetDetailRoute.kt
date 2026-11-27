@@ -3,6 +3,7 @@ package com.sclera.sclerago.presentation.assets
 import com.sclera.sclerago.domain.model.ATTACHABLE_FILE_TYPES
 import com.sclera.sclerago.domain.model.TagKind
 import com.sclera.sclerago.services.tagging.NfcTagReader
+import com.sclera.sclerago.presentation.components.DiscardChangesDialog
 import com.sclera.sclerago.presentation.components.LocalToaster
 import com.sclera.sclerago.presentation.components.ToastKind
 
@@ -144,6 +145,43 @@ fun AssetDetailRoute(
     var camVideo by remember(asset.id) { mutableStateOf(false) }
     // One shot is sorted and checked at a time, so two quick shots can't both take the last room of a kind.
     val shotLock = remember(asset.id) { Mutex() }
+    // The strip's photo being cropped (its crop screen over the camera); null: none.
+    var cropShot by remember(asset.id) { mutableStateOf<Media?>(null) }
+    // Closing the camera with shots in its strip asks first, as the Camera tab does.
+    var askDiscardShots by remember(asset.id) { mutableStateOf(false) }
+
+    // The camera closes and every shot left in its strip goes (the app's own files deleted), so the next Add photo
+    // starts empty.
+    fun discardStrip() {
+        camCaps.forEach(vm::discardShot)
+        camCaps = emptyList()
+        camSel = emptySet()
+        askDiscardShots = false
+        camOpen = false
+    }
+
+    fun closeCamera() {
+        if (camCaps.isEmpty()) camOpen = false else askDiscardShots = true
+    }
+
+    // A shot joins the strip and is read on the device (nameplate, label ID or asset, or the card's kind): it is ticked
+    // while its kind and the asset have room, else the camera says why.
+    fun sortIntoStrip(m: Media) {
+        camChecking = camChecking + m.id
+        scope.launch {
+            shotLock.withLock {
+                try {
+                    val sorted = vm.sortShot(m, camCaps.filter { it.id in camSel && it.id != m.id })
+                    if (camCaps.none { it.id == m.id }) return@withLock
+                    camCaps = camCaps.map { if (it.id == m.id) sorted.shot else it }
+                    if (sorted.refusal == null) camSel = camSel + m.id
+                    else toaster.show(sorted.refusal.notice(), ToastKind.PROBLEM)
+                } finally {
+                    camChecking = camChecking - m.id
+                }
+            }
+        }
+    }
     // Gallery and file picks come straight back to these details, attached.
     val galleryPick = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_PICKS)) { uris ->
         if (uris.isNotEmpty()) scope.launch { attach(describeVisualMedia(context, uris)) }
@@ -258,6 +296,12 @@ fun AssetDetailRoute(
             camVideo = false
             camOpen = true
         },
+        // The Info tab's +: no kind given, so each photo is read on the device and sorted into its card.
+        onAddSortedPhoto = {
+            vm.choosePhotoKind(null)
+            camVideo = false
+            camOpen = true
+        },
     )
     // The asset's media is shown from the offline database, or from the server while the sync hasn't brought it down.
     val mediaSources = remember(asset.id, mediaVm) { MediaSources { m, preview -> mediaVm.source(asset.id, m, preview) } }
@@ -287,33 +331,25 @@ fun AssetDetailRoute(
 
     if (camOpen) {
         // The camera sits above the details, so its back button is checked first.
-        BackHandler { camOpen = false }
+        BackHandler { closeCamera() }
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             CameraCapture(
-                active = true,
+                // Not under the crop screen.
+                active = cropShot == null,
                 addingToAsset = true,
                 captures = camCaps, selected = camSel,
                 videoMode = camVideo, onVideoMode = { camVideo = it },
-                // Each shot joins the strip and is read on the device as it is taken (nameplate, label ID or asset, or the
-                // card's kind): it is ticked while its kind and the asset have room, else the camera says why. Done adds the
-                // ticked ones.
+                // Each shot joins the strip and is read on the device as it is taken. Done adds the ticked ones.
                 onCapture = { m ->
-                    camCaps = camCaps + m
-                    camChecking = camChecking + m.id
-                    scope.launch {
-                        shotLock.withLock {
-                            try {
-                                val sorted = vm.sortShot(m, camCaps.filter { it.id in camSel && it.id != m.id })
-                                if (camCaps.none { it.id == m.id }) return@withLock
-                                camCaps = camCaps.map { if (it.id == m.id) sorted.shot else it }
-                                if (sorted.refusal == null) camSel = camSel + m.id
-                                else toaster.show(sorted.refusal.notice(), ToastKind.PROBLEM)
-                            } finally {
-                                camChecking = camChecking - m.id
-                            }
-                        }
+                    // Saved only after the camera was closed: it isn't wanted.
+                    if (!camOpen) vm.discardShot(m)
+                    else {
+                        camCaps = camCaps + m
+                        sortIntoStrip(m)
                     }
                 },
+                // A photo in the strip can be cropped before it is added, as in the Camera tab.
+                onCrop = { m -> if (!m.video && camCaps.any { it.id == m.id }) cropShot = m },
                 checking = camChecking,
                 onToggle = { id ->
                     val m = camCaps.firstOrNull { it.id == id }
@@ -332,14 +368,36 @@ fun AssetDetailRoute(
                         camOpen = false
                     }
                 },
-                onClose = { camOpen = false },
+                onClose = ::closeCamera,
                 galleryLimit = vm.galleryLimit(),
+                // The ticked shots join the asset and the unticked ones go, as in the Camera tab.
                 onDone = {
                     attach(camCaps.filter { it.id in camSel })
                     camCaps = camCaps.filter { it.id !in camSel }
-                    camSel = emptySet()
-                    camOpen = false
+                    discardStrip()
                 },
+            )
+        }
+        // The cropped photo takes the original's place in the strip and is read again (what it shows changed, so its kind
+        // may have); the original's file goes. Its own back button closes it before the camera's.
+        cropShot?.let { shot ->
+            CropShotScreen(shot, onCancel = { cropShot = null }) { cropped ->
+                cropShot = null
+                if (camCaps.none { it.id == shot.id }) {
+                    vm.discardShot(cropped)
+                    return@CropShotScreen
+                }
+                camCaps = camCaps.map { if (it.id == shot.id) cropped else it }
+                camSel = camSel - shot.id
+                vm.discardShot(shot)
+                sortIntoStrip(cropped)
+            }
+        }
+        if (askDiscardShots) {
+            DiscardChangesDialog(
+                onKeep = { askDiscardShots = false }, onDiscard = ::discardStrip,
+                title = stringResource(R.string.camera_discard_title), body = stringResource(R.string.camera_discard_body_asset),
+                keep = stringResource(R.string.camera_discard_keep),
             )
         }
     }

@@ -132,6 +132,8 @@ class AssetDetailActions(
     val onRevalidate: (fromStart: Boolean) -> Unit = {},
     /** Open the camera for a photo of [kind] (null: other photos) (Media tab +). */
     val onAddPhoto: (kind: PhotoKind?) -> Unit = {},
+    /** Open the camera for photos that are read and sorted into nameplate, label ID or asset (Info tab's photos +). */
+    val onAddSortedPhoto: () -> Unit = {},
     /** Take a web page or the uploaded file off the asset (Documents tab, after the confirmation). */
     val onRemoveDocument: (AssetDocument) -> Unit = {},
     /** Fetches a document's file from the server and opens it. */

@@ -2,7 +2,7 @@ package com.sclera.sclerago.data.remote.adc
 
 import com.sclera.sclerago.BuildConfig
 
-/** Where the asset data collection (ADC) API is: set per build type in app/build.gradle.kts (QA for debug, `ADC_API_URL_RELEASE` for release). */
+/** Where the asset data collection (ADC) API is: set per build type in app/build.gradle.kts (QA for debug; production for release, which `ADC_API_URL_RELEASE` may override). */
 object AdcConfig {
     /** The `/v1` base URL, https, ending in `/`. */
     const val API_URL = BuildConfig.ADC_API_URL

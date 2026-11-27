@@ -21,6 +21,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Size
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
@@ -30,7 +31,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
+import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.Quality
+import androidx.camera.video.QualitySelector
+import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.CameraController
@@ -159,8 +167,31 @@ private fun CameraView(vm: AppViewModel, waiting: Int, onDiscardReview: () -> Un
 /** The most the camera's gallery lets be picked at once. */
 private const val GALLERY_MAX = 20
 
+/** Multiple's videos are recorded at 720p (or the nearest the camera has), small enough to send as they are. */
+private val MANY_VIDEO_QUALITY = QualitySelector.from(Quality.HD, FallbackStrategy.higherQualityOrLowerThan(Quality.HD))
+
+/** Where a Multiple video stops: just under the server's upload limit ([MAX_DOCUMENT_UPLOAD_MB]), with room for the file's ending. */
+private const val MANY_VIDEO_MAX_BYTES = (MAX_DOCUMENT_UPLOAD_MB - 2) * 1024L * 1024L
+
 /** The size the strip's thumbnails are read at (pixels). */
 private const val STRIP_PX = 240
+
+/** The largest photo taken, 4:3 (about 5 MP): the camera's biggest size up to this, never its full 12 MP or more. */
+private const val PHOTO_MAX_WIDTH = 2560
+private const val PHOTO_MAX_HEIGHT = 1920
+
+/**
+ * Photos smaller than the sensor's full size: each shot is quicker to take and save (several in a row don't queue as
+ * long), and quicker to upload and for the AI to read, while a nameplate taken close up stays readable. The camera's
+ * largest 4:3 size up to [PHOTO_MAX_WIDTH] x [PHOTO_MAX_HEIGHT] (a Galaxy Z Fold3 offers 1920 x 1440 there); one with
+ * none that small takes its smallest above.
+ */
+private fun photoResolution(): ResolutionSelector = ResolutionSelector.Builder()
+    .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+    .setResolutionStrategy(
+        ResolutionStrategy(Size(PHOTO_MAX_WIDTH, PHOTO_MAX_HEIGHT), ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER),
+    )
+    .build()
 
 /** A shot being saved, shown in the strip by [frame] (what the preview showed as it was taken; null: none). */
 private class PendingShot(val id: String, val frame: ImageBitmap?) {
@@ -290,6 +321,7 @@ fun CameraCapture(
             cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             setEnabledUseCases(CameraController.IMAGE_CAPTURE)
             imageCaptureFlashMode = ImageCapture.FLASH_MODE_OFF
+            imageCaptureResolutionSelector = photoResolution()
         }
     }
     var backLens by remember { mutableStateOf(true) }
@@ -300,6 +332,11 @@ fun CameraCapture(
 
     LaunchedEffect(videoMode) {
         controller.setEnabledUseCases(if (videoMode) CameraController.VIDEO_CAPTURE else CameraController.IMAGE_CAPTURE)
+    }
+    // Multiple sends each video to the server as it is, so it is recorded small (720p) to begin with; Single's are
+    // re-encoded when they join the asset, so they keep the camera's usual quality.
+    LaunchedEffect(many) {
+        controller.videoCaptureQualitySelector = if (many == true) MANY_VIDEO_QUALITY else Recorder.DEFAULT_QUALITY_SELECTOR
     }
     LaunchedEffect(backLens) {
         controller.cameraSelector = if (backLens) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
@@ -363,9 +400,13 @@ fun CameraCapture(
         recording?.let { it.stop(); return }
         val f = File(captureDir(context), "VID_${stamp()}.mp4")
         recNanos = 0L
+        // A video stops on its own, and what was recorded is kept: an asset's at 10 seconds (MAX_CLIP_MS); Multiple's, which
+        // go straight to the server as files, have no time limit and stop just under its upload limit instead.
+        val output = FileOutputOptions.Builder(f).apply {
+            if (many == true) setFileSizeLimit(MANY_VIDEO_MAX_BYTES) else setDurationLimitMillis(MAX_CLIP_MS)
+        }.build()
         recording = controller.startRecording(
-            // A video stops on its own at 10 seconds (MAX_CLIP_MS); what was recorded is kept.
-            FileOutputOptions.Builder(f).setDurationLimitMillis(MAX_CLIP_MS).build(),
+            output,
             AudioConfig.AUDIO_DISABLED,
             ContextCompat.getMainExecutor(context),
         ) { ev ->
@@ -376,6 +417,9 @@ fun CameraCapture(
                     val ms = ev.recordingStats.recordedDurationNanos / 1_000_000
                     if (ev.error != VideoRecordEvent.Finalize.ERROR_NO_VALID_DATA && f.exists() && f.length() > 0) {
                         onCapture(Media("c-${f.name}", Uri.fromFile(f).toString(), video = true, durationMs = ms, owned = true))
+                        if (ev.error == VideoRecordEvent.Finalize.ERROR_FILE_SIZE_LIMIT_REACHED) {
+                            toaster.show(UiText.Res(R.string.camera_video_size_limit, listOf(MAX_DOCUMENT_UPLOAD_MB)), ToastKind.INFO)
+                        }
                     } else {
                         f.delete()
                         toaster.show(UiText.Res(R.string.camera_video_too_short), ToastKind.PROBLEM)
@@ -431,7 +475,9 @@ fun CameraCapture(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Box(Modifier.size(8.dp).background(C.Red, CircleShape))
-                        Txt(formatDuration(recNanos / 1_000_000) + " / " + formatDuration(MAX_CLIP_MS), 12, 700, C.Red)
+                        // Multiple's videos have no time limit, so only how long it has run.
+                        val elapsed = formatDuration(recNanos / 1_000_000)
+                        Txt(if (many == true) elapsed else elapsed + " / " + formatDuration(MAX_CLIP_MS), 12, 700, C.Red)
                     }
                 } else if (many != null) {
                     // Single / Multiple asset(s), between close and flash.
