@@ -26,6 +26,7 @@ object NfcTagReader {
      */
     fun start(activity: Activity, onRead: (NfcContent) -> Unit, onFailure: (NfcFailure) -> Unit): Boolean {
         mainHandler.removeCallbacksAndMessages(null)
+        delivered = false
         val adapter = NfcAdapter.getDefaultAdapter(activity)
         if (adapter == null) {
             onFailure(NfcFailure.UNAVAILABLE)
@@ -37,7 +38,15 @@ object NfcTagReader {
         }
         adapter.enableReaderMode(
             activity,
-            { tag -> activity.runOnUiThread { read(tag, onRead, onFailure) } },
+            { tag ->
+                activity.runOnUiThread {
+                    // Once is enough: the tag may be seen again while the reader waits to be switched off.
+                    if (!delivered) {
+                        delivered = true
+                        read(tag, onRead, onFailure)
+                    }
+                }
+            },
             NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_NFC_F or NfcAdapter.FLAG_READER_NFC_V,
             null,
         )
@@ -97,6 +106,7 @@ object NfcTagReader {
     }
 
     private const val TAG_RELEASE_MS = 3000L
+    private var delivered = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private const val LANGUAGE_MASK = 0x3F
