@@ -4,5 +4,5 @@
     <!-- A JACS code with its title: %1$s = the code (238219), %2$s = its title (Fan Coil Units). -->
     <string name="jacs_with_title">%1$s · %2$s</string>
     <!-- Offline, and the JACS codes haven't been downloaded to this phone yet. -->
-    <string name="jacs_catalog_missing">JACS codes download the first time you\'re connected. You can still type a code.</string>
+    <string name="jacs_catalog_missing">JACS codes download the first time you\'re connected.</string>
 </resources>

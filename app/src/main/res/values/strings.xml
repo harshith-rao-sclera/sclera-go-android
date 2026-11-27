@@ -486,9 +486,8 @@
     <string name="jacs_title">JACS code</string>
     <string name="jacs_subtitle">Pick the asset’s code. Its type is set from it too.</string>
     <string name="jacs_search_hint">Search codes, titles or equipment</string>
-    <string name="jacs_use_typed">Use this code</string>
     <string name="jacs_none">No JACS code</string>
-    <string name="jacs_no_match">No JACS code matches. You can still use what you typed.</string>
+    <string name="jacs_no_match">No JACS code matches.</string>
     <string name="jacs_more">Load more</string>
     <string name="jacs_type_set">Type set from the JACS code: %1$s</string>
     <string name="classify_working">Working out what it is…</string>

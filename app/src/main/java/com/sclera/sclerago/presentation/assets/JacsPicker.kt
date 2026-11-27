@@ -128,7 +128,7 @@ internal class JacsPicker(private val useCases: JacsUseCases, private val scope:
                 }
             }
         } catch (e: OnlineException) {
-            // Offline with no catalogue on the phone yet (it comes with the first connection): a code can still be typed.
+            // Offline with no catalogue on the phone yet (it comes with the first connection): nothing to pick from yet.
             val why = if (e.error == OnlineError.Offline) UiText.Res(R.string.jacs_catalog_missing) else e.error.toUiText()
             picker.update { it?.copy(loading = false, error = why) }
         }
@@ -140,8 +140,8 @@ internal class JacsPicker(private val useCases: JacsUseCases, private val scope:
 }
 
 /**
- * The JACS code picker: search the catalog, each code with its title (the asset's [current] code marked); "Use …"
- * keeps a code typed by hand (also offline), and "No JACS code" clears it.
+ * The JACS code picker: search the catalog, each code with its title (the asset's [current] code marked), and "No JACS
+ * code" to clear it. Only a code in the catalog can be picked: what is typed searches, it is never used as a code.
  */
 @Composable
 fun JacsPickerSheet(s: JacsPickerState, current: String, actions: JacsPickerActions) {
@@ -163,9 +163,6 @@ fun JacsPickerSheet(s: JacsPickerState, current: String, actions: JacsPickerActi
                     fun row(code: String, title: String?, on: Boolean, tag: String) {
                         CodeRow(code, title, on, !first, tag) { actions.onPick(code) }
                         first = false
-                    }
-                    if (typed.isNotEmpty() && s.codes.none { it.code.equals(typed, ignoreCase = true) }) {
-                        row(typed, stringResource(R.string.jacs_use_typed), on = false, tag = JacsTags.code(typed))
                     }
                     s.codes.forEach { c -> row(c.code, c.title, on = c.code == current, tag = JacsTags.code(c.code)) }
                     if (current.isNotBlank()) row("", stringResource(R.string.jacs_none), on = false, tag = JacsTags.code(""))
