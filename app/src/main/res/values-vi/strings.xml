@@ -559,4 +559,17 @@
     <string name="property_type_or_select_city">Nhập hoặc chọn thành phố</string>
     <string name="property_choose_country_first">Hãy chọn quốc gia trước</string>
     <string name="rev_back">Quay lại</string>
+    <string name="translate_title">Dịch sang</string>
+    <string name="translate_search">Tìm ngôn ngữ</string>
+    <string name="translate_none">Không dịch</string>
+    <string name="translate_none_sub">Hiển thị văn bản như đã viết</string>
+    <string name="translate_button">Dịch</string>
+    <string name="translate_row_downloading">%1$s · Đang tải cho tên và bình luận…</string>
+    <string name="translate_row_ready">%1$s · Sẵn sàng, dùng được khi ngoại tuyến</string>
+    <string name="translate_row_failed">Chưa tải xuống. Tên và bình luận giữ nguyên như đã viết.</string>
+    <string name="translate_try_again">Thử lại</string>
+    <string name="translate_no_match">Không có ngôn ngữ nào khớp với tên đó.</string>
+    <string name="translate_comment_label">Đã dịch sang %1$s</string>
+    <string name="translate_comment_failed">Không thể dịch nội dung này</string>
+    <string name="translate_comment_translating">Đang dịch…</string>
 </resources>

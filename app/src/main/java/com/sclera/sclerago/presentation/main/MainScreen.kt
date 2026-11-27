@@ -140,6 +140,7 @@ fun ScleraApp(
     bulk: BulkEditViewModel = hiltViewModel(),
     connectivity: ConnectivityViewModel = hiltViewModel(),
     premise: PremiseViewModel = hiltViewModel(),
+
 ) {
     // Every form reports unsaved changes here, so tabs and side-menu pages can ask before dropping them.
     CompositionLocalProvider(LocalUnsavedForms provides vm.unsavedForms) {

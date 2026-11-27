@@ -591,4 +591,17 @@
     <string name="property_type_or_select_city">הקלד או בחר עיר</string>
     <string name="property_choose_country_first">בחר מדינה תחילה</string>
     <string name="rev_back">חזרה</string>
+    <string name="translate_title">תרגום ל</string>
+    <string name="translate_search">חיפוש שפות</string>
+    <string name="translate_none">לא לתרגם</string>
+    <string name="translate_none_sub">הצגת הטקסט כפי שנכתב</string>
+    <string name="translate_button">תרגום</string>
+    <string name="translate_row_downloading">%1$s · מוריד עבור שמות והערות…</string>
+    <string name="translate_row_ready">%1$s · מוכנה, פועלת ללא חיבור</string>
+    <string name="translate_row_failed">לא הורדה. שמות והערות יישארו כפי שנכתבו.</string>
+    <string name="translate_try_again">נסו שוב</string>
+    <string name="translate_no_match">אין שפה בשם הזה.</string>
+    <string name="translate_comment_label">תורגם ל%1$s</string>
+    <string name="translate_comment_failed">לא ניתן היה לתרגם זאת</string>
+    <string name="translate_comment_translating">מתרגם…</string>
 </resources>

@@ -94,6 +94,7 @@ import com.sclera.sclerago.presentation.model.icon
 import com.sclera.sclerago.presentation.model.labelRes
 import com.sclera.sclerago.presentation.model.problemsRes
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.translation.rememberTranslated
 import com.sclera.sclerago.presentation.theme.Txt
 import kotlinx.coroutines.launch
 
@@ -374,9 +375,9 @@ fun AssetRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Txt(a.name, 13, 600)
+                Txt(rememberTranslated(a.name), 13, 600)
                 // Manufacturer, model and its first specs (rated power, voltage, speed), when any is filled in.
-                if (a.detail.isNotEmpty()) Txt(a.detail, 12, 400, C.Muted, maxLines = 1)
+                if (a.detail.isNotEmpty()) Txt(rememberTranslated(a.detail), 12, 400, C.Muted, maxLines = 1)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 // The web's "Recollect" badge: sent back to be collected again.

@@ -594,4 +594,17 @@
     <string name="property_type_or_select_city">Введите или выберите город</string>
     <string name="property_choose_country_first">Сначала выберите страну</string>
     <string name="rev_back">Назад</string>
+    <string name="translate_title">Перевести на</string>
+    <string name="translate_search">Поиск языков</string>
+    <string name="translate_none">Не переводить</string>
+    <string name="translate_none_sub">Показывать текст как написан</string>
+    <string name="translate_button">Перевести</string>
+    <string name="translate_row_downloading">%1$s · Загрузка для названий и комментариев…</string>
+    <string name="translate_row_ready">%1$s · Готово, работает офлайн</string>
+    <string name="translate_row_failed">Не загружен. Названия и комментарии остаются как написаны.</string>
+    <string name="translate_try_again">Повторить</string>
+    <string name="translate_no_match">Нет языка с таким названием.</string>
+    <string name="translate_comment_label">Переведено на %1$s</string>
+    <string name="translate_comment_failed">Не удалось перевести</string>
+    <string name="translate_comment_translating">Перевод…</string>
 </resources>

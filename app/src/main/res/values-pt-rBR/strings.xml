@@ -584,4 +584,17 @@
     <string name="property_type_or_select_city">Digite ou selecione a cidade</string>
     <string name="property_choose_country_first">Escolha um país primeiro</string>
     <string name="rev_back">Voltar</string>
+    <string name="translate_title">Traduzir para</string>
+    <string name="translate_search">Pesquisar idiomas</string>
+    <string name="translate_none">Não traduzir</string>
+    <string name="translate_none_sub">Mostrar o texto como foi escrito</string>
+    <string name="translate_button">Traduzir</string>
+    <string name="translate_row_downloading">%1$s · Baixando para nomes e comentários…</string>
+    <string name="translate_row_ready">%1$s · Pronto, funciona offline</string>
+    <string name="translate_row_failed">Não baixado. Nomes e comentários ficam como foram escritos.</string>
+    <string name="translate_try_again">Tentar novamente</string>
+    <string name="translate_no_match">Nenhum idioma corresponde a esse nome.</string>
+    <string name="translate_comment_label">Traduzido para %1$s</string>
+    <string name="translate_comment_failed">Não foi possível traduzir isto</string>
+    <string name="translate_comment_translating">Traduzindo…</string>
 </resources>

@@ -786,4 +786,18 @@
     <string name="property_type_or_select_city">Type or select city</string>
     <string name="property_choose_country_first">Choose a country first</string>
     <string name="rev_back">Back</string>
+    <string name="translate_title">Translate to</string>
+    <string name="translate_search">Search languages</string>
+    <string name="translate_none">Don\'t translate</string>
+    <string name="translate_none_sub">Show text as it was written</string>
+    <string name="translate_button">Translate</string>
+    <string name="translate_glyph" translatable="false">文A</string>
+    <string name="translate_row_downloading">%1$s · Downloading for names and comments…</string>
+    <string name="translate_row_ready">%1$s · Ready, works offline</string>
+    <string name="translate_row_failed">Not downloaded. Names and comments stay as written.</string>
+    <string name="translate_try_again">Try again</string>
+    <string name="translate_no_match">No language matches that name.</string>
+    <string name="translate_comment_label">Translated to %1$s</string>
+    <string name="translate_comment_failed">Couldn\'t translate this</string>
+    <string name="translate_comment_translating">Translating…</string>
 </resources>

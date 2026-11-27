@@ -580,4 +580,17 @@
     <string name="property_type_or_select_city">Stadt eingeben oder auswählen</string>
     <string name="property_choose_country_first">Zuerst ein Land wählen</string>
     <string name="rev_back">Zurück</string>
+    <string name="translate_title">Übersetzen in</string>
+    <string name="translate_search">Sprachen suchen</string>
+    <string name="translate_none">Nicht übersetzen</string>
+    <string name="translate_none_sub">Text so anzeigen, wie er geschrieben wurde</string>
+    <string name="translate_button">Übersetzen</string>
+    <string name="translate_row_downloading">%1$s · Wird für Namen und Kommentare geladen…</string>
+    <string name="translate_row_ready">%1$s · Bereit, funktioniert offline</string>
+    <string name="translate_row_failed">Nicht heruntergeladen. Namen und Kommentare bleiben wie geschrieben.</string>
+    <string name="translate_try_again">Erneut versuchen</string>
+    <string name="translate_no_match">Keine Sprache mit diesem Namen.</string>
+    <string name="translate_comment_label">Übersetzt in %1$s</string>
+    <string name="translate_comment_failed">Das konnte nicht übersetzt werden</string>
+    <string name="translate_comment_translating">Wird übersetzt…</string>
 </resources>

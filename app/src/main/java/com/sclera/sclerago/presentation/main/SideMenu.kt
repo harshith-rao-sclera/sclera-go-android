@@ -41,6 +41,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -50,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -80,6 +82,9 @@ import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.translation.TranslateSheet
+import com.sclera.sclerago.presentation.translation.TranslateTags
+import com.sclera.sclerago.presentation.translation.TranslationViewModel
 import com.sclera.sclerago.presentation.theme.Txt
 import com.sclera.sclerago.services.media.MediaLoader
 import java.util.Locale
@@ -125,12 +130,26 @@ fun SideMenu(
     vm: AppViewModel,
     sessionVm: SessionViewModel = hiltViewModel(),
     connectivity: ConnectivityViewModel = hiltViewModel(),
+    translation: TranslationViewModel = hiltViewModel(),
 ) {
     val auth by sessionVm.authState.collectAsStateWithLifecycle()
     val online by connectivity.online.collectAsStateWithLifecycle()
     val toaster = LocalToaster.current
     val offlineNote = { toaster.show(UiText.Res(OnlineOnly.SIGN_OUT.message)) }
     val s = vm.state
+    var translateOpen by remember { mutableStateOf(false) }
+    if (translateOpen) {
+        val chosen by translation.target.collectAsStateWithLifecycle()
+        val download by translation.download.collectAsStateWithLifecycle()
+        val installed by translation.installed.collectAsStateWithLifecycle()
+        LaunchedEffect(Unit) { translation.refreshInstalled() }
+        TranslateSheet(
+            chosen, download, installed, online,
+            onPick = { code -> translation.pick(code) { translateOpen = false } },
+            onRetry = { code -> translation.retry(code) { translateOpen = false } },
+            onClose = { translateOpen = false },
+        )
+    }
     SideMenuPanel(
         open = s.menuOpen,
         session = (auth as? AuthState.SignedIn)?.session,
@@ -146,6 +165,7 @@ fun SideMenu(
         onSignOut = { if (!sessionVm.logout()) offlineNote() },
         signOutOffline = !online,
         onSignOutOffline = offlineNote,
+        onTranslate = { vm.closeMenu(); translateOpen = true },
     )
 }
 
@@ -175,6 +195,8 @@ internal fun SideMenuPanel(
     onSignOutOffline: () -> Unit = {},
     /** The group the user is in, shown before the organisation; null (unknown, or in none): their sign-in role instead. */
     group: String? = null,
+    /** Opens the Translate to sheet from the round button above Sign out; null hides the button. */
+    onTranslate: (() -> Unit)? = null,
 ) {
     BackHandler(enabled = open, onBack = onClose)
     val name = session?.displayName.orEmpty()
@@ -227,8 +249,9 @@ internal fun SideMenuPanel(
         Column(
             Modifier.fillMaxHeight().width(310.dp).background(C.Surface).endBorder(C.Border).noRippleClick { },
         ) {
+            Box(Modifier.weight(1f)) {
             Column(
-                Modifier.weight(1f).verticalScroll(rememberScrollState()).statusBarsPadding()
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding()
                     .padding(start = 14.dp, end = 14.dp, top = 20.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -311,6 +334,15 @@ internal fun SideMenuPanel(
                         }
                     }
                 }
+            }
+            if (onTranslate != null) {
+                val translateLabel = stringResource(R.string.translate_button)
+                RoundButton(
+                    42.dp, C.Yellow, onTranslate,
+                    Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 16.dp).shadow(6.dp, CircleShape)
+                        .semantics { contentDescription = translateLabel }.testTag(TranslateTags.FAB),
+                ) { Txt(stringResource(R.string.translate_glyph), 13, 800, C.OnYellow) }
+            }
             }
 
             // Sign out, pinned to the bottom
