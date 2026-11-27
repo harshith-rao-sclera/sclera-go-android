@@ -63,6 +63,7 @@ import com.sclera.sclerago.presentation.icons.Ico
 import com.sclera.sclerago.presentation.icons.Icons
 import com.sclera.sclerago.presentation.icons.LineIcon
 import com.sclera.sclerago.presentation.theme.C
+import com.sclera.sclerago.presentation.translation.TranslatedComment
 import com.sclera.sclerago.presentation.theme.ScleraFonts
 import com.sclera.sclerago.presentation.theme.Txt
 
@@ -148,7 +149,7 @@ fun CommentList(
                             )
                         }
                     } else {
-                        Txt(e.text, 14, 400, maxLines = Int.MAX_VALUE)
+                        TranslatedComment(e.text)
                     }
                     val author = e.authorName ?: someone
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

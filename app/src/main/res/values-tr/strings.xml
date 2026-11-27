@@ -580,4 +580,17 @@
     <string name="property_type_or_select_city">Şehir yazın veya seçin</string>
     <string name="property_choose_country_first">Önce bir ülke seçin</string>
     <string name="rev_back">Geri</string>
+    <string name="translate_title">Şu dile çevir</string>
+    <string name="translate_search">Dil ara</string>
+    <string name="translate_none">Çevirme</string>
+    <string name="translate_none_sub">Metni yazıldığı gibi göster</string>
+    <string name="translate_button">Çevir</string>
+    <string name="translate_row_downloading">%1$s · Adlar ve yorumlar için indiriliyor…</string>
+    <string name="translate_row_ready">%1$s · Hazır, çevrimdışı çalışır</string>
+    <string name="translate_row_failed">İndirilmedi. Adlar ve yorumlar yazıldığı gibi kalır.</string>
+    <string name="translate_try_again">Tekrar dene</string>
+    <string name="translate_no_match">Bu ada uyan dil yok.</string>
+    <string name="translate_comment_label">%1$s diline çevrildi</string>
+    <string name="translate_comment_failed">Bu çevrilemedi</string>
+    <string name="translate_comment_translating">Çevriliyor…</string>
 </resources>

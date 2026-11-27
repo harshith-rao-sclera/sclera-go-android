@@ -102,6 +102,9 @@ dependencies {
     // (services/vision/MlKitPhotoReader.kt). The bundled models work offline from the first launch.
     implementation(libs.mlkit.text.recognition)
     implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.mlkit.translate)
+    implementation(libs.mlkit.language.id)
+    implementation(libs.datastore.preferences)
     implementation(libs.exifinterface)
     // Bluetooth / Wi-Fi / access point scanning (scan/ package)
     implementation(libs.core.ktx)

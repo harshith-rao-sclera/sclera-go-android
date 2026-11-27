@@ -594,4 +594,17 @@
     <string name="property_type_or_select_city">Введіть або виберіть місто</string>
     <string name="property_choose_country_first">Спершу виберіть країну</string>
     <string name="rev_back">Назад</string>
+    <string name="translate_title">Перекласти на</string>
+    <string name="translate_search">Пошук мов</string>
+    <string name="translate_none">Не перекладати</string>
+    <string name="translate_none_sub">Показувати текст як написано</string>
+    <string name="translate_button">Перекласти</string>
+    <string name="translate_row_downloading">%1$s · Завантаження для назв і коментарів…</string>
+    <string name="translate_row_ready">%1$s · Готово, працює офлайн</string>
+    <string name="translate_row_failed">Не завантажено. Назви й коментарі залишаються як написано.</string>
+    <string name="translate_try_again">Спробувати ще раз</string>
+    <string name="translate_no_match">Жодна мова не відповідає цій назві.</string>
+    <string name="translate_comment_label">Перекладено мовою: %1$s</string>
+    <string name="translate_comment_failed">Не вдалося перекласти</string>
+    <string name="translate_comment_translating">Переклад…</string>
 </resources>

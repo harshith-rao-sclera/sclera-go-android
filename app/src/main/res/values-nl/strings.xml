@@ -580,4 +580,17 @@
     <string name="property_type_or_select_city">Typ of selecteer stad</string>
     <string name="property_choose_country_first">Kies eerst een land</string>
     <string name="rev_back">Terug</string>
+    <string name="translate_title">Vertalen naar</string>
+    <string name="translate_search">Talen zoeken</string>
+    <string name="translate_none">Niet vertalen</string>
+    <string name="translate_none_sub">Tekst tonen zoals geschreven</string>
+    <string name="translate_button">Vertalen</string>
+    <string name="translate_row_downloading">%1$s · Downloaden voor namen en opmerkingen…</string>
+    <string name="translate_row_ready">%1$s · Klaar, werkt offline</string>
+    <string name="translate_row_failed">Niet gedownload. Namen en opmerkingen blijven zoals geschreven.</string>
+    <string name="translate_try_again">Opnieuw proberen</string>
+    <string name="translate_no_match">Geen taal komt overeen met die naam.</string>
+    <string name="translate_comment_label">Vertaald naar %1$s</string>
+    <string name="translate_comment_failed">Dit kon niet worden vertaald</string>
+    <string name="translate_comment_translating">Vertalen…</string>
 </resources>

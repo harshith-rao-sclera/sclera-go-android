@@ -23,6 +23,7 @@ import com.sclera.sclerago.presentation.main.ScleraApp
 import com.sclera.sclerago.presentation.premise.PremiseViewModel
 import com.sclera.sclerago.presentation.session.SessionViewModel
 import com.sclera.sclerago.presentation.theme.ScleraTheme
+import com.sclera.sclerago.presentation.translation.AppLanguage
 import com.sclera.sclerago.utility.Utility
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra(EXTRA_SIGNED_OUT, false)) launch.onIntroFinished()
         startFreshOnSignOut()
         setContent {
+          AppLanguage {
             ScleraTheme {
                 val playIntro = launch.playIntro.collectAsStateWithLifecycle().value
                 LaunchHost(play = playIntro, onFinished = launch::onIntroFinished) {
@@ -68,6 +70,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+          }
         }
     }
 
