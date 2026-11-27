@@ -7,6 +7,9 @@ import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.Ndef
+import android.nfc.tech.NdefFormatable
+import android.os.Handler
+import android.os.Looper
 import com.sclera.sclerago.domain.model.NfcFailure
 
 /** What an NFC tag holds. */
@@ -22,6 +25,8 @@ object NfcTagReader {
      * [onFailure]) when the phone has no NFC or it is switched off. Call [stop] when done.
      */
     fun start(activity: Activity, onRead: (NfcContent) -> Unit, onFailure: (NfcFailure) -> Unit): Boolean {
+        mainHandler.removeCallbacksAndMessages(null)
+        delivered = false
         val adapter = NfcAdapter.getDefaultAdapter(activity)
         if (adapter == null) {
             onFailure(NfcFailure.UNAVAILABLE)
@@ -33,9 +38,16 @@ object NfcTagReader {
         }
         adapter.enableReaderMode(
             activity,
-            { tag -> activity.runOnUiThread { read(tag, onRead, onFailure) } },
-            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_NFC_F or NfcAdapter.FLAG_READER_NFC_V or
-                NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+            { tag ->
+                activity.runOnUiThread {
+                    // Once is enough: the tag may be seen again while the reader waits to be switched off.
+                    if (!delivered) {
+                        delivered = true
+                        read(tag, onRead, onFailure)
+                    }
+                }
+            },
+            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_NFC_F or NfcAdapter.FLAG_READER_NFC_V,
             null,
         )
         return true
@@ -47,12 +59,21 @@ object NfcTagReader {
         return if (adapter.isEnabled) null else NfcFailure.DISABLED
     }
 
+    /**
+     * Stops listening after a short grace period: the tag is usually still against the phone, and switching reader mode off at
+     * once hands it to the system, which shows "no supported application for this NFC tag".
+     */
     fun stop(activity: Activity) {
-        runCatching { NfcAdapter.getDefaultAdapter(activity)?.disableReaderMode(activity) }
+        mainHandler.postDelayed(
+            { runCatching { NfcAdapter.getDefaultAdapter(activity)?.disableReaderMode(activity) } },
+            TAG_RELEASE_MS,
+        )
     }
 
     private fun read(tag: Tag, onRead: (NfcContent) -> Unit, onFailure: (NfcFailure) -> Unit) {
-        val ndef = Ndef.get(tag) ?: return onFailure(NfcFailure.FAILED)
+        val ndef = Ndef.get(tag)
+            // A chip that can be formatted but holds nothing has no NDEF part yet: it is blank, not unreadable.
+            ?: return if (NdefFormatable.get(tag) != null) onRead(NfcContent("", isBlank = true)) else onFailure(NfcFailure.FAILED)
         val message = try {
             ndef.connect()
             ndef.ndefMessage
@@ -83,6 +104,10 @@ object NfcTagReader {
         val start = 1 + languageLength
         return if (start <= payload.size) String(payload, start, payload.size - start, charset) else null
     }
+
+    private const val TAG_RELEASE_MS = 3000L
+    private var delivered = false
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private const val LANGUAGE_MASK = 0x3F
     private const val UTF16_FLAG = 0x80
